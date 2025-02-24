@@ -13,6 +13,7 @@ import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
+import { cn } from "@/lib/utils";
 
 interface AllyFormProps {
   clientId: number;
@@ -98,17 +99,47 @@ export default function AllyForm({ clientId, onComplete }: AllyFormProps) {
                 <FormItem className="mb-4">
                   <FormLabel>Relationship to Client</FormLabel>
                   <FormControl>
-                    <Input 
-                      type="text"
-                      list="relationships"
-                      placeholder="Search relationship..."
-                      {...field}
-                    />
-                    <datalist id="relationships">
-                      {RELATIONSHIP_OPTIONS.map((option) => (
-                        <option key={option} value={option} />
-                      ))}
-                    </datalist>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          className={cn(
+                            "w-full justify-between",
+                            !field.value && "text-muted-foreground"
+                          )}
+                        >
+                          {field.value
+                            ? RELATIONSHIP_OPTIONS.find(
+                                (option) => option === field.value
+                              )
+                            : "Select relationship"}
+                          <CaretSortIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent align="start" className="w-[--radix-popover-trigger-width] p-0">
+                        <Command>
+                          <CommandInput placeholder="Search relationship..." />
+                          <CommandEmpty>No relationship found.</CommandEmpty>
+                          <CommandGroup>
+                            {RELATIONSHIP_OPTIONS.map((option) => (
+                              <CommandItem
+                                key={option}
+                                value={option}
+                                onSelect={() => form.setValue("relationship", option)}
+                                className="flex items-center"
+                              >
+                                <CheckIcon
+                                  className="mr-2 h-4 w-4 flex-shrink-0"
+                                  style={{ opacity: field.value === option ? 1 : 0 }}
+                                />
+                                <span>{option}</span>
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
                   </FormControl>
                   <FormMessage />
                 </FormItem>
