@@ -1,0 +1,104 @@
+import { 
+  Client, InsertClient,
+  Ally, InsertAlly,
+  Goal, InsertGoal,
+  Subgoal, InsertSubgoal,
+  BudgetItem, InsertBudgetItem
+} from "@shared/schema";
+
+export interface IStorage {
+  // Clients
+  createClient(client: InsertClient): Promise<Client>;
+  getClient(id: number): Promise<Client | undefined>;
+  
+  // Allies
+  createAlly(clientId: number, ally: InsertAlly): Promise<Ally>;
+  getAlliesByClient(clientId: number): Promise<Ally[]>;
+  
+  // Goals
+  createGoal(clientId: number, goal: InsertGoal): Promise<Goal>;
+  getGoalsByClient(clientId: number): Promise<Goal[]>;
+  
+  // Subgoals  
+  createSubgoal(goalId: number, subgoal: InsertSubgoal): Promise<Subgoal>;
+  getSubgoalsByGoal(goalId: number): Promise<Subgoal[]>;
+  
+  // Budget Items
+  createBudgetItem(clientId: number, item: InsertBudgetItem): Promise<BudgetItem>;
+  getBudgetItemsByClient(clientId: number): Promise<BudgetItem[]>;
+}
+
+export class MemStorage implements IStorage {
+  private clients: Map<number, Client>;
+  private allies: Map<number, Ally>;
+  private goals: Map<number, Goal>;
+  private subgoals: Map<number, Subgoal>;
+  private budgetItems: Map<number, BudgetItem>;
+  private currentId: number;
+
+  constructor() {
+    this.clients = new Map();
+    this.allies = new Map();
+    this.goals = new Map();
+    this.subgoals = new Map();
+    this.budgetItems = new Map();
+    this.currentId = 1;
+  }
+
+  async createClient(client: InsertClient): Promise<Client> {
+    const id = this.currentId++;
+    const newClient = { ...client, id };
+    this.clients.set(id, newClient);
+    return newClient;
+  }
+
+  async getClient(id: number): Promise<Client | undefined> {
+    return this.clients.get(id);
+  }
+
+  async createAlly(clientId: number, ally: InsertAlly): Promise<Ally> {
+    const id = this.currentId++;
+    const newAlly = { ...ally, id, clientId };
+    this.allies.set(id, newAlly);
+    return newAlly;
+  }
+
+  async getAlliesByClient(clientId: number): Promise<Ally[]> {
+    return Array.from(this.allies.values()).filter(ally => ally.clientId === clientId);
+  }
+
+  async createGoal(clientId: number, goal: InsertGoal): Promise<Goal> {
+    const id = this.currentId++;
+    const newGoal = { ...goal, id, clientId };
+    this.goals.set(id, newGoal);
+    return newGoal;
+  }
+
+  async getGoalsByClient(clientId: number): Promise<Goal[]> {
+    return Array.from(this.goals.values()).filter(goal => goal.clientId === clientId);
+  }
+
+  async createSubgoal(goalId: number, subgoal: InsertSubgoal): Promise<Subgoal> {
+    const id = this.currentId++;
+    const newSubgoal = { ...subgoal, id, goalId };
+    this.subgoals.set(id, newSubgoal);
+    return newSubgoal;
+  }
+
+  async getSubgoalsByGoal(goalId: number): Promise<Subgoal[]> {
+    return Array.from(this.subgoals.values()).filter(subgoal => subgoal.goalId === goalId);
+  }
+
+  async createBudgetItem(clientId: number, item: InsertBudgetItem): Promise<BudgetItem> {
+    const id = this.currentId++;
+    const newItem = { ...item, id, clientId };
+    this.budgetItems.set(id, newItem);
+    return newItem;
+  }
+
+  async getBudgetItemsByClient(clientId: number): Promise<BudgetItem[]> {
+    return Array.from(this.budgetItems.values()).filter(item => item.clientId === clientId);
+  }
+}
+
+export const storage = new MemStorage();

@@ -1,0 +1,67 @@
+import { useState } from "react";
+import { Progress } from "@/components/ui/progress";
+import ClientForm from "@/components/onboarding/ClientForm";
+import AllyForm from "@/components/onboarding/AllyForm";
+import GoalsForm from "@/components/onboarding/GoalsForm";
+import BudgetForm from "@/components/onboarding/BudgetForm";
+import { useLocation } from "wouter";
+
+const steps = ["Client Information", "Allies", "Goals", "Budget"];
+
+export default function Home() {
+  const [step, setStep] = useState(0);
+  const [clientId, setClientId] = useState<number | null>(null);
+  const [, setLocation] = useLocation();
+  
+  const progress = ((step + 1) / steps.length) * 100;
+
+  const handleNext = () => {
+    if (step === steps.length - 1) {
+      setLocation(`/summary/${clientId}`);
+    } else {
+      setStep(step + 1);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-background">
+      <div className="container mx-auto py-8">
+        <h1 className="text-3xl font-bold mb-8">Speech Therapy Onboarding</h1>
+        
+        <div className="mb-8">
+          <div className="flex justify-between mb-2">
+            {steps.map((s, i) => (
+              <span
+                key={s}
+                className={`text-sm ${
+                  i <= step ? "text-primary" : "text-muted-foreground"
+                }`}
+              >
+                {s}
+              </span>
+            ))}
+          </div>
+          <Progress value={progress} className="h-2" />
+        </div>
+
+        <div className="bg-card rounded-lg shadow-sm p-6">
+          {step === 0 && (
+            <ClientForm onComplete={(id) => {
+              setClientId(id);
+              handleNext();
+            }} />
+          )}
+          {step === 1 && clientId && (
+            <AllyForm clientId={clientId} onComplete={handleNext} />
+          )}
+          {step === 2 && clientId && (
+            <GoalsForm clientId={clientId} onComplete={handleNext} />
+          )}
+          {step === 3 && clientId && (
+            <BudgetForm clientId={clientId} onComplete={handleNext} />
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
