@@ -118,10 +118,8 @@ export default function AllyForm({ clientId, onComplete }: AllyFormProps) {
                                 }}
                               >
                                 <CheckIcon
-                                  className={cn(
-                                    "mr-2 h-4 w-4",
-                                    field.value === option ? "opacity-100" : "opacity-0"
-                                  )}
+                                  className="mr-2 h-4 w-4"
+                                  style={{ opacity: field.value === option ? 1 : 0 }}
                                 />
                                 {option}
                               </CommandItem>
@@ -163,10 +161,8 @@ export default function AllyForm({ clientId, onComplete }: AllyFormProps) {
                                 }}
                               >
                                 <CheckIcon
-                                  className={cn(
-                                    "mr-2 h-4 w-4",
-                                    field.value === option ? "opacity-100" : "opacity-0"
-                                  )}
+                                  className="mr-2 h-4 w-4"
+                                  style={{ opacity: field.value === option ? 1 : 0 }}
                                 />
                                 {option}
                               </CommandItem>
