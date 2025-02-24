@@ -168,15 +168,14 @@ export default function AllyForm({ clientId, onComplete }: AllyFormProps) {
                             {LANGUAGE_OPTIONS.map((option) => (
                               <CommandItem
                                 key={option}
-                                value={option}
-                                onSelect={() => form.setValue("preferredLanguage", option)}
-                                className="flex items-center"
+                                onSelect={() => {
+                                  field.onChange(option);
+                                }}
                               >
                                 <CheckIcon
-                                  className="mr-2 h-4 w-4 flex-shrink-0"
+                                  className="mr-2 h-4 w-4"
                                   style={{ opacity: field.value === option ? 1 : 0 }}
                                 />
-                                <span>{option}</span>
                                 {option}
                               </CommandItem>
                             ))}
