@@ -168,7 +168,7 @@ export default function AllyForm({ clientId, onComplete }: AllyFormProps) {
                         </Button>
                       </FormControl>
                     </PopoverTrigger>
-                    <PopoverContent className="w-full p-0">
+                    <PopoverContent align="start" className="w-[--radix-popover-trigger-width] p-0">
                       <Command>
                         <CommandInput placeholder="Search language..." />
                         <CommandEmpty>No language found.</CommandEmpty>
