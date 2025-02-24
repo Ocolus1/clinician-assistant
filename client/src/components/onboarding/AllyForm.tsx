@@ -98,36 +98,17 @@ export default function AllyForm({ clientId, onComplete }: AllyFormProps) {
                 <FormItem className="mb-4">
                   <FormLabel>Relationship to Client</FormLabel>
                   <FormControl>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button variant="outline" className="w-full justify-between">
-                          {field.value || "Select relationship"}
-                          <CaretSortIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-full p-0">
-                        <Command>
-                          <CommandInput placeholder="Search relationship..." />
-                          <CommandEmpty>No relationship found.</CommandEmpty>
-                          <CommandGroup>
-                            {RELATIONSHIP_OPTIONS.map((option) => (
-                              <CommandItem
-                                key={option}
-                                onSelect={() => {
-                                  field.onChange(option);
-                                }}
-                              >
-                                <CheckIcon
-                                  className="mr-2 h-4 w-4"
-                                  style={{ opacity: field.value === option ? 1 : 0 }}
-                                />
-                                {option}
-                              </CommandItem>
-                            ))}
-                          </CommandGroup>
-                        </Command>
-                      </PopoverContent>
-                    </Popover>
+                    <Input 
+                      type="text"
+                      list="relationships"
+                      placeholder="Search relationship..."
+                      {...field}
+                    />
+                    <datalist id="relationships">
+                      {RELATIONSHIP_OPTIONS.map((option) => (
+                        <option key={option} value={option} />
+                      ))}
+                    </datalist>
                   </FormControl>
                   <FormMessage />
                 </FormItem>
