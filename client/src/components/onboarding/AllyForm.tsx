@@ -145,7 +145,7 @@ export default function AllyForm({ clientId, onComplete }: AllyFormProps) {
                                   className="mr-2 h-4 w-4"
                                   style={{ opacity: field.value === option ? 1 : 0 }}
                                 />
-                                <span>{option}</span>
+                                <div className="flex-1">{option}</div>
                               </CommandItem>
                             ))}
                           </CommandGroup>
