@@ -4,10 +4,34 @@
 
 @layer base {
   * {
-    @apply border-border;
+    @apply border-google-gray-300;
   }
 
   body {
-    @apply font-sans antialiased bg-background text-foreground;
+    @apply font-sans antialiased bg-google-gray-50 text-google-gray-900;
+  }
+
+  h1 {
+    @apply text-[2.75rem] font-normal leading-tight text-google-gray-900;
+  }
+
+  h2 {
+    @apply text-[1.75rem] font-normal leading-normal text-google-gray-800;
+  }
+
+  p {
+    @apply text-base leading-relaxed text-google-gray-700;
+  }
+
+  .sidebar {
+    @apply w-sidebar bg-white border-r border-google-gray-200 fixed h-full left-0 top-0;
+  }
+
+  .main-content {
+    @apply ml-sidebar min-h-screen p-8;
+  }
+
+  .button-primary {
+    @apply bg-google-blue text-white px-6 py-2 rounded hover:bg-blue-600 transition-colors;
   }
 }

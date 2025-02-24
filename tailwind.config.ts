@@ -5,12 +5,28 @@ export default {
   content: ["./client/index.html", "./client/src/**/*.{js,jsx,ts,tsx}"],
   theme: {
     extend: {
+      spacing: {
+        sidebar: '240px',
+      },
       borderRadius: {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
       },
       colors: {
+        "google-blue": "#1a73e8",
+        "google-gray": {
+          50: "#f8f9fa",
+          100: "#f1f3f4",
+          200: "#e8eaed",
+          300: "#dadce0",
+          400: "#bdc1c6",
+          500: "#9aa0a6",
+          600: "#80868b",
+          700: "#5f6368",
+          800: "#3c4043",
+          900: "#202124",
+        },
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
         card: {
