@@ -152,38 +152,45 @@ export default function AllyForm({ clientId, onComplete }: AllyFormProps) {
               render={({ field }) => (
                 <FormItem className="mb-4">
                   <FormLabel>Preferred Language</FormLabel>
-                  <FormControl>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button variant="outline" className="w-full justify-between">
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <FormControl>
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          className={cn(
+                            "w-full justify-between",
+                            !field.value && "text-muted-foreground"
+                          )}
+                        >
                           {field.value || "Select language"}
                           <CaretSortIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                         </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-full p-0">
-                        <Command>
-                          <CommandInput placeholder="Search language..." />
-                          <CommandEmpty>No language found.</CommandEmpty>
-                          <CommandGroup>
-                            {LANGUAGE_OPTIONS.map((option) => (
-                              <CommandItem
-                                key={option}
-                                onSelect={() => {
-                                  field.onChange(option);
-                                }}
-                              >
-                                <CheckIcon
-                                  className="mr-2 h-4 w-4"
-                                  style={{ opacity: field.value === option ? 1 : 0 }}
-                                />
-                                {option}
-                              </CommandItem>
-                            ))}
-                          </CommandGroup>
-                        </Command>
-                      </PopoverContent>
-                    </Popover>
-                  </FormControl>
+                      </FormControl>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-full p-0">
+                      <Command>
+                        <CommandInput placeholder="Search language..." />
+                        <CommandEmpty>No language found.</CommandEmpty>
+                        <CommandGroup>
+                          {["English", "Spanish", "French", "Mandarin", "Arabic"].map((option) => (
+                            <CommandItem
+                              key={option}
+                              value={option}
+                              onSelect={() => form.setValue("preferredLanguage", option)}
+                              className="flex items-center"
+                            >
+                              <CheckIcon
+                                className="mr-2 h-4 w-4 flex-shrink-0"
+                                style={{ opacity: field.value === option ? 1 : 0 }}
+                              />
+                              <span>{option}</span>
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
                   <FormMessage />
                 </FormItem>
               )}
