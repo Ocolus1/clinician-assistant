@@ -1,3 +1,9 @@
+
+import { CaretSortIcon, CheckIcon } from "@radix-ui/react-icons";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
+import { RELATIONSHIP_OPTIONS, LANGUAGE_OPTIONS } from "@/lib/constants";
+
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertAllySchema } from "@shared/schema";
@@ -93,7 +99,38 @@ export default function AllyForm({ clientId, onComplete }: AllyFormProps) {
                 <FormItem className="mb-4">
                   <FormLabel>Relationship to Client</FormLabel>
                   <FormControl>
-                    <Input {...field} />
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" className="w-full justify-between">
+                          {field.value || "Select relationship"}
+                          <CaretSortIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-full p-0">
+                        <Command>
+                          <CommandInput placeholder="Search relationship..." />
+                          <CommandEmpty>No relationship found.</CommandEmpty>
+                          <CommandGroup>
+                            {RELATIONSHIP_OPTIONS.map((option) => (
+                              <CommandItem
+                                key={option}
+                                onSelect={() => {
+                                  field.onChange(option);
+                                }}
+                              >
+                                <CheckIcon
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    field.value === option ? "opacity-100" : "opacity-0"
+                                  )}
+                                />
+                                {option}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -107,7 +144,38 @@ export default function AllyForm({ clientId, onComplete }: AllyFormProps) {
                 <FormItem className="mb-4">
                   <FormLabel>Preferred Language</FormLabel>
                   <FormControl>
-                    <Input {...field} />
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" className="w-full justify-between">
+                          {field.value || "Select language"}
+                          <CaretSortIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-full p-0">
+                        <Command>
+                          <CommandInput placeholder="Search language..." />
+                          <CommandEmpty>No language found.</CommandEmpty>
+                          <CommandGroup>
+                            {LANGUAGE_OPTIONS.map((option) => (
+                              <CommandItem
+                                key={option}
+                                onSelect={() => {
+                                  field.onChange(option);
+                                }}
+                              >
+                                <CheckIcon
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    field.value === option ? "opacity-100" : "opacity-0"
+                                  )}
+                                />
+                                {option}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
                   </FormControl>
                   <FormMessage />
                 </FormItem>
