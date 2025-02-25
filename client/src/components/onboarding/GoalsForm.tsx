@@ -48,10 +48,13 @@ export default function GoalsForm({ clientId, onComplete }: GoalsFormProps) {
   const [showSubgoalForm, setShowSubgoalForm] = useState(false);
   const [showGoalDeleteDialog, setShowGoalDeleteDialog] = useState(false);
   const [showSubgoalDeleteDialog, setShowSubgoalDeleteDialog] = useState(false);
-  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [showGoalEditDialog, setShowGoalEditDialog] = useState(false); // Updated
+  const [showSubgoalEditDialog, setShowSubgoalEditDialog] = useState(false); // Added
   const [goalToDelete, setGoalToDelete] = useState<number | null>(null);
   const [subgoalToDelete, setSubgoalToDelete] = useState<number | null>(null);
   const [goalToEdit, setGoalToEdit] = useState<any | null>(null);
+  const [subgoalToEdit, setSubgoalToEdit] = useState<any | null>(null); // Added
+
 
   const goalForm = useForm({
     resolver: zodResolver(insertGoalSchema),
@@ -126,7 +129,7 @@ export default function GoalsForm({ clientId, onComplete }: GoalsFormProps) {
       return res.json();
     },
     onSuccess: () => {
-      setShowDeleteDialog(false);
+      setShowGoalDeleteDialog(false);
       setGoalToDelete(null);
       queryClient.invalidateQueries({ queryKey: ["/api/clients", clientId, "goals"] });
       toast({
@@ -142,7 +145,7 @@ export default function GoalsForm({ clientId, onComplete }: GoalsFormProps) {
       return res.json();
     },
     onSuccess: () => {
-      setShowEditDialog(false);
+      setShowGoalEditDialog(false); // Updated
       setGoalToEdit(null);
       queryClient.invalidateQueries({ queryKey: ["/api/clients", clientId, "goals"] });
       toast({
@@ -174,7 +177,7 @@ export default function GoalsForm({ clientId, onComplete }: GoalsFormProps) {
       return res.json();
     },
     onSuccess: () => {
-      setShowEditDialog(false);
+      setShowSubgoalEditDialog(false); // Added
       queryClient.invalidateQueries({ queryKey: ["/api/goals", selectedGoalId, "subgoals"] });
       toast({
         title: "Success",
@@ -221,12 +224,12 @@ export default function GoalsForm({ clientId, onComplete }: GoalsFormProps) {
                                   className="h-6 w-6"
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    setGoalToEdit(subgoal);
+                                    setSubgoalToEdit(subgoal); // Updated
                                     subgoalForm.reset({
                                       title: subgoal.title,
                                       description: subgoal.description,
                                     });
-                                    setShowEditDialog(true);
+                                    setShowSubgoalEditDialog(true); // Updated
                                   }}
                                 >
                                   <Pencil className="h-3 w-3" />
@@ -262,7 +265,7 @@ export default function GoalsForm({ clientId, onComplete }: GoalsFormProps) {
                           description: goal.description,
                           priority: goal.priority
                         });
-                        setShowEditDialog(true);
+                        setShowGoalEditDialog(true); // Updated
                       }}
                     >
                       <Pencil className="h-4 w-4" />
@@ -471,7 +474,7 @@ export default function GoalsForm({ clientId, onComplete }: GoalsFormProps) {
         </AlertDialogContent>
       </AlertDialog>
 
-      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+      <Dialog open={showGoalEditDialog} onOpenChange={setShowGoalEditDialog}> {/* Updated */}
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Edit Goal</DialogTitle>
@@ -537,6 +540,57 @@ export default function GoalsForm({ clientId, onComplete }: GoalsFormProps) {
                 disabled={editGoal.isPending}
               >
                 {editGoal.isPending ? "Saving..." : "Save Changes"}
+              </Button>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showSubgoalEditDialog} onOpenChange={setShowSubgoalEditDialog}> {/* Added */}
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Subgoal</DialogTitle>
+          </DialogHeader>
+          <Form {...subgoalForm}>
+            <form onSubmit={subgoalForm.handleSubmit((data) => {
+              if (subgoalToEdit) {
+                editSubgoal.mutate({ id: subgoalToEdit.id, data });
+              }
+            })}>
+              <FormField
+                control={subgoalForm.control}
+                name="title"
+                render={({ field }) => (
+                  <FormItem className="mb-4">
+                    <FormLabel>Subgoal Title</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={subgoalForm.control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem className="mb-4">
+                    <FormLabel>Description</FormLabel>
+                    <FormControl>
+                      <Textarea {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <Button 
+                type="submit" 
+                className="w-full"
+                disabled={editSubgoal.isPending}
+              >
+                {editSubgoal.isPending ? "Saving..." : "Save Changes"}
               </Button>
             </form>
           </Form>
