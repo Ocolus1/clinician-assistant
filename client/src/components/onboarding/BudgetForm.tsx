@@ -16,7 +16,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { insertBudgetItemSchema } from "@/lib/schema";
 import { apiRequest } from "@/lib/api";
 
