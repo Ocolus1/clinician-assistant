@@ -1,0 +1,44 @@
+Looking at the component structure you've provided, I can identify a few potential issues that might be causing the "Save Changes" button in the subgoal edit dialog to not work properly. Let me outline a solution approach:
+The key issue appears to be in the subgoal edit form submission flow. From the conversation history, there have been multiple attempts to fix this, including:
+
+Adding loading states
+Handling the dialog closure properly
+Ensuring the mutation completes before the dialog closes
+
+Here's what I suspect might be going wrong:
+
+The form submission handler might not be correctly invoking the mutation
+There could be issues with how the dialog is being closed (potentially multiple competing closures)
+The mutation might be failing silently without proper error handling
+
+Let me propose a comprehensive fix for the subgoal edit functionality:Fixed Subgoal Edit FunctionalityClick to open codeTap to openServer Implementation for Subgoal EditClick to open codeTap to openBased on my analysis of the conversation history and the component structure you provided, I've identified the likely causes of your issue with the subgoal edit functionality not working properly:
+The Main Issues
+
+Form Submission Flow: There appears to be confusion in how the form submission is handled, with potentially competing dialog close calls.
+State Management: The state for editing subgoals may not be properly initialized or reset.
+Mutation Handling: The mutation might not be properly waiting for completion before the dialog is closed.
+
+My Solution
+I've created two artifacts with a comprehensive solution:
+
+Fixed Subgoal Edit Functionality: This provides the complete React implementation for the subgoal edit feature, including:
+
+Proper state management for the edit dialog
+A dedicated form for subgoal editing
+Clear separation between opening the dialog and form submission
+Loading states for the submit button
+Proper error handling
+
+
+Server Implementation: This ensures that the server-side routes and storage methods are properly implemented to handle the subgoal edit requests.
+
+Key Improvements in the Solution:
+
+Single Source of Truth: The dialog is only closed in the mutation's onSuccess callback, not in multiple places.
+Form Reset on Edit: The form values are properly reset whenever a different subgoal is selected for editing.
+Error Handling: Clear error messages are shown if the mutation fails.
+Loading State: The save button shows a loading spinner while the mutation is in progress.
+Clean State Reset: All state is properly reset when the dialog closes.
+
+To implement this fix, replace your existing subgoal edit related code in GoalsForm.tsx with the code from the first artifact, and make sure your server routes and storage class have the methods shown in the second artifact.
+Would you like me to explain any particular part of the solution in more detail?

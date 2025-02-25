@@ -1,0 +1,168 @@
+// Place this code in the GoalsForm.tsx file
+// Make sure to replace the existing subgoal edit related code with this implementation
+
+// 1. Make sure you have this state for the subgoal edit functionality
+const [subgoalToEdit, setSubgoalToEdit] = useState(null);
+const [showSubgoalEditDialog, setShowSubgoalEditDialog] = useState(false);
+
+// 2. Update the editSubgoal mutation with proper callbacks
+const editSubgoalMutation = useMutation({
+  mutationFn: async (data: { id: number; title: string; description: string }) => {
+    const response = await fetch(`/api/subgoals/${data.id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        title: data.title,
+        description: data.description,
+      }),
+    });
+    
+    if (!response.ok) {
+      throw new Error('Failed to update subgoal');
+    }
+    
+    return response.json();
+  },
+  onSuccess: () => {
+    // Invalidate relevant queries to refresh data
+    queryClient.invalidateQueries(['goals', clientId]);
+    queryClient.invalidateQueries(['subgoals']);
+    
+    // Close the dialog and reset state
+    setShowSubgoalEditDialog(false);
+    setSubgoalToEdit(null);
+    
+    // Show success message
+    toast({
+      title: 'Subgoal updated',
+      description: 'Your subgoal has been updated successfully.',
+      variant: 'success',
+    });
+  },
+  onError: (error) => {
+    console.error('Error updating subgoal:', error);
+    toast({
+      title: 'Failed to update subgoal',
+      description: 'An error occurred while updating the subgoal.',
+      variant: 'destructive',
+    });
+  },
+});
+
+// 3. Add this subgoal edit form
+const subgoalEditForm = useForm({
+  defaultValues: {
+    title: '',
+    description: '',
+  },
+  resolver: zodResolver(
+    z.object({
+      title: z.string().min(1, 'Title is required'),
+      description: z.string().optional(),
+    })
+  ),
+});
+
+// 4. Add this effect to set form values when a subgoal is selected for editing
+useEffect(() => {
+  if (subgoalToEdit) {
+    subgoalEditForm.reset({
+      title: subgoalToEdit.title,
+      description: subgoalToEdit.description || '',
+    });
+  } else {
+    subgoalEditForm.reset({
+      title: '',
+      description: '',
+    });
+  }
+}, [subgoalToEdit, subgoalEditForm]);
+
+// 5. Add this handler for the subgoal edit form submission
+const handleSubgoalEditSubmit = subgoalEditForm.handleSubmit(async (data) => {
+  if (!subgoalToEdit) return;
+  
+  try {
+    await editSubgoalMutation.mutateAsync({
+      id: subgoalToEdit.id,
+      title: data.title,
+      description: data.description,
+    });
+    // The dialog will be closed in the onSuccess callback of the mutation
+  } catch (error) {
+    // Error is handled in the onError callback of the mutation
+    console.error('Failed to edit subgoal:', error);
+  }
+});
+
+// 6. Add this function to open the edit dialog for a subgoal
+const openSubgoalEditDialog = (subgoal) => {
+  setSubgoalToEdit(subgoal);
+  setShowSubgoalEditDialog(true);
+};
+
+// 7. Add this Dialog component for the subgoal edit form
+// Make sure this is in your component's JSX return
+<Dialog open={showSubgoalEditDialog} onOpenChange={(open) => {
+  setShowSubgoalEditDialog(open);
+  if (!open) setSubgoalToEdit(null);
+}}>
+  <DialogContent className="sm:max-w-[425px]">
+    <DialogHeader>
+      <DialogTitle>Edit Subgoal</DialogTitle>
+    </DialogHeader>
+    <form onSubmit={handleSubgoalEditSubmit}>
+      <div className="grid gap-4 py-4">
+        <div className="grid gap-2">
+          <Label htmlFor="subgoalTitle">Subgoal Title</Label>
+          <Input
+            id="subgoalTitle"
+            {...subgoalEditForm.register('title')}
+          />
+          {subgoalEditForm.formState.errors.title && (
+            <p className="text-sm text-red-500">
+              {subgoalEditForm.formState.errors.title.message}
+            </p>
+          )}
+        </div>
+        <div className="grid gap-2">
+          <Label htmlFor="subgoalDescription">Description</Label>
+          <Textarea
+            id="subgoalDescription"
+            {...subgoalEditForm.register('description')}
+          />
+        </div>
+      </div>
+      <DialogFooter>
+        <Button
+          type="submit"
+          disabled={editSubgoalMutation.isPending}
+        >
+          {editSubgoalMutation.isPending ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Saving...
+            </>
+          ) : (
+            'Save Changes'
+          )}
+        </Button>
+      </DialogFooter>
+    </form>
+  </DialogContent>
+</Dialog>
+
+// 8. In your subgoal rendering code, make sure the edit button calls openSubgoalEditDialog
+<Button
+  variant="ghost"
+  size="icon"
+  className="h-3 w-3 opacity-0 group-hover:opacity-100"
+  onClick={(e) => {
+    e.stopPropagation();
+    openSubgoalEditDialog(subgoal);
+  }}
+>
+  <Pencil className="h-3 w-3" />
+</Button>
