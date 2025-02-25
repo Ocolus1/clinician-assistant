@@ -1,8 +1,8 @@
+
 import { CaretSortIcon, CheckIcon } from "@radix-ui/react-icons";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
 import { RELATIONSHIP_OPTIONS, LANGUAGE_OPTIONS } from "@/lib/constants";
-
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertAllySchema } from "@shared/schema";
@@ -14,6 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { cn } from "@/lib/utils";
+import { Card } from "@/components/ui/card";
 
 interface AllyFormProps {
   clientId: number;
@@ -62,210 +63,235 @@ export default function AllyForm({ clientId, onComplete }: AllyFormProps) {
   const canAddMore = allies.length < 5;
 
   return (
-    <div>
-      <div className="mb-6">
-        <h3 className="text-lg font-semibold mb-2">Current Allies ({allies.length}/5)</h3>
-        <div className="space-y-2">
+    <div className="grid grid-cols-2 gap-6">
+      <div>
+        <h3 className="text-lg font-semibold mb-4">Current Allies ({allies.length}/5)</h3>
+        <div className="space-y-4">
           {allies.map((ally: any) => (
-            <div key={ally.id} className="p-3 bg-muted rounded-md">
-              <p className="font-medium">{ally.name}</p>
+            <Card key={ally.id} className="p-4">
+              <h4 className="font-medium">{ally.name}</h4>
               <p className="text-sm text-muted-foreground">{ally.relationship}</p>
-            </div>
+              <p className="text-sm text-muted-foreground">{ally.email}</p>
+              <div className="mt-2 flex gap-4 text-sm">
+                <span className={ally.accessTherapeutics ? "text-primary" : "text-muted-foreground"}>
+                  Therapeutics Access
+                </span>
+                <span className={ally.accessFinancials ? "text-primary" : "text-muted-foreground"}>
+                  Financial Access
+                </span>
+              </div>
+            </Card>
           ))}
         </div>
       </div>
 
-      {canAddMore ? (
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit((data) => createAlly.mutate(data))}>
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem className="mb-4">
-                  <FormLabel>Name</FormLabel>
-                  <FormControl>
-                    <Input {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+      <div>
+        {canAddMore ? (
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit((data) => createAlly.mutate(data))}>
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem className="mb-4">
+                    <FormLabel>Name</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-            <FormField
-              control={form.control}
-              name="relationship"
-              render={({ field }) => (
-                <FormItem className="mb-4">
-                  <FormLabel>Relationship to Client</FormLabel>
-                  <FormControl>
+              <FormField
+                control={form.control}
+                name="relationship"
+                render={({ field }) => (
+                  <FormItem className="mb-4">
+                    <FormLabel>Relationship to Client</FormLabel>
                     <Popover>
                       <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          role="combobox"
-                          className={cn(
-                            "w-full justify-between",
-                            !field.value && "text-muted-foreground"
-                          )}
-                        >
-                          {field.value
-                            ? RELATIONSHIP_OPTIONS.find(
-                                (option) => option === field.value
-                              )
-                            : "Select relationship"}
-                          <CaretSortIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                        </Button>
+                        <FormControl>
+                          <Button
+                            variant="outline"
+                            role="combobox"
+                            className={cn(
+                              "w-full justify-between",
+                              !field.value && "text-muted-foreground"
+                            )}
+                          >
+                            {field.value
+                              ? RELATIONSHIP_OPTIONS.find(
+                                  (option) => option.value === field.value
+                                )?.label
+                              : "Select relationship"}
+                            <CaretSortIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
+                        </FormControl>
                       </PopoverTrigger>
-                      <PopoverContent align="start" className="w-[--radix-popover-trigger-width] p-0">
+                      <PopoverContent className="w-full p-0">
                         <Command>
                           <CommandInput placeholder="Search relationship..." />
                           <CommandEmpty>No relationship found.</CommandEmpty>
                           <CommandGroup>
                             {RELATIONSHIP_OPTIONS.map((option) => (
                               <CommandItem
-                                key={option}
-                                value={option}
-                                onSelect={() => form.setValue("relationship", option)}
-                                className="flex items-center"
+                                value={option.label}
+                                key={option.value}
+                                onSelect={() => {
+                                  form.setValue("relationship", option.value);
+                                }}
                               >
                                 <CheckIcon
-                                  className="mr-2 h-4 w-4 flex-shrink-0"
-                                  style={{ opacity: field.value === option ? 1 : 0 }}
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    option.value === field.value
+                                      ? "opacity-100"
+                                      : "opacity-0"
+                                  )}
                                 />
-                                <span>{option}</span>
+                                {option.label}
                               </CommandItem>
                             ))}
                           </CommandGroup>
                         </Command>
                       </PopoverContent>
                     </Popover>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-            <FormField
-              control={form.control}
-              name="preferredLanguage"
-              render={({ field }) => (
-                <FormItem className="mb-4">
-                  <FormLabel>Preferred Language</FormLabel>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <FormControl>
-                        <Button
-                          variant="outline"
-                          role="combobox"
-                          className={cn(
-                            "w-full justify-between",
-                            !field.value && "text-muted-foreground"
-                          )}
-                        >
-                          {field.value || "Select language"}
-                          <CaretSortIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                        </Button>
-                      </FormControl>
-                    </PopoverTrigger>
-                    <PopoverContent align="start" className="w-[--radix-popover-trigger-width] p-0">
-                      <Command>
-                        <CommandInput placeholder="Search language..." />
-                        <CommandEmpty>No language found.</CommandEmpty>
-                        <CommandGroup>
-                          {["English", "Spanish", "French", "Mandarin", "Arabic"].map((option) => (
-                            <CommandItem
-                              key={option}
-                              value={option}
-                              onSelect={() => form.setValue("preferredLanguage", option)}
-                              className="flex items-center"
-                            >
-                              <CheckIcon
-                                className="mr-2 h-4 w-4 flex-shrink-0"
-                                style={{ opacity: field.value === option ? 1 : 0 }}
-                              />
-                              <span>{option}</span>
-                            </CommandItem>
-                          ))}
-                        </CommandGroup>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+              <FormField
+                control={form.control}
+                name="preferredLanguage"
+                render={({ field }) => (
+                  <FormItem className="mb-4">
+                    <FormLabel>Preferred Language</FormLabel>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant="outline"
+                            role="combobox"
+                            className={cn(
+                              "w-full justify-between",
+                              !field.value && "text-muted-foreground"
+                            )}
+                          >
+                            {field.value
+                              ? LANGUAGE_OPTIONS.find(
+                                  (option) => option.value === field.value
+                                )?.label
+                              : "Select language"}
+                            <CaretSortIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-full p-0">
+                        <Command>
+                          <CommandInput placeholder="Search language..." />
+                          <CommandEmpty>No language found.</CommandEmpty>
+                          <CommandGroup>
+                            {LANGUAGE_OPTIONS.map((option) => (
+                              <CommandItem
+                                value={option.label}
+                                key={option.value}
+                                onSelect={() => {
+                                  form.setValue("preferredLanguage", option.value);
+                                }}
+                              >
+                                <CheckIcon
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    option.value === field.value
+                                      ? "opacity-100"
+                                      : "opacity-0"
+                                  )}
+                                />
+                                {option.label}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-            <FormField
-              control={form.control}
-              name="email"
-              render={({ field }) => (
-                <FormItem className="mb-4">
-                  <FormLabel>Email</FormLabel>
-                  <FormControl>
-                    <Input type="email" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem className="mb-4">
+                    <FormLabel>Email</FormLabel>
+                    <FormControl>
+                      <Input {...field} type="email" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-            <FormField
-              control={form.control}
-              name="accessTherapeutics"
-              render={({ field }) => (
-                <FormItem className="mb-4 flex items-center justify-between">
-                  <FormLabel>Access to Therapeutics</FormLabel>
-                  <FormControl>
-                    <Switch
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                    />
-                  </FormControl>
-                </FormItem>
-              )}
-            />
+              <FormField
+                control={form.control}
+                name="accessTherapeutics"
+                render={({ field }) => (
+                  <FormItem className="mb-4 flex items-center justify-between">
+                    <FormLabel>Access to Therapeutics</FormLabel>
+                    <FormControl>
+                      <Switch
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
 
-            <FormField
-              control={form.control}
-              name="accessFinancials"
-              render={({ field }) => (
-                <FormItem className="mb-4 flex items-center justify-between">
-                  <FormLabel>Access to Financials</FormLabel>
-                  <FormControl>
-                    <Switch
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                    />
-                  </FormControl>
-                </FormItem>
-              )}
-            />
+              <FormField
+                control={form.control}
+                name="accessFinancials"
+                render={({ field }) => (
+                  <FormItem className="mb-4 flex items-center justify-between">
+                    <FormLabel>Access to Financials</FormLabel>
+                    <FormControl>
+                      <Switch
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
 
-            <div className="flex gap-4">
-              <Button
-                type="submit"
-                variant="secondary"
-                className="flex-1"
-                disabled={createAlly.isPending}
-              >
-                {createAlly.isPending ? "Adding..." : "Add Another Ally"}
-              </Button>
-              <Button
-                type="button"
-                className="flex-1"
-                onClick={onComplete}
-              >
-                Continue
-              </Button>
-            </div>
-          </form>
-        </Form>
-      ) : (
-        <Button className="w-full" onClick={onComplete}>
-          Continue
-        </Button>
-      )}
+              <div className="flex gap-4">
+                <Button
+                  type="submit"
+                  variant="secondary"
+                  className="flex-1"
+                  disabled={createAlly.isPending}
+                >
+                  {createAlly.isPending ? "Adding..." : "Add Another Ally"}
+                </Button>
+                <Button
+                  type="button"
+                  className="flex-1"
+                  onClick={onComplete}
+                >
+                  Continue
+                </Button>
+              </div>
+            </form>
+          </Form>
+        ) : (
+          <Button className="w-full" onClick={onComplete}>
+            Continue
+          </Button>
+        )}
+      </div>
     </div>
   );
 }
