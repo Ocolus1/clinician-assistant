@@ -158,7 +158,8 @@ export default function GoalsForm({ clientId, onComplete }: GoalsFormProps) {
       return res.json();
     },
     onSuccess: () => {
-      setShowDeleteDialog(false);
+      setShowSubgoalDeleteDialog(false);
+      setSubgoalToDelete(null);
       queryClient.invalidateQueries({ queryKey: ["/api/goals", selectedGoalId, "subgoals"] });
       toast({
         title: "Success",
