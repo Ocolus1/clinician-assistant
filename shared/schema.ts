@@ -24,7 +24,7 @@ export const goals = pgTable("goals", {
   clientId: integer("client_id").notNull(),
   title: text("title").notNull(),
   description: text("description").notNull(),
-  priority: integer("priority").notNull(),
+  priority: text("priority").notNull(),
 });
 
 export const subgoals = pgTable("subgoals", {

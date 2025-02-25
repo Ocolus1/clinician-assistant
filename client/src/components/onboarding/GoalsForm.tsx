@@ -36,7 +36,7 @@ export default function GoalsForm({ clientId, onComplete }: GoalsFormProps) {
     defaultValues: {
       title: "",
       description: "",
-      priority: 1,
+      priority: "Medium Priority",
     },
   });
 
@@ -164,15 +164,16 @@ export default function GoalsForm({ clientId, onComplete }: GoalsFormProps) {
                 name="priority"
                 render={({ field }) => (
                   <FormItem className="mb-4">
-                    <FormLabel>Priority (1-5)</FormLabel>
+                    <FormLabel>Priority</FormLabel>
                     <FormControl>
-                      <Input 
-                        type="number" 
-                        min={1} 
-                        max={5} 
-                        {...field} 
-                        onChange={(e) => field.onChange(parseInt(e.target.value))}
-                      />
+                      <select 
+                        className="w-full p-2 border rounded-md"
+                        {...field}
+                      >
+                        <option value="High Priority">High Priority</option>
+                        <option value="Medium Priority">Medium Priority</option>
+                        <option value="Low Priority">Low Priority</option>
+                      </select>
                     </FormControl>
                     <FormMessage />
                   </FormItem>
