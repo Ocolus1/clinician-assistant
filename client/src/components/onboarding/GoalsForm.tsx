@@ -152,11 +152,11 @@ export default function GoalsForm({ clientId, onComplete }: GoalsFormProps) {
 
   const deleteSubgoal = useMutation({
     mutationFn: async (subgoalId: number) => {
-      await apiRequest("DELETE", `/api/subgoals/${subgoalId}`);
+      const res = await apiRequest("DELETE", `/api/subgoals/${subgoalId}`);
+      return res.json();
     },
     onSuccess: () => {
       setShowDeleteDialog(false);
-      setGoalToDelete(null);
       queryClient.invalidateQueries({ queryKey: ["/api/goals", selectedGoalId, "subgoals"] });
       toast({
         title: "Success",
@@ -164,16 +164,6 @@ export default function GoalsForm({ clientId, onComplete }: GoalsFormProps) {
       });
     },
   });
-
-  const handleDeleteClick = () => {
-    if (goalToDelete) {
-      if (selectedGoalId === goalToDelete) {
-        deleteGoal.mutate(goalToDelete);
-      } else {
-        deleteSubgoal.mutate(goalToDelete);
-      }
-    }
-  };
 
   const editSubgoal = useMutation({
     mutationFn: async ({ id, data }: { id: number; data: any }) => {
