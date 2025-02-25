@@ -62,6 +62,7 @@ export default function AllyForm({ clientId, onComplete }: AllyFormProps) {
 
   const canAddMore = allies.length < 5;
   const [openRelationship, setOpenRelationship] = useState(false);
+  const [open, setOpen] = useState(false);
 
   return (
     <div className="grid grid-cols-2 gap-6">
