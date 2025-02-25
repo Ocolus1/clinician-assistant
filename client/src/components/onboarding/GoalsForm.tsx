@@ -125,6 +125,16 @@ export default function GoalsForm({ clientId, onComplete }: GoalsFormProps) {
                     <div className="text-sm text-muted-foreground mt-2">
                       Priority: {goal.priority}
                     </div>
+                    {subgoals.length > 0 && selectedGoalId === goal.id && (
+                      <div className="mt-4 space-y-2 pl-4 border-l-2 border-muted">
+                        {subgoals.map((subgoal: any) => (
+                          <div key={subgoal.id}>
+                            <h5 className="font-medium text-sm">{subgoal.title}</h5>
+                            <p className="text-xs text-muted-foreground">{subgoal.description}</p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                   {selectedGoalId === goal.id && canAddMoreSubgoals && (
                     <Button
