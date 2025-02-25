@@ -1,22 +1,22 @@
 
 export const RELATIONSHIP_OPTIONS = [
-  "Parent",
-  "Sibling",
-  "Spouse",
-  "Child",
-  "Caregiver",
-  "Legal Guardian",
-  "Friend",
-  "Other"
+  { value: "parent", label: "Parent" },
+  { value: "sibling", label: "Sibling" },
+  { value: "spouse", label: "Spouse" },
+  { value: "child", label: "Child" },
+  { value: "caregiver", label: "Caregiver" },
+  { value: "legal_guardian", label: "Legal Guardian" },
+  { value: "friend", label: "Friend" },
+  { value: "other", label: "Other" }
 ];
 
 export const LANGUAGE_OPTIONS = [
-  "English",
-  "Spanish",
-  "French",
-  "Mandarin",
-  "Arabic",
-  "Hindi",
-  "Portuguese",
-  "Other"
+  { value: "english", label: "English" },
+  { value: "spanish", label: "Spanish" },
+  { value: "french", label: "French" },
+  { value: "mandarin", label: "Mandarin" },
+  { value: "arabic", label: "Arabic" },
+  { value: "hindi", label: "Hindi" },
+  { value: "portuguese", label: "Portuguese" },
+  { value: "other", label: "Other" }
 ];
