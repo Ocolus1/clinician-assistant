@@ -49,10 +49,10 @@ export default function ClientForm({ onComplete }: ClientFormProps) {
         <img 
           src="https://images.unsplash.com/photo-1614850523296-d8c1af93d400?w=800&auto=format&fit=crop"
           alt="Abstract wave pattern"
-          className="w-full h-full object-cover" {/* Changed class for full height and object-cover */}
+          className="w-full h-full object-cover"
         />
       </div>
-      <div className="space-y-8 max-w-md mx-auto w-full flex flex-col items-center justify-center"> {/* Added items-center */}
+      <div className="space-y-8 max-w-md mx-auto w-full flex flex-col items-center justify-center">
         <Form {...form}>
           <form onSubmit={form.handleSubmit((data) => createClient.mutate(data))}>
             <FormField
