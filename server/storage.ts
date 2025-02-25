@@ -19,6 +19,7 @@ export interface IStorage {
   // Goals
   createGoal(clientId: number, goal: InsertGoal): Promise<Goal>;
   getGoalsByClient(clientId: number): Promise<Goal[]>;
+  updateGoal(id: number, goal: InsertGoal): Promise<Goal>;
 
   // Subgoals  
   createSubgoal(goalId: number, subgoal: InsertSubgoal): Promise<Subgoal>;
@@ -70,6 +71,16 @@ export class MemStorage implements IStorage {
 
   async deleteAlly(id: number): Promise<void> {
     this.allies.delete(id);
+  }
+
+  async updateGoal(id: number, goal: InsertGoal): Promise<Goal> {
+    const existingGoal = this.goals.get(id);
+    if (!existingGoal) {
+      throw new Error("Goal not found");
+    }
+    const updatedGoal = { ...existingGoal, ...goal };
+    this.goals.set(id, updatedGoal);
+    return updatedGoal;
   }
 
   async updateAlly(id: number, ally: InsertAlly): Promise<Ally> {
