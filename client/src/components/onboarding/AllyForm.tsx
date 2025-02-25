@@ -197,11 +197,12 @@ export default function AllyForm({ clientId, onComplete }: AllyFormProps) {
                           <CommandGroup>
                             {LANGUAGE_OPTIONS.map((option) => (
                               <CommandItem
-                                value={option.label}
                                 key={option.value}
+                                value={option.label}
                                 onSelect={() => {
                                   form.setValue("preferredLanguage", option.value);
                                   form.clearErrors("preferredLanguage");
+                                  setOpen(false);
                                 }}
                               >
                                 <CheckIcon
