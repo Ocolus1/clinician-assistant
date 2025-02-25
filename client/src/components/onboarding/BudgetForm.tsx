@@ -118,7 +118,8 @@ export default function BudgetForm({ clientId, onComplete }: BudgetFormProps) {
                           min="0"
                           step="0.01"
                           {...field}
-                          onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                          value={field.value || ''}
+                          onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : 0)}
                         />
                       </FormControl>
                       <FormMessage />
