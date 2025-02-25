@@ -37,6 +37,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(allies);
   });
 
+  app.delete("/api/clients/:clientId/allies/:id", async (req, res) => {
+    const ally = await storage.deleteAlly(parseInt(req.params.id));
+    res.json(ally);
+  });
+
   // Goal routes
   app.post("/api/clients/:clientId/goals", async (req, res) => {
     const result = insertGoalSchema.safeParse(req.body);

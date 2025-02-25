@@ -10,19 +10,20 @@ export interface IStorage {
   // Clients
   createClient(client: InsertClient): Promise<Client>;
   getClient(id: number): Promise<Client | undefined>;
-  
+
   // Allies
   createAlly(clientId: number, ally: InsertAlly): Promise<Ally>;
   getAlliesByClient(clientId: number): Promise<Ally[]>;
-  
+  deleteAlly(id: number): Promise<void>; // Added deleteAlly function
+
   // Goals
   createGoal(clientId: number, goal: InsertGoal): Promise<Goal>;
   getGoalsByClient(clientId: number): Promise<Goal[]>;
-  
+
   // Subgoals  
   createSubgoal(goalId: number, subgoal: InsertSubgoal): Promise<Subgoal>;
   getSubgoalsByGoal(goalId: number): Promise<Subgoal[]>;
-  
+
   // Budget Items
   createBudgetItem(clientId: number, item: InsertBudgetItem): Promise<BudgetItem>;
   getBudgetItemsByClient(clientId: number): Promise<BudgetItem[]>;
@@ -65,6 +66,10 @@ export class MemStorage implements IStorage {
 
   async getAlliesByClient(clientId: number): Promise<Ally[]> {
     return Array.from(this.allies.values()).filter(ally => ally.clientId === clientId);
+  }
+
+  async deleteAlly(id: number): Promise<void> { // Added deleteAlly function
+    this.allies.delete(id);
   }
 
   async createGoal(clientId: number, goal: InsertGoal): Promise<Goal> {
