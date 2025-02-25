@@ -42,6 +42,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(ally);
   });
 
+  app.put("/api/clients/:clientId/allies/:id", async (req, res) => {
+    const result = insertAllySchema.safeParse(req.body);
+    if (!result.success) {
+      return res.status(400).json({ error: result.error });
+    }
+    const ally = await storage.updateAlly(parseInt(req.params.id), result.data);
+    res.json(ally);
+  });
+
   // Goal routes
   app.post("/api/clients/:clientId/goals", async (req, res) => {
     const result = insertGoalSchema.safeParse(req.body);

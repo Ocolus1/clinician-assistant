@@ -68,8 +68,18 @@ export class MemStorage implements IStorage {
     return Array.from(this.allies.values()).filter(ally => ally.clientId === clientId);
   }
 
-  async deleteAlly(id: number): Promise<void> { // Added deleteAlly function
+  async deleteAlly(id: number): Promise<void> {
     this.allies.delete(id);
+  }
+
+  async updateAlly(id: number, ally: InsertAlly): Promise<Ally> {
+    const existingAlly = this.allies.get(id);
+    if (!existingAlly) {
+      throw new Error("Ally not found");
+    }
+    const updatedAlly = { ...existingAlly, ...ally };
+    this.allies.set(id, updatedAlly);
+    return updatedAlly;
   }
 
   async createGoal(clientId: number, goal: InsertGoal): Promise<Goal> {
