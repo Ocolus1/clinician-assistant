@@ -553,20 +553,15 @@ export default function GoalsForm({ clientId, onComplete }: GoalsFormProps) {
             <DialogTitle>Edit Subgoal</DialogTitle>
           </DialogHeader>
           <Form {...subgoalForm}>
-            <form onSubmit={subgoalForm.handleSubmit(async (data) => {
+            <form onSubmit={subgoalForm.handleSubmit((data) => {
               if (subgoalToEdit) {
-                try {
-                  await editSubgoal.mutateAsync({ 
-                    id: subgoalToEdit.id, 
-                    data: {
-                      title: data.title,
-                      description: data.description
-                    }
-                  });
-                  setShowSubgoalEditDialog(false);
-                } catch (error) {
-                  console.error('Failed to edit subgoal:', error);
-                }
+                editSubgoal.mutate({ 
+                  id: subgoalToEdit.id, 
+                  data: {
+                    title: data.title,
+                    description: data.description
+                  }
+                });
               }
             })} className="space-y-4">
               <FormField
