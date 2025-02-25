@@ -46,9 +46,11 @@ export default function GoalsForm({ clientId, onComplete }: GoalsFormProps) {
   const { toast } = useToast();
   const [selectedGoalId, setSelectedGoalId] = useState<number | null>(null);
   const [showSubgoalForm, setShowSubgoalForm] = useState(false);
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showGoalDeleteDialog, setShowGoalDeleteDialog] = useState(false);
+  const [showSubgoalDeleteDialog, setShowSubgoalDeleteDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [goalToDelete, setGoalToDelete] = useState<number | null>(null);
+  const [subgoalToDelete, setSubgoalToDelete] = useState<number | null>(null);
   const [goalToEdit, setGoalToEdit] = useState<any | null>(null);
 
   const goalForm = useForm({
@@ -234,8 +236,8 @@ export default function GoalsForm({ clientId, onComplete }: GoalsFormProps) {
                                   className="h-6 w-6"
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    setGoalToDelete(subgoal.id);
-                                    setShowDeleteDialog(true);
+                                    setSubgoalToDelete(subgoal.id);
+                                    setShowSubgoalDeleteDialog(true);
                                   }}
                                 >
                                   <Trash className="h-3 w-3" />
@@ -270,7 +272,7 @@ export default function GoalsForm({ clientId, onComplete }: GoalsFormProps) {
                       onClick={(e) => {
                         e.stopPropagation();
                         setGoalToDelete(goal.id);
-                        setShowDeleteDialog(true);
+                        setShowGoalDeleteDialog(true);
                       }}
                     >
                       <Trash className="h-4 w-4" />
@@ -421,10 +423,10 @@ export default function GoalsForm({ clientId, onComplete }: GoalsFormProps) {
           </DialogContent>
         </Dialog>
 
-      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+      <AlertDialog open={showGoalDeleteDialog} onOpenChange={setShowGoalDeleteDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogTitle>Delete Goal?</AlertDialogTitle>
             <AlertDialogDescription>
               This action cannot be undone. This will permanently delete the goal and all its subgoals.
             </AlertDialogDescription>
@@ -438,7 +440,31 @@ export default function GoalsForm({ clientId, onComplete }: GoalsFormProps) {
                 }
               }}
             >
-              {deleteGoal.isPending ? "Deleting..." : "Delete"}
+              {deleteGoal.isPending ? "Deleting..." : "Delete Goal"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={showSubgoalDeleteDialog} onOpenChange={setShowSubgoalDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Subgoal?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete this subgoal.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={() => {
+                if (subgoalToDelete) {
+                  deleteSubgoal.mutate(subgoalToDelete);
+                  setShowSubgoalDeleteDialog(false);
+                }
+              }}
+            >
+              {deleteSubgoal.isPending ? "Deleting..." : "Delete Subgoal"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
