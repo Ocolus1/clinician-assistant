@@ -66,6 +66,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(goals);
   });
 
+  app.delete("/api/goals/:id", async (req, res) => {
+    const goal = await storage.deleteGoal(parseInt(req.params.id));
+    res.json(goal);
+  });
+
+  app.put("/api/goals/:id", async (req, res) => {
+    const result = insertGoalSchema.safeParse(req.body);
+    if (!result.success) {
+      return res.status(400).json({ error: result.error });
+    }
+    const goal = await storage.updateGoal(parseInt(req.params.id), result.data);
+    res.json(goal);
+  });
+
   // Subgoal routes
   app.post("/api/goals/:goalId/subgoals", async (req, res) => {
     const result = insertSubgoalSchema.safeParse(req.body);

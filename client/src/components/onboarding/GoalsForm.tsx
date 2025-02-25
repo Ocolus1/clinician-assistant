@@ -36,6 +36,10 @@ export default function GoalsForm({ clientId, onComplete }: GoalsFormProps) {
   const { toast } = useToast();
   const [selectedGoalId, setSelectedGoalId] = useState<number | null>(null);
   const [showSubgoalForm, setShowSubgoalForm] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [goalToDelete, setGoalToDelete] = useState<number | null>(null);
+  const [goalToEdit, setGoalToEdit] = useState<any | null>(null);
 
   const goalForm = useForm({
     resolver: zodResolver(insertGoalSchema),
@@ -104,6 +108,38 @@ export default function GoalsForm({ clientId, onComplete }: GoalsFormProps) {
     },
   });
 
+  const deleteGoal = useMutation({
+    mutationFn: async (goalId: number) => {
+      const res = await apiRequest("DELETE", `/api/goals/${goalId}`);
+      return res.json();
+    },
+    onSuccess: () => {
+      setShowDeleteDialog(false);
+      setGoalToDelete(null);
+      queryClient.invalidateQueries({ queryKey: ["/api/clients", clientId, "goals"] });
+      toast({
+        title: "Success",
+        description: "Goal deleted successfully",
+      });
+    },
+  });
+
+  const editGoal = useMutation({
+    mutationFn: async ({ id, data }: { id: number; data: any }) => {
+      const res = await apiRequest("PUT", `/api/goals/${id}`, data);
+      return res.json();
+    },
+    onSuccess: () => {
+      setShowEditDialog(false);
+      setGoalToEdit(null);
+      queryClient.invalidateQueries({ queryKey: ["/api/clients", clientId, "goals"] });
+      toast({
+        title: "Success",
+        description: "Goal updated successfully",
+      });
+    },
+  });
+
   const canAddMoreGoals = goals.length < 5;
   const canAddMoreSubgoals = subgoals.length < 5;
 
@@ -120,7 +156,7 @@ export default function GoalsForm({ clientId, onComplete }: GoalsFormProps) {
             >
               <CardContent className="p-4">
                 <div className="flex justify-between items-start">
-                  <div>
+                  <div className="flex-1">
                     <h4 className="font-medium">{goal.title}</h4>
                     <p className="text-sm text-muted-foreground mt-1">{goal.description}</p>
                     <div className="text-sm text-muted-foreground mt-2">
@@ -137,7 +173,30 @@ export default function GoalsForm({ clientId, onComplete }: GoalsFormProps) {
                       </div>
                     )}
                   </div>
-                  {selectedGoalId === goal.id && canAddMoreSubgoals && (
+                  <div className="flex gap-2">
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setGoalToEdit(goal);
+                        setShowEditDialog(true);
+                      }}
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setGoalToDelete(goal.id);
+                        setShowDeleteDialog(true);
+                      }}
+                    >
+                      <Trash className="h-4 w-4" />
+                    </Button>
+                    {selectedGoalId === goal.id && canAddMoreSubgoals && (
                     <Button
                       size="icon"
                       variant="ghost"
@@ -281,6 +340,101 @@ export default function GoalsForm({ clientId, onComplete }: GoalsFormProps) {
             </Form>
           </DialogContent>
         </Dialog>
+
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the goal and all its subgoals.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={() => {
+                if (goalToDelete) {
+                  deleteGoal.mutate(goalToDelete);
+                }
+              }}
+            >
+              {deleteGoal.isPending ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Goal</DialogTitle>
+          </DialogHeader>
+          <Form {...goalForm}>
+            <form onSubmit={goalForm.handleSubmit((data) => {
+              if (goalToEdit) {
+                editGoal.mutate({ id: goalToEdit.id, data });
+              }
+            })}>
+              <FormField
+                control={goalForm.control}
+                name="title"
+                render={({ field }) => (
+                  <FormItem className="mb-4">
+                    <FormLabel>Goal Title</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={goalForm.control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem className="mb-4">
+                    <FormLabel>Description</FormLabel>
+                    <FormControl>
+                      <Textarea {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={goalForm.control}
+                name="priority"
+                render={({ field }) => (
+                  <FormItem className="mb-4">
+                    <FormLabel>Priority</FormLabel>
+                    <FormControl>
+                      <select 
+                        className="w-full p-2 border rounded-md"
+                        {...field}
+                      >
+                        <option value="High Priority">High Priority</option>
+                        <option value="Medium Priority">Medium Priority</option>
+                        <option value="Low Priority">Low Priority</option>
+                      </select>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <Button 
+                type="submit" 
+                className="w-full"
+                disabled={editGoal.isPending}
+              >
+                {editGoal.isPending ? "Saving..." : "Save Changes"}
+              </Button>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
 
         <Button 
           className="w-full mt-6" 
