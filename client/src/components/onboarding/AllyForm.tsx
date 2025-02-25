@@ -104,8 +104,7 @@ export default function AllyForm({ clientId, onComplete }: AllyFormProps) {
 
   const deleteAlly = useMutation({
     mutationFn: async (id: number) => {
-      const res = await apiRequest("DELETE", `/api/clients/${clientId}/allies/${id}`);
-      return res.json();
+      await apiRequest("DELETE", `/api/clients/${clientId}/allies/${id}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/clients", clientId, "allies"] });
