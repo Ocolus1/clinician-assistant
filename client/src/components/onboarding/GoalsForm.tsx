@@ -48,6 +48,10 @@ export default function GoalsForm({ clientId, onComplete }: GoalsFormProps) {
 
   const { data: goals = [] } = useQuery({
     queryKey: ["/api/clients", clientId, "goals"],
+    queryFn: async () => {
+      const res = await apiRequest("GET", `/api/clients/${clientId}/goals`);
+      return res.json();
+    }
   });
 
   const { data: subgoals = [] } = useQuery({
