@@ -32,7 +32,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Minus } from "lucide-react";
+import { Plus, Minus, Trash, Pencil } from "lucide-react";
 import { insertGoalSchema, insertSubgoalSchema } from "@shared/schema";
 import { apiRequest } from "@/lib/utils";
 
@@ -327,7 +327,7 @@ export default function GoalsForm({ clientId, onComplete }: GoalsFormProps) {
           </Form>
         )}
 
-        
+
 
         <Dialog open={showSubgoalForm} onOpenChange={setShowSubgoalForm}>
           <DialogContent>
