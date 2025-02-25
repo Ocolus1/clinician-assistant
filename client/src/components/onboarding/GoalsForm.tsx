@@ -7,6 +7,12 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   Form,
   FormControl,
   FormField,
@@ -206,59 +212,64 @@ export default function GoalsForm({ clientId, onComplete }: GoalsFormProps) {
 
         
 
-        {showSubgoalForm && (
-          <Form {...subgoalForm}>
-            <form onSubmit={subgoalForm.handleSubmit((data) => createSubgoal.mutate(data))}>
-              <FormField
-                control={subgoalForm.control}
-                name="title"
-                render={({ field }) => (
-                  <FormItem className="mb-4">
-                    <FormLabel>Subgoal Title</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+        <Dialog open={showSubgoalForm} onOpenChange={setShowSubgoalForm}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Add Subgoal</DialogTitle>
+            </DialogHeader>
+            <Form {...subgoalForm}>
+              <form onSubmit={subgoalForm.handleSubmit((data) => createSubgoal.mutate(data))}>
+                <FormField
+                  control={subgoalForm.control}
+                  name="title"
+                  render={({ field }) => (
+                    <FormItem className="mb-4">
+                      <FormLabel>Subgoal Title</FormLabel>
+                      <FormControl>
+                        <Input {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-              <FormField
-                control={subgoalForm.control}
-                name="description"
-                render={({ field }) => (
-                  <FormItem className="mb-4">
-                    <FormLabel>Description</FormLabel>
-                    <FormControl>
-                      <Textarea {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                <FormField
+                  control={subgoalForm.control}
+                  name="description"
+                  render={({ field }) => (
+                    <FormItem className="mb-4">
+                      <FormLabel>Description</FormLabel>
+                      <FormControl>
+                        <Textarea {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-              <div className="flex gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="flex-1"
-                  onClick={() => setShowSubgoalForm(false)}
-                >
-                  <Minus className="w-4 h-4 mr-2" />
-                  Cancel
-                </Button>
-                <Button 
-                  type="submit" 
-                  className="flex-1"
-                  disabled={createSubgoal.isPending}
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add Subgoal
-                </Button>
-              </div>
-            </form>
-          </Form>
-        )}
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="flex-1"
+                    onClick={() => setShowSubgoalForm(false)}
+                  >
+                    <Minus className="w-4 h-4 mr-2" />
+                    Cancel
+                  </Button>
+                  <Button 
+                    type="submit" 
+                    className="flex-1"
+                    disabled={createSubgoal.isPending}
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add Subgoal
+                  </Button>
+                </div>
+              </form>
+            </Form>
+          </DialogContent>
+        </Dialog>
 
         <Button 
           className="w-full mt-6" 
