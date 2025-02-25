@@ -190,6 +190,11 @@ export default function GoalsForm({ clientId, onComplete }: GoalsFormProps) {
                       onClick={(e) => {
                         e.stopPropagation();
                         setGoalToEdit(goal);
+                        goalForm.reset({
+                          title: goal.title,
+                          description: goal.description,
+                          priority: goal.priority
+                        });
                         setShowEditDialog(true);
                       }}
                     >
