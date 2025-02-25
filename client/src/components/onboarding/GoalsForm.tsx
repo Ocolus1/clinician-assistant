@@ -48,12 +48,12 @@ export default function GoalsForm({ clientId, onComplete }: GoalsFormProps) {
   const [showSubgoalForm, setShowSubgoalForm] = useState(false);
   const [showGoalDeleteDialog, setShowGoalDeleteDialog] = useState(false);
   const [showSubgoalDeleteDialog, setShowSubgoalDeleteDialog] = useState(false);
-  const [showGoalEditDialog, setShowGoalEditDialog] = useState(false); // Updated
-  const [showSubgoalEditDialog, setShowSubgoalEditDialog] = useState(false); // Added
+  const [showGoalEditDialog, setShowGoalEditDialog] = useState(false);
+  const [showSubgoalEditDialog, setShowSubgoalEditDialog] = useState(false);
   const [goalToDelete, setGoalToDelete] = useState<number | null>(null);
   const [subgoalToDelete, setSubgoalToDelete] = useState<number | null>(null);
   const [goalToEdit, setGoalToEdit] = useState<any | null>(null);
-  const [subgoalToEdit, setSubgoalToEdit] = useState<any | null>(null); // Added
+  const [subgoalToEdit, setSubgoalToEdit] = useState<any | null>(null);
 
 
   const goalForm = useForm({
@@ -145,7 +145,7 @@ export default function GoalsForm({ clientId, onComplete }: GoalsFormProps) {
       return res.json();
     },
     onSuccess: () => {
-      setShowGoalEditDialog(false); // Updated
+      setShowGoalEditDialog(false);
       setGoalToEdit(null);
       queryClient.invalidateQueries({ queryKey: ["/api/clients", clientId, "goals"] });
       toast({
@@ -225,12 +225,12 @@ export default function GoalsForm({ clientId, onComplete }: GoalsFormProps) {
                                   className="h-6 w-6"
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    setSubgoalToEdit(subgoal); // Updated
+                                    setSubgoalToEdit(subgoal);
                                     subgoalForm.reset({
                                       title: subgoal.title,
                                       description: subgoal.description,
                                     });
-                                    setShowSubgoalEditDialog(true); // Updated
+                                    setShowSubgoalEditDialog(true);
                                   }}
                                 >
                                   <Pencil className="h-3 w-3" />
@@ -266,7 +266,7 @@ export default function GoalsForm({ clientId, onComplete }: GoalsFormProps) {
                           description: goal.description,
                           priority: goal.priority
                         });
-                        setShowGoalEditDialog(true); // Updated
+                        setShowGoalEditDialog(true);
                       }}
                     >
                       <Pencil className="h-4 w-4" />
@@ -475,7 +475,7 @@ export default function GoalsForm({ clientId, onComplete }: GoalsFormProps) {
         </AlertDialogContent>
       </AlertDialog>
 
-      <Dialog open={showGoalEditDialog} onOpenChange={setShowGoalEditDialog}> {/* Updated */}
+      <Dialog open={showGoalEditDialog} onOpenChange={setShowGoalEditDialog}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Edit Goal</DialogTitle>
@@ -557,10 +557,7 @@ export default function GoalsForm({ clientId, onComplete }: GoalsFormProps) {
               if (subgoalToEdit) {
                 editSubgoal.mutate({ 
                   id: subgoalToEdit.id, 
-                  data: {
-                    title: data.title,
-                    description: data.description
-                  }
+                  data
                 });
               }
             })} className="space-y-4">
