@@ -197,6 +197,42 @@ export default function GoalsForm({ clientId, onComplete }: GoalsFormProps) {
                       <Trash className="h-4 w-4" />
                     </Button>
                     {selectedGoalId === goal.id && canAddMoreSubgoals && (
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setShowSubgoalForm(true);
+                        }}
+                      >
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setGoalToEdit(goal);
+                        setShowEditDialog(true);
+                      }}
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setGoalToDelete(goal.id);
+                        setShowDeleteDialog(true);
+                      }}
+                    >
+                      <Trash className="h-4 w-4" />
+                    </Button>
+                    {selectedGoalId === goal.id && canAddMoreSubgoals && (
                     <Button
                       size="icon"
                       variant="ghost"
