@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQuery, useMutation } from "@tanstack/react-query";
@@ -25,6 +26,7 @@ interface GoalsFormProps {
 }
 
 export default function GoalsForm({ clientId, onComplete }: GoalsFormProps) {
+  const queryClient = useQueryClient();
   const { toast } = useToast();
   const [selectedGoalId, setSelectedGoalId] = useState<number | null>(null);
   const [showSubgoalForm, setShowSubgoalForm] = useState(false);
@@ -71,6 +73,7 @@ export default function GoalsForm({ clientId, onComplete }: GoalsFormProps) {
     onSuccess: (data) => {
       goalForm.reset();
       setSelectedGoalId(data.id);
+      queryClient.invalidateQueries({ queryKey: ["/api/clients", clientId, "goals"] });
       toast({
         title: "Success",
         description: "Goal added successfully",
