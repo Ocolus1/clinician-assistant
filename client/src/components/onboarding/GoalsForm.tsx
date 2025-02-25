@@ -150,6 +150,36 @@ export default function GoalsForm({ clientId, onComplete }: GoalsFormProps) {
     },
   });
 
+  const deleteSubgoal = useMutation({
+    mutationFn: async (subgoalId: number) => {
+      const res = await apiRequest("DELETE", `/api/subgoals/${subgoalId}`);
+      return res.json();
+    },
+    onSuccess: () => {
+      setShowDeleteDialog(false);
+      queryClient.invalidateQueries({ queryKey: ["/api/goals", selectedGoalId, "subgoals"] });
+      toast({
+        title: "Success",
+        description: "Subgoal deleted successfully",
+      });
+    },
+  });
+
+  const editSubgoal = useMutation({
+    mutationFn: async ({ id, data }: { id: number; data: any }) => {
+      const res = await apiRequest("PUT", `/api/subgoals/${id}`, data);
+      return res.json();
+    },
+    onSuccess: () => {
+      setShowEditDialog(false);
+      queryClient.invalidateQueries({ queryKey: ["/api/goals", selectedGoalId, "subgoals"] });
+      toast({
+        title: "Success",
+        description: "Subgoal updated successfully",
+      });
+    },
+  });
+
   const canAddMoreGoals = goals.length < 5;
   const canAddMoreSubgoals = subgoals.length < 5;
 
@@ -175,9 +205,43 @@ export default function GoalsForm({ clientId, onComplete }: GoalsFormProps) {
                     {subgoals.length > 0 && selectedGoalId === goal.id && (
                       <div className="mt-4 space-y-2 pl-4 border-l-2 border-muted">
                         {subgoals.map((subgoal: any) => (
-                          <div key={subgoal.id}>
-                            <h5 className="font-medium text-sm">{subgoal.title}</h5>
-                            <p className="text-xs text-muted-foreground">{subgoal.description}</p>
+                          <div key={subgoal.id} className="group relative">
+                            <div className="flex justify-between items-start">
+                              <div>
+                                <h5 className="font-medium text-sm">{subgoal.title}</h5>
+                                <p className="text-xs text-muted-foreground">{subgoal.description}</p>
+                              </div>
+                              <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-6 w-6"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setGoalToEdit(subgoal);
+                                    subgoalForm.reset({
+                                      title: subgoal.title,
+                                      description: subgoal.description,
+                                    });
+                                    setShowEditDialog(true);
+                                  }}
+                                >
+                                  <Pencil className="h-3 w-3" />
+                                </Button>
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-6 w-6"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setGoalToDelete(subgoal.id);
+                                    setShowDeleteDialog(true);
+                                  }}
+                                >
+                                  <Trash className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            </div>
                           </div>
                         ))}
                       </div>
