@@ -119,12 +119,9 @@ export default function BudgetForm({ clientId, onComplete }: BudgetFormProps) {
                           step="0.01"
                           {...field}
                           onChange={(e) => {
-                            const value = e.target.value;
-                            const numValue = value === '' ? 0 : Number(value);
-                            if (!isNaN(numValue)) {
-                              field.onChange(numValue);
-                            }
+                            field.onChange(e.target.valueAsNumber);
                           }}
+                          onBlur={field.onBlur}
                         />
                       </FormControl>
                       <FormMessage />
