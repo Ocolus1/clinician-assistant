@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -17,7 +16,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Plus, Minus } from "lucide-react";
-import { insertGoalSchema, insertSubgoalSchema } from "@/shared/schema";
+import { insertGoalSchema, insertSubgoalSchema } from "@shared/schema";
 import { apiRequest } from "@/lib/utils";
 
 interface GoalsFormProps {
