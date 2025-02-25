@@ -14,6 +14,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { cn } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
+import { useState } from 'react';
 
 interface AllyFormProps {
   clientId: number;
@@ -60,6 +61,7 @@ export default function AllyForm({ clientId, onComplete }: AllyFormProps) {
   });
 
   const canAddMore = allies.length < 5;
+  const [openRelationship, setOpenRelationship] = useState(false);
 
   return (
     <div className="grid grid-cols-2 gap-6">
@@ -108,7 +110,7 @@ export default function AllyForm({ clientId, onComplete }: AllyFormProps) {
                 render={({ field }) => (
                   <FormItem className="mb-4">
                     <FormLabel>Relationship to Client</FormLabel>
-                    <Popover>
+                    <Popover open={openRelationship} onOpenChange={setOpenRelationship}>
                       <PopoverTrigger asChild>
                         <FormControl>
                           <Button
@@ -135,10 +137,11 @@ export default function AllyForm({ clientId, onComplete }: AllyFormProps) {
                           <CommandGroup>
                             {RELATIONSHIP_OPTIONS.map((option) => (
                               <CommandItem
-                                value={option.label}
                                 key={option.value}
+                                value={option.value}
                                 onSelect={() => {
                                   form.setValue("relationship", option.value);
+                                  setOpenRelationship(false);
                                 }}
                               >
                                 <CheckIcon
