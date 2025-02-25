@@ -1,14 +1,24 @@
+
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { insertBudgetItemSchema } from "@shared/schema";
-import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { DollarSign, Plus, Calculator } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { useToast } from "@/hooks/use-toast";
-import { useMutation, useQuery } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
-import { Calculator, DollarSign, Plus } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { useToast } from "@/components/ui/use-toast";
+import { insertBudgetItemSchema } from "@/lib/schema";
+import { apiRequest } from "@/lib/api";
 
 interface BudgetFormProps {
   clientId: number;
@@ -51,118 +61,129 @@ export default function BudgetForm({ clientId, onComplete }: BudgetFormProps) {
 
   return (
     <div className="space-y-6">
-      <div>
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-semibold">Budget Items</h3>
-          <div className="flex items-center gap-2 text-lg font-medium">
-            <DollarSign className="w-5 h-5" />
-            Total: ${totalBudget.toFixed(2)}
+      <div className="bg-card rounded-lg p-4 mb-6 border">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="p-4 bg-background rounded-lg">
+            <div className="text-sm text-muted-foreground">Total Items</div>
+            <div className="text-2xl font-semibold">{budgetItems.length}</div>
           </div>
-        </div>
-
-        <div className="space-y-4">
-          {budgetItems.map((item: any) => (
-            <Card key={item.id}>
-              <CardContent className="p-4">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h4 className="font-medium">{item.itemCode}</h4>
-                    <p className="text-sm text-muted-foreground">{item.description}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-medium">${(item.unitPrice * item.quantity).toFixed(2)}</p>
-                    <p className="text-sm text-muted-foreground">
-                      ${item.unitPrice.toFixed(2)} × {item.quantity}
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+          <div className="p-4 bg-background rounded-lg">
+            <div className="text-sm text-muted-foreground">Total Budget</div>
+            <div className="text-2xl font-semibold">${totalBudget.toFixed(2)}</div>
+          </div>
         </div>
       </div>
 
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit((data) => createBudgetItem.mutate(data))}>
-          <FormField
-            control={form.control}
-            name="itemCode"
-            render={({ field }) => (
-              <FormItem className="mb-4">
-                <FormLabel>Item Code</FormLabel>
-                <FormControl>
-                  <Input {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold">Add New Item</h3>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit((data) => createBudgetItem.mutate(data))} className="space-y-4">
+              <FormField
+                control={form.control}
+                name="itemCode"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Item Code</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-          <FormField
-            control={form.control}
-            name="description"
-            render={({ field }) => (
-              <FormItem className="mb-4">
-                <FormLabel>Description</FormLabel>
-                <FormControl>
-                  <Input {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+              <FormField
+                control={form.control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Description</FormLabel>
+                    <FormControl>
+                      <Textarea {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-          <div className="grid grid-cols-2 gap-4">
-            <FormField
-              control={form.control}
-              name="unitPrice"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Unit Price</FormLabel>
-                  <FormControl>
-                    <Input 
-                      type="number" 
-                      step="0.01" 
-                      min="0"
-                      {...field}
-                      onChange={(e) => field.onChange(parseFloat(e.target.value))}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="unitPrice"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Unit Price</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          {...field}
+                          onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-            <FormField
-              control={form.control}
-              name="quantity"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Quantity</FormLabel>
-                  <FormControl>
-                    <Input 
-                      type="number" 
-                      min="1"
-                      {...field}
-                      onChange={(e) => field.onChange(parseInt(e.target.value))}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                <FormField
+                  control={form.control}
+                  name="quantity"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Quantity</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          min="1"
+                          {...field}
+                          onChange={(e) => field.onChange(parseInt(e.target.value))}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <Button 
+                type="submit" 
+                className="w-full"
+                disabled={createBudgetItem.isPending}
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Add Budget Item
+              </Button>
+            </form>
+          </Form>
+        </div>
+
+        <div>
+          <h3 className="text-lg font-semibold mb-4">Budget Items</h3>
+          <div className="space-y-4">
+            {budgetItems.map((item: any) => (
+              <Card key={item.id} className="bg-background">
+                <CardContent className="p-4">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h4 className="font-medium">{item.itemCode}</h4>
+                      <p className="text-sm text-muted-foreground">{item.description}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-medium">${(item.unitPrice * item.quantity).toFixed(2)}</p>
+                      <p className="text-sm text-muted-foreground">
+                        ${item.unitPrice.toFixed(2)} × {item.quantity}
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
           </div>
-
-          <Button 
-            type="submit" 
-            className="w-full mt-4"
-            disabled={createBudgetItem.isPending}
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Add Budget Item
-          </Button>
-        </form>
-      </Form>
+        </div>
+      </div>
 
       <Button 
         className="w-full" 
