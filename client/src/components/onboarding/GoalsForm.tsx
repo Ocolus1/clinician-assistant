@@ -466,6 +466,10 @@ export default function GoalsForm({ clientId, onComplete }: GoalsFormProps) {
                 if (subgoalToDelete) {
                   deleteSubgoal.mutate(subgoalToDelete);
                   setShowSubgoalDeleteDialog(false);
+                  subgoalForm.reset({
+                    title: "",
+                    description: ""
+                  });
                 }
               }}
             >
