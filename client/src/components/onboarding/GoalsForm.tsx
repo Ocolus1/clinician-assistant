@@ -177,7 +177,6 @@ export default function GoalsForm({ clientId, onComplete }: GoalsFormProps) {
       return res.json();
     },
     onSuccess: () => {
-      setShowSubgoalEditDialog(false); // Added
       queryClient.invalidateQueries({ queryKey: ["/api/goals", selectedGoalId, "subgoals"] });
       toast({
         title: "Success",
@@ -562,6 +561,7 @@ export default function GoalsForm({ clientId, onComplete }: GoalsFormProps) {
                       description: data.description
                     }
                   });
+                  setShowSubgoalEditDialog(false);
                 } catch (error) {
                   console.error('Failed to edit subgoal:', error);
                 }
