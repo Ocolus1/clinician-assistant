@@ -44,15 +44,15 @@ export default function ClientForm({ onComplete }: ClientFormProps) {
   });
 
   return (
-    <div className="grid md:grid-cols-2 gap-8 items-center min-h-screen">
-      <div className="hidden md:block">
+    <div className="grid md:grid-cols-2 gap-8 items-center min-h-screen p-8">
+      <div className="hidden md:block h-full flex items-center">
         <img 
           src="https://images.unsplash.com/photo-1614850523296-d8c1af93d400?w=800&auto=format&fit=crop"
           alt="Abstract wave pattern"
           className="w-full h-auto max-w-lg mx-auto object-cover"
         />
       </div>
-      <div className="space-y-8 max-w-md mx-auto w-full">
+      <div className="space-y-8 max-w-md mx-auto w-full flex flex-col justify-center">
         <Form {...form}>
           <form onSubmit={form.handleSubmit((data) => createClient.mutate(data))}>
             <FormField
