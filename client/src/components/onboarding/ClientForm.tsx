@@ -89,7 +89,6 @@ export default function ClientForm({ onComplete }: ClientFormProps) {
 
             <Button 
               type="submit" 
-              className="w-full"
               disabled={createClient.isPending}
               size="lg"
               className="w-full bg-primary hover:bg-primary/90 text-white font-medium py-6"
