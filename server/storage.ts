@@ -129,6 +129,19 @@ export class MemStorage implements IStorage {
   async deleteSubgoal(id: number): Promise<void> {
     this.subgoals.delete(id);
   }
+
+  async deleteGoal(id: number): Promise<void> {
+    // Delete associated subgoals first
+    const subgoalsToDelete = Array.from(this.subgoals.values())
+      .filter(subgoal => subgoal.goalId === id);
+    
+    for (const subgoal of subgoalsToDelete) {
+      this.subgoals.delete(subgoal.id);
+    }
+    
+    // Then delete the goal
+    this.goals.delete(id);
+  }
 }
 
 export const storage = new MemStorage();
