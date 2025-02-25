@@ -233,17 +233,18 @@ export default function GoalsForm({ clientId, onComplete }: GoalsFormProps) {
                       <Trash className="h-4 w-4" />
                     </Button>
                     {selectedGoalId === goal.id && canAddMoreSubgoals && (
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setShowSubgoalForm(true);
-                      }}
-                    >
-                      <Plus className="h-4 w-4" />
-                    </Button>
-                  )}
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setShowSubgoalForm(true);
+                        }}
+                      >
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
                 </div>
               </CardContent>
             </Card>
