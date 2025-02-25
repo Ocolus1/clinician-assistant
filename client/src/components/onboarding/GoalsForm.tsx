@@ -561,7 +561,6 @@ export default function GoalsForm({ clientId, onComplete }: GoalsFormProps) {
                     description: data.description
                   }
                 });
-                setShowSubgoalEditDialog(false);
               }
             })} className="space-y-4">
               <FormField
