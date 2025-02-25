@@ -37,6 +37,10 @@ export default function AllyForm({ clientId, onComplete }: AllyFormProps) {
 
   const { data: allies = [] } = useQuery({
     queryKey: ["/api/clients", clientId, "allies"],
+    queryFn: async () => {
+      const res = await apiRequest("GET", `/api/clients/${clientId}/allies`);
+      return res.json();
+    }
   });
 
   const createAlly = useMutation({
