@@ -120,6 +120,18 @@ export default function GoalsForm({ clientId, onComplete }: GoalsFormProps) {
                       Priority: {goal.priority}
                     </div>
                   </div>
+                  {selectedGoalId === goal.id && canAddMoreSubgoals && (
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShowSubgoalForm(true);
+                      }}
+                    >
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  )}
                 </div>
               </CardContent>
             </Card>
