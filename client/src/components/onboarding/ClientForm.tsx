@@ -44,7 +44,7 @@ export default function ClientForm({ onComplete }: ClientFormProps) {
   });
 
   return (
-    <div className="grid md:grid-cols-2 gap-8 items-center h-[800px] p-8">
+    <div className="grid md:grid-cols-2 gap-8 items-center h-[700px] p-8">
       <div className="md:block h-full flex items-center rounded-xl overflow-hidden shadow-lg">
         <img 
           src="https://images.unsplash.com/photo-1614850523296-d8c1af93d400?w=800&auto=format&fit=crop"
