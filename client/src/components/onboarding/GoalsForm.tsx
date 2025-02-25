@@ -188,16 +188,7 @@ export default function GoalsForm({ clientId, onComplete }: GoalsFormProps) {
           </Form>
         )}
 
-        {selectedGoalId && canAddMoreSubgoals && !showSubgoalForm && (
-          <Button
-            variant="outline"
-            className="w-full"
-            onClick={() => setShowSubgoalForm(true)}
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Add Subgoal
-          </Button>
-        )}
+        
 
         {showSubgoalForm && (
           <Form {...subgoalForm}>
