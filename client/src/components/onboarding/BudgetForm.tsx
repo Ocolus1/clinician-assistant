@@ -60,25 +60,23 @@ export default function BudgetForm({ clientId, onComplete }: BudgetFormProps) {
   }, 0);
 
   return (
-    <div className="space-y-6">
-      <div className="bg-card rounded-lg p-4 mb-6 border">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="p-4 bg-background rounded-lg">
-            <div className="text-sm text-muted-foreground">Total Items</div>
-            <div className="text-2xl font-semibold">{budgetItems.length}</div>
-          </div>
-          <div className="p-4 bg-background rounded-lg">
-            <div className="text-sm text-muted-foreground">Total Budget</div>
-            <div className="text-2xl font-semibold">${totalBudget.toFixed(2)}</div>
-          </div>
+    <div className="space-y-4">
+      <div className="flex items-center space-x-4 mb-4">
+        <div className="bg-card rounded-lg p-3 border flex-shrink-0">
+          <div className="text-sm text-muted-foreground">Total Items</div>
+          <div className="text-xl font-semibold">{budgetItems.length}</div>
+        </div>
+        <div className="bg-card rounded-lg p-3 border flex-shrink-0">
+          <div className="text-sm text-muted-foreground">Total Budget</div>
+          <div className="text-xl font-semibold">${totalBudget.toFixed(2)}</div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold">Add New Item</h3>
+      <div className="flex gap-8">
+        <div className="w-1/2">
+          <h3 className="text-lg font-semibold mb-3">Add New Item</h3>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit((data) => createBudgetItem.mutate(data))} className="space-y-4">
+            <form onSubmit={form.handleSubmit((data) => createBudgetItem.mutate(data))} className="space-y-3">
               <FormField
                 control={form.control}
                 name="itemCode"
@@ -160,9 +158,9 @@ export default function BudgetForm({ clientId, onComplete }: BudgetFormProps) {
           </Form>
         </div>
 
-        <div>
-          <h3 className="text-lg font-semibold mb-4">Budget Items</h3>
-          <div className="space-y-4">
+        <div className="w-1/2">
+          <h3 className="text-lg font-semibold mb-3">Budget Items</h3>
+          <div className="space-y-3">
             {budgetItems.map((item: any) => (
               <Card key={item.id} className="bg-background">
                 <CardContent className="p-4">
