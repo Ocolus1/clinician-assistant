@@ -96,6 +96,7 @@ export default function GoalsForm({ clientId, onComplete }: GoalsFormProps) {
     onSuccess: () => {
       subgoalForm.reset();
       setShowSubgoalForm(false);
+      queryClient.invalidateQueries({ queryKey: ["/api/goals", selectedGoalId, "subgoals"] });
       toast({
         title: "Success",
         description: "Subgoal added successfully",
