@@ -24,6 +24,7 @@ export interface IStorage {
   // Subgoals  
   createSubgoal(goalId: number, subgoal: InsertSubgoal): Promise<Subgoal>;
   getSubgoalsByGoal(goalId: number): Promise<Subgoal[]>;
+  updateSubgoal(id: number, data: any): Promise<Subgoal>; //Added updateSubgoal
 
   // Budget Items
   createBudgetItem(clientId: number, item: InsertBudgetItem): Promise<BudgetItem>;
@@ -134,13 +135,23 @@ export class MemStorage implements IStorage {
     // Delete associated subgoals first
     const subgoalsToDelete = Array.from(this.subgoals.values())
       .filter(subgoal => subgoal.goalId === id);
-    
+
     for (const subgoal of subgoalsToDelete) {
       this.subgoals.delete(subgoal.id);
     }
-    
+
     // Then delete the goal
     this.goals.delete(id);
+  }
+
+  async updateSubgoal(id: number, data: any): Promise<Subgoal> {
+    const existingSubgoal = this.subgoals.get(id);
+    if (!existingSubgoal) {
+      throw new Error("Subgoal not found");
+    }
+    const updatedSubgoal = { ...existingSubgoal, ...data };
+    this.subgoals.set(id, updatedSubgoal);
+    return updatedSubgoal;
   }
 }
 

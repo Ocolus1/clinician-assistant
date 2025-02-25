@@ -557,7 +557,10 @@ export default function GoalsForm({ clientId, onComplete }: GoalsFormProps) {
               if (subgoalToEdit) {
                 editSubgoal.mutate({ 
                   id: subgoalToEdit.id, 
-                  data
+                  data: {
+                    title: data.title,
+                    description: data.description
+                  }
                 });
               }
             })} className="space-y-4">

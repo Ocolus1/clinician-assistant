@@ -100,6 +100,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json({ success: true });
   });
 
+  app.put("/api/subgoals/:id", async (req, res) => {
+    const result = insertSubgoalSchema.safeParse(req.body);
+    if (!result.success) {
+      return res.status(400).json({ error: result.error });
+    }
+    const subgoal = await storage.updateSubgoal(parseInt(req.params.id), result.data);
+    res.json(subgoal);
+  });
+
   // Budget routes
   app.post("/api/clients/:clientId/budget-items", async (req, res) => {
     const result = insertBudgetItemSchema.safeParse(req.body);
