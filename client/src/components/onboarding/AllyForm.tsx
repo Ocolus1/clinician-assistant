@@ -1,4 +1,3 @@
-
 import { CaretSortIcon, CheckIcon } from "@radix-ui/react-icons";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
@@ -129,7 +128,7 @@ export default function AllyForm({ clientId, onComplete }: AllyFormProps) {
                           </Button>
                         </FormControl>
                       </PopoverTrigger>
-                      <PopoverContent className="w-full p-0">
+                      <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
                         <Command>
                           <CommandInput placeholder="Search relationship..." />
                           <CommandEmpty>No relationship found.</CommandEmpty>
