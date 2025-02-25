@@ -44,44 +44,55 @@ export default function ClientForm({ onComplete }: ClientFormProps) {
   });
 
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit((data) => createClient.mutate(data))}>
-        <FormField
-          control={form.control}
-          name="name"
-          render={({ field }) => (
-            <FormItem className="mb-4">
-              <FormLabel>Client Name</FormLabel>
-              <FormControl>
-                <Input {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
+    <div className="grid md:grid-cols-2 gap-8 items-center">
+      <div className="hidden md:block">
+        <img 
+          src="/decorative-swirl.png" 
+          alt="Decorative pattern"
+          className="w-full h-auto max-w-lg mx-auto"
         />
+      </div>
+      <div className="space-y-8">
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit((data) => createClient.mutate(data))}>
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem className="mb-4">
+                  <FormLabel>Client Name</FormLabel>
+                  <FormControl>
+                    <Input {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-        <FormField
-          control={form.control}
-          name="dateOfBirth"
-          render={({ field }) => (
-            <FormItem className="mb-4">
-              <FormLabel>Date of Birth</FormLabel>
-              <FormControl>
-                <Input type="date" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+            <FormField
+              control={form.control}
+              name="dateOfBirth"
+              render={({ field }) => (
+                <FormItem className="mb-4">
+                  <FormLabel>Date of Birth</FormLabel>
+                  <FormControl>
+                    <Input type="date" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-        <Button 
-          type="submit" 
-          className="w-full"
-          disabled={createClient.isPending}
-        >
-          {createClient.isPending ? "Saving..." : "Continue"}
-        </Button>
-      </form>
-    </Form>
+            <Button 
+              type="submit" 
+              className="w-full"
+              disabled={createClient.isPending}
+            >
+              {createClient.isPending ? "Saving..." : "Continue"}
+            </Button>
+          </form>
+        </Form>
+      </div>
+    </div>
   );
 }
