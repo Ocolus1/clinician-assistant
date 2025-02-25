@@ -202,6 +202,7 @@ export default function AllyForm({ clientId, onComplete }: AllyFormProps) {
                                 onSelect={() => {
                                   form.setValue("preferredLanguage", option.value);
                                   form.clearErrors("preferredLanguage");
+                                  setOpen(false);
                                 }}
                               >
                                 <CheckIcon
