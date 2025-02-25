@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { cn } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
 import { useState } from 'react';
@@ -46,6 +46,7 @@ export default function AllyForm({ clientId, onComplete }: AllyFormProps) {
     },
     onSuccess: () => {
       form.reset();
+      queryClient.invalidateQueries({ queryKey: ["/api/clients", clientId, "allies"] });
       toast({
         title: "Success",
         description: "Ally added successfully",
