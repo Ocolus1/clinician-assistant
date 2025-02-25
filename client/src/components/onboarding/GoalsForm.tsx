@@ -546,7 +546,7 @@ export default function GoalsForm({ clientId, onComplete }: GoalsFormProps) {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={showSubgoalEditDialog} onOpenChange={setShowSubgoalEditDialog}> {/* Added */}
+      <Dialog open={showSubgoalEditDialog} onOpenChange={setShowSubgoalEditDialog}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Edit Subgoal</DialogTitle>
@@ -554,7 +554,13 @@ export default function GoalsForm({ clientId, onComplete }: GoalsFormProps) {
           <Form {...subgoalForm}>
             <form onSubmit={subgoalForm.handleSubmit((data) => {
               if (subgoalToEdit) {
-                editSubgoal.mutate({ id: subgoalToEdit.id, data });
+                editSubgoal.mutate({ 
+                  id: subgoalToEdit.id, 
+                  data: {
+                    title: data.title,
+                    description: data.description
+                  }
+                });
               }
             })}>
               <FormField
