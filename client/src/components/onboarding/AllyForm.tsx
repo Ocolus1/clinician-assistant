@@ -170,7 +170,7 @@ export default function AllyForm({ clientId, onComplete }: AllyFormProps) {
                 render={({ field }) => (
                   <FormItem className="mb-4">
                     <FormLabel>Preferred Language</FormLabel>
-                    <Popover>
+                    <Popover open={open} onOpenChange={setOpen}>
                       <PopoverTrigger asChild>
                         <FormControl>
                           <Button
@@ -202,7 +202,6 @@ export default function AllyForm({ clientId, onComplete }: AllyFormProps) {
                                 onSelect={() => {
                                   form.setValue("preferredLanguage", option.value);
                                   form.clearErrors("preferredLanguage");
-                                  setOpen(false);
                                 }}
                               >
                                 <CheckIcon
