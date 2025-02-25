@@ -57,6 +57,10 @@ export default function GoalsForm({ clientId, onComplete }: GoalsFormProps) {
   const { data: subgoals = [] } = useQuery({
     queryKey: ["/api/goals", selectedGoalId, "subgoals"],
     enabled: !!selectedGoalId,
+    queryFn: async () => {
+      const res = await apiRequest("GET", `/api/goals/${selectedGoalId}/subgoals`);
+      return res.json();
+    }
   });
 
   const createGoal = useMutation({
