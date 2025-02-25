@@ -95,6 +95,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(subgoals);
   });
 
+  app.delete("/api/subgoals/:id", async (req, res) => {
+    await storage.deleteSubgoal(parseInt(req.params.id));
+    res.json({ success: true });
+  });
+
   // Budget routes
   app.post("/api/clients/:clientId/budget-items", async (req, res) => {
     const result = insertBudgetItemSchema.safeParse(req.body);
