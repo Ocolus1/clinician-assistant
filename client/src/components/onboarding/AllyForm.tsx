@@ -15,6 +15,24 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { cn } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
 import { useState } from 'react';
+import { Pencil, Trash } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface AllyFormProps {
   clientId: number;
@@ -68,6 +86,64 @@ export default function AllyForm({ clientId, onComplete }: AllyFormProps) {
   const canAddMore = allies.length < 5;
   const [openRelationship, setOpenRelationship] = useState(false);
   const [open, setOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [selectedAlly, setSelectedAlly] = useState<any>(null);
+  const [deleteId, setDeleteId] = useState<number | null>(null);
+
+  const handleEditAlly = (ally: any) => {
+    setSelectedAlly(ally);
+    form.reset(ally);
+    setEditDialogOpen(true);
+  };
+
+  const handleDeleteAlly = (id: number) => {
+    setDeleteId(id);
+    setDeleteDialogOpen(true);
+  };
+
+  const deleteAlly = useMutation({
+    mutationFn: async (id: number) => {
+      const res = await apiRequest("DELETE", `/api/clients/${clientId}/allies/${id}`);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/clients", clientId, "allies"] });
+      toast({
+        title: "Success",
+        description: "Ally deleted successfully",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to delete ally",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const updateAlly = useMutation({
+    mutationFn: async (data: any) => {
+      const res = await apiRequest("PUT", `/api/clients/${clientId}/allies/${selectedAlly.id}`, data);
+      return res.json();
+    },
+    onSuccess: () => {
+      setEditDialogOpen(false);
+      queryClient.invalidateQueries({ queryKey: ["/api/clients", clientId, "allies"] });
+      toast({
+        title: "Success",
+        description: "Ally updated successfully",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to update ally",
+        variant: "destructive",
+      });
+    },
+  });
 
   return (
     <div className="grid grid-cols-2 gap-6">
@@ -76,16 +152,36 @@ export default function AllyForm({ clientId, onComplete }: AllyFormProps) {
         <div className="space-y-4">
           {allies.map((ally: any) => (
             <Card key={ally.id} className="p-4">
-              <h4 className="font-medium">{ally.name}</h4>
-              <p className="text-sm text-muted-foreground">{ally.relationship}</p>
-              <p className="text-sm text-muted-foreground">{ally.email}</p>
-              <div className="mt-2 flex gap-4 text-sm">
-                <span className={ally.accessTherapeutics ? "text-primary" : "text-muted-foreground"}>
-                  Therapeutics Access
-                </span>
-                <span className={ally.accessFinancials ? "text-primary" : "text-muted-foreground"}>
-                  Financial Access
-                </span>
+              <div className="flex justify-between items-start">
+                <div className="flex-1">
+                  <h4 className="font-medium">{ally.name}</h4>
+                  <p className="text-sm text-muted-foreground">{ally.relationship}</p>
+                  <p className="text-sm text-muted-foreground">{ally.email}</p>
+                  <div className="mt-2 flex gap-4 text-sm">
+                    <span className={ally.accessTherapeutics ? "text-primary" : "text-muted-foreground"}>
+                      Therapeutics Access
+                    </span>
+                    <span className={ally.accessFinancials ? "text-primary" : "text-muted-foreground"}>
+                      Financial Access
+                    </span>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <Button 
+                    variant="ghost" 
+                    size="icon"
+                    onClick={() => handleEditAlly(ally)}
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                  <Button 
+                    variant="ghost" 
+                    size="icon"
+                    onClick={() => handleDeleteAlly(ally.id)}
+                  >
+                    <Trash className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
             </Card>
           ))}
@@ -302,6 +398,114 @@ export default function AllyForm({ clientId, onComplete }: AllyFormProps) {
           </Button>
         )}
       </div>
+    <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Ally</DialogTitle>
+          </DialogHeader>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit((data) => updateAlly.mutate(data))}>
+              {/* Reuse the same form fields from the create form */}
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem className="mb-4">
+                    <FormLabel>Name</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="relationship"
+                render={({ field }) => (
+                  <FormItem className="mb-4">
+                    <FormLabel>Relationship to Client</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem className="mb-4">
+                    <FormLabel>Email</FormLabel>
+                    <FormControl>
+                      <Input {...field} type="email" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="accessTherapeutics"
+                render={({ field }) => (
+                  <FormItem className="mb-4 flex items-center justify-between">
+                    <FormLabel>Access to Therapeutics</FormLabel>
+                    <FormControl>
+                      <Switch
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="accessFinancials"
+                render={({ field }) => (
+                  <FormItem className="mb-4 flex items-center justify-between">
+                    <FormLabel>Access to Financials</FormLabel>
+                    <FormControl>
+                      <Switch
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+              <Button type="submit" className="w-full" disabled={updateAlly.isPending}>
+                {updateAlly.isPending ? "Saving..." : "Save Changes"}
+              </Button>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the ally.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={() => {
+                if (deleteId) {
+                  deleteAlly.mutate(deleteId);
+                  setDeleteDialogOpen(false);
+                }
+              }}
+            >
+              {deleteAlly.isPending ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
