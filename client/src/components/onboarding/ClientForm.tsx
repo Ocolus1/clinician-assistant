@@ -45,7 +45,7 @@ export default function ClientForm({ onComplete }: ClientFormProps) {
 
   return (
     <div className="grid md:grid-cols-2 gap-8 items-center min-h-screen p-8">
-      <div className="md:block h-full flex items-center">
+      <div className="md:block h-full flex items-center rounded-xl overflow-hidden shadow-lg">
         <img 
           src="https://images.unsplash.com/photo-1614850523296-d8c1af93d400?w=800&auto=format&fit=crop"
           alt="Abstract wave pattern"
@@ -53,8 +53,12 @@ export default function ClientForm({ onComplete }: ClientFormProps) {
         />
       </div>
       <div className="space-y-8 max-w-md mx-auto w-full flex flex-col items-center justify-center">
+        <div className="text-center mb-8">
+          <h2 className="text-3xl font-semibold text-primary mb-2">Client Information</h2>
+          <p className="text-muted-foreground">Please enter the client's details below</p>
+        </div>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit((data) => createClient.mutate(data))}>
+          <form onSubmit={form.handleSubmit((data) => createClient.mutate(data))} className="space-y-6 w-full">
             <FormField
               control={form.control}
               name="name"
@@ -87,8 +91,17 @@ export default function ClientForm({ onComplete }: ClientFormProps) {
               type="submit" 
               className="w-full"
               disabled={createClient.isPending}
+              size="lg"
+              className="w-full bg-primary hover:bg-primary/90 text-white font-medium py-6"
             >
-              {createClient.isPending ? "Saving..." : "Continue"}
+              {createClient.isPending ? (
+                <div className="flex items-center justify-center">
+                  <div className="animate-spin mr-2 h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
+                  Saving...
+                </div>
+              ) : (
+                "Continue"
+              )}
             </Button>
           </form>
         </Form>
