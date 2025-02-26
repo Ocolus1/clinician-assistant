@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertClientSchema, insertAllySchema, insertGoalSchema, insertSubgoalSchema, insertBudgetItemSchema } from "@shared/schema";
+import { insertClientSchema, insertAllySchema, insertGoalSchema, insertSubgoalSchema, insertBudgetItemSchema, insertBudgetSettingsSchema } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Client routes
@@ -138,6 +138,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete("/api/budget-items/:id", async (req, res) => {
     await storage.deleteBudgetItem(parseInt(req.params.id));
     res.json({ success: true });
+  });
+
+  // Budget Settings routes
+  app.post("/api/clients/:clientId/budget-settings", async (req, res) => {
+    const result = insertBudgetSettingsSchema.safeParse(req.body);
+    if (!result.success) {
+      return res.status(400).json({ error: result.error });
+    }
+    const settings = await storage.createBudgetSettings(parseInt(req.params.clientId), result.data);
+    res.json(settings);
+  });
+
+  app.get("/api/clients/:clientId/budget-settings", async (req, res) => {
+    const settings = await storage.getBudgetSettingsByClient(parseInt(req.params.clientId));
+    if (!settings) {
+      return res.status(404).json({ error: "Budget settings not found" });
+    }
+    res.json(settings);
+  });
+
+  app.put("/api/budget-settings/:id", async (req, res) => {
+    const result = insertBudgetSettingsSchema.safeParse(req.body);
+    if (!result.success) {
+      return res.status(400).json({ error: result.error });
+    }
+    const settings = await storage.updateBudgetSettings(parseInt(req.params.id), result.data);
+    res.json(settings);
   });
 
   const httpServer = createServer(app);

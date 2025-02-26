@@ -3,7 +3,8 @@ import {
   Ally, InsertAlly,
   Goal, InsertGoal,
   Subgoal, InsertSubgoal,
-  BudgetItem, InsertBudgetItem
+  BudgetItem, InsertBudgetItem,
+  BudgetSettings, InsertBudgetSettings
 } from "@shared/schema";
 
 export interface IStorage {
@@ -26,6 +27,11 @@ export interface IStorage {
   getSubgoalsByGoal(goalId: number): Promise<Subgoal[]>;
   updateSubgoal(id: number, data: any): Promise<Subgoal>; //Added updateSubgoal
 
+  // Budget Settings
+  createBudgetSettings(clientId: number, settings: InsertBudgetSettings): Promise<BudgetSettings>;
+  getBudgetSettingsByClient(clientId: number): Promise<BudgetSettings | undefined>;
+  updateBudgetSettings(id: number, settings: InsertBudgetSettings): Promise<BudgetSettings>;
+
   // Budget Items
   createBudgetItem(clientId: number, item: InsertBudgetItem): Promise<BudgetItem>;
   getBudgetItemsByClient(clientId: number): Promise<BudgetItem[]>;
@@ -37,6 +43,7 @@ export class MemStorage implements IStorage {
   private goals: Map<number, Goal>;
   private subgoals: Map<number, Subgoal>;
   private budgetItems: Map<number, BudgetItem>;
+  private budgetSettings: Map<number, BudgetSettings>;
   private currentId: number;
 
   constructor() {
@@ -45,6 +52,7 @@ export class MemStorage implements IStorage {
     this.goals = new Map();
     this.subgoals = new Map();
     this.budgetItems = new Map();
+    this.budgetSettings = new Map();
     this.currentId = 1;
   }
 
@@ -179,6 +187,38 @@ export class MemStorage implements IStorage {
     const updatedSubgoal = { ...existingSubgoal, ...data };
     this.subgoals.set(id, updatedSubgoal);
     return updatedSubgoal;
+  }
+
+  // Budget Settings methods
+  async createBudgetSettings(clientId: number, settings: InsertBudgetSettings): Promise<BudgetSettings> {
+    const id = this.currentId++;
+    const newSettings = { 
+      ...settings, 
+      id, 
+      clientId,
+      availableFunds: Number(settings.availableFunds || 0),
+    };
+    this.budgetSettings.set(id, newSettings);
+    return newSettings;
+  }
+
+  async getBudgetSettingsByClient(clientId: number): Promise<BudgetSettings | undefined> {
+    const allSettings = Array.from(this.budgetSettings.values());
+    return allSettings.find(setting => setting.clientId === clientId);
+  }
+
+  async updateBudgetSettings(id: number, settings: InsertBudgetSettings): Promise<BudgetSettings> {
+    const existingSettings = this.budgetSettings.get(id);
+    if (!existingSettings) {
+      throw new Error("Budget settings not found");
+    }
+    const updatedSettings = { 
+      ...existingSettings, 
+      ...settings,
+      availableFunds: Number(settings.availableFunds || existingSettings.availableFunds)
+    };
+    this.budgetSettings.set(id, updatedSettings);
+    return updatedSettings;
   }
 }
 
