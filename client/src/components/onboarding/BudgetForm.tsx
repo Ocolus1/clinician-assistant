@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { DollarSign, Plus, Calculator } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -16,7 +16,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
-import { insertBudgetItemSchema } from "@shared/schema";
+import { insertBudgetItemSchema, type InsertBudgetItem } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 
 interface BudgetFormProps {
@@ -26,7 +26,9 @@ interface BudgetFormProps {
 
 export default function BudgetForm({ clientId, onComplete }: BudgetFormProps) {
   const { toast } = useToast();
-  const form = useForm({
+  const queryClient = useQueryClient();
+
+  const form = useForm<InsertBudgetItem>({
     resolver: zodResolver(insertBudgetItemSchema),
     defaultValues: {
       itemCode: "",
@@ -41,15 +43,24 @@ export default function BudgetForm({ clientId, onComplete }: BudgetFormProps) {
   });
 
   const createBudgetItem = useMutation({
-    mutationFn: async (data: any) => {
+    mutationFn: async (data: InsertBudgetItem) => {
       const res = await apiRequest("POST", `/api/clients/${clientId}/budget-items`, data);
       return res.json();
     },
     onSuccess: () => {
       form.reset();
+      queryClient.invalidateQueries({ queryKey: ["/api/clients", clientId, "budget-items"] });
       toast({
         title: "Success",
         description: "Budget item added successfully",
+      });
+    },
+    onError: (error) => {
+      console.error("Error adding budget item:", error);
+      toast({
+        title: "Error",
+        description: "Failed to add budget item. Please check the form and try again.",
+        variant: "destructive",
       });
     },
   });
@@ -57,6 +68,16 @@ export default function BudgetForm({ clientId, onComplete }: BudgetFormProps) {
   const totalBudget = budgetItems.reduce((acc: number, item: any) => {
     return acc + (item.unitPrice * item.quantity);
   }, 0);
+
+  const handleSubmit = form.handleSubmit((data) => {
+    // Ensure unitPrice is a number before submission
+    const formattedData = {
+      ...data,
+      unitPrice: Number(data.unitPrice),
+      quantity: Number(data.quantity)
+    };
+    createBudgetItem.mutate(formattedData);
+  });
 
   return (
     <div className="space-y-4">
@@ -75,7 +96,7 @@ export default function BudgetForm({ clientId, onComplete }: BudgetFormProps) {
         <div className="w-1/2">
           <h3 className="text-lg font-semibold mb-3">Add New Item</h3>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit((data) => createBudgetItem.mutate(data))} className="space-y-3">
+            <form onSubmit={handleSubmit} className="space-y-3">
               <FormField
                 control={form.control}
                 name="itemCode"
@@ -116,11 +137,15 @@ export default function BudgetForm({ clientId, onComplete }: BudgetFormProps) {
                           type="number"
                           step="0.01"
                           min="0"
+                          placeholder="0.00"
+                          // Handle numeric conversion properly
                           value={field.value}
                           onChange={(e) => {
-                            const value = e.target.value;
-                            field.onChange(Number(value) || 0);
+                            // Convert to number and handle empty string
+                            const value = e.target.value === '' ? 0 : parseFloat(e.target.value);
+                            field.onChange(isNaN(value) ? 0 : value);
                           }}
+                          onBlur={field.onBlur}
                         />
                       </FormControl>
                       <FormMessage />
@@ -138,8 +163,12 @@ export default function BudgetForm({ clientId, onComplete }: BudgetFormProps) {
                         <Input
                           type="number"
                           min="1"
-                          {...field}
-                          onChange={(e) => field.onChange(parseInt(e.target.value))}
+                          value={field.value}
+                          onChange={(e) => {
+                            const value = e.target.value === '' ? 1 : parseInt(e.target.value);
+                            field.onChange(isNaN(value) ? 1 : value);
+                          }}
+                          onBlur={field.onBlur}
                         />
                       </FormControl>
                       <FormMessage />
@@ -154,7 +183,7 @@ export default function BudgetForm({ clientId, onComplete }: BudgetFormProps) {
                 disabled={createBudgetItem.isPending}
               >
                 <Plus className="w-4 h-4 mr-2" />
-                Add Budget Item
+                {createBudgetItem.isPending ? "Adding..." : "Add Budget Item"}
               </Button>
             </form>
           </Form>
@@ -163,24 +192,30 @@ export default function BudgetForm({ clientId, onComplete }: BudgetFormProps) {
         <div className="w-1/2">
           <h3 className="text-lg font-semibold mb-3">Budget Items</h3>
           <div className="space-y-3">
-            {budgetItems.map((item: any) => (
-              <Card key={item.id} className="bg-background">
-                <CardContent className="p-4">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h4 className="font-medium">{item.itemCode}</h4>
-                      <p className="text-sm text-muted-foreground">{item.description}</p>
+            {budgetItems.length === 0 ? (
+              <div className="text-center text-muted-foreground py-8">
+                No budget items added yet
+              </div>
+            ) : (
+              budgetItems.map((item: any) => (
+                <Card key={item.id} className="bg-background">
+                  <CardContent className="p-4">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h4 className="font-medium">{item.itemCode}</h4>
+                        <p className="text-sm text-muted-foreground">{item.description}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-medium">${(item.unitPrice * item.quantity).toFixed(2)}</p>
+                        <p className="text-sm text-muted-foreground">
+                          ${item.unitPrice.toFixed(2)} × {item.quantity}
+                        </p>
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <p className="font-medium">${(item.unitPrice * item.quantity).toFixed(2)}</p>
-                      <p className="text-sm text-muted-foreground">
-                        ${item.unitPrice.toFixed(2)} × {item.quantity}
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                  </CardContent>
+                </Card>
+              ))
+            )}
           </div>
         </div>
       </div>
