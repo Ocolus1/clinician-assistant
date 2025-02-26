@@ -359,7 +359,7 @@ export default function GoalsForm({ clientId, onComplete, onPrevious }: GoalsFor
               <Button 
                 type="submit" 
                 className="w-full"
-                variant="default"
+                variant="secondary"
                 disabled={createGoal.isPending}
               >
                 <Plus className="w-4 h-4 mr-2" />
@@ -419,6 +419,7 @@ export default function GoalsForm({ clientId, onComplete, onPrevious }: GoalsFor
                   <Button 
                     type="submit" 
                     className="flex-1"
+                    variant="secondary"
                     disabled={createSubgoal.isPending}
                   >
                     <Plus className="w-4 h-4 mr-2" />
