@@ -86,6 +86,24 @@ export default function PrintSummary() {
     );
   }
 
+  // Show error state if there was an error loading the client
+  if (isClientError) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold mb-4">Error loading client</h1>
+          <p className="text-muted-foreground mb-4">There was a problem loading the client data.</p>
+          <div className="space-y-2">
+            <Button onClick={() => setLocation("/")} variant="default">Return Home</Button>
+            <Button onClick={() => setLocation(`/summary/${clientId}`)} variant="outline" className="ml-2">
+              Return to Summary
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // Show error state if client not found after loading
   if (!client && parsedClientId > 0) {
     return (

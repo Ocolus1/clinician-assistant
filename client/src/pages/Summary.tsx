@@ -13,24 +13,48 @@ export default function Summary() {
   const parsedClientId = clientId ? parseInt(clientId) : 0;
   console.log("Summary component - parsedClientId:", parsedClientId);
 
-  const { data: client } = useQuery<Client>({
+  // More detailed debugging and error handling for client data 
+  const { 
+    data: client,
+    isLoading: isClientLoading,
+    isError: isClientError,
+    error: clientError,
+    refetch: refetchClient
+  } = useQuery<Client>({
     queryKey: ["/api/clients", parsedClientId],
-    enabled: parsedClientId > 0
+    enabled: parsedClientId > 0,
+    retry: 2, // Allow more retries
+    retryDelay: 1000, // Wait 1 second between retries
+    staleTime: 30000 // Cache for 30 seconds
   });
+
+  console.log("Summary - client query:", { 
+    isLoading: isClientLoading, 
+    isError: isClientError, 
+    error: clientError,
+    clientId: parsedClientId,
+    data: client 
+  });
+
+  // Only fetch related data if client data was successful
+  const fetchRelatedData = Boolean(client?.id);
 
   const { data: allies = [] } = useQuery<Ally[]>({
     queryKey: ["/api/clients", parsedClientId, "allies"],
-    enabled: parsedClientId > 0
+    enabled: parsedClientId > 0 && fetchRelatedData,
+    retry: 1
   });
 
   const { data: goals = [] } = useQuery<Goal[]>({
     queryKey: ["/api/clients", parsedClientId, "goals"],
-    enabled: parsedClientId > 0
+    enabled: parsedClientId > 0 && fetchRelatedData,
+    retry: 1
   });
 
   const { data: budgetItems = [] } = useQuery<BudgetItem[]>({
     queryKey: ["/api/clients", parsedClientId, "budget-items"],
-    enabled: parsedClientId > 0
+    enabled: parsedClientId > 0 && fetchRelatedData,
+    retry: 1
   });
 
   const totalBudget = budgetItems.reduce((acc: number, item: BudgetItem) => {
@@ -38,12 +62,25 @@ export default function Summary() {
   }, 0);
   
   // Show loading state if client is being fetched
-  if (parsedClientId > 0 && !client) {
+  if (isClientLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <h1 className="text-2xl font-bold mb-4">Loading client data...</h1>
           <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full mx-auto"></div>
+        </div>
+      </div>
+    );
+  }
+  
+  // Show error state if there was an error loading the client
+  if (isClientError) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold mb-4">Error loading client</h1>
+          <p className="text-muted-foreground mb-4">There was a problem loading client data.</p>
+          <Button onClick={() => setLocation("/")}>Return Home</Button>
         </div>
       </div>
     );
