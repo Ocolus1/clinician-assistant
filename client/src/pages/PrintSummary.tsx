@@ -11,8 +11,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { MoreVertical, Printer, Mail, Check } from "lucide-react";
-import { LanguageSelector } from "@/components/summary/LanguageSelector";
-import { AllySelector } from "@/components/summary/AllySelector";
+import { LanguageSelector } from "../components/summary/LanguageSelector";
+import { AllySelector } from "../components/summary/AllySelector";
 import { Client, Ally, Goal, BudgetItem, BudgetSettings } from "@shared/schema";
 
 type SummaryLanguage = "english" | "french" | "spanish" | "other";
@@ -26,23 +26,23 @@ export default function PrintSummary() {
 
   // Fetch all client data
   const { data: client } = useQuery<Client>({
-    queryKey: ["/api/clients", parseInt(clientId)],
+    queryKey: ["/api/clients", clientId ? parseInt(clientId) : 0],
   });
 
   const { data: allies = [] } = useQuery<Ally[]>({
-    queryKey: ["/api/clients", parseInt(clientId), "allies"],
+    queryKey: ["/api/clients", clientId ? parseInt(clientId) : 0, "allies"],
   });
 
   const { data: goals = [] } = useQuery<Goal[]>({
-    queryKey: ["/api/clients", parseInt(clientId), "goals"],
+    queryKey: ["/api/clients", clientId ? parseInt(clientId) : 0, "goals"],
   });
 
   const { data: budgetItems = [] } = useQuery<BudgetItem[]>({
-    queryKey: ["/api/clients", parseInt(clientId), "budget-items"],
+    queryKey: ["/api/clients", clientId ? parseInt(clientId) : 0, "budget-items"],
   });
 
   const { data: budgetSettings } = useQuery<BudgetSettings>({
-    queryKey: ["/api/clients", parseInt(clientId), "budget-settings"],
+    queryKey: ["/api/clients", clientId ? parseInt(clientId) : 0, "budget-settings"],
   });
 
   const totalBudget = budgetItems.reduce((acc: number, item: BudgetItem) => {
@@ -119,7 +119,7 @@ export default function PrintSummary() {
         <LanguageSelector 
           open={showLanguageSelector} 
           onOpenChange={setShowLanguageSelector} 
-          onSelectLanguage={(language) => {
+          onSelectLanguage={(language: string) => {
             setShowLanguageSelector(false);
             handlePrint(language as SummaryLanguage);
           }}
@@ -130,10 +130,10 @@ export default function PrintSummary() {
           open={showAllySelector}
           onOpenChange={setShowAllySelector}
           allies={allies}
-          onSelectAllies={(selectedAllies) => {
+          onSelectAllies={(selectedAllies: Ally[]) => {
             setShowAllySelector(false);
             // In a real app, we'd send emails to these allies
-            alert(`Email would be sent to: ${selectedAllies.map(a => a.email).join(', ')}`);
+            alert(`Email would be sent to: ${selectedAllies.map((a: Ally) => a.email).join(', ')}`);
           }}
         />
 
@@ -235,7 +235,7 @@ export default function PrintSummary() {
             </CardHeader>
             <CardContent className="print:pt-0">
               <div className="space-y-6">
-                {goals.map((goal: any) => (
+                {goals.map((goal: Goal) => (
                   <div key={goal.id}>
                     <div className="mb-2">
                       <h4 className="font-medium">{goal.title}</h4>
@@ -246,7 +246,7 @@ export default function PrintSummary() {
                       </p>
                     </div>
                     <div className="pl-4 border-l-2 border-muted mt-2">
-                      {goal.subgoals?.map((subgoal: any) => (
+                      {(goal as any).subgoals?.map((subgoal: { id: number, title: string, description: string }) => (
                         <div key={subgoal.id} className="mb-2">
                           <p className="font-medium text-sm">{subgoal.title}</p>
                           <p className="text-sm text-muted-foreground">

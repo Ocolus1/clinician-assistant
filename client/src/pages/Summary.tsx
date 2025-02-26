@@ -50,11 +50,15 @@ export default function Summary() {
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-3xl font-bold">Client Summary</h1>
           <div className="flex gap-4">
+            <Button onClick={() => setLocation(`/print-summary/${clientId}`)} variant="default">
+              <FileText className="w-4 h-4 mr-2" />
+              View & Print Report
+            </Button>
             <Button onClick={handlePrint} variant="outline">
               <Printer className="w-4 h-4 mr-2" />
-              Print
+              Quick Print
             </Button>
-            <Button onClick={() => setLocation("/")}>
+            <Button onClick={() => setLocation("/")} variant="outline">
               <FileText className="w-4 h-4 mr-2" />
               New Client
             </Button>
