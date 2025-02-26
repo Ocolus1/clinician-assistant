@@ -226,6 +226,16 @@ export default function BudgetForm({ clientId, onComplete, onPrevious }: BudgetF
   const availableFunds = settingsForm.watch("availableFunds") || 0;
   const budgetDifference = availableFunds - totalBudget;
   const hasBudgetSurplus = budgetDifference >= 0;
+  
+  // Format currency values
+  const formatCurrency = (value: number) => {
+    return value.toLocaleString('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    });
+  };
 
   return (
     <div className="space-y-4">
@@ -241,7 +251,7 @@ export default function BudgetForm({ clientId, onComplete, onPrevious }: BudgetF
                     control={settingsForm.control}
                     name="availableFunds"
                     render={({ field }) => (
-                      <FormItem>
+                      <FormItem className="flex flex-col">
                         <FormLabel>Available Funds ($)</FormLabel>
                         <FormControl>
                           <div className="relative">
@@ -251,7 +261,7 @@ export default function BudgetForm({ clientId, onComplete, onPrevious }: BudgetF
                               step="0.01"
                               min="0"
                               placeholder="0.00"
-                              className="pl-6"
+                              className="pl-6 h-10"
                               {...field}
                               onChange={(e) => {
                                 const value = e.target.value === '' ? 0 : parseFloat(e.target.value);
@@ -320,12 +330,12 @@ export default function BudgetForm({ clientId, onComplete, onPrevious }: BudgetF
                           Budget {hasBudgetSurplus ? 'Surplus' : 'Deficit'}:
                         </span>
                         <span className={`ml-2 font-bold ${hasBudgetSurplus ? 'text-green-600' : 'text-red-600'}`}>
-                          ${Math.abs(budgetDifference).toFixed(2)}
+                          {formatCurrency(Math.abs(budgetDifference))}
                         </span>
                       </div>
                       <div className="text-sm">
                         <span className="font-medium">Total Budget:</span>
-                        <span className="ml-2">${totalBudget.toFixed(2)}</span>
+                        <span className="ml-2">{formatCurrency(totalBudget)}</span>
                       </div>
                     </div>
                   </div>
@@ -483,9 +493,9 @@ export default function BudgetForm({ clientId, onComplete, onPrevious }: BudgetF
                     <div key={item.id} className="grid grid-cols-12 gap-4 items-center hover:bg-muted/30 rounded-md p-2 transition-colors">
                       <div className="col-span-3 font-medium">{item.itemCode}</div>
                       <div className="col-span-3 text-sm text-muted-foreground">{item.description}</div>
-                      <div className="col-span-2 text-right">${item.unitPrice.toFixed(2)}</div>
+                      <div className="col-span-2 text-right">{formatCurrency(item.unitPrice)}</div>
                       <div className="col-span-1 text-center">{item.quantity}</div>
-                      <div className="col-span-2 text-right font-medium">${(item.unitPrice * item.quantity).toFixed(2)}</div>
+                      <div className="col-span-2 text-right font-medium">{formatCurrency(item.unitPrice * item.quantity)}</div>
                       <div className="col-span-1 flex justify-center">
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
