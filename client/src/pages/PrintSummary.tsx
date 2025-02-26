@@ -24,32 +24,50 @@ export default function PrintSummary() {
   const [showAllySelector, setShowAllySelector] = useState(false);
   const [selectedLanguage, setSelectedLanguage] = useState<SummaryLanguage | null>(null);
 
+  console.log("PrintSummary component - clientId param:", clientId);
   const parsedClientId = clientId ? parseInt(clientId) : 0;
+  console.log("PrintSummary component - parsedClientId:", parsedClientId);
   
-  // Fetch all client data
-  const { data: client, isLoading: isClientLoading } = useQuery<Client>({
+  // Fetch client data with error and loading states
+  const { 
+    data: client, 
+    isLoading: isClientLoading,
+    isError: isClientError,
+    error: clientError
+  } = useQuery<Client>({
     queryKey: ["/api/clients", parsedClientId],
     enabled: parsedClientId > 0,
+    retry: 1, // Only retry once to avoid infinite loop
+    staleTime: 30000, // Cache for 30 seconds
   });
+
+  console.log("Client query result:", { isLoading: isClientLoading, isError: isClientError, data: client });
+
+  // Only fetch related data if client data was successful
+  const fetchRelatedData = Boolean(client?.id);
 
   const { data: allies = [] } = useQuery<Ally[]>({
     queryKey: ["/api/clients", parsedClientId, "allies"],
-    enabled: parsedClientId > 0,
+    enabled: parsedClientId > 0 && fetchRelatedData,
+    retry: 1,
   });
 
   const { data: goals = [] } = useQuery<Goal[]>({
     queryKey: ["/api/clients", parsedClientId, "goals"],
-    enabled: parsedClientId > 0,
+    enabled: parsedClientId > 0 && fetchRelatedData,
+    retry: 1,
   });
 
   const { data: budgetItems = [] } = useQuery<BudgetItem[]>({
     queryKey: ["/api/clients", parsedClientId, "budget-items"],
-    enabled: parsedClientId > 0,
+    enabled: parsedClientId > 0 && fetchRelatedData,
+    retry: 1,
   });
 
   const { data: budgetSettings } = useQuery<BudgetSettings>({
     queryKey: ["/api/clients", parsedClientId, "budget-settings"],
-    enabled: parsedClientId > 0,
+    enabled: parsedClientId > 0 && fetchRelatedData,
+    retry: 1,
   });
 
   const totalBudget = budgetItems.reduce((acc: number, item: BudgetItem) => {

@@ -9,7 +9,9 @@ import { Client, Ally, Goal, BudgetItem } from "@shared/schema";
 export default function Summary() {
   const { clientId } = useParams();
   const [, setLocation] = useLocation();
+  console.log("Summary component - clientId param:", clientId);
   const parsedClientId = clientId ? parseInt(clientId) : 0;
+  console.log("Summary component - parsedClientId:", parsedClientId);
 
   const { data: client } = useQuery<Client>({
     queryKey: ["/api/clients", parsedClientId],
