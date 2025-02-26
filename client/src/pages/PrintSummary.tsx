@@ -24,31 +24,64 @@ export default function PrintSummary() {
   const [showAllySelector, setShowAllySelector] = useState(false);
   const [selectedLanguage, setSelectedLanguage] = useState<SummaryLanguage | null>(null);
 
+  const parsedClientId = clientId ? parseInt(clientId) : 0;
+  
   // Fetch all client data
-  const { data: client } = useQuery<Client>({
-    queryKey: ["/api/clients", clientId ? parseInt(clientId) : 0],
+  const { data: client, isLoading: isClientLoading } = useQuery<Client>({
+    queryKey: ["/api/clients", parsedClientId],
+    enabled: parsedClientId > 0,
   });
 
   const { data: allies = [] } = useQuery<Ally[]>({
-    queryKey: ["/api/clients", clientId ? parseInt(clientId) : 0, "allies"],
+    queryKey: ["/api/clients", parsedClientId, "allies"],
+    enabled: parsedClientId > 0,
   });
 
   const { data: goals = [] } = useQuery<Goal[]>({
-    queryKey: ["/api/clients", clientId ? parseInt(clientId) : 0, "goals"],
+    queryKey: ["/api/clients", parsedClientId, "goals"],
+    enabled: parsedClientId > 0,
   });
 
   const { data: budgetItems = [] } = useQuery<BudgetItem[]>({
-    queryKey: ["/api/clients", clientId ? parseInt(clientId) : 0, "budget-items"],
+    queryKey: ["/api/clients", parsedClientId, "budget-items"],
+    enabled: parsedClientId > 0,
   });
 
   const { data: budgetSettings } = useQuery<BudgetSettings>({
-    queryKey: ["/api/clients", clientId ? parseInt(clientId) : 0, "budget-settings"],
+    queryKey: ["/api/clients", parsedClientId, "budget-settings"],
+    enabled: parsedClientId > 0,
   });
 
   const totalBudget = budgetItems.reduce((acc: number, item: BudgetItem) => {
     return acc + (item.unitPrice * item.quantity);
   }, 0);
+  
+  // Show loading state
+  if (isClientLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold mb-4">Loading client data...</h1>
+          <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full mx-auto"></div>
+        </div>
+      </div>
+    );
+  }
 
+  // Show error state if client not found after loading
+  if (!client && parsedClientId > 0) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold mb-4">Client not found</h1>
+          <p className="mb-4 text-muted-foreground">The client with ID {parsedClientId} could not be found.</p>
+          <Button onClick={() => setLocation("/")}>Return Home</Button>
+        </div>
+      </div>
+    );
+  }
+  
+  // If client is null but we're not loading, that's an error (shouldn't happen with the enabled flag)
   if (!client) {
     return (
       <div className="min-h-screen flex items-center justify-center">

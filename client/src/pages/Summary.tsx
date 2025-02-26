@@ -4,31 +4,50 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { FileText, Printer } from "lucide-react";
+import { Client, Ally, Goal, BudgetItem } from "@shared/schema";
 
 export default function Summary() {
   const { clientId } = useParams();
   const [, setLocation] = useLocation();
+  const parsedClientId = clientId ? parseInt(clientId) : 0;
 
-  const { data: client } = useQuery({
-    queryKey: ["/api/clients", parseInt(clientId)],
+  const { data: client } = useQuery<Client>({
+    queryKey: ["/api/clients", parsedClientId],
+    enabled: parsedClientId > 0
   });
 
-  const { data: allies = [] } = useQuery({
-    queryKey: ["/api/clients", parseInt(clientId), "allies"],
+  const { data: allies = [] } = useQuery<Ally[]>({
+    queryKey: ["/api/clients", parsedClientId, "allies"],
+    enabled: parsedClientId > 0
   });
 
-  const { data: goals = [] } = useQuery({
-    queryKey: ["/api/clients", parseInt(clientId), "goals"],
+  const { data: goals = [] } = useQuery<Goal[]>({
+    queryKey: ["/api/clients", parsedClientId, "goals"],
+    enabled: parsedClientId > 0
   });
 
-  const { data: budgetItems = [] } = useQuery({
-    queryKey: ["/api/clients", parseInt(clientId), "budget-items"],
+  const { data: budgetItems = [] } = useQuery<BudgetItem[]>({
+    queryKey: ["/api/clients", parsedClientId, "budget-items"],
+    enabled: parsedClientId > 0
   });
 
-  const totalBudget = budgetItems.reduce((acc: number, item: any) => {
+  const totalBudget = budgetItems.reduce((acc: number, item: BudgetItem) => {
     return acc + (item.unitPrice * item.quantity);
   }, 0);
-
+  
+  // Show loading state if client is being fetched
+  if (parsedClientId > 0 && !client) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold mb-4">Loading client data...</h1>
+          <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full mx-auto"></div>
+        </div>
+      </div>
+    );
+  }
+  
+  // Default case when no client is found or not loaded
   if (!client) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -92,7 +111,7 @@ export default function Summary() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {allies.map((ally: any) => (
+                {allies.map((ally: Ally) => (
                   <div key={ally.id}>
                     <div className="grid grid-cols-2 gap-4">
                       <div>
