@@ -11,6 +11,7 @@ export interface IStorage {
   // Clients
   createClient(client: InsertClient): Promise<Client>;
   getClient(id: number): Promise<Client | undefined>;
+  getAllClients(): Promise<Client[]>; // Added method to get all clients for debugging
 
   // Allies
   createAlly(clientId: number, ally: InsertAlly): Promise<Ally>;
@@ -62,15 +63,44 @@ export class MemStorage implements IStorage {
     const processedClient = {
       ...client,
       id,
-      availableFunds: Number(client.availableFunds),
+      availableFunds: Number(client.availableFunds) || 0,
       fundsManagement: client.fundsManagement || null
     };
+    
+    console.log(`Creating client with ID ${id}:`, JSON.stringify(processedClient));
     this.clients.set(id, processedClient);
+    
+    // Verify client was stored properly
+    const storedClient = this.clients.get(id);
+    if (!storedClient) {
+      console.error(`Failed to store client with ID ${id}`);
+    } else {
+      console.log(`Successfully stored client with ID ${id}`);
+    }
+    
     return processedClient;
   }
 
   async getClient(id: number): Promise<Client | undefined> {
-    return this.clients.get(id);
+    console.log(`Attempting to get client with ID: ${id}`);
+    if (isNaN(id) || id <= 0) {
+      console.error(`Invalid client ID: ${id}`);
+      return undefined;
+    }
+    
+    const client = this.clients.get(id);
+    if (!client) {
+      console.log(`Client with ID ${id} not found in storage`);
+      
+      // Debug: Log all available client IDs
+      const availableIds = Array.from(this.clients.keys()).sort((a, b) => a - b);
+      console.log(`Available client IDs: ${availableIds.join(', ')}`);
+      
+      return undefined;
+    }
+    
+    console.log(`Found client with ID ${id}: ${JSON.stringify(client)}`);
+    return client;
   }
 
   async createAlly(clientId: number, ally: InsertAlly): Promise<Ally> {
@@ -82,6 +112,13 @@ export class MemStorage implements IStorage {
 
   async getAlliesByClient(clientId: number): Promise<Ally[]> {
     return Array.from(this.allies.values()).filter(ally => ally.clientId === clientId);
+  }
+
+  async getAllClients(): Promise<Client[]> {
+    console.log("Getting all clients from storage");
+    const clients = Array.from(this.clients.values());
+    console.log(`Found ${clients.length} clients in storage`);
+    return clients;
   }
 
   async deleteAlly(id: number): Promise<void> {

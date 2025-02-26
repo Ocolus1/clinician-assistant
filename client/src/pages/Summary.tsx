@@ -80,7 +80,17 @@ export default function Summary() {
         <div className="text-center">
           <h1 className="text-2xl font-bold mb-4">Error loading client</h1>
           <p className="text-muted-foreground mb-4">There was a problem loading client data.</p>
-          <Button onClick={() => setLocation("/")}>Return Home</Button>
+          <div className="text-sm text-red-500 mb-4">
+            {clientError instanceof Error ? clientError.message : "Unknown error occurred"}
+          </div>
+          <div className="flex flex-col gap-2 items-center">
+            <Button onClick={() => refetchClient()} variant="outline">
+              Try Again
+            </Button>
+            <Button onClick={() => setLocation("/")} variant="default" className="mt-2">
+              Return Home
+            </Button>
+          </div>
         </div>
       </div>
     );
@@ -92,7 +102,17 @@ export default function Summary() {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <h1 className="text-2xl font-bold mb-4">Client not found</h1>
-          <Button onClick={() => setLocation("/")}>Return Home</Button>
+          <p className="text-muted-foreground mb-4">
+            We couldn't find the client with ID: {parsedClientId}
+          </p>
+          <div className="flex flex-col gap-2 items-center">
+            <Button onClick={() => refetchClient()} variant="outline">
+              Try Again
+            </Button>
+            <Button onClick={() => setLocation("/")} variant="default" className="mt-2">
+              Return Home
+            </Button>
+          </div>
         </div>
       </div>
     );
