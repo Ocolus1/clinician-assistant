@@ -8,8 +8,8 @@ export const clients = pgTable("clients", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   dateOfBirth: date("date_of_birth").notNull(),
-  fundsManagement: text("funds_management"), // Added funds management field
-  availableFunds: numeric("available_funds"), // Added available funds field
+  fundsManagement: text("funds_management").notNull(), // Added funds management field as required
+  availableFunds: numeric("available_funds").notNull().$type<number>(), // Added available funds field with number type
 });
 
 export const allies = pgTable("allies", {
@@ -47,7 +47,13 @@ export const budgetItems = pgTable("budget_items", {
   quantity: integer("quantity").notNull(),
 });
 
-export const insertClientSchema = createInsertSchema(clients);
+// Create a custom client schema with explicit type transformation for availableFunds
+export const insertClientSchema = createInsertSchema(clients)
+  .extend({
+    // Ensure availableFunds is always parsed as a number
+    availableFunds: z.coerce.number()
+  });
+
 export const insertAllySchema = createInsertSchema(allies).omit({ id: true, clientId: true });
 export const insertGoalSchema = createInsertSchema(goals).omit({ id: true, clientId: true });
 export const insertSubgoalSchema = createInsertSchema(subgoals).omit({ id: true, goalId: true });

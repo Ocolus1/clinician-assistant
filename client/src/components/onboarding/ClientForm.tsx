@@ -121,11 +121,11 @@ export default function ClientForm({ onComplete }: ClientFormProps) {
                   <FormLabel>Available Funds ($)</FormLabel>
                   <FormControl>
                     <Input 
-                      {...field} 
+                      value={field.value} 
                       type="number" 
                       min="0" 
                       step="0.01"
-                      onChange={e => field.onChange(parseFloat(e.target.value))}
+                      onChange={e => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
                     />
                   </FormControl>
                   <FormMessage />
