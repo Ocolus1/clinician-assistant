@@ -28,17 +28,19 @@ export default function PrintSummary() {
   const parsedClientId = clientId ? parseInt(clientId) : 0;
   console.log("PrintSummary component - parsedClientId:", parsedClientId);
   
-  // Fetch client data with error and loading states
+  // Fetch client data with improved error handling
   const { 
     data: client, 
     isLoading: isClientLoading,
     isError: isClientError,
-    error: clientError
+    error: clientError,
+    refetch: refetchClient
   } = useQuery<Client>({
     queryKey: ["/api/clients", parsedClientId],
     enabled: parsedClientId > 0,
-    retry: 1, // Only retry once to avoid infinite loop
-    staleTime: 30000, // Cache for 30 seconds
+    retry: 3, // Increase retries to handle intermittent issues
+    retryDelay: 1000, // Wait 1 second between retries
+    staleTime: 30000 // Cache for 30 seconds
   });
 
   console.log("Client query result:", { isLoading: isClientLoading, isError: isClientError, data: client });
@@ -90,12 +92,25 @@ export default function PrintSummary() {
   if (isClientError) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
+        <div className="text-center max-w-md mx-auto">
           <h1 className="text-2xl font-bold mb-4">Error loading client</h1>
-          <p className="text-muted-foreground mb-4">There was a problem loading the client data.</p>
-          <div className="space-y-2">
-            <Button onClick={() => setLocation("/")} variant="default">Return Home</Button>
-            <Button onClick={() => setLocation(`/summary/${clientId}`)} variant="outline" className="ml-2">
+          <p className="text-muted-foreground mb-4">There was a problem loading client data.</p>
+          
+          {/* Display the error details */}
+          <div className="text-sm text-red-500 mb-4 p-2 bg-red-50 rounded-md overflow-auto text-left">
+            {clientError instanceof Error 
+              ? clientError.message 
+              : "Unknown error occurred"}
+          </div>
+          
+          <div className="flex flex-col space-y-2">
+            <Button onClick={() => refetchClient()} variant="outline">
+              Try Again
+            </Button>
+            <Button onClick={() => setLocation("/")} variant="default">
+              Return Home
+            </Button>
+            <Button onClick={() => setLocation(`/summary/${clientId}`)} variant="ghost">
               Return to Summary
             </Button>
           </div>

@@ -1,20 +1,48 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
 
-// Improved error handling with more detailed error information
+// Enhanced error handling with more comprehensive error information
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
+    // For debugging, log the full response
+    console.error(`API Error Response (${res.status}):`, res);
+    
     let errorMessage;
+    let errorDetails = null;
+    
+    const contentType = res.headers.get('content-type') || '';
+    console.log('Content-Type:', contentType);
+    
     try {
-      // Try to parse as JSON first
-      const errorData = await res.json();
-      errorMessage = errorData.message || errorData.error || JSON.stringify(errorData);
-    } catch {
-      // If not JSON, use text
-      errorMessage = await res.text() || res.statusText;
+      // If content type is HTML (e.g., from a 500 error page)
+      if (contentType.includes('text/html')) {
+        const htmlContent = await res.text();
+        // Extract a readable message from HTML (first 100 chars)
+        errorMessage = `Server Error: HTML response (${htmlContent.substring(0, 100)}...)`;
+        console.error('Received HTML error response:', htmlContent.substring(0, 500));
+      }
+      // If content type is JSON
+      else if (contentType.includes('application/json')) {
+        const errorData = await res.json();
+        errorMessage = errorData.message || errorData.error || JSON.stringify(errorData);
+        errorDetails = errorData;
+      } 
+      // Default case - try to get text
+      else {
+        errorMessage = await res.text() || res.statusText;
+      }
+    } catch (parseError) {
+      // If we can't parse the error response, fall back to status text
+      console.error('Error parsing error response:', parseError);
+      errorMessage = `Error ${res.status}: ${res.statusText}`;
     }
     
-    console.error(`API Error (${res.status}):`, errorMessage);
-    throw new Error(`${res.status}: ${errorMessage}`);
+    console.error(`API Error (${res.status}):`, errorMessage, errorDetails);
+    
+    // Create a more informative error object
+    const error = new Error(`${res.status}: ${errorMessage}`);
+    (error as any).status = res.status;
+    (error as any).details = errorDetails;
+    throw error;
   }
 }
 
@@ -24,6 +52,15 @@ export async function apiRequest(
   data?: unknown | undefined,
 ): Promise<Response> {
   try {
+    // Validate inputs to prevent common errors
+    if (!url) {
+      throw new Error('API URL is required');
+    }
+    
+    if (url.includes('undefined') || url.includes('null')) {
+      console.warn('API URL contains undefined or null values:', url);
+    }
+    
     console.log(`API Request: ${method} ${url}`, data || '');
     
     const res = await fetch(url, {
@@ -37,6 +74,11 @@ export async function apiRequest(
     return res;
   } catch (error) {
     console.error(`API Request failed for ${method} ${url}:`, error);
+    // Add request details to the error for better debugging
+    if (error instanceof Error) {
+      (error as any).request = { method, url, data };
+      (error as any).timestamp = new Date().toISOString();
+    }
     throw error;
   }
 }
