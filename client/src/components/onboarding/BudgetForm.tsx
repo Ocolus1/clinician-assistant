@@ -16,7 +16,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
-import { insertBudgetItemSchema, type InsertBudgetItem } from "@shared/schema";
+import { insertBudgetItemSchema, type InsertBudgetItem, type BudgetItem } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 
 interface BudgetFormProps {
@@ -38,8 +38,13 @@ export default function BudgetForm({ clientId, onComplete }: BudgetFormProps) {
     },
   });
 
-  const { data: budgetItems = [] } = useQuery({
+  // Explicitly type and fetch budget items to ensure correct data retrieval
+  const { data: budgetItems = [] } = useQuery<BudgetItem[]>({
     queryKey: ["/api/clients", clientId, "budget-items"],
+    queryFn: async () => {
+      const res = await apiRequest("GET", `/api/clients/${clientId}/budget-items`);
+      return res.json();
+    },
   });
 
   const createBudgetItem = useMutation({
@@ -65,7 +70,7 @@ export default function BudgetForm({ clientId, onComplete }: BudgetFormProps) {
     },
   });
 
-  const totalBudget = budgetItems.reduce((acc: number, item: any) => {
+  const totalBudget = budgetItems.reduce((acc: number, item: BudgetItem) => {
     return acc + (item.unitPrice * item.quantity);
   }, 0);
 
@@ -205,7 +210,7 @@ export default function BudgetForm({ clientId, onComplete }: BudgetFormProps) {
                     <div className="col-span-1 text-center">Qty</div>
                     <div className="col-span-2 text-right">Total</div>
                   </div>
-                  {budgetItems.map((item: any) => (
+                  {budgetItems.map((item: BudgetItem) => (
                     <div key={item.id} className="grid grid-cols-12 gap-4 items-center hover:bg-muted/30 rounded-md p-2 transition-colors">
                       <div className="col-span-3 font-medium">{item.itemCode}</div>
                       <div className="col-span-4 text-sm text-muted-foreground">{item.description}</div>
