@@ -359,6 +359,7 @@ export default function GoalsForm({ clientId, onComplete, onPrevious }: GoalsFor
               <Button 
                 type="submit" 
                 className="w-full"
+                variant="default"
                 disabled={createGoal.isPending}
               >
                 <Plus className="w-4 h-4 mr-2" />
