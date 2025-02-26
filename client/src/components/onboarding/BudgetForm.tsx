@@ -69,16 +69,6 @@ export default function BudgetForm({ clientId, onComplete }: BudgetFormProps) {
     return acc + (item.unitPrice * item.quantity);
   }, 0);
 
-  const handleSubmit = form.handleSubmit((data) => {
-    // Ensure unitPrice is a number before submission
-    const formattedData = {
-      ...data,
-      unitPrice: Number(data.unitPrice),
-      quantity: Number(data.quantity)
-    };
-    createBudgetItem.mutate(formattedData);
-  });
-
   return (
     <div className="space-y-4">
       <div className="flex items-center space-x-4 mb-4">
@@ -96,7 +86,7 @@ export default function BudgetForm({ clientId, onComplete }: BudgetFormProps) {
         <div className="w-1/2">
           <h3 className="text-lg font-semibold mb-3">Add New Item</h3>
           <Form {...form}>
-            <form onSubmit={handleSubmit} className="space-y-3">
+            <form onSubmit={form.handleSubmit((data) => createBudgetItem.mutate(data))} className="space-y-3">
               <FormField
                 control={form.control}
                 name="itemCode"
@@ -138,14 +128,11 @@ export default function BudgetForm({ clientId, onComplete }: BudgetFormProps) {
                           step="0.01"
                           min="0"
                           placeholder="0.00"
-                          // Handle numeric conversion properly
-                          value={field.value}
+                          {...field}
+                          // Convert string to number on change
                           onChange={(e) => {
-                            // Convert to number and handle empty string
-                            const value = e.target.value === '' ? 0 : parseFloat(e.target.value);
-                            field.onChange(isNaN(value) ? 0 : value);
+                            field.onChange(e.target.value === '' ? 0 : e.target.value);
                           }}
-                          onBlur={field.onBlur}
                         />
                       </FormControl>
                       <FormMessage />
@@ -163,12 +150,11 @@ export default function BudgetForm({ clientId, onComplete }: BudgetFormProps) {
                         <Input
                           type="number"
                           min="1"
-                          value={field.value}
+                          {...field}
+                          // Convert string to number on change
                           onChange={(e) => {
-                            const value = e.target.value === '' ? 1 : parseInt(e.target.value);
-                            field.onChange(isNaN(value) ? 1 : value);
+                            field.onChange(e.target.value === '' ? 1 : e.target.value);
                           }}
-                          onBlur={field.onBlur}
                         />
                       </FormControl>
                       <FormMessage />

@@ -111,12 +111,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Budget routes
   app.post("/api/clients/:clientId/budget-items", async (req, res) => {
+    console.log("Budget item request body:", JSON.stringify(req.body));
+
     const result = insertBudgetItemSchema.safeParse(req.body);
     if (!result.success) {
+      console.error("Budget item validation error:", result.error);
       return res.status(400).json({ error: result.error });
     }
-    const item = await storage.createBudgetItem(parseInt(req.params.clientId), result.data);
-    res.json(item);
+
+    console.log("Budget item after validation:", JSON.stringify(result.data));
+
+    try {
+      const item = await storage.createBudgetItem(parseInt(req.params.clientId), result.data);
+      res.json(item);
+    } catch (error) {
+      console.error("Error creating budget item:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
   });
 
   app.get("/api/clients/:clientId/budget-items", async (req, res) => {

@@ -117,10 +117,27 @@ export class MemStorage implements IStorage {
   }
 
   async createBudgetItem(clientId: number, item: InsertBudgetItem): Promise<BudgetItem> {
-    const id = this.currentId++;
-    const newItem = { ...item, id, clientId };
-    this.budgetItems.set(id, newItem);
-    return newItem;
+    try {
+      console.log("Creating budget item with data:", JSON.stringify(item));
+
+      // Ensure unitPrice is a number
+      const processedItem = {
+        ...item,
+        unitPrice: Number(item.unitPrice),
+        quantity: Number(item.quantity)
+      };
+
+      const id = this.currentId++;
+      const newItem = { ...processedItem, id, clientId };
+
+      console.log("Final budget item to store:", JSON.stringify(newItem));
+
+      this.budgetItems.set(id, newItem);
+      return newItem;
+    } catch (error) {
+      console.error("Error in createBudgetItem:", error);
+      throw error;
+    }
   }
 
   async getBudgetItemsByClient(clientId: number): Promise<BudgetItem[]> {
