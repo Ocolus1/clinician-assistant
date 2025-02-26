@@ -1,11 +1,11 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { insertClientSchema } from "@shared/schema";
+import { z } from "zod";
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { FUNDS_MANAGEMENT_OPTIONS } from "@shared/schema";
+import { FUNDS_MANAGEMENT_OPTIONS, insertClientSchema } from "@shared/schema";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -16,19 +16,26 @@ interface ClientFormProps {
 
 export default function ClientForm({ onComplete }: ClientFormProps) {
   const { toast } = useToast();
+  // Create a modified schema without availableFunds for the form
+  const modifiedClientSchema = insertClientSchema.omit({ availableFunds: true });
+  
   const form = useForm({
-    resolver: zodResolver(insertClientSchema),
+    resolver: zodResolver(modifiedClientSchema),
     defaultValues: {
       name: "",
       dateOfBirth: "",
-      fundsManagement: "NDIA managed",
-      availableFunds: 0,
+      fundsManagement: FUNDS_MANAGEMENT_OPTIONS[0], // Default to first option
     },
   });
 
   const createClient = useMutation({
     mutationFn: async (data: any) => {
-      const res = await apiRequest("POST", "/api/clients", data);
+      // Add default value for availableFunds to satisfy the API
+      const dataWithDefaults = {
+        ...data,
+        availableFunds: 0 // This will be properly set in BudgetForm
+      };
+      const res = await apiRequest("POST", "/api/clients", dataWithDefaults);
       return res.json();
     },
     onSuccess: (data) => {
@@ -113,25 +120,7 @@ export default function ClientForm({ onComplete }: ClientFormProps) {
                 </FormItem>
               )}
             />
-            <FormField
-              control={form.control}
-              name="availableFunds"
-              render={({ field }) => (
-                <FormItem className="mb-4">
-                  <FormLabel>Available Funds ($)</FormLabel>
-                  <FormControl>
-                    <Input 
-                      value={field.value} 
-                      type="number" 
-                      min="0" 
-                      step="0.01"
-                      onChange={e => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+
 
             <Button 
               type="submit" 

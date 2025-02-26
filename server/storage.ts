@@ -197,6 +197,7 @@ export class MemStorage implements IStorage {
       id, 
       clientId,
       availableFunds: Number(settings.availableFunds || 0),
+      endOfPlan: settings.endOfPlan || null,
     };
     this.budgetSettings.set(id, newSettings);
     return newSettings;
@@ -215,7 +216,8 @@ export class MemStorage implements IStorage {
     const updatedSettings = { 
       ...existingSettings, 
       ...settings,
-      availableFunds: Number(settings.availableFunds || existingSettings.availableFunds)
+      availableFunds: Number(settings.availableFunds || existingSettings.availableFunds),
+      endOfPlan: settings.endOfPlan || existingSettings.endOfPlan
     };
     this.budgetSettings.set(id, updatedSettings);
     return updatedSettings;

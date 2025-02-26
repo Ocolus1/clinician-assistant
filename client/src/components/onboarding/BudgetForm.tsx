@@ -2,11 +2,12 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { DollarSign, Plus, Calculator, Trash } from "lucide-react";
+import { DollarSign, Plus, Calculator, Trash, CalendarIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { format } from "date-fns";
 import {
   Form,
   FormControl,
@@ -26,8 +27,21 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
 import { useToast } from "@/hooks/use-toast";
-import { insertBudgetItemSchema, type InsertBudgetItem, type BudgetItem } from "@shared/schema";
+import { 
+  insertBudgetItemSchema, 
+  insertBudgetSettingsSchema, 
+  type InsertBudgetItem, 
+  type BudgetItem, 
+  type BudgetSettings, 
+  type InsertBudgetSettings 
+} from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 
 interface BudgetFormProps {

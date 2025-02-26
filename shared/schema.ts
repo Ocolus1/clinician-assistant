@@ -44,7 +44,7 @@ export const budgetSettings = pgTable("budget_settings", {
   id: serial("id").primaryKey(),
   clientId: integer("client_id").notNull(),
   availableFunds: numeric("available_funds").notNull().$type<number>().default(0),
-  endOfPlan: date("end_of_plan"),
+  endOfPlan: text("end_of_plan"),
 });
 
 export const budgetItems = pgTable("budget_items", {
