@@ -2,6 +2,8 @@ import { pgTable, text, serial, integer, boolean, date, numeric } from "drizzle-
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
+export const FUNDS_MANAGEMENT_OPTIONS = ["Self-Managed", "Advisor-Managed", "Custodian-Managed"] as const;
+
 export const clients = pgTable("clients", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
