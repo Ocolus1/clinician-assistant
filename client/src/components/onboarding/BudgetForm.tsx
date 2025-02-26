@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -117,13 +116,10 @@ export default function BudgetForm({ clientId, onComplete }: BudgetFormProps) {
                           type="number" 
                           min="0"
                           step="0.01"
-                          {...field}
-                          value={field.value === null ? '' : field.value}
+                          value={field.value || ''}
                           onChange={(e) => {
-                            const value = e.target.value === '' ? 0 : parseFloat(e.target.value);
-                            if (!isNaN(value)) {
-                              field.onChange(value);
-                            }
+                            const value = e.target.value;
+                            field.onChange(value === '' ? null : Number(value));
                           }}
                         />
                       </FormControl>
