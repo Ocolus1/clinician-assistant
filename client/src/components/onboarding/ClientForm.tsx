@@ -145,7 +145,7 @@ export default function ClientForm({ onComplete }: ClientFormProps) {
                   Saving...
                 </div>
               ) : (
-                "Continue"
+                "Next"
               )}
             </Button>
           </form>

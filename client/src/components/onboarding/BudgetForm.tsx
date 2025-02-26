@@ -33,9 +33,10 @@ import { apiRequest } from "@/lib/queryClient";
 interface BudgetFormProps {
   clientId: number;
   onComplete: () => void;
+  onPrevious: () => void;
 }
 
-export default function BudgetForm({ clientId, onComplete }: BudgetFormProps) {
+export default function BudgetForm({ clientId, onComplete, onPrevious }: BudgetFormProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -289,14 +290,25 @@ export default function BudgetForm({ clientId, onComplete }: BudgetFormProps) {
         </div>
       </div>
 
-      <Button
-        className="w-full"
-        onClick={onComplete}
-        variant="default"
-      >
-        <Calculator className="w-4 h-4 mr-2" />
-        Complete & View Summary
-      </Button>
+      <div className="flex gap-4 mt-6">
+        <Button
+          type="button"
+          variant="outline"
+          className="flex-1"
+          onClick={onPrevious}
+        >
+          Previous
+        </Button>
+        <Button
+          type="button"
+          className="flex-1"
+          onClick={onComplete}
+          variant="default"
+        >
+          <Calculator className="w-4 h-4 mr-2" />
+          Complete & View Summary
+        </Button>
+      </div>
     </div>
   );
 }

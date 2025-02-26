@@ -39,9 +39,10 @@ import { apiRequest } from "@/lib/utils";
 interface GoalsFormProps {
   clientId: number;
   onComplete: () => void;
+  onPrevious: () => void;
 }
 
-export default function GoalsForm({ clientId, onComplete }: GoalsFormProps) {
+export default function GoalsForm({ clientId, onComplete, onPrevious }: GoalsFormProps) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [selectedGoalId, setSelectedGoalId] = useState<number | null>(null);
@@ -616,13 +617,23 @@ export default function GoalsForm({ clientId, onComplete }: GoalsFormProps) {
         </DialogContent>
       </Dialog>
 
-        <Button 
-          className="w-full mt-6" 
-          onClick={onComplete}
-          variant="default"
-        >
-          Continue to Budget
-        </Button>
+        <div className="flex gap-4 mt-6">
+          <Button
+            type="button"
+            variant="outline"
+            className="flex-1"
+            onClick={onPrevious}
+          >
+            Previous
+          </Button>
+          <Button
+            type="button"
+            className="flex-1"
+            onClick={onComplete}
+          >
+            Next
+          </Button>
+        </div>
       </div>
     </div>
   );

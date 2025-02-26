@@ -22,6 +22,12 @@ export default function Home() {
       setStep(step + 1);
     }
   };
+  
+  const handlePrevious = () => {
+    if (step > 0) {
+      setStep(step - 1);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -52,13 +58,25 @@ export default function Home() {
             }} />
           )}
           {step === 1 && clientId && (
-            <AllyForm clientId={clientId} onComplete={handleNext} />
+            <AllyForm 
+              clientId={clientId} 
+              onComplete={handleNext} 
+              onPrevious={handlePrevious} 
+            />
           )}
           {step === 2 && clientId && (
-            <GoalsForm clientId={clientId} onComplete={handleNext} />
+            <GoalsForm 
+              clientId={clientId} 
+              onComplete={handleNext} 
+              onPrevious={handlePrevious} 
+            />
           )}
           {step === 3 && clientId && (
-            <BudgetForm clientId={clientId} onComplete={handleNext} />
+            <BudgetForm 
+              clientId={clientId} 
+              onComplete={handleNext} 
+              onPrevious={handlePrevious} 
+            />
           )}
         </div>
       </div>

@@ -37,9 +37,10 @@ import {
 interface AllyFormProps {
   clientId: number;
   onComplete: () => void;
+  onPrevious: () => void;
 }
 
-export default function AllyForm({ clientId, onComplete }: AllyFormProps) {
+export default function AllyForm({ clientId, onComplete, onPrevious }: AllyFormProps) {
   const { toast } = useToast();
   const form = useForm({
     resolver: zodResolver(insertAllySchema),
@@ -372,29 +373,50 @@ export default function AllyForm({ clientId, onComplete }: AllyFormProps) {
                 )}
               />
 
-              <div className="flex gap-4">
+              <div className="flex gap-4 mt-6">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="flex-1"
+                  onClick={onPrevious}
+                >
+                  Previous
+                </Button>
                 <Button
                   type="submit"
                   variant="secondary"
-                  className="flex-1"
                   disabled={createAlly.isPending}
                 >
-                  {createAlly.isPending ? "Adding..." : "Add Another Ally"}
+                  {createAlly.isPending ? "Adding..." : "Add Ally"}
                 </Button>
                 <Button
                   type="button"
                   className="flex-1"
                   onClick={onComplete}
                 >
-                  Continue
+                  Next
                 </Button>
               </div>
             </form>
           </Form>
         ) : (
-          <Button className="w-full" onClick={onComplete}>
-            Continue
-          </Button>
+          <div className="flex gap-4 mt-6">
+            <Button
+              type="button"
+              variant="outline"
+              className="flex-1"
+              onClick={onPrevious}
+            >
+              Previous
+            </Button>
+            <Button
+              type="button"
+              className="flex-1"
+              onClick={onComplete}
+            >
+              Next
+            </Button>
+          </div>
         )}
       </div>
     <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
