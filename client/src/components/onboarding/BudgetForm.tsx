@@ -15,6 +15,17 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { insertBudgetItemSchema, type InsertBudgetItem, type BudgetItem } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
@@ -65,6 +76,27 @@ export default function BudgetForm({ clientId, onComplete }: BudgetFormProps) {
       toast({
         title: "Error",
         description: "Failed to add budget item. Please check the form and try again.",
+        variant: "destructive",
+      });
+    },
+  });
+  
+  const deleteBudgetItem = useMutation({
+    mutationFn: async (id: number) => {
+      return await apiRequest("DELETE", `/api/budget-items/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/clients", clientId, "budget-items"] });
+      toast({
+        title: "Success",
+        description: "Budget item deleted successfully",
+      });
+    },
+    onError: (error) => {
+      console.error("Error deleting budget item:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete budget item",
         variant: "destructive",
       });
     },
@@ -205,10 +237,11 @@ export default function BudgetForm({ clientId, onComplete }: BudgetFormProps) {
                 <div className="space-y-2">
                   <div className="grid grid-cols-12 gap-4 text-sm text-muted-foreground border-b pb-2">
                     <div className="col-span-3">Item Code</div>
-                    <div className="col-span-4">Description</div>
+                    <div className="col-span-3">Description</div>
                     <div className="col-span-2 text-right">Unit Price</div>
                     <div className="col-span-1 text-center">Qty</div>
                     <div className="col-span-2 text-right">Total</div>
+                    <div className="col-span-1"></div>
                   </div>
                   {budgetItems.map((item: BudgetItem) => (
                     <div key={item.id} className="grid grid-cols-12 gap-4 items-center hover:bg-muted/30 rounded-md p-2 transition-colors">
@@ -216,26 +249,37 @@ export default function BudgetForm({ clientId, onComplete }: BudgetFormProps) {
                       <div className="col-span-3 text-sm text-muted-foreground">{item.description}</div>
                       <div className="col-span-2 text-right">${item.unitPrice.toFixed(2)}</div>
                       <div className="col-span-1 text-center">{item.quantity}</div>
-                      <div className="col-span-2 text-right">${(item.unitPrice * item.quantity).toFixed(2)}</div>
-                      <div className="col-span-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8"
-                          onClick={() => {
-                            apiRequest("DELETE", `/api/budget-items/${item.id}`).then(() => {
-                              queryClient.invalidateQueries({ queryKey: ["/api/clients", clientId, "budget-items"] });
-                              toast({
-                                title: "Success",
-                                description: "Budget item deleted successfully",
-                              });
-                            });
-                          }}
-                        >
-                          <Trash className="h-4 w-4" />
-                        </Button>
-                      </div>
                       <div className="col-span-2 text-right font-medium">${(item.unitPrice * item.quantity).toFixed(2)}</div>
+                      <div className="col-span-1 flex justify-center">
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                            >
+                              <Trash className="h-4 w-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Delete Budget Item</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Are you sure you want to delete this budget item? This action cannot be undone.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction 
+                                onClick={() => deleteBudgetItem.mutate(item.id)}
+                                disabled={deleteBudgetItem.isPending}
+                              >
+                                Delete
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
                     </div>
                   ))}
                   <div className="grid grid-cols-12 gap-4 border-t pt-2 mt-4">
