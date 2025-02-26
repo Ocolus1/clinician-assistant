@@ -144,6 +144,10 @@ export class MemStorage implements IStorage {
     return Array.from(this.budgetItems.values()).filter(item => item.clientId === clientId);
   }
 
+  async deleteBudgetItem(id: number): Promise<void> {
+    this.budgetItems.delete(id);
+  }
+
   async deleteSubgoal(id: number): Promise<void> {
     this.subgoals.delete(id);
   }

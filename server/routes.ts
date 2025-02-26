@@ -135,6 +135,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(items);
   });
 
+  app.delete("/api/budget-items/:id", async (req, res) => {
+    await storage.deleteBudgetItem(parseInt(req.params.id));
+    res.json({ success: true });
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
