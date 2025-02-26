@@ -82,127 +82,146 @@ export default function BudgetForm({ clientId, onComplete }: BudgetFormProps) {
         </div>
       </div>
 
-      <div className="flex gap-8">
-        <div className="w-1/2">
+      <div className="space-y-6">
+        <div>
           <h3 className="text-lg font-semibold mb-3">Add New Item</h3>
           <Form {...form}>
             <form onSubmit={form.handleSubmit((data) => createBudgetItem.mutate(data))} className="space-y-3">
-              <FormField
-                control={form.control}
-                name="itemCode"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Item Code</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <div className="grid grid-cols-12 gap-4 items-end">
+                <div className="col-span-3">
+                  <FormField
+                    control={form.control}
+                    name="itemCode"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Item Code</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
 
-              <FormField
-                control={form.control}
-                name="description"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Description</FormLabel>
-                    <FormControl>
-                      <Textarea {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                <div className="col-span-4">
+                  <FormField
+                    control={form.control}
+                    name="description"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Description</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="unitPrice"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Unit Price</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          placeholder="0.00"
-                          {...field}
-                          // Convert string to number on change
-                          onChange={(e) => {
-                            field.onChange(e.target.value === '' ? 0 : e.target.value);
-                          }}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                <div className="col-span-2">
+                  <FormField
+                    control={form.control}
+                    name="unitPrice"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Unit Price</FormLabel>
+                        <FormControl>
+                          <div className="relative">
+                            <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                            <Input
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              placeholder="0.00"
+                              className="pl-6"
+                              {...field}
+                              // Convert string to number on change
+                              onChange={(e) => {
+                                field.onChange(e.target.value === '' ? 0 : e.target.value);
+                              }}
+                            />
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
 
-                <FormField
-                  control={form.control}
-                  name="quantity"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Quantity</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          min="1"
-                          {...field}
-                          // Convert string to number on change
-                          onChange={(e) => {
-                            field.onChange(e.target.value === '' ? 1 : e.target.value);
-                          }}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                <div className="col-span-2">
+                  <FormField
+                    control={form.control}
+                    name="quantity"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Quantity</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            min="1"
+                            {...field}
+                            // Convert string to number on change
+                            onChange={(e) => {
+                              field.onChange(e.target.value === '' ? 1 : e.target.value);
+                            }}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <div className="col-span-1">
+                  <Button
+                    type="submit"
+                    className="w-full"
+                    disabled={createBudgetItem.isPending}
+                  >
+                    <Plus className="w-4 h-4" />
+                  </Button>
+                </div>
               </div>
-
-              <Button
-                type="submit"
-                className="w-full"
-                disabled={createBudgetItem.isPending}
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                {createBudgetItem.isPending ? "Adding..." : "Add Budget Item"}
-              </Button>
             </form>
           </Form>
         </div>
 
-        <div className="w-1/2">
+        <div>
           <h3 className="text-lg font-semibold mb-3">Budget Items</h3>
-          <div className="space-y-3">
-            {budgetItems.length === 0 ? (
-              <div className="text-center text-muted-foreground py-8">
-                No budget items added yet
-              </div>
-            ) : (
-              budgetItems.map((item: any) => (
-                <Card key={item.id} className="bg-background">
-                  <CardContent className="p-4">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <h4 className="font-medium">{item.itemCode}</h4>
-                        <p className="text-sm text-muted-foreground">{item.description}</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-medium">${(item.unitPrice * item.quantity).toFixed(2)}</p>
-                        <p className="text-sm text-muted-foreground">
-                          ${item.unitPrice.toFixed(2)} × {item.quantity}
-                        </p>
-                      </div>
+          <Card>
+            <CardContent className="p-4">
+              {budgetItems.length === 0 ? (
+                <div className="text-center text-muted-foreground py-8">
+                  No budget items added yet
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <div className="grid grid-cols-12 gap-4 text-sm text-muted-foreground border-b pb-2">
+                    <div className="col-span-3">Item Code</div>
+                    <div className="col-span-4">Description</div>
+                    <div className="col-span-2 text-right">Unit Price</div>
+                    <div className="col-span-1 text-center">Qty</div>
+                    <div className="col-span-2 text-right">Total</div>
+                  </div>
+                  {budgetItems.map((item: any) => (
+                    <div key={item.id} className="grid grid-cols-12 gap-4 items-center hover:bg-muted/30 rounded-md p-2 transition-colors">
+                      <div className="col-span-3 font-medium">{item.itemCode}</div>
+                      <div className="col-span-4 text-sm text-muted-foreground">{item.description}</div>
+                      <div className="col-span-2 text-right">${item.unitPrice.toFixed(2)}</div>
+                      <div className="col-span-1 text-center">{item.quantity}</div>
+                      <div className="col-span-2 text-right font-medium">${(item.unitPrice * item.quantity).toFixed(2)}</div>
                     </div>
-                  </CardContent>
-                </Card>
-              ))
-            )}
-          </div>
+                  ))}
+                  <div className="grid grid-cols-12 gap-4 border-t pt-2 mt-4">
+                    <div className="col-span-10 text-right font-bold">Total Budget:</div>
+                    <div className="col-span-2 text-right font-bold">${totalBudget.toFixed(2)}</div>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
       </div>
 
