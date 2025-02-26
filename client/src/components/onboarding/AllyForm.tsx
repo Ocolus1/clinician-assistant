@@ -373,29 +373,33 @@ export default function AllyForm({ clientId, onComplete, onPrevious }: AllyFormP
                 )}
               />
 
-              <div className="flex gap-4 mt-6">
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="flex-1"
-                  onClick={onPrevious}
-                >
-                  Previous
-                </Button>
+              <div className="space-y-4 mt-6">
                 <Button
                   type="submit"
                   variant="secondary"
+                  className="w-full"
                   disabled={createAlly.isPending}
                 >
                   {createAlly.isPending ? "Adding..." : "Add Ally"}
                 </Button>
-                <Button
-                  type="button"
-                  className="flex-1"
-                  onClick={onComplete}
-                >
-                  Next
-                </Button>
+                
+                <div className="flex gap-4">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-1/3"
+                    onClick={onPrevious}
+                  >
+                    Previous
+                  </Button>
+                  <Button
+                    type="button"
+                    className="w-2/3"
+                    onClick={onComplete}
+                  >
+                    Next
+                  </Button>
+                </div>
               </div>
             </form>
           </Form>
@@ -404,14 +408,14 @@ export default function AllyForm({ clientId, onComplete, onPrevious }: AllyFormP
             <Button
               type="button"
               variant="outline"
-              className="flex-1"
+              className="w-1/3"
               onClick={onPrevious}
             >
               Previous
             </Button>
             <Button
               type="button"
-              className="flex-1"
+              className="w-2/3"
               onClick={onComplete}
             >
               Next

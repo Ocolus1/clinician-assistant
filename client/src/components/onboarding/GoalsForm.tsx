@@ -621,14 +621,14 @@ export default function GoalsForm({ clientId, onComplete, onPrevious }: GoalsFor
           <Button
             type="button"
             variant="outline"
-            className="flex-1"
+            className="w-1/3"
             onClick={onPrevious}
           >
             Previous
           </Button>
           <Button
             type="button"
-            className="flex-1"
+            className="w-2/3"
             onClick={onComplete}
           >
             Next
