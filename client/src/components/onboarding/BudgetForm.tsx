@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -53,8 +53,10 @@ interface BudgetFormProps {
 export default function BudgetForm({ clientId, onComplete, onPrevious }: BudgetFormProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [date, setDate] = useState<Date | undefined>(undefined);
 
-  const form = useForm<InsertBudgetItem>({
+  // Form for budget items
+  const itemForm = useForm<InsertBudgetItem>({
     resolver: zodResolver(insertBudgetItemSchema),
     defaultValues: {
       itemCode: "",
@@ -63,6 +65,41 @@ export default function BudgetForm({ clientId, onComplete, onPrevious }: BudgetF
       quantity: 1,
     },
   });
+  
+  // Form for budget settings
+  const settingsForm = useForm<InsertBudgetSettings>({
+    resolver: zodResolver(insertBudgetSettingsSchema),
+    defaultValues: {
+      availableFunds: 0,
+      endOfPlan: undefined,
+    },
+  });
+
+  // Fetch budget settings
+  const { data: budgetSettings } = useQuery<BudgetSettings | undefined>({
+    queryKey: ["/api/clients", clientId, "budget-settings"],
+    queryFn: async () => {
+      try {
+        const res = await apiRequest("GET", `/api/clients/${clientId}/budget-settings`);
+        return res.json();
+      } catch (error) {
+        // Return undefined if settings don't exist yet
+        return undefined;
+      }
+    },
+  });
+  
+  // Update form when settings are loaded
+  React.useEffect(() => {
+    if (budgetSettings) {
+      // Set form values from fetched settings
+      settingsForm.setValue("availableFunds", budgetSettings.availableFunds);
+      if (budgetSettings.endOfPlan) {
+        settingsForm.setValue("endOfPlan", budgetSettings.endOfPlan);
+        setDate(new Date(budgetSettings.endOfPlan));
+      }
+    }
+  }, [budgetSettings, settingsForm]);
 
   // Explicitly type and fetch budget items to ensure correct data retrieval
   const { data: budgetItems = [] } = useQuery<BudgetItem[]>({
@@ -73,13 +110,43 @@ export default function BudgetForm({ clientId, onComplete, onPrevious }: BudgetF
     },
   });
 
+  // Save or update budget settings
+  const saveBudgetSettings = useMutation({
+    mutationFn: async (data: InsertBudgetSettings) => {
+      if (budgetSettings?.id) {
+        // Update existing settings
+        const res = await apiRequest("PUT", `/api/budget-settings/${budgetSettings.id}`, data);
+        return res.json();
+      } else {
+        // Create new settings
+        const res = await apiRequest("POST", `/api/clients/${clientId}/budget-settings`, data);
+        return res.json();
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/clients", clientId, "budget-settings"] });
+      toast({
+        title: "Success",
+        description: "Budget settings saved successfully",
+      });
+    },
+    onError: (error) => {
+      console.error("Error saving budget settings:", error);
+      toast({
+        title: "Error",
+        description: "Failed to save budget settings",
+        variant: "destructive",
+      });
+    }
+  });
+
   const createBudgetItem = useMutation({
     mutationFn: async (data: InsertBudgetItem) => {
       const res = await apiRequest("POST", `/api/clients/${clientId}/budget-items`, data);
       return res.json();
     },
     onSuccess: () => {
-      form.reset();
+      itemForm.reset();
       queryClient.invalidateQueries({ queryKey: ["/api/clients", clientId, "budget-items"] });
       toast({
         title: "Success",
@@ -121,6 +188,18 @@ export default function BudgetForm({ clientId, onComplete, onPrevious }: BudgetF
     return acc + (item.unitPrice * item.quantity);
   }, 0);
 
+  // Handler for complete button
+  const handleComplete = () => {
+    // Save budget settings first
+    const settings = settingsForm.getValues();
+    saveBudgetSettings.mutate(settings, {
+      onSuccess: () => {
+        // Then proceed to summary
+        onComplete();
+      }
+    });
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-center space-x-4 mb-4">
@@ -133,16 +212,113 @@ export default function BudgetForm({ clientId, onComplete, onPrevious }: BudgetF
           <div className="text-xl font-semibold">${totalBudget.toFixed(2)}</div>
         </div>
       </div>
+      
+      <div>
+        <h3 className="text-lg font-semibold mb-3">Budget Settings</h3>
+        <Card>
+          <CardContent className="p-4">
+            <Form {...settingsForm}>
+              <form className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={settingsForm.control}
+                    name="availableFunds"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Available Funds ($)</FormLabel>
+                        <FormControl>
+                          <div className="relative">
+                            <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                            <Input
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              placeholder="0.00"
+                              className="pl-6"
+                              {...field}
+                              onChange={(e) => {
+                                const value = e.target.value === '' ? 0 : parseFloat(e.target.value);
+                                field.onChange(value);
+                              }}
+                              value={field.value}
+                            />
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={settingsForm.control}
+                    name="endOfPlan"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-col">
+                        <FormLabel>End of Plan Date</FormLabel>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <FormControl>
+                              <Button
+                                variant={"outline"}
+                                className={cn(
+                                  "w-full pl-3 text-left font-normal",
+                                  !field.value && "text-muted-foreground"
+                                )}
+                              >
+                                {field.value ? (
+                                  format(new Date(field.value), "PPP")
+                                ) : (
+                                  <span>Pick a date</span>
+                                )}
+                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                              </Button>
+                            </FormControl>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={date}
+                              onSelect={(newDate) => {
+                                setDate(newDate);
+                                if (newDate) {
+                                  field.onChange(format(newDate, "yyyy-MM-dd"));
+                                }
+                              }}
+                              initialFocus
+                            />
+                          </PopoverContent>
+                        </Popover>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                
+                <Button
+                  type="button"
+                  onClick={() => {
+                    saveBudgetSettings.mutate(settingsForm.getValues());
+                  }}
+                  disabled={saveBudgetSettings.isPending}
+                  className="mt-2"
+                >
+                  {saveBudgetSettings.isPending ? "Saving..." : "Save Budget Settings"}
+                </Button>
+              </form>
+            </Form>
+          </CardContent>
+        </Card>
+      </div>
 
       <div className="space-y-6">
         <div>
           <h3 className="text-lg font-semibold mb-3">Add New Item</h3>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit((data) => createBudgetItem.mutate(data))} className="space-y-3">
+          <Form {...itemForm}>
+            <form onSubmit={itemForm.handleSubmit((data) => createBudgetItem.mutate(data))} className="space-y-3">
               <div className="grid grid-cols-12 gap-4 items-end">
                 <div className="col-span-3">
                   <FormField
-                    control={form.control}
+                    control={itemForm.control}
                     name="itemCode"
                     render={({ field }) => (
                       <FormItem>
@@ -158,7 +334,7 @@ export default function BudgetForm({ clientId, onComplete, onPrevious }: BudgetF
 
                 <div className="col-span-4">
                   <FormField
-                    control={form.control}
+                    control={itemForm.control}
                     name="description"
                     render={({ field }) => (
                       <FormItem>
@@ -174,7 +350,7 @@ export default function BudgetForm({ clientId, onComplete, onPrevious }: BudgetF
 
                 <div className="col-span-2">
                   <FormField
-                    control={form.control}
+                    control={itemForm.control}
                     name="unitPrice"
                     render={({ field }) => (
                       <FormItem>
@@ -208,7 +384,7 @@ export default function BudgetForm({ clientId, onComplete, onPrevious }: BudgetF
 
                 <div className="col-span-2">
                   <FormField
-                    control={form.control}
+                    control={itemForm.control}
                     name="quantity"
                     render={({ field }) => (
                       <FormItem>
