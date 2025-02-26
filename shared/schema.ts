@@ -9,7 +9,8 @@ export const clients = pgTable("clients", {
   name: text("name").notNull(),
   dateOfBirth: date("date_of_birth").notNull(),
   fundsManagement: text("funds_management").notNull(), // Added funds management field as required
-  availableFunds: numeric("available_funds").notNull().$type<number>(), // Added available funds field with number type
+  // We're moving availableFunds to the budget section, but keeping it here for backward compatibility
+  availableFunds: numeric("available_funds").notNull().$type<number>().default(0), 
 });
 
 export const allies = pgTable("allies", {
@@ -38,6 +39,14 @@ export const subgoals = pgTable("subgoals", {
   description: text("description").notNull(),
 });
 
+// Add these budget settings
+export const budgetSettings = pgTable("budget_settings", {
+  id: serial("id").primaryKey(),
+  clientId: integer("client_id").notNull(),
+  availableFunds: numeric("available_funds").notNull().$type<number>().default(0),
+  endOfPlan: date("end_of_plan"),
+});
+
 export const budgetItems = pgTable("budget_items", {
   id: serial("id").primaryKey(),
   clientId: integer("client_id").notNull(),
@@ -58,6 +67,16 @@ export const insertAllySchema = createInsertSchema(allies).omit({ id: true, clie
 export const insertGoalSchema = createInsertSchema(goals).omit({ id: true, clientId: true });
 export const insertSubgoalSchema = createInsertSchema(subgoals).omit({ id: true, goalId: true });
 
+// Create a budget settings schema
+export const insertBudgetSettingsSchema = createInsertSchema(budgetSettings)
+  .omit({ id: true, clientId: true })
+  .extend({
+    // Ensure availableFunds is always parsed as a number
+    availableFunds: z.coerce.number(),
+    // Make endOfPlan optional
+    endOfPlan: z.string().optional(),
+  });
+
 // Create a custom budget item schema with explicit type transformation for unitPrice and quantity
 export const insertBudgetItemSchema = createInsertSchema(budgetItems)
   .omit({ id: true, clientId: true })
@@ -72,9 +91,11 @@ export type Ally = typeof allies.$inferSelect;
 export type Goal = typeof goals.$inferSelect;
 export type Subgoal = typeof subgoals.$inferSelect;
 export type BudgetItem = typeof budgetItems.$inferSelect;
+export type BudgetSettings = typeof budgetSettings.$inferSelect;
 
 export type InsertClient = z.infer<typeof insertClientSchema>;
 export type InsertAlly = z.infer<typeof insertAllySchema>;
 export type InsertGoal = z.infer<typeof insertGoalSchema>;
 export type InsertSubgoal = z.infer<typeof insertSubgoalSchema>;
 export type InsertBudgetItem = z.infer<typeof insertBudgetItemSchema>;
+export type InsertBudgetSettings = z.infer<typeof insertBudgetSettingsSchema>;
