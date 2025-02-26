@@ -376,7 +376,7 @@ export default function AllyForm({ clientId, onComplete, onPrevious }: AllyFormP
               <div className="space-y-4 mt-6">
                 <Button
                   type="submit"
-                  variant="secondary"
+                  variant="default"
                   className="w-full"
                   disabled={createAlly.isPending}
                 >
@@ -395,6 +395,7 @@ export default function AllyForm({ clientId, onComplete, onPrevious }: AllyFormP
                   <Button
                     type="button"
                     className="w-2/3"
+                    variant="default"
                     onClick={onComplete}
                   >
                     Next
@@ -416,6 +417,7 @@ export default function AllyForm({ clientId, onComplete, onPrevious }: AllyFormP
             <Button
               type="button"
               className="w-2/3"
+              variant="default"
               onClick={onComplete}
             >
               Next

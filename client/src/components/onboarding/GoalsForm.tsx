@@ -629,6 +629,7 @@ export default function GoalsForm({ clientId, onComplete, onPrevious }: GoalsFor
           <Button
             type="button"
             className="w-2/3"
+            variant="default"
             onClick={onComplete}
           >
             Next
