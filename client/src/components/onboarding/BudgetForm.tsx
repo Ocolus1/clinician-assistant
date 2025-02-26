@@ -282,10 +282,6 @@ export default function BudgetForm({ clientId, onComplete }: BudgetFormProps) {
                       </div>
                     </div>
                   ))}
-                  <div className="grid grid-cols-12 gap-4 border-t pt-2 mt-4">
-                    <div className="col-span-10 text-right font-bold">Total Budget:</div>
-                    <div className="col-span-2 text-right font-bold">${totalBudget.toFixed(2)}</div>
-                  </div>
                 </div>
               )}
             </CardContent>
