@@ -75,6 +75,17 @@ export default function BudgetForm({ clientId, onComplete, onPrevious }: BudgetF
       endOfPlan: undefined,
     },
   });
+  
+  // Auto-save budget settings when values change
+  useEffect(() => {
+    const debouncedSave = setTimeout(() => {
+      if (settingsForm.formState.isDirty) {
+        saveBudgetSettings.mutate(settingsForm.getValues());
+      }
+    }, 1000);
+    
+    return () => clearTimeout(debouncedSave);
+  }, [settingsForm.watch("availableFunds"), settingsForm.watch("endOfPlan")]);
 
   // Fetch budget settings
   const { data: budgetSettings } = useQuery<BudgetSettings | undefined>({
@@ -201,18 +212,23 @@ export default function BudgetForm({ clientId, onComplete, onPrevious }: BudgetF
     });
   };
 
+  // Calculate days left in plan
+  const calculateDaysLeft = () => {
+    if (!date) return null;
+    const today = new Date();
+    const endDate = new Date(date);
+    const diffTime = endDate.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays > 0 ? diffDays : 0;
+  };
+
+  const daysLeft = calculateDaysLeft();
+  const availableFunds = settingsForm.watch("availableFunds") || 0;
+  const budgetDifference = availableFunds - totalBudget;
+  const hasBudgetSurplus = budgetDifference >= 0;
+
   return (
     <div className="space-y-4">
-      <div className="flex items-center space-x-4 mb-4">
-        <div className="bg-card rounded-lg p-3 border flex-shrink-0">
-          <div className="text-sm text-muted-foreground">Total Items</div>
-          <div className="text-xl font-semibold">{budgetItems.length}</div>
-        </div>
-        <div className="bg-card rounded-lg p-3 border flex-shrink-0">
-          <div className="text-sm text-muted-foreground">Total Budget</div>
-          <div className="text-xl font-semibold">${totalBudget.toFixed(2)}</div>
-        </div>
-      </div>
       
       <div>
         <h3 className="text-lg font-semibold mb-3">Budget Settings</h3>
@@ -295,16 +311,35 @@ export default function BudgetForm({ clientId, onComplete, onPrevious }: BudgetF
                   />
                 </div>
                 
-                <Button
-                  type="button"
-                  onClick={() => {
-                    saveBudgetSettings.mutate(settingsForm.getValues());
-                  }}
-                  disabled={saveBudgetSettings.isPending}
-                  className="mt-2"
-                >
-                  {saveBudgetSettings.isPending ? "Saving..." : "Save Budget Settings"}
-                </Button>
+                {/* Budget Analysis Section */}
+                <div className="mt-4 space-y-2">
+                  <div className={`p-3 rounded-md ${hasBudgetSurplus ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}>
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <span className="font-medium">
+                          Budget {hasBudgetSurplus ? 'Surplus' : 'Deficit'}:
+                        </span>
+                        <span className={`ml-2 font-bold ${hasBudgetSurplus ? 'text-green-600' : 'text-red-600'}`}>
+                          ${Math.abs(budgetDifference).toFixed(2)}
+                        </span>
+                      </div>
+                      <div className="text-sm">
+                        <span className="font-medium">Total Budget:</span>
+                        <span className="ml-2">${totalBudget.toFixed(2)}</span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {daysLeft !== null && (
+                    <div className="p-3 bg-blue-50 rounded-md border border-blue-200">
+                      <div className="flex items-center">
+                        <CalendarIcon className="h-4 w-4 mr-2 text-blue-500" />
+                        <span className="font-medium">Days Left in Plan:</span>
+                        <span className="ml-2 font-bold text-blue-700">{daysLeft}</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </form>
             </Form>
           </CardContent>
