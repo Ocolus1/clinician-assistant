@@ -6,6 +6,8 @@ export const clients = pgTable("clients", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   dateOfBirth: date("date_of_birth").notNull(),
+  fundsManagement: text("funds_management"), // Added funds management field
+  availableFunds: numeric("available_funds"), // Added available funds field
 });
 
 export const allies = pgTable("allies", {
