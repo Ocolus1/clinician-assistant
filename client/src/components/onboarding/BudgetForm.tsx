@@ -177,8 +177,12 @@ export default function BudgetForm({ clientId, onComplete, onPrevious }: BudgetF
                               {...field}
                               // Convert string to number on change
                               onChange={(e) => {
-                                field.onChange(e.target.value === '' ? 0 : e.target.value);
+                                // Explicitly convert to number using parseFloat for decimal values
+                                const value = e.target.value === '' ? 0 : parseFloat(e.target.value);
+                                field.onChange(value);
                               }}
+                              // Ensure value is displayed correctly
+                              value={field.value}
                             />
                           </div>
                         </FormControl>
@@ -202,8 +206,12 @@ export default function BudgetForm({ clientId, onComplete, onPrevious }: BudgetF
                             {...field}
                             // Convert string to number on change
                             onChange={(e) => {
-                              field.onChange(e.target.value === '' ? 1 : e.target.value);
+                              // Explicitly convert to number using parseInt
+                              const value = e.target.value === '' ? 1 : parseInt(e.target.value, 10);
+                              field.onChange(value);
                             }}
+                            // Ensure value is displayed correctly 
+                            value={field.value}
                           />
                         </FormControl>
                         <FormMessage />
@@ -216,6 +224,7 @@ export default function BudgetForm({ clientId, onComplete, onPrevious }: BudgetF
                   <Button
                     type="submit"
                     className="w-full"
+                    variant="secondary"
                     disabled={createBudgetItem.isPending}
                   >
                     <Plus className="w-4 h-4" />

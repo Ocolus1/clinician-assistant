@@ -58,12 +58,13 @@ export const insertAllySchema = createInsertSchema(allies).omit({ id: true, clie
 export const insertGoalSchema = createInsertSchema(goals).omit({ id: true, clientId: true });
 export const insertSubgoalSchema = createInsertSchema(subgoals).omit({ id: true, goalId: true });
 
-// Create a custom budget item schema with explicit type transformation for unitPrice
+// Create a custom budget item schema with explicit type transformation for unitPrice and quantity
 export const insertBudgetItemSchema = createInsertSchema(budgetItems)
   .omit({ id: true, clientId: true })
   .extend({
-    // Ensure unitPrice is always parsed as a number
-    unitPrice: z.coerce.number()
+    // Ensure unitPrice and quantity are always parsed as numbers
+    unitPrice: z.coerce.number(),
+    quantity: z.coerce.number()
   });
 
 export type Client = typeof clients.$inferSelect;
