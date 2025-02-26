@@ -31,7 +31,7 @@ export default function BudgetForm({ clientId, onComplete }: BudgetFormProps) {
     defaultValues: {
       itemCode: "",
       description: "",
-      unitPrice: "",
+      unitPrice: 0,
       quantity: 1,
     },
   });
@@ -116,10 +116,10 @@ export default function BudgetForm({ clientId, onComplete }: BudgetFormProps) {
                           type="number" 
                           min="0"
                           step="0.01"
-                          value={field.value || ''}
+                          value={field.value || 0}
                           onChange={(e) => {
                             const value = e.target.value;
-                            field.onChange(value === '' ? '' : parseFloat(value));
+                            field.onChange(value === '' ? 0 : parseFloat(value));
                           }}
                         />
                       </FormControl>
