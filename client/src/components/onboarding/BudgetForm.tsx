@@ -3,6 +3,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { DollarSign, Plus, Calculator, Trash, CalendarIcon } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -90,7 +91,7 @@ export default function BudgetForm({ clientId, onComplete, onPrevious }: BudgetF
   });
   
   // Update form when settings are loaded
-  React.useEffect(() => {
+  useEffect(() => {
     if (budgetSettings) {
       // Set form values from fetched settings
       settingsForm.setValue("availableFunds", budgetSettings.availableFunds);
@@ -501,7 +502,7 @@ export default function BudgetForm({ clientId, onComplete, onPrevious }: BudgetF
         <Button
           type="button"
           className="w-2/3"
-          onClick={onComplete}
+          onClick={handleComplete}
           variant="default"
         >
           <Calculator className="w-4 h-4 mr-2" />
