@@ -226,21 +226,22 @@ export default function BudgetForm({ clientId, onComplete }: BudgetFormProps) {
                 </div>
               ) : (
                 <div className="space-y-2">
-                  <div className="grid grid-cols-12 gap-4 text-sm text-muted-foreground border-b pb-2">
+                  <div className="grid grid-cols-13 gap-4 text-sm text-muted-foreground border-b pb-2">
                     <div className="col-span-3">Item Code</div>
                     <div className="col-span-4">Description</div>
                     <div className="col-span-2 text-right">Unit Price</div>
                     <div className="col-span-1 text-center">Qty</div>
                     <div className="col-span-2 text-right">Total</div>
+                    <div className="col-span-1"></div>
                   </div>
                   {budgetItems.map((item: BudgetItem) => (
-                    <div key={item.id} className="grid grid-cols-12 gap-4 items-center hover:bg-muted/30 rounded-md p-2 transition-colors">
+                    <div key={item.id} className="grid grid-cols-13 gap-4 items-center hover:bg-muted/30 rounded-md p-2 transition-colors">
                       <div className="col-span-3 font-medium">{item.itemCode}</div>
                       <div className="col-span-4 text-sm text-muted-foreground">{item.description}</div>
                       <div className="col-span-2 text-right">${item.unitPrice.toFixed(2)}</div>
                       <div className="col-span-1 text-center">{item.quantity}</div>
                       <div className="col-span-2 text-right">${(item.unitPrice * item.quantity).toFixed(2)}</div>
-                      <div className="flex items-center justify-end">
+                      <div className="col-span-1 flex items-center justify-end">
                         <Button
                           variant="ghost"
                           size="icon"
