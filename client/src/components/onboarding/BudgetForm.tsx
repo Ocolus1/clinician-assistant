@@ -113,9 +113,9 @@ export default function BudgetForm({ clientId, onComplete }: BudgetFormProps) {
                       <FormLabel>Unit Price</FormLabel>
                       <FormControl>
                         <Input
-                          type="number" 
-                          min="0"
+                          type="number"
                           step="0.01"
+                          min="0"
                           value={field.value}
                           onChange={(e) => {
                             const value = e.target.value;
@@ -148,8 +148,8 @@ export default function BudgetForm({ clientId, onComplete }: BudgetFormProps) {
                 />
               </div>
 
-              <Button 
-                type="submit" 
+              <Button
+                type="submit"
                 className="w-full"
                 disabled={createBudgetItem.isPending}
               >
@@ -185,8 +185,8 @@ export default function BudgetForm({ clientId, onComplete }: BudgetFormProps) {
         </div>
       </div>
 
-      <Button 
-        className="w-full" 
+      <Button
+        className="w-full"
         onClick={onComplete}
         variant="default"
       >
