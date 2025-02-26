@@ -119,8 +119,7 @@ export default function BudgetForm({ clientId, onComplete }: BudgetFormProps) {
                           value={field.value}
                           onChange={(e) => {
                             const value = e.target.value;
-                            const numericValue = value === '' ? 0 : Number(value);
-                            field.onChange(numericValue);
+                            field.onChange(Number(value) || 0);
                           }}
                         />
                       </FormControl>
