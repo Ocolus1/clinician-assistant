@@ -133,20 +133,6 @@ export default function ClientForm({ onComplete }: ClientFormProps) {
               )}
             />
 
-            <FormField
-              control={form.control}
-              name="dateOfBirth"
-              render={({ field }) => (
-                <FormItem className="mb-4">
-                  <FormLabel>Date of Birth</FormLabel>
-                  <FormControl>
-                    <Input type="date" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
             <Button 
               type="submit" 
               disabled={createClient.isPending}
