@@ -1,136 +1,150 @@
-
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useState } from "react";
 import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Button } from "../ui/button";
-import { Input } from "../ui/input";
-import { 
-  Form, 
-  FormControl, 
-  FormField, 
-  FormItem, 
-  FormLabel,
-  FormMessage 
-} from "../ui/form";
-import { createClient } from "../../lib/api";
-
-// Define the form schema with validation
-const formSchema = z.object({
-  firstName: z.string().min(1, "First name is required"),
-  lastName: z.string().min(1, "Last name is required"),
-  email: z.string().email("Invalid email address"),
-  phoneNumber: z.string().min(1, "Phone number is required"),
-  dateOfBirth: z.string().optional(),
-});
-
-type FormValues = z.infer<typeof formSchema>;
+import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { FUNDS_MANAGEMENT_OPTIONS, insertClientSchema } from "@shared/schema";
+import { useMutation } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 interface ClientFormProps {
   onComplete: (clientId: number) => void;
 }
 
 export default function ClientForm({ onComplete }: ClientFormProps) {
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  
-  const form = useForm<FormValues>({
-    resolver: zodResolver(formSchema),
+  const { toast } = useToast();
+  // Create a modified schema without availableFunds for the form
+  const modifiedClientSchema = insertClientSchema.omit({ availableFunds: true });
+
+  const form = useForm({
+    resolver: zodResolver(modifiedClientSchema),
     defaultValues: {
-      firstName: "",
-      lastName: "",
-      email: "",
-      phoneNumber: "",
+      name: "",
       dateOfBirth: "",
+      fundsManagement: FUNDS_MANAGEMENT_OPTIONS[0], // Default to first option
     },
   });
 
-  async function onSubmit(data: FormValues) {
-    setIsSubmitting(true);
-    try {
-      // Combine first and last name for the API
-      const clientData = {
-        name: `${data.firstName} ${data.lastName}`,
-        email: data.email,
-        phoneNumber: data.phoneNumber,
-        dateOfBirth: data.dateOfBirth || undefined,
+  const createClient = useMutation({
+    mutationFn: async (data: any) => {
+      // Add default value for availableFunds to satisfy the API
+      const dataWithDefaults = {
+        ...data,
+        availableFunds: 0 // This will be properly set in BudgetForm
       };
-      
-      const client = await createClient(clientData);
-      onComplete(client.id);
-    } catch (error) {
-      console.error("Error creating client:", error);
-    } finally {
-      setIsSubmitting(false);
-    }
-  }
+      const res = await apiRequest("POST", "/api/clients", dataWithDefaults);
+      return res.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Success",
+        description: "Client information saved successfully",
+      });
+      onComplete(data.id);
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to save client information",
+        variant: "destructive",
+      });
+    },
+  });
 
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-        <FormField
-          control={form.control}
-          name="firstName"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>First Name</FormLabel>
-              <FormControl>
-                <Input placeholder="First Name" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
+    <div className="grid md:grid-cols-2 gap-8 items-center h-[700px] p-8">
+      <div className="md:block h-full flex items-center rounded-xl overflow-hidden shadow-lg">
+        <img 
+          src="https://images.unsplash.com/photo-1614850523296-d8c1af93d400?w=800&auto=format&fit=crop"
+          alt="Abstract wave pattern"
+          className="w-full h-full object-cover"
         />
-        
-        <FormField
-          control={form.control}
-          name="lastName"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Last Name</FormLabel>
-              <FormControl>
-                <Input placeholder="Last Name" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        
-        <FormField
-          control={form.control}
-          name="email"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Email</FormLabel>
-              <FormControl>
-                <Input placeholder="Email" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        
-        <FormField
-          control={form.control}
-          name="phoneNumber"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Phone Number</FormLabel>
-              <FormControl>
-                <Input placeholder="Phone Number" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        
-        <Button 
-          type="submit" 
-          className="w-full" 
-          disabled={isSubmitting}
-        >
-          {isSubmitting ? "Creating..." : "Next: Add Ally"}
-        </Button>
-      </form>
-    </Form>
+      </div>
+      <div className="space-y-8 max-w-md mx-auto w-full flex flex-col items-center justify-center">
+        <div className="text-center mb-8">
+          <h2 className="text-3xl font-semibold text-primary mb-2">Client Information</h2>
+          <p className="text-muted-foreground">Please enter the client's details below</p>
+        </div>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit((data) => createClient.mutate(data))} className="space-y-6 w-full">
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem className="mb-4">
+                  <FormLabel>Client Name</FormLabel>
+                  <FormControl>
+                    <Input {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="dateOfBirth"
+              render={({ field }) => (
+                <FormItem className="mb-4">
+                  <FormLabel>Date of Birth</FormLabel>
+                  <FormControl>
+                    <Input 
+                      type="date"
+                      placeholder="DD/MM/YYYY" 
+                      {...field} 
+                      required
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="fundsManagement"
+              render={({ field }) => (
+                <FormItem className="mb-4">
+                  <FormLabel>Funds Management</FormLabel>
+                  <FormControl>
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select funds management type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {FUNDS_MANAGEMENT_OPTIONS.map((option) => (
+                          <SelectItem key={option} value={option}>
+                            {option}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+
+            <Button 
+              type="submit" 
+              disabled={createClient.isPending}
+              size="lg"
+              className="w-full bg-primary hover:bg-primary/90 text-white font-medium py-6"
+            >
+              {createClient.isPending ? (
+                <div className="flex items-center justify-center">
+                  <div className="animate-spin mr-2 h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
+                  Saving...
+                </div>
+              ) : (
+                "Next"
+              )}
+            </Button>
+          </form>
+        </Form>
+      </div>
+    </div>
   );
 }
