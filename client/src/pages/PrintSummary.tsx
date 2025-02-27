@@ -314,7 +314,6 @@ export default function PrintSummary() {
                     {selectedLanguage === "french" ? "Nom" : "Name"}
                   </p>
                   <p className="font-medium">{client.name || "No name available"}</p>
-                  <p className="text-xs text-red-500 mt-1">Debug: {JSON.stringify(client)}</p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">
