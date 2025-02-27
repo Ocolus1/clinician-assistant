@@ -54,19 +54,19 @@ const translations: TranslationMap = {
   },
   
   // Allies Section
-  "allies": {
+  "label_allies": {
     english: "Allies",
     french: "Alliés",
     spanish: "Aliados",
     other: "Allies",
   },
-  "relationship": {
+  "label_relationship": {
     english: "Relationship",
     french: "Relation",
     spanish: "Relación",
     other: "Relationship",
   },
-  "preferred_language": {
+  "label_preferred_language": {
     english: "Preferred Language",
     french: "Langue préférée",
     spanish: "Idioma preferido",
@@ -86,13 +86,13 @@ const translations: TranslationMap = {
   },
   
   // Goals Section
-  "goals_and_subgoals": {
+  "goals_subgoals": {
     english: "Goals and Subgoals",
     french: "Objectifs et Sous-objectifs",
     spanish: "Objetivos y Subobjetivos",
     other: "Goals and Subgoals",
   },
-  "priority": {
+  "label_priority": {
     english: "Priority",
     french: "Priorité",
     spanish: "Prioridad",
@@ -118,67 +118,67 @@ const translations: TranslationMap = {
     spanish: "Resumen del Presupuesto",
     other: "Budget Summary",
   },
-  "available_funds": {
+  "label_available_funds": {
     english: "Available Funds",
     french: "Fonds Disponibles",
     spanish: "Fondos Disponibles",
     other: "Available Funds",
   },
-  "end_of_plan": {
+  "label_end_of_plan": {
     english: "End of Plan",
     french: "Fin du Plan",
     spanish: "Fin del Plan",
     other: "End of Plan",
   },
-  "planned_funds": {
+  "label_planned_funds": {
     english: "Planned Funds",
     french: "Fonds Planifiés",
     spanish: "Fondos Planificados",
     other: "Planned Funds",
   },
-  "plan_duration": {
+  "label_plan_duration": {
     english: "Plan Duration",
     french: "Durée du Plan",
     spanish: "Duración del Plan",
     other: "Plan Duration",
   },
-  "item_code": {
+  "label_item_code": {
     english: "Item Code",
     french: "Code",
     spanish: "Código",
     other: "Item Code",
   },
-  "description": {
+  "label_description": {
     english: "Description",
     french: "Description",
     spanish: "Descripción",
     other: "Description",
   },
-  "unit_price": {
+  "label_unit_price": {
     english: "Unit Price",
     french: "Prix Unitaire",
     spanish: "Precio Unitario",
     other: "Unit Price",
   },
-  "quantity": {
+  "label_quantity": {
     english: "Qty",
     french: "Qté",
     spanish: "Cant",
     other: "Qty",
   },
-  "total": {
+  "label_total": {
     english: "Total",
     french: "Total",
     spanish: "Total",
     other: "Total",
   },
-  "total_budget": {
+  "label_total_budget": {
     english: "Total Budget",
     french: "Budget Total",
     spanish: "Presupuesto Total",
     other: "Total Budget",
   },
-  "remaining_balance": {
+  "label_remaining_balance": {
     english: "Remaining Balance",
     french: "Solde Restant",
     spanish: "Saldo Restante",

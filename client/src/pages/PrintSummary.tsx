@@ -635,7 +635,10 @@ export default function PrintSummary() {
           <Card className="print:shadow-none print:border-none">
             <CardHeader className="print:py-2">
               <CardTitle>
-                {selectedLanguage === "french" ? "Alliés" : "Allies"} ({allies.length})
+                Allies ({allies.length})
+                {selectedLanguage !== "english" && translations["label_allies"] && (
+                  <span className="block text-sm font-normal mt-1">{translations["label_allies"]}</span>
+                )}
               </CardTitle>
             </CardHeader>
             <CardContent className="print:pt-0">
@@ -647,12 +650,20 @@ export default function PrintSummary() {
                       <div>
                         <p className="font-medium">{ally.name}</p>
                         <p className="text-sm text-muted-foreground">
-                          {selectedLanguage === "french" ? "Relation: " : "Relationship: "}
-                          {ally.relationship}
+                          Relationship: {ally.relationship}
+                          {selectedLanguage !== "english" && translations["label_relationship"] && (
+                            <span className="block text-xs italic">
+                              {translations["label_relationship"]}: {ally.relationship}
+                            </span>
+                          )}
                         </p>
                         <p className="text-sm text-muted-foreground mt-1">
-                          {selectedLanguage === "french" ? "Langue préférée: " : "Preferred Language: "}
-                          {ally.preferredLanguage}
+                          Preferred Language: {ally.preferredLanguage}
+                          {selectedLanguage !== "english" && translations["label_preferred_language"] && (
+                            <span className="block text-xs italic">
+                              {translations["label_preferred_language"]}: {ally.preferredLanguage}
+                            </span>
+                          )}
                         </p>
                       </div>
                       <div className="text-right">
@@ -663,7 +674,12 @@ export default function PrintSummary() {
                               {ally.accessTherapeutics ? "✓" : "✗"}
                             </span>
                             <span>
-                              {selectedLanguage === "french" ? "Accès Thérapeutique" : "Therapeutics Access"}
+                              Therapeutics Access
+                              {selectedLanguage !== "english" && translations["therapeutics_access"] && (
+                                <span className="block text-xs text-center">
+                                  {translations["therapeutics_access"]}
+                                </span>
+                              )}
                             </span>
                           </span>
                           <span className="inline-flex items-center px-2 py-1 text-xs rounded-full bg-muted">
@@ -671,7 +687,12 @@ export default function PrintSummary() {
                               {ally.accessFinancials ? "✓" : "✗"}
                             </span>
                             <span>
-                              {selectedLanguage === "french" ? "Accès Financier" : "Financial Access"}
+                              Financial Access
+                              {selectedLanguage !== "english" && translations["financial_access"] && (
+                                <span className="block text-xs text-center">
+                                  {translations["financial_access"]}
+                                </span>
+                              )}
                             </span>
                           </span>
                         </div>
@@ -688,7 +709,10 @@ export default function PrintSummary() {
           <Card className="print:shadow-none print:border-none">
             <CardHeader className="print:py-2">
               <CardTitle>
-                {selectedLanguage === "french" ? "Objectifs et Sous-objectifs" : "Goals and Subgoals"}
+                Goals and Subgoals
+                {selectedLanguage !== "english" && translations["goals_subgoals"] && (
+                  <span className="block text-sm font-normal mt-1">{translations["goals_subgoals"]}</span>
+                )}
               </CardTitle>
             </CardHeader>
             <CardContent className="print:pt-0">
@@ -808,7 +832,10 @@ export default function PrintSummary() {
           <Card className="print:shadow-none print:border-none">
             <CardHeader className="print:py-2">
               <CardTitle>
-                {selectedLanguage === "french" ? "Résumé du Budget" : "Budget Summary"}
+                Budget Summary
+                {selectedLanguage !== "english" && translations["budget_summary"] && (
+                  <span className="block text-sm font-normal mt-1">{translations["budget_summary"]}</span>
+                )}
               </CardTitle>
             </CardHeader>
             <CardContent className="print:pt-0">
