@@ -18,7 +18,7 @@ export default function ClientForm({ onComplete }: ClientFormProps) {
   const { toast } = useToast();
   // Create a modified schema without availableFunds for the form
   const modifiedClientSchema = insertClientSchema.omit({ availableFunds: true });
-  
+
   const form = useForm({
     resolver: zodResolver(modifiedClientSchema),
     defaultValues: {
@@ -90,7 +90,12 @@ export default function ClientForm({ onComplete }: ClientFormProps) {
                 <FormItem className="mb-4">
                   <FormLabel>Date of Birth</FormLabel>
                   <FormControl>
-                    <Input {...field} type="date" />
+                    <Input 
+                      type="date"
+                      placeholder="DD/MM/YYYY" 
+                      {...field} 
+                      required
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
