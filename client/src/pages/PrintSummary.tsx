@@ -23,6 +23,20 @@ import {
 // Import toast for notifications
 import { useToast } from "@/hooks/use-toast";
 
+// Define the subgoal type to make TypeScript happy
+interface Subgoal {
+  id: number;
+  title: string;
+  description: string;
+  status?: string;
+  goalId: number;
+}
+
+// Define the enriched goal type with subgoals
+interface EnrichedGoal extends Goal {
+  subgoals?: Subgoal[];
+}
+
 export default function PrintSummary() {
   const { clientId } = useParams();
   const [, setLocation] = useLocation();
@@ -116,7 +130,7 @@ export default function PrintSummary() {
   });
   
   // Fetch subgoals for each goal
-  const goalsWithSubgoals = useQuery<Goal[]>({
+  const goalsWithSubgoals = useQuery<EnrichedGoal[]>({
     queryKey: ["/api/clients", parsedClientId, "goals-with-subgoals"],
     queryFn: async () => {
       console.log("Fetching subgoals for all goals");
@@ -126,15 +140,15 @@ export default function PrintSummary() {
             const response = await fetch(`/api/goals/${goal.id}/subgoals`);
             if (!response.ok) {
               console.error(`Error fetching subgoals for goal ${goal.id}: ${response.status}`);
-              return { ...goal, subgoals: [] };
+              return { ...goal, subgoals: [] } as EnrichedGoal;
             }
             
             const subgoals = await response.json();
             console.log(`Retrieved ${subgoals.length} subgoals for goal ${goal.id}:`, subgoals);
-            return { ...goal, subgoals };
+            return { ...goal, subgoals } as EnrichedGoal;
           } catch (error) {
             console.error(`Error processing subgoals for goal ${goal.id}:`, error);
-            return { ...goal, subgoals: [] };
+            return { ...goal, subgoals: [] } as EnrichedGoal;
           }
         })
       );
@@ -358,43 +372,109 @@ export default function PrintSummary() {
   return (
     <div className="min-h-screen bg-background print:bg-white print:p-0">
       <div className="container mx-auto py-8 print:p-0">
+        {/* Translation preview UI */}
+        {previewMode && selectedLanguage !== "english" && (
+          <div className="mb-8 print:hidden border rounded-lg p-4 bg-muted/20">
+            <div className="flex justify-between items-center mb-4">
+              <div>
+                <h2 className="text-xl font-bold">
+                  Bilingual Print Preview
+                </h2>
+                <p className="text-sm text-muted-foreground">
+                  This summary will be printed in English and {selectedLanguage}
+                </p>
+              </div>
+              
+              <div className="flex items-center gap-2">
+                {translationStatus === TranslationStatus.TRANSLATING && (
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <RefreshCw className="h-4 w-4 animate-spin" />
+                    <span>Translating...</span>
+                  </div>
+                )}
+                
+                {translationStatus === TranslationStatus.ERROR && (
+                  <div className="flex items-center gap-2 text-destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <span>Translation error</span>
+                  </div>
+                )}
+                
+                <Button 
+                  variant="outline" 
+                  onClick={() => setPreviewMode(false)}
+                >
+                  Cancel
+                </Button>
+                
+                <Button 
+                  onClick={handlePrint}
+                  disabled={translationStatus === TranslationStatus.TRANSLATING}
+                >
+                  <Printer className="mr-2 h-4 w-4" />
+                  Print
+                </Button>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4 mt-2">
+              <div className="p-2 border border-dashed rounded">
+                <p className="text-xs text-muted-foreground mb-1">English</p>
+                <p className="text-sm">Example text in English</p>
+              </div>
+              <div className="p-2 border border-dashed rounded">
+                <p className="text-xs text-muted-foreground mb-1">{selectedLanguage}</p>
+                <p className="text-sm">
+                  {translationStatus === TranslationStatus.TRANSLATING 
+                    ? "Translating..." 
+                    : translationStatus === TranslationStatus.ERROR
+                    ? "Translation error occurred" 
+                    : "Example translated text"}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+        
         <div className="flex justify-between items-center mb-8 print:mb-4 print:hidden">
           <h1 className="text-3xl font-bold text-center">Onboarding Summary</h1>
           <div className="flex gap-4 items-center">
             <Button onClick={() => setLocation(`/summary/${clientId}`)} variant="outline">
               Back to Summary
             </Button>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon">
-                  <MoreVertical className="h-5 w-5" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={handlePrintClick}>
-                  <Printer className="mr-2 h-4 w-4" />
-                  Print
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleEmailClick}>
-                  <Mail className="mr-2 h-4 w-4" />
-                  Email
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleApproveClick}>
-                  <Check className="mr-2 h-4 w-4" />
-                  Approve and Create
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            {!previewMode && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon">
+                    <MoreVertical className="h-5 w-5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={handlePrintClick}>
+                    <Printer className="mr-2 h-4 w-4" />
+                    Print
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleEmailClick}>
+                    <Mail className="mr-2 h-4 w-4" />
+                    Email
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleApproveClick}>
+                    <Check className="mr-2 h-4 w-4" />
+                    Approve and Create
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
           </div>
         </div>
 
         {/* Language dialog */}
         <LanguageSelector 
           open={showLanguageSelector} 
-          onOpenChange={setShowLanguageSelector} 
-          onSelectLanguage={(language: string) => {
-            setShowLanguageSelector(false);
-            handlePrint(language as SummaryLanguage);
+          onOpenChange={setShowLanguageSelector}
+          allies={allies}
+          onSelectLanguage={(language: Language) => {
+            handleLanguageSelect(language);
           }}
         />
 
@@ -527,7 +607,7 @@ export default function PrintSummary() {
             <CardContent className="print:pt-0">
               <Separator className="mb-4" />
               <div className="space-y-6">
-                {goalsWithSubgoals.data ? goalsWithSubgoals.data.map((goal: Goal & { subgoals?: any[] }) => (
+                {goalsWithSubgoals.data ? goalsWithSubgoals.data.map((goal: EnrichedGoal) => (
                   <div key={goal.id} className="mb-6">
                     <div className="mb-3">
                       <div className="flex items-center gap-2 mb-1">
