@@ -37,6 +37,19 @@ export default function PrintSummary() {
     refetch: refetchClient
   } = useQuery<Client>({
     queryKey: ["/api/clients", parsedClientId],
+    queryFn: async () => {
+      console.log(`Manually fetching client with ID: ${parsedClientId}`);
+      const response = await fetch(`/api/clients/${parsedClientId}`);
+      
+      if (!response.ok) {
+        console.error(`Error fetching client: ${response.status} ${response.statusText}`);
+        throw new Error(`Failed to fetch client: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      console.log("Client data retrieved:", data);
+      return data;
+    },
     enabled: parsedClientId > 0,
     retry: 3, // Increase retries to handle intermittent issues
     retryDelay: 1000, // Wait 1 second between retries
@@ -50,24 +63,76 @@ export default function PrintSummary() {
 
   const { data: allies = [] } = useQuery<Ally[]>({
     queryKey: ["/api/clients", parsedClientId, "allies"],
+    queryFn: async () => {
+      console.log(`Fetching allies for client ID: ${parsedClientId}`);
+      const response = await fetch(`/api/clients/${parsedClientId}/allies`);
+      
+      if (!response.ok) {
+        console.error(`Error fetching allies: ${response.status} ${response.statusText}`);
+        return [];
+      }
+      
+      const data = await response.json();
+      console.log(`Retrieved ${data.length} allies:`, data);
+      return data;
+    },
     enabled: parsedClientId > 0 && fetchRelatedData,
     retry: 1,
   });
 
   const { data: goals = [] } = useQuery<Goal[]>({
     queryKey: ["/api/clients", parsedClientId, "goals"],
+    queryFn: async () => {
+      console.log(`Fetching goals for client ID: ${parsedClientId}`);
+      const response = await fetch(`/api/clients/${parsedClientId}/goals`);
+      
+      if (!response.ok) {
+        console.error(`Error fetching goals: ${response.status} ${response.statusText}`);
+        return [];
+      }
+      
+      const data = await response.json();
+      console.log(`Retrieved ${data.length} goals:`, data);
+      return data;
+    },
     enabled: parsedClientId > 0 && fetchRelatedData,
     retry: 1,
   });
 
   const { data: budgetItems = [] } = useQuery<BudgetItem[]>({
     queryKey: ["/api/clients", parsedClientId, "budget-items"],
+    queryFn: async () => {
+      console.log(`Fetching budget items for client ID: ${parsedClientId}`);
+      const response = await fetch(`/api/clients/${parsedClientId}/budget-items`);
+      
+      if (!response.ok) {
+        console.error(`Error fetching budget items: ${response.status} ${response.statusText}`);
+        return [];
+      }
+      
+      const data = await response.json();
+      console.log(`Retrieved ${data.length} budget items:`, data);
+      return data;
+    },
     enabled: parsedClientId > 0 && fetchRelatedData,
     retry: 1,
   });
 
   const { data: budgetSettings } = useQuery<BudgetSettings>({
     queryKey: ["/api/clients", parsedClientId, "budget-settings"],
+    queryFn: async () => {
+      console.log(`Fetching budget settings for client ID: ${parsedClientId}`);
+      const response = await fetch(`/api/clients/${parsedClientId}/budget-settings`);
+      
+      if (!response.ok) {
+        console.error(`Error fetching budget settings: ${response.status} ${response.statusText}`);
+        return null;
+      }
+      
+      const data = await response.json();
+      console.log("Retrieved budget settings:", data);
+      return data;
+    },
     enabled: parsedClientId > 0 && fetchRelatedData,
     retry: 1,
   });
@@ -248,21 +313,22 @@ export default function PrintSummary() {
                   <p className="text-sm text-muted-foreground">
                     {selectedLanguage === "french" ? "Nom" : "Name"}
                   </p>
-                  <p className="font-medium">{client.name}</p>
+                  <p className="font-medium">{client.name || "No name available"}</p>
+                  <p className="text-xs text-red-500 mt-1">Debug: {JSON.stringify(client)}</p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">
                     {selectedLanguage === "french" ? "Date de Naissance" : "Date of Birth"}
                   </p>
                   <p className="font-medium">
-                    {new Date(client.dateOfBirth).toLocaleDateString()}
+                    {client.dateOfBirth ? new Date(client.dateOfBirth).toLocaleDateString() : "Invalid Date"}
                   </p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">
                     {selectedLanguage === "french" ? "Gestion des Fonds" : "Funds Management"}
                   </p>
-                  <p className="font-medium">{client.fundsManagement}</p>
+                  <p className="font-medium">{client.fundsManagement || "Not specified"}</p>
                 </div>
               </div>
             </CardContent>
