@@ -1,6 +1,6 @@
 import { useParams, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -10,15 +10,9 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { MoreVertical, Printer, Mail, Check, RefreshCw, AlertCircle } from "lucide-react";
-import { LanguageSelector, Language } from "../components/summary/LanguageSelector";
+import { MoreVertical, Printer, Mail, Check } from "lucide-react";
 import { AllySelector } from "../components/summary/AllySelector";
 import { Client, Ally, Goal, BudgetItem, BudgetSettings } from "@shared/schema";
-import {
-  translateSections,
-  TranslationStatus,
-  getTranslatedText
-} from "@/lib/translationService";
 
 // Import toast for notifications
 import { useToast } from "@/hooks/use-toast";
@@ -40,13 +34,7 @@ interface EnrichedGoal extends Goal {
 export default function PrintSummary() {
   const { clientId } = useParams();
   const [, setLocation] = useLocation();
-  const [showLanguageSelector, setShowLanguageSelector] = useState(false);
   const [showAllySelector, setShowAllySelector] = useState(false);
-  const [selectedLanguage, setSelectedLanguage] = useState<Language | null>(null);
-  
-  // Translation state
-  const [translationStatus, setTranslationStatus] = useState<TranslationStatus>(TranslationStatus.IDLE);
-  const [translations, setTranslations] = useState<Record<string, string>>({});
   
   // For preview mode
   const [previewMode, setPreviewMode] = useState(false);
