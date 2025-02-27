@@ -1,128 +1,94 @@
-
-import { zodResolver } from "@hookform/resolvers/zod";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { insertClientSchema, FUNDS_MANAGEMENT_OPTIONS } from "../../../../shared/schema";
-import { apiRequest } from "@/lib/api";
-import { useToast } from "@/components/ui/use-toast";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent } from "@/components/ui/card";
+import { useLocation } from "wouter";
+import { apiRequest } from "@/lib/queryClient"; 
 
-interface ClientFormProps {
-  onComplete: (clientId: number) => void;
-}
+export default function ClientForm() {
+  const [, setLocation] = useLocation();
+  const [isLoading, setIsLoading] = useState(false);
+  const { register, handleSubmit, formState: { errors } } = useForm();
 
-export default function ClientForm({ onComplete }: ClientFormProps) {
-  const { toast } = useToast();
-  // Create a modified schema without availableFunds for the form
-  const modifiedClientSchema = insertClientSchema.omit({ availableFunds: true }).refine((data) => {
-    return data.name.length >= 3 && data.name.length <= 50
-  }, {
-    message: "Name must be between 3 and 50 characters",
-    path: ["name"]
-  });
-
-  const form = useForm({
-    resolver: zodResolver(modifiedClientSchema),
-    defaultValues: {
-      name: "",
-      dateOfBirth: "",
-      fundsManagement: "Self-Managed",
-    },
-  });
-
-  const createClient = useMutation({
-    mutationFn: async (data: any) => {
-      const res = await apiRequest("POST", "/api/clients", data);
-      return res.json();
-    },
-    onSuccess: (data) => {
-      toast({
-        title: "Success",
-        description: "Client created successfully",
-      });
-      onComplete(data.id);
-    },
-    onError: () => {
-      toast({
-        title: "Error",
-        description: "Failed to create client",
-        variant: "destructive",
-      });
-    },
-  });
-
-  function onSubmit(data: any) {
-    createClient.mutate(data);
-  }
+  const onSubmit = async (data) => {
+    setIsLoading(true);
+    try {
+      const response = await apiRequest("POST", "/api/clients", data);
+      const client = await response.json();
+      setLocation(`/onboarding/${client.id}/ally`);
+    } catch (error) {
+      console.error("Error creating client:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
-    <div>
-      <h2 className="text-2xl font-bold mb-4">Client Information</h2>
-      <p className="text-muted-foreground mb-6">Please enter the client's details below</p>
-      
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-          <FormField
-            control={form.control}
-            name="name"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Client Name</FormLabel>
-                <FormControl>
-                  <Input placeholder="Full name" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
+    <Card className="w-full max-w-md mx-auto">
+      <CardContent className="pt-6">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="firstName">First Name</Label>
+            <Input
+              id="firstName"
+              {...register("firstName", { required: "First name is required" })}
+              placeholder="First Name"
+            />
+            {errors.firstName && (
+              <p className="text-sm text-red-500">{errors.firstName.message}</p>
             )}
-          />
-          
-          <FormField
-            control={form.control}
-            name="dateOfBirth"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Date of Birth</FormLabel>
-                <FormControl>
-                  <Input type="date" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          
-          <FormField
-            control={form.control}
-            name="fundsManagement"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Funds Management</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select an option" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {FUNDS_MANAGEMENT_OPTIONS.map((option) => (
-                      <SelectItem key={option} value={option}>
-                        {option}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          
-          <div className="flex justify-end">
-            <Button type="submit" className="w-full">Next</Button>
           </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="lastName">Last Name</Label>
+            <Input
+              id="lastName"
+              {...register("lastName", { required: "Last name is required" })}
+              placeholder="Last Name"
+            />
+            {errors.lastName && (
+              <p className="text-sm text-red-500">{errors.lastName.message}</p>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="email">Email</Label>
+            <Input
+              id="email"
+              type="email"
+              {...register("email", {
+                required: "Email is required",
+                pattern: {
+                  value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                  message: "Invalid email address",
+                },
+              })}
+              placeholder="Email"
+            />
+            {errors.email && (
+              <p className="text-sm text-red-500">{errors.email.message}</p>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="phone">Phone Number</Label>
+            <Input
+              id="phone"
+              {...register("phone", { required: "Phone number is required" })}
+              placeholder="Phone Number"
+            />
+            {errors.phone && (
+              <p className="text-sm text-red-500">{errors.phone.message}</p>
+            )}
+          </div>
+
+          <Button type="submit" className="w-full" disabled={isLoading}>
+            {isLoading ? "Creating..." : "Next: Add Ally"}
+          </Button>
         </form>
-      </Form>
-    </div>
+      </CardContent>
+    </Card>
   );
 }
