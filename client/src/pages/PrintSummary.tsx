@@ -289,7 +289,7 @@ export default function PrintSummary() {
         {/* Print report header */}
         <div className="hidden print:block mb-8">
           <div className="text-center">
-            <h1 className="text-3xl font-bold">Speech Therapy Report</h1>
+            <h1 className="text-3xl font-bold">Onboarding Summary</h1>
             <p className="text-lg text-muted-foreground mt-2">
               {selectedLanguage === "french" ? "Rapport confidentiel" : "Confidential Report"}
             </p>
@@ -304,10 +304,11 @@ export default function PrintSummary() {
           <Card className="print:shadow-none print:border-none">
             <CardHeader className="print:py-2">
               <CardTitle>
-                {selectedLanguage === "french" ? "Information du Client" : "Client Information"}
+                {selectedLanguage === "french" ? "Information Personnelle" : "Personal Information"}
               </CardTitle>
             </CardHeader>
             <CardContent className="print:pt-0">
+              <Separator className="mb-4" />
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <p className="text-sm text-muted-foreground">
@@ -322,6 +323,12 @@ export default function PrintSummary() {
                   <p className="font-medium">
                     {client.dateOfBirth ? new Date(client.dateOfBirth).toLocaleDateString() : "Invalid Date"}
                   </p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">
+                    {selectedLanguage === "french" ? "Identifiant du Client" : "Client ID"}
+                  </p>
+                  <p className="font-medium">{client.id || "Not assigned"}</p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">
@@ -341,6 +348,7 @@ export default function PrintSummary() {
               </CardTitle>
             </CardHeader>
             <CardContent className="print:pt-0">
+              <Separator className="mb-4" />
               <div className="space-y-4">
                 {allies.map((ally: Ally) => (
                   <div key={ally.id}>
@@ -351,22 +359,32 @@ export default function PrintSummary() {
                           {selectedLanguage === "french" ? "Relation: " : "Relationship: "}
                           {ally.relationship}
                         </p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-sm">{ally.email}</p>
-                        <p className="text-sm text-muted-foreground">
+                        <p className="text-sm text-muted-foreground mt-1">
                           {selectedLanguage === "french" ? "Langue préférée: " : "Preferred Language: "}
                           {ally.preferredLanguage}
                         </p>
                       </div>
-                    </div>
-                    <div className="mt-2 flex gap-4 text-sm">
-                      <span className={ally.accessTherapeutics ? "text-primary" : "text-muted-foreground"}>
-                        {selectedLanguage === "french" ? "Accès Thérapeutique" : "Therapeutics Access"}
-                      </span>
-                      <span className={ally.accessFinancials ? "text-primary" : "text-muted-foreground"}>
-                        {selectedLanguage === "french" ? "Accès Financier" : "Financial Access"}
-                      </span>
+                      <div className="text-right">
+                        <p className="text-sm">Email: {ally.email}</p>
+                        <div className="flex justify-end mt-2 gap-2">
+                          <span className="inline-flex items-center px-2 py-1 text-xs rounded-full bg-muted">
+                            <span className={`mr-1 ${ally.accessTherapeutics ? "text-green-500" : "text-muted-foreground"}`}>
+                              {ally.accessTherapeutics ? "✓" : "✗"}
+                            </span>
+                            <span>
+                              {selectedLanguage === "french" ? "Accès Thérapeutique" : "Therapeutics Access"}
+                            </span>
+                          </span>
+                          <span className="inline-flex items-center px-2 py-1 text-xs rounded-full bg-muted">
+                            <span className={`mr-1 ${ally.accessFinancials ? "text-green-500" : "text-muted-foreground"}`}>
+                              {ally.accessFinancials ? "✓" : "✗"}
+                            </span>
+                            <span>
+                              {selectedLanguage === "french" ? "Accès Financier" : "Financial Access"}
+                            </span>
+                          </span>
+                        </div>
+                      </div>
                     </div>
                     <Separator className="mt-4" />
                   </div>
@@ -383,18 +401,21 @@ export default function PrintSummary() {
               </CardTitle>
             </CardHeader>
             <CardContent className="print:pt-0">
+              <Separator className="mb-4" />
               <div className="space-y-6">
                 {goals.map((goal: Goal) => (
-                  <div key={goal.id}>
-                    <div className="mb-2">
-                      <h4 className="font-medium">{goal.title}</h4>
-                      <p className="text-sm text-muted-foreground">{goal.description}</p>
-                      <p className="text-sm mt-1">
-                        {selectedLanguage === "french" ? "Priorité: " : "Priority: "}
-                        {goal.priority}
-                      </p>
+                  <div key={goal.id} className="mb-6">
+                    <div className="mb-3">
+                      <div className="flex items-center gap-2 mb-1">
+                        <h4 className="font-medium text-base">{goal.title}</h4>
+                        <span className="text-xs px-2 py-0.5 bg-muted rounded-full">
+                          {selectedLanguage === "french" ? "Priorité: " : "Priority: "}
+                          {goal.priority}
+                        </span>
+                      </div>
+                      <p className="text-sm">{goal.description}</p>
                     </div>
-                    <div className="pl-4 border-l-2 border-muted mt-2">
+                    <div className="pl-4 border-l-2 border-primary mt-2 space-y-3">
                       {(goal as any).subgoals?.map((subgoal: { id: number, title: string, description: string }) => (
                         <div key={subgoal.id} className="mb-2">
                           <p className="font-medium text-sm">{subgoal.title}</p>
@@ -419,50 +440,70 @@ export default function PrintSummary() {
               </CardTitle>
             </CardHeader>
             <CardContent className="print:pt-0">
+              <Separator className="mb-4" />
               {budgetSettings && (
-                <div className="mb-4">
-                  <p className="text-sm text-muted-foreground">
-                    {selectedLanguage === "french" ? "Fonds Disponibles" : "Available Funds"}
-                  </p>
-                  <p className="font-medium">${budgetSettings.availableFunds.toFixed(2)}</p>
-                  {budgetSettings.endOfPlan && (
-                    <p className="text-sm text-muted-foreground mt-1">
-                      {selectedLanguage === "french" ? "Fin du Plan" : "End of Plan"}: {budgetSettings.endOfPlan}
+                <div className="grid grid-cols-2 gap-4 mb-6">
+                  <div>
+                    <p className="text-sm text-muted-foreground">
+                      {selectedLanguage === "french" ? "Fonds Disponibles" : "Available Funds"}
                     </p>
-                  )}
+                    <p className="font-medium">${budgetSettings.availableFunds.toFixed(2)}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">
+                      {selectedLanguage === "french" ? "Fin du Plan" : "End of Plan"}
+                    </p>
+                    <p className="font-medium">
+                      {budgetSettings.endOfPlan ? new Date(budgetSettings.endOfPlan).toLocaleDateString() : "Not specified"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">
+                      {selectedLanguage === "french" ? "Fonds Planifiés" : "Planned Funds"}
+                    </p>
+                    <p className="font-medium">${totalBudget.toFixed(2)}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">
+                      {selectedLanguage === "french" ? "Durée du Plan" : "Plan Duration"}
+                    </p>
+                    <p className="font-medium">12 months</p>
+                  </div>
                 </div>
               )}
-              <div className="space-y-4">
+              
+              {/* Budget Items Table */}
+              <div className="mb-4">
+                <div className="grid grid-cols-12 gap-2 mb-2 text-sm font-medium bg-muted p-2 rounded-md">
+                  <div className="col-span-2">{selectedLanguage === "french" ? "Code" : "Item Code"}</div>
+                  <div className="col-span-5">{selectedLanguage === "french" ? "Description" : "Description"}</div>
+                  <div className="col-span-2 text-right">{selectedLanguage === "french" ? "Prix Unitaire" : "Unit Price"}</div>
+                  <div className="col-span-1 text-center">{selectedLanguage === "french" ? "Qté" : "Qty"}</div>
+                  <div className="col-span-2 text-right">{selectedLanguage === "french" ? "Total" : "Total"}</div>
+                </div>
+                
                 {budgetItems.map((item: BudgetItem) => (
-                  <div key={item.id} className="flex justify-between items-center">
-                    <div>
-                      <p className="font-medium">{item.itemCode}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {item.description}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-medium">
-                        ${(item.unitPrice * item.quantity).toFixed(2)}
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        ${item.unitPrice.toFixed(2)} × {item.quantity}
-                      </p>
-                    </div>
+                  <div key={item.id} className="grid grid-cols-12 gap-2 py-2 border-b">
+                    <div className="col-span-2 text-sm font-medium">{item.itemCode}</div>
+                    <div className="col-span-5 text-sm">{item.description}</div>
+                    <div className="col-span-2 text-right text-sm">${item.unitPrice.toFixed(2)}</div>
+                    <div className="col-span-1 text-center text-sm">{item.quantity}</div>
+                    <div className="col-span-2 text-right font-medium">${(item.unitPrice * item.quantity).toFixed(2)}</div>
                   </div>
                 ))}
-                <Separator />
-                <div className="flex justify-between items-center font-bold">
-                  <span>{selectedLanguage === "french" ? "Budget Total" : "Total Budget"}</span>
-                  <span>${totalBudget.toFixed(2)}</span>
-                </div>
-                {budgetSettings && (
-                  <div className="flex justify-between items-center">
-                    <span>{selectedLanguage === "french" ? "Solde Restant" : "Remaining Balance"}</span>
-                    <span>${(budgetSettings.availableFunds - totalBudget).toFixed(2)}</span>
-                  </div>
-                )}
               </div>
+              
+              <div className="flex justify-between items-center p-2 bg-muted rounded-md">
+                <span className="font-bold">{selectedLanguage === "french" ? "Budget Total" : "Total Budget"}</span>
+                <span className="font-bold">${totalBudget.toFixed(2)}</span>
+              </div>
+              
+              {budgetSettings && (
+                <div className="flex justify-between items-center p-2 mt-2">
+                  <span>{selectedLanguage === "french" ? "Solde Restant" : "Remaining Balance"}</span>
+                  <span>${(budgetSettings.availableFunds - totalBudget).toFixed(2)}</span>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
