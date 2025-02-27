@@ -235,7 +235,7 @@ export default function PrintSummary() {
     <div className="min-h-screen bg-background print:bg-white print:p-0">
       <div className="container mx-auto py-8 print:p-0">
         <div className="flex justify-between items-center mb-8 print:mb-4 print:hidden">
-          <h1 className="text-3xl font-bold">Client Report</h1>
+          <h1 className="text-3xl font-bold text-center">Onboarding Summary</h1>
           <div className="flex gap-4 items-center">
             <Button onClick={() => setLocation(`/summary/${clientId}`)} variant="outline">
               Back to Summary
