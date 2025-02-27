@@ -283,29 +283,75 @@ export default function PrintSummary() {
       // Prepare sections to translate
       const sectionsToTranslate: Record<string, string> = {};
       
-      // Add client information
-      sectionsToTranslate["client_name"] = client.name || "";
-      sectionsToTranslate["funds_management"] = client.fundsManagement || "";
+      // Add labels for all sections
+      sectionsToTranslate["label_name"] = "Name";
+      sectionsToTranslate["label_date_of_birth"] = "Date of Birth";
+      sectionsToTranslate["label_client_id"] = "Client ID";
+      sectionsToTranslate["label_funds_management"] = "Funds Management";
+      sectionsToTranslate["label_allies"] = "Allies";
+      sectionsToTranslate["label_relationship"] = "Relationship";
+      sectionsToTranslate["label_preferred_language"] = "Preferred Language";
+      sectionsToTranslate["label_email"] = "Email";
+      sectionsToTranslate["label_therapeutics_access"] = "Therapeutics Access";
+      sectionsToTranslate["label_financial_access"] = "Financial Access";
+      sectionsToTranslate["label_priority"] = "Priority";
+      sectionsToTranslate["label_available_funds"] = "Available Funds";
+      sectionsToTranslate["label_end_of_plan"] = "End of Plan";
+      sectionsToTranslate["label_planned_funds"] = "Planned Funds";
+      sectionsToTranslate["label_plan_duration"] = "Plan Duration";
+      sectionsToTranslate["label_item_code"] = "Item Code";
+      sectionsToTranslate["label_description"] = "Description";
+      sectionsToTranslate["label_unit_price"] = "Unit Price";
+      sectionsToTranslate["label_quantity"] = "Qty";
+      sectionsToTranslate["label_total"] = "Total";
+      sectionsToTranslate["label_total_budget"] = "Total Budget";
+      sectionsToTranslate["label_remaining_balance"] = "Remaining Balance";
+      sectionsToTranslate["title"] = "Onboarding Summary";
+      sectionsToTranslate["subtitle"] = "Confidential Report";
+      sectionsToTranslate["personal_info"] = "Personal Information";
+      sectionsToTranslate["goals_subgoals"] = "Goals and Subgoals";
+      sectionsToTranslate["budget_summary"] = "Budget Summary";
+      sectionsToTranslate["document_footer"] = "This document is confidential and contains information protected by law.";
+      sectionsToTranslate["copyright"] = "© Speech Therapy Clinic - All rights reserved";
       
-      // Add goals and descriptions
+      // Status labels
+      sectionsToTranslate["status_completed"] = "Completed";
+      sectionsToTranslate["status_in_progress"] = "In Progress";
+      sectionsToTranslate["status_not_started"] = "Not Started";
+      sectionsToTranslate["status_canceled"] = "Canceled";
+      
+      // Add client information
+      sectionsToTranslate["client_name"] = client.name || "No name available";
+      sectionsToTranslate["funds_management"] = client.fundsManagement || "Not specified";
+      
+      // Add goals and descriptions by ID (not index)
       if (goalsWithSubgoals.data) {
-        goalsWithSubgoals.data.forEach((goal, index) => {
-          sectionsToTranslate[`goal_${index}_title`] = goal.title;
-          sectionsToTranslate[`goal_${index}_description`] = goal.description;
+        goalsWithSubgoals.data.forEach((goal) => {
+          sectionsToTranslate[`goal_${goal.id}_title`] = goal.title;
+          sectionsToTranslate[`goal_${goal.id}_description`] = goal.description;
           
           // Add subgoals
           if (goal.subgoals) {
-            goal.subgoals.forEach((subgoal, subIndex) => {
-              sectionsToTranslate[`goal_${index}_subgoal_${subIndex}_title`] = subgoal.title;
-              sectionsToTranslate[`goal_${index}_subgoal_${subIndex}_description`] = subgoal.description;
+            goal.subgoals.forEach((subgoal) => {
+              sectionsToTranslate[`subgoal_${subgoal.id}_title`] = subgoal.title;
+              sectionsToTranslate[`subgoal_${subgoal.id}_description`] = subgoal.description;
+              if (subgoal.status) {
+                sectionsToTranslate[`status_${subgoal.status.toLowerCase()}`] = subgoal.status;
+              }
             });
           }
+        });
+      } else {
+        // If we don't have the enriched goals, use the regular goals
+        goals.forEach((goal) => {
+          sectionsToTranslate[`goal_${goal.id}_title`] = goal.title;
+          sectionsToTranslate[`goal_${goal.id}_description`] = goal.description;
         });
       }
       
       // Add budget items
-      budgetItems.forEach((item, index) => {
-        sectionsToTranslate[`budget_item_${index}_description`] = item.description;
+      budgetItems.forEach((item) => {
+        sectionsToTranslate[`budget_item_${item.id}_description`] = item.description;
       });
       
       // Translate all sections
@@ -516,13 +562,26 @@ export default function PrintSummary() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <p className="text-sm text-muted-foreground">
-                    {selectedLanguage === "french" ? "Nom" : "Name"}
+                    Name
+                    {selectedLanguage !== "english" && translations["label_name"] && (
+                      <span className="block text-xs italic">{translations["label_name"]}</span>
+                    )}
                   </p>
-                  <p className="font-medium">{client.name || "No name available"}</p>
+                  <p className="font-medium">
+                    {client.name || "No name available"}
+                    {selectedLanguage !== "english" && translations["client_name"] && (
+                      <span className="block text-sm mt-1 border-t pt-1 text-muted-foreground">
+                        {translations["client_name"]}
+                      </span>
+                    )}
+                  </p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">
-                    {selectedLanguage === "french" ? "Date de Naissance" : "Date of Birth"}
+                    Date of Birth
+                    {selectedLanguage !== "english" && translations["label_date_of_birth"] && (
+                      <span className="block text-xs italic">{translations["label_date_of_birth"]}</span>
+                    )}
                   </p>
                   <p className="font-medium">
                     {client.dateOfBirth ? new Date(client.dateOfBirth).toLocaleDateString() : "Invalid Date"}
@@ -530,15 +589,28 @@ export default function PrintSummary() {
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">
-                    {selectedLanguage === "french" ? "Identifiant du Client" : "Client ID"}
+                    Client ID
+                    {selectedLanguage !== "english" && translations["label_client_id"] && (
+                      <span className="block text-xs italic">{translations["label_client_id"]}</span>
+                    )}
                   </p>
                   <p className="font-medium">{client.id || "Not assigned"}</p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">
-                    {selectedLanguage === "french" ? "Gestion des Fonds" : "Funds Management"}
+                    Funds Management
+                    {selectedLanguage !== "english" && translations["label_funds_management"] && (
+                      <span className="block text-xs italic">{translations["label_funds_management"]}</span>
+                    )}
                   </p>
-                  <p className="font-medium">{client.fundsManagement || "Not specified"}</p>
+                  <p className="font-medium">
+                    {client.fundsManagement || "Not specified"}
+                    {selectedLanguage !== "english" && translations["funds_management"] && (
+                      <span className="block text-sm mt-1 border-t pt-1 text-muted-foreground">
+                        {translations["funds_management"]}
+                      </span>
+                    )}
+                  </p>
                 </div>
               </div>
             </CardContent>
@@ -607,32 +679,67 @@ export default function PrintSummary() {
             <CardContent className="print:pt-0">
               <Separator className="mb-4" />
               <div className="space-y-6">
-                {goalsWithSubgoals.data ? goalsWithSubgoals.data.map((goal: EnrichedGoal) => (
+                {goalsWithSubgoals.data ? goalsWithSubgoals.data.map((goal: EnrichedGoal, index: number) => (
                   <div key={goal.id} className="mb-6">
                     <div className="mb-3">
                       <div className="flex items-center gap-2 mb-1">
-                        <h4 className="font-medium text-base">{goal.title}</h4>
+                        <h4 className="font-medium text-base">
+                          {goal.title}
+                          {selectedLanguage !== "english" && translations[`goal_${goal.id}_title`] && (
+                            <span className="block text-sm font-normal mt-1 italic text-muted-foreground">
+                              {translations[`goal_${goal.id}_title`]}
+                            </span>
+                          )}
+                        </h4>
                         <span className="text-xs px-2 py-0.5 bg-muted rounded-full">
-                          {selectedLanguage === "french" ? "Priorité: " : "Priority: "}
-                          {goal.priority}
+                          Priority: {goal.priority}
+                          {selectedLanguage !== "english" && translations["label_priority"] && (
+                            <span className="block text-center">
+                              {translations["label_priority"]}: {goal.priority}
+                            </span>
+                          )}
                         </span>
                       </div>
-                      <p className="text-sm">{goal.description}</p>
+                      <p className="text-sm">
+                        {goal.description}
+                        {selectedLanguage !== "english" && translations[`goal_${goal.id}_description`] && (
+                          <span className="block mt-1 pt-1 border-t text-muted-foreground">
+                            {translations[`goal_${goal.id}_description`]}
+                          </span>
+                        )}
+                      </p>
                     </div>
                     <div className="pl-4 border-l-2 border-primary mt-2 space-y-3">
                       {goal.subgoals && goal.subgoals.length > 0 ? (
                         goal.subgoals.map((subgoal: { id: number, title: string, description: string, status?: string }) => (
                           <div key={subgoal.id} className="mb-2">
                             <div className="flex items-center gap-2">
-                              <p className="font-medium text-sm">{subgoal.title}</p>
+                              <p className="font-medium text-sm">
+                                {subgoal.title}
+                                {selectedLanguage !== "english" && translations[`subgoal_${subgoal.id}_title`] && (
+                                  <span className="block text-xs font-normal mt-1 italic text-muted-foreground">
+                                    {translations[`subgoal_${subgoal.id}_title`]}
+                                  </span>
+                                )}
+                              </p>
                               {subgoal.status && (
                                 <span className="text-xs px-2 py-0.5 bg-muted rounded-full">
                                   {subgoal.status}
+                                  {selectedLanguage !== "english" && translations[`status_${subgoal.status?.toLowerCase()}`] && (
+                                    <span className="block text-center">
+                                      {translations[`status_${subgoal.status?.toLowerCase()}`]}
+                                    </span>
+                                  )}
                                 </span>
                               )}
                             </div>
                             <p className="text-sm text-muted-foreground">
                               {subgoal.description}
+                              {selectedLanguage !== "english" && translations[`subgoal_${subgoal.id}_description`] && (
+                                <span className="block mt-1 pt-1 border-t">
+                                  {translations[`subgoal_${subgoal.id}_description`]}
+                                </span>
+                              )}
                             </p>
                           </div>
                         ))
@@ -642,17 +749,35 @@ export default function PrintSummary() {
                     </div>
                     <Separator className="mt-4" />
                   </div>
-                )) : goals.map((goal: Goal) => (
+                )) : goals.map((goal: Goal, index: number) => (
                   <div key={goal.id} className="mb-6">
                     <div className="mb-3">
                       <div className="flex items-center gap-2 mb-1">
-                        <h4 className="font-medium text-base">{goal.title}</h4>
+                        <h4 className="font-medium text-base">
+                          {goal.title}
+                          {selectedLanguage !== "english" && translations[`goal_${goal.id}_title`] && (
+                            <span className="block text-sm font-normal mt-1 italic text-muted-foreground">
+                              {translations[`goal_${goal.id}_title`]}
+                            </span>
+                          )}
+                        </h4>
                         <span className="text-xs px-2 py-0.5 bg-muted rounded-full">
-                          {selectedLanguage === "french" ? "Priorité: " : "Priority: "}
-                          {goal.priority}
+                          Priority: {goal.priority}
+                          {selectedLanguage !== "english" && translations["label_priority"] && (
+                            <span className="block text-center">
+                              {translations["label_priority"]}: {goal.priority}
+                            </span>
+                          )}
                         </span>
                       </div>
-                      <p className="text-sm">{goal.description}</p>
+                      <p className="text-sm">
+                        {goal.description}
+                        {selectedLanguage !== "english" && translations[`goal_${goal.id}_description`] && (
+                          <span className="block mt-1 pt-1 border-t text-muted-foreground">
+                            {translations[`goal_${goal.id}_description`]}
+                          </span>
+                        )}
+                      </p>
                     </div>
                     <div className="pl-4 border-l-2 border-primary mt-2">
                       <p className="text-sm text-muted-foreground italic">Loading subgoals...</p>
