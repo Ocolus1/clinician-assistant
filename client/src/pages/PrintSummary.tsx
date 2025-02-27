@@ -539,12 +539,24 @@ export default function PrintSummary() {
         {/* Print report header */}
         <div className="hidden print:block mb-8">
           <div className="text-center">
-            <h1 className="text-3xl font-bold">Onboarding Summary</h1>
+            <h1 className="text-3xl font-bold">
+              Onboarding Summary
+              {selectedLanguage !== "english" && translations["title"] && (
+                <span className="block text-2xl mt-1 font-semibold text-muted-foreground">
+                  {translations["title"]}
+                </span>
+              )}
+            </h1>
             <p className="text-lg text-muted-foreground mt-2">
-              {selectedLanguage === "french" ? "Rapport confidentiel" : "Confidential Report"}
+              Confidential Report
+              {selectedLanguage !== "english" && translations["subtitle"] && (
+                <span className="block text-base">
+                  {translations["subtitle"]}
+                </span>
+              )}
             </p>
             <p className="text-sm mt-1">
-              {selectedLanguage === "french" ? "Généré le" : "Generated on"}: {new Date().toLocaleDateString()}
+              Generated on: {new Date().toLocaleDateString()}
             </p>
           </div>
         </div>
@@ -554,7 +566,10 @@ export default function PrintSummary() {
           <Card className="print:shadow-none print:border-none">
             <CardHeader className="print:py-2">
               <CardTitle>
-                {selectedLanguage === "french" ? "Information Personnelle" : "Personal Information"}
+                Personal Information
+                {selectedLanguage !== "english" && translations["personal_info"] && (
+                  <span className="block text-sm font-normal mt-1">{translations["personal_info"]}</span>
+                )}
               </CardTitle>
             </CardHeader>
             <CardContent className="print:pt-0">
@@ -802,13 +817,19 @@ export default function PrintSummary() {
                 <div className="grid grid-cols-2 gap-4 mb-6">
                   <div>
                     <p className="text-sm text-muted-foreground">
-                      {selectedLanguage === "french" ? "Fonds Disponibles" : "Available Funds"}
+                      Available Funds
+                      {selectedLanguage !== "english" && translations["label_available_funds"] && (
+                        <span className="block text-xs italic">{translations["label_available_funds"]}</span>
+                      )}
                     </p>
                     <p className="font-medium">${budgetSettings.availableFunds.toFixed(2)}</p>
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">
-                      {selectedLanguage === "french" ? "Fin du Plan" : "End of Plan"}
+                      End of Plan
+                      {selectedLanguage !== "english" && translations["label_end_of_plan"] && (
+                        <span className="block text-xs italic">{translations["label_end_of_plan"]}</span>
+                      )}
                     </p>
                     <p className="font-medium">
                       {budgetSettings.endOfPlan ? new Date(budgetSettings.endOfPlan).toLocaleDateString() : "Not specified"}
@@ -816,13 +837,19 @@ export default function PrintSummary() {
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">
-                      {selectedLanguage === "french" ? "Fonds Planifiés" : "Planned Funds"}
+                      Planned Funds
+                      {selectedLanguage !== "english" && translations["label_planned_funds"] && (
+                        <span className="block text-xs italic">{translations["label_planned_funds"]}</span>
+                      )}
                     </p>
                     <p className="font-medium">${totalBudget.toFixed(2)}</p>
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">
-                      {selectedLanguage === "french" ? "Durée du Plan" : "Plan Duration"}
+                      Plan Duration
+                      {selectedLanguage !== "english" && translations["label_plan_duration"] && (
+                        <span className="block text-xs italic">{translations["label_plan_duration"]}</span>
+                      )}
                     </p>
                     <p className="font-medium">12 months</p>
                   </div>
@@ -832,17 +859,49 @@ export default function PrintSummary() {
               {/* Budget Items Table */}
               <div className="mb-4">
                 <div className="grid grid-cols-12 gap-2 mb-2 text-sm font-medium bg-muted p-2 rounded-md">
-                  <div className="col-span-2">{selectedLanguage === "french" ? "Code" : "Item Code"}</div>
-                  <div className="col-span-5">{selectedLanguage === "french" ? "Description" : "Description"}</div>
-                  <div className="col-span-2 text-right">{selectedLanguage === "french" ? "Prix Unitaire" : "Unit Price"}</div>
-                  <div className="col-span-1 text-center">{selectedLanguage === "french" ? "Qté" : "Qty"}</div>
-                  <div className="col-span-2 text-right">{selectedLanguage === "french" ? "Total" : "Total"}</div>
+                  <div className="col-span-2">
+                    Item Code
+                    {selectedLanguage !== "english" && translations["label_item_code"] && (
+                      <span className="block text-xs">{translations["label_item_code"]}</span>
+                    )}
+                  </div>
+                  <div className="col-span-5">
+                    Description
+                    {selectedLanguage !== "english" && translations["label_description"] && (
+                      <span className="block text-xs">{translations["label_description"]}</span>
+                    )}
+                  </div>
+                  <div className="col-span-2 text-right">
+                    Unit Price
+                    {selectedLanguage !== "english" && translations["label_unit_price"] && (
+                      <span className="block text-xs">{translations["label_unit_price"]}</span>
+                    )}
+                  </div>
+                  <div className="col-span-1 text-center">
+                    Qty
+                    {selectedLanguage !== "english" && translations["label_quantity"] && (
+                      <span className="block text-xs">{translations["label_quantity"]}</span>
+                    )}
+                  </div>
+                  <div className="col-span-2 text-right">
+                    Total
+                    {selectedLanguage !== "english" && translations["label_total"] && (
+                      <span className="block text-xs">{translations["label_total"]}</span>
+                    )}
+                  </div>
                 </div>
                 
                 {budgetItems.map((item: BudgetItem) => (
                   <div key={item.id} className="grid grid-cols-12 gap-2 py-2 border-b">
                     <div className="col-span-2 text-sm font-medium">{item.itemCode}</div>
-                    <div className="col-span-5 text-sm">{item.description}</div>
+                    <div className="col-span-5 text-sm">
+                      {item.description}
+                      {selectedLanguage !== "english" && translations[`budget_item_${item.id}_description`] && (
+                        <span className="block text-xs text-muted-foreground mt-1">
+                          {translations[`budget_item_${item.id}_description`]}
+                        </span>
+                      )}
+                    </div>
                     <div className="col-span-2 text-right text-sm">${item.unitPrice.toFixed(2)}</div>
                     <div className="col-span-1 text-center text-sm">{item.quantity}</div>
                     <div className="col-span-2 text-right font-medium">${(item.unitPrice * item.quantity).toFixed(2)}</div>
@@ -851,13 +910,23 @@ export default function PrintSummary() {
               </div>
               
               <div className="flex justify-between items-center p-2 bg-muted rounded-md">
-                <span className="font-bold">{selectedLanguage === "french" ? "Budget Total" : "Total Budget"}</span>
+                <span className="font-bold">
+                  Total Budget
+                  {selectedLanguage !== "english" && translations["label_total_budget"] && (
+                    <span className="block text-xs">{translations["label_total_budget"]}</span>
+                  )}
+                </span>
                 <span className="font-bold">${totalBudget.toFixed(2)}</span>
               </div>
               
               {budgetSettings && (
                 <div className="flex justify-between items-center p-2 mt-2">
-                  <span>{selectedLanguage === "french" ? "Solde Restant" : "Remaining Balance"}</span>
+                  <span>
+                    Remaining Balance
+                    {selectedLanguage !== "english" && translations["label_remaining_balance"] && (
+                      <span className="block text-xs">{translations["label_remaining_balance"]}</span>
+                    )}
+                  </span>
                   <span>${(budgetSettings.availableFunds - totalBudget).toFixed(2)}</span>
                 </div>
               )}
@@ -868,14 +937,16 @@ export default function PrintSummary() {
         {/* Print footer */}
         <div className="hidden print:block mt-8 text-center text-sm text-muted-foreground">
           <p>
-            {selectedLanguage === "french" 
-              ? "Ce document est confidentiel et contient des informations protégées par la loi." 
-              : "This document is confidential and contains information protected by law."}
+            This document is confidential and contains information protected by law.
+            {selectedLanguage !== "english" && translations["document_footer"] && (
+              <span className="block mt-1">{translations["document_footer"]}</span>
+            )}
           </p>
           <p className="mt-1">
-            {selectedLanguage === "french"
-              ? "© Speech Therapy Clinic - Tous droits réservés"
-              : "© Speech Therapy Clinic - All rights reserved"}
+            © Speech Therapy Clinic - All rights reserved
+            {selectedLanguage !== "english" && translations["copyright"] && (
+              <span className="block">{translations["copyright"]}</span>
+            )}
           </p>
         </div>
       </div>
