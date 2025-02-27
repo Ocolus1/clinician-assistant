@@ -40,8 +40,18 @@ export async function translateText(
     // Map our language codes to Lingva codes
     const lingvaLanguageCode = {
       "english": "en",
-      "french": "fr",
+      "mandarin": "zh",
+      "arabic": "ar",
+      "punjabi": "pa",
+      "cantonese": "zh", // Use Mandarin as fallback
+      "vietnamese": "vi",
+      "italian": "it",
+      "greek": "el",
+      "hindi": "hi",
       "spanish": "es",
+      "tagalog": "tl",
+      "urdu": "ur",
+      "french": "fr",
       "other": "en" // fallback to English for unsupported languages
     }[targetLanguage];
     
