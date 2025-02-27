@@ -80,7 +80,7 @@ export default function PrintSummary() {
     retry: 1,
   });
 
-  const { data: goals = [] } = useQuery<Goal[]>({
+  const { data: goals = [], isSuccess: goalsSuccess } = useQuery<Goal[]>({
     queryKey: ["/api/clients", parsedClientId, "goals"],
     queryFn: async () => {
       console.log(`Fetching goals for client ID: ${parsedClientId}`);
@@ -96,6 +96,36 @@ export default function PrintSummary() {
       return data;
     },
     enabled: parsedClientId > 0 && fetchRelatedData,
+    retry: 1,
+  });
+  
+  // Fetch subgoals for each goal
+  const goalsWithSubgoals = useQuery<Goal[]>({
+    queryKey: ["/api/clients", parsedClientId, "goals-with-subgoals"],
+    queryFn: async () => {
+      console.log("Fetching subgoals for all goals");
+      const enrichedGoals = await Promise.all(
+        goals.map(async (goal) => {
+          try {
+            const response = await fetch(`/api/goals/${goal.id}/subgoals`);
+            if (!response.ok) {
+              console.error(`Error fetching subgoals for goal ${goal.id}: ${response.status}`);
+              return { ...goal, subgoals: [] };
+            }
+            
+            const subgoals = await response.json();
+            console.log(`Retrieved ${subgoals.length} subgoals for goal ${goal.id}:`, subgoals);
+            return { ...goal, subgoals };
+          } catch (error) {
+            console.error(`Error processing subgoals for goal ${goal.id}:`, error);
+            return { ...goal, subgoals: [] };
+          }
+        })
+      );
+      
+      return enrichedGoals;
+    },
+    enabled: parsedClientId > 0 && goalsSuccess && goals.length > 0,
     retry: 1,
   });
 
@@ -403,7 +433,7 @@ export default function PrintSummary() {
             <CardContent className="print:pt-0">
               <Separator className="mb-4" />
               <div className="space-y-6">
-                {goals.map((goal: Goal) => (
+                {goalsWithSubgoals.data ? goalsWithSubgoals.data.map((goal: Goal & { subgoals?: any[] }) => (
                   <div key={goal.id} className="mb-6">
                     <div className="mb-3">
                       <div className="flex items-center gap-2 mb-1">
@@ -416,14 +446,42 @@ export default function PrintSummary() {
                       <p className="text-sm">{goal.description}</p>
                     </div>
                     <div className="pl-4 border-l-2 border-primary mt-2 space-y-3">
-                      {(goal as any).subgoals?.map((subgoal: { id: number, title: string, description: string }) => (
-                        <div key={subgoal.id} className="mb-2">
-                          <p className="font-medium text-sm">{subgoal.title}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {subgoal.description}
-                          </p>
-                        </div>
-                      ))}
+                      {goal.subgoals && goal.subgoals.length > 0 ? (
+                        goal.subgoals.map((subgoal: { id: number, title: string, description: string, status?: string }) => (
+                          <div key={subgoal.id} className="mb-2">
+                            <div className="flex items-center gap-2">
+                              <p className="font-medium text-sm">{subgoal.title}</p>
+                              {subgoal.status && (
+                                <span className="text-xs px-2 py-0.5 bg-muted rounded-full">
+                                  {subgoal.status}
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-sm text-muted-foreground">
+                              {subgoal.description}
+                            </p>
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-sm text-muted-foreground italic">No subgoals defined.</p>
+                      )}
+                    </div>
+                    <Separator className="mt-4" />
+                  </div>
+                )) : goals.map((goal: Goal) => (
+                  <div key={goal.id} className="mb-6">
+                    <div className="mb-3">
+                      <div className="flex items-center gap-2 mb-1">
+                        <h4 className="font-medium text-base">{goal.title}</h4>
+                        <span className="text-xs px-2 py-0.5 bg-muted rounded-full">
+                          {selectedLanguage === "french" ? "Priorité: " : "Priority: "}
+                          {goal.priority}
+                        </span>
+                      </div>
+                      <p className="text-sm">{goal.description}</p>
+                    </div>
+                    <div className="pl-4 border-l-2 border-primary mt-2">
+                      <p className="text-sm text-muted-foreground italic">Loading subgoals...</p>
                     </div>
                     <Separator className="mt-4" />
                   </div>
