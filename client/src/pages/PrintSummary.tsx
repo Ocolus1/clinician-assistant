@@ -1,6 +1,6 @@
 import { useParams, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -10,18 +10,35 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { MoreVertical, Printer, Mail, Check } from "lucide-react";
+import { MoreVertical, Printer, Mail, Check, RefreshCw, AlertCircle } from "lucide-react";
 import { LanguageSelector, Language } from "../components/summary/LanguageSelector";
 import { AllySelector } from "../components/summary/AllySelector";
 import { Client, Ally, Goal, BudgetItem, BudgetSettings } from "@shared/schema";
-import { getTranslation, isBilingual } from "@/lib/translations";
+import {
+  translateSections,
+  TranslationStatus,
+  getTranslatedText
+} from "@/lib/translationService";
+
+// Import toast for notifications
+import { useToast } from "@/hooks/use-toast";
 
 export default function PrintSummary() {
   const { clientId } = useParams();
   const [, setLocation] = useLocation();
   const [showLanguageSelector, setShowLanguageSelector] = useState(false);
   const [showAllySelector, setShowAllySelector] = useState(false);
-  const [selectedLanguage, setSelectedLanguage] = useState<SummaryLanguage | null>(null);
+  const [selectedLanguage, setSelectedLanguage] = useState<Language | null>(null);
+  
+  // Translation state
+  const [translationStatus, setTranslationStatus] = useState<TranslationStatus>(TranslationStatus.IDLE);
+  const [translations, setTranslations] = useState<Record<string, string>>({});
+  
+  // For preview mode
+  const [previewMode, setPreviewMode] = useState(false);
+  
+  // Toast for notifications
+  const { toast } = useToast();
 
   console.log("PrintSummary component - clientId param:", clientId);
   const parsedClientId = clientId ? parseInt(clientId) : 0;
@@ -238,13 +255,91 @@ export default function PrintSummary() {
     );
   }
 
-  const handlePrint = (selectedLanguage?: SummaryLanguage) => {
-    if (selectedLanguage) {
-      setSelectedLanguage(selectedLanguage);
+  // Handle translation of content
+  const translateContent = async (targetLanguage: Language) => {
+    if (targetLanguage === "english") {
+      // No need to translate if English is selected
+      setPreviewMode(true);
+      return;
     }
+
+    try {
+      setTranslationStatus(TranslationStatus.TRANSLATING);
+      
+      // Prepare sections to translate
+      const sectionsToTranslate: Record<string, string> = {};
+      
+      // Add client information
+      sectionsToTranslate["client_name"] = client.name || "";
+      sectionsToTranslate["funds_management"] = client.fundsManagement || "";
+      
+      // Add goals and descriptions
+      if (goalsWithSubgoals.data) {
+        goalsWithSubgoals.data.forEach((goal, index) => {
+          sectionsToTranslate[`goal_${index}_title`] = goal.title;
+          sectionsToTranslate[`goal_${index}_description`] = goal.description;
+          
+          // Add subgoals
+          if (goal.subgoals) {
+            goal.subgoals.forEach((subgoal, subIndex) => {
+              sectionsToTranslate[`goal_${index}_subgoal_${subIndex}_title`] = subgoal.title;
+              sectionsToTranslate[`goal_${index}_subgoal_${subIndex}_description`] = subgoal.description;
+            });
+          }
+        });
+      }
+      
+      // Add budget items
+      budgetItems.forEach((item, index) => {
+        sectionsToTranslate[`budget_item_${index}_description`] = item.description;
+      });
+      
+      // Translate all sections
+      const translatedSections = await translateSections(sectionsToTranslate, targetLanguage);
+      
+      // Update translations state
+      setTranslations(translatedSections);
+      setTranslationStatus(TranslationStatus.COMPLETE);
+      
+      // Enter preview mode
+      setPreviewMode(true);
+      
+      toast({
+        title: "Translation complete",
+        description: `Content has been translated to ${targetLanguage}. You can now print or review.`,
+      });
+      
+    } catch (error) {
+      console.error("Translation error:", error);
+      setTranslationStatus(TranslationStatus.ERROR);
+      
+      toast({
+        title: "Translation failed",
+        description: "There was an error translating the content. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+  
+  // Handle print after preview
+  const handlePrint = () => {
     setTimeout(() => {
       window.print();
     }, 100);
+  };
+  
+  // Handle language selection and translation
+  const handleLanguageSelect = (language: Language) => {
+    setShowLanguageSelector(false);
+    setSelectedLanguage(language);
+    
+    // Start translation process if needed
+    if (language !== "english") {
+      translateContent(language);
+    } else {
+      // Just go to preview for English
+      setPreviewMode(true);
+    }
   };
 
   const handlePrintClick = () => {
