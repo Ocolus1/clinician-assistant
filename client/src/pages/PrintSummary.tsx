@@ -11,11 +11,10 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { MoreVertical, Printer, Mail, Check } from "lucide-react";
-import { LanguageSelector } from "../components/summary/LanguageSelector";
+import { LanguageSelector, Language } from "../components/summary/LanguageSelector";
 import { AllySelector } from "../components/summary/AllySelector";
 import { Client, Ally, Goal, BudgetItem, BudgetSettings } from "@shared/schema";
-
-type SummaryLanguage = "english" | "french" | "spanish" | "other";
+import { getTranslation, isBilingual } from "@/lib/translations";
 
 export default function PrintSummary() {
   const { clientId } = useParams();
