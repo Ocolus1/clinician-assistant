@@ -13,7 +13,7 @@ import {
   FormLabel,
   FormMessage 
 } from "../ui/form";
-import { createClient } from "../../lib/api"; // Fixed import path
+import { createClient } from "../../lib/api";
 
 // Define the form schema with validation
 const formSchema = z.object({
