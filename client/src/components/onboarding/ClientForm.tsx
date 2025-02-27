@@ -17,7 +17,13 @@ interface ClientFormProps {
 export default function ClientForm({ onComplete }: ClientFormProps) {
   const { toast } = useToast();
   // Create a modified schema without availableFunds for the form
-  const modifiedClientSchema = insertClientSchema.omit({ availableFunds: true });
+  // Add additional validation to ensure name is not empty
+  const modifiedClientSchema = insertClientSchema
+    .omit({ availableFunds: true })
+    .extend({
+      name: z.string().min(1, { message: "Client name is required" }),
+      dateOfBirth: z.string().min(1, { message: "Date of birth is required" }),
+    });
 
   const form = useForm({
     resolver: zodResolver(modifiedClientSchema),
@@ -67,6 +73,7 @@ export default function ClientForm({ onComplete }: ClientFormProps) {
         <div className="text-center mb-8">
           <h2 className="text-3xl font-semibold text-primary mb-2">Client Information</h2>
           <p className="text-muted-foreground">Please enter the client's details below</p>
+          <p className="text-sm text-muted-foreground mt-2">Fields marked with <span className="text-red-500">*</span> are required</p>
         </div>
         <Form {...form}>
           <form onSubmit={form.handleSubmit((data) => createClient.mutate(data))} className="space-y-6 w-full">
@@ -75,9 +82,11 @@ export default function ClientForm({ onComplete }: ClientFormProps) {
               name="name"
               render={({ field }) => (
                 <FormItem className="mb-4">
-                  <FormLabel>Client Name</FormLabel>
+                  <FormLabel>
+                    Client Name <span className="text-red-500">*</span>
+                  </FormLabel>
                   <FormControl>
-                    <Input {...field} />
+                    <Input {...field} placeholder="Enter client name" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -88,13 +97,14 @@ export default function ClientForm({ onComplete }: ClientFormProps) {
               name="dateOfBirth"
               render={({ field }) => (
                 <FormItem className="mb-4">
-                  <FormLabel>Date of Birth</FormLabel>
+                  <FormLabel>
+                    Date of Birth <span className="text-red-500">*</span>
+                  </FormLabel>
                   <FormControl>
                     <Input 
                       type="date"
                       placeholder="DD/MM/YYYY" 
                       {...field} 
-                      required
                     />
                   </FormControl>
                   <FormMessage />
@@ -106,7 +116,9 @@ export default function ClientForm({ onComplete }: ClientFormProps) {
               name="fundsManagement"
               render={({ field }) => (
                 <FormItem className="mb-4">
-                  <FormLabel>Funds Management</FormLabel>
+                  <FormLabel>
+                    Funds Management <span className="text-red-500">*</span>
+                  </FormLabel>
                   <FormControl>
                     <Select value={field.value} onValueChange={field.onChange}>
                       <SelectTrigger>
