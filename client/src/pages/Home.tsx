@@ -17,7 +17,8 @@ export default function Home() {
 
   const handleNext = () => {
     if (step === steps.length - 1) {
-      setLocation(`/summary/${clientId}`);
+      // Go directly to print summary (client report) page instead of summary page
+      setLocation(`/print-summary/${clientId}`);
     } else {
       setStep(step + 1);
     }
