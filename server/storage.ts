@@ -39,8 +39,16 @@ export interface IStorage {
   updateBudgetSettings(id: number, settings: InsertBudgetSettings): Promise<BudgetSettings>;
 
   // Budget Items
-  createBudgetItem(clientId: number, item: InsertBudgetItem): Promise<BudgetItem>;
+  createBudgetItem(clientId: number, budgetSettingsId: number, item: InsertBudgetItem): Promise<BudgetItem>;
   getBudgetItemsByClient(clientId: number): Promise<BudgetItem[]>;
+  getBudgetItemsBySettings(budgetSettingsId: number): Promise<BudgetItem[]>;
+  deleteBudgetItem(id: number): Promise<void>;
+  
+  // Budget Item Catalog
+  createBudgetItemCatalog(item: InsertBudgetItemCatalog): Promise<BudgetItemCatalog>;
+  getBudgetItemCatalog(): Promise<BudgetItemCatalog[]>;
+  getBudgetItemCatalogByCode(itemCode: string): Promise<BudgetItemCatalog | undefined>;
+  updateBudgetItemCatalog(id: number, item: InsertBudgetItemCatalog): Promise<BudgetItemCatalog>;
 }
 
 /**
@@ -272,8 +280,8 @@ export class DBStorage implements IStorage {
     }
   }
 
-  async createBudgetItem(clientId: number, item: InsertBudgetItem): Promise<BudgetItem> {
-    console.log(`Creating budget item for client ${clientId}:`, JSON.stringify(item));
+  async createBudgetItem(clientId: number, budgetSettingsId: number, item: InsertBudgetItem): Promise<BudgetItem> {
+    console.log(`Creating budget item for client ${clientId} and budgetSettings ${budgetSettingsId}:`, JSON.stringify(item));
     try {
       // Process item data for storage
       const processedItem = {
@@ -282,10 +290,12 @@ export class DBStorage implements IStorage {
         quantity: Number(item.quantity)
       };
       
+      // Make sure budgetSettingsId is stored correctly
       const [newBudgetItem] = await db.insert(budgetItems)
         .values({
           ...processedItem,
-          clientId
+          clientId,
+          budgetSettingsId
         })
         .returning();
       
@@ -308,6 +318,33 @@ export class DBStorage implements IStorage {
       return clientBudgetItems;
     } catch (error) {
       console.error(`Error fetching budget items for client ${clientId}:`, error);
+      throw error;
+    }
+  }
+  
+  async getBudgetItemsBySettings(budgetSettingsId: number): Promise<BudgetItem[]> {
+    console.log(`Getting budget items for budget settings ${budgetSettingsId}`);
+    try {
+      const settingsBudgetItems = await db.select()
+        .from(budgetItems)
+        .where(eq(budgetItems.budgetSettingsId, budgetSettingsId));
+      
+      console.log(`Found ${settingsBudgetItems.length} budget items for budget settings ${budgetSettingsId}`);
+      return settingsBudgetItems;
+    } catch (error) {
+      console.error(`Error fetching budget items for budget settings ${budgetSettingsId}:`, error);
+      throw error;
+    }
+  }
+  
+  async deleteBudgetItem(id: number): Promise<void> {
+    console.log(`Deleting budget item with ID ${id}`);
+    try {
+      await db.delete(budgetItems)
+        .where(eq(budgetItems.id, id));
+      console.log(`Successfully deleted budget item with ID ${id}`);
+    } catch (error) {
+      console.error(`Error deleting budget item with ID ${id}:`, error);
       throw error;
     }
   }
@@ -381,6 +418,87 @@ export class DBStorage implements IStorage {
       return updatedSettings;
     } catch (error) {
       console.error(`Error updating budget settings with ID ${id}:`, error);
+      throw error;
+    }
+  }
+  
+  // Budget Item Catalog methods
+  async createBudgetItemCatalog(item: InsertBudgetItemCatalog): Promise<BudgetItemCatalog> {
+    console.log(`Creating budget item catalog entry:`, JSON.stringify(item));
+    try {
+      const processedItem = {
+        ...item,
+        defaultUnitPrice: Number(item.defaultUnitPrice || 0)
+      };
+      
+      const [newCatalogItem] = await db.insert(budgetItemCatalog)
+        .values(processedItem)
+        .returning();
+      
+      console.log(`Successfully created budget item catalog entry with ID ${newCatalogItem.id}`);
+      return newCatalogItem;
+    } catch (error) {
+      console.error(`Error creating budget item catalog entry:`, error);
+      throw error;
+    }
+  }
+  
+  async getBudgetItemCatalog(): Promise<BudgetItemCatalog[]> {
+    console.log(`Getting all budget item catalog entries`);
+    try {
+      const catalogItems = await db.select()
+        .from(budgetItemCatalog);
+      
+      console.log(`Found ${catalogItems.length} budget item catalog entries`);
+      return catalogItems;
+    } catch (error) {
+      console.error(`Error fetching budget item catalog:`, error);
+      throw error;
+    }
+  }
+  
+  async getBudgetItemCatalogByCode(itemCode: string): Promise<BudgetItemCatalog | undefined> {
+    console.log(`Getting budget item catalog entry with code ${itemCode}`);
+    try {
+      const result = await db.select()
+        .from(budgetItemCatalog)
+        .where(eq(budgetItemCatalog.itemCode, itemCode));
+      
+      if (result.length === 0) {
+        console.log(`Budget item catalog entry with code ${itemCode} not found`);
+        return undefined;
+      }
+      
+      console.log(`Found budget item catalog entry for code ${itemCode}`);
+      return result[0];
+    } catch (error) {
+      console.error(`Error fetching budget item catalog entry with code ${itemCode}:`, error);
+      throw error;
+    }
+  }
+  
+  async updateBudgetItemCatalog(id: number, item: InsertBudgetItemCatalog): Promise<BudgetItemCatalog> {
+    console.log(`Updating budget item catalog entry with ID ${id}:`, JSON.stringify(item));
+    try {
+      const processedItem = {
+        ...item,
+        defaultUnitPrice: Number(item.defaultUnitPrice || 0)
+      };
+      
+      const [updatedCatalogItem] = await db.update(budgetItemCatalog)
+        .set(processedItem)
+        .where(eq(budgetItemCatalog.id, id))
+        .returning();
+      
+      if (!updatedCatalogItem) {
+        console.error(`Budget item catalog entry with ID ${id} not found`);
+        throw new Error("Budget item catalog entry not found");
+      }
+      
+      console.log(`Successfully updated budget item catalog entry with ID ${id}`);
+      return updatedCatalogItem;
+    } catch (error) {
+      console.error(`Error updating budget item catalog entry with ID ${id}:`, error);
       throw error;
     }
   }
