@@ -60,8 +60,10 @@ function AppLayoutContent({ children }: AppLayoutProps) {
         </header>
 
         {/* Main content area */}
-        <main className="flex-1 py-6 px-6 md:px-8 lg:px-10">
-          {children}
+        <main className="flex-1 w-full py-6 px-6 md:px-8 lg:px-10">
+          <div className="w-full max-w-full">
+            {children}
+          </div>
         </main>
 
         {/* Footer */}

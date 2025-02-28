@@ -23,7 +23,7 @@ export default function ClientList() {
   };
 
   return (
-    <div className="w-full">
+    <div className="w-full max-w-full">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Client Management</h1>
         <Button 
@@ -36,7 +36,7 @@ export default function ClientList() {
       </div>
 
       <div className="w-full">
-        <Card className="border-gray-200 shadow-sm w-full">
+        <Card className="border-gray-200 shadow-sm w-full min-w-full">
           <div className="bg-gray-50 p-4 border-b border-gray-200">
             <h2 className="text-lg font-semibold text-gray-800">Client List</h2>
           </div>
