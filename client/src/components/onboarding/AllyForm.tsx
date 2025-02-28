@@ -5,7 +5,8 @@ import { RELATIONSHIP_OPTIONS, LANGUAGE_OPTIONS } from "@/lib/constants";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertAllySchema } from "@shared/schema";
-import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
+import { Form, FormField, FormItem, FormLabel, FormControl } from "@/components/ui/form";
+import { FormMessageHidden } from "@/components/ui/form-no-message";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -230,7 +231,7 @@ export default function AllyForm({ clientId, onComplete, onPrevious }: AllyFormP
                     <FormControl>
                       <Input {...field} placeholder="Enter ally name" />
                     </FormControl>
-                    <FormMessage />
+                    <FormMessageHidden />
                   </FormItem>
                 )}
               />
@@ -293,7 +294,7 @@ export default function AllyForm({ clientId, onComplete, onPrevious }: AllyFormP
                         </Command>
                       </PopoverContent>
                     </Popover>
-                    <FormMessage />
+                    <FormMessageHidden />
                   </FormItem>
                 )}
               />
@@ -356,7 +357,7 @@ export default function AllyForm({ clientId, onComplete, onPrevious }: AllyFormP
                         </Command>
                       </PopoverContent>
                     </Popover>
-                    <FormMessage />
+                    <FormMessageHidden />
                   </FormItem>
                 )}
               />
@@ -372,7 +373,7 @@ export default function AllyForm({ clientId, onComplete, onPrevious }: AllyFormP
                     <FormControl>
                       <Input {...field} type="email" placeholder="Enter email address" />
                     </FormControl>
-                    <FormMessage />
+                    <FormMessageHidden />
                   </FormItem>
                 )}
               />
@@ -397,7 +398,7 @@ export default function AllyForm({ clientId, onComplete, onPrevious }: AllyFormP
                           onCheckedChange={field.onChange}
                         />
                       </FormControl>
-                      <FormMessage />
+                      <FormMessageHidden />
                     </FormItem>
                   )}
                 />
@@ -503,7 +504,7 @@ export default function AllyForm({ clientId, onComplete, onPrevious }: AllyFormP
                     <FormControl>
                       <Input {...field} placeholder="Enter ally name" />
                     </FormControl>
-                    <FormMessage />
+                    <FormMessageHidden />
                   </FormItem>
                 )}
               />
@@ -564,7 +565,7 @@ export default function AllyForm({ clientId, onComplete, onPrevious }: AllyFormP
                         </Command>
                       </PopoverContent>
                     </Popover>
-                    <FormMessage />
+                    <FormMessageHidden />
                   </FormItem>
                 )}
               />
@@ -625,7 +626,7 @@ export default function AllyForm({ clientId, onComplete, onPrevious }: AllyFormP
                         </Command>
                       </PopoverContent>
                     </Popover>
-                    <FormMessage />
+                    <FormMessageHidden />
                   </FormItem>
                 )}
               />
@@ -641,7 +642,7 @@ export default function AllyForm({ clientId, onComplete, onPrevious }: AllyFormP
                     <FormControl>
                       <Input {...field} type="email" placeholder="Enter email address" />
                     </FormControl>
-                    <FormMessage />
+                    <FormMessageHidden />
                   </FormItem>
                 )}
               />

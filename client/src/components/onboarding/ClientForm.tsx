@@ -1,7 +1,8 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
+import { Form, FormField, FormItem, FormLabel, FormControl } from "@/components/ui/form";
+import { FormMessageHidden } from "@/components/ui/form-no-message";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -88,7 +89,7 @@ export default function ClientForm({ onComplete }: ClientFormProps) {
                   <FormControl>
                     <Input {...field} placeholder="Enter client name" />
                   </FormControl>
-                  <FormMessage />
+                  <FormMessageHidden />
                 </FormItem>
               )}
             />
@@ -107,7 +108,7 @@ export default function ClientForm({ onComplete }: ClientFormProps) {
                       {...field} 
                     />
                   </FormControl>
-                  <FormMessage />
+                  <FormMessageHidden />
                 </FormItem>
               )}
             />
@@ -133,7 +134,7 @@ export default function ClientForm({ onComplete }: ClientFormProps) {
                       </SelectContent>
                     </Select>
                   </FormControl>
-                  <FormMessage />
+                  <FormMessageHidden />
                 </FormItem>
               )}
             />
