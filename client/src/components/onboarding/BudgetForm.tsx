@@ -495,20 +495,18 @@ export default function BudgetForm({ clientId, onComplete, onPrevious }: BudgetF
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
               </div>
-              <Select 
-                value={selectedCategory || ""} 
-                onValueChange={(value) => setSelectedCategory(value || null)}
-              >
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="All Categories" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">All Categories</SelectItem>
+              <div className="w-[180px]">
+                <select 
+                  className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                  value={selectedCategory || ""}
+                  onChange={(e) => setSelectedCategory(e.target.value || null)}
+                >
+                  <option value="">All Categories</option>
                   {categories.map((category) => (
-                    <SelectItem key={category} value={category}>{category}</SelectItem>
+                    <option key={category} value={category}>{category}</option>
                   ))}
-                </SelectContent>
-              </Select>
+                </select>
+              </div>
             </div>
             
             <div className="overflow-y-auto max-h-[400px] border rounded-md">
