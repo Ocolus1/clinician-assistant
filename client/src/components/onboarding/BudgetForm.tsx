@@ -2,10 +2,10 @@ import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { DollarSign, Plus, Calculator, Trash, CalendarIcon } from "lucide-react";
+import { DollarSign, Plus, Calculator, Trash, CalendarIcon, Search, Tag, Package } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { format } from "date-fns";
@@ -15,6 +15,7 @@ import {
   FormField,
   FormItem,
   FormLabel,
+  FormMessage,
 } from "@/components/ui/form";
 import { FormMessageHidden } from "@/components/ui/form-no-message";
 import {
@@ -29,19 +30,39 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
 import { Calendar } from "@/components/ui/calendar";
 import { useToast } from "@/hooks/use-toast";
 import { 
   insertBudgetItemSchema, 
-  insertBudgetSettingsSchema, 
+  insertBudgetSettingsSchema,
+  insertBudgetItemCatalogSchema,
   type InsertBudgetItem, 
   type BudgetItem, 
   type BudgetSettings, 
-  type InsertBudgetSettings 
+  type InsertBudgetSettings,
+  type BudgetItemCatalog,
+  type InsertBudgetItemCatalog
 } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 
@@ -55,6 +76,10 @@ export default function BudgetForm({ clientId, onComplete, onPrevious }: BudgetF
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [date, setDate] = useState<Date | undefined>(undefined);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [showItemForm, setShowItemForm] = useState(false);
+  const [showCatalogItemForm, setShowCatalogItemForm] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
   // Form for budget items
   const itemForm = useForm<InsertBudgetItem>({
@@ -119,6 +144,32 @@ export default function BudgetForm({ clientId, onComplete, onPrevious }: BudgetF
     queryFn: async () => {
       const res = await apiRequest("GET", `/api/clients/${clientId}/budget-items`);
       return res.json();
+    },
+  });
+  
+  // Form for catalog items
+  const catalogItemForm = useForm<InsertBudgetItemCatalog>({
+    resolver: zodResolver(insertBudgetItemCatalogSchema),
+    defaultValues: {
+      itemCode: "",
+      description: "",
+      defaultUnitPrice: 0,
+      category: "",
+      isActive: true
+    },
+  });
+  
+  // Fetch catalog items
+  const { data: catalogItems = [] } = useQuery<BudgetItemCatalog[]>({
+    queryKey: ["/api/budget-catalog"],
+    queryFn: async () => {
+      try {
+        const res = await apiRequest("GET", `/api/budget-catalog`);
+        return res.json();
+      } catch (error) {
+        console.error("Error fetching catalog items:", error);
+        return [];
+      }
     },
   });
 
@@ -195,6 +246,31 @@ export default function BudgetForm({ clientId, onComplete, onPrevious }: BudgetF
       });
     },
   });
+  
+  // Create a catalog item
+  const createCatalogItem = useMutation({
+    mutationFn: async (data: InsertBudgetItemCatalog) => {
+      const res = await apiRequest("POST", `/api/budget-catalog`, data);
+      return res.json();
+    },
+    onSuccess: () => {
+      catalogItemForm.reset();
+      setShowCatalogItemForm(false);
+      queryClient.invalidateQueries({ queryKey: ["/api/budget-catalog"] });
+      toast({
+        title: "Success",
+        description: "Catalog item added successfully",
+      });
+    },
+    onError: (error) => {
+      console.error("Error adding catalog item:", error);
+      toast({
+        title: "Error",
+        description: "Failed to add catalog item. Please check the form and try again.",
+        variant: "destructive",
+      });
+    },
+  });
 
   const totalBudget = budgetItems.reduce((acc: number, item: BudgetItem) => {
     return acc + (item.unitPrice * item.quantity);
@@ -236,9 +312,258 @@ export default function BudgetForm({ clientId, onComplete, onPrevious }: BudgetF
       maximumFractionDigits: 2
     });
   };
+  
+  // Helper function to select a catalog item and populate the budget item form
+  const selectCatalogItem = (item: BudgetItemCatalog) => {
+    itemForm.setValue("itemCode", item.itemCode);
+    itemForm.setValue("description", item.description);
+    itemForm.setValue("unitPrice", item.defaultUnitPrice);
+    itemForm.setValue("quantity", 1);
+    setShowItemForm(false);
+  };
+  
+  // Get unique categories from catalog items
+  const categories = catalogItems
+    ? [...new Set(catalogItems.map(item => item.category))]
+    : [];
+
+  // Filter catalog items based on search term and selected category
+  const filteredCatalogItems = catalogItems.filter(item => {
+    const matchesSearch = searchTerm
+      ? item.itemCode.toLowerCase().includes(searchTerm.toLowerCase()) || 
+        item.description.toLowerCase().includes(searchTerm.toLowerCase())
+      : true;
+    const matchesCategory = selectedCategory 
+      ? item.category === selectedCategory 
+      : true;
+    return matchesSearch && matchesCategory && item.isActive;
+  });
 
   return (
     <div className="space-y-6">
+      {/* Catalog Item Management Dialog */}
+      <Dialog open={showCatalogItemForm} onOpenChange={setShowCatalogItemForm}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>Add Catalog Item</DialogTitle>
+            <DialogDescription>
+              Add a new item to the catalog for future use in budgets.
+            </DialogDescription>
+          </DialogHeader>
+          <Form {...catalogItemForm}>
+            <form onSubmit={catalogItemForm.handleSubmit((data) => createCatalogItem.mutate(data))} className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={catalogItemForm.control}
+                  name="itemCode"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Item Code <span className="text-red-500">*</span></FormLabel>
+                      <FormControl>
+                        <Input placeholder="ITEM-001" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={catalogItemForm.control}
+                  name="category"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Category <span className="text-red-500">*</span></FormLabel>
+                      <FormControl>
+                        <Input placeholder="e.g. Therapy, Equipment" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              <FormField
+                control={catalogItemForm.control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Description <span className="text-red-500">*</span></FormLabel>
+                    <FormControl>
+                      <Input placeholder="Item description" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={catalogItemForm.control}
+                name="defaultUnitPrice"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Default Unit Price <span className="text-red-500">*</span></FormLabel>
+                    <FormControl>
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">$</span>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          placeholder="0.00"
+                          className="pl-7"
+                          {...field}
+                          onChange={(e) => {
+                            const value = e.target.value === '' ? 0 : parseFloat(e.target.value);
+                            field.onChange(value);
+                          }}
+                          value={field.value}
+                        />
+                      </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={catalogItemForm.control}
+                name="isActive"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                    <FormControl>
+                      <div className="flex h-5 items-center">
+                        <input
+                          type="checkbox"
+                          className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                          checked={field.value}
+                          onChange={(e) => field.onChange(e.target.checked)}
+                        />
+                      </div>
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel>Active</FormLabel>
+                      <p className="text-sm text-muted-foreground">Item will be available for selection in the catalog</p>
+                    </div>
+                  </FormItem>
+                )}
+              />
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setShowCatalogItemForm(false)}>
+                  Cancel
+                </Button>
+                <Button 
+                  type="submit" 
+                  disabled={createCatalogItem.isPending}
+                  className="bg-indigo-600 hover:bg-indigo-700"
+                >
+                  {createCatalogItem.isPending ? "Saving..." : "Save Catalog Item"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Catalog Item Selection Dialog */}
+      <Dialog open={showItemForm} onOpenChange={setShowItemForm}>
+        <DialogContent className="sm:max-w-[800px] max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Select Item from Catalog</DialogTitle>
+            <DialogDescription>
+              Choose an item from the catalog or add a new catalog item.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div className="flex items-center space-x-4">
+              <div className="relative flex-1">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
+                <Input 
+                  type="search"
+                  placeholder="Search by item code or description" 
+                  className="pl-9"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+              <Select 
+                value={selectedCategory || ""} 
+                onValueChange={(value) => setSelectedCategory(value || null)}
+              >
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="All Categories" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">All Categories</SelectItem>
+                  {categories.map((category) => (
+                    <SelectItem key={category} value={category}>{category}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            {filteredCatalogItems.length === 0 ? (
+              <div className="text-center py-8 border border-dashed rounded-md bg-gray-50">
+                <Package className="mx-auto h-10 w-10 text-gray-400 mb-2" />
+                <h3 className="text-lg font-medium text-gray-700">No items found</h3>
+                <p className="text-sm text-gray-500 mt-1">
+                  {searchTerm || selectedCategory 
+                    ? "Try adjusting your search or filters" 
+                    : "Add your first catalog item to get started"}
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {filteredCatalogItems.map((item) => (
+                  <Card 
+                    key={item.id} 
+                    className="cursor-pointer hover:shadow-md transition-shadow border-gray-200"
+                    onClick={() => selectCatalogItem(item)}
+                  >
+                    <CardHeader className="pb-2">
+                      <div className="flex justify-between items-start">
+                        <CardTitle className="text-base">{item.itemCode}</CardTitle>
+                        <div className="rounded-full px-2 py-1 text-xs bg-gray-100 text-gray-700">
+                          {item.category}
+                        </div>
+                      </div>
+                      <CardDescription className="mt-1">{item.description}</CardDescription>
+                    </CardHeader>
+                    <CardFooter className="pt-0 pb-3 flex justify-between items-center">
+                      <div className="text-lg font-semibold text-indigo-700">
+                        {formatCurrency(item.defaultUnitPrice)}
+                      </div>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="text-indigo-600"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          selectCatalogItem(item);
+                        }}
+                      >
+                        Select
+                      </Button>
+                    </CardFooter>
+                  </Card>
+                ))}
+              </div>
+            )}
+            
+            <div className="border-t pt-4 flex justify-between">
+              <Button variant="outline" onClick={() => setShowItemForm(false)}>
+                Cancel
+              </Button>
+              <Button 
+                className="bg-indigo-600 hover:bg-indigo-700"
+                onClick={() => {
+                  setShowItemForm(false);
+                  setShowCatalogItemForm(true);
+                }}
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                Add New Catalog Item
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
       
       <div className="mb-3">
         <p className="text-sm text-muted-foreground">Fields marked with <span className="text-red-500">*</span> are required</p>
