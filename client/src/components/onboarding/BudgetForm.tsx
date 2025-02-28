@@ -618,7 +618,6 @@ export default function BudgetForm({ clientId, onComplete, onPrevious }: BudgetF
         {/* Left column: Budget Items List */}
         <div className="lg:col-span-7 space-y-6">
           <div>
-            <h2 className="text-xl font-bold mb-3 text-primary">Budget Item List</h2>
             <Card className="border border-gray-200 shadow-sm overflow-hidden">
               <div className="bg-gray-50 p-3 border-b border-gray-200">
                 <div className="flex justify-between items-center">
@@ -706,7 +705,6 @@ export default function BudgetForm({ clientId, onComplete, onPrevious }: BudgetF
           {/* Fund Allocation Visualization */}
           {budgetItems.length > 0 && (
             <div>
-              <h2 className="text-xl font-bold mb-3 text-primary">Budget Allocation</h2>
               <Card className="border border-gray-200 shadow-sm overflow-hidden">
                 <div className="bg-gray-50 p-3 border-b border-gray-200">
                   <h3 className="text-md font-semibold text-gray-700">Fund Utilization</h3>
@@ -737,7 +735,6 @@ export default function BudgetForm({ clientId, onComplete, onPrevious }: BudgetF
         {/* Right column: Configuration and form */}
         <div className="lg:col-span-5 space-y-6">
           <div>
-            <h2 className="text-xl font-bold mb-3 text-primary">Plan Configuration</h2>
             <Card className="border border-gray-200 shadow-sm overflow-hidden">
               <div className="bg-gray-50 p-3 border-b border-gray-200">
                 <div className="flex justify-between items-center">
@@ -883,7 +880,6 @@ export default function BudgetForm({ clientId, onComplete, onPrevious }: BudgetF
 
           {/* Add Item Form */}
           <div>
-            <h2 className="text-xl font-bold mb-3 text-primary">Add New Item</h2>
             <Card className="border border-gray-200 shadow-sm overflow-hidden">
               <div className="bg-gray-50 p-3 border-b border-gray-200">
                 <h3 className="text-md font-semibold text-gray-700">Budget Item Entry</h3>
