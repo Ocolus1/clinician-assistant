@@ -76,8 +76,8 @@ export const insertAllySchema = createInsertSchema(allies)
   .refine(
     (data) => data.accessTherapeutics || data.accessFinancials,
     {
-      message: "At least one access type must be selected",
-      path: ["accessTherapeutics"], // Show the error on the first checkbox
+      message: "", // Empty message since we don't want to show it
+      path: ["accessSettings"], // Map to a custom path that will be used in the form
     }
   );
 export const insertGoalSchema = createInsertSchema(goals).omit({ id: true, clientId: true });

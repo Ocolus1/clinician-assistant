@@ -379,50 +379,46 @@ export default function AllyForm({ clientId, onComplete, onPrevious }: AllyFormP
               />
 
               <div className="p-4 border rounded-lg mb-4">
-                <h4 className="font-medium mb-2">
+                <div className={`font-medium mb-2 ${form.formState.errors.accessTherapeutics ? "text-destructive" : ""}`}>
                   Access Settings <span className="text-red-500">*</span>
-                </h4>
+                </div>
                 <p className="text-sm text-muted-foreground mb-2">
                   Please select at least one access type
                 </p>
 
-                <FormField
-                  control={form.control}
-                  name="accessTherapeutics"
-                  render={({ field }) => (
-                    <FormItem className="mb-2 flex items-center justify-between">
-                      <FormLabel className="cursor-pointer">Access to Therapeutics</FormLabel>
-                      <FormControl>
-                        <Switch
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                        />
-                      </FormControl>
-                      <FormMessageHidden />
-                    </FormItem>
-                  )}
-                />
+                <div className="space-y-2">
+                  <FormField
+                    control={form.control}
+                    name="accessTherapeutics"
+                    render={({ field }) => (
+                      <FormItem className="mb-2 flex items-center justify-between">
+                        <FormLabel className="cursor-pointer">Access to Therapeutics</FormLabel>
+                        <FormControl>
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
 
-                <FormField
-                  control={form.control}
-                  name="accessFinancials"
-                  render={({ field }) => (
-                    <FormItem className="mb-0 flex items-center justify-between">
-                      <FormLabel className="cursor-pointer">Access to Financials</FormLabel>
-                      <FormControl>
-                        <Switch
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                        />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-                {form.formState.errors.accessTherapeutics && (
-                  <p className="text-sm text-destructive mt-2">
-                    {form.formState.errors.accessTherapeutics.message}
-                  </p>
-                )}
+                  <FormField
+                    control={form.control}
+                    name="accessFinancials"
+                    render={({ field }) => (
+                      <FormItem className="mb-0 flex items-center justify-between">
+                        <FormLabel className="cursor-pointer">Access to Financials</FormLabel>
+                        <FormControl>
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                </div>
               </div>
 
               <div className="space-y-4 mt-6">
