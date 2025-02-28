@@ -324,7 +324,7 @@ export default function BudgetForm({ clientId, onComplete, onPrevious }: BudgetF
   
   // Get unique categories from catalog items
   const categories = catalogItems
-    ? [...new Set(catalogItems.map(item => item.category))]
+    ? Array.from(new Set(catalogItems.map(item => item.category).filter(Boolean) as string[]))
     : [];
 
   // Filter catalog items based on search term and selected category
@@ -431,7 +431,7 @@ export default function BudgetForm({ clientId, onComplete, onPrevious }: BudgetF
                         <input
                           type="checkbox"
                           className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                          checked={field.value}
+                          checked={field.value === true}
                           onChange={(e) => field.onChange(e.target.checked)}
                         />
                       </div>
@@ -817,6 +817,17 @@ export default function BudgetForm({ clientId, onComplete, onPrevious }: BudgetF
                     />
                   </div>
 
+                  <div className="col-span-1">
+                    <Button
+                      type="button"
+                      className="w-full bg-blue-100 hover:bg-blue-200 text-blue-700 hover:text-blue-800 transition-colors"
+                      variant="secondary"
+                      onClick={() => setShowItemForm(true)}
+                    >
+                      <Tag className="w-4 h-4" />
+                    </Button>
+                  </div>
+                  
                   <div className="col-span-1">
                     <Button
                       type="submit"
