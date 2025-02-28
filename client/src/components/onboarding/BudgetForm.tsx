@@ -52,6 +52,7 @@ import {
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Calendar } from "@/components/ui/calendar";
+import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { 
   insertBudgetItemSchema, 
@@ -119,7 +120,11 @@ export default function BudgetForm({ clientId, onComplete, onPrevious }: BudgetF
     }, 1000);
     
     return () => clearTimeout(debouncedSave);
-  }, [settingsForm.watch("availableFunds"), settingsForm.watch("endOfPlan")]);
+  }, [
+    settingsForm.watch("availableFunds"), 
+    settingsForm.watch("endOfPlan"),
+    settingsForm.watch("isActive")
+  ]);
 
   // Fetch budget settings
   const { data: budgetSettings } = useQuery<BudgetSettings | undefined>({
@@ -591,11 +596,42 @@ export default function BudgetForm({ clientId, onComplete, onPrevious }: BudgetF
         <h2 className="text-xl font-bold mb-3 text-primary">Budget Settings</h2>
         <Card className="border border-gray-200 shadow-sm overflow-hidden">
           <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-3 border-b border-gray-200">
-            <h3 className="text-md font-semibold text-blue-800">Plan Configuration</h3>
+            <div className="flex justify-between items-center">
+              <h3 className="text-md font-semibold text-blue-800">Plan Configuration</h3>
+              {settingsForm.watch("planSerialNumber") && (
+                <div className="text-xs font-medium bg-blue-100 text-blue-800 rounded-full px-3 py-1">
+                  Plan ID: {settingsForm.watch("planSerialNumber")}
+                </div>
+              )}
+            </div>
           </div>
           <CardContent className="p-5">
             <Form {...settingsForm}>
               <form className="space-y-5">
+                <FormField
+                  control={settingsForm.control}
+                  name="isActive"
+                  render={({ field }) => (
+                    <FormItem className="flex items-center space-x-2 mb-4">
+                      <FormControl>
+                        <div className="flex items-center space-x-2">
+                          <Switch
+                            checked={field.value === true}
+                            onCheckedChange={field.onChange}
+                            className={field.value ? "bg-green-500" : "bg-gray-300"}
+                          />
+                          <FormLabel className="text-sm font-medium cursor-pointer">
+                            Plan Status: <span className={field.value ? "text-green-600" : "text-gray-500"}>
+                              {field.value ? "Active" : "Inactive"}
+                            </span>
+                          </FormLabel>
+                        </div>
+                      </FormControl>
+                      <FormMessageHidden />
+                    </FormItem>
+                  )}
+                />
+
                 <div className="grid grid-cols-2 gap-6">
                   <FormField
                     control={settingsForm.control}
