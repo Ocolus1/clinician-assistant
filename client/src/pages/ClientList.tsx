@@ -125,9 +125,8 @@ export default function ClientList() {
               </div>
             )}
           </CardContent>
-          </Card>
-        </DebugLayout>
+        </Card>
       </div>
-    </DebugLayout>
+    </div>
   );
 }
