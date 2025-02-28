@@ -211,21 +211,44 @@ export default function GoalsForm({ clientId, onComplete, onPrevious }: GoalsFor
       return;
     }
     
-    // Get all subgoals for all goals
-    const hasAnySubgoals = goals.some((goal: any) => {
-      return (
-        queryClient.getQueryData(["/api/goals", goal.id, "subgoals"]) as any[]
-      )?.length > 0;
-    });
+    // Fetch all subgoals for all goals
+    const checkSubgoals = async () => {
+      let hasAnySubgoals = false;
+      
+      // Check each goal for subgoals
+      for (const goal of goals) {
+        try {
+          // Check if we already have the data in the cache
+          let subgoalData = queryClient.getQueryData(["/api/goals", goal.id, "subgoals"]);
+          
+          // If not in cache, fetch it
+          if (!subgoalData) {
+            const res = await apiRequest("GET", `/api/goals/${goal.id}/subgoals`);
+            subgoalData = await res.json();
+            // Update the cache
+            queryClient.setQueryData(["/api/goals", goal.id, "subgoals"], subgoalData);
+          }
+          
+          // Check if this goal has any subgoals
+          if (Array.isArray(subgoalData) && subgoalData.length > 0) {
+            hasAnySubgoals = true;
+            break; // We found at least one goal with subgoals, that's enough
+          }
+        } catch (error) {
+          console.error("Error checking subgoals for goal", goal.id, error);
+        }
+      }
+      
+      if (!hasAnySubgoals) {
+        setCanProceed(false);
+        setValidationMessage("You need to add at least one milestone (subgoal) to a goal before proceeding");
+      } else {
+        setCanProceed(true);
+        setValidationMessage("");
+      }
+    };
     
-    if (!hasAnySubgoals) {
-      setCanProceed(false);
-      setValidationMessage("You need to add at least one milestone (subgoal) to a goal before proceeding");
-      return;
-    }
-    
-    setCanProceed(true);
-    setValidationMessage("");
+    checkSubgoals();
   }, [goals, queryClient]);
 
   return (
