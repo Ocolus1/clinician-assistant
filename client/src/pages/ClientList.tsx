@@ -22,7 +22,7 @@ export default function ClientList() {
   };
 
   return (
-    <div className="container mx-auto py-6 px-4 max-w-6xl">
+    <div>
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Client Management</h1>
         <Button 
