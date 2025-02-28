@@ -28,8 +28,8 @@ import {
   FormField,
   FormItem,
   FormLabel,
-  FormMessage,
 } from "@/components/ui/form";
+import { FormMessageHidden } from "@/components/ui/form-no-message";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Plus, Minus, Trash, Pencil } from "lucide-react";
@@ -316,7 +316,7 @@ export default function GoalsForm({ clientId, onComplete, onPrevious }: GoalsFor
                     <FormControl>
                       <Input {...field} />
                     </FormControl>
-                    <FormMessage />
+                    <FormMessageHidden />
                   </FormItem>
                 )}
               />
@@ -330,7 +330,7 @@ export default function GoalsForm({ clientId, onComplete, onPrevious }: GoalsFor
                     <FormControl>
                       <Textarea {...field} />
                     </FormControl>
-                    <FormMessage />
+                    <FormMessageHidden />
                   </FormItem>
                 )}
               />
@@ -351,7 +351,7 @@ export default function GoalsForm({ clientId, onComplete, onPrevious }: GoalsFor
                         <option value="Low Priority">Low Priority</option>
                       </select>
                     </FormControl>
-                    <FormMessage />
+                    <FormMessageHidden />
                   </FormItem>
                 )}
               />
@@ -387,7 +387,7 @@ export default function GoalsForm({ clientId, onComplete, onPrevious }: GoalsFor
                       <FormControl>
                         <Input {...field} />
                       </FormControl>
-                      <FormMessage />
+                      <FormMessageHidden />
                     </FormItem>
                   )}
                 />
@@ -401,7 +401,7 @@ export default function GoalsForm({ clientId, onComplete, onPrevious }: GoalsFor
                       <FormControl>
                         <Textarea {...field} />
                       </FormControl>
-                      <FormMessage />
+                      <FormMessageHidden />
                     </FormItem>
                   )}
                 />
@@ -502,7 +502,7 @@ export default function GoalsForm({ clientId, onComplete, onPrevious }: GoalsFor
                     <FormControl>
                       <Input {...field} />
                     </FormControl>
-                    <FormMessage />
+                    <FormMessageHidden />
                   </FormItem>
                 )}
               />
@@ -516,7 +516,7 @@ export default function GoalsForm({ clientId, onComplete, onPrevious }: GoalsFor
                     <FormControl>
                       <Textarea {...field} />
                     </FormControl>
-                    <FormMessage />
+                    <FormMessageHidden />
                   </FormItem>
                 )}
               />
@@ -537,7 +537,7 @@ export default function GoalsForm({ clientId, onComplete, onPrevious }: GoalsFor
                         <option value="Low Priority">Low Priority</option>
                       </select>
                     </FormControl>
-                    <FormMessage />
+                    <FormMessageHidden />
                   </FormItem>
                 )}
               />
@@ -580,7 +580,7 @@ export default function GoalsForm({ clientId, onComplete, onPrevious }: GoalsFor
                     <FormControl>
                       <Input {...field} />
                     </FormControl>
-                    <FormMessage />
+                    <FormMessageHidden />
                   </FormItem>
                 )}
               />
@@ -594,7 +594,7 @@ export default function GoalsForm({ clientId, onComplete, onPrevious }: GoalsFor
                     <FormControl>
                       <Textarea {...field} />
                     </FormControl>
-                    <FormMessage />
+                    <FormMessageHidden />
                   </FormItem>
                 )}
               />

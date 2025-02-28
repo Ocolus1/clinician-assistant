@@ -15,8 +15,8 @@ import {
   FormField,
   FormItem,
   FormLabel,
-  FormMessage,
 } from "@/components/ui/form";
+import { FormMessageHidden } from "@/components/ui/form-no-message";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -280,7 +280,7 @@ export default function BudgetForm({ clientId, onComplete, onPrevious }: BudgetF
                             />
                           </div>
                         </FormControl>
-                        <FormMessage />
+                        <FormMessageHidden />
                       </FormItem>
                     )}
                   />
@@ -324,7 +324,7 @@ export default function BudgetForm({ clientId, onComplete, onPrevious }: BudgetF
                             />
                           </PopoverContent>
                         </Popover>
-                        <FormMessage />
+                        <FormMessageHidden />
                       </FormItem>
                     )}
                   />
@@ -404,7 +404,7 @@ export default function BudgetForm({ clientId, onComplete, onPrevious }: BudgetF
                               className="border-gray-300 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors"
                             />
                           </FormControl>
-                          <FormMessage />
+                          <FormMessageHidden />
                         </FormItem>
                       )}
                     />
@@ -425,7 +425,7 @@ export default function BudgetForm({ clientId, onComplete, onPrevious }: BudgetF
                               className="border-gray-300 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors"
                             />
                           </FormControl>
-                          <FormMessage />
+                          <FormMessageHidden />
                         </FormItem>
                       )}
                     />
@@ -458,7 +458,7 @@ export default function BudgetForm({ clientId, onComplete, onPrevious }: BudgetF
                               />
                             </div>
                           </FormControl>
-                          <FormMessage />
+                          <FormMessageHidden />
                         </FormItem>
                       )}
                     />
@@ -486,7 +486,7 @@ export default function BudgetForm({ clientId, onComplete, onPrevious }: BudgetF
                               value={field.value}
                             />
                           </FormControl>
-                          <FormMessage />
+                          <FormMessageHidden />
                         </FormItem>
                       )}
                     />
