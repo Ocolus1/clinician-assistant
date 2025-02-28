@@ -2,13 +2,24 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --sidebar-width-expanded: 16rem; /* 64px * 4 = 256px = 16rem */
+  --sidebar-width-collapsed: 5rem;  /* 20px * 4 = 80px = 5rem */
+  --sidebar-width: var(--sidebar-width-expanded);
+}
+
 @layer base {
   * {
     @apply border-google-gray-300;
+    box-sizing: border-box;
   }
 
   body {
     @apply font-sans antialiased bg-google-gray-50 text-google-gray-900;
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
+    width: 100%;
   }
 
   h1 {

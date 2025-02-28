@@ -28,13 +28,14 @@ function AppLayoutContent({ children }: AppLayoutProps) {
 
       <div
         className={cn(
-          "min-h-screen transition-all duration-300",
+          "min-h-screen transition-all duration-300 flex-1",
           state === "expanded" ? "lg:ml-64" : "lg:ml-20",
           "flex flex-col"
         )}
+        style={{ width: "calc(100% - var(--sidebar-width))" }}
       >
         {/* Top navigation bar */}
-        <header className="bg-white border-b border-gray-200 h-16 flex items-center justify-between px-4 lg:px-6">
+        <header className="bg-white border-b border-gray-200 h-16 flex items-center justify-between px-4 lg:px-6 w-full">
           <div className="flex items-center">
             {isMobile && (
               <Button
@@ -60,8 +61,8 @@ function AppLayoutContent({ children }: AppLayoutProps) {
         </header>
 
         {/* Main content area */}
-        <main className="flex-1 w-full py-6 px-6 md:px-8 lg:px-10">
-          <div className="w-full max-w-full">
+        <main className="flex-1 py-6 px-6 md:px-8 lg:px-10 w-full" style={{ maxWidth: "100%" }}>
+          <div className="w-full" style={{ maxWidth: "none" }}>
             {children}
           </div>
         </main>

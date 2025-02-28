@@ -1,3 +1,4 @@
+import * as React from "react";
 import { useLocation, Link } from "wouter";
 import {
   Users,
@@ -7,6 +8,7 @@ import {
   ChevronRight,
   ChevronLeft,
   Mic,
+  Menu
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -15,6 +17,14 @@ import { useSidebar } from "@/components/ui/sidebar";
 export function Sidebar() {
   const { state, toggleSidebar, isMobile, openMobile, setOpenMobile } = useSidebar();
   const [location] = useLocation();
+  
+  // Update CSS variable based on sidebar state
+  React.useEffect(() => {
+    document.documentElement.style.setProperty(
+      '--sidebar-width', 
+      state === 'expanded' ? 'var(--sidebar-width-expanded)' : 'var(--sidebar-width-collapsed)'
+    );
+  }, [state]);
 
   // Define the navigation items
   const navigationItems = [
