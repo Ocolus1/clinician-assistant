@@ -2,12 +2,11 @@ import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { DollarSign, Plus, Calculator, Trash, CalendarIcon, Search, Tag, Package } from "lucide-react";
+import { DollarSign, Plus, Calculator, Trash, CalendarIcon, Search, Tag } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { format } from "date-fns";
 import {
   Form,
@@ -15,7 +14,6 @@ import {
   FormField,
   FormItem,
   FormLabel,
-  FormMessage,
 } from "@/components/ui/form";
 import { FormMessageHidden } from "@/components/ui/form-no-message";
 import {
@@ -36,7 +34,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import {
   Popover,
@@ -50,7 +47,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Separator } from "@/components/ui/separator";
 import { Calendar } from "@/components/ui/calendar";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
@@ -385,7 +381,7 @@ export default function BudgetForm({ clientId, onComplete, onPrevious }: BudgetF
                       <FormControl>
                         <Input placeholder="ITEM-001" {...field} />
                       </FormControl>
-                      <FormMessage />
+                      <FormMessageHidden />
                     </FormItem>
                   )}
                 />
@@ -398,7 +394,7 @@ export default function BudgetForm({ clientId, onComplete, onPrevious }: BudgetF
                       <FormControl>
                         <Input placeholder="e.g. Therapy, Equipment" {...field} />
                       </FormControl>
-                      <FormMessage />
+                      <FormMessageHidden />
                     </FormItem>
                   )}
                 />
@@ -412,7 +408,7 @@ export default function BudgetForm({ clientId, onComplete, onPrevious }: BudgetF
                     <FormControl>
                       <Input placeholder="Item description" {...field} />
                     </FormControl>
-                    <FormMessage />
+                    <FormMessageHidden />
                   </FormItem>
                 )}
               />
@@ -440,7 +436,7 @@ export default function BudgetForm({ clientId, onComplete, onPrevious }: BudgetF
                         />
                       </div>
                     </FormControl>
-                    <FormMessage />
+                    <FormMessageHidden />
                   </FormItem>
                 )}
               />
@@ -470,22 +466,16 @@ export default function BudgetForm({ clientId, onComplete, onPrevious }: BudgetF
                 <Button type="button" variant="outline" onClick={() => setShowCatalogItemForm(false)}>
                   Cancel
                 </Button>
-                <Button 
-                  type="submit" 
-                  disabled={createCatalogItem.isPending}
-                  className="bg-indigo-600 hover:bg-indigo-700"
-                >
-                  {createCatalogItem.isPending ? "Saving..." : "Save Catalog Item"}
-                </Button>
+                <Button type="submit">Save Catalog Item</Button>
               </DialogFooter>
             </form>
           </Form>
         </DialogContent>
       </Dialog>
-      
-      {/* Catalog Item Selection Dialog */}
+
+      {/* Item Selection Dialog */}
       <Dialog open={showItemForm} onOpenChange={setShowItemForm}>
-        <DialogContent className="sm:max-w-[800px] max-h-[80vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-[700px]">
           <DialogHeader>
             <DialogTitle>Select Item from Catalog</DialogTitle>
             <DialogDescription>
@@ -521,55 +511,63 @@ export default function BudgetForm({ clientId, onComplete, onPrevious }: BudgetF
               </Select>
             </div>
             
-            {filteredCatalogItems.length === 0 ? (
-              <div className="text-center py-8 border border-dashed rounded-md bg-gray-50">
-                <Package className="mx-auto h-10 w-10 text-gray-400 mb-2" />
-                <h3 className="text-lg font-medium text-gray-700">No items found</h3>
-                <p className="text-sm text-gray-500 mt-1">
-                  {searchTerm || selectedCategory 
-                    ? "Try adjusting your search or filters" 
-                    : "Add your first catalog item to get started"}
-                </p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {filteredCatalogItems.map((item) => (
-                  <Card 
-                    key={item.id} 
-                    className="cursor-pointer hover:shadow-md transition-shadow border-gray-200"
-                    onClick={() => selectCatalogItem(item)}
+            <div className="overflow-y-auto max-h-[400px] border rounded-md">
+              {filteredCatalogItems.length === 0 ? (
+                <div className="p-8 text-center">
+                  <p className="text-sm text-gray-500">No items found. Try a different search or add a new catalog item.</p>
+                  <Button 
+                    className="mt-4"
+                    onClick={() => {
+                      setShowItemForm(false);
+                      setShowCatalogItemForm(true);
+                    }}
                   >
-                    <CardHeader className="py-3 px-4">
-                      <div className="flex justify-between items-center">
-                        <div className="text-sm font-medium text-gray-700">{item.itemCode}</div>
-                        <div className="text-xs bg-gray-100 text-gray-600 rounded-full px-2 py-0.5">{item.category}</div>
+                    <Plus className="w-4 h-4 mr-2" /> Add New Catalog Item
+                  </Button>
+                </div>
+              ) : (
+                <div className="divide-y">
+                  {filteredCatalogItems.map((item) => (
+                    <div 
+                      key={item.id} 
+                      className="p-4 hover:bg-gray-50 cursor-pointer flex justify-between items-center"
+                      onClick={() => selectCatalogItem(item)}
+                    >
+                      <div>
+                        <div className="font-medium">{item.itemCode}</div>
+                        <div className="text-sm text-gray-500">{item.description}</div>
+                        {item.category && (
+                          <div className="mt-1 text-xs inline-block bg-gray-100 text-gray-700 rounded-full px-2 py-0.5">
+                            {item.category}
+                          </div>
+                        )}
                       </div>
-                    </CardHeader>
-                    <CardContent className="py-2 px-4">
-                      <div className="text-sm">{item.description}</div>
-                      <div className="text-right mt-1 font-medium text-gray-700">{formatCurrency(item.defaultUnitPrice)}</div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            )}
-            
-            <div className="pt-2 flex justify-between items-center">
-              <Button
-                variant="outline"
-                onClick={() => setShowCatalogItemForm(true)}
-                className="text-indigo-600 hover:text-indigo-700 border-indigo-200 hover:border-indigo-300"
-              >
-                <Plus className="h-4 w-4 mr-1" /> Add New Catalog Item
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => setShowItemForm(false)}
-              >
-                Cancel
-              </Button>
+                      <div className="text-right">
+                        <div className="font-medium text-primary">{formatCurrency(item.defaultUnitPrice)}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
+          
+          <DialogFooter>
+            <Button 
+              type="button" 
+              variant="outline" 
+              className="mr-auto"
+              onClick={() => {
+                setShowItemForm(false);
+                setShowCatalogItemForm(true);
+              }}
+            >
+              <Plus className="h-4 w-4 mr-2" /> Add New Catalog Item
+            </Button>
+            <Button type="button" variant="outline" onClick={() => setShowItemForm(false)}>
+              Cancel
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
       
@@ -851,31 +849,80 @@ export default function BudgetForm({ clientId, onComplete, onPrevious }: BudgetF
               <CardContent className="p-5">
                 <Form {...itemForm}>
                   <form onSubmit={itemForm.handleSubmit((data) => createBudgetItem.mutate(data))} className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between mb-1">
+                        <FormLabel className="text-sm font-medium">
+                          Select Item <span className="text-red-500">*</span>
+                        </FormLabel>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="ghost"
+                          className="h-8 text-xs text-primary"
+                          onClick={() => setShowCatalogItemForm(true)}
+                        >
+                          <Plus className="h-3 w-3 mr-1" /> Add New Catalog Item
+                        </Button>
+                      </div>
+                      
+                      <Button
+                        type="button"
+                        className="w-full justify-start border-dashed border-gray-300 hover:border-gray-400 text-gray-700 hover:text-gray-900 bg-gray-50 hover:bg-gray-100"
+                        variant="outline"
+                        onClick={() => setShowItemForm(true)}
+                      >
+                        <Tag className="w-4 h-4 mr-2 text-gray-500" />
+                        {itemForm.watch("itemCode") ? (
+                          <span>{itemForm.watch("itemCode")} - {itemForm.watch("description")}</span>
+                        ) : (
+                          <span className="text-gray-500">Select from Catalog...</span>
+                        )}
+                      </Button>
+                      
+                      {itemForm.watch("itemCode") && (
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="bg-gray-50 p-3 rounded-md border border-gray-200">
+                            <div className="text-xs text-gray-500 mb-1">Unit Price</div>
+                            <div className="font-medium text-gray-700">{formatCurrency(itemForm.watch("unitPrice"))}</div>
+                          </div>
+                          
+                          <FormField
+                            control={itemForm.control}
+                            name="quantity"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel className="text-xs text-gray-500 mb-1">
+                                  Quantity <span className="text-red-500">*</span>
+                                </FormLabel>
+                                <FormControl>
+                                  <Input
+                                    type="number"
+                                    min="1"
+                                    className="border-gray-300 focus:border-primary focus:ring-1 focus:ring-primary transition-colors"
+                                    {...field}
+                                    onChange={(e) => {
+                                      const value = e.target.value === '' ? 1 : parseInt(e.target.value, 10);
+                                      field.onChange(value);
+                                    }}
+                                    value={field.value}
+                                  />
+                                </FormControl>
+                                <FormMessageHidden />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+                      )}
+                      
+                      {/* Hidden fields - maintained for form validation */}
                       <FormField
                         control={itemForm.control}
                         name="itemCode"
                         render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="text-sm font-medium mb-1.5">
-                              Item Code <span className="text-red-500">*</span>
-                            </FormLabel>
-                            <div className="flex gap-2">
-                              <FormControl>
-                                <Input 
-                                  {...field} 
-                                  className="border-gray-300 focus:border-primary focus:ring-1 focus:ring-primary transition-colors"
-                                />
-                              </FormControl>
-                              <Button
-                                type="button"
-                                className="bg-gray-100 hover:bg-gray-200 text-gray-700 hover:text-gray-800 transition-colors"
-                                variant="secondary"
-                                onClick={() => setShowItemForm(true)}
-                              >
-                                <Tag className="w-4 h-4" />
-                              </Button>
-                            </div>
+                          <FormItem className="hidden">
+                            <FormControl>
+                              <Input {...field} />
+                            </FormControl>
                             <FormMessageHidden />
                           </FormItem>
                         )}
@@ -883,23 +930,26 @@ export default function BudgetForm({ clientId, onComplete, onPrevious }: BudgetF
 
                       <FormField
                         control={itemForm.control}
-                        name="quantity"
+                        name="description"
                         render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="text-sm font-medium mb-1.5">
-                              Quantity <span className="text-red-500">*</span>
-                            </FormLabel>
+                          <FormItem className="hidden">
+                            <FormControl>
+                              <Input {...field} />
+                            </FormControl>
+                            <FormMessageHidden />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={itemForm.control}
+                        name="unitPrice"
+                        render={({ field }) => (
+                          <FormItem className="hidden">
                             <FormControl>
                               <Input
                                 type="number"
-                                min="1"
-                                className="border-gray-300 focus:border-primary focus:ring-1 focus:ring-primary transition-colors"
                                 {...field}
-                                onChange={(e) => {
-                                  const value = e.target.value === '' ? 1 : parseInt(e.target.value, 10);
-                                  field.onChange(value);
-                                }}
-                                value={field.value}
                               />
                             </FormControl>
                             <FormMessageHidden />
@@ -908,61 +958,11 @@ export default function BudgetForm({ clientId, onComplete, onPrevious }: BudgetF
                       />
                     </div>
 
-                    <FormField
-                      control={itemForm.control}
-                      name="description"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-sm font-medium mb-1.5">
-                            Description <span className="text-red-500">*</span>
-                          </FormLabel>
-                          <FormControl>
-                            <Input 
-                              {...field} 
-                              className="border-gray-300 focus:border-primary focus:ring-1 focus:ring-primary transition-colors"
-                            />
-                          </FormControl>
-                          <FormMessageHidden />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={itemForm.control}
-                      name="unitPrice"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-sm font-medium mb-1.5">
-                            Unit Price <span className="text-red-500">*</span>
-                          </FormLabel>
-                          <FormControl>
-                            <div className="relative">
-                              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">$</span>
-                              <Input
-                                type="number"
-                                step="0.01"
-                                min="0"
-                                placeholder="0.00"
-                                className="pl-7 border-gray-300 focus:border-primary focus:ring-1 focus:ring-primary transition-colors"
-                                {...field}
-                                onChange={(e) => {
-                                  const value = e.target.value === '' ? 0 : parseFloat(e.target.value);
-                                  field.onChange(value);
-                                }}
-                                value={field.value}
-                              />
-                            </div>
-                          </FormControl>
-                          <FormMessageHidden />
-                        </FormItem>
-                      )}
-                    />
-
                     <div className="pt-2">
                       <Button
                         type="submit"
                         className="w-full bg-primary hover:bg-primary/90 text-white"
-                        disabled={createBudgetItem.isPending}
+                        disabled={createBudgetItem.isPending || !itemForm.watch("itemCode")}
                       >
                         <Plus className="w-4 h-4 mr-2" /> Add Budget Item
                       </Button>
@@ -987,7 +987,7 @@ export default function BudgetForm({ clientId, onComplete, onPrevious }: BudgetF
         <Button 
           type="button" 
           onClick={handleComplete}
-          className="bg-blue-600 hover:bg-blue-700 px-8"
+          className="bg-primary hover:bg-primary/90 px-8"
         >
           Save & Continue
         </Button>
