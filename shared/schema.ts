@@ -110,7 +110,7 @@ export const insertBudgetSettingsSchema = createInsertSchema(budgetSettings)
 
 // Create a custom budget item schema with explicit type transformation for unitPrice and quantity
 export const insertBudgetItemSchema = createInsertSchema(budgetItems)
-  .omit({ id: true, clientId: true })
+  .omit({ id: true, clientId: true, budgetSettingsId: true })
   .extend({
     // Add validation messages for required fields
     itemCode: z.string().min(1, { message: "Item code is required" }),
