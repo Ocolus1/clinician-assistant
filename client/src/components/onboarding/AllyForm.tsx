@@ -181,6 +181,9 @@ export default function AllyForm({ clientId, onComplete, onPrevious }: AllyFormP
                     <h4 className="font-medium">{ally.name}</h4>
                     <p className="text-sm text-muted-foreground">{ally.relationship}</p>
                     <p className="text-sm text-muted-foreground">{ally.email}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {LANGUAGE_OPTIONS.find(lang => lang.value === ally.preferredLanguage)?.label || ally.preferredLanguage}
+                    </p>
                     <div className="mt-2 flex gap-4 text-sm">
                       <span className={ally.accessTherapeutics ? "text-primary" : "text-muted-foreground"}>
                         Therapeutics Access
