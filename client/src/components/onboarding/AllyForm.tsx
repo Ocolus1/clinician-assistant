@@ -15,13 +15,12 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { cn } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
 import { useState } from 'react';
-import { Pencil, Trash } from 'lucide-react';
+import { AlertCircle, Pencil, Trash } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import {
   AlertDialog,
@@ -75,7 +74,8 @@ export default function AllyForm({ clientId, onComplete, onPrevious }: AllyFormP
         description: "Ally added successfully",
       });
     },
-    onError: () => {
+    onError: (error) => {
+      console.error("Error creating ally:", error);
       toast({
         title: "Error",
         description: "Failed to add ally",
@@ -91,6 +91,7 @@ export default function AllyForm({ clientId, onComplete, onPrevious }: AllyFormP
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedAlly, setSelectedAlly] = useState<any>(null);
   const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [nextButtonError, setNextButtonError] = useState<string | null>(null);
 
   const handleEditAlly = (ally: any) => {
     setSelectedAlly(ally);
@@ -145,50 +146,76 @@ export default function AllyForm({ clientId, onComplete, onPrevious }: AllyFormP
     },
   });
 
+  const handleNextClick = () => {
+    if (allies.length === 0) {
+      setNextButtonError("Please add at least one ally before proceeding");
+      toast({
+        title: "Cannot Proceed",
+        description: "Please add at least one ally before proceeding",
+        variant: "destructive",
+      });
+      return;
+    }
+    setNextButtonError(null);
+    onComplete();
+  };
+
   return (
     <div className="grid grid-cols-2 gap-6">
       <div>
         <h3 className="text-lg font-semibold mb-4">Current Allies ({allies.length}/5)</h3>
-        <div className="space-y-4">
-          {allies.map((ally: any) => (
-            <Card key={ally.id} className="p-4">
-              <div className="flex justify-between items-start">
-                <div className="flex-1">
-                  <h4 className="font-medium">{ally.name}</h4>
-                  <p className="text-sm text-muted-foreground">{ally.relationship}</p>
-                  <p className="text-sm text-muted-foreground">{ally.email}</p>
-                  <div className="mt-2 flex gap-4 text-sm">
-                    <span className={ally.accessTherapeutics ? "text-primary" : "text-muted-foreground"}>
-                      Therapeutics Access
-                    </span>
-                    <span className={ally.accessFinancials ? "text-primary" : "text-muted-foreground"}>
-                      Financial Access
-                    </span>
+        {allies.length === 0 ? (
+          <Card className="p-6 flex flex-col items-center justify-center bg-muted/10 border-dashed h-40">
+            <AlertCircle className="h-10 w-10 text-muted-foreground mb-2" />
+            <p className="text-muted-foreground text-center">
+              No allies added yet. Please add at least one ally before proceeding.
+            </p>
+          </Card>
+        ) : (
+          <div className="space-y-4">
+            {allies.map((ally: any) => (
+              <Card key={ally.id} className="p-4">
+                <div className="flex justify-between items-start">
+                  <div className="flex-1">
+                    <h4 className="font-medium">{ally.name}</h4>
+                    <p className="text-sm text-muted-foreground">{ally.relationship}</p>
+                    <p className="text-sm text-muted-foreground">{ally.email}</p>
+                    <div className="mt-2 flex gap-4 text-sm">
+                      <span className={ally.accessTherapeutics ? "text-primary" : "text-muted-foreground"}>
+                        Therapeutics Access
+                      </span>
+                      <span className={ally.accessFinancials ? "text-primary" : "text-muted-foreground"}>
+                        Financial Access
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button 
+                      variant="ghost" 
+                      size="icon"
+                      onClick={() => handleEditAlly(ally)}
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="icon"
+                      onClick={() => handleDeleteAlly(ally.id)}
+                    >
+                      <Trash className="h-4 w-4" />
+                    </Button>
                   </div>
                 </div>
-                <div className="flex gap-2">
-                  <Button 
-                    variant="ghost" 
-                    size="icon"
-                    onClick={() => handleEditAlly(ally)}
-                  >
-                    <Pencil className="h-4 w-4" />
-                  </Button>
-                  <Button 
-                    variant="ghost" 
-                    size="icon"
-                    onClick={() => handleDeleteAlly(ally.id)}
-                  >
-                    <Trash className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            </Card>
-          ))}
-        </div>
+              </Card>
+            ))}
+          </div>
+        )}
       </div>
 
       <div>
+        <div className="mb-4">
+          <p className="text-sm text-muted-foreground">Fields marked with <span className="text-red-500">*</span> are required</p>
+        </div>
         {canAddMore ? (
           <Form {...form}>
             <form onSubmit={form.handleSubmit((data) => createAlly.mutate(data))}>
@@ -197,9 +224,11 @@ export default function AllyForm({ clientId, onComplete, onPrevious }: AllyFormP
                 name="name"
                 render={({ field }) => (
                   <FormItem className="mb-4">
-                    <FormLabel>Name</FormLabel>
+                    <FormLabel>
+                      Name <span className="text-red-500">*</span>
+                    </FormLabel>
                     <FormControl>
-                      <Input {...field} />
+                      <Input {...field} placeholder="Enter ally name" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -211,7 +240,9 @@ export default function AllyForm({ clientId, onComplete, onPrevious }: AllyFormP
                 name="relationship"
                 render={({ field }) => (
                   <FormItem className="mb-4">
-                    <FormLabel>Relationship to Client</FormLabel>
+                    <FormLabel>
+                      Relationship to Client <span className="text-red-500">*</span>
+                    </FormLabel>
                     <Popover open={openRelationship} onOpenChange={setOpenRelationship}>
                       <PopoverTrigger asChild>
                         <FormControl>
@@ -243,6 +274,7 @@ export default function AllyForm({ clientId, onComplete, onPrevious }: AllyFormP
                                 value={option.value}
                                 onSelect={() => {
                                   form.setValue("relationship", option.value);
+                                  form.clearErrors("relationship");
                                   setOpenRelationship(false);
                                 }}
                               >
@@ -271,7 +303,9 @@ export default function AllyForm({ clientId, onComplete, onPrevious }: AllyFormP
                 name="preferredLanguage"
                 render={({ field }) => (
                   <FormItem className="mb-4">
-                    <FormLabel>Preferred Language</FormLabel>
+                    <FormLabel>
+                      Preferred Language <span className="text-red-500">*</span>
+                    </FormLabel>
                     <Popover open={open} onOpenChange={setOpen}>
                       <PopoverTrigger asChild>
                         <FormControl>
@@ -332,46 +366,63 @@ export default function AllyForm({ clientId, onComplete, onPrevious }: AllyFormP
                 name="email"
                 render={({ field }) => (
                   <FormItem className="mb-4">
-                    <FormLabel>Email</FormLabel>
+                    <FormLabel>
+                      Email <span className="text-red-500">*</span>
+                    </FormLabel>
                     <FormControl>
-                      <Input {...field} type="email" />
+                      <Input {...field} type="email" placeholder="Enter email address" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
 
-              <FormField
-                control={form.control}
-                name="accessTherapeutics"
-                render={({ field }) => (
-                  <FormItem className="mb-4 flex items-center justify-between">
-                    <FormLabel>Access to Therapeutics</FormLabel>
-                    <FormControl>
-                      <Switch
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
+              <div className="p-4 border rounded-lg mb-4">
+                <h4 className="font-medium mb-2">
+                  Access Settings <span className="text-red-500">*</span>
+                </h4>
+                <p className="text-sm text-muted-foreground mb-2">
+                  Please select at least one access type
+                </p>
 
-              <FormField
-                control={form.control}
-                name="accessFinancials"
-                render={({ field }) => (
-                  <FormItem className="mb-4 flex items-center justify-between">
-                    <FormLabel>Access to Financials</FormLabel>
-                    <FormControl>
-                      <Switch
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
-                    </FormControl>
-                  </FormItem>
+                <FormField
+                  control={form.control}
+                  name="accessTherapeutics"
+                  render={({ field }) => (
+                    <FormItem className="mb-2 flex items-center justify-between">
+                      <FormLabel className="cursor-pointer">Access to Therapeutics</FormLabel>
+                      <FormControl>
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="accessFinancials"
+                  render={({ field }) => (
+                    <FormItem className="mb-0 flex items-center justify-between">
+                      <FormLabel className="cursor-pointer">Access to Financials</FormLabel>
+                      <FormControl>
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+                {form.formState.errors.accessTherapeutics && (
+                  <p className="text-sm text-destructive mt-2">
+                    {form.formState.errors.accessTherapeutics.message}
+                  </p>
                 )}
-              />
+              </div>
 
               <div className="space-y-4 mt-6">
                 <Button
@@ -396,7 +447,7 @@ export default function AllyForm({ clientId, onComplete, onPrevious }: AllyFormP
                     type="button"
                     className="w-2/3"
                     variant="default"
-                    onClick={onComplete}
+                    onClick={handleNextClick}
                   >
                     Next
                   </Button>
@@ -405,126 +456,279 @@ export default function AllyForm({ clientId, onComplete, onPrevious }: AllyFormP
             </form>
           </Form>
         ) : (
-          <div className="flex gap-4 mt-6">
-            <Button
-              type="button"
-              variant="outline"
-              className="w-1/3"
-              onClick={onPrevious}
-            >
-              Previous
-            </Button>
-            <Button
-              type="button"
-              className="w-2/3"
-              variant="default"
-              onClick={onComplete}
-            >
-              Next
-            </Button>
+          <div>
+            <Card className="p-4 mb-4 bg-muted/10">
+              <p className="text-muted-foreground">
+                Maximum number of allies reached (5/5). To add a new ally, you must first delete an existing one.
+              </p>
+            </Card>
+            <div className="flex gap-4 mt-6">
+              <Button
+                type="button"
+                variant="outline"
+                className="w-1/3"
+                onClick={onPrevious}
+              >
+                Previous
+              </Button>
+              <Button
+                type="button"
+                className="w-2/3"
+                variant="default"
+                onClick={handleNextClick}
+              >
+                Next
+              </Button>
+            </div>
           </div>
         )}
       </div>
-    <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+
+      {/* Edit Dialog */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Edit Ally</DialogTitle>
           </DialogHeader>
           <Form {...form}>
             <form onSubmit={form.handleSubmit((data) => updateAlly.mutate(data))}>
-              {/* Reuse the same form fields from the create form */}
               <FormField
                 control={form.control}
                 name="name"
                 render={({ field }) => (
                   <FormItem className="mb-4">
-                    <FormLabel>Name</FormLabel>
+                    <FormLabel>
+                      Name <span className="text-red-500">*</span>
+                    </FormLabel>
                     <FormControl>
-                      <Input {...field} />
+                      <Input {...field} placeholder="Enter ally name" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
+
               <FormField
                 control={form.control}
                 name="relationship"
                 render={({ field }) => (
                   <FormItem className="mb-4">
-                    <FormLabel>Relationship to Client</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
+                    <FormLabel>
+                      Relationship <span className="text-red-500">*</span>
+                    </FormLabel>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant="outline"
+                            role="combobox"
+                            className={cn(
+                              "w-full justify-between",
+                              !field.value && "text-muted-foreground"
+                            )}
+                          >
+                            {field.value
+                              ? RELATIONSHIP_OPTIONS.find(
+                                  (option) => option.value === field.value
+                                )?.label
+                              : "Select relationship"}
+                            <CaretSortIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                        <Command>
+                          <CommandInput placeholder="Search relationship..." />
+                          <CommandEmpty>No relationship found.</CommandEmpty>
+                          <CommandGroup>
+                            {RELATIONSHIP_OPTIONS.map((option) => (
+                              <CommandItem
+                                key={option.value}
+                                value={option.value}
+                                onSelect={() => {
+                                  form.setValue("relationship", option.value);
+                                }}
+                              >
+                                <CheckIcon
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    option.value === field.value
+                                      ? "opacity-100"
+                                      : "opacity-0"
+                                  )}
+                                />
+                                {option.label}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
                     <FormMessage />
                   </FormItem>
                 )}
               />
+
+              <FormField
+                control={form.control}
+                name="preferredLanguage"
+                render={({ field }) => (
+                  <FormItem className="mb-4">
+                    <FormLabel>
+                      Preferred Language <span className="text-red-500">*</span>
+                    </FormLabel>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant="outline"
+                            role="combobox"
+                            className={cn(
+                              "w-full justify-between",
+                              !field.value && "text-muted-foreground"
+                            )}
+                          >
+                            {field.value
+                              ? LANGUAGE_OPTIONS.find(
+                                  (option) => option.value === field.value
+                                )?.label
+                              : "Select language"}
+                            <CaretSortIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                        <Command>
+                          <CommandInput placeholder="Search language..." />
+                          <CommandEmpty>No language found.</CommandEmpty>
+                          <CommandGroup>
+                            {LANGUAGE_OPTIONS.map((option) => (
+                              <CommandItem
+                                key={option.value}
+                                value={option.label}
+                                onSelect={() => {
+                                  form.setValue("preferredLanguage", option.value);
+                                }}
+                              >
+                                <CheckIcon
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    option.value === field.value
+                                      ? "opacity-100"
+                                      : "opacity-0"
+                                  )}
+                                />
+                                {option.label}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
               <FormField
                 control={form.control}
                 name="email"
                 render={({ field }) => (
                   <FormItem className="mb-4">
-                    <FormLabel>Email</FormLabel>
+                    <FormLabel>
+                      Email <span className="text-red-500">*</span>
+                    </FormLabel>
                     <FormControl>
-                      <Input {...field} type="email" />
+                      <Input {...field} type="email" placeholder="Enter email address" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-              <FormField
-                control={form.control}
-                name="accessTherapeutics"
-                render={({ field }) => (
-                  <FormItem className="mb-4 flex items-center justify-between">
-                    <FormLabel>Access to Therapeutics</FormLabel>
-                    <FormControl>
-                      <Switch
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
-                    </FormControl>
-                  </FormItem>
+
+              <div className="p-4 border rounded-lg mb-4">
+                <h4 className="font-medium mb-2">
+                  Access Settings <span className="text-red-500">*</span>
+                </h4>
+                <p className="text-sm text-muted-foreground mb-2">
+                  Please select at least one access type
+                </p>
+
+                <FormField
+                  control={form.control}
+                  name="accessTherapeutics"
+                  render={({ field }) => (
+                    <FormItem className="mb-2 flex items-center justify-between">
+                      <FormLabel className="cursor-pointer">Access to Therapeutics</FormLabel>
+                      <FormControl>
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="accessFinancials"
+                  render={({ field }) => (
+                    <FormItem className="flex items-center justify-between">
+                      <FormLabel className="cursor-pointer">Access to Financials</FormLabel>
+                      <FormControl>
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+                {form.formState.errors.accessTherapeutics && (
+                  <p className="text-sm text-destructive mt-2">
+                    {form.formState.errors.accessTherapeutics.message}
+                  </p>
                 )}
-              />
-              <FormField
-                control={form.control}
-                name="accessFinancials"
-                render={({ field }) => (
-                  <FormItem className="mb-4 flex items-center justify-between">
-                    <FormLabel>Access to Financials</FormLabel>
-                    <FormControl>
-                      <Switch
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
-              <Button type="submit" className="w-full" disabled={updateAlly.isPending}>
-                {updateAlly.isPending ? "Saving..." : "Save Changes"}
-              </Button>
+              </div>
+
+              <div className="flex justify-end gap-4 mt-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setEditDialogOpen(false)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={updateAlly.isPending}
+                >
+                  {updateAlly.isPending ? "Saving..." : "Save Changes"}
+                </Button>
+              </div>
             </form>
           </Form>
         </DialogContent>
       </Dialog>
 
+      {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the ally.
+              This will permanently delete this ally. This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel onClick={() => setDeleteId(null)}>Cancel</AlertDialogCancel>
             <AlertDialogAction 
               onClick={() => {
-                if (deleteId) {
+                if (deleteId !== null) {
                   deleteAlly.mutate(deleteId);
                   setDeleteDialogOpen(false);
+                  setDeleteId(null);
                 }
               }}
             >
