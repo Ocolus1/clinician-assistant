@@ -107,24 +107,23 @@ export function Sidebar() {
           <ul className="space-y-1 px-2">
             {navigationItems.map((item) => (
               <li key={item.name}>
-                <button
-                  onClick={() => window.location.href = item.href}
-                  className={cn(
-                    "flex items-center rounded-md py-2 text-sm transition-colors w-full",
+                <Link href={item.href}>
+                  <div className={cn(
+                    "flex items-center rounded-md py-2 text-sm transition-colors w-full cursor-pointer",
                     location === item.href
                       ? "bg-gray-800 text-white"
                       : "text-gray-400 hover:text-white hover:bg-gray-800",
                     state === "expanded" ? "px-3" : "px-2 justify-center"
-                  )}
-                >
-                  <item.icon
-                    className={cn(
-                      "h-5 w-5",
-                      state === "expanded" && "mr-3"
-                    )}
-                  />
-                  {state === "expanded" && <span>{item.name}</span>}
-                </button>
+                  )}>
+                    <item.icon
+                      className={cn(
+                        "h-5 w-5",
+                        state === "expanded" && "mr-3"
+                      )}
+                    />
+                    {state === "expanded" && <span>{item.name}</span>}
+                  </div>
+                </Link>
               </li>
             ))}
           </ul>

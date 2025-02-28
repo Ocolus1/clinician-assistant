@@ -19,8 +19,8 @@ export default function Home() {
 
   const handleNext = () => {
     if (step === steps.length - 1) {
-      // Go directly to print summary (client report) page instead of summary page
-      setLocation(`/print-summary/${clientId}`);
+      // After completing the budget step, go to client list page
+      setLocation('/clients');
     } else {
       setStep(step + 1);
     }

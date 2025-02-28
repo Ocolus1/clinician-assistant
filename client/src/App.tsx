@@ -20,6 +20,7 @@ function Router() {
     <AppLayout>
       <Switch>
         <Route path="/" component={Home} />
+        <Route path="/client/new" component={Home} />
         <Route path="/clients" component={ClientList} />
         <Route path="/summary/:clientId" component={Summary} />
         <Route path="/client/:clientId/summary" component={Summary} />
