@@ -37,7 +37,7 @@ export default function Home() {
   };
 
   return (
-    <div>
+    <div className="w-full">
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-bold">Speech Therapy Onboarding</h1>
         <Button 
