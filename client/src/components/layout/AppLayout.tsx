@@ -1,5 +1,5 @@
 import { ReactNode } from "react";
-import { useLocation, Link } from "wouter";
+import { useLocation } from "wouter";
 import { Menu, Bell, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sidebar } from "./Sidebar";
@@ -23,14 +23,15 @@ function AppLayoutContent({ children }: AppLayoutProps) {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="flex min-h-screen bg-gray-50">
+      {/* Sidebar */}
       <Sidebar />
 
+      {/* Main content container */}
       <div
         className={cn(
-          "min-h-screen transition-all duration-300 flex-1",
-          state === "expanded" ? "lg:ml-64" : "lg:ml-20",
-          "flex flex-col w-full"
+          "flex flex-col flex-1 min-h-screen transition-all duration-300",
+          state === "expanded" ? "lg:ml-64" : "lg:ml-20"
         )}
       >
         {/* Top navigation bar */}
@@ -60,10 +61,8 @@ function AppLayoutContent({ children }: AppLayoutProps) {
         </header>
 
         {/* Main content area */}
-        <main className="flex-1 py-6 px-6 md:px-8 lg:px-10 w-full">
-          <div className="w-full">
-            {children}
-          </div>
+        <main className="flex-1 py-6 px-6 md:px-8 lg:px-10">
+          {children}
         </main>
 
         {/* Footer */}
