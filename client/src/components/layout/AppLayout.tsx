@@ -1,4 +1,4 @@
-import { ReactNode } from "react";
+import { ReactNode, useEffect } from "react";
 import { useLocation } from "wouter";
 import { Menu, Bell, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -21,18 +21,47 @@ function AppLayoutContent({ children }: AppLayoutProps) {
     if (!path) return "Dashboard";
     return path.charAt(0).toUpperCase() + path.slice(1);
   };
+  
+  // Set up appropriate styles when the component mounts
+  useEffect(() => {
+    // Remove any max-width restrictions on the content area
+    document.documentElement.style.setProperty('--content-max-width', 'none');
+    document.body.style.overflowX = 'hidden';
+    document.body.style.width = '100%';
+    
+    // These styles should apply to the main application container
+    const style = document.createElement('style');
+    style.innerHTML = `
+      .app-container {
+        width: 100%;
+        max-width: 100vw;
+        display: flex;
+      }
+      .content-area {
+        flex: 1;
+        width: 100%;
+        max-width: 100%;
+      }
+    `;
+    document.head.appendChild(style);
+    
+    return () => {
+      document.head.removeChild(style);
+    };
+  }, []);
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
+    <div className="app-container flex w-full min-h-screen bg-gray-50">
       {/* Sidebar */}
       <Sidebar />
 
       {/* Main content container */}
       <div
         className={cn(
-          "flex flex-col flex-1 min-h-screen transition-all duration-300",
+          "content-area flex flex-col flex-1 min-h-screen transition-all duration-300 w-full",
           state === "expanded" ? "lg:ml-64" : "lg:ml-20"
         )}
+        style={{ width: '100%' }}
       >
         {/* Top navigation bar */}
         <header className="bg-white border-b border-gray-200 h-16 flex items-center justify-between px-4 lg:px-6 w-full">
@@ -61,8 +90,10 @@ function AppLayoutContent({ children }: AppLayoutProps) {
         </header>
 
         {/* Main content area */}
-        <main className="flex-1 py-6 px-6 md:px-8 lg:px-10">
-          {children}
+        <main className="flex-1 py-6 px-6 md:px-8 lg:px-10 w-full">
+          <div className="w-full">
+            {children}
+          </div>
         </main>
 
         {/* Footer */}

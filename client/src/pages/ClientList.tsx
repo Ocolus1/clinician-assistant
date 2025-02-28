@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { PlusCircle, Edit, User, Calendar, ArrowRight } from "lucide-react";
+import { useEffect } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -20,11 +21,34 @@ export default function ClientList() {
   const handleNewClient = () => {
     setLocation("/client/new");
   };
+  
+  // Add specific styles for this page
+  useEffect(() => {
+    const style = document.createElement('style');
+    style.innerHTML = `
+      .client-list-container {
+        width: 100%;
+        max-width: 100%;
+        display: flex;
+        flex-direction: column;
+      }
+      .client-card {
+        width: 100%;
+        max-width: 100%;
+        flex: 1;
+      }
+    `;
+    document.head.appendChild(style);
+    
+    return () => {
+      document.head.removeChild(style);
+    };
+  }, []);
 
   return (
-    <div className="flex flex-col w-full">
+    <div className="client-list-container w-full flex flex-col" style={{ width: '100%', maxWidth: '100%' }}>
       {/* Header section */}
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex justify-between items-center mb-6 w-full">
         <h1 className="text-2xl font-bold text-gray-900">Client Management</h1>
         <Button 
           onClick={handleNewClient}
@@ -36,7 +60,7 @@ export default function ClientList() {
       </div>
 
       {/* Client list card */}
-      <Card className="border-gray-200 shadow-sm w-full">
+      <Card className="client-card border-gray-200 shadow-sm w-full">
         <div className="bg-gray-50 p-4 border-b border-gray-200">
           <h2 className="text-lg font-semibold text-gray-800">Client List</h2>
         </div>

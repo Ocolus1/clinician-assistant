@@ -24,6 +24,10 @@ export function Sidebar() {
       '--sidebar-width', 
       state === 'expanded' ? 'var(--sidebar-width-expanded)' : 'var(--sidebar-width-collapsed)'
     );
+    
+    // Ensure the body has full width
+    document.body.style.width = '100%';
+    document.body.style.overflowX = 'hidden';
   }, [state]);
 
   // Define the navigation items
