@@ -98,8 +98,17 @@ export default function BudgetForm({ clientId, onComplete, onPrevious }: BudgetF
     defaultValues: {
       availableFunds: 0,
       endOfPlan: undefined,
+      planSerialNumber: generatePlanSerialNumber(),
+      isActive: true,
     },
   });
+  
+  // Generate unique plan serial number
+  function generatePlanSerialNumber() {
+    const timestamp = new Date().getTime();
+    const random = Math.floor(Math.random() * 1000);
+    return `PLAN-${timestamp}-${random}`;
+  }
   
   // Auto-save budget settings when values change
   useEffect(() => {
@@ -131,6 +140,15 @@ export default function BudgetForm({ clientId, onComplete, onPrevious }: BudgetF
     if (budgetSettings) {
       // Set form values from fetched settings
       settingsForm.setValue("availableFunds", budgetSettings.availableFunds);
+      settingsForm.setValue("isActive", budgetSettings.isActive);
+      
+      // Set planSerialNumber if it exists, otherwise generate a new one
+      if (budgetSettings.planSerialNumber) {
+        settingsForm.setValue("planSerialNumber", budgetSettings.planSerialNumber);
+      } else {
+        settingsForm.setValue("planSerialNumber", generatePlanSerialNumber());
+      }
+      
       if (budgetSettings.endOfPlan) {
         settingsForm.setValue("endOfPlan", budgetSettings.endOfPlan);
         setDate(new Date(budgetSettings.endOfPlan));
