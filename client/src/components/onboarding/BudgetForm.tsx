@@ -618,7 +618,6 @@ export default function BudgetForm({ clientId, onComplete, onPrevious }: BudgetF
                           <Switch
                             checked={field.value === true}
                             onCheckedChange={field.onChange}
-                            className={field.value ? "bg-green-500" : "bg-gray-300"}
                           />
                           <FormLabel className="text-sm font-medium cursor-pointer">
                             Plan Status: <span className={field.value ? "text-green-600" : "text-gray-500"}>
