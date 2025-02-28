@@ -97,9 +97,14 @@ export const insertBudgetSettingsSchema = createInsertSchema(budgetSettings)
 export const insertBudgetItemSchema = createInsertSchema(budgetItems)
   .omit({ id: true, clientId: true })
   .extend({
-    // Ensure unitPrice and quantity are always parsed as numbers
-    unitPrice: z.coerce.number(),
+    // Add validation messages for required fields
+    itemCode: z.string().min(1, { message: "Item code is required" }),
+    description: z.string().min(1, { message: "Description is required" }),
+    // Ensure unitPrice and quantity are always parsed as numbers with validation
+    unitPrice: z.coerce.number()
+      .min(0.01, { message: "Unit price must be greater than 0" }),
     quantity: z.coerce.number()
+      .min(1, { message: "Quantity must be at least 1" })
   });
 
 export type Client = typeof clients.$inferSelect;

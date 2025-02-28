@@ -255,7 +255,9 @@ export default function BudgetForm({ clientId, onComplete, onPrevious }: BudgetF
                     name="availableFunds"
                     render={({ field }) => (
                       <FormItem className="flex flex-col">
-                        <FormLabel className="text-sm font-medium mb-1.5">Available Funds</FormLabel>
+                        <FormLabel className="text-sm font-medium mb-1.5">
+                          Available Funds <span className="text-red-500">*</span>
+                        </FormLabel>
                         <FormControl>
                           <div className="relative">
                             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">$</span>
@@ -389,7 +391,9 @@ export default function BudgetForm({ clientId, onComplete, onPrevious }: BudgetF
                       name="itemCode"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="text-sm font-medium mb-1.5">Item Code</FormLabel>
+                          <FormLabel className="text-sm font-medium mb-1.5">
+                            Item Code <span className="text-red-500">*</span>
+                          </FormLabel>
                           <FormControl>
                             <Input 
                               {...field} 
@@ -408,7 +412,9 @@ export default function BudgetForm({ clientId, onComplete, onPrevious }: BudgetF
                       name="description"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="text-sm font-medium mb-1.5">Description</FormLabel>
+                          <FormLabel className="text-sm font-medium mb-1.5">
+                            Description <span className="text-red-500">*</span>
+                          </FormLabel>
                           <FormControl>
                             <Input 
                               {...field} 
@@ -427,7 +433,9 @@ export default function BudgetForm({ clientId, onComplete, onPrevious }: BudgetF
                       name="unitPrice"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="text-sm font-medium mb-1.5">Unit Price</FormLabel>
+                          <FormLabel className="text-sm font-medium mb-1.5">
+                            Unit Price <span className="text-red-500">*</span>
+                          </FormLabel>
                           <FormControl>
                             <div className="relative">
                               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">$</span>
