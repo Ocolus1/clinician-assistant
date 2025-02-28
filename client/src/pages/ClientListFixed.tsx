@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { Link, useLocation } from "wouter";
+import { useLocation } from "wouter";
 import { PlusCircle, Edit, User, Calendar, ArrowRight } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -8,9 +8,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Client } from "@shared/schema";
 import { format } from "date-fns";
-import { DebugLayout } from "@/components/layout/DebugLayout";
 
-export default function ClientList() {
+export default function ClientListFixed() {
   const [location, setLocation] = useLocation();
   
   // Fetch all clients
@@ -23,7 +22,7 @@ export default function ClientList() {
   };
 
   return (
-    <div className="w-full">
+    <div className="w-full" style={{ border: '2px solid blue', boxSizing: 'border-box' }}>
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Client Management</h1>
         <Button 
@@ -35,7 +34,7 @@ export default function ClientList() {
         </Button>
       </div>
 
-      <div className="w-full">
+      <div className="w-full" style={{ border: '2px solid red', boxSizing: 'border-box' }}>
         <Card className="border-gray-200 shadow-sm w-full">
           <div className="bg-gray-50 p-4 border-b border-gray-200">
             <h2 className="text-lg font-semibold text-gray-800">Client List</h2>
@@ -125,9 +124,8 @@ export default function ClientList() {
               </div>
             )}
           </CardContent>
-          </Card>
-        </DebugLayout>
+        </Card>
       </div>
-    </DebugLayout>
+    </div>
   );
 }

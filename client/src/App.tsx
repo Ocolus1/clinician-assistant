@@ -6,7 +6,8 @@ import NotFound from "@/pages/not-found";
 import Home from "@/pages/Home";
 import Summary from "@/pages/Summary";
 import PrintSummary from "@/pages/PrintSummary";
-import ClientList from "@/pages/ClientList";
+// import ClientList from "@/pages/ClientList";
+import ClientListFixed from "@/pages/ClientListFixed";
 import { AppLayout } from "@/components/layout/AppLayout";
 
 function Router() {
@@ -21,7 +22,7 @@ function Router() {
       <Switch>
         <Route path="/" component={Home} />
         <Route path="/client/new" component={Home} />
-        <Route path="/clients" component={ClientList} />
+        <Route path="/clients" component={ClientListFixed} />
         <Route path="/summary/:clientId" component={Summary} />
         <Route path="/client/:clientId/summary" component={Summary} />
         <Route component={NotFound} />
