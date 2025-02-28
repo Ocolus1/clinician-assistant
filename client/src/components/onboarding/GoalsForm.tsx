@@ -58,8 +58,15 @@ export default function GoalsForm({ clientId, onComplete, onPrevious }: GoalsFor
   const [subgoalToEdit, setSubgoalToEdit] = useState<any | null>(null);
 
 
+  // Enhanced goal form schema with required fields
+  const enhancedGoalSchema = insertGoalSchema.extend({
+    title: z.string().min(1, "Goal title is required"),
+    description: z.string().min(1, "Description is required"),
+    priority: z.string().min(1, "Priority is required"),
+  });
+
   const goalForm = useForm({
-    resolver: zodResolver(insertGoalSchema),
+    resolver: zodResolver(enhancedGoalSchema),
     defaultValues: {
       title: "",
       description: "",
@@ -649,6 +656,15 @@ export default function GoalsForm({ clientId, onComplete, onPrevious }: GoalsFor
         </DialogContent>
       </Dialog>
 
+        {validationMessage && (
+          <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-4">
+            <div className="flex items-center">
+              <AlertCircle className="h-4 w-4 text-yellow-400 mr-2" />
+              <p className="text-sm text-yellow-700">{validationMessage}</p>
+            </div>
+          </div>
+        )}
+        
         <div className="flex gap-4 mt-6">
           <Button
             type="button"
@@ -663,6 +679,7 @@ export default function GoalsForm({ clientId, onComplete, onPrevious }: GoalsFor
             className="w-2/3"
             variant="default"
             onClick={onComplete}
+            disabled={!canProceed}
           >
             Next
           </Button>
