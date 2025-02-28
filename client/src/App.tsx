@@ -1,4 +1,4 @@
-import { Switch, Route } from "wouter";
+import { Switch, Route, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -6,14 +6,34 @@ import NotFound from "@/pages/not-found";
 import Home from "@/pages/Home";
 import Summary from "@/pages/Summary";
 import PrintSummary from "@/pages/PrintSummary";
+import ClientList from "@/pages/ClientList";
+import { AppLayout } from "@/components/layout/AppLayout";
 
 function Router() {
+  const [location] = useLocation();
+  
+  // Check if the current route is the print summary page (which shouldn't use the layout)
+  const isPrintPage = location.startsWith("/print-summary");
+  
+  // Routes that should be wrapped in the AppLayout
+  const LayoutRoutes = () => (
+    <AppLayout>
+      <Switch>
+        <Route path="/" component={Home} />
+        <Route path="/clients" component={ClientList} />
+        <Route path="/summary/:clientId" component={Summary} />
+        <Route path="/client/:clientId/summary" component={Summary} />
+        <Route component={NotFound} />
+      </Switch>
+    </AppLayout>
+  );
+  
   return (
     <Switch>
-      <Route path="/" component={Home} />
-      <Route path="/summary/:clientId" component={Summary} />
       <Route path="/print-summary/:clientId" component={PrintSummary} />
-      <Route component={NotFound} />
+      <Route>
+        <LayoutRoutes />
+      </Route>
     </Switch>
   );
 }
