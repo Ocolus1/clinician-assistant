@@ -172,7 +172,7 @@ export default function BudgetForm({ clientId, onComplete, onPrevious }: BudgetF
     defaultValues: {
       itemCode: "",
       description: "",
-      defaultUnitPrice: 0,
+      defaultUnitPrice: 0.01, // Set a valid minimum default price
       category: "",
       isActive: true
     },
@@ -278,7 +278,30 @@ export default function BudgetForm({ clientId, onComplete, onPrevious }: BudgetF
         if (!res.ok) {
           const errorData = await res.json();
           console.error("Error response from server:", errorData);
-          throw new Error(errorData.error || "Failed to add catalog item");
+          
+          // Handle validation errors specially
+          if (errorData.details) {
+            const fieldErrors = [];
+            
+            // Process detailed validation errors by field
+            if (errorData.details.itemCode?._errors) {
+              fieldErrors.push(`Item Code: ${errorData.details.itemCode._errors[0]}`);
+            }
+            if (errorData.details.description?._errors) {
+              fieldErrors.push(`Description: ${errorData.details.description._errors[0]}`);
+            }
+            if (errorData.details.defaultUnitPrice?._errors) {
+              fieldErrors.push(`Default Unit Price: ${errorData.details.defaultUnitPrice._errors[0]}`);
+            }
+            
+            const errorMessage = fieldErrors.length > 0 
+              ? `Validation errors: ${fieldErrors.join(', ')}` 
+              : errorData.error || "Failed to add catalog item";
+              
+            throw new Error(errorMessage);
+          } else {
+            throw new Error(errorData.error || "Failed to add catalog item");
+          }
         }
         
         return res.json();
@@ -447,7 +470,10 @@ export default function BudgetForm({ clientId, onComplete, onPrevious }: BudgetF
                           className="pl-7"
                           {...field}
                           onChange={(e) => {
-                            const value = e.target.value === '' ? 0 : parseFloat(e.target.value);
+                            // Ensure we have a valid numeric value that's at least 0.01
+                            let value = e.target.value === '' ? 0.01 : parseFloat(e.target.value);
+                            // Enforce minimum value
+                            value = Math.max(0.01, value);
                             field.onChange(value);
                           }}
                           value={field.value}

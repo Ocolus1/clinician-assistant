@@ -288,14 +288,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const result = insertBudgetItemCatalogSchema.safeParse(req.body);
       if (!result.success) {
         console.error("Budget catalog item validation error:", result.error);
-        return res.status(400).json({ error: result.error });
+        return res.status(400).json({ 
+          error: "Validation failed", 
+          details: result.error.format() 
+        });
+      }
+
+      // Ensure defaultUnitPrice is a valid number and at least 0.01
+      if (typeof result.data.defaultUnitPrice !== 'number' || result.data.defaultUnitPrice < 0.01) {
+        return res.status(400).json({ 
+          error: "Validation failed", 
+          details: { defaultUnitPrice: { _errors: ["Unit price must be at least 0.01"] } } 
+        });
+      }
+
+      // Check if itemCode already exists
+      try {
+        const existingItem = await storage.getBudgetItemCatalogByCode(result.data.itemCode);
+        if (existingItem) {
+          return res.status(400).json({ 
+            error: "Validation failed", 
+            details: { itemCode: { _errors: ["Item code already exists"] } } 
+          });
+        }
+      } catch (err) {
+        console.error("Error checking for existing item code:", err);
       }
 
       const item = await storage.createBudgetItemCatalog(result.data);
       res.json(item);
     } catch (error) {
       console.error("Error creating budget catalog item:", error);
-      res.status(500).json({ error: "Failed to create budget catalog item" });
+      res.status(500).json({ 
+        error: "Failed to create budget catalog item",
+        message: error instanceof Error ? error.message : "Unknown error" 
+      });
     }
   });
 
