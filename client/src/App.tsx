@@ -3,7 +3,8 @@ import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import NotFound from "@/pages/not-found";
-import Home from "@/pages/Home";
+import Dashboard from "@/pages/Dashboard";
+import OnboardingForm from "@/pages/OnboardingForm";
 import Summary from "@/pages/Summary";
 import PrintSummary from "@/pages/PrintSummary";
 import ClientList from "@/pages/ClientList";
@@ -19,8 +20,8 @@ function Router() {
   const LayoutRoutes = () => (
     <AppLayout>
       <Switch>
-        <Route path="/" component={Home} />
-        <Route path="/client/new" component={Home} />
+        <Route path="/" component={Dashboard} />
+        <Route path="/clients/new" component={OnboardingForm} />
         <Route path="/clients" component={ClientList} />
         <Route path="/summary/:clientId" component={Summary} />
         <Route path="/client/:clientId/summary" component={Summary} />

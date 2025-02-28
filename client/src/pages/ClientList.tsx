@@ -19,7 +19,7 @@ export default function ClientList() {
   });
 
   const handleNewClient = () => {
-    setLocation("/client/new");
+    setLocation("/clients/new");
   };
   
   // Add specific styles for this page
