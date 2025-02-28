@@ -125,9 +125,15 @@ export default function GoalsForm({ clientId, onComplete, onPrevious }: GoalsFor
       subgoalForm.reset();
       setShowSubgoalForm(false);
       queryClient.invalidateQueries({ queryKey: ["/api/goals", selectedGoalId, "subgoals"] });
+      
+      // Force refresh all goals' subgoals for validation
+      goals.forEach(goal => {
+        queryClient.invalidateQueries({ queryKey: ["/api/goals", goal.id, "subgoals"] });
+      });
+      
       toast({
         title: "Success",
-        description: "Subgoal added successfully",
+        description: "Milestone added successfully",
       });
     },
   });
@@ -166,17 +172,34 @@ export default function GoalsForm({ clientId, onComplete, onPrevious }: GoalsFor
 
   const deleteSubgoal = useMutation({
     mutationFn: async (subgoalId: number) => {
-      const res = await apiRequest("DELETE", `/api/subgoals/${subgoalId}`);
-      return res.json();
+      try {
+        const res = await apiRequest("DELETE", `/api/subgoals/${subgoalId}`);
+        return res.json();
+      } catch (error) {
+        console.error("Error deleting subgoal:", error);
+        throw error;
+      }
     },
     onSuccess: () => {
       setShowSubgoalDeleteDialog(false);
       setSubgoalToDelete(null);
-      queryClient.invalidateQueries({ queryKey: ["/api/goals", selectedGoalId, "subgoals"] });
+      if (selectedGoalId) {
+        queryClient.invalidateQueries({ queryKey: ["/api/goals", selectedGoalId, "subgoals"] });
+      }
       toast({
         title: "Success",
-        description: "Subgoal deleted successfully",
+        description: "Milestone deleted successfully",
       });
+    },
+    onError: (error) => {
+      console.error("Mutation error:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete milestone. Please try again.",
+        variant: "destructive",
+      });
+      setShowSubgoalDeleteDialog(false);
+      setSubgoalToDelete(null);
     },
   });
 
@@ -213,24 +236,22 @@ export default function GoalsForm({ clientId, onComplete, onPrevious }: GoalsFor
     
     // Fetch all subgoals for all goals
     const checkSubgoals = async () => {
+      console.log("Validating goals and milestones...");
       let hasAnySubgoals = false;
       
       // Check each goal for subgoals
       for (const goal of goals) {
         try {
-          // Check if we already have the data in the cache
-          let subgoalData = queryClient.getQueryData(["/api/goals", goal.id, "subgoals"]);
+          // Force a fresh fetch to ensure we have the latest data
+          const res = await apiRequest("GET", `/api/goals/${goal.id}/subgoals`);
+          const subgoalData = await res.json();
           
-          // If not in cache, fetch it
-          if (!subgoalData) {
-            const res = await apiRequest("GET", `/api/goals/${goal.id}/subgoals`);
-            subgoalData = await res.json();
-            // Update the cache
-            queryClient.setQueryData(["/api/goals", goal.id, "subgoals"], subgoalData);
-          }
+          // Update the cache
+          queryClient.setQueryData(["/api/goals", goal.id, "subgoals"], subgoalData);
           
           // Check if this goal has any subgoals
           if (Array.isArray(subgoalData) && subgoalData.length > 0) {
+            console.log(`Goal ${goal.id} has ${subgoalData.length} milestones`);
             hasAnySubgoals = true;
             break; // We found at least one goal with subgoals, that's enough
           }
@@ -240,16 +261,25 @@ export default function GoalsForm({ clientId, onComplete, onPrevious }: GoalsFor
       }
       
       if (!hasAnySubgoals) {
+        console.log("No goals with milestones found - cannot proceed");
         setCanProceed(false);
         setValidationMessage("You need to add at least one milestone (subgoal) to a goal before proceeding");
       } else {
+        console.log("Found goals with milestones - can proceed");
         setCanProceed(true);
         setValidationMessage("");
       }
     };
     
     checkSubgoals();
-  }, [goals, queryClient]);
+  }, [
+    goals, 
+    // Re-run this effect when any of these mutations complete
+    createSubgoal.isSuccess, 
+    deleteSubgoal.isSuccess, 
+    editSubgoal.isSuccess,
+    deleteGoal.isSuccess
+  ]);
 
   return (
     <div className="grid grid-cols-2 gap-6">
@@ -517,9 +547,9 @@ export default function GoalsForm({ clientId, onComplete, onPrevious }: GoalsFor
       <AlertDialog open={showSubgoalDeleteDialog} onOpenChange={setShowSubgoalDeleteDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Subgoal?</AlertDialogTitle>
+            <AlertDialogTitle>Delete Milestone?</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete this subgoal.
+              This action cannot be undone. This will permanently delete this milestone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -528,15 +558,12 @@ export default function GoalsForm({ clientId, onComplete, onPrevious }: GoalsFor
               onClick={() => {
                 if (subgoalToDelete) {
                   deleteSubgoal.mutate(subgoalToDelete);
-                  setShowSubgoalDeleteDialog(false);
-                  subgoalForm.reset({
-                    title: "",
-                    description: ""
-                  });
+                  // Don't set dialog state here, it's handled in the mutation's onSuccess/onError
                 }
               }}
+              disabled={deleteSubgoal.isPending}
             >
-              {deleteSubgoal.isPending ? "Deleting..." : "Delete Subgoal"}
+              {deleteSubgoal.isPending ? "Deleting..." : "Delete Milestone"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
