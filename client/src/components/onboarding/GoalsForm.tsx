@@ -127,7 +127,7 @@ export default function GoalsForm({ clientId, onComplete, onPrevious }: GoalsFor
       queryClient.invalidateQueries({ queryKey: ["/api/goals", selectedGoalId, "subgoals"] });
       
       // Force refresh all goals' subgoals for validation
-      goals.forEach(goal => {
+      goals.forEach((goal: Goal) => {
         queryClient.invalidateQueries({ queryKey: ["/api/goals", goal.id, "subgoals"] });
       });
       

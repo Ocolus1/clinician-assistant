@@ -5,7 +5,8 @@ import {
   Subgoal, InsertSubgoal,
   BudgetItem, InsertBudgetItem,
   BudgetSettings, InsertBudgetSettings,
-  clients, allies, goals, subgoals, budgetItems, budgetSettings
+  BudgetItemCatalog, InsertBudgetItemCatalog,
+  clients, allies, goals, subgoals, budgetItems, budgetSettings, budgetItemCatalog
 } from "@shared/schema";
 import { db } from "./db";
 import { eq } from "drizzle-orm";

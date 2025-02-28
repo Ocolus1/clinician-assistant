@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, date, numeric } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, date, numeric, timestamp } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -43,17 +43,32 @@ export const subgoals = pgTable("subgoals", {
 export const budgetSettings = pgTable("budget_settings", {
   id: serial("id").primaryKey(),
   clientId: integer("client_id").notNull(),
+  planSerialNumber: text("plan_serial_number"),
+  isActive: boolean("is_active").default(true),
   availableFunds: numeric("available_funds").notNull().$type<number>().default(0),
   endOfPlan: text("end_of_plan"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Item catalog for predefined budget items
+export const budgetItemCatalog = pgTable("budget_item_catalog", {
+  id: serial("id").primaryKey(),
+  itemCode: text("item_code").notNull().unique(),
+  description: text("description").notNull(),
+  defaultUnitPrice: numeric("default_unit_price").notNull().$type<number>(),
+  category: text("category"),
+  isActive: boolean("is_active").default(true),
 });
 
 export const budgetItems = pgTable("budget_items", {
   id: serial("id").primaryKey(),
   clientId: integer("client_id").notNull(),
+  budgetSettingsId: integer("budget_settings_id").notNull(),
   itemCode: text("item_code").notNull(),
   description: text("description").notNull(),
   unitPrice: numeric("unit_price").notNull().$type<number>(),
   quantity: integer("quantity").notNull(),
+  category: text("category"),
 });
 
 // Create a custom client schema with explicit type transformation for availableFunds
@@ -106,6 +121,17 @@ export const insertBudgetItemSchema = createInsertSchema(budgetItems)
     quantity: z.coerce.number()
       .min(1, { message: "Quantity must be at least 1" })
   });
+  
+// Create schema for budget item catalog
+export const insertBudgetItemCatalogSchema = createInsertSchema(budgetItemCatalog)
+  .omit({ id: true })
+  .extend({
+    itemCode: z.string().min(1, { message: "Item code is required" }),
+    description: z.string().min(1, { message: "Description is required" }),
+    defaultUnitPrice: z.coerce.number()
+      .min(0.01, { message: "Unit price must be greater than 0" }),
+    category: z.string().optional()
+  });
 
 export type Client = typeof clients.$inferSelect;
 export type Ally = typeof allies.$inferSelect;
@@ -120,3 +146,5 @@ export type InsertGoal = z.infer<typeof insertGoalSchema>;
 export type InsertSubgoal = z.infer<typeof insertSubgoalSchema>;
 export type InsertBudgetItem = z.infer<typeof insertBudgetItemSchema>;
 export type InsertBudgetSettings = z.infer<typeof insertBudgetSettingsSchema>;
+export type InsertBudgetItemCatalog = z.infer<typeof insertBudgetItemCatalogSchema>;
+export type BudgetItemCatalog = typeof budgetItemCatalog.$inferSelect;
