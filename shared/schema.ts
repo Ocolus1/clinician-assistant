@@ -63,7 +63,23 @@ export const insertClientSchema = createInsertSchema(clients)
     availableFunds: z.coerce.number()
   });
 
-export const insertAllySchema = createInsertSchema(allies).omit({ id: true, clientId: true });
+export const insertAllySchema = createInsertSchema(allies)
+  .omit({ id: true, clientId: true })
+  .extend({
+    name: z.string().min(1, { message: "Name is required" }),
+    relationship: z.string().min(1, { message: "Relationship is required" }),
+    preferredLanguage: z.string().min(1, { message: "Preferred language is required" }),
+    email: z.string().email({ message: "Please enter a valid email address" }),
+    accessTherapeutics: z.boolean(),
+    accessFinancials: z.boolean(),
+  })
+  .refine(
+    (data) => data.accessTherapeutics || data.accessFinancials,
+    {
+      message: "At least one access type must be selected",
+      path: ["accessTherapeutics"], // Show the error on the first checkbox
+    }
+  );
 export const insertGoalSchema = createInsertSchema(goals).omit({ id: true, clientId: true });
 export const insertSubgoalSchema = createInsertSchema(subgoals).omit({ id: true, goalId: true });
 
