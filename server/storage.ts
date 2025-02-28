@@ -30,6 +30,7 @@ export interface IStorage {
   createSubgoal(goalId: number, subgoal: InsertSubgoal): Promise<Subgoal>;
   getSubgoalsByGoal(goalId: number): Promise<Subgoal[]>;
   updateSubgoal(id: number, data: any): Promise<Subgoal>; //Added updateSubgoal
+  deleteSubgoal(id: number): Promise<void>; // Added deleteSubgoal function
 
   // Budget Settings
   createBudgetSettings(clientId: number, settings: InsertBudgetSettings): Promise<BudgetSettings>;
@@ -254,6 +255,18 @@ export class DBStorage implements IStorage {
       return updatedSubgoal;
     } catch (error) {
       console.error(`Error updating subgoal with ID ${id}:`, error);
+      throw error;
+    }
+  }
+  
+  async deleteSubgoal(id: number): Promise<void> {
+    console.log(`Deleting subgoal with ID ${id}`);
+    try {
+      await db.delete(subgoals)
+        .where(eq(subgoals.id, id));
+      console.log(`Successfully deleted subgoal with ID ${id}`);
+    } catch (error) {
+      console.error(`Error deleting subgoal with ID ${id}:`, error);
       throw error;
     }
   }

@@ -168,6 +168,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const subgoal = await storage.updateSubgoal(parseInt(req.params.id), result.data);
     res.json(subgoal);
   });
+  
+  app.delete("/api/subgoals/:id", async (req, res) => {
+    try {
+      await storage.deleteSubgoal(parseInt(req.params.id));
+      res.json({ success: true });
+    } catch (error) {
+      console.error(`Error deleting subgoal with ID ${req.params.id}:`, error);
+      res.status(500).json({ error: "Failed to delete subgoal" });
+    }
+  });
 
   // Budget routes
   app.post("/api/clients/:clientId/budget-items", async (req, res) => {
