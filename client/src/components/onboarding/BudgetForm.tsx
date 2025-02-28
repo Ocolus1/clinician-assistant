@@ -575,341 +575,14 @@ export default function BudgetForm({ clientId, onComplete, onPrevious }: BudgetF
       
       {/* Two-column layout for budget management */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Left column: Budget configuration and analytics */}
-        <div className="lg:col-span-5 space-y-6">
-          <div>
-            <h2 className="text-xl font-bold mb-3 text-primary">Plan Configuration</h2>
-            <Card className="border border-gray-200 shadow-sm overflow-hidden">
-              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-3 border-b border-gray-200">
-                <div className="flex justify-between items-center">
-                  <h3 className="text-md font-semibold text-blue-800">Budget Settings</h3>
-                  {settingsForm.watch("planSerialNumber") && (
-                    <div className="text-xs font-medium bg-blue-100 text-blue-800 rounded-full px-3 py-1">
-                      Plan ID: {settingsForm.watch("planSerialNumber")}
-                    </div>
-                  )}
-                </div>
-              </div>
-              <CardContent className="p-5">
-                <Form {...settingsForm}>
-                  <form className="space-y-5">
-                    <FormField
-                      control={settingsForm.control}
-                      name="isActive"
-                      render={({ field }) => (
-                        <FormItem className="flex items-center space-x-2 mb-4">
-                          <FormControl>
-                            <div className="flex items-center space-x-2">
-                              <Switch
-                                checked={field.value === true}
-                                onCheckedChange={field.onChange}
-                              />
-                              <FormLabel className="text-sm font-medium cursor-pointer">
-                                Plan Status: <span className={field.value ? "text-green-600" : "text-gray-500"}>
-                                  {field.value ? "Active" : "Inactive"}
-                                </span>
-                              </FormLabel>
-                            </div>
-                          </FormControl>
-                          <FormMessageHidden />
-                        </FormItem>
-                      )}
-                    />
-
-                    <div className="grid grid-cols-1 gap-4">
-                      <FormField
-                        control={settingsForm.control}
-                        name="availableFunds"
-                        render={({ field }) => (
-                          <FormItem className="flex flex-col">
-                            <FormLabel className="text-sm font-medium mb-1.5">
-                              Available Funds <span className="text-red-500">*</span>
-                            </FormLabel>
-                            <FormControl>
-                              <div className="relative">
-                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">$</span>
-                                <Input
-                                  type="number"
-                                  step="0.01"
-                                  min="0"
-                                  placeholder="0.00"
-                                  className="pl-7 h-10 border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
-                                  {...field}
-                                  onChange={(e) => {
-                                    const value = e.target.value === '' ? 0 : parseFloat(e.target.value);
-                                    field.onChange(value);
-                                  }}
-                                  value={field.value}
-                                />
-                              </div>
-                            </FormControl>
-                            <FormMessageHidden />
-                          </FormItem>
-                        )}
-                      />
-                      
-                      <FormField
-                        control={settingsForm.control}
-                        name="endOfPlan"
-                        render={({ field }) => (
-                          <FormItem className="flex flex-col">
-                            <FormLabel className="text-sm font-medium mb-1.5">End of Plan Date</FormLabel>
-                            <Popover>
-                              <PopoverTrigger asChild>
-                                <FormControl>
-                                  <Button
-                                    variant={"outline"}
-                                    className={cn(
-                                      "w-full h-10 pl-3 text-left font-normal border-gray-300 hover:bg-gray-50",
-                                      !field.value && "text-gray-500"
-                                    )}
-                                  >
-                                    {field.value ? (
-                                      format(new Date(field.value), "PPP")
-                                    ) : (
-                                      <span>Pick a date</span>
-                                    )}
-                                    <CalendarIcon className="ml-auto h-4 w-4 opacity-70" />
-                                  </Button>
-                                </FormControl>
-                              </PopoverTrigger>
-                              <PopoverContent className="w-auto p-0" align="start">
-                                <Calendar
-                                  mode="single"
-                                  selected={date}
-                                  onSelect={(newDate) => {
-                                    setDate(newDate);
-                                    if (newDate) {
-                                      field.onChange(format(newDate, "yyyy-MM-dd"));
-                                    }
-                                  }}
-                                  initialFocus
-                                />
-                              </PopoverContent>
-                            </Popover>
-                            <FormMessageHidden />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-                  </form>
-                </Form>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Budget Analysis Dashboard */}
-          <div>
-            <h2 className="text-xl font-bold mb-3 text-primary">Budget Analysis</h2>
-            <Card className="border border-gray-200 shadow-sm overflow-hidden">
-              <div className="bg-gradient-to-r from-indigo-50 to-purple-50 p-3 border-b border-gray-200">
-                <h3 className="text-md font-semibold text-indigo-800">Financial Summary</h3>
-              </div>
-              <CardContent className="p-5">
-                <div className="space-y-4">
-                  <div className={`rounded-lg shadow-sm border ${hasBudgetSurplus ? 'bg-gradient-to-br from-green-50 to-green-100 border-green-200' : 'bg-gradient-to-br from-red-50 to-red-100 border-red-200'}`}>
-                    <div className="p-4">
-                      <div className="flex items-center mb-1 text-sm text-gray-600">
-                        {hasBudgetSurplus ? (
-                          <><DollarSign className="h-4 w-4 mr-1 text-green-500" /> Budget Surplus</>
-                        ) : (
-                          <><DollarSign className="h-4 w-4 mr-1 text-red-500" /> Budget Deficit</>
-                        )}
-                      </div>
-                      <div className="flex justify-between items-end">
-                        <div className={`text-2xl font-bold ${hasBudgetSurplus ? 'text-green-600' : 'text-red-600'}`}>
-                          {formatCurrency(Math.abs(budgetDifference))}
-                        </div>
-                        <div className="text-xs text-gray-500">
-                          Total planned: {formatCurrency(totalBudget)}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  {daysLeft !== null && (
-                    <div className="rounded-lg shadow-sm border bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
-                      <div className="p-4">
-                        <div className="flex items-center mb-1 text-sm text-gray-600">
-                          <CalendarIcon className="h-4 w-4 mr-1 text-blue-500" /> Plan Duration
-                        </div>
-                        <div className="flex justify-between items-end">
-                          <div className="text-2xl font-bold text-blue-700">
-                            {daysLeft} <span className="text-sm font-normal">days left</span>
-                          </div>
-                          <div className="text-xs text-gray-500">
-                            Ends: {date ? format(date, "MMM d, yyyy") : "Not set"}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Fund Allocation Visualization */}
-                  {budgetItems.length > 0 && (
-                    <div className="mt-4 pt-4 border-t border-gray-100">
-                      <h4 className="text-sm font-semibold text-gray-700 mb-3">Fund Allocation</h4>
-                      <div className="rounded-lg border border-gray-200 p-4">
-                        <div className="h-4 w-full bg-gray-200 rounded-full overflow-hidden">
-                          <div 
-                            className="h-full bg-blue-500 rounded-full"
-                            style={{ width: `${Math.min(100, (totalBudget / availableFunds) * 100)}%` }}
-                          ></div>
-                        </div>
-                        <div className="flex justify-between mt-2 text-xs text-gray-500">
-                          <span>0%</span>
-                          <span>Allocated: {((totalBudget / availableFunds) * 100).toFixed(1)}%</span>
-                          <span>100%</span>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Add Item Form */}
-          <div>
-            <h2 className="text-xl font-bold mb-3 text-primary">Add New Item</h2>
-            <Card className="border border-gray-200 shadow-sm overflow-hidden">
-              <div className="bg-gradient-to-r from-purple-50 to-pink-50 p-3 border-b border-gray-200">
-                <h3 className="text-md font-semibold text-purple-800">Budget Item Entry</h3>
-              </div>
-              <CardContent className="p-5">
-                <Form {...itemForm}>
-                  <form onSubmit={itemForm.handleSubmit((data) => createBudgetItem.mutate(data))} className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <FormField
-                        control={itemForm.control}
-                        name="itemCode"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="text-sm font-medium mb-1.5">
-                              Item Code <span className="text-red-500">*</span>
-                            </FormLabel>
-                            <div className="flex gap-2">
-                              <FormControl>
-                                <Input 
-                                  {...field} 
-                                  className="border-gray-300 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors"
-                                />
-                              </FormControl>
-                              <Button
-                                type="button"
-                                className="bg-blue-100 hover:bg-blue-200 text-blue-700 hover:text-blue-800 transition-colors"
-                                variant="secondary"
-                                onClick={() => setShowItemForm(true)}
-                              >
-                                <Tag className="w-4 h-4" />
-                              </Button>
-                            </div>
-                            <FormMessageHidden />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={itemForm.control}
-                        name="quantity"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="text-sm font-medium mb-1.5">
-                              Quantity <span className="text-red-500">*</span>
-                            </FormLabel>
-                            <FormControl>
-                              <Input
-                                type="number"
-                                min="1"
-                                className="border-gray-300 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors"
-                                {...field}
-                                onChange={(e) => {
-                                  const value = e.target.value === '' ? 1 : parseInt(e.target.value, 10);
-                                  field.onChange(value);
-                                }}
-                                value={field.value}
-                              />
-                            </FormControl>
-                            <FormMessageHidden />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-
-                    <FormField
-                      control={itemForm.control}
-                      name="description"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-sm font-medium mb-1.5">
-                            Description <span className="text-red-500">*</span>
-                          </FormLabel>
-                          <FormControl>
-                            <Input 
-                              {...field} 
-                              className="border-gray-300 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors"
-                            />
-                          </FormControl>
-                          <FormMessageHidden />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={itemForm.control}
-                      name="unitPrice"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-sm font-medium mb-1.5">
-                            Unit Price <span className="text-red-500">*</span>
-                          </FormLabel>
-                          <FormControl>
-                            <div className="relative">
-                              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">$</span>
-                              <Input
-                                type="number"
-                                step="0.01"
-                                min="0"
-                                placeholder="0.00"
-                                className="pl-7 border-gray-300 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors"
-                                {...field}
-                                onChange={(e) => {
-                                  const value = e.target.value === '' ? 0 : parseFloat(e.target.value);
-                                  field.onChange(value);
-                                }}
-                                value={field.value}
-                              />
-                            </div>
-                          </FormControl>
-                          <FormMessageHidden />
-                        </FormItem>
-                      )}
-                    />
-
-                    <div className="pt-2">
-                      <Button
-                        type="submit"
-                        className="w-full bg-indigo-600 hover:bg-indigo-700 text-white"
-                        disabled={createBudgetItem.isPending}
-                      >
-                        <Plus className="w-4 h-4 mr-2" /> Add Budget Item
-                      </Button>
-                    </div>
-                  </form>
-                </Form>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-
-        {/* Right column: Budget item cards */}
-        <div className="lg:col-span-7">
+        {/* Left column: Budget Items List */}
+        <div className="lg:col-span-7 space-y-6">
           <div>
             <h2 className="text-xl font-bold mb-3 text-primary">Budget Item List</h2>
             <Card className="border border-gray-200 shadow-sm overflow-hidden">
-              <div className="bg-gradient-to-r from-green-50 to-teal-50 p-3 border-b border-gray-200">
+              <div className="bg-gray-50 p-3 border-b border-gray-200">
                 <div className="flex justify-between items-center">
-                  <h3 className="text-md font-semibold text-green-800">Planned Budget Items</h3>
+                  <h3 className="text-md font-semibold text-gray-700">Planned Budget Items</h3>
                   <div className="text-sm font-medium text-gray-600">
                     Total: {formatCurrency(totalBudget)}
                   </div>
@@ -922,7 +595,7 @@ export default function BudgetForm({ clientId, onComplete, onPrevious }: BudgetF
                       <Calculator className="h-8 w-8 mx-auto text-gray-400" />
                     </div>
                     <p className="text-sm">No budget items added yet</p>
-                    <p className="text-xs text-gray-400 mt-1">Add items using the form on the left</p>
+                    <p className="text-xs text-gray-400 mt-1">Add items using the form on the right</p>
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 gap-4">
@@ -932,7 +605,7 @@ export default function BudgetForm({ clientId, onComplete, onPrevious }: BudgetF
                           <div className="flex items-center">
                             <div className="font-medium text-gray-700">{item.itemCode}</div>
                             {item.category && (
-                              <div className="ml-2 text-xs bg-gray-200 text-gray-700 rounded-full px-2 py-0.5">
+                              <div className="ml-2 text-xs bg-gray-100 text-gray-700 rounded-full px-2 py-0.5">
                                 {item.category}
                               </div>
                             )}
@@ -976,9 +649,9 @@ export default function BudgetForm({ clientId, onComplete, onPrevious }: BudgetF
                               <div className="text-xs text-gray-500 mb-1">Quantity</div>
                               <div className="font-medium text-gray-700">{item.quantity}</div>
                             </div>
-                            <div className="text-center p-2 bg-blue-50 rounded-md">
-                              <div className="text-xs text-blue-500 mb-1">Total</div>
-                              <div className="font-semibold text-blue-600">{formatCurrency(item.unitPrice * item.quantity)}</div>
+                            <div className="text-center p-2 bg-gray-50 rounded-md">
+                              <div className="text-xs text-gray-500 mb-1">Total</div>
+                              <div className="font-medium text-gray-700">{formatCurrency(item.unitPrice * item.quantity)}</div>
                             </div>
                           </div>
                         </CardContent>
@@ -986,6 +659,316 @@ export default function BudgetForm({ clientId, onComplete, onPrevious }: BudgetF
                     ))}
                   </div>
                 )}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Fund Allocation Visualization */}
+          {budgetItems.length > 0 && (
+            <div>
+              <h2 className="text-xl font-bold mb-3 text-primary">Budget Allocation</h2>
+              <Card className="border border-gray-200 shadow-sm overflow-hidden">
+                <div className="bg-gray-50 p-3 border-b border-gray-200">
+                  <h3 className="text-md font-semibold text-gray-700">Fund Utilization</h3>
+                </div>
+                <CardContent className="p-5">
+                  <div className="space-y-4">
+                    <div className="rounded-lg border border-gray-200 p-4">
+                      <h4 className="text-sm font-semibold text-gray-700 mb-3">Allocation Progress</h4>
+                      <div className="h-4 w-full bg-gray-200 rounded-full overflow-hidden">
+                        <div 
+                          className="h-full bg-primary rounded-full"
+                          style={{ width: `${Math.min(100, (totalBudget / availableFunds) * 100)}%` }}
+                        ></div>
+                      </div>
+                      <div className="flex justify-between mt-2 text-xs text-gray-500">
+                        <span>0%</span>
+                        <span>Allocated: {((totalBudget / availableFunds) * 100).toFixed(1)}%</span>
+                        <span>100%</span>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+        </div>
+
+        {/* Right column: Configuration and form */}
+        <div className="lg:col-span-5 space-y-6">
+          <div>
+            <h2 className="text-xl font-bold mb-3 text-primary">Plan Configuration</h2>
+            <Card className="border border-gray-200 shadow-sm overflow-hidden">
+              <div className="bg-gray-50 p-3 border-b border-gray-200">
+                <div className="flex justify-between items-center">
+                  <h3 className="text-md font-semibold text-gray-700">Budget Settings</h3>
+                  {settingsForm.watch("planSerialNumber") && (
+                    <div className="text-xs font-medium bg-gray-100 text-gray-700 rounded-full px-3 py-1">
+                      Plan ID: {settingsForm.watch("planSerialNumber")}
+                    </div>
+                  )}
+                </div>
+              </div>
+              <CardContent className="p-5">
+                <Form {...settingsForm}>
+                  <form className="space-y-5">
+                    <FormField
+                      control={settingsForm.control}
+                      name="isActive"
+                      render={({ field }) => (
+                        <FormItem className="flex items-center space-x-2 mb-4">
+                          <FormControl>
+                            <div className="flex items-center space-x-2">
+                              <Switch
+                                checked={field.value === true}
+                                onCheckedChange={field.onChange}
+                              />
+                              <FormLabel className="text-sm font-medium cursor-pointer">
+                                Plan Status: <span className={field.value ? "text-green-600" : "text-gray-500"}>
+                                  {field.value ? "Active" : "Inactive"}
+                                </span>
+                              </FormLabel>
+                            </div>
+                          </FormControl>
+                          <FormMessageHidden />
+                        </FormItem>
+                      )}
+                    />
+
+                    {/* Available Funds with Budget Surplus/Deficit */}
+                    <FormField
+                      control={settingsForm.control}
+                      name="availableFunds"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-col space-y-2">
+                          <FormLabel className="text-sm font-medium">
+                            Available Funds <span className="text-red-500">*</span>
+                          </FormLabel>
+                          <div className="flex flex-col md:flex-row md:items-center gap-4">
+                            <div className="relative flex-1">
+                              <FormControl>
+                                <div className="relative">
+                                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">$</span>
+                                  <Input
+                                    type="number"
+                                    step="0.01"
+                                    min="0"
+                                    placeholder="0.00"
+                                    className="pl-7 h-10 border-gray-300 focus:border-primary focus:ring-1 focus:ring-primary transition-colors"
+                                    {...field}
+                                    onChange={(e) => {
+                                      const value = e.target.value === '' ? 0 : parseFloat(e.target.value);
+                                      field.onChange(value);
+                                    }}
+                                    value={field.value}
+                                  />
+                                </div>
+                              </FormControl>
+                            </div>
+                            <div className={`px-3 py-2 rounded-md text-sm font-medium ${hasBudgetSurplus ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
+                              <div className="flex items-center">
+                                <DollarSign className="h-4 w-4 mr-1" />
+                                <span>{hasBudgetSurplus ? 'Surplus: ' : 'Deficit: '}</span>
+                                <span className="ml-1 font-semibold">{formatCurrency(Math.abs(budgetDifference))}</span>
+                              </div>
+                            </div>
+                          </div>
+                          <FormMessageHidden />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    {/* End of Plan Date with Days Left */}
+                    <FormField
+                      control={settingsForm.control}
+                      name="endOfPlan"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-col space-y-2">
+                          <FormLabel className="text-sm font-medium">End of Plan Date</FormLabel>
+                          <div className="flex flex-col md:flex-row md:items-center gap-4">
+                            <div className="relative flex-1">
+                              <FormControl>
+                                <Popover>
+                                  <PopoverTrigger asChild>
+                                    <Button
+                                      variant={"outline"}
+                                      className={cn(
+                                        "w-full h-10 pl-3 text-left font-normal border-gray-300 hover:bg-gray-50",
+                                        !field.value && "text-gray-500"
+                                      )}
+                                    >
+                                      {field.value ? (
+                                        format(new Date(field.value), "PPP")
+                                      ) : (
+                                        <span>Pick a date</span>
+                                      )}
+                                      <CalendarIcon className="ml-auto h-4 w-4 opacity-70" />
+                                    </Button>
+                                  </PopoverTrigger>
+                                  <PopoverContent className="w-auto p-0" align="start">
+                                    <Calendar
+                                      mode="single"
+                                      selected={date}
+                                      onSelect={(newDate) => {
+                                        setDate(newDate);
+                                        if (newDate) {
+                                          field.onChange(format(newDate, "yyyy-MM-dd"));
+                                        }
+                                      }}
+                                      initialFocus
+                                    />
+                                  </PopoverContent>
+                                </Popover>
+                              </FormControl>
+                            </div>
+                            {daysLeft !== null && (
+                              <div className="px-3 py-2 rounded-md bg-blue-50 text-blue-700 text-sm font-medium">
+                                <div className="flex items-center">
+                                  <CalendarIcon className="h-4 w-4 mr-1" />
+                                  <span>Days Left:</span>
+                                  <span className="ml-1 font-semibold">{daysLeft}</span>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                          <FormMessageHidden />
+                        </FormItem>
+                      )}
+                    />
+                  </form>
+                </Form>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Add Item Form */}
+          <div>
+            <h2 className="text-xl font-bold mb-3 text-primary">Add New Item</h2>
+            <Card className="border border-gray-200 shadow-sm overflow-hidden">
+              <div className="bg-gray-50 p-3 border-b border-gray-200">
+                <h3 className="text-md font-semibold text-gray-700">Budget Item Entry</h3>
+              </div>
+              <CardContent className="p-5">
+                <Form {...itemForm}>
+                  <form onSubmit={itemForm.handleSubmit((data) => createBudgetItem.mutate(data))} className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <FormField
+                        control={itemForm.control}
+                        name="itemCode"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-sm font-medium mb-1.5">
+                              Item Code <span className="text-red-500">*</span>
+                            </FormLabel>
+                            <div className="flex gap-2">
+                              <FormControl>
+                                <Input 
+                                  {...field} 
+                                  className="border-gray-300 focus:border-primary focus:ring-1 focus:ring-primary transition-colors"
+                                />
+                              </FormControl>
+                              <Button
+                                type="button"
+                                className="bg-gray-100 hover:bg-gray-200 text-gray-700 hover:text-gray-800 transition-colors"
+                                variant="secondary"
+                                onClick={() => setShowItemForm(true)}
+                              >
+                                <Tag className="w-4 h-4" />
+                              </Button>
+                            </div>
+                            <FormMessageHidden />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={itemForm.control}
+                        name="quantity"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-sm font-medium mb-1.5">
+                              Quantity <span className="text-red-500">*</span>
+                            </FormLabel>
+                            <FormControl>
+                              <Input
+                                type="number"
+                                min="1"
+                                className="border-gray-300 focus:border-primary focus:ring-1 focus:ring-primary transition-colors"
+                                {...field}
+                                onChange={(e) => {
+                                  const value = e.target.value === '' ? 1 : parseInt(e.target.value, 10);
+                                  field.onChange(value);
+                                }}
+                                value={field.value}
+                              />
+                            </FormControl>
+                            <FormMessageHidden />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+
+                    <FormField
+                      control={itemForm.control}
+                      name="description"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-sm font-medium mb-1.5">
+                            Description <span className="text-red-500">*</span>
+                          </FormLabel>
+                          <FormControl>
+                            <Input 
+                              {...field} 
+                              className="border-gray-300 focus:border-primary focus:ring-1 focus:ring-primary transition-colors"
+                            />
+                          </FormControl>
+                          <FormMessageHidden />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={itemForm.control}
+                      name="unitPrice"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-sm font-medium mb-1.5">
+                            Unit Price <span className="text-red-500">*</span>
+                          </FormLabel>
+                          <FormControl>
+                            <div className="relative">
+                              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">$</span>
+                              <Input
+                                type="number"
+                                step="0.01"
+                                min="0"
+                                placeholder="0.00"
+                                className="pl-7 border-gray-300 focus:border-primary focus:ring-1 focus:ring-primary transition-colors"
+                                {...field}
+                                onChange={(e) => {
+                                  const value = e.target.value === '' ? 0 : parseFloat(e.target.value);
+                                  field.onChange(value);
+                                }}
+                                value={field.value}
+                              />
+                            </div>
+                          </FormControl>
+                          <FormMessageHidden />
+                        </FormItem>
+                      )}
+                    />
+
+                    <div className="pt-2">
+                      <Button
+                        type="submit"
+                        className="w-full bg-primary hover:bg-primary/90 text-white"
+                        disabled={createBudgetItem.isPending}
+                      >
+                        <Plus className="w-4 h-4 mr-2" /> Add Budget Item
+                      </Button>
+                    </div>
+                  </form>
+                </Form>
               </CardContent>
             </Card>
           </div>
