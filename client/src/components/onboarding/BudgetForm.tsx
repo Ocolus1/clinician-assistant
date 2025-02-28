@@ -240,6 +240,10 @@ export default function BudgetForm({ clientId, onComplete, onPrevious }: BudgetF
   return (
     <div className="space-y-6">
       
+      <div className="mb-3">
+        <p className="text-sm text-muted-foreground">Fields marked with <span className="text-red-500">*</span> are required</p>
+      </div>
+      
       <div>
         <h2 className="text-xl font-bold mb-3 text-primary">Budget Settings</h2>
         <Card className="border border-gray-200 shadow-sm overflow-hidden">
@@ -466,7 +470,9 @@ export default function BudgetForm({ clientId, onComplete, onPrevious }: BudgetF
                       name="quantity"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="text-sm font-medium mb-1.5">Quantity</FormLabel>
+                          <FormLabel className="text-sm font-medium mb-1.5">
+                            Quantity <span className="text-red-500">*</span>
+                          </FormLabel>
                           <FormControl>
                             <Input
                               type="number"
