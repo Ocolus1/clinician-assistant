@@ -23,7 +23,7 @@ export default function ClientList() {
   };
 
   return (
-    <div className="w-full" style={{ width: "100%", maxWidth: "none" }}>
+    <div className="w-full">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Client Management</h1>
         <Button 
@@ -35,8 +35,8 @@ export default function ClientList() {
         </Button>
       </div>
 
-      <div className="w-full" style={{ width: "100%" }}>
-        <Card className="border-gray-200 shadow-sm w-full" style={{ width: "100%", minWidth: "100%" }}>
+      <div className="w-full">
+        <Card className="border-gray-200 shadow-sm w-full">
           <div className="bg-gray-50 p-4 border-b border-gray-200">
             <h2 className="text-lg font-semibold text-gray-800">Client List</h2>
           </div>
