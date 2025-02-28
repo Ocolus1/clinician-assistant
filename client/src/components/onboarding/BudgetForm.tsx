@@ -269,10 +269,26 @@ export default function BudgetForm({ clientId, onComplete, onPrevious }: BudgetF
   // Create a catalog item
   const createCatalogItem = useMutation({
     mutationFn: async (data: InsertBudgetItemCatalog) => {
-      const res = await apiRequest("POST", `/api/budget-catalog`, data);
-      return res.json();
+      console.log("Submitting catalog item data:", data);
+      
+      try {
+        const res = await apiRequest("POST", `/api/budget-catalog`, data);
+        
+        // Check if the response is ok
+        if (!res.ok) {
+          const errorData = await res.json();
+          console.error("Error response from server:", errorData);
+          throw new Error(errorData.error || "Failed to add catalog item");
+        }
+        
+        return res.json();
+      } catch (error) {
+        console.error("Error in createCatalogItem mutation:", error);
+        throw error;
+      }
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log("Successfully added catalog item:", data);
       catalogItemForm.reset();
       setShowCatalogItemForm(false);
       queryClient.invalidateQueries({ queryKey: ["/api/budget-catalog"] });
@@ -281,11 +297,13 @@ export default function BudgetForm({ clientId, onComplete, onPrevious }: BudgetF
         description: "Catalog item added successfully",
       });
     },
-    onError: (error) => {
+    onError: (error: any) => {
       console.error("Error adding catalog item:", error);
+      // Display more specific error message if available
+      const errorMessage = error.message || "Failed to add catalog item. Please check the form and try again.";
       toast({
         title: "Error",
-        description: "Failed to add catalog item. Please check the form and try again.",
+        description: errorMessage,
         variant: "destructive",
       });
     },
