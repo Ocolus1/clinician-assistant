@@ -342,7 +342,11 @@ export default function BudgetForm({ clientId, onComplete, onPrevious }: BudgetF
     const settings = settingsForm.getValues();
     saveBudgetSettings.mutate(settings, {
       onSuccess: () => {
-        // Then proceed to summary
+        // Navigate to client list after completion
+        toast({
+          title: "Budget saved successfully",
+          description: "Client onboarding completed successfully",
+        });
         onComplete();
       }
     });

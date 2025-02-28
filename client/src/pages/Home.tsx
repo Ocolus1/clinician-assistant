@@ -5,6 +5,8 @@ import AllyForm from "@/components/onboarding/AllyForm";
 import GoalsForm from "@/components/onboarding/GoalsForm";
 import BudgetForm from "@/components/onboarding/BudgetForm";
 import { useLocation } from "wouter";
+import { Button } from "@/components/ui/button";
+import { Users } from "lucide-react";
 
 const steps = ["Client Information", "Allies", "Goals", "Budget"];
 
@@ -30,10 +32,24 @@ export default function Home() {
     }
   };
 
+  const navigateToClientList = () => {
+    setLocation('/clients');
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto py-8">
-        <h1 className="text-3xl font-bold mb-8">Speech Therapy Onboarding</h1>
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-3xl font-bold">Speech Therapy Onboarding</h1>
+          <Button 
+            onClick={navigateToClientList}
+            variant="outline"
+            className="flex items-center gap-2"
+          >
+            <Users size={16} />
+            View All Clients
+          </Button>
+        </div>
         
         <div className="mb-8">
           <div className="flex justify-between mb-2">
