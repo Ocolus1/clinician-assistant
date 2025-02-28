@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -32,8 +32,9 @@ import {
 import { FormMessageHidden } from "@/components/ui/form-no-message";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Minus, Trash, Pencil } from "lucide-react";
+import { Plus, Minus, Trash, Pencil, AlertCircle } from "lucide-react";
 import { insertGoalSchema, insertSubgoalSchema } from "@shared/schema";
+import { z } from "zod";
 import { apiRequest } from "@/lib/utils";
 
 interface GoalsFormProps {
@@ -190,6 +191,35 @@ export default function GoalsForm({ clientId, onComplete, onPrevious }: GoalsFor
 
   const canAddMoreGoals = goals.length < 5;
   const canAddMoreSubgoals = subgoals.length < 5;
+  
+  // State to track whether we can proceed to the next step
+  const [canProceed, setCanProceed] = useState(false);
+  const [validationMessage, setValidationMessage] = useState("");
+  
+  // Check if we have at least one goal with at least one milestone
+  useEffect(() => {
+    if (goals.length === 0) {
+      setCanProceed(false);
+      setValidationMessage("You need to add at least one goal before proceeding");
+      return;
+    }
+    
+    // Get all subgoals for all goals
+    const hasAnySubgoals = goals.some((goal: any) => {
+      return (
+        queryClient.getQueryData(["/api/goals", goal.id, "subgoals"]) as any[]
+      )?.length > 0;
+    });
+    
+    if (!hasAnySubgoals) {
+      setCanProceed(false);
+      setValidationMessage("You need to add at least one milestone (subgoal) to a goal before proceeding");
+      return;
+    }
+    
+    setCanProceed(true);
+    setValidationMessage("");
+  }, [goals, queryClient]);
 
   return (
     <div className="grid grid-cols-2 gap-6">
