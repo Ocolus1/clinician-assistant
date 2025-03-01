@@ -282,87 +282,28 @@ export default function ClientProfile() {
 
   return (
     <div className="w-full max-w-6xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-      <div className="flex items-center mb-6">
-        <Button 
-          variant="ghost" 
-          className="mr-4" 
-          onClick={handleBack}
-        >
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Back
-        </Button>
-        <h1 className="text-2xl font-bold">Client Profile</h1>
-      </div>
-      
-      {/* Client info card */}
-      <Card className="mb-6">
-        <CardHeader>
-          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-            <div className="flex items-center space-x-4">
-              <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center">
-                <User className="h-8 w-8 text-primary" />
-              </div>
-              <div>
-                <h2 className="text-xl font-bold">{client.name}</h2>
-                <div className="flex items-center text-gray-500">
-                  {clientAge && (
-                    <span className="mr-3">{clientAge} years old</span>
-                  )}
-                  {client.dateOfBirth && (
-                    <span>Born: {format(new Date(client.dateOfBirth), 'PP')}</span>
-                  )}
-                </div>
-              </div>
-            </div>
-            
-            <div className="flex flex-wrap gap-2">
-              <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-                {client.fundsManagement}
-              </Badge>
-              <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                Active
-              </Badge>
-            </div>
-          </div>
-        </CardHeader>
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center">
+          <Button 
+            variant="ghost" 
+            className="mr-4" 
+            onClick={handleBack}
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back
+          </Button>
+          <h1 className="text-2xl font-bold">
+            <span className="mr-2">{client.name}</span>
+            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 ml-2">
+              Active
+            </Badge>
+          </h1>
+        </div>
         
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="flex items-center">
-              <Users className="h-5 w-5 text-gray-400 mr-2" />
-              <div>
-                <div className="text-sm font-medium text-gray-500">Allies</div>
-                <div className="font-medium">{allies.length} supporters</div>
-              </div>
-            </div>
-            
-            <div className="flex items-center">
-              <Target className="h-5 w-5 text-gray-400 mr-2" />
-              <div>
-                <div className="text-sm font-medium text-gray-500">Progress</div>
-                <div className="font-medium">{goals.length} active goals</div>
-              </div>
-            </div>
-            
-            <div className="flex items-center">
-              <DollarSign className="h-5 w-5 text-gray-400 mr-2" />
-              <div>
-                <div className="text-sm font-medium text-gray-500">Budget</div>
-                <div className="flex items-center">
-                  <div className="font-medium mr-2">
-                    ${totalBudget.toFixed(2)} / ${budgetSettings && budgetSettings.availableFunds ? 
-                      (typeof budgetSettings.availableFunds === 'string' 
-                        ? (parseFloat(budgetSettings.availableFunds) || 0).toFixed(2) 
-                        : (budgetSettings.availableFunds || 0).toFixed(2)) 
-                      : '0.00'}
-                  </div>
-                  <Progress value={budgetPercentage} className="h-2 w-16" />
-                </div>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+        <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+          {client.fundsManagement}
+        </Badge>
+      </div>
       
       {/* Tabs section */}
       <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
