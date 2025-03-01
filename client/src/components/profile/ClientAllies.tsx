@@ -69,6 +69,7 @@ export default function ClientAllies({
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1 mt-1 text-sm text-gray-500">
                     {ally.email && <div>Email: {ally.email}</div>}
+                    {/* Conditionally render phone only if it exists */}
                     {ally.phone && <div>Phone: {ally.phone}</div>}
                     {ally.preferredLanguage && <div>Language: {ally.preferredLanguage}</div>}
                     {ally.notes && <div className="col-span-2 mt-1">{ally.notes}</div>}
