@@ -347,7 +347,7 @@ export default function BudgetForm({ clientId, clientData, createClientFn, onCom
         ...clientData,
         availableFunds: 0
       }, {
-        onSuccess: (newClient) => {
+        onSuccess: (newClient: Client) => {
           // Now create budget settings for the newly created client
           const settings = settingsForm.getValues();
           

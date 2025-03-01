@@ -172,52 +172,94 @@ export default function OnboardingForm() {
           />
         )}
         {step === 1 && (
-          <div>
-            <h2 className="text-2xl font-semibold mb-4">Support Network</h2>
-            <p className="text-gray-500 mb-8">
-              Add allies to the client's support network. This information can be completed after client creation.
-            </p>
-            <div className="flex justify-center">
-              <Button 
-                onClick={handleNext}
-                className="mx-auto mb-4"
-              >
-                Continue to next step
-              </Button>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-6">
+              <div>
+                <h2 className="text-2xl font-semibold mb-4">Support Network</h2>
+                <p className="text-gray-500 mb-8">
+                  Add allies to the client's support network. This information can be completed after client creation.
+                </p>
+                <div className="h-64 bg-muted/30 rounded-xl flex items-center justify-center">
+                  <div className="text-center p-6">
+                    <Users size={48} className="mx-auto text-muted-foreground mb-4" />
+                    <h3 className="text-xl font-medium mb-2">Ally Information</h3>
+                    <p className="text-muted-foreground">
+                      Support people who help this client with their therapy journey.
+                    </p>
+                  </div>
+                </div>
+              </div>
             </div>
-            <div className="flex justify-center">
-              <Button 
-                variant="ghost" 
-                onClick={handlePrevious}
-                className="mx-auto"
-              >
-                Back to previous step
-              </Button>
+            <div className="space-y-6">
+              <div className="bg-card p-6 rounded-lg border shadow-sm">
+                <h3 className="text-lg font-semibold mb-4">Support Network</h3>
+                <p className="text-muted-foreground mb-6">
+                  Add allies to the client's support network. This information can be completed after client creation.
+                </p>
+                <div className="space-y-4">
+                  <div className="flex justify-between space-x-4">
+                    <Button
+                      variant="outline"
+                      onClick={handlePrevious}
+                      className="w-1/2"
+                    >
+                      Back to previous step
+                    </Button>
+                    <Button
+                      onClick={handleNext}
+                      className="w-1/2"
+                    >
+                      Continue to next step
+                    </Button>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         )}
         {step === 2 && (
-          <div>
-            <h2 className="text-2xl font-semibold mb-4">Therapeutic Goals</h2>
-            <p className="text-gray-500 mb-8">
-              Define therapeutic goals for the client. This information can be completed after client creation.
-            </p>
-            <div className="flex justify-center">
-              <Button 
-                onClick={handleNext}
-                className="mx-auto mb-4"
-              >
-                Continue to next step
-              </Button>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-6">
+              <div>
+                <h2 className="text-2xl font-semibold mb-4">Therapeutic Goals</h2>
+                <p className="text-gray-500 mb-8">
+                  Define therapeutic goals for the client. This information can be completed after client creation.
+                </p>
+                <div className="h-64 bg-muted/30 rounded-xl flex items-center justify-center">
+                  <div className="text-center p-6">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mx-auto text-muted-foreground mb-4"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+                    <h3 className="text-xl font-medium mb-2">Goal Setting</h3>
+                    <p className="text-muted-foreground">
+                      Establish therapy goals and measurable outcomes for this client.
+                    </p>
+                  </div>
+                </div>
+              </div>
             </div>
-            <div className="flex justify-center">
-              <Button 
-                variant="ghost" 
-                onClick={handlePrevious}
-                className="mx-auto"
-              >
-                Back to previous step
-              </Button>
+            <div className="space-y-6">
+              <div className="bg-card p-6 rounded-lg border shadow-sm">
+                <h3 className="text-lg font-semibold mb-4">Therapeutic Goals</h3>
+                <p className="text-muted-foreground mb-6">
+                  Define therapeutic goals for the client. This information can be completed after client creation.
+                </p>
+                <div className="space-y-4">
+                  <div className="flex justify-between space-x-4">
+                    <Button
+                      variant="outline"
+                      onClick={handlePrevious}
+                      className="w-1/2"
+                    >
+                      Back to previous step
+                    </Button>
+                    <Button
+                      onClick={handleNext}
+                      className="w-1/2"
+                    >
+                      Continue to next step
+                    </Button>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         )}
