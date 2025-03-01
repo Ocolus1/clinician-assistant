@@ -105,6 +105,16 @@ export default function ClientList() {
                                 {client.fundsManagement}
                               </Badge>
                             )}
+                            {client.onboardingStatus === 'incomplete' && (
+                              <Badge variant="destructive" className="text-xs font-normal ml-2">
+                                Incomplete
+                              </Badge>
+                            )}
+                            {client.onboardingStatus === 'complete' && (
+                              <Badge variant="success" className="text-xs font-normal bg-green-100 text-green-800 hover:bg-green-200 border-green-200 ml-2">
+                                Complete
+                              </Badge>
+                            )}
                           </div>
                         </div>
                       </div>
