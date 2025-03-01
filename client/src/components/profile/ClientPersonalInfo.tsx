@@ -6,8 +6,15 @@ import { format } from "date-fns";
 import { Edit } from "lucide-react";
 import type { Client } from "@shared/schema";
 
+// Extended interface that makes nullable fields explicit
 interface ClientPersonalInfoProps {
-  client: Client;
+  client: {
+    id: number;
+    name: string;
+    dateOfBirth: string | null;
+    fundsManagement: string | null;
+    [key: string]: any; // Allow other properties
+  };
   onEdit?: () => void;
 }
 
@@ -49,13 +56,14 @@ export default function ClientPersonalInfo({ client, onEdit }: ClientPersonalInf
 
   const clientAge = client.dateOfBirth ? calculateAge(client.dateOfBirth) : null;
   
-  console.log("ClientPersonalInfo component received:", {
-    name: client.name,
-    dateOfBirth: client.dateOfBirth,
-    fundsManagement: client.fundsManagement,
-    dateOfBirthType: typeof client.dateOfBirth,
-    fundsManagementType: typeof client.fundsManagement
-  });
+  // Only log in development mode
+  if (process.env.NODE_ENV !== 'production') {
+    console.log("ClientPersonalInfo received:", {
+      name: client.name,
+      dateOfBirth: client.dateOfBirth,
+      fundsManagement: client.fundsManagement
+    });
+  }
 
   return (
     <Card className="w-full shadow-sm">
@@ -79,7 +87,7 @@ export default function ClientPersonalInfo({ client, onEdit }: ClientPersonalInf
           <div>
             <h4 className="text-sm font-medium text-gray-500 mb-1">Date of Birth</h4>
             <p className="font-medium">
-              {client.dateOfBirth ? formatDate(client.dateOfBirth) : 'Not provided'}
+              {formatDate(client.dateOfBirth)}
               {clientAge && 
                 <Badge variant="outline" className="ml-2 bg-primary/10 text-primary">
                   {clientAge} years old
@@ -90,7 +98,7 @@ export default function ClientPersonalInfo({ client, onEdit }: ClientPersonalInf
           <div>
             <h4 className="text-sm font-medium text-gray-500 mb-1">Funds Management</h4>
             <p className="font-medium">
-              {client.fundsManagement ? client.fundsManagement : 'Not specified'}
+              {client.fundsManagement || 'Not specified'}
             </p>
           </div>
         </div>

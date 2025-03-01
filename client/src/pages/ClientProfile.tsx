@@ -340,8 +340,12 @@ export default function ClientProfile() {
               {client && (
                 <>
                   {console.log("Client data from parent component:", JSON.stringify(client))}
+                  {/* Force date conversion and data passing */}
                   <ClientPersonalInfo 
-                    client={client} 
+                    client={{
+                      ...client
+                      // No type casting needed - we'll handle this in the component
+                    }}
                     onEdit={() => console.log("Edit personal info clicked")} 
                   />
                 </>
