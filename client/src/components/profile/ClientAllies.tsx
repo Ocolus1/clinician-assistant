@@ -119,7 +119,7 @@ export default function ClientAllies({
   // Archive mutation
   const archiveAllyMutation = useMutation({
     mutationFn: (data: { id: number; archived: boolean }) => {
-      return apiRequest('PUT', `/api/allies/${data.id}/archive`, { archived: data.archived });
+      return apiRequest('PUT', `/api/clients/${clientId}/allies/${data.id}/archive`, { archived: data.archived });
     },
     onSuccess: () => {
       setShowArchiveDialog(false);
@@ -133,7 +133,7 @@ export default function ClientAllies({
   const editAllyMutation = useMutation({
     mutationFn: (data: EditAllyFormValues) => {
       if (!currentAlly) return Promise.reject("No ally selected");
-      return apiRequest('PUT', `/api/allies/${currentAlly.id}`, data);
+      return apiRequest('PUT', `/api/clients/${clientId}/allies/${currentAlly.id}`, data);
     },
     onSuccess: () => {
       setShowEditDialog(false);
