@@ -342,15 +342,36 @@ export default function BudgetForm({ clientId, onComplete, onPrevious }: BudgetF
     const settings = settingsForm.getValues();
     saveBudgetSettings.mutate(settings, {
       onSuccess: () => {
-        // Invalidate queries to ensure fresh data when redirected to client list
-        queryClient.invalidateQueries({ queryKey: ["/api/clients"] });
-        
-        // Navigate to client list after completion
-        toast({
-          title: "Budget saved successfully",
-          description: "Client onboarding completed successfully",
+        // Mark client as completed
+        fetch(`/api/clients/${clientId}/complete-onboarding`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        })
+        .then(response => {
+          if (!response.ok) {
+            throw new Error('Failed to mark client as complete');
+          }
+          return response.json();
+        })
+        .then(() => {
+          // Invalidate queries to ensure fresh data when redirected to client list
+          queryClient.invalidateQueries({ queryKey: ["/api/clients"] });
+          
+          // Navigate to client list after completion
+          toast({
+            title: "Budget saved successfully",
+            description: "Client onboarding completed successfully",
+          });
+          onComplete();
+        })
+        .catch(error => {
+          console.error('Error marking client as complete:', error);
+          // Still continue with completion even if status update fails
+          queryClient.invalidateQueries({ queryKey: ["/api/clients"] });
+          onComplete();
         });
-        onComplete();
       }
     });
   };

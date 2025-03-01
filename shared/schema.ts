@@ -18,7 +18,9 @@ export const clients = pgTable("clients", {
   therapyPreferences: text("therapy_preferences"),
   fundsManagement: text("funds_management"), // Made optional to allow null values
   // We're moving availableFunds to the budget section, but keeping it here for backward compatibility
-  availableFunds: numeric("available_funds").notNull().$type<number>().default(0), 
+  availableFunds: numeric("available_funds").notNull().$type<number>().default(0),
+  // Add onboarding status field to track completion
+  onboardingStatus: text("onboarding_status").default("incomplete"),
 });
 
 export const allies = pgTable("allies", {
