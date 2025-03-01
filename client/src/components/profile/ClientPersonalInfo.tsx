@@ -2,7 +2,7 @@ import React from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { format } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { Edit } from "lucide-react";
 import type { Client } from "@shared/schema";
 
@@ -14,19 +14,38 @@ interface ClientPersonalInfoProps {
 export default function ClientPersonalInfo({ client, onEdit }: ClientPersonalInfoProps) {
   // Calculate age from date of birth
   const calculateAge = (dateOfBirth: string): number => {
-    const today = new Date();
-    const birthDate = new Date(dateOfBirth);
-    let age = today.getFullYear() - birthDate.getFullYear();
-    const monthDiff = today.getMonth() - birthDate.getMonth();
-    
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-      age--;
+    try {
+      const today = new Date();
+      const birthDate = new Date(dateOfBirth);
+      let age = today.getFullYear() - birthDate.getFullYear();
+      const monthDiff = today.getMonth() - birthDate.getMonth();
+      
+      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+        age--;
+      }
+      
+      return age;
+    } catch (e) {
+      console.error("Error calculating age:", e);
+      return 0;
     }
+  };
+
+  // Safely format date with error handling
+  const formatDate = (dateStr: string | null) => {
+    if (!dateStr) return 'Not provided';
     
-    return age;
+    try {
+      return format(parseISO(dateStr), 'MMMM d, yyyy');
+    } catch (e) {
+      console.error("Error formatting date:", e, dateStr);
+      return dateStr;
+    }
   };
 
   const clientAge = client.dateOfBirth ? calculateAge(client.dateOfBirth) : null;
+  
+  console.log("Client data in profile:", JSON.stringify(client));
 
   return (
     <Card className="w-full shadow-sm">
@@ -50,7 +69,7 @@ export default function ClientPersonalInfo({ client, onEdit }: ClientPersonalInf
           <div>
             <h4 className="text-sm font-medium text-gray-500 mb-1">Date of Birth</h4>
             <p className="font-medium">
-              {client.dateOfBirth ? format(new Date(client.dateOfBirth), 'MMMM d, yyyy') : 'Not provided'}
+              {formatDate(client.dateOfBirth)}
               {clientAge && 
                 <Badge variant="outline" className="ml-2 bg-primary/10 text-primary">
                   {clientAge} years old
@@ -61,12 +80,6 @@ export default function ClientPersonalInfo({ client, onEdit }: ClientPersonalInf
           <div>
             <h4 className="text-sm font-medium text-gray-500 mb-1">Funds Management</h4>
             <p className="font-medium">{client.fundsManagement || 'Not specified'}</p>
-          </div>
-          <div>
-            <h4 className="text-sm font-medium text-gray-500 mb-1">Available Funds</h4>
-            <p className="font-medium">${typeof client.availableFunds === 'number' ? 
-              client.availableFunds.toFixed(2) : 
-              parseFloat(client.availableFunds as unknown as string).toFixed(2)}</p>
           </div>
         </div>
       </CardContent>
