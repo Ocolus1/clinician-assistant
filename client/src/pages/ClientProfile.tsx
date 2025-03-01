@@ -1,8 +1,8 @@
 import React from "react";
-import { useState, useEffect } from "react";
 import { useParams, useRoute, useLocation } from "wouter";
 import { format } from "date-fns";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useSafeState, useSafeDialog, useSafeEffect, useSafeMemo } from "@/hooks/use-safe-hooks";
 import { apiRequest, getQueryFn } from "@/lib/queryClient";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
@@ -85,7 +85,7 @@ export default function ClientProfile() {
   
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
-  const [activeTab, setActiveTab] = useState(getActiveTabFromURL());
+  const [activeTab, setActiveTab] = useSafeState(getActiveTabFromURL());
 
   // Fetch client data with enhanced logging
   const { data: client, isLoading: isLoadingClient } = useQuery<Client>({
@@ -141,11 +141,11 @@ export default function ClientProfile() {
   });
 
   // Create a state to store subgoals by goalId
-  const [subgoalsByGoal, setSubgoalsByGoal] = useState<Record<number, Subgoal[]>>({});
-  const [isLoadingSubgoals, setIsLoadingSubgoals] = useState(false);
+  const [subgoalsByGoal, setSubgoalsByGoal] = useSafeState<Record<number, Subgoal[]>>({});
+  const [isLoadingSubgoals, setIsLoadingSubgoals] = useSafeState(false);
   
-  // Use useEffect to fetch subgoals when goals are loaded
-  useEffect(() => {
+  // Use useSafeEffect to fetch subgoals when goals are loaded
+  useSafeEffect(() => {
     // Only run if goals are valid
     if (!goals || goals.length === 0) {
       return;
@@ -204,7 +204,7 @@ export default function ClientProfile() {
   };
 
   // Calculate total budget
-  const totalBudget = React.useMemo(() => {
+  const totalBudget = useSafeMemo(() => {
     return budgetItems.reduce((acc: number, item: BudgetItem) => {
       const unitPrice = typeof item.unitPrice === 'string' ? parseFloat(item.unitPrice) : item.unitPrice;
       const quantity = typeof item.quantity === 'string' ? parseInt(item.quantity) : item.quantity;
@@ -213,7 +213,7 @@ export default function ClientProfile() {
   }, [budgetItems]);
 
   // Calculate budget percentage - safely handle nullish values
-  const budgetPercentage = React.useMemo(() => {
+  const budgetPercentage = useSafeMemo(() => {
     if (!budgetSettings || !budgetSettings.availableFunds) return 0;
     
     const availableFunds = typeof budgetSettings.availableFunds === 'string' 
@@ -309,7 +309,7 @@ export default function ClientProfile() {
   const clientAge = client.dateOfBirth ? calculateAge(client.dateOfBirth) : null;
 
   // Use a simple state hook for showing the add ally dialog
-  const [showAddAllyDialog, setShowAddAllyDialog] = useState(false);
+  const [showAddAllyDialog, setShowAddAllyDialog] = useSafeState(false);
 
   return (
     <div className="w-full max-w-6xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
