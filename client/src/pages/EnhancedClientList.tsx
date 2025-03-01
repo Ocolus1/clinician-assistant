@@ -555,9 +555,9 @@ export default function EnhancedClientList() {
                 <BarChart className="h-4 w-4 mr-2" />
                 View Summary
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setLocation(`/client/${client.id}/edit`)}>
-                <Edit className="h-4 w-4 mr-2" />
-                Edit Details
+              <DropdownMenuItem onClick={() => setLocation(`/client/${client.id}/profile`)}>
+                <User className="h-4 w-4 mr-2" />
+                Profile
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => window.open(`/client/${client.id}/print`, '_blank')}>
                 <Printer className="h-4 w-4 mr-2" />
