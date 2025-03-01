@@ -112,16 +112,26 @@ export default function ClientProfile() {
     enabled: !!clientId,
   });
 
-  // Fetch subgoals for each goal
-  const subgoalQueries = goals.map((goal: Goal) => {
-    return useQuery<Subgoal[]>({
-      queryKey: ['/api/goals', goal.id, 'subgoals'],
-      queryFn: getQueryFn({ on401: "throw" }),
-      enabled: !!goal.id,
+  // Create empty array to store subgoal queries
+  const subgoalQueries: any[] = [];
+  
+  // Only run this if goals is properly defined
+  if (goals && goals.length > 0) {
+    // For each goal, fetch its subgoals
+    goals.forEach((goal: Goal) => {
+      if (goal && goal.id) {
+        const query = useQuery<Subgoal[]>({
+          queryKey: ['/api/goals', goal.id, 'subgoals'],
+          queryFn: getQueryFn({ on401: "throw" }),
+          enabled: !!goal.id,
+        });
+        subgoalQueries.push(query);
+      }
     });
-  });
+  }
 
-  const isLoadingSubgoals = subgoalQueries.some((query: any) => query.isLoading);
+  const isLoadingSubgoals = subgoalQueries && subgoalQueries.length > 0 ? 
+    subgoalQueries.some((query: any) => query.isLoading) : false;
 
   // Handle tab change
   const handleTabChange = (value: string) => {
@@ -146,9 +156,10 @@ export default function ClientProfile() {
     }, 0);
   }, [budgetItems]);
 
-  // Calculate budget percentage
+  // Calculate budget percentage - safely handle nullish values
   const budgetPercentage = React.useMemo(() => {
-    if (!budgetSettings) return 0;
+    if (!budgetSettings || !budgetSettings.availableFunds) return 0;
+    
     const availableFunds = typeof budgetSettings.availableFunds === 'string' 
       ? parseFloat(budgetSettings.availableFunds) 
       : budgetSettings.availableFunds;
@@ -311,10 +322,10 @@ export default function ClientProfile() {
                 <div className="text-sm font-medium text-gray-500">Budget</div>
                 <div className="flex items-center">
                   <div className="font-medium mr-2">
-                    ${totalBudget.toFixed(2)} / ${budgetSettings ? 
+                    ${totalBudget.toFixed(2)} / ${budgetSettings && budgetSettings.availableFunds ? 
                       (typeof budgetSettings.availableFunds === 'string' 
-                        ? parseFloat(budgetSettings.availableFunds).toFixed(2) 
-                        : budgetSettings.availableFunds.toFixed(2)) 
+                        ? (parseFloat(budgetSettings.availableFunds) || 0).toFixed(2) 
+                        : (budgetSettings.availableFunds || 0).toFixed(2)) 
                       : '0.00'}
                   </div>
                   <Progress value={budgetPercentage} className="h-2 w-16" />
@@ -403,13 +414,16 @@ export default function ClientProfile() {
               
               {/* Create a subgoals map to pass to the ClientGoals component */}
               <ClientGoals 
-                goals={goals}
-                subgoals={subgoalQueries.reduce((acc, query, index) => {
-                  if (goals[index] && query.data) {
-                    acc[goals[index].id] = query.data;
-                  }
-                  return acc;
-                }, {} as Record<number, Subgoal[]>)}
+                goals={goals || []}
+                subgoals={(subgoalQueries && subgoalQueries.length > 0 && goals) ? 
+                  subgoalQueries.reduce((acc, query, index) => {
+                    if (goals[index] && query && query.data) {
+                      acc[goals[index].id] = query.data;
+                    }
+                    return acc;
+                  }, {} as Record<number, Subgoal[]>) : 
+                  {} as Record<number, Subgoal[]>
+                }
                 onAddGoal={() => console.log("Add goal clicked")}
                 onEditGoal={(goal) => console.log("Edit goal clicked", goal)}
                 onArchiveGoal={(goal) => console.log("Archive goal clicked", goal)}
