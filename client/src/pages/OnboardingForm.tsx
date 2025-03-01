@@ -37,8 +37,7 @@ export default function OnboardingForm() {
   // Mutation for creating a client
   const createClient = useMutation({
     mutationFn: async (data: any) => {
-      const res = await apiRequest("POST", "/api/clients", data);
-      return res.json();
+      return await apiRequest("POST", "/api/clients", data);
     },
     onSuccess: (data) => {
       setClientId(data.id);
@@ -73,7 +72,8 @@ export default function OnboardingForm() {
   };
 
   const handleExit = () => {
-    if (clientData) {
+    // Show exit confirmation dialog if we're in any step of onboarding
+    if (step > 0 || clientId || clientData) {
       setShowExitDialog(true);
     } else {
       navigateToClientList();
@@ -91,13 +91,20 @@ export default function OnboardingForm() {
           <AlertDialogHeader>
             <AlertDialogTitle>Exit onboarding process?</AlertDialogTitle>
             <AlertDialogDescription>
-              You are in the middle of creating a new client. All entered data for this client will be lost. 
+              {step === 0 
+                ? "You are about to start creating a new client. No data has been saved yet."
+                : `You are at step ${step + 1} of ${steps.length} (${steps[step]}). All progress for this client will be lost.`}
               Are you sure you want to exit?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Continue creating client</AlertDialogCancel>
-            <AlertDialogAction onClick={navigateToClientList}>Yes, exit</AlertDialogAction>
+            <AlertDialogCancel>Continue onboarding</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={navigateToClientList}
+              className="bg-destructive hover:bg-destructive/90"
+            >
+              Yes, exit
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
