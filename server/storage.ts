@@ -16,6 +16,7 @@ export interface IStorage {
   createClient(client: InsertClient): Promise<Client>;
   getClient(id: number): Promise<Client | undefined>;
   getAllClients(): Promise<Client[]>; // Added method to get all clients for debugging
+  deleteClient(id: number): Promise<void>; // Added deleteClient function
 
   // Allies
   createAlly(clientId: number, ally: InsertAlly): Promise<Ally>;
@@ -122,6 +123,18 @@ export class DBStorage implements IStorage {
       return allClients;
     } catch (error) {
       console.error("Error fetching all clients:", error);
+      throw error;
+    }
+  }
+  
+  async deleteClient(id: number): Promise<void> {
+    console.log(`Deleting client with ID ${id}`);
+    try {
+      await db.delete(clients)
+        .where(eq(clients.id, id));
+      console.log(`Successfully deleted client with ID ${id}`);
+    } catch (error) {
+      console.error(`Error deleting client with ID ${id}:`, error);
       throw error;
     }
   }

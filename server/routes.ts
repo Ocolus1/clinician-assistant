@@ -63,6 +63,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Internal server error" });
     }
   });
+  
+  app.delete("/api/clients/:id", async (req, res) => {
+    const clientId = parseInt(req.params.id);
+    console.log(`DELETE /api/clients/${clientId} - Deleting client with ID: ${clientId}`);
+    
+    if (isNaN(clientId) || clientId <= 0) {
+      console.error(`Invalid client ID: ${req.params.id}`);
+      return res.status(400).json({ error: "Invalid client ID" });
+    }
+    
+    try {
+      // Check if client exists first
+      const client = await storage.getClient(clientId);
+      
+      if (!client) {
+        console.log(`Client with ID ${clientId} not found`);
+        return res.status(404).json({ error: "Client not found" });
+      }
+      
+      await storage.deleteClient(clientId);
+      console.log(`Client with ID ${clientId} successfully deleted`);
+      res.json({ success: true, message: `Client with ID ${clientId} successfully deleted` });
+    } catch (error) {
+      console.error(`Error deleting client with ID ${clientId}:`, error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
 
   // Ally routes
   app.post("/api/clients/:clientId/allies", async (req, res) => {
