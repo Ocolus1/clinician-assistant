@@ -25,7 +25,10 @@ import {
   Clock,
   ChevronRight,
   MessageSquare,
-  Award
+  Award,
+  PlusCircle,
+  Mail,
+  Phone
 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Badge } from "@/components/ui/badge";
@@ -33,6 +36,19 @@ import { Separator } from "@/components/ui/separator";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
+import { RELATIONSHIP_OPTIONS, LANGUAGE_OPTIONS } from "@/lib/constants";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
+import { Switch } from "@/components/ui/switch";
+import { CaretSortIcon, CheckIcon } from "@radix-ui/react-icons";
+import { cn } from "@/lib/utils";
+import { z } from "zod";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import type { Client, Ally, Goal, Subgoal, BudgetSettings, BudgetItem } from "@shared/schema";
 
 // Tab components
@@ -290,6 +306,69 @@ export default function ClientProfile() {
 
   const clientAge = client.dateOfBirth ? calculateAge(client.dateOfBirth) : null;
 
+  // New ally form schema
+  const newAllySchema = z.object({
+    name: z.string().min(1, "Name is required"),
+    email: z.string().email("Invalid email address"),
+    relationship: z.string().min(1, "Relationship is required"),
+    preferredLanguage: z.string().min(1, "Preferred language is required"),
+    phone: z.string().optional(),
+    notes: z.string().optional(),
+    accessTherapeutics: z.boolean().default(false),
+    accessFinancials: z.boolean().default(false),
+  });
+
+  type NewAllyFormValues = z.infer<typeof newAllySchema>;
+
+  // Define all state hooks at the top level to avoid conditional hooks
+  const [showAddAllyDialog, setShowAddAllyDialog] = useState(false);
+  const [openRelationship, setOpenRelationship] = useState(false);
+  const [openLanguage, setOpenLanguage] = useState(false);
+
+  // Initialize the form - make sure this is NOT in a conditional
+  const form = useForm<NewAllyFormValues>({
+    resolver: zodResolver(newAllySchema),
+    defaultValues: {
+      name: "",
+      email: "",
+      relationship: "",
+      preferredLanguage: "",
+      phone: "",
+      notes: "",
+      accessTherapeutics: false,
+      accessFinancials: false,
+    }
+  });
+
+  // Create ally mutation - make sure this is NOT in a conditional
+  const createAllyMutation = useMutation({
+    mutationFn: (data: NewAllyFormValues) => {
+      return apiRequest('POST', `/api/clients/${clientId}/allies`, data);
+    },
+    onSuccess: () => {
+      setShowAddAllyDialog(false);
+      form.reset();
+      queryClient.invalidateQueries({ queryKey: ['/api/clients', clientId, 'allies'] });
+      toast({
+        title: "Success",
+        description: "New ally created successfully!",
+      });
+    },
+    onError: (error) => {
+      console.error("Error creating ally:", error);
+      toast({
+        title: "Error",
+        description: "Failed to create ally. Please try again.",
+        variant: "destructive",
+      });
+    }
+  });
+
+  // Handle form submission
+  const onSubmit = (data: NewAllyFormValues) => {
+    createAllyMutation.mutate(data);
+  };
+
   return (
     <div className="w-full max-w-6xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
       <div className="flex items-center mb-6">
@@ -303,6 +382,286 @@ export default function ClientProfile() {
         </Button>
         <h1 className="text-2xl font-bold">Client Profile</h1>
       </div>
+      
+      {/* Add Ally Dialog */}
+      <Dialog 
+        open={showAddAllyDialog} 
+        onOpenChange={(open) => {
+          if (!open) {
+            setShowAddAllyDialog(false);
+          }
+        }}
+      >
+        <DialogContent 
+          className="sm:max-w-[600px]"
+          onEscapeKeyDown={(e) => e.preventDefault()} 
+          onPointerDownOutside={(e) => e.preventDefault()}
+        >
+          <DialogHeader>
+            <DialogTitle>Add New Ally</DialogTitle>
+            <DialogDescription>
+              Add a new ally for {client?.name}'s support network.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Name Field */}
+                <FormField
+                  control={form.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Name <span className="text-red-500">*</span></FormLabel>
+                      <FormControl>
+                        <Input {...field} placeholder="Enter ally name" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                {/* Email Field */}
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email <span className="text-red-500">*</span></FormLabel>
+                      <FormControl>
+                        <Input {...field} type="email" placeholder="Enter email address" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Relationship Field */}
+                <FormField
+                  control={form.control}
+                  name="relationship"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Relationship <span className="text-red-500">*</span></FormLabel>
+                      <Popover open={openRelationship} onOpenChange={setOpenRelationship}>
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <Button
+                              variant="outline"
+                              role="combobox"
+                              className={cn(
+                                "w-full justify-between",
+                                !field.value && "text-muted-foreground"
+                              )}
+                            >
+                              {field.value
+                                ? RELATIONSHIP_OPTIONS.find(
+                                    (item) => item.value === field.value
+                                  )?.label
+                                : "Select relationship"}
+                              <CaretSortIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                            </Button>
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-full p-0">
+                          <Command>
+                            <CommandInput placeholder="Search relationships..." />
+                            <CommandEmpty>No relationship found.</CommandEmpty>
+                            <CommandGroup>
+                              {RELATIONSHIP_OPTIONS.map((item) => (
+                                <CommandItem
+                                  value={item.label}
+                                  key={item.value}
+                                  onSelect={() => {
+                                    form.setValue("relationship", item.value);
+                                    setOpenRelationship(false);
+                                  }}
+                                >
+                                  <CheckIcon
+                                    className={cn(
+                                      "mr-2 h-4 w-4",
+                                      item.value === field.value
+                                        ? "opacity-100"
+                                        : "opacity-0"
+                                    )}
+                                  />
+                                  {item.label}
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                {/* Language Field */}
+                <FormField
+                  control={form.control}
+                  name="preferredLanguage"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Preferred Language <span className="text-red-500">*</span></FormLabel>
+                      <Popover open={openLanguage} onOpenChange={setOpenLanguage}>
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <Button
+                              variant="outline"
+                              role="combobox"
+                              className={cn(
+                                "w-full justify-between",
+                                !field.value && "text-muted-foreground"
+                              )}
+                            >
+                              {field.value
+                                ? LANGUAGE_OPTIONS.find(
+                                    (item) => item.value === field.value
+                                  )?.label
+                                : "Select language"}
+                              <CaretSortIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                            </Button>
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-full p-0">
+                          <Command>
+                            <CommandInput placeholder="Search languages..." />
+                            <CommandEmpty>No language found.</CommandEmpty>
+                            <CommandGroup>
+                              {LANGUAGE_OPTIONS.map((item) => (
+                                <CommandItem
+                                  value={item.label}
+                                  key={item.value}
+                                  onSelect={() => {
+                                    form.setValue("preferredLanguage", item.value);
+                                    setOpenLanguage(false);
+                                  }}
+                                >
+                                  <CheckIcon
+                                    className={cn(
+                                      "mr-2 h-4 w-4",
+                                      item.value === field.value
+                                        ? "opacity-100"
+                                        : "opacity-0"
+                                    )}
+                                  />
+                                  {item.label}
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              
+              {/* Phone Field */}
+              <FormField
+                control={form.control}
+                name="phone"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Phone Number</FormLabel>
+                    <FormControl>
+                      <Input {...field} type="tel" placeholder="Enter phone number (optional)" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              {/* Notes Field */}
+              <FormField
+                control={form.control}
+                name="notes"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Notes</FormLabel>
+                    <FormControl>
+                      <Textarea 
+                        {...field} 
+                        placeholder="Additional notes about this ally (optional)"
+                        className="resize-none min-h-[100px]"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              {/* Access Permissions */}
+              <div className="space-y-4">
+                <h4 className="text-sm font-medium">Access Permissions</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="accessTherapeutics"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                        <div className="space-y-0.5">
+                          <FormLabel>Therapeutic Access</FormLabel>
+                          <div className="text-xs text-muted-foreground">
+                            Allow access to therapy information and progress
+                          </div>
+                        </div>
+                        <FormControl>
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="accessFinancials"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                        <div className="space-y-0.5">
+                          <FormLabel>Financial Access</FormLabel>
+                          <div className="text-xs text-muted-foreground">
+                            Allow access to budget and financial information
+                          </div>
+                        </div>
+                        <FormControl>
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </div>
+              
+              <DialogFooter>
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={() => setShowAddAllyDialog(false)}
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  type="submit" 
+                  disabled={createAllyMutation.isPending}
+                >
+                  {createAllyMutation.isPending ? "Creating..." : "Create Ally"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
       
       {/* Tabs section */}
       <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
@@ -369,28 +728,32 @@ export default function ClientProfile() {
                 allies={allies}
                 clientId={clientId}
                 onAddAlly={() => {
-                  toast({
-                    title: "Add Ally",
-                    description: "This feature is coming soon.",
+                  // Reset form and show dialog
+                  form.reset({
+                    name: "",
+                    email: "",
+                    relationship: "",
+                    preferredLanguage: "",
+                    phone: "",
+                    notes: "",
+                    accessTherapeutics: false,
+                    accessFinancials: false,
                   });
+                  setShowAddAllyDialog(true);
                 }}
                 onEditAlly={(ally) => {
-                  toast({
-                    title: "Edit Ally",
-                    description: `Editing ${ally.name}'s information.`,
-                  });
+                  // We've implemented this already in ClientAllies
+                  // This is just a fallback in case something's wrong
+                  console.log("Edit ally clicked from parent:", ally);
                 }}
                 onDeleteAlly={(ally) => {
-                  toast({
-                    title: "Delete Ally",
-                    description: `Deleting ${ally.name} from allies.`,
-                  });
+                  // Note: We're using archive instead of delete now
+                  console.log("Delete ally clicked from parent:", ally);
                 }}
                 onContactAlly={(ally) => {
-                  toast({
-                    title: "Contact Ally",
-                    description: `Contacting ${ally.name} at ${ally.email}`,
-                  });
+                  // Direct email is already implemented in ClientAllies
+                  // This is just a fallback
+                  window.location.href = `mailto:${ally.email}`;
                 }}
               />
             </TabsContent>
