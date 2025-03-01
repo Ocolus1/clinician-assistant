@@ -342,6 +342,9 @@ export default function BudgetForm({ clientId, onComplete, onPrevious }: BudgetF
     const settings = settingsForm.getValues();
     saveBudgetSettings.mutate(settings, {
       onSuccess: () => {
+        // Invalidate queries to ensure fresh data when redirected to client list
+        queryClient.invalidateQueries({ queryKey: ["/api/clients"] });
+        
         // Navigate to client list after completion
         toast({
           title: "Budget saved successfully",

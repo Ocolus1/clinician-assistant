@@ -18,41 +18,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   app.get("/api/clients", async (req, res) => {
-    console.log("GET /api/clients - Retrieving all clients for debugging");
+    console.log("GET /api/clients - Retrieving all clients");
     try {
-      // This is a debugging endpoint that returns all clients
-      // In a real app with a database, you would use a query to get all clients
-      
-      // Since we're using MemStorage, we need to access the storage directly
-      // Extract the clients from the private Map in a safe manner
-      const clients = [];
-      
-      // Try to fetch specific clients we know might exist
-      for (let i = 1; i <= 20; i++) {
-        try {
-          const client = await storage.getClient(i);
-          if (client) {
-            console.log(`Found client ${i}:`, client);
-            clients.push(client);
-          }
-        } catch (err) {
-          // Ignore errors for individual client fetches
-        }
-      }
-      
-      // For client 14 specifically (since that's the one causing issues)
-      const client14 = await storage.getClient(14);
-      if (client14) {
-        console.log("Client 14 details:", JSON.stringify(client14));
-      } else {
-        console.log("Client 14 not found in storage");
-      }
-      
-      console.log(`Found ${clients.length} clients`);
+      // Get all clients using the storage's getAllClients method
+      const clients = await storage.getAllClients();
+      console.log(`Found ${clients.length} clients in database`);
       res.json(clients);
     } catch (error) {
-      console.error("Error in debug clients route:", error);
-      res.status(500).json({ error: "Internal server error" });
+      console.error("Error retrieving clients:", error);
+      res.status(500).json({ error: "Failed to retrieve clients" });
     }
   });
   // Client routes
