@@ -577,6 +577,14 @@ export default function EnhancedClientList() {
                 <Share2 className="h-4 w-4 mr-2" />
                 Share Access
               </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem 
+                onClick={() => handleDeleteClick(client.id)}
+                className="text-red-600 focus:text-red-600"
+              >
+                <X className="h-4 w-4 mr-2" />
+                Delete Client
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
@@ -1089,6 +1097,58 @@ export default function EnhancedClientList() {
           )}
         </CardContent>
       </Card>
+      
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-red-600">Delete Client</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this client? This action cannot be undone and all associated data will be permanently removed.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="flex items-center space-x-2 py-3">
+            <div className="rounded-full bg-red-100 p-2">
+              <X className="h-5 w-5 text-red-600" />
+            </div>
+            <div>
+              <p className="font-medium">
+                {clientToDelete && enrichedClients?.find(c => c.id === clientToDelete)?.name}
+              </p>
+              <p className="text-sm text-gray-500">
+                ID: {clientToDelete}
+              </p>
+            </div>
+          </div>
+          
+          <DialogFooter className="flex sm:justify-between">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setDeleteDialogOpen(false);
+                setClientToDelete(null);
+              }}
+              disabled={isDeleting}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => clientToDelete && deleteClient(clientToDelete)}
+              disabled={isDeleting}
+              className="gap-1"
+            >
+              {isDeleting ? (
+                <>
+                  <span className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                  Deleting...
+                </>
+              ) : "Delete Client"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
