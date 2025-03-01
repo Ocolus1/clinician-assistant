@@ -203,8 +203,9 @@ export default function ClientAllies({
         </div>
       </div>
       
-      {/* Active Allies */}
-      {!showArchived && (
+      {/* Display either Active or Archived Allies based on toggle */}
+      {!showArchived ? (
+        // Active Allies
         <>
           {activeAllies.length === 0 ? (
             <div className="text-center p-8 border border-dashed rounded-lg">
@@ -310,10 +311,8 @@ export default function ClientAllies({
             </div>
           )}
         </>
-      )}
-      
-      {/* Archived Allies */}
-      {showArchived && (
+      ) : (
+        // Archived Allies
         <>
           {archivedAllies.length === 0 ? (
             <div className="text-center p-8 border border-dashed rounded-lg">
