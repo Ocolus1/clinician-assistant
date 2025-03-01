@@ -8,6 +8,14 @@ export const clients = pgTable("clients", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   dateOfBirth: date("date_of_birth").notNull(),
+  gender: text("gender"),
+  preferredLanguage: text("preferred_language"),
+  contactEmail: text("contact_email"),
+  contactPhone: text("contact_phone"),
+  address: text("address"),
+  medicalHistory: text("medical_history"),
+  communicationNeeds: text("communication_needs"),
+  therapyPreferences: text("therapy_preferences"),
   fundsManagement: text("funds_management"), // Made optional to allow null values
   // We're moving availableFunds to the budget section, but keeping it here for backward compatibility
   availableFunds: numeric("available_funds").notNull().$type<number>().default(0), 
