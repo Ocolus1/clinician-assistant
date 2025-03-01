@@ -10,6 +10,7 @@ import { Users } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { Client } from "@shared/schema";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -27,7 +28,7 @@ const steps = ["Client Information", "Allies", "Goals", "Budget"];
 export default function OnboardingForm() {
   const { toast } = useToast();
   const [step, setStep] = useState(0);
-  const [clientData, setClientData] = useState<any>(null);
+  const [clientData, setClientData] = useState<Partial<Client> | null>(null);
   const [clientId, setClientId] = useState<number | null>(null);
   const [, setLocation] = useLocation();
   const [showExitDialog, setShowExitDialog] = useState(false);
@@ -35,12 +36,15 @@ export default function OnboardingForm() {
   const progress = ((step + 1) / steps.length) * 100;
 
   // Mutation for creating a client
-  const createClient = useMutation({
+  const createClient = useMutation<Client, Error, any>({
     mutationFn: async (data: any) => {
-      return await apiRequest("POST", "/api/clients", data);
+      const response = await apiRequest("POST", "/api/clients", data);
+      // Parse the JSON response
+      const clientData = await response.json();
+      return clientData as Client;
     },
-    onSuccess: (data) => {
-      setClientId(data.id);
+    onSuccess: (clientData) => {
+      setClientId(clientData.id);
       toast({
         title: "Success",
         description: "Client information saved successfully",
@@ -146,8 +150,12 @@ export default function OnboardingForm() {
               createClient.mutate({
                 ...data,
                 availableFunds: 0
+              }, {
+                onSuccess: () => {
+                  // Only proceed to next step after successful client creation
+                  handleNext();
+                }
               });
-              handleNext();
             }} 
           />
         )}

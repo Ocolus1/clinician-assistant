@@ -36,9 +36,14 @@ export default function ClientForm({ onComplete }: ClientFormProps) {
   
   const handleSubmit = (data: any) => {
     setIsSubmitting(true);
-    // Just return the form data, parent will handle creating the client
-    onComplete(data);
-    setIsSubmitting(false);
+    try {
+      // Just return the form data, parent will handle creating the client
+      onComplete(data);
+    } catch (error) {
+      console.error("Error in client form submission:", error);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
