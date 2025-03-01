@@ -64,7 +64,19 @@ export default function OnboardingForm() {
     if (step === steps.length - 1) {
       // After completing the budget step, go to client list page
       setLocation('/clients');
+    } else if (step === 0 && clientData) {
+      // Create client when moving from step 1 to step 2
+      createClient.mutate({
+        ...clientData,
+        availableFunds: 0
+      }, {
+        onSuccess: () => {
+          // Move to next step after successful client creation
+          setStep(step + 1);
+        }
+      });
     } else {
+      // For other steps, just move forward
       setStep(step + 1);
     }
   };
@@ -145,40 +157,60 @@ export default function OnboardingForm() {
         {step === 0 && (
           <ClientForm 
             onComplete={(data) => {
+              // Store client data without creating the client yet
               setClientData(data);
-              // Create client only at this point
-              createClient.mutate({
-                ...data,
-                availableFunds: 0
-              }, {
-                onSuccess: () => {
-                  // Only proceed to next step after successful client creation
-                  handleNext();
-                }
-              });
+              // Just move to the next step
+              handleNext();
             }} 
           />
         )}
-        {step === 1 && clientId && (
-          <AllyForm 
-            clientId={clientId} 
-            onComplete={handleNext} 
-            onPrevious={handlePrevious} 
-          />
+        {step === 1 && (
+          <>
+            {clientId ? (
+              <AllyForm 
+                clientId={clientId} 
+                onComplete={handleNext} 
+                onPrevious={handlePrevious} 
+              />
+            ) : (
+              <div className="text-center py-10">
+                <div className="animate-spin h-8 w-8 border-t-2 border-b-2 border-primary rounded-full mx-auto mb-4"></div>
+                <p>Preparing form... please wait.</p>
+              </div>
+            )}
+          </>
         )}
-        {step === 2 && clientId && (
-          <GoalsForm 
-            clientId={clientId} 
-            onComplete={handleNext} 
-            onPrevious={handlePrevious} 
-          />
+        {step === 2 && (
+          <>
+            {clientId ? (
+              <GoalsForm 
+                clientId={clientId} 
+                onComplete={handleNext} 
+                onPrevious={handlePrevious} 
+              />
+            ) : (
+              <div className="text-center py-10">
+                <div className="animate-spin h-8 w-8 border-t-2 border-b-2 border-primary rounded-full mx-auto mb-4"></div>
+                <p>Preparing form... please wait.</p>
+              </div>
+            )}
+          </>
         )}
-        {step === 3 && clientId && (
-          <BudgetForm 
-            clientId={clientId} 
-            onComplete={handleNext} 
-            onPrevious={handlePrevious} 
-          />
+        {step === 3 && (
+          <>
+            {clientId ? (
+              <BudgetForm 
+                clientId={clientId} 
+                onComplete={handleNext} 
+                onPrevious={handlePrevious} 
+              />
+            ) : (
+              <div className="text-center py-10">
+                <div className="animate-spin h-8 w-8 border-t-2 border-b-2 border-primary rounded-full mx-auto mb-4"></div>
+                <p>Preparing form... please wait.</p>
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>
