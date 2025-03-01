@@ -1,8 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Users, MessageSquare, Edit, UserPlus, Trash2 } from "lucide-react";
+import { Users, MessageSquare, Edit, UserPlus, Archive, Unlock, ShieldCheck, Mail, Phone, Globe, ArchiveRestore, FileText } from "lucide-react";
 import { 
   Dialog,
   DialogContent,
@@ -13,9 +13,13 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import type { Ally } from "@shared/schema";
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { apiRequest } from '@/lib/queryClient';
+import { useToast } from '@/hooks/use-toast';
 
 interface ClientAlliesProps {
   allies: Ally[];
+  clientId: number;
   onAddAlly?: () => void;
   onEditAlly?: (ally: Ally) => void;
   onDeleteAlly?: (ally: Ally) => void;
@@ -24,25 +28,68 @@ interface ClientAlliesProps {
 
 export default function ClientAllies({ 
   allies, 
+  clientId,
   onAddAlly, 
   onEditAlly, 
   onDeleteAlly,
   onContactAlly 
 }: ClientAlliesProps) {
-  const [allyToDelete, setAllyToDelete] = React.useState<Ally | null>(null);
-  const [showDeleteDialog, setShowDeleteDialog] = React.useState(false);
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [allyToArchive, setAllyToArchive] = useState<Ally | null>(null);
+  const [showArchiveDialog, setShowArchiveDialog] = useState(false);
+  const [showArchivedAllies, setShowArchivedAllies] = useState(false);
   
-  const handleDeleteClick = (ally: Ally) => {
-    setAllyToDelete(ally);
-    setShowDeleteDialog(true);
+  // Filter allies based on their archived status
+  const activeAllies = allies.filter(ally => !ally.archived);
+  const archivedAllies = allies.filter(ally => ally.archived);
+  
+  // Display allies based on the filter
+  const displayedAllies = showArchivedAllies ? archivedAllies : activeAllies;
+  
+  // Archive/restore mutation
+  const archiveMutation = useMutation({
+    mutationFn: ({ allyId, archived }: { allyId: number; archived: boolean }) => 
+      apiRequest('PUT', `/api/clients/${clientId}/allies/${allyId}/archive`, { archived }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/clients/${clientId}/allies`] });
+      toast({
+        title: allyToArchive?.archived ? 'Ally Restored' : 'Ally Archived',
+        description: allyToArchive?.archived 
+          ? `${allyToArchive.name} has been restored from archive.`
+          : `${allyToArchive?.name} has been archived.`,
+      });
+      setShowArchiveDialog(false);
+      setAllyToArchive(null);
+    },
+    onError: (error) => {
+      toast({
+        title: 'Error',
+        description: `Failed to update ally: ${error}`,
+        variant: 'destructive',
+      });
+    }
+  });
+  
+  const handleArchiveClick = (ally: Ally) => {
+    setAllyToArchive(ally);
+    setShowArchiveDialog(true);
   };
   
-  const handleDeleteConfirm = () => {
-    if (allyToDelete && onDeleteAlly) {
-      onDeleteAlly(allyToDelete);
+  const handleArchiveConfirm = () => {
+    if (allyToArchive) {
+      archiveMutation.mutate({ 
+        allyId: allyToArchive.id, 
+        archived: !allyToArchive.archived 
+      });
     }
-    setShowDeleteDialog(false);
-    setAllyToDelete(null);
+  };
+
+  // Function to handle contact via email
+  const handleContactEmail = (ally: Ally) => {
+    if (ally.email && onContactAlly) {
+      onContactAlly(ally);
+    }
   };
   
   return (
@@ -55,76 +102,201 @@ export default function ClientAllies({
           <Button onClick={onAddAlly}>Add First Ally</Button>
         </div>
       ) : (
-        <div className="space-y-4">
-          {allies.map((ally) => (
-            <Card key={ally.id} className="overflow-hidden">
-              <div className="flex items-center p-4">
-                <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center mr-4">
-                  <Users className="h-5 w-5 text-blue-600" />
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <h4 className="font-medium">{ally.name}</h4>
-                    <Badge variant="outline" className="text-xs">{ally.relationship}</Badge>
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1 mt-1 text-sm text-gray-500">
-                    {ally.email && <div>Email: {ally.email}</div>}
-                    {/* Conditionally render phone only if it exists */}
-                    {ally.phone && <div>Phone: {ally.phone}</div>}
-                    {ally.preferredLanguage && <div>Language: {ally.preferredLanguage}</div>}
-                    {ally.notes && <div className="col-span-2 mt-1">{ally.notes}</div>}
-                  </div>
-                </div>
-                <div className="flex items-center space-x-2">
-                  {onContactAlly && (
-                    <Button variant="ghost" size="sm" onClick={() => onContactAlly(ally)}>
-                      <MessageSquare className="h-4 w-4 mr-2" />
-                      <span className="hidden md:inline">Contact</span>
-                    </Button>
-                  )}
-                  {onEditAlly && (
-                    <Button variant="ghost" size="sm" onClick={() => onEditAlly(ally)}>
-                      <Edit className="h-4 w-4 mr-2" />
-                      <span className="hidden md:inline">Edit</span>
-                    </Button>
-                  )}
-                  {onDeleteAlly && (
-                    <Button variant="ghost" size="sm" className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                      onClick={() => handleDeleteClick(ally)}>
-                      <Trash2 className="h-4 w-4 mr-2" />
-                      <span className="hidden md:inline">Remove</span>
-                    </Button>
-                  )}
-                </div>
-              </div>
-            </Card>
-          ))}
-          
-          <div className="flex justify-end pt-4">
-            <Button className="flex items-center" onClick={onAddAlly}>
-              <UserPlus className="h-4 w-4 mr-2" />
-              Add New Ally
+        <>
+          {/* Archived/Active toggle */}
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-lg font-medium">
+              {showArchivedAllies ? 'Archived Allies' : 'Active Allies'}
+              <Badge variant="outline" className="ml-2">
+                {displayedAllies.length}
+              </Badge>
+            </h3>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => setShowArchivedAllies(!showArchivedAllies)}
+              className="flex items-center gap-1"
+            >
+              {showArchivedAllies ? (
+                <>
+                  <Users className="h-4 w-4" />
+                  Show Active
+                </>
+              ) : (
+                <>
+                  <Archive className="h-4 w-4" />
+                  Show Archived
+                </>
+              )}
             </Button>
           </div>
-        </div>
+          
+          {/* Ally Cards Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {displayedAllies.length > 0 ? (
+              displayedAllies.map((ally) => (
+                <Card 
+                  key={ally.id} 
+                  className={`overflow-hidden ${ally.archived ? 'bg-gray-50 border-gray-200' : ''}`}
+                >
+                  <CardHeader className="pb-2">
+                    <div className="flex justify-between items-start">
+                      <div className="flex items-center">
+                        <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center mr-3">
+                          <Users className="h-5 w-5 text-blue-600" />
+                        </div>
+                        <div>
+                          <h4 className="font-medium text-lg flex items-center gap-2">
+                            {ally.name}
+                            {ally.archived && (
+                              <Badge variant="outline" className="text-xs bg-gray-100">
+                                Archived
+                              </Badge>
+                            )}
+                          </h4>
+                          <Badge variant="outline" className="text-xs">
+                            {ally.relationship}
+                          </Badge>
+                        </div>
+                      </div>
+                      
+                      {/* Access permissions badges */}
+                      <div className="flex space-x-1">
+                        {ally.accessTherapeutics && (
+                          <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-200 border-blue-200">
+                            <FileText className="h-3 w-3 mr-1" />
+                            Therapeutic
+                          </Badge>
+                        )}
+                        {ally.accessFinancials && (
+                          <Badge className="bg-green-100 text-green-800 hover:bg-green-200 border-green-200">
+                            <ShieldCheck className="h-3 w-3 mr-1" />
+                            Financial
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                  </CardHeader>
+                  
+                  <CardContent className="pt-2 pb-4">
+                    <div className="grid grid-cols-1 gap-y-1 text-sm text-gray-500">
+                      {ally.email && (
+                        <div className="flex items-center">
+                          <Mail className="h-3.5 w-3.5 mr-2 text-gray-400" />
+                          <span>{ally.email}</span>
+                        </div>
+                      )}
+                      {ally.phone && (
+                        <div className="flex items-center">
+                          <Phone className="h-3.5 w-3.5 mr-2 text-gray-400" />
+                          <span>{ally.phone}</span>
+                        </div>
+                      )}
+                      {ally.preferredLanguage && (
+                        <div className="flex items-center">
+                          <Globe className="h-3.5 w-3.5 mr-2 text-gray-400" />
+                          <span>{ally.preferredLanguage}</span>
+                        </div>
+                      )}
+                      {ally.notes && (
+                        <div className="flex items-start mt-2">
+                          <FileText className="h-3.5 w-3.5 mr-2 mt-0.5 text-gray-400" />
+                          <span className="text-xs">{ally.notes}</span>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                  
+                  <CardFooter className="pt-0 border-t bg-gray-50 flex justify-between">
+                    <div className="flex items-center space-x-1">
+                      {onContactAlly && !ally.archived && (
+                        <Button variant="ghost" size="sm" onClick={() => handleContactEmail(ally)}>
+                          <MessageSquare className="h-4 w-4 mr-1" />
+                          Contact
+                        </Button>
+                      )}
+                      {onEditAlly && !ally.archived && (
+                        <Button variant="ghost" size="sm" onClick={() => onEditAlly(ally)}>
+                          <Edit className="h-4 w-4 mr-1" />
+                          Edit
+                        </Button>
+                      )}
+                    </div>
+                    
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className={ally.archived 
+                        ? "text-green-600 hover:text-green-800 hover:bg-green-50" 
+                        : "text-amber-600 hover:text-amber-800 hover:bg-amber-50"}
+                      onClick={() => handleArchiveClick(ally)}
+                    >
+                      {ally.archived ? (
+                        <>
+                          <ArchiveRestore className="h-4 w-4 mr-1" />
+                          Restore
+                        </>
+                      ) : (
+                        <>
+                          <Archive className="h-4 w-4 mr-1" />
+                          Archive
+                        </>
+                      )}
+                    </Button>
+                  </CardFooter>
+                </Card>
+              ))
+            ) : (
+              <div className="col-span-2 text-center py-6 bg-gray-50 rounded-lg">
+                <Archive className="h-8 w-8 text-gray-300 mx-auto mb-2" />
+                <p className="text-gray-500">
+                  {showArchivedAllies ? 'No archived allies found.' : 'No active allies found.'}
+                </p>
+              </div>
+            )}
+          </div>
+          
+          {!showArchivedAllies && (
+            <div className="flex justify-end pt-4">
+              <Button className="flex items-center" onClick={onAddAlly}>
+                <UserPlus className="h-4 w-4 mr-2" />
+                Add New Ally
+              </Button>
+            </div>
+          )}
+        </>
       )}
       
-      {/* Delete Confirmation Dialog */}
-      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+      {/* Archive/Restore Confirmation Dialog */}
+      <Dialog open={showArchiveDialog} onOpenChange={setShowArchiveDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Remove Ally</DialogTitle>
+            <DialogTitle>
+              {allyToArchive?.archived ? 'Restore Ally' : 'Archive Ally'}
+            </DialogTitle>
             <DialogDescription>
-              Are you sure you want to remove {allyToDelete?.name} from this client's support network?
-              This action cannot be undone.
+              {allyToArchive?.archived ? (
+                <>
+                  Are you sure you want to restore {allyToArchive?.name} to active status?
+                  This will make them visible in the main allies list again.
+                </>
+              ) : (
+                <>
+                  Are you sure you want to archive {allyToArchive?.name}?
+                  Archived allies won't appear in the main allies list but can be restored later.
+                </>
+              )}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowDeleteDialog(false)}>
+            <Button variant="outline" onClick={() => setShowArchiveDialog(false)}>
               Cancel
             </Button>
-            <Button variant="destructive" onClick={handleDeleteConfirm}>
-              Remove
+            <Button 
+              variant={allyToArchive?.archived ? "default" : "secondary"}
+              onClick={handleArchiveConfirm}
+            >
+              {allyToArchive?.archived ? 'Restore' : 'Archive'}
             </Button>
           </DialogFooter>
         </DialogContent>

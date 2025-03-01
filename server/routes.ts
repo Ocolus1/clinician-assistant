@@ -123,6 +123,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(ally);
   });
 
+  // Archive/Unarchive an ally
+  app.put("/api/clients/:clientId/allies/:id/archive", async (req, res) => {
+    const allyId = parseInt(req.params.id);
+    const { archived } = req.body;
+    
+    if (typeof archived !== 'boolean') {
+      return res.status(400).json({ error: "Missing or invalid 'archived' status in request body" });
+    }
+
+    try {
+      // Update the archived status in the database
+      await pool.query(
+        `UPDATE allies SET archived = $1 WHERE id = $2`,
+        [archived, allyId]
+      );
+      
+      // Get the updated ally
+      const result = await pool.query(
+        `SELECT * FROM allies WHERE id = $1`,
+        [allyId]
+      );
+      
+      if (result.rows.length === 0) {
+        return res.status(404).json({ error: "Ally not found" });
+      }
+      
+      res.json(result.rows[0]);
+    } catch (error) {
+      console.error("Error archiving ally:", error);
+      res.status(500).json({ error: "Failed to update ally archived status" });
+    }
+  });
+
   // NOTE: Ally update function is not yet implemented
   app.put("/api/clients/:clientId/allies/:id", async (req, res) => {
     const result = insertAllySchema.safeParse(req.body);

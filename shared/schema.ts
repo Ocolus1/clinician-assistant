@@ -32,8 +32,9 @@ export const allies = pgTable("allies", {
   email: text("email").notNull(),
   phone: text("phone"),
   notes: text("notes"),
-  accessTherapeutics: boolean("access_therapeutics").notNull(),
-  accessFinancials: boolean("access_financials").notNull(),
+  accessTherapeutics: boolean("access_therapeutics").notNull().default(false),
+  accessFinancials: boolean("access_financials").notNull().default(false),
+  archived: boolean("archived").notNull().default(false),
 });
 
 export const goals = pgTable("goals", {
