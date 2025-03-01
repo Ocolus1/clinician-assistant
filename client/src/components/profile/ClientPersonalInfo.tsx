@@ -68,7 +68,9 @@ export default function ClientPersonalInfo({ client, onEdit }: ClientPersonalInf
             </div>
             <div>
               <h4 className="text-sm font-medium text-gray-500 mb-1">Available Funds</h4>
-              <p className="font-medium">${client.availableFunds.toFixed(2)}</p>
+              <p className="font-medium">${typeof client.availableFunds === 'number' ? 
+                client.availableFunds.toFixed(2) : 
+                parseFloat(client.availableFunds as unknown as string).toFixed(2)}</p>
             </div>
           </div>
         </TabsContent>
