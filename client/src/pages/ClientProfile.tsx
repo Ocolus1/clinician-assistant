@@ -363,6 +363,7 @@ export default function ClientProfile() {
               {/* Use the ClientAllies component */}
               <ClientAllies
                 allies={allies}
+                clientId={clientId}
                 onAddAlly={() => console.log("Add ally clicked")}
                 onEditAlly={(ally) => console.log("Edit ally clicked", ally)}
                 onDeleteAlly={(ally) => console.log("Delete ally clicked", ally)}
