@@ -29,80 +29,50 @@ export default function OnboardingForm() {
   const { toast } = useToast();
   const [step, setStep] = useState(0);
   const [clientData, setClientData] = useState<Partial<Client> | null>(null);
-  const [alliesData, setAlliesData] = useState<any[]>([]);
-  const [goalsData, setGoalsData] = useState<any[]>([]);
-  const [budgetData, setBudgetData] = useState<any | null>(null);
   const [clientId, setClientId] = useState<number | null>(null);
   const [, setLocation] = useLocation();
   const [showExitDialog, setShowExitDialog] = useState(false);
-  const [isCompleting, setIsCompleting] = useState(false);
   
   const progress = ((step + 1) / steps.length) * 100;
 
-  // Mutation for creating a client - only called at the end of the process
+  // Mutation for creating a client
   const createClient = useMutation<Client, Error, any>({
     mutationFn: async (data: any) => {
+      // This is where we create the client in the database
       console.log("Creating client with data:", data);
       const response = await apiRequest("POST", "/api/clients", data);
-      // Parse the JSON response
       const clientData = await response.json();
       return clientData as Client;
     },
-    onSuccess: (newClientData) => {
-      setClientId(newClientData.id);
+    onSuccess: (clientData) => {
+      setClientId(clientData.id);
       toast({
         title: "Success",
-        description: "Client created successfully",
+        description: "Client information saved successfully",
       });
       
-      // Only redirect to client list after successful client creation at the end of the process
-      if (step === steps.length - 1) {
-        setLocation('/clients');
-      }
+      // Proceed to the next step only after successful client creation
+      setStep(step + 1);
     },
     onError: (error) => {
       console.error("Error creating client:", error);
       toast({
         title: "Error",
-        description: "Failed to create client",
+        description: "Failed to save client information",
         variant: "destructive",
       });
-      setIsCompleting(false);
     },
   });
 
-  // This will be called after completing all steps to actually save everything
-  const completeOnboarding = async () => {
-    setIsCompleting(true);
-    
-    try {
-      // Only now do we create the client with all the collected data
-      if (!clientData) {
-        throw new Error("Client data is missing");
-      }
-      
-      // Create the client
-      createClient.mutate({
-        ...clientData,
-        availableFunds: 0
-      });
-      
-    } catch (error) {
-      console.error("Error completing onboarding:", error);
-      toast({
-        title: "Error",
-        description: "Failed to complete onboarding process",
-        variant: "destructive",
-      });
-      setIsCompleting(false);
-    }
-  };
-
   const handleNext = () => {
     if (step === steps.length - 1) {
-      // This is the final step, complete the onboarding
-      completeOnboarding();
+      // After completing the budget step, go to client list page
+      setLocation('/clients');
+    } else if (step === 0) {
+      // Don't automatically go to next step - the client creation mutation 
+      // will handle this when successful
     } else {
+      // For steps after client creation, proceed normally
       setStep(step + 1);
     }
   };
@@ -115,7 +85,7 @@ export default function OnboardingForm() {
 
   const handleExit = () => {
     // Show exit confirmation dialog if we're in any step of onboarding
-    if (step > 0 || clientData) {
+    if (step > 0 || clientId || clientData) {
       setShowExitDialog(true);
     } else {
       navigateToClientList();
@@ -184,102 +154,35 @@ export default function OnboardingForm() {
           <ClientForm 
             onComplete={(data) => {
               setClientData(data);
-              // Just store the data and move to the next step, don't create client yet
-              setStep(step + 1);
+              // Create client now that we have the basic data
+              // The onSuccess callback will handle advancing to the next step
+              createClient.mutate({
+                ...data,
+                availableFunds: 0
+              });
             }} 
           />
         )}
-        {step === 1 && (
-          <div className="flex flex-col items-center">
-            <h2 className="text-2xl font-semibold mb-4">Support Network</h2>
-            <p className="text-center text-gray-500 mb-8">
-              Add allies to the client's support network. This step is optional and can be completed later.
-            </p>
-            <div className="space-y-4 w-full max-w-md">
-              <Button 
-                variant="outline" 
-                onClick={() => setStep(step + 1)} 
-                className="w-full py-6"
-              >
-                Skip this step
-              </Button>
-              <Button 
-                onClick={() => setStep(step + 1)}
-                className="w-full py-6"
-              >
-                Continue without adding allies
-              </Button>
-              <Button 
-                variant="ghost" 
-                onClick={handlePrevious}
-                className="w-full"
-              >
-                Back to previous step
-              </Button>
-            </div>
-          </div>
+        {step === 1 && clientId && (
+          <AllyForm 
+            clientId={clientId} 
+            onComplete={handleNext} 
+            onPrevious={handlePrevious} 
+          />
         )}
-        {step === 2 && (
-          <div className="flex flex-col items-center">
-            <h2 className="text-2xl font-semibold mb-4">Therapeutic Goals</h2>
-            <p className="text-center text-gray-500 mb-8">
-              Define therapeutic goals for the client. This step is optional and can be completed later.
-            </p>
-            <div className="space-y-4 w-full max-w-md">
-              <Button 
-                variant="outline" 
-                onClick={() => setStep(step + 1)} 
-                className="w-full py-6"
-              >
-                Skip this step
-              </Button>
-              <Button 
-                onClick={() => setStep(step + 1)}
-                className="w-full py-6"
-              >
-                Continue without adding goals
-              </Button>
-              <Button 
-                variant="ghost" 
-                onClick={handlePrevious}
-                className="w-full"
-              >
-                Back to previous step
-              </Button>
-            </div>
-          </div>
+        {step === 2 && clientId && (
+          <GoalsForm 
+            clientId={clientId} 
+            onComplete={handleNext} 
+            onPrevious={handlePrevious} 
+          />
         )}
-        {step === 3 && (
-          <div className="flex flex-col items-center">
-            <h2 className="text-2xl font-semibold mb-4">Budget Information</h2>
-            <p className="text-center text-gray-500 mb-8">
-              Set up budget information for the client. Click "Complete" to save all information and create the client.
-            </p>
-            <div className="space-y-4 w-full max-w-md">
-              <Button 
-                onClick={completeOnboarding}
-                className="w-full py-6"
-                disabled={isCompleting}
-              >
-                {isCompleting ? (
-                  <div className="flex items-center justify-center">
-                    <div className="animate-spin mr-2 h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
-                    Creating client...
-                  </div>
-                ) : (
-                  "Complete Onboarding"
-                )}
-              </Button>
-              <Button 
-                variant="ghost" 
-                onClick={handlePrevious}
-                className="w-full"
-                disabled={isCompleting}
-              >
-                Back to previous step
-              </Button>
-            </div>
-          </div>
+        {step === 3 && clientId && (
+          <BudgetForm 
+            clientId={clientId} 
+            onComplete={handleNext} 
+            onPrevious={handlePrevious} 
+          />
         )}
       </div>
     </div>
