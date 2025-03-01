@@ -68,8 +68,11 @@ export default function ClientPersonalInfo({ client, onEdit }: ClientPersonalInf
   return (
     <Card className="w-full shadow-sm">
       <CardHeader className="pb-2 flex flex-row items-center justify-between">
-        <div>
+        <div className="flex items-center">
           <CardTitle>{client.name}</CardTitle>
+          <Badge variant="outline" className="ml-2 bg-green-50 text-green-700 border-green-200">
+            Active
+          </Badge>
         </div>
         {onEdit && (
           <Button 
