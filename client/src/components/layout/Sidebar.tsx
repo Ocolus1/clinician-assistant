@@ -38,7 +38,7 @@ export function Sidebar() {
       icon: Home,
     },
     {
-      name: "Clients",
+      name: "Client Management",
       href: "/clients",
       icon: Users,
     },
