@@ -2,7 +2,7 @@ import React from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { format, parseISO } from "date-fns";
+import { format } from "date-fns";
 import { Edit } from "lucide-react";
 import type { Client } from "@shared/schema";
 
@@ -36,7 +36,11 @@ export default function ClientPersonalInfo({ client, onEdit }: ClientPersonalInf
     if (!dateStr) return 'Not provided';
     
     try {
-      return format(parseISO(dateStr), 'MMMM d, yyyy');
+      // For debugging
+      console.log("Formatting date:", dateStr, "Type:", typeof dateStr);
+      
+      // Handle both ISO string format and Date objects
+      return format(new Date(dateStr), 'MMMM d, yyyy');
     } catch (e) {
       console.error("Error formatting date:", e, dateStr);
       return dateStr;
@@ -45,7 +49,13 @@ export default function ClientPersonalInfo({ client, onEdit }: ClientPersonalInf
 
   const clientAge = client.dateOfBirth ? calculateAge(client.dateOfBirth) : null;
   
-  console.log("Client data in profile:", JSON.stringify(client));
+  console.log("ClientPersonalInfo component received:", {
+    name: client.name,
+    dateOfBirth: client.dateOfBirth,
+    fundsManagement: client.fundsManagement,
+    dateOfBirthType: typeof client.dateOfBirth,
+    fundsManagementType: typeof client.fundsManagement
+  });
 
   return (
     <Card className="w-full shadow-sm">
@@ -69,7 +79,7 @@ export default function ClientPersonalInfo({ client, onEdit }: ClientPersonalInf
           <div>
             <h4 className="text-sm font-medium text-gray-500 mb-1">Date of Birth</h4>
             <p className="font-medium">
-              {formatDate(client.dateOfBirth)}
+              {client.dateOfBirth ? formatDate(client.dateOfBirth) : 'Not provided'}
               {clientAge && 
                 <Badge variant="outline" className="ml-2 bg-primary/10 text-primary">
                   {clientAge} years old
@@ -79,7 +89,9 @@ export default function ClientPersonalInfo({ client, onEdit }: ClientPersonalInf
           </div>
           <div>
             <h4 className="text-sm font-medium text-gray-500 mb-1">Funds Management</h4>
-            <p className="font-medium">{client.fundsManagement || 'Not specified'}</p>
+            <p className="font-medium">
+              {client.fundsManagement ? client.fundsManagement : 'Not specified'}
+            </p>
           </div>
         </div>
       </CardContent>

@@ -338,10 +338,13 @@ export default function ClientProfile() {
               
               {/* Use the ClientPersonalInfo component */}
               {client && (
-                <ClientPersonalInfo 
-                  client={client} 
-                  onEdit={() => console.log("Edit personal info clicked")} 
-                />
+                <>
+                  {console.log("Client data from parent component:", JSON.stringify(client))}
+                  <ClientPersonalInfo 
+                    client={client} 
+                    onEdit={() => console.log("Edit personal info clicked")} 
+                  />
+                </>
               )}
             </TabsContent>
             
