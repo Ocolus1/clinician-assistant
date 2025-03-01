@@ -1,68 +1,81 @@
-import { drizzle } from 'drizzle-orm/node-postgres';
-import pkg from 'pg';
-const { Pool } = pkg;
-import * as schema from './shared/schema';
+import { db } from './server/db';
+import { sql } from 'drizzle-orm';
 
+/**
+ * This script fixes database schema mismatches by adding missing columns
+ * to various tables to match the defined schema in shared/schema.ts
+ */
 async function main() {
-  console.log("Starting database schema fix...");
-  
   try {
-    // Create a PostgreSQL pool
-    const pool = new Pool({
-      connectionString: process.env.DATABASE_URL,
-    });
-
-    console.log("Database connection established");
+    console.log('Starting schema fixes...');
     
-    // Initialize drizzle with our schema
-    const db = drizzle(pool, { schema });
-    
-    console.log("Applying schema changes...");
-    
-    // Check if budget_settings table exists
-    const tableCheckResult = await pool.query(`
-      SELECT EXISTS (
-        SELECT FROM information_schema.tables 
-        WHERE table_name = 'budget_settings'
-      ) as exists;
+    // Fix allies table
+    console.log('Fixing allies table...');
+    await db.execute(sql`
+      ALTER TABLE allies 
+      ADD COLUMN IF NOT EXISTS phone TEXT,
+      ADD COLUMN IF NOT EXISTS notes TEXT
     `);
     
-    const tableExists = tableCheckResult.rows[0].exists;
+    // Fix budget_items table
+    console.log('Fixing budget_items table...');
+    await db.execute(sql`
+      ALTER TABLE budget_items 
+      ADD COLUMN IF NOT EXISTS name TEXT,
+      ADD COLUMN IF NOT EXISTS category TEXT
+    `);
+
+    // Check for other tables with potentially missing columns
+    console.log('Checking budget_settings table...');
+    await db.execute(sql`
+      ALTER TABLE budget_settings
+      ADD COLUMN IF NOT EXISTS plan_serial_number TEXT,
+      ADD COLUMN IF NOT EXISTS plan_code TEXT,
+      ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE,
+      ADD COLUMN IF NOT EXISTS end_of_plan TEXT,
+      ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT NOW()
+    `);
+
+    console.log('Checking budget_item_catalog table...');
+    await db.execute(sql`
+      ALTER TABLE budget_item_catalog
+      ADD COLUMN IF NOT EXISTS category TEXT,
+      ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE
+    `);
+
+    console.log('Checking subgoals table...');
+    await db.execute(sql`
+      ALTER TABLE subgoals
+      ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'pending'
+    `);
+
+    // Verify changes
+    console.log('Verifying changes...');
     
-    if (tableExists) {
-      // Check if plan_serial_number column exists
-      const columnCheckResult = await pool.query(`
-        SELECT EXISTS (
-          SELECT FROM information_schema.columns 
-          WHERE table_name = 'budget_settings' AND column_name = 'plan_serial_number'
-        ) as exists;
-      `);
-      
-      const columnExists = columnCheckResult.rows[0].exists;
-      
-      if (!columnExists) {
-        console.log("Adding plan_serial_number column to budget_settings table...");
-        await pool.query(`
-          ALTER TABLE budget_settings 
-          ADD COLUMN plan_serial_number TEXT;
-        `);
-        console.log("Column added successfully");
-      } else {
-        console.log("plan_serial_number column already exists");
-      }
-    } else {
-      console.log("budget_settings table does not exist, will be created through schema push");
-    }
+    const alliesColumns = await db.execute(sql`
+      SELECT column_name FROM information_schema.columns 
+      WHERE table_name = 'allies' ORDER BY column_name
+    `);
+    console.log('Allies table columns:', alliesColumns.rows);
     
-    console.log("Database schema fixes applied");
+    const budgetItemsColumns = await db.execute(sql`
+      SELECT column_name FROM information_schema.columns 
+      WHERE table_name = 'budget_items' ORDER BY column_name
+    `);
+    console.log('Budget items table columns:', budgetItemsColumns.rows);
     
-    // Close the pool
-    await pool.end();
+    const budgetSettingsColumns = await db.execute(sql`
+      SELECT column_name FROM information_schema.columns 
+      WHERE table_name = 'budget_settings' ORDER BY column_name
+    `);
+    console.log('Budget settings table columns:', budgetSettingsColumns.rows);
     
-    console.log("Schema fix process completed successfully");
+    console.log('Schema fixes completed successfully!');
   } catch (error) {
-    console.error("Schema fix failed:", error);
+    console.error('Error updating schema:', error);
     process.exit(1);
+  } finally {
+    process.exit(0);
   }
 }
 
