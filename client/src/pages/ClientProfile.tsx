@@ -34,13 +34,13 @@ import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Client, Ally, Goal, Subgoal, BudgetSettings, BudgetItem } from "@shared/schema";
 
-// Tab components (to be implemented)
-import ClientPersonalInfo from "../components/profile/ClientPersonalInfo";
-import ClientAllies from "../components/profile/ClientAllies";
-import ClientGoals from "../components/profile/ClientGoals";
-import ClientBudget from "../components/profile/ClientBudget";
-import ClientSessions from "../components/profile/ClientSessions";
-import ClientReports from "../components/profile/ClientReports";
+// Tab components
+import ClientPersonalInfo from "@/components/profile/ClientPersonalInfo";
+import ClientAllies from "@/components/profile/ClientAllies";
+import ClientGoals from "@/components/profile/ClientGoals";
+import ClientBudget from "@/components/profile/ClientBudget";
+import ClientSessions from "@/components/profile/ClientSessions";
+import ClientReports from "@/components/profile/ClientReports";
 
 // Function to parse URL parameters for active tab
 function getActiveTabFromURL(): string {
@@ -56,34 +56,34 @@ export default function ClientProfile() {
   const [activeTab, setActiveTab] = useState(getActiveTabFromURL());
 
   // Fetch client data
-  const { data: client, isLoading: isLoadingClient } = useQuery({
+  const { data: client, isLoading: isLoadingClient } = useQuery<Client>({
     queryKey: ['/api/clients', clientId],
     queryFn: getQueryFn({ on401: "throw" }),
   });
 
   // Fetch allies
-  const { data: allies = [], isLoading: isLoadingAllies } = useQuery({
+  const { data: allies = [], isLoading: isLoadingAllies } = useQuery<Ally[]>({
     queryKey: ['/api/clients', clientId, 'allies'],
     queryFn: getQueryFn({ on401: "throw" }),
     enabled: !!clientId,
   });
 
   // Fetch goals
-  const { data: goals = [], isLoading: isLoadingGoals } = useQuery({
+  const { data: goals = [], isLoading: isLoadingGoals } = useQuery<Goal[]>({
     queryKey: ['/api/clients', clientId, 'goals'],
     queryFn: getQueryFn({ on401: "throw" }),
     enabled: !!clientId,
   });
 
   // Fetch budget items
-  const { data: budgetItems = [], isLoading: isLoadingBudgetItems } = useQuery({
+  const { data: budgetItems = [], isLoading: isLoadingBudgetItems } = useQuery<BudgetItem[]>({
     queryKey: ['/api/clients', clientId, 'budget-items'],
     queryFn: getQueryFn({ on401: "throw" }),
     enabled: !!clientId,
   });
 
   // Fetch budget settings
-  const { data: budgetSettings, isLoading: isLoadingBudgetSettings } = useQuery({
+  const { data: budgetSettings, isLoading: isLoadingBudgetSettings } = useQuery<BudgetSettings>({
     queryKey: ['/api/clients', clientId, 'budget-settings'],
     queryFn: getQueryFn({ on401: "throw" }),
     enabled: !!clientId,
@@ -91,14 +91,14 @@ export default function ClientProfile() {
 
   // Fetch subgoals for each goal
   const subgoalQueries = goals.map((goal: Goal) => {
-    return useQuery({
+    return useQuery<Subgoal[]>({
       queryKey: ['/api/goals', goal.id, 'subgoals'],
       queryFn: getQueryFn({ on401: "throw" }),
       enabled: !!goal.id,
     });
   });
 
-  const isLoadingSubgoals = subgoalQueries.some(query => query.isLoading);
+  const isLoadingSubgoals = subgoalQueries.some((query: any) => query.isLoading);
 
   // Handle tab change
   const handleTabChange = (value: string) => {
@@ -336,34 +336,13 @@ export default function ClientProfile() {
                 View and edit the client's personal details, contact information, and preferences.
               </p>
               
-              {/* Personal Info Tab - Will be replaced with component */}
-              <div className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <h4 className="text-sm font-medium text-gray-500 mb-1">Full Name</h4>
-                    <p className="font-medium">{client.name}</p>
-                  </div>
-                  <div>
-                    <h4 className="text-sm font-medium text-gray-500 mb-1">Date of Birth</h4>
-                    <p className="font-medium">{client.dateOfBirth ? format(new Date(client.dateOfBirth), 'PP') : 'Not provided'}</p>
-                  </div>
-                  <div>
-                    <h4 className="text-sm font-medium text-gray-500 mb-1">Funds Management</h4>
-                    <p className="font-medium">{client.fundsManagement}</p>
-                  </div>
-                  <div>
-                    <h4 className="text-sm font-medium text-gray-500 mb-1">Available Funds</h4>
-                    <p className="font-medium">${client.availableFunds}</p>
-                  </div>
-                </div>
-                
-                <div className="flex justify-end pt-4">
-                  <Button className="flex items-center">
-                    <Edit className="h-4 w-4 mr-2" />
-                    Edit Personal Information
-                  </Button>
-                </div>
-              </div>
+              {/* Use the ClientPersonalInfo component */}
+              {client && (
+                <ClientPersonalInfo 
+                  client={client} 
+                  onEdit={() => console.log("Edit personal info clicked")} 
+                />
+              )}
             </TabsContent>
             
             <TabsContent value="allies" className="mt-0">
@@ -372,50 +351,14 @@ export default function ClientProfile() {
                 Manage the client's support network including family members, caregivers, and therapists.
               </p>
               
-              {/* Allies Tab - Will be replaced with component */}
-              <div className="space-y-6">
-                {allies.length === 0 ? (
-                  <div className="text-center py-8">
-                    <Users className="h-10 w-10 text-gray-300 mx-auto mb-3" />
-                    <h4 className="text-lg font-medium text-gray-500 mb-2">No allies added yet</h4>
-                    <p className="text-gray-500 mb-4">Add family members, caregivers, or therapists to the client's support network.</p>
-                    <Button>Add First Ally</Button>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {allies.map((ally: Ally) => (
-                      <Card key={ally.id} className="overflow-hidden">
-                        <div className="flex items-center p-4">
-                          <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center mr-4">
-                            <Users className="h-5 w-5 text-blue-600" />
-                          </div>
-                          <div className="flex-1">
-                            <h4 className="font-medium">{ally.name}</h4>
-                            <div className="text-sm text-gray-500">{ally.relationship}</div>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <Button variant="ghost" size="sm">
-                              <MessageSquare className="h-4 w-4 mr-2" />
-                              <span className="hidden md:inline">Contact</span>
-                            </Button>
-                            <Button variant="ghost" size="sm">
-                              <Edit className="h-4 w-4 mr-2" />
-                              <span className="hidden md:inline">Edit</span>
-                            </Button>
-                          </div>
-                        </div>
-                      </Card>
-                    ))}
-                    
-                    <div className="flex justify-end pt-4">
-                      <Button className="flex items-center">
-                        <Users className="h-4 w-4 mr-2" />
-                        Add New Ally
-                      </Button>
-                    </div>
-                  </div>
-                )}
-              </div>
+              {/* Use the ClientAllies component */}
+              <ClientAllies
+                allies={allies}
+                onAddAlly={() => console.log("Add ally clicked")}
+                onEditAlly={(ally) => console.log("Edit ally clicked", ally)}
+                onDeleteAlly={(ally) => console.log("Delete ally clicked", ally)}
+                onContactAlly={(ally) => console.log("Contact ally clicked", ally)}
+              />
             </TabsContent>
             
             <TabsContent value="goals" className="mt-0">
@@ -424,88 +367,22 @@ export default function ClientProfile() {
                 Track and manage the client's therapeutic goals and sub-goals.
               </p>
               
-              {/* Goals Tab - Will be replaced with component */}
-              <div className="space-y-6">
-                {goals.length === 0 ? (
-                  <div className="text-center py-8">
-                    <Target className="h-10 w-10 text-gray-300 mx-auto mb-3" />
-                    <h4 className="text-lg font-medium text-gray-500 mb-2">No goals set yet</h4>
-                    <p className="text-gray-500 mb-4">Set therapeutic goals and track progress over time.</p>
-                    <Button>Add First Goal</Button>
-                  </div>
-                ) : (
-                  <div className="space-y-6">
-                    {goals.map((goal: Goal, index: number) => (
-                      <Card key={goal.id} className="overflow-hidden">
-                        <CardHeader className="py-4 px-6 bg-gray-50 border-b">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center">
-                              <div className="h-8 w-8 rounded-full bg-green-100 flex items-center justify-center mr-3">
-                                <Award className="h-4 w-4 text-green-600" />
-                              </div>
-                              <div>
-                                <h4 className="font-medium">{goal.title}</h4>
-                                <div className="text-sm text-gray-500">Added {format(new Date(), 'PP')}</div>
-                              </div>
-                            </div>
-                            <Badge className="bg-green-100 text-green-700 border-green-200">In Progress</Badge>
-                          </div>
-                        </CardHeader>
-                        <CardContent className="p-6">
-                          <div className="mb-4">
-                            <p className="text-gray-600">{goal.description}</p>
-                          </div>
-                          
-                          <div className="mb-6">
-                            <div className="flex justify-between items-center mb-2">
-                              <h5 className="text-sm font-medium">Overall Progress</h5>
-                              <span className="text-sm font-medium">40%</span>
-                            </div>
-                            <Progress value={40} className="h-2" />
-                          </div>
-                          
-                          <div className="space-y-3">
-                            <h5 className="text-sm font-medium">Subgoals</h5>
-                            
-                            {subgoalQueries[index].data?.map((subgoal: Subgoal) => (
-                              <div key={subgoal.id} className="flex items-center py-2 border-b border-gray-100">
-                                <div className="h-6 w-6 rounded-full bg-blue-50 flex items-center justify-center mr-3">
-                                  <Target className="h-3 w-3 text-blue-600" />
-                                </div>
-                                <div className="flex-1">
-                                  <h6 className="font-medium text-sm">{subgoal.title}</h6>
-                                  {subgoal.description && (
-                                    <p className="text-xs text-gray-500">{subgoal.description}</p>
-                                  )}
-                                </div>
-                                <Badge variant="outline" className="ml-2">
-                                  {subgoal.status || 'Pending'}
-                                </Badge>
-                              </div>
-                            ))}
-                          </div>
-                        </CardContent>
-                        <CardFooter className="flex justify-end gap-2 py-3 px-6 bg-gray-50 border-t">
-                          <Button variant="outline" size="sm">
-                            <Edit className="h-4 w-4 mr-2" />
-                            Edit Goal
-                          </Button>
-                          <Button size="sm">
-                            Add Subgoal
-                          </Button>
-                        </CardFooter>
-                      </Card>
-                    ))}
-                    
-                    <div className="flex justify-end pt-4">
-                      <Button className="flex items-center">
-                        <Target className="h-4 w-4 mr-2" />
-                        Add New Goal
-                      </Button>
-                    </div>
-                  </div>
-                )}
-              </div>
+              {/* Create a subgoals map to pass to the ClientGoals component */}
+              <ClientGoals 
+                goals={goals}
+                subgoals={subgoalQueries.reduce((acc, query, index) => {
+                  if (goals[index] && query.data) {
+                    acc[goals[index].id] = query.data;
+                  }
+                  return acc;
+                }, {} as Record<number, Subgoal[]>)}
+                onAddGoal={() => console.log("Add goal clicked")}
+                onEditGoal={(goal) => console.log("Edit goal clicked", goal)}
+                onArchiveGoal={(goal) => console.log("Archive goal clicked", goal)}
+                onAddSubgoal={(goalId) => console.log("Add subgoal clicked for goal", goalId)}
+                onEditSubgoal={(subgoal) => console.log("Edit subgoal clicked", subgoal)}
+                onToggleSubgoalStatus={(subgoal) => console.log("Toggle subgoal status clicked", subgoal)}
+              />
             </TabsContent>
             
             <TabsContent value="budget" className="mt-0">
@@ -514,90 +391,15 @@ export default function ClientProfile() {
                 Track and manage the client's budget, funding sources, and expenditures.
               </p>
               
-              {/* Budget Tab - Will be replaced with component */}
-              <div className="space-y-6">
-                <Card className="bg-gray-50 border-gray-200">
-                  <CardContent className="p-6">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                      <div>
-                        <h4 className="text-sm font-medium text-gray-500 mb-1">Available Funds</h4>
-                        <p className="text-2xl font-bold">${budgetSettings?.availableFunds.toFixed(2)}</p>
-                      </div>
-                      <div>
-                        <h4 className="text-sm font-medium text-gray-500 mb-1">Used</h4>
-                        <p className="text-2xl font-bold">${totalBudget.toFixed(2)}</p>
-                      </div>
-                      <div>
-                        <h4 className="text-sm font-medium text-gray-500 mb-1">Remaining</h4>
-                        <p className="text-2xl font-bold">${(parseFloat(budgetSettings?.availableFunds) - totalBudget).toFixed(2)}</p>
-                      </div>
-                    </div>
-                    <div className="mt-4">
-                      <div className="flex justify-between text-sm mb-1">
-                        <span>Budget Utilization</span>
-                        <span>{budgetPercentage.toFixed(0)}%</span>
-                      </div>
-                      <Progress value={budgetPercentage} className="h-2" />
-                    </div>
-                  </CardContent>
-                </Card>
-                
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <h4 className="font-medium">Budget Items</h4>
-                    <Button size="sm">Add Budget Item</Button>
-                  </div>
-                  
-                  {budgetItems.length === 0 ? (
-                    <div className="text-center py-8 bg-gray-50 rounded-lg">
-                      <DollarSign className="h-10 w-10 text-gray-300 mx-auto mb-3" />
-                      <h4 className="text-lg font-medium text-gray-500 mb-2">No budget items added</h4>
-                      <p className="text-gray-500 mb-4">Add items to track expenses related to therapy services.</p>
-                      <Button>Add First Budget Item</Button>
-                    </div>
-                  ) : (
-                    <div className="overflow-x-auto">
-                      <table className="w-full border-collapse">
-                        <thead>
-                          <tr className="bg-gray-50">
-                            <th className="text-left p-3 border-b font-medium text-sm text-gray-500">Item</th>
-                            <th className="text-left p-3 border-b font-medium text-sm text-gray-500">Category</th>
-                            <th className="text-right p-3 border-b font-medium text-sm text-gray-500">Unit Price</th>
-                            <th className="text-right p-3 border-b font-medium text-sm text-gray-500">Quantity</th>
-                            <th className="text-right p-3 border-b font-medium text-sm text-gray-500">Total</th>
-                            <th className="text-right p-3 border-b font-medium text-sm text-gray-500">Actions</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {budgetItems.map((item: BudgetItem) => (
-                            <tr key={item.id} className="border-b hover:bg-gray-50">
-                              <td className="p-3">{item.name}</td>
-                              <td className="p-3">{item.category}</td>
-                              <td className="p-3 text-right">${Number(item.unitPrice).toFixed(2)}</td>
-                              <td className="p-3 text-right">{item.quantity}</td>
-                              <td className="p-3 text-right font-medium">
-                                ${(Number(item.unitPrice) * Number(item.quantity)).toFixed(2)}
-                              </td>
-                              <td className="p-3 text-right">
-                                <Button variant="ghost" size="sm">
-                                  <Edit className="h-4 w-4" />
-                                </Button>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                        <tfoot>
-                          <tr className="bg-gray-50">
-                            <td colSpan={4} className="p-3 text-right font-medium">Total</td>
-                            <td className="p-3 text-right font-bold">${totalBudget.toFixed(2)}</td>
-                            <td></td>
-                          </tr>
-                        </tfoot>
-                      </table>
-                    </div>
-                  )}
-                </div>
-              </div>
+              {/* Use the ClientBudget component */}
+              <ClientBudget 
+                budgetSettings={budgetSettings}
+                budgetItems={budgetItems}
+                onEditSettings={() => console.log("Edit budget settings clicked")}
+                onAddItem={() => console.log("Add budget item clicked")}
+                onEditItem={(item) => console.log("Edit budget item clicked", item)}
+                onDeleteItem={(item) => console.log("Delete budget item clicked", item)}
+              />
             </TabsContent>
             
             <TabsContent value="sessions" className="mt-0">
