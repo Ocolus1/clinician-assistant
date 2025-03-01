@@ -1,6 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
+import { pool } from "./db";
 import { 
   insertClientSchema, 
   insertAllySchema, 
@@ -261,6 +262,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(404).json({ error: "Budget settings not found" });
     }
     res.json(settings);
+  });
+  
+  // Endpoint to mark a client as complete in the onboarding process
+  app.post("/api/clients/:clientId/complete-onboarding", async (req, res) => {
+    const clientId = parseInt(req.params.clientId);
+    console.log(`POST /api/clients/${clientId}/complete-onboarding - Marking client as complete`);
+    
+    try {
+      // Update client onboarding status to complete
+      await pool.query(`
+        UPDATE clients 
+        SET onboarding_status = 'complete'
+        WHERE id = $1
+      `, [clientId]);
+      
+      res.json({ success: true, message: "Client onboarding marked as complete" });
+    } catch (error) {
+      console.error(`Error marking client ${clientId} as complete:`, error);
+      res.status(500).json({ error: "Failed to mark client as complete" });
+    }
   });
 
   app.put("/api/budget-settings/:id", async (req, res) => {
