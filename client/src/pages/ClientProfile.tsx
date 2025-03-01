@@ -311,7 +311,11 @@ export default function ClientProfile() {
                 <div className="text-sm font-medium text-gray-500">Budget</div>
                 <div className="flex items-center">
                   <div className="font-medium mr-2">
-                    ${totalBudget.toFixed(2)} / ${budgetSettings ? budgetSettings.availableFunds.toFixed(2) : '0.00'}
+                    ${totalBudget.toFixed(2)} / ${budgetSettings ? 
+                      (typeof budgetSettings.availableFunds === 'string' 
+                        ? parseFloat(budgetSettings.availableFunds).toFixed(2) 
+                        : budgetSettings.availableFunds.toFixed(2)) 
+                      : '0.00'}
                   </div>
                   <Progress value={budgetPercentage} className="h-2 w-16" />
                 </div>
