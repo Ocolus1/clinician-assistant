@@ -35,44 +35,57 @@ export default function OnboardingForm() {
   
   const progress = ((step + 1) / steps.length) * 100;
 
-  // Mutation for creating a client
+  // Mutation for creating a client - will be called only at the final step
   const createClient = useMutation<Client, Error, any>({
     mutationFn: async (data: any) => {
-      // This is where we create the client in the database
       console.log("Creating client with data:", data);
       const response = await apiRequest("POST", "/api/clients", data);
       const clientData = await response.json();
       return clientData as Client;
     },
     onSuccess: (clientData) => {
-      setClientId(clientData.id);
       toast({
         title: "Success",
-        description: "Client information saved successfully",
+        description: "Client created successfully",
       });
-      
-      // Proceed to the next step only after successful client creation
-      setStep(step + 1);
+      // After successfully creating the client, navigate to client list
+      setLocation('/clients');
     },
     onError: (error) => {
       console.error("Error creating client:", error);
       toast({
         title: "Error",
-        description: "Failed to save client information",
+        description: "Failed to create client",
         variant: "destructive",
       });
     },
   });
 
+  // This function is called when we're ready to complete the onboarding
+  // and actually create the client with all collected data
+  const completeOnboarding = () => {
+    if (!clientData) {
+      toast({
+        title: "Error",
+        description: "Missing client information. Please go back to step 1.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Create client with all the collected data
+    createClient.mutate({
+      ...clientData,
+      availableFunds: 0
+    });
+  };
+
   const handleNext = () => {
     if (step === steps.length - 1) {
-      // After completing the budget step, go to client list page
-      setLocation('/clients');
-    } else if (step === 0) {
-      // Don't automatically go to next step - the client creation mutation 
-      // will handle this when successful
+      // After completing the budget step, create the client and finalize
+      completeOnboarding();
     } else {
-      // For steps after client creation, proceed normally
+      // For all other steps, just move to the next one
       setStep(step + 1);
     }
   };
@@ -154,35 +167,98 @@ export default function OnboardingForm() {
           <ClientForm 
             onComplete={(data) => {
               setClientData(data);
-              // Create client now that we have the basic data
-              // The onSuccess callback will handle advancing to the next step
-              createClient.mutate({
-                ...data,
-                availableFunds: 0
-              });
+              // Just store the data and move to the next step, don't create client yet
+              setStep(step + 1);
             }} 
           />
         )}
-        {step === 1 && clientId && (
-          <AllyForm 
-            clientId={clientId} 
-            onComplete={handleNext} 
-            onPrevious={handlePrevious} 
-          />
+        {step === 1 && (
+          <div className="flex flex-col items-center">
+            <h2 className="text-2xl font-semibold mb-4">Support Network</h2>
+            <p className="text-center text-gray-500 mb-8">
+              Add allies to the client's support network. This information can be completed after client creation.
+            </p>
+            <div className="space-y-4 w-full max-w-md">
+              <Button 
+                onClick={handleNext}
+                className="w-full py-6"
+              >
+                Continue to next step
+              </Button>
+              <Button 
+                variant="ghost" 
+                onClick={handlePrevious}
+                className="w-full"
+              >
+                Back to previous step
+              </Button>
+            </div>
+          </div>
         )}
-        {step === 2 && clientId && (
-          <GoalsForm 
-            clientId={clientId} 
-            onComplete={handleNext} 
-            onPrevious={handlePrevious} 
-          />
+        {step === 2 && (
+          <div className="flex flex-col items-center">
+            <h2 className="text-2xl font-semibold mb-4">Therapeutic Goals</h2>
+            <p className="text-center text-gray-500 mb-8">
+              Define therapeutic goals for the client. This information can be completed after client creation.
+            </p>
+            <div className="space-y-4 w-full max-w-md">
+              <Button 
+                onClick={handleNext}
+                className="w-full py-6"
+              >
+                Continue to next step
+              </Button>
+              <Button 
+                variant="ghost" 
+                onClick={handlePrevious}
+                className="w-full"
+              >
+                Back to previous step
+              </Button>
+            </div>
+          </div>
         )}
-        {step === 3 && clientId && (
-          <BudgetForm 
-            clientId={clientId} 
-            onComplete={handleNext} 
-            onPrevious={handlePrevious} 
-          />
+        {step === 3 && (
+          <div className="flex flex-col items-center">
+            <h2 className="text-2xl font-semibold mb-4">Complete Client Registration</h2>
+            <p className="text-center text-gray-500 mb-8">
+              Review the client information and click "Complete" to create the client record.
+            </p>
+            <div className="bg-gray-50 rounded-lg p-6 mb-6 w-full max-w-md">
+              <h3 className="font-medium mb-2">Client Summary</h3>
+              {clientData && (
+                <dl className="divide-y">
+                  <div className="py-2 flex justify-between">
+                    <dt className="text-gray-600">Name:</dt>
+                    <dd>{clientData.name}</dd>
+                  </div>
+                  <div className="py-2 flex justify-between">
+                    <dt className="text-gray-600">Date of Birth:</dt>
+                    <dd>{clientData.dateOfBirth}</dd>
+                  </div>
+                  <div className="py-2 flex justify-between">
+                    <dt className="text-gray-600">Funds Management:</dt>
+                    <dd>{clientData.fundsManagement || 'Not specified'}</dd>
+                  </div>
+                </dl>
+              )}
+            </div>
+            <div className="space-y-4 w-full max-w-md">
+              <Button 
+                onClick={handleNext}
+                className="w-full py-6"
+              >
+                Complete Registration
+              </Button>
+              <Button 
+                variant="ghost" 
+                onClick={handlePrevious}
+                className="w-full"
+              >
+                Back to previous step
+              </Button>
+            </div>
+          </div>
         )}
       </div>
     </div>
