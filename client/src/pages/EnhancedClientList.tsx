@@ -1,0 +1,1047 @@
+import React, { useState, useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useLocation } from "wouter";
+import { format, differenceInYears } from "date-fns";
+import {
+  PlusCircle,
+  Edit,
+  User,
+  Calendar,
+  Search,
+  SlidersHorizontal,
+  ChevronUp,
+  ChevronDown,
+  Download,
+  MoreHorizontal,
+  Share2,
+  Printer,
+  FilePlus,
+  X,
+  Filter,
+  Calendar as CalendarIcon,
+  BarChart,
+  DollarSign,
+  Clock,
+  Target,
+  Award,
+  LineChart
+} from "lucide-react";
+
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator
+} from "@/components/ui/dropdown-menu";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Separator } from "@/components/ui/separator";
+
+import { Client, Ally, Goal, BudgetItem, BudgetSettings } from "@shared/schema";
+
+// Function to calculate age from date of birth
+const calculateAge = (dateOfBirth: string): number => {
+  return differenceInYears(new Date(), new Date(dateOfBirth));
+};
+
+// Simple sparkline component
+const Sparkline: React.FC<{ 
+  data: number[],
+  height?: number,
+  width?: number,
+  color?: string,
+  fillColor?: string
+}> = ({ 
+  data, 
+  height = 30, 
+  width = 80, 
+  color = "#4f46e5", 
+  fillColor = "rgba(79, 70, 229, 0.1)" 
+}) => {
+  if (!data || data.length === 0) return null;
+  
+  // Find the max and min values in the data
+  const maxValue = Math.max(...data);
+  const minValue = Math.min(...data);
+  const range = maxValue - minValue;
+  
+  // Calculate the points for the path
+  const points = data.map((value, index) => {
+    const x = index * (width / (data.length - 1));
+    const y = height - ((value - minValue) / (range || 1)) * height;
+    return `${x},${y}`;
+  }).join(" ");
+  
+  // Create a path for the sparkline
+  return (
+    <svg width={width} height={height} className="overflow-visible">
+      {/* Fill area under the line */}
+      <path
+        d={`M0,${height} ${data.map((value, index) => {
+          const x = index * (width / (data.length - 1));
+          const y = height - ((value - minValue) / (range || 1)) * height;
+          return `L${x},${y}`;
+        }).join(" ").substring(1)} L${width},${height} Z`}
+        fill={fillColor}
+        strokeWidth="0"
+      />
+      
+      {/* Line */}
+      <polyline
+        points={points}
+        fill="none"
+        stroke={color}
+        strokeWidth="1.5"
+      />
+      
+      {/* End point */}
+      <circle
+        cx={width}
+        cy={height - ((data[data.length - 1] - minValue) / (range || 1)) * height}
+        r="3"
+        fill={color}
+      />
+    </svg>
+  );
+};
+
+// Types for the enriched client data
+interface EnrichedClient extends Client {
+  age: number;
+  therapists: Ally[];
+  goals: Goal[];
+  budgetItems: BudgetItem[];
+  budgetSettings?: BudgetSettings;
+  score?: number;
+  progress?: number[];
+  status?: 'active' | 'inactive' | 'review' | 'completed';
+}
+
+// Column definition for the client table
+interface ColumnDef {
+  id: string;
+  header: string;
+  accessorFn: (client: EnrichedClient) => React.ReactNode;
+  sortable?: boolean;
+  width?: string;
+  alignment?: 'start' | 'center' | 'end';
+}
+
+export default function EnhancedClientList() {
+  const [location, setLocation] = useLocation();
+  const queryClient = useQueryClient();
+  
+  // State for filtering and sorting
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterStatus, setFilterStatus] = useState<string[]>([]);
+  const [sortBy, setSortBy] = useState<string>("name");
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  const [selectedClients, setSelectedClients] = useState<number[]>([]);
+  const [showFilters, setShowFilters] = useState(false);
+  
+  // Fetch all clients
+  const { data: clients = [], isLoading, error } = useQuery<Client[]>({
+    queryKey: ["/api/clients"],
+  });
+  
+  // Create functions to fetch additional data for each client
+  const fetchAllies = async (clientId: number): Promise<Ally[]> => {
+    const response = await fetch(`/api/clients/${clientId}/allies`);
+    if (!response.ok) return [];
+    return response.json();
+  };
+  
+  const fetchGoals = async (clientId: number): Promise<Goal[]> => {
+    const response = await fetch(`/api/clients/${clientId}/goals`);
+    if (!response.ok) return [];
+    return response.json();
+  };
+  
+  const fetchBudgetItems = async (clientId: number): Promise<BudgetItem[]> => {
+    const response = await fetch(`/api/clients/${clientId}/budget-items`);
+    if (!response.ok) return [];
+    return response.json();
+  };
+  
+  const fetchBudgetSettings = async (clientId: number): Promise<BudgetSettings | undefined> => {
+    try {
+      const response = await fetch(`/api/clients/${clientId}/budget-settings`);
+      if (!response.ok) return undefined;
+      return response.json();
+    } catch (error) {
+      console.error("Error fetching budget settings:", error);
+      return undefined;
+    }
+  };
+  
+  // Enrich clients with additional data
+  const { data: enrichedClients = [], isLoading: isEnrichingClients } = useQuery<EnrichedClient[]>({
+    queryKey: ["/api/clients/enriched"],
+    enabled: clients.length > 0,
+    queryFn: async () => {
+      return Promise.all(
+        clients.map(async (client) => {
+          // Fetch additional data for each client
+          const [therapists, goals, budgetItems, budgetSettings] = await Promise.all([
+            fetchAllies(client.id),
+            fetchGoals(client.id),
+            fetchBudgetItems(client.id),
+            fetchBudgetSettings(client.id)
+          ]);
+          
+          // Generate some mock data for demonstration purposes
+          // In a real app, this would come from the backend
+          const mockScore = Math.floor(Math.random() * 100);
+          const mockProgress = Array.from({ length: 10 }, () => Math.floor(Math.random() * 100));
+          const statuses = ['active', 'inactive', 'review', 'completed'] as const;
+          const mockStatus = statuses[Math.floor(Math.random() * statuses.length)];
+          
+          // Calculate age
+          const age = calculateAge(client.dateOfBirth);
+          
+          return {
+            ...client,
+            age,
+            therapists,
+            goals,
+            budgetItems,
+            budgetSettings,
+            score: mockScore,
+            progress: mockProgress,
+            status: mockStatus
+          };
+        })
+      );
+    }
+  });
+  
+  // Columns definition for the client table
+  const columns: ColumnDef[] = [
+    {
+      id: "select",
+      header: "",
+      accessorFn: (client) => (
+        <Checkbox
+          checked={selectedClients.includes(client.id)}
+          onCheckedChange={(checked) => {
+            if (checked) {
+              setSelectedClients([...selectedClients, client.id]);
+            } else {
+              setSelectedClients(selectedClients.filter(id => id !== client.id));
+            }
+          }}
+        />
+      ),
+      width: "40px",
+      alignment: "center"
+    },
+    {
+      id: "id",
+      header: "ID",
+      accessorFn: (client) => (
+        <span className="text-xs text-gray-500 font-mono">#{client.id}</span>
+      ),
+      sortable: true,
+      width: "60px",
+      alignment: "start"
+    },
+    {
+      id: "name",
+      header: "Client Name",
+      accessorFn: (client) => (
+        <div className="flex items-center">
+          <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center mr-2">
+            <User className="h-4 w-4 text-primary" />
+          </div>
+          <div>
+            <div className="font-medium">{client.name}</div>
+            <div className="text-xs text-gray-500 flex items-center">
+              <CalendarIcon className="h-3 w-3 mr-1" />
+              {format(new Date(client.dateOfBirth), 'dd/MM/yyyy')}
+            </div>
+          </div>
+        </div>
+      ),
+      sortable: true,
+      width: "220px",
+      alignment: "start"
+    },
+    {
+      id: "age",
+      header: "Age",
+      accessorFn: (client) => (
+        <span className="text-sm">{client.age} years</span>
+      ),
+      sortable: true,
+      width: "80px",
+      alignment: "center"
+    },
+    {
+      id: "therapists",
+      header: "Therapists",
+      accessorFn: (client) => (
+        <div className="flex flex-wrap gap-1 max-w-[200px]">
+          {client.therapists.length > 0 ? (
+            client.therapists.filter(therapist => therapist.accessTherapeutics).slice(0, 3).map((therapist, index) => (
+              <TooltipProvider key={therapist.id}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Badge variant="outline" className="bg-primary/5 hover:bg-primary/10 cursor-pointer">
+                      {therapist.name.split(' ')[0]}
+                    </Badge>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <div className="text-xs">
+                      <div className="font-bold">{therapist.name}</div>
+                      <div className="text-gray-500">{therapist.relationship}</div>
+                      <div className="text-gray-500">{therapist.email}</div>
+                    </div>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            ))
+          ) : (
+            <span className="text-gray-400 text-xs">No therapists</span>
+          )}
+          {client.therapists.length > 3 && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Badge variant="outline" className="bg-gray-100 hover:bg-gray-200 cursor-pointer">
+                    +{client.therapists.length - 3}
+                  </Badge>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <div className="text-xs">
+                    {client.therapists.slice(3).map(therapist => (
+                      <div key={therapist.id} className="mb-1">
+                        <div className="font-bold">{therapist.name}</div>
+                        <div className="text-gray-500">{therapist.relationship}</div>
+                      </div>
+                    ))}
+                  </div>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
+        </div>
+      ),
+      width: "200px",
+      alignment: "start"
+    },
+    {
+      id: "goals",
+      header: "Goals",
+      accessorFn: (client) => (
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className="flex items-center">
+                <Target className="h-4 w-4 mr-1 text-primary" />
+                <span className="font-medium">{client.goals.length}</span>
+              </div>
+            </TooltipTrigger>
+            {client.goals.length > 0 && (
+              <TooltipContent className="max-w-sm">
+                <div className="text-xs max-h-[200px] overflow-y-auto">
+                  <div className="font-bold mb-1">Goals:</div>
+                  <ul className="list-disc list-inside">
+                    {client.goals.map(goal => (
+                      <li key={goal.id} className="mb-1">
+                        {goal.title}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </TooltipContent>
+            )}
+          </Tooltip>
+        </TooltipProvider>
+      ),
+      sortable: true,
+      width: "80px",
+      alignment: "center"
+    },
+    {
+      id: "score",
+      header: "Score",
+      accessorFn: (client) => (
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className="flex items-center">
+                <div 
+                  className={`h-8 w-8 rounded-full flex items-center justify-center mr-2 ${
+                    client.score ? (
+                      client.score > 70 ? 'bg-green-100 text-green-700' :
+                      client.score > 40 ? 'bg-amber-100 text-amber-700' :
+                      'bg-red-100 text-red-700'
+                    ) : 'bg-gray-100 text-gray-500'
+                  }`}
+                >
+                  <Award className="h-4 w-4" />
+                </div>
+                <span className="font-medium">{client.score || 'N/A'}</span>
+              </div>
+            </TooltipTrigger>
+            <TooltipContent>
+              <div className="text-xs">
+                <div className="font-bold mb-1">Performance Score</div>
+                <div className="text-gray-500">Based on therapy goals progress</div>
+              </div>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      ),
+      sortable: true,
+      width: "100px",
+      alignment: "center"
+    },
+    {
+      id: "progress",
+      header: "Progress",
+      accessorFn: (client) => (
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className="flex items-center">
+                <Sparkline 
+                  data={client.progress || [0, 0, 0]} 
+                  width={80} 
+                  height={30}
+                  color={
+                    client.progress && client.progress.length > 1 ?
+                    (client.progress[client.progress.length - 1] > client.progress[0] ? 
+                      "#22c55e" : // improving 
+                      "#ef4444" // declining
+                    ) : "#6b7280" // neutral
+                  }
+                  fillColor={
+                    client.progress && client.progress.length > 1 ?
+                    (client.progress[client.progress.length - 1] > client.progress[0] ? 
+                      "rgba(34, 197, 94, 0.1)" : // improving
+                      "rgba(239, 68, 68, 0.1)" // declining
+                    ) : "rgba(107, 114, 128, 0.1)" // neutral
+                  }
+                />
+              </div>
+            </TooltipTrigger>
+            <TooltipContent>
+              <div className="text-xs">
+                <div className="font-bold mb-1">Session Progress Trend</div>
+                <div className="text-gray-500">Last 10 therapy sessions</div>
+              </div>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      ),
+      width: "120px",
+      alignment: "center"
+    },
+    {
+      id: "budget",
+      header: "Budget Usage",
+      accessorFn: (client) => {
+        // Calculate budget usage
+        const totalBudget = client.budgetItems.reduce((acc, item) => {
+          return acc + (item.unitPrice * item.quantity);
+        }, 0);
+        
+        const availableFunds = client.budgetSettings?.availableFunds || client.availableFunds;
+        const usagePercentage = availableFunds > 0 ? (totalBudget / availableFunds) * 100 : 0;
+        const formattedUsage = usagePercentage.toFixed(0) + '%';
+        
+        // Determine color based on usage
+        let progressColor = "bg-blue-500";
+        if (usagePercentage > 90) progressColor = "bg-red-500";
+        else if (usagePercentage > 75) progressColor = "bg-amber-500";
+        else if (usagePercentage > 50) progressColor = "bg-green-500";
+        
+        return (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="w-full max-w-[140px]">
+                  <div className="flex justify-between items-center text-xs mb-1">
+                    <span>{formattedUsage}</span>
+                    <DollarSign className="h-3 w-3 text-gray-400" />
+                  </div>
+                  <Progress value={usagePercentage} className="h-2" indicatorClassName={progressColor} />
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                <div className="text-xs">
+                  <div className="font-bold mb-1">Budget Usage</div>
+                  <div>Used: ${totalBudget.toFixed(2)}</div>
+                  <div>Available: ${availableFunds.toFixed(2)}</div>
+                  <div>Remaining: ${(availableFunds - totalBudget).toFixed(2)}</div>
+                </div>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        );
+      },
+      sortable: true,
+      width: "150px",
+      alignment: "start"
+    },
+    {
+      id: "status",
+      header: "Status",
+      accessorFn: (client) => {
+        // Determine badge color based on status
+        let badgeClass = "bg-gray-100 text-gray-800"; // default
+        if (client.status === "active") badgeClass = "bg-green-100 text-green-800";
+        else if (client.status === "inactive") badgeClass = "bg-gray-100 text-gray-800";
+        else if (client.status === "review") badgeClass = "bg-amber-100 text-amber-800";
+        else if (client.status === "completed") badgeClass = "bg-blue-100 text-blue-800";
+        
+        return (
+          <Badge className={`${badgeClass} capitalize`}>
+            {client.status || "Unknown"}
+          </Badge>
+        );
+      },
+      sortable: true,
+      width: "100px",
+      alignment: "center"
+    },
+    {
+      id: "lastSession",
+      header: "Last Session",
+      accessorFn: (client) => (
+        <div className="flex items-center text-xs text-gray-500">
+          <Clock className="h-3 w-3 mr-1" />
+          <span>{format(new Date(Date.now() - Math.random() * 30 * 86400000), 'MMM d')}</span>
+        </div>
+      ),
+      sortable: true,
+      width: "100px",
+      alignment: "center"
+    },
+    {
+      id: "actions",
+      header: "",
+      accessorFn: (client) => (
+        <div className="flex justify-end">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => setLocation(`/client/${client.id}/summary`)}>
+                <BarChart className="h-4 w-4 mr-2" />
+                View Summary
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setLocation(`/client/${client.id}/edit`)}>
+                <Edit className="h-4 w-4 mr-2" />
+                Edit Details
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => window.open(`/client/${client.id}/print`, '_blank')}>
+                <Printer className="h-4 w-4 mr-2" />
+                Print Report
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem>
+                <FilePlus className="h-4 w-4 mr-2" />
+                New Session
+              </DropdownMenuItem>
+              <DropdownMenuItem>
+                <Share2 className="h-4 w-4 mr-2" />
+                Share Access
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      ),
+      width: "50px",
+      alignment: "end"
+    }
+  ];
+  
+  // Handle sorting change
+  const handleSortChange = (columnId: string) => {
+    if (sortBy === columnId) {
+      // Toggle direction if clicking the same column
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      // Set new column and reset to ascending
+      setSortBy(columnId);
+      setSortDirection('asc');
+    }
+  };
+  
+  // Handle new client button click
+  const handleNewClient = () => {
+    setLocation("/clients/new");
+  };
+  
+  // Filter and sort the clients
+  const filteredAndSortedClients = React.useMemo(() => {
+    if (!enrichedClients) return [];
+    
+    let results = [...enrichedClients];
+    
+    // Apply search filter
+    if (searchTerm) {
+      const searchLower = searchTerm.toLowerCase();
+      results = results.filter(client => 
+        client.name.toLowerCase().includes(searchLower) ||
+        client.id.toString().includes(searchLower) ||
+        (client.therapists && client.therapists.some(t => t.name.toLowerCase().includes(searchLower)))
+      );
+    }
+    
+    // Apply status filter
+    if (filterStatus.length > 0) {
+      results = results.filter(client => 
+        client.status && filterStatus.includes(client.status)
+      );
+    }
+    
+    // Apply sorting
+    if (sortBy) {
+      results.sort((a, b) => {
+        let aValue: any;
+        let bValue: any;
+        
+        // Handle special sorting cases based on columnId
+        switch (sortBy) {
+          case 'id':
+            aValue = a.id;
+            bValue = b.id;
+            break;
+          case 'name':
+            aValue = a.name;
+            bValue = b.name;
+            break;
+          case 'age':
+            aValue = a.age || 0;
+            bValue = b.age || 0;
+            break;
+          case 'goals':
+            aValue = a.goals?.length || 0;
+            bValue = b.goals?.length || 0;
+            break;
+          case 'score':
+            aValue = a.score || 0;
+            bValue = b.score || 0;
+            break;
+          case 'budget':
+            // Sort by budget usage percentage
+            const aTotalBudget = a.budgetItems.reduce((acc, item) => acc + (item.unitPrice * item.quantity), 0);
+            const bTotalBudget = b.budgetItems.reduce((acc, item) => acc + (item.unitPrice * item.quantity), 0);
+            const aAvailableFunds = a.budgetSettings?.availableFunds || a.availableFunds;
+            const bAvailableFunds = b.budgetSettings?.availableFunds || b.availableFunds;
+            aValue = aAvailableFunds > 0 ? (aTotalBudget / aAvailableFunds) * 100 : 0;
+            bValue = bAvailableFunds > 0 ? (bTotalBudget / bAvailableFunds) * 100 : 0;
+            break;
+          case 'status':
+            aValue = a.status || '';
+            bValue = b.status || '';
+            break;
+          default:
+            aValue = a[sortBy as keyof EnrichedClient] || 0;
+            bValue = b[sortBy as keyof EnrichedClient] || 0;
+        }
+        
+        // Perform the comparison
+        if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
+        if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
+        return 0;
+      });
+    }
+    
+    return results;
+  }, [enrichedClients, searchTerm, filterStatus, sortBy, sortDirection]);
+  
+  // Handle select all
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedClients(filteredAndSortedClients.map(c => c.id));
+    } else {
+      setSelectedClients([]);
+    }
+  };
+  
+  // Handle bulk actions
+  const handleBulkAction = (action: string) => {
+    console.log(`Performing ${action} on`, selectedClients);
+    // Implement bulk actions here
+    
+    // Clear selection after action
+    setSelectedClients([]);
+  };
+  
+  // Handle clear filters
+  const handleClearFilters = () => {
+    setSearchTerm("");
+    setFilterStatus([]);
+    setSortBy("name");
+    setSortDirection('asc');
+  };
+  
+  // Render loading skeleton
+  if (isLoading || isEnrichingClients) {
+    return (
+      <div className="w-full">
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl font-bold text-gray-900">Client Management</h1>
+          <Skeleton className="h-10 w-36" />
+        </div>
+        
+        <Card className="border-gray-200 shadow-sm">
+          <CardContent className="p-6">
+            <div className="flex justify-between items-center mb-6">
+              <Skeleton className="h-10 w-48" />
+              <div className="flex space-x-2">
+                <Skeleton className="h-10 w-10" />
+                <Skeleton className="h-10 w-10" />
+              </div>
+            </div>
+            
+            <div className="space-y-4">
+              <div className="flex space-x-4">
+                <Skeleton className="h-8 w-[5%]" />
+                <Skeleton className="h-8 w-[15%]" />
+                <Skeleton className="h-8 w-[10%]" />
+                <Skeleton className="h-8 w-[15%]" />
+                <Skeleton className="h-8 w-[10%]" />
+                <Skeleton className="h-8 w-[10%]" />
+                <Skeleton className="h-8 w-[10%]" />
+                <Skeleton className="h-8 w-[15%]" />
+                <Skeleton className="h-8 w-[10%]" />
+              </div>
+              
+              {[1, 2, 3, 4, 5].map((i) => (
+                <div key={i} className="flex space-x-4">
+                  <Skeleton className="h-14 w-[5%]" />
+                  <Skeleton className="h-14 w-[15%]" />
+                  <Skeleton className="h-14 w-[10%]" />
+                  <Skeleton className="h-14 w-[15%]" />
+                  <Skeleton className="h-14 w-[10%]" />
+                  <Skeleton className="h-14 w-[10%]" />
+                  <Skeleton className="h-14 w-[10%]" />
+                  <Skeleton className="h-14 w-[15%]" />
+                  <Skeleton className="h-14 w-[10%]" />
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+  
+  // Render error state
+  if (error) {
+    return (
+      <div className="w-full">
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl font-bold text-gray-900">Client Management</h1>
+          <Button onClick={handleNewClient}>
+            <PlusCircle className="mr-2 h-4 w-4" />
+            New Client
+          </Button>
+        </div>
+        
+        <Card className="border-gray-200 shadow-sm">
+          <CardContent className="p-6">
+            <div className="flex flex-col items-center justify-center py-12">
+              <div className="rounded-full bg-red-100 p-3 mb-4">
+                <X className="h-6 w-6 text-red-600" />
+              </div>
+              <h3 className="text-lg font-medium mb-1">Failed to load clients</h3>
+              <p className="text-gray-500 mb-4">There was an error loading the client list.</p>
+              <Button 
+                onClick={() => queryClient.invalidateQueries({ queryKey: ["/api/clients"] })}
+                variant="outline"
+              >
+                Try Again
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+  
+  return (
+    <div className="w-full">
+      {/* Header section */}
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold text-gray-900">Client Management</h1>
+        <Button 
+          onClick={handleNewClient}
+          className="bg-primary hover:bg-primary/90"
+        >
+          <PlusCircle className="mr-2 h-4 w-4" />
+          New Client
+        </Button>
+      </div>
+      
+      {/* Client table card */}
+      <Card className="border-gray-200 shadow-sm overflow-hidden">
+        <CardHeader className="bg-gray-50 border-b border-gray-200 p-4">
+          <div className="flex flex-col sm:flex-row justify-between space-y-2 sm:space-y-0">
+            <div className="flex items-center space-x-2">
+              <CardTitle className="text-lg font-semibold text-gray-800">Client List</CardTitle>
+              <Badge>{filteredAndSortedClients.length} clients</Badge>
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              {selectedClients.length > 0 && (
+                <div className="flex items-center mr-2">
+                  <Badge 
+                    variant="outline" 
+                    className="mr-2 bg-primary/10"
+                  >
+                    {selectedClients.length} selected
+                  </Badge>
+                  
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" size="sm">
+                        Actions
+                        <ChevronDown className="ml-1 h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent>
+                      <DropdownMenuItem onClick={() => handleBulkAction('export')}>
+                        <Download className="h-4 w-4 mr-2" />
+                        Export Selected
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleBulkAction('print')}>
+                        <Printer className="h-4 w-4 mr-2" />
+                        Print Reports
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleBulkAction('session')}>
+                        <Calendar className="h-4 w-4 mr-2" />
+                        Schedule Sessions
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              )}
+              
+              <div className="relative flex items-center">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
+                <Input 
+                  type="search"
+                  placeholder="Search clients..."
+                  className="pl-9 h-9 w-[200px] lg:w-[300px]"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+                {searchTerm && (
+                  <button 
+                    className="absolute right-2.5 top-2.5"
+                    onClick={() => setSearchTerm("")}
+                  >
+                    <X className="h-4 w-4 text-gray-500" />
+                  </button>
+                )}
+              </div>
+              
+              <Popover open={showFilters} onOpenChange={setShowFilters}>
+                <PopoverTrigger asChild>
+                  <Button 
+                    variant="outline" 
+                    size="icon" 
+                    className={`h-9 w-9 ${(filterStatus.length > 0) ? 'bg-primary/10 border-primary' : ''}`}
+                  >
+                    <Filter className="h-4 w-4" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-80">
+                  <div className="space-y-4">
+                    <h4 className="font-medium">Filter Clients</h4>
+                    
+                    <div className="space-y-2">
+                      <h5 className="text-sm font-medium text-gray-700">Status</h5>
+                      <div className="grid grid-cols-2 gap-2">
+                        {['active', 'inactive', 'review', 'completed'].map((status) => (
+                          <div key={status} className="flex items-center space-x-2">
+                            <Checkbox 
+                              id={`status-${status}`} 
+                              checked={filterStatus.includes(status)}
+                              onCheckedChange={(checked) => {
+                                if (checked) {
+                                  setFilterStatus([...filterStatus, status]);
+                                } else {
+                                  setFilterStatus(filterStatus.filter(s => s !== status));
+                                }
+                              }}
+                            />
+                            <label 
+                              htmlFor={`status-${status}`}
+                              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 capitalize"
+                            >
+                              {status}
+                            </label>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    
+                    <div className="flex justify-between pt-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={handleClearFilters}
+                      >
+                        Reset
+                      </Button>
+                      <Button 
+                        size="sm"
+                        onClick={() => setShowFilters(false)}
+                      >
+                        Apply Filters
+                      </Button>
+                    </div>
+                  </div>
+                </PopoverContent>
+              </Popover>
+              
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="icon" className="h-9 w-9">
+                    <SlidersHorizontal className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => handleBulkAction('export-all')}>
+                    <Download className="h-4 w-4 mr-2" />
+                    Export All Clients
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => queryClient.invalidateQueries({ queryKey: ["/api/clients"] })}>
+                    <LineChart className="h-4 w-4 mr-2" />
+                    Refresh Data
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </div>
+        </CardHeader>
+        
+        <CardContent className="p-0">
+          {filteredAndSortedClients.length === 0 ? (
+            <div className="p-8 text-center text-gray-500">
+              <p className="mb-2">No clients found</p>
+              {searchTerm || filterStatus.length > 0 ? (
+                <Button 
+                  onClick={handleClearFilters}
+                  variant="outline" 
+                  className="mt-2"
+                >
+                  Clear filters
+                </Button>
+              ) : (
+                <Button 
+                  onClick={handleNewClient}
+                  variant="outline" 
+                  className="mt-2"
+                >
+                  <PlusCircle className="mr-2 h-4 w-4" />
+                  Add your first client
+                </Button>
+              )}
+            </div>
+          ) : (
+            <div className="overflow-auto">
+              <table className="w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 w-[40px]">
+                      <Checkbox 
+                        checked={selectedClients.length > 0 && selectedClients.length === filteredAndSortedClients.length}
+                        onCheckedChange={handleSelectAll}
+                        aria-label="Select all"
+                      />
+                    </th>
+                    {columns.slice(1).map((column) => (
+                      <th 
+                        key={column.id} 
+                        className={`px-3 py-3.5 text-sm font-semibold text-gray-900 ${
+                          column.alignment === 'center' ? 'text-center' : 
+                          column.alignment === 'end' ? 'text-right' : 'text-left'
+                        } ${column.width ? `w-[${column.width}]` : ''}`}
+                      >
+                        {column.sortable ? (
+                          <button 
+                            className="group inline-flex items-center"
+                            onClick={() => handleSortChange(column.id)}
+                          >
+                            {column.header}
+                            <span className="ml-2 flex-none rounded text-gray-400">
+                              {sortBy === column.id ? (
+                                sortDirection === 'asc' ? (
+                                  <ChevronUp className="h-4 w-4" />
+                                ) : (
+                                  <ChevronDown className="h-4 w-4" />
+                                )
+                              ) : (
+                                <ChevronUp className="h-4 w-4 opacity-0 group-hover:opacity-50" />
+                              )}
+                            </span>
+                          </button>
+                        ) : (
+                          column.header
+                        )}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200 bg-white">
+                  {filteredAndSortedClients.map((client) => (
+                    <tr key={client.id} className="hover:bg-gray-50">
+                      {columns.map((column) => (
+                        <td 
+                          key={`${client.id}-${column.id}`} 
+                          className={`whitespace-nowrap px-3 py-4 text-sm ${
+                            column.alignment === 'center' ? 'text-center' : 
+                            column.alignment === 'end' ? 'text-right' : 'text-left'
+                          }`}
+                        >
+                          {column.accessorFn(client)}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
