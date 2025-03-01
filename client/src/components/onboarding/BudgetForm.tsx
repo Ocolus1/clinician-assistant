@@ -59,20 +59,17 @@ import {
   type BudgetSettings, 
   type InsertBudgetSettings,
   type BudgetItemCatalog,
-  type InsertBudgetItemCatalog,
-  type Client
+  type InsertBudgetItemCatalog
 } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 
 interface BudgetFormProps {
   clientId: number;
-  clientData?: any; // Client data collected from previous steps
-  createClientFn?: any; // Function to create a client
   onComplete: () => void;
   onPrevious: () => void;
 }
 
-export default function BudgetForm({ clientId, clientData, createClientFn, onComplete, onPrevious }: BudgetFormProps) {
+export default function BudgetForm({ clientId, onComplete, onPrevious }: BudgetFormProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [date, setDate] = useState<Date | undefined>(undefined);
@@ -341,66 +338,21 @@ export default function BudgetForm({ clientId, clientData, createClientFn, onCom
 
   // Handler for complete button
   const handleComplete = () => {
-    // If we're in the onboarding process and have client data to create
-    if (clientData && createClientFn) {
-      // First create the client
-      createClientFn.mutate({
-        ...clientData,
-        availableFunds: 0
-      }, {
-        onSuccess: (newClient: Client) => {
-          // Now create budget settings for the newly created client
-          const settings = settingsForm.getValues();
-          
-          // Use the POST endpoint for the newly created client
-          apiRequest("POST", `/api/clients/${newClient.id}/budget-settings`, settings)
-            .then(() => {
-              // Invalidate queries to ensure fresh data when redirected to client list
-              queryClient.invalidateQueries({ queryKey: ["/api/clients"] });
-              
-              toast({
-                title: "Success",
-                description: "Client created and budget settings saved successfully",
-              });
-              
-              // Navigate to client list after completion
-              onComplete();
-            })
-            .catch(error => {
-              console.error("Error saving budget settings:", error);
-              toast({
-                title: "Error",
-                description: "Client created but failed to save budget settings",
-                variant: "destructive",
-              });
-            });
-        },
-        onError: (error: Error) => {
-          console.error("Error creating client:", error);
-          toast({
-            title: "Error",
-            description: "Failed to create client. Please try again.",
-            variant: "destructive",
-          });
-        }
-      });
-    } else {
-      // Regular budget settings update for existing client
-      const settings = settingsForm.getValues();
-      saveBudgetSettings.mutate(settings, {
-        onSuccess: () => {
-          // Invalidate queries to ensure fresh data when redirected to client list
-          queryClient.invalidateQueries({ queryKey: ["/api/clients"] });
-          
-          // Navigate to client list after completion
-          toast({
-            title: "Budget saved successfully",
-            description: "Client onboarding completed successfully",
-          });
-          onComplete();
-        }
-      });
-    }
+    // Save budget settings first
+    const settings = settingsForm.getValues();
+    saveBudgetSettings.mutate(settings, {
+      onSuccess: () => {
+        // Invalidate queries to ensure fresh data when redirected to client list
+        queryClient.invalidateQueries({ queryKey: ["/api/clients"] });
+        
+        // Navigate to client list after completion
+        toast({
+          title: "Budget saved successfully",
+          description: "Client onboarding completed successfully",
+        });
+        onComplete();
+      }
+    });
   };
 
   // Calculate days left in plan

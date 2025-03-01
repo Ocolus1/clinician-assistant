@@ -35,11 +35,11 @@ export default function OnboardingForm() {
   
   const progress = ((step + 1) / steps.length) * 100;
 
-  // Mutation for creating a client - will be called only at the final step in BudgetForm
+  // Mutation for creating a client
   const createClient = useMutation<Client, Error, any>({
     mutationFn: async (data: any) => {
-      console.log("Creating client with data:", data);
       const response = await apiRequest("POST", "/api/clients", data);
+      // Parse the JSON response
       const clientData = await response.json();
       return clientData as Client;
     },
@@ -47,44 +47,24 @@ export default function OnboardingForm() {
       setClientId(clientData.id);
       toast({
         title: "Success",
-        description: "Client created successfully",
+        description: "Client information saved successfully",
       });
     },
     onError: (error) => {
       console.error("Error creating client:", error);
       toast({
         title: "Error",
-        description: "Failed to create client",
+        description: "Failed to save client information",
         variant: "destructive",
       });
     },
   });
 
-  // This function is called when we're ready to complete the onboarding
-  // and actually create the client with all collected data
-  const completeOnboarding = () => {
-    if (!clientData) {
-      toast({
-        title: "Error",
-        description: "Missing client information. Please go back to step 1.",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    // Create client with all the collected data
-    createClient.mutate({
-      ...clientData,
-      availableFunds: 0
-    });
-  };
-
   const handleNext = () => {
     if (step === steps.length - 1) {
-      // After completing the budget step, create the client and finalize
-      completeOnboarding();
+      // After completing the budget step, go to client list page
+      setLocation('/clients');
     } else {
-      // For all other steps, just move to the next one
       setStep(step + 1);
     }
   };
@@ -166,113 +146,38 @@ export default function OnboardingForm() {
           <ClientForm 
             onComplete={(data) => {
               setClientData(data);
-              // Just store the data and move to the next step, don't create client yet
-              setStep(step + 1);
+              // Create client only at this point
+              createClient.mutate({
+                ...data,
+                availableFunds: 0
+              }, {
+                onSuccess: () => {
+                  // Only proceed to next step after successful client creation
+                  handleNext();
+                }
+              });
             }} 
           />
         )}
-        {step === 1 && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-6">
-              <div>
-                <h2 className="text-2xl font-semibold mb-4">Support Network</h2>
-                <p className="text-gray-500 mb-8">
-                  Add allies to the client's support network. This information can be completed after client creation.
-                </p>
-                <div className="h-64 bg-muted/30 rounded-xl flex items-center justify-center">
-                  <div className="text-center p-6">
-                    <Users size={48} className="mx-auto text-muted-foreground mb-4" />
-                    <h3 className="text-xl font-medium mb-2">Ally Information</h3>
-                    <p className="text-muted-foreground">
-                      Support people who help this client with their therapy journey.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div className="space-y-6">
-              <div className="bg-card p-6 rounded-lg border shadow-sm">
-                <h3 className="text-lg font-semibold mb-4">Support Network</h3>
-                <p className="text-muted-foreground mb-6">
-                  Add allies to the client's support network. This information can be completed after client creation.
-                </p>
-                <div className="space-y-4">
-                  <div className="flex justify-between space-x-4">
-                    <Button
-                      variant="outline"
-                      onClick={handlePrevious}
-                      className="w-1/2"
-                    >
-                      Back to previous step
-                    </Button>
-                    <Button
-                      onClick={handleNext}
-                      className="w-1/2"
-                    >
-                      Continue to next step
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+        {step === 1 && clientId && (
+          <AllyForm 
+            clientId={clientId} 
+            onComplete={handleNext} 
+            onPrevious={handlePrevious} 
+          />
         )}
-        {step === 2 && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-6">
-              <div>
-                <h2 className="text-2xl font-semibold mb-4">Therapeutic Goals</h2>
-                <p className="text-gray-500 mb-8">
-                  Define therapeutic goals for the client. This information can be completed after client creation.
-                </p>
-                <div className="h-64 bg-muted/30 rounded-xl flex items-center justify-center">
-                  <div className="text-center p-6">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mx-auto text-muted-foreground mb-4"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
-                    <h3 className="text-xl font-medium mb-2">Goal Setting</h3>
-                    <p className="text-muted-foreground">
-                      Establish therapy goals and measurable outcomes for this client.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div className="space-y-6">
-              <div className="bg-card p-6 rounded-lg border shadow-sm">
-                <h3 className="text-lg font-semibold mb-4">Therapeutic Goals</h3>
-                <p className="text-muted-foreground mb-6">
-                  Define therapeutic goals for the client. This information can be completed after client creation.
-                </p>
-                <div className="space-y-4">
-                  <div className="flex justify-between space-x-4">
-                    <Button
-                      variant="outline"
-                      onClick={handlePrevious}
-                      className="w-1/2"
-                    >
-                      Back to previous step
-                    </Button>
-                    <Button
-                      onClick={handleNext}
-                      className="w-1/2"
-                    >
-                      Continue to next step
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+        {step === 2 && clientId && (
+          <GoalsForm 
+            clientId={clientId} 
+            onComplete={handleNext} 
+            onPrevious={handlePrevious} 
+          />
         )}
-        {step === 3 && (
-          <BudgetForm
-            clientId={-1} // This is a placeholder - client will be created in BudgetForm
-            clientData={clientData}
-            createClientFn={createClient}
-            onComplete={() => {
-              // Navigate to client list after budget is set up
-              setLocation('/clients');
-            }}
-            onPrevious={handlePrevious}
+        {step === 3 && clientId && (
+          <BudgetForm 
+            clientId={clientId} 
+            onComplete={handleNext} 
+            onPrevious={handlePrevious} 
           />
         )}
       </div>
