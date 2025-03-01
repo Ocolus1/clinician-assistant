@@ -49,8 +49,18 @@ function getActiveTabFromURL(): string {
 }
 
 export default function ClientProfile() {
-  const { id } = useParams<{ id: string }>();
-  const clientId = parseInt(id);
+  // The route parameter is 'id' not 'clientId'
+  const params = useParams();
+  console.log("All URL params:", params); // Debug all params
+  
+  // Get the id parameter using destructuring
+  const { id } = params;
+  console.log("Raw ID from URL params:", id); // Add this for debugging
+  
+  // Parse the ID into a number, ensuring it's a valid number
+  const clientId = id && !isNaN(parseInt(id)) ? parseInt(id) : NaN;
+  console.log("Parsed client ID:", clientId); // Add this for debugging
+  
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
   const [activeTab, setActiveTab] = useState(getActiveTabFromURL());

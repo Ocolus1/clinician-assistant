@@ -28,7 +28,7 @@ function Router() {
         <Route path="/clients/legacy" component={ClientList} />
         <Route path="/summary/:clientId" component={Summary} />
         <Route path="/client/:clientId/summary" component={Summary} />
-        <Route path="/client/:clientId/profile" component={ClientProfile} />
+        <Route path="/client/:id/profile" component={ClientProfile} />
         <Route path="/client/:id/print" component={PrintSummary} />
         <Route component={NotFound} />
       </Switch>
