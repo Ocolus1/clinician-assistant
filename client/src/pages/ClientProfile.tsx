@@ -288,7 +288,7 @@ export default function ClientProfile() {
                 <div className="text-sm font-medium text-gray-500">Budget</div>
                 <div className="flex items-center">
                   <div className="font-medium mr-2">
-                    ${totalBudget.toFixed(2)} / ${budgetSettings?.availableFunds.toFixed(2)}
+                    ${totalBudget.toFixed(2)} / ${budgetSettings ? budgetSettings.availableFunds.toFixed(2) : '0.00'}
                   </div>
                   <Progress value={budgetPercentage} className="h-2 w-16" />
                 </div>
@@ -408,29 +408,8 @@ export default function ClientProfile() {
                 Schedule and track therapy sessions, view session history and notes.
               </p>
               
-              {/* Sessions Tab - Will be replaced with component */}
-              <div className="space-y-6">
-                <div className="flex justify-between items-center">
-                  <h4 className="font-medium">Upcoming Sessions</h4>
-                  <Button>Schedule Session</Button>
-                </div>
-                
-                <div className="text-center py-12 bg-gray-50 rounded-lg">
-                  <Calendar className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-                  <h4 className="text-lg font-medium text-gray-500 mb-2">No upcoming sessions</h4>
-                  <p className="text-gray-500 mb-4">Schedule therapy sessions to start tracking progress.</p>
-                  <Button>Schedule First Session</Button>
-                </div>
-                
-                <div className="mt-8">
-                  <h4 className="font-medium mb-4">Session History</h4>
-                  <div className="text-center py-8 bg-gray-50 rounded-lg">
-                    <Clock className="h-10 w-10 text-gray-300 mx-auto mb-3" />
-                    <h5 className="text-md font-medium text-gray-500 mb-2">No past sessions</h5>
-                    <p className="text-gray-500">Session history will appear here once sessions are completed.</p>
-                  </div>
-                </div>
-              </div>
+              {/* Use the ClientSessions component */}
+              <ClientSessions />
             </TabsContent>
             
             <TabsContent value="reports" className="mt-0">
@@ -439,47 +418,8 @@ export default function ClientProfile() {
                 Generate, view, and share progress reports and assessments.
               </p>
               
-              {/* Reports Tab - Will be replaced with component */}
-              <div className="space-y-6">
-                <div className="flex justify-between items-center">
-                  <h4 className="font-medium">Available Reports</h4>
-                  <Button>Generate New Report</Button>
-                </div>
-                
-                <div className="text-center py-12 bg-gray-50 rounded-lg">
-                  <FileText className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-                  <h4 className="text-lg font-medium text-gray-500 mb-2">No reports generated</h4>
-                  <p className="text-gray-500 mb-4">Generate progress reports to track and share therapeutic progress.</p>
-                  <Button>Create First Report</Button>
-                </div>
-                
-                <div className="mt-8">
-                  <h4 className="font-medium mb-4">Report Templates</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <Card className="cursor-pointer hover:border-primary transition-colors">
-                      <CardContent className="p-4 text-center">
-                        <FileText className="h-8 w-8 mx-auto mb-2 text-gray-400" />
-                        <h5 className="font-medium mb-1">Monthly Progress</h5>
-                        <p className="text-xs text-gray-500">Comprehensive monthly progress summary</p>
-                      </CardContent>
-                    </Card>
-                    <Card className="cursor-pointer hover:border-primary transition-colors">
-                      <CardContent className="p-4 text-center">
-                        <FileText className="h-8 w-8 mx-auto mb-2 text-gray-400" />
-                        <h5 className="font-medium mb-1">Goal Achievement</h5>
-                        <p className="text-xs text-gray-500">Detailed goal-specific progress report</p>
-                      </CardContent>
-                    </Card>
-                    <Card className="cursor-pointer hover:border-primary transition-colors">
-                      <CardContent className="p-4 text-center">
-                        <FileText className="h-8 w-8 mx-auto mb-2 text-gray-400" />
-                        <h5 className="font-medium mb-1">Treatment Summary</h5>
-                        <p className="text-xs text-gray-500">Overview of treatment plan and outcomes</p>
-                      </CardContent>
-                    </Card>
-                  </div>
-                </div>
-              </div>
+              {/* Use the ClientReports component */}
+              <ClientReports />
             </TabsContent>
           </CardContent>
         </Card>
