@@ -1,12 +1,26 @@
-import React, { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { Ally } from '@shared/schema';
+import { CaretSortIcon, CheckIcon, PlusIcon } from "@radix-ui/react-icons";
+import { FaBriefcase, FaCalendarAlt, FaMailBulk, FaShieldAlt, FaCoins } from 'react-icons/fa';
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { 
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
+
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+} from "@/components/ui/command";
+
+import {
   Form,
   FormControl,
   FormDescription,
@@ -15,38 +29,27 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-} from "@/components/ui/command";
-import { CaretSortIcon, CheckIcon } from "@radix-ui/react-icons";
+
+import { cn } from "@/lib/utils";
 import { RELATIONSHIP_OPTIONS, LANGUAGE_OPTIONS } from "@/lib/constants";
+import { apiRequest, queryClient } from '@/lib/queryClient';
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { cn } from "@/lib/utils";
-import { Users, MessageSquare, Edit, UserPlus, Archive, Unlock, ShieldCheck, Mail, Phone, Globe, ArchiveRestore, FileText } from "lucide-react";
-import { 
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import type { Ally } from "@shared/schema";
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { apiRequest } from '@/lib/queryClient';
-import { useToast } from '@/hooks/use-toast';
+import { Pencil, ArchiveIcon, RotateCcw, Mail } from "lucide-react";
+import { useMutation } from "@tanstack/react-query";
+
+// Define the validation schema for editing an ally
+const editAllySchema = z.object({
+  name: z.string().min(1, "Name is required"),
+  email: z.string().email("Invalid email address"),
+  relationship: z.string().min(1, "Relationship is required"),
+  preferredLanguage: z.string().min(1, "Preferred language is required"),
+  phone: z.string().optional(),
+  notes: z.string().optional(),
+  accessTherapeutics: z.boolean().default(false),
+  accessFinancials: z.boolean().default(false),
+});
 
 interface ClientAlliesProps {
   allies: Ally[];
@@ -57,146 +60,118 @@ interface ClientAlliesProps {
   onContactAlly?: (ally: Ally) => void;
 }
 
-// Create a validation schema for the ally form
-const editAllySchema = z.object({
-  name: z.string().min(1, { message: "Name is required" }),
-  relationship: z.string().min(1, { message: "Relationship is required" }),
-  email: z.string().email({ message: "Invalid email format" }).min(1, { message: "Email is required" }),
-  phone: z.string().optional(),
-  preferredLanguage: z.string().min(1, { message: "Preferred language is required" }),
-  notes: z.string().optional(),
-  accessTherapeutics: z.boolean().default(false),
-  accessFinancials: z.boolean().default(false),
-});
-
 type EditAllyFormValues = z.infer<typeof editAllySchema>;
 
 export default function ClientAllies({ 
   allies, 
   clientId,
-  onAddAlly, 
-  onEditAlly, 
-  onDeleteAlly,
-  onContactAlly 
+  onAddAlly,
+  onEditAlly,
+  onDeleteAlly, 
+  onContactAlly
 }: ClientAlliesProps) {
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
-  const [allyToArchive, setAllyToArchive] = useState<Ally | null>(null);
   const [showArchiveDialog, setShowArchiveDialog] = useState(false);
-  const [showArchivedAllies, setShowArchivedAllies] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
-  const [currentAlly, setCurrentAlly] = useState<Ally | null>(null);
+  const [allyToArchive, setAllyToArchive] = useState<Ally | null>(null);
   const [openRelationship, setOpenRelationship] = useState(false);
   const [openLanguage, setOpenLanguage] = useState(false);
+  const [currentAlly, setCurrentAlly] = useState<Ally | null>(null);
+  const [activeAllies, setActiveAllies] = useState<Ally[]>([]);
+  const [archivedAllies, setArchivedAllies] = useState<Ally[]>([]);
+  const [showArchived, setShowArchived] = useState(false);
   
-  // Filter allies based on their archived status
-  const activeAllies = allies.filter(ally => !ally.archived);
-  const archivedAllies = allies.filter(ally => ally.archived);
-  
-  // Display allies based on the filter
-  const displayedAllies = showArchivedAllies ? archivedAllies : activeAllies;
-  
-  // Archive/restore mutation
-  const archiveMutation = useMutation({
-    mutationFn: ({ allyId, archived }: { allyId: number; archived: boolean }) => 
-      apiRequest('PUT', `/api/clients/${clientId}/allies/${allyId}/archive`, { archived }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/clients/${clientId}/allies`] });
-      toast({
-        title: allyToArchive?.archived ? 'Ally Restored' : 'Ally Archived',
-        description: allyToArchive?.archived 
-          ? `${allyToArchive.name} has been restored from archive.`
-          : `${allyToArchive?.name} has been archived.`,
-      });
-      setShowArchiveDialog(false);
-      setAllyToArchive(null);
-    },
-    onError: (error) => {
-      toast({
-        title: 'Error',
-        description: `Failed to update ally: ${error}`,
-        variant: 'destructive',
-      });
+  // Initialize the form
+  const form = useForm<EditAllyFormValues>({
+    resolver: zodResolver(editAllySchema),
+    defaultValues: {
+      name: "",
+      email: "",
+      relationship: "",
+      preferredLanguage: "",
+      phone: "",
+      notes: "",
+      accessTherapeutics: false,
+      accessFinancials: false,
     }
   });
   
+  // Filter allies into active and archived
+  useEffect(() => {
+    setActiveAllies(allies.filter(ally => !ally.archived));
+    setArchivedAllies(allies.filter(ally => ally.archived));
+  }, [allies]);
+
+  // Handle archive/restore button click
   const handleArchiveClick = (ally: Ally) => {
     setAllyToArchive(ally);
     setShowArchiveDialog(true);
   };
   
-  const handleArchiveConfirm = () => {
-    if (allyToArchive) {
-      archiveMutation.mutate({ 
-        allyId: allyToArchive.id, 
-        archived: !allyToArchive.archived 
-      });
-    }
-  };
-
-  // Function to handle contact via email
+  // Handle email contact click
   const handleContactEmail = (ally: Ally) => {
-    if (ally.email && onContactAlly) {
+    if (onContactAlly) {
       onContactAlly(ally);
+    } else {
+      window.location.href = `mailto:${ally.email}`;
     }
   };
   
-  // Form for editing ally
-  const form = useForm<EditAllyFormValues>({
-    resolver: zodResolver(editAllySchema),
-    defaultValues: {
-      name: "",
-      relationship: "",
-      email: "",
-      phone: "",
-      preferredLanguage: "",
-      notes: "",
-      accessTherapeutics: false,
-      accessFinancials: false,
+  // Archive mutation
+  const archiveAllyMutation = useMutation({
+    mutationFn: (data: { id: number; archived: boolean }) => {
+      return apiRequest('PUT', `/api/allies/${data.id}/archive`, { archived: data.archived });
     },
+    onSuccess: () => {
+      setShowArchiveDialog(false);
+      setAllyToArchive(null);
+      // Invalidate and refetch
+      queryClient.invalidateQueries({ queryKey: [`/api/clients/${clientId}/allies`] });
+    }
   });
   
   // Edit ally mutation
   const editAllyMutation = useMutation({
     mutationFn: (data: EditAllyFormValues) => {
       if (!currentAlly) return Promise.reject("No ally selected");
-      return apiRequest('PUT', `/api/clients/${clientId}/allies/${currentAlly.id}`, data);
+      return apiRequest('PUT', `/api/allies/${currentAlly.id}`, data);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/clients/${clientId}/allies`] });
-      toast({
-        title: 'Ally Updated',
-        description: `${currentAlly?.name}'s information has been updated.`,
-      });
       setShowEditDialog(false);
       setCurrentAlly(null);
-    },
-    onError: (error) => {
-      toast({
-        title: 'Error',
-        description: `Failed to update ally: ${error}`,
-        variant: 'destructive',
-      });
+      // Invalidate and refetch
+      queryClient.invalidateQueries({ queryKey: [`/api/clients/${clientId}/allies`] });
     }
   });
   
-  // Handle edit button click
+  // Handle archive confirmation
+  const handleArchiveConfirm = () => {
+    if (allyToArchive) {
+      archiveAllyMutation.mutate({
+        id: allyToArchive.id,
+        archived: !allyToArchive.archived
+      });
+    }
+  };
+  
+  // Handle edit click
   const handleEditClick = (ally: Ally) => {
     setCurrentAlly(ally);
-    
-    // Reset form with ally data
+    // Set form values
     form.reset({
       name: ally.name,
-      relationship: ally.relationship,
       email: ally.email || "",
-      phone: ally.phone || "",
+      relationship: ally.relationship || "",
       preferredLanguage: ally.preferredLanguage || "",
+      phone: ally.phone || "",
       notes: ally.notes || "",
       accessTherapeutics: ally.accessTherapeutics || false,
       accessFinancials: ally.accessFinancials || false,
     });
-    
     setShowEditDialog(true);
+    
+    if (onEditAlly) {
+      onEditAlly(ally);
+    }
   };
   
   // Handle form submission
@@ -206,168 +181,238 @@ export default function ClientAllies({
   
   return (
     <div className="space-y-6">
-      {allies.length === 0 ? (
-        <div className="text-center py-8">
-          <Users className="h-10 w-10 text-gray-300 mx-auto mb-3" />
-          <h4 className="text-lg font-medium text-gray-500 mb-2">No allies added yet</h4>
-          <p className="text-gray-500 mb-4">Add family members, caregivers, or therapists to the client's support network.</p>
-          <Button onClick={onAddAlly}>Add First Ally</Button>
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="text-lg font-medium">Client Allies</h3>
+          <p className="text-sm text-muted-foreground">
+            People who support this client's therapy journey
+          </p>
         </div>
-      ) : (
+        <div className="flex items-center gap-2">
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={() => setShowArchived(!showArchived)}
+          >
+            {showArchived ? "Hide Archived" : "Show Archived"}
+          </Button>
+          <Button onClick={onAddAlly}>
+            <PlusIcon className="h-4 w-4 mr-2" />
+            Add New Ally
+          </Button>
+        </div>
+      </div>
+      
+      {/* Active Allies */}
+      {!showArchived && (
         <>
-          {/* Archived/Active toggle */}
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-lg font-medium">
-              {showArchivedAllies ? 'Archived Allies' : 'Active Allies'}
-              <Badge variant="outline" className="ml-2">
-                {displayedAllies.length}
-              </Badge>
-            </h3>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={() => setShowArchivedAllies(!showArchivedAllies)}
-              className="flex items-center gap-1"
-            >
-              {showArchivedAllies ? (
-                <>
-                  <Users className="h-4 w-4" />
-                  Show Active
-                </>
-              ) : (
-                <>
-                  <Archive className="h-4 w-4" />
-                  Show Archived
-                </>
-              )}
-            </Button>
-          </div>
-          
-          {/* Ally Cards Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {displayedAllies.length > 0 ? (
-              displayedAllies.map((ally) => (
-                <Card 
-                  key={ally.id} 
-                  className={`overflow-hidden ${ally.archived ? 'bg-gray-50 border-gray-200' : ''}`}
-                >
+          {activeAllies.length === 0 ? (
+            <div className="text-center p-8 border border-dashed rounded-lg">
+              <p className="text-muted-foreground">No active allies. Add an ally to get started.</p>
+              <Button onClick={onAddAlly} className="mt-4">
+                <PlusIcon className="h-4 w-4 mr-2" />
+                Add New Ally
+              </Button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {activeAllies.map((ally) => (
+                <Card key={ally.id} className="relative">
+                  <div className="absolute top-3 right-3 flex items-center space-x-1">
+                    <Button 
+                      variant="ghost" 
+                      size="icon"
+                      onClick={() => handleEditClick(ally)}
+                      title="Edit ally"
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="icon"
+                      onClick={() => handleArchiveClick(ally)}
+                      title="Archive ally"
+                    >
+                      <ArchiveIcon className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  
                   <CardHeader className="pb-2">
-                    <div className="flex justify-between items-start">
-                      <div className="flex items-center">
-                        <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center mr-3">
-                          <Users className="h-5 w-5 text-blue-600" />
-                        </div>
-                        <div>
-                          <h4 className="font-medium text-lg flex items-center gap-2">
-                            {ally.name}
-                            {ally.archived && (
-                              <Badge variant="outline" className="text-xs bg-gray-100">
-                                Archived
-                              </Badge>
-                            )}
-                          </h4>
-                          <Badge variant="outline" className="text-xs">
-                            {ally.relationship}
-                          </Badge>
-                        </div>
-                      </div>
-                      
-                      {/* Action buttons */}
-                      <div className="flex space-x-1">
-                        {!ally.archived && (
-                          <Button variant="ghost" size="icon" onClick={() => handleEditClick(ally)}>
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                        )}
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          className={ally.archived 
-                            ? "text-green-600 hover:text-green-800 hover:bg-green-50" 
-                            : "text-amber-600 hover:text-amber-800 hover:bg-amber-50"}
-                          onClick={() => handleArchiveClick(ally)}
-                        >
-                          {ally.archived ? (
-                            <ArchiveRestore className="h-4 w-4" />
-                          ) : (
-                            <Archive className="h-4 w-4" />
-                          )}
-                        </Button>
-                      </div>
-                    </div>
+                    <CardTitle className="text-lg">{ally.name}</CardTitle>
+                    <CardDescription className="flex items-center">
+                      <FaBriefcase className="mr-1" />
+                      {RELATIONSHIP_OPTIONS.find(opt => opt.value === ally.relationship)?.label || ally.relationship}
+                    </CardDescription>
                   </CardHeader>
                   
-                  <CardContent className="pt-2 pb-4">
-                    <div className="grid grid-cols-1 gap-y-1 text-sm text-gray-500">
+                  <CardContent className="space-y-4 pb-1">
+                    <div className="space-y-3">
                       {ally.email && (
-                        <div className="flex items-center">
-                          <Mail className="h-3.5 w-3.5 mr-2 text-gray-400" />
-                          <span>{ally.email}</span>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center text-sm">
+                            <FaMailBulk className="mr-2 h-4 w-4 text-muted-foreground" />
+                            <span>{ally.email}</span>
+                          </div>
+                          <Button 
+                            variant="ghost" 
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => handleContactEmail(ally)}
+                            title="Send email"
+                          >
+                            <Mail className="h-4 w-4" />
+                          </Button>
                         </div>
                       )}
+                      
                       {ally.phone && (
-                        <div className="flex items-center">
-                          <Phone className="h-3.5 w-3.5 mr-2 text-gray-400" />
+                        <div className="flex items-center text-sm">
+                          <FaCalendarAlt className="mr-2 h-4 w-4 text-muted-foreground" />
                           <span>{ally.phone}</span>
                         </div>
                       )}
+                      
                       {ally.preferredLanguage && (
-                        <div className="flex items-center">
-                          <Globe className="h-3.5 w-3.5 mr-2 text-gray-400" />
-                          <span>{ally.preferredLanguage}</span>
-                        </div>
-                      )}
-                      
-                      {/* Access permissions badges */}
-                      <div className="flex space-x-2 mt-2">
-                        {ally.accessTherapeutics && (
-                          <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-200 border-blue-200">
-                            <FileText className="h-3 w-3 mr-1" />
-                            Therapeutic
-                          </Badge>
-                        )}
-                        {ally.accessFinancials && (
-                          <Badge className="bg-green-100 text-green-800 hover:bg-green-200 border-green-200">
-                            <ShieldCheck className="h-3 w-3 mr-1" />
-                            Financial
-                          </Badge>
-                        )}
-                      </div>
-                      
-                      {ally.notes && (
-                        <div className="flex items-start mt-2">
-                          <FileText className="h-3.5 w-3.5 mr-2 mt-0.5 text-gray-400" />
-                          <span className="text-xs">{ally.notes}</span>
+                        <div className="flex flex-col space-y-1">
+                          <div className="flex items-center text-sm">
+                            <span className="mr-2">Preferred Language:</span>
+                            <span>
+                              {LANGUAGE_OPTIONS.find(opt => opt.value === ally.preferredLanguage)?.label || ally.preferredLanguage}
+                            </span>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            {ally.accessTherapeutics && (
+                              <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 flex items-center">
+                                <FaShieldAlt className="mr-1 h-3 w-3" />
+                                Therapeutic Access
+                              </Badge>
+                            )}
+                            
+                            {ally.accessFinancials && (
+                              <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 flex items-center">
+                                <FaCoins className="mr-1 h-3 w-3" />
+                                Financial Access
+                              </Badge>
+                            )}
+                          </div>
                         </div>
                       )}
                     </div>
+                    
+                    {ally.notes && (
+                      <div className="text-sm pt-2 border-t">
+                        <p className="text-muted-foreground">{ally.notes}</p>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
-              ))
-            ) : (
-              <div className="col-span-2 text-center py-6 bg-gray-50 rounded-lg">
-                <Archive className="h-8 w-8 text-gray-300 mx-auto mb-2" />
-                <p className="text-gray-500">
-                  {showArchivedAllies ? 'No archived allies found.' : 'No active allies found.'}
-                </p>
-              </div>
-            )}
-          </div>
-          
-          {!showArchivedAllies && (
-            <div className="flex justify-end pt-4">
-              <Button className="flex items-center" onClick={onAddAlly}>
-                <UserPlus className="h-4 w-4 mr-2" />
-                Add New Ally
-              </Button>
+              ))}
+            </div>
+          )}
+        </>
+      )}
+      
+      {/* Archived Allies */}
+      {showArchived && (
+        <>
+          {archivedAllies.length === 0 ? (
+            <div className="text-center p-8 border border-dashed rounded-lg">
+              <p className="text-muted-foreground">No archived allies.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {archivedAllies.map((ally) => (
+                <Card key={ally.id} className="relative opacity-75">
+                  <div className="absolute top-3 right-3 flex items-center space-x-1">
+                    <Button 
+                      variant="ghost" 
+                      size="icon"
+                      onClick={() => handleArchiveClick(ally)}
+                      title="Restore ally"
+                    >
+                      <RotateCcw className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  
+                  <CardHeader className="pb-2">
+                    <Badge variant="outline" className="w-fit mb-2">Archived</Badge>
+                    <CardTitle className="text-lg">{ally.name}</CardTitle>
+                    <CardDescription className="flex items-center">
+                      <FaBriefcase className="mr-1" />
+                      {RELATIONSHIP_OPTIONS.find(opt => opt.value === ally.relationship)?.label || ally.relationship}
+                    </CardDescription>
+                  </CardHeader>
+                  
+                  <CardContent className="space-y-4 pb-1">
+                    <div className="space-y-3">
+                      {ally.email && (
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center text-sm">
+                            <FaMailBulk className="mr-2 h-4 w-4 text-muted-foreground" />
+                            <span>{ally.email}</span>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {ally.phone && (
+                        <div className="flex items-center text-sm">
+                          <FaCalendarAlt className="mr-2 h-4 w-4 text-muted-foreground" />
+                          <span>{ally.phone}</span>
+                        </div>
+                      )}
+                      
+                      {ally.preferredLanguage && (
+                        <div className="flex flex-col space-y-1">
+                          <div className="flex items-center text-sm">
+                            <span className="mr-2">Preferred Language:</span>
+                            <span>
+                              {LANGUAGE_OPTIONS.find(opt => opt.value === ally.preferredLanguage)?.label || ally.preferredLanguage}
+                            </span>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            {ally.accessTherapeutics && (
+                              <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 flex items-center">
+                                <FaShieldAlt className="mr-1 h-3 w-3" />
+                                Therapeutic Access
+                              </Badge>
+                            )}
+                            
+                            {ally.accessFinancials && (
+                              <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 flex items-center">
+                                <FaCoins className="mr-1 h-3 w-3" />
+                                Financial Access
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    
+                    {ally.notes && (
+                      <div className="text-sm pt-2 border-t">
+                        <p className="text-muted-foreground">{ally.notes}</p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              ))}
             </div>
           )}
         </>
       )}
       
       {/* Archive/Restore Confirmation Dialog */}
-      <Dialog open={showArchiveDialog} onOpenChange={setShowArchiveDialog}>
-        <DialogContent>
+      <Dialog 
+        open={showArchiveDialog} 
+        onOpenChange={(open) => {
+          // Only allow closing via the buttons, not by clicking outside
+          if (!open) setShowArchiveDialog(false);
+        }}
+      >
+        <DialogContent 
+          onEscapeKeyDown={(e) => e.preventDefault()} 
+          onPointerDownOutside={(e) => e.preventDefault()}
+        >
           <DialogHeader>
             <DialogTitle>
               {allyToArchive?.archived ? 'Restore Ally' : 'Archive Ally'}
@@ -401,8 +446,18 @@ export default function ClientAllies({
       </Dialog>
       
       {/* Edit Ally Dialog */}
-      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-        <DialogContent className="sm:max-w-[600px]">
+      <Dialog 
+        open={showEditDialog} 
+        onOpenChange={(open) => {
+          // Only allow closing via the buttons, not by clicking outside
+          if (!open) setShowEditDialog(false);
+        }}
+      >
+        <DialogContent 
+          className="sm:max-w-[600px]"
+          onEscapeKeyDown={(e) => e.preventDefault()} 
+          onPointerDownOutside={(e) => e.preventDefault()}
+        >
           <DialogHeader>
             <DialogTitle>Edit Ally</DialogTitle>
             <DialogDescription>
