@@ -1,7 +1,7 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
-import { PlusCircle, Edit, User, Calendar, ArrowRight } from "lucide-react";
-import { useEffect } from "react";
+import { PlusCircle, Edit, User, Calendar, ArrowRight, Trash2 } from "lucide-react";
+import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -9,17 +9,40 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Client } from "@shared/schema";
 import { format } from "date-fns";
+import { apiRequest } from "@/lib/queryClient";
 
 export default function ClientList() {
   const [location, setLocation] = useLocation();
+  const [showIncomplete, setShowIncomplete] = useState(false);
+  const queryClient = useQueryClient();
   
   // Fetch all clients
-  const { data: clients = [], isLoading, error } = useQuery<Client[]>({
+  const { data: allClients = [], isLoading, error } = useQuery<Client[]>({
     queryKey: ["/api/clients"],
+  });
+  
+  // Filter clients based on completion status
+  const clients = showIncomplete 
+    ? allClients 
+    : allClients.filter(client => client.onboardingStatus === 'complete');
+  
+  // Delete client mutation
+  const deleteClientMutation = useMutation({
+    mutationFn: (clientId: number) => 
+      apiRequest("DELETE", `/api/clients/${clientId}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/clients"] });
+    }
   });
 
   const handleNewClient = () => {
     setLocation("/clients/new");
+  };
+  
+  const handleDeleteClient = (clientId: number) => {
+    if (window.confirm("Are you sure you want to delete this client?")) {
+      deleteClientMutation.mutate(clientId);
+    }
   };
   
   // Add specific styles for this page
@@ -49,7 +72,21 @@ export default function ClientList() {
     <div className="client-list-container w-full flex flex-col" style={{ width: '100%', maxWidth: '100%' }}>
       {/* Header section */}
       <div className="flex justify-between items-center mb-6 w-full">
-        <h1 className="text-2xl font-bold text-gray-900">Client Management</h1>
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Client Management</h1>
+          <div className="flex items-center mt-2">
+            <input 
+              type="checkbox" 
+              id="show-incomplete" 
+              checked={showIncomplete}
+              onChange={(e) => setShowIncomplete(e.target.checked)}
+              className="mr-2 h-4 w-4"
+            />
+            <label htmlFor="show-incomplete" className="text-sm text-gray-600">
+              Show incomplete clients
+            </label>
+          </div>
+        </div>
         <Button 
           onClick={handleNewClient}
           className="bg-primary hover:bg-primary/90"
@@ -111,7 +148,7 @@ export default function ClientList() {
                               </Badge>
                             )}
                             {client.onboardingStatus === 'complete' && (
-                              <Badge variant="success" className="text-xs font-normal bg-green-100 text-green-800 hover:bg-green-200 border-green-200 ml-2">
+                              <Badge variant="outline" className="text-xs font-normal bg-green-100 text-green-800 hover:bg-green-200 border-green-200 ml-2">
                                 Complete
                               </Badge>
                             )}
@@ -138,6 +175,17 @@ export default function ClientList() {
                         <Edit className="h-4 w-4 mr-1" />
                         Edit
                       </Button>
+                      {client.onboardingStatus === 'incomplete' && (
+                        <Button 
+                          onClick={() => handleDeleteClient(client.id)} 
+                          variant="outline" 
+                          size="sm" 
+                          className="text-red-600 hover:text-red-800"
+                        >
+                          <Trash2 className="h-4 w-4 mr-1" />
+                          Delete
+                        </Button>
+                      )}
                     </div>
                   </div>
                 </li>
