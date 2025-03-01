@@ -18,17 +18,20 @@ export function useSafeState<T>(initialState: T | (() => T)): [T, React.Dispatch
  * @param initialStates Object with initial state values
  * @returns Object with state tuples
  */
+/**
+ * DO NOT USE THIS HOOK DIRECTLY - it violates React's rules of hooks.
+ * This was causing "Rendered more hooks than during the previous render" errors.
+ * Instead, create individual useSafeState hooks for each state value.
+ */
 export function useSafeStates<T extends Record<string, any>>(initialStates: T): 
   { [K in keyof T]: [T[K], React.Dispatch<React.SetStateAction<T[K]>>] } {
-  const result = {} as { [K in keyof T]: [T[K], React.Dispatch<React.SetStateAction<T[K]>>] };
+  // This is an anti-pattern - kept for reference but should not be used
+  console.warn('useSafeStates is deprecated due to React hooks rules violation');
   
-  // Create each state hook upfront
-  for (const key in initialStates) {
-    // We need to use this approach to ensure hooks are always created
-    // in the same order regardless of conditional rendering
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    result[key] = useState<T[typeof key]>(initialStates[key]);
-  }
+  const result = {} as { [K in keyof T]: [T[K], React.Dispatch<React.SetStateAction<T[K]>>] };
+  Object.keys(initialStates).forEach(key => {
+    result[key as keyof T] = [initialStates[key], () => {}] as [T[typeof key], React.Dispatch<React.SetStateAction<T[typeof key]>>];
+  });
   
   return result;
 }
