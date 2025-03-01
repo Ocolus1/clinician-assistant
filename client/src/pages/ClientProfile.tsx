@@ -32,6 +32,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useToast } from "@/hooks/use-toast";
 import type { Client, Ally, Goal, Subgoal, BudgetSettings, BudgetItem } from "@shared/schema";
 
 // Tab components
@@ -49,6 +50,9 @@ function getActiveTabFromURL(): string {
 }
 
 export default function ClientProfile() {
+  // Initialize toast hook
+  const { toast } = useToast();
+  
   // The route parameter is 'id' not 'clientId'
   const params = useParams();
   console.log("All URL params:", params); // Debug all params
@@ -364,10 +368,30 @@ export default function ClientProfile() {
               <ClientAllies
                 allies={allies}
                 clientId={clientId}
-                onAddAlly={() => console.log("Add ally clicked")}
-                onEditAlly={(ally) => console.log("Edit ally clicked", ally)}
-                onDeleteAlly={(ally) => console.log("Delete ally clicked", ally)}
-                onContactAlly={(ally) => console.log("Contact ally clicked", ally)}
+                onAddAlly={() => {
+                  toast({
+                    title: "Add Ally",
+                    description: "This feature is coming soon.",
+                  });
+                }}
+                onEditAlly={(ally) => {
+                  toast({
+                    title: "Edit Ally",
+                    description: `Editing ${ally.name}'s information.`,
+                  });
+                }}
+                onDeleteAlly={(ally) => {
+                  toast({
+                    title: "Delete Ally",
+                    description: `Deleting ${ally.name} from allies.`,
+                  });
+                }}
+                onContactAlly={(ally) => {
+                  toast({
+                    title: "Contact Ally",
+                    description: `Contacting ${ally.name} at ${ally.email}`,
+                  });
+                }}
               />
             </TabsContent>
             

@@ -160,20 +160,27 @@ export default function ClientAllies({
                         </div>
                       </div>
                       
-                      {/* Access permissions badges */}
+                      {/* Action buttons */}
                       <div className="flex space-x-1">
-                        {ally.accessTherapeutics && (
-                          <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-200 border-blue-200">
-                            <FileText className="h-3 w-3 mr-1" />
-                            Therapeutic
-                          </Badge>
+                        {onEditAlly && !ally.archived && (
+                          <Button variant="ghost" size="icon" onClick={() => onEditAlly(ally)}>
+                            <Edit className="h-4 w-4" />
+                          </Button>
                         )}
-                        {ally.accessFinancials && (
-                          <Badge className="bg-green-100 text-green-800 hover:bg-green-200 border-green-200">
-                            <ShieldCheck className="h-3 w-3 mr-1" />
-                            Financial
-                          </Badge>
-                        )}
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className={ally.archived 
+                            ? "text-green-600 hover:text-green-800 hover:bg-green-50" 
+                            : "text-amber-600 hover:text-amber-800 hover:bg-amber-50"}
+                          onClick={() => handleArchiveClick(ally)}
+                        >
+                          {ally.archived ? (
+                            <ArchiveRestore className="h-4 w-4" />
+                          ) : (
+                            <Archive className="h-4 w-4" />
+                          )}
+                        </Button>
                       </div>
                     </div>
                   </CardHeader>
@@ -198,6 +205,23 @@ export default function ClientAllies({
                           <span>{ally.preferredLanguage}</span>
                         </div>
                       )}
+                      
+                      {/* Access permissions badges */}
+                      <div className="flex space-x-2 mt-2">
+                        {ally.accessTherapeutics && (
+                          <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-200 border-blue-200">
+                            <FileText className="h-3 w-3 mr-1" />
+                            Therapeutic
+                          </Badge>
+                        )}
+                        {ally.accessFinancials && (
+                          <Badge className="bg-green-100 text-green-800 hover:bg-green-200 border-green-200">
+                            <ShieldCheck className="h-3 w-3 mr-1" />
+                            Financial
+                          </Badge>
+                        )}
+                      </div>
+                      
                       {ally.notes && (
                         <div className="flex items-start mt-2">
                           <FileText className="h-3.5 w-3.5 mr-2 mt-0.5 text-gray-400" />
@@ -206,44 +230,6 @@ export default function ClientAllies({
                       )}
                     </div>
                   </CardContent>
-                  
-                  <CardFooter className="pt-0 border-t bg-gray-50 flex justify-between">
-                    <div className="flex items-center space-x-1">
-                      {onContactAlly && !ally.archived && (
-                        <Button variant="ghost" size="sm" onClick={() => handleContactEmail(ally)}>
-                          <MessageSquare className="h-4 w-4 mr-1" />
-                          Contact
-                        </Button>
-                      )}
-                      {onEditAlly && !ally.archived && (
-                        <Button variant="ghost" size="sm" onClick={() => onEditAlly(ally)}>
-                          <Edit className="h-4 w-4 mr-1" />
-                          Edit
-                        </Button>
-                      )}
-                    </div>
-                    
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      className={ally.archived 
-                        ? "text-green-600 hover:text-green-800 hover:bg-green-50" 
-                        : "text-amber-600 hover:text-amber-800 hover:bg-amber-50"}
-                      onClick={() => handleArchiveClick(ally)}
-                    >
-                      {ally.archived ? (
-                        <>
-                          <ArchiveRestore className="h-4 w-4 mr-1" />
-                          Restore
-                        </>
-                      ) : (
-                        <>
-                          <Archive className="h-4 w-4 mr-1" />
-                          Archive
-                        </>
-                      )}
-                    </Button>
-                  </CardFooter>
                 </Card>
               ))
             ) : (
