@@ -21,10 +21,23 @@ export default function ClientList() {
     queryKey: ["/api/clients"],
   });
   
-  // Filter clients based on completion status
-  const clients = showIncomplete 
-    ? allClients 
-    : allClients.filter(client => client.onboardingStatus === 'complete');
+  // Apply the filter with a useEffect to ensure it runs on initial render
+  // and whenever allClients or showIncomplete changes
+  const [filteredClients, setFilteredClients] = useState<Client[]>([]);
+  
+  useEffect(() => {
+    console.log('Filtering clients:', allClients.length, 'showIncomplete:', showIncomplete);
+    if (allClients) {
+      const filtered = showIncomplete 
+        ? allClients 
+        : allClients.filter(client => client.onboardingStatus === 'complete');
+      console.log('After filtering:', filtered.length);
+      setFilteredClients(filtered);
+    }
+  }, [allClients, showIncomplete]);
+  
+  // Use the filtered clients in the UI
+  const clients = filteredClients;
   
   // Delete client mutation
   const deleteClientMutation = useMutation({
