@@ -75,7 +75,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.get("/api/clients/:clientId/allies", async (req, res) => {
-    const allies = await storage.getAlliesByClient(parseInt(req.params.clientId));
+    const clientId = parseInt(req.params.clientId);
+    console.log(`GET /api/clients/${clientId}/allies - Fetching allies for client ID: ${clientId}`);
+    const allies = await storage.getAlliesByClient(clientId);
+    console.log(`Returning ${allies.length} allies for client ID: ${clientId}`);
     res.json(allies);
   });
 
