@@ -61,8 +61,14 @@ export default function ClientForm({ onComplete }: ClientFormProps) {
         ...data,
         availableFunds: 0 // This will be properly set in BudgetForm
       };
+      
+      // Log the data being sent to the API for debugging
+      console.log("Submitting client data:", dataWithDefaults);
+      
       const res = await apiRequest("POST", "/api/clients", dataWithDefaults);
-      return res.json();
+      const responseData = await res.json();
+      console.log("API response:", responseData);
+      return responseData;
     },
     onSuccess: (data) => {
       toast({
@@ -71,7 +77,8 @@ export default function ClientForm({ onComplete }: ClientFormProps) {
       });
       onComplete(data.id);
     },
-    onError: () => {
+    onError: (error) => {
+      console.error("Error creating client:", error);
       toast({
         title: "Error",
         description: "Failed to save client information",

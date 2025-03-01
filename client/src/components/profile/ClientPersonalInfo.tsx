@@ -1,10 +1,10 @@
 import React from 'react';
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { Edit } from "lucide-react";
 import type { Client } from "@shared/schema";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface ClientPersonalInfoProps {
   client: Client;
@@ -29,84 +29,47 @@ export default function ClientPersonalInfo({ client, onEdit }: ClientPersonalInf
   const clientAge = client.dateOfBirth ? calculateAge(client.dateOfBirth) : null;
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-start mb-4">
-        <h3 className="text-xl font-semibold">{client.name}</h3>
-        <Button className="flex items-center" onClick={onEdit}>
-          <Edit className="h-4 w-4 mr-2" />
-          Edit Information
-        </Button>
-      </div>
-      
-      <Tabs defaultValue="personal" className="w-full">
-        <TabsList className="grid w-full grid-cols-3 mb-4">
-          <TabsTrigger value="personal">Personal</TabsTrigger>
-          <TabsTrigger value="contact">Contact</TabsTrigger>
-          <TabsTrigger value="medical">Medical</TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="personal" className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <h4 className="text-sm font-medium text-gray-500 mb-1">Date of Birth</h4>
-              <p className="font-medium">
-                {client.dateOfBirth ? format(new Date(client.dateOfBirth), 'PP') : 'Not provided'}
-                {clientAge && <span className="text-gray-500 ml-2">({clientAge} years old)</span>}
-              </p>
-            </div>
-            <div>
-              <h4 className="text-sm font-medium text-gray-500 mb-1">Gender</h4>
-              <p className="font-medium">{client.gender || 'Not specified'}</p>
-            </div>
-            <div>
-              <h4 className="text-sm font-medium text-gray-500 mb-1">Preferred Language</h4>
-              <p className="font-medium">{client.preferredLanguage || 'Not specified'}</p>
-            </div>
-            <div>
-              <h4 className="text-sm font-medium text-gray-500 mb-1">Funds Management</h4>
-              <p className="font-medium">{client.fundsManagement || 'Not specified'}</p>
-            </div>
-            <div>
-              <h4 className="text-sm font-medium text-gray-500 mb-1">Available Funds</h4>
-              <p className="font-medium">${typeof client.availableFunds === 'number' ? 
-                client.availableFunds.toFixed(2) : 
-                parseFloat(client.availableFunds as unknown as string).toFixed(2)}</p>
-            </div>
+    <Card className="w-full shadow-sm">
+      <CardHeader className="pb-2 flex flex-row items-center justify-between">
+        <div>
+          <CardTitle>{client.name}</CardTitle>
+        </div>
+        {onEdit && (
+          <Button 
+            size="sm" 
+            className="flex items-center" 
+            onClick={onEdit}
+          >
+            <Edit className="h-4 w-4 mr-2" />
+            Edit Information
+          </Button>
+        )}
+      </CardHeader>
+      <CardContent className="pt-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <h4 className="text-sm font-medium text-gray-500 mb-1">Date of Birth</h4>
+            <p className="font-medium">
+              {client.dateOfBirth ? format(new Date(client.dateOfBirth), 'MMMM d, yyyy') : 'Not provided'}
+              {clientAge && 
+                <Badge variant="outline" className="ml-2 bg-primary/10 text-primary">
+                  {clientAge} years old
+                </Badge>
+              }
+            </p>
           </div>
-        </TabsContent>
-        
-        <TabsContent value="contact" className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <h4 className="text-sm font-medium text-gray-500 mb-1">Email</h4>
-              <p className="font-medium">{client.contactEmail || 'Not provided'}</p>
-            </div>
-            <div>
-              <h4 className="text-sm font-medium text-gray-500 mb-1">Phone Number</h4>
-              <p className="font-medium">{client.contactPhone || 'Not provided'}</p>
-            </div>
-            <div className="md:col-span-2">
-              <h4 className="text-sm font-medium text-gray-500 mb-1">Address</h4>
-              <p className="font-medium whitespace-pre-line">{client.address || 'Not provided'}</p>
-            </div>
+          <div>
+            <h4 className="text-sm font-medium text-gray-500 mb-1">Funds Management</h4>
+            <p className="font-medium">{client.fundsManagement || 'Not specified'}</p>
           </div>
-        </TabsContent>
-        
-        <TabsContent value="medical" className="space-y-4">
-          <Card>
-            <CardContent className="p-4">
-              <h4 className="text-sm font-medium text-gray-500 mb-2">Medical History</h4>
-              <p className="mb-4 whitespace-pre-line">{client.medicalHistory || 'No medical history provided'}</p>
-              
-              <h4 className="text-sm font-medium text-gray-500 mb-2">Communication Needs</h4>
-              <p className="mb-4 whitespace-pre-line">{client.communicationNeeds || 'No specific communication needs provided'}</p>
-              
-              <h4 className="text-sm font-medium text-gray-500 mb-2">Therapy Preferences</h4>
-              <p className="whitespace-pre-line">{client.therapyPreferences || 'No therapy preferences provided'}</p>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
-    </div>
+          <div>
+            <h4 className="text-sm font-medium text-gray-500 mb-1">Available Funds</h4>
+            <p className="font-medium">${typeof client.availableFunds === 'number' ? 
+              client.availableFunds.toFixed(2) : 
+              parseFloat(client.availableFunds as unknown as string).toFixed(2)}</p>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 }

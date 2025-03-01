@@ -62,15 +62,26 @@ export class DBStorage implements IStorage {
     const processedClient = {
       ...client,
       availableFunds: Number(client.availableFunds) || 0,
-      fundsManagement: client.fundsManagement || null
+      fundsManagement: client.fundsManagement || null,
+      // Make sure these fields are passed through properly
+      gender: client.gender || null,
+      preferredLanguage: client.preferredLanguage || null,
+      contactEmail: client.contactEmail || null,
+      contactPhone: client.contactPhone || null,
+      address: client.address || null,
+      medicalHistory: client.medicalHistory || null,
+      communicationNeeds: client.communicationNeeds || null,
+      therapyPreferences: client.therapyPreferences || null
     };
+    
+    console.log("Processed client data:", processedClient);
     
     try {
       const [newClient] = await db.insert(clients)
         .values(processedClient)
         .returning();
       
-      console.log(`Successfully created client with ID ${newClient.id}`);
+      console.log(`Successfully created client with ID ${newClient.id}:`, newClient);
       return newClient;
     } catch (error) {
       console.error("Error creating client:", error);
