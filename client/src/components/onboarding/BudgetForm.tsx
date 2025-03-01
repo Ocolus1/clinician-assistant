@@ -59,7 +59,8 @@ import {
   type BudgetSettings, 
   type InsertBudgetSettings,
   type BudgetItemCatalog,
-  type InsertBudgetItemCatalog
+  type InsertBudgetItemCatalog,
+  type Client
 } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 
@@ -374,7 +375,7 @@ export default function BudgetForm({ clientId, clientData, createClientFn, onCom
               });
             });
         },
-        onError: (error) => {
+        onError: (error: Error) => {
           console.error("Error creating client:", error);
           toast({
             title: "Error",
