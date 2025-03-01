@@ -85,6 +85,11 @@ export default function ClientProfile() {
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
   const [activeTab, setActiveTab] = useState(getActiveTabFromURL());
+  // IMPORTANT: Define all state hooks at the top level, before any conditional returns
+  const [subgoalsByGoal, setSubgoalsByGoal] = useState<Record<number, Subgoal[]>>({});
+  const [isLoadingSubgoals, setIsLoadingSubgoals] = useState(false);
+  // Define the showAddAllyDialog state hook here, BEFORE any conditional returns
+  const [showAddAllyDialog, setShowAddAllyDialog] = useState(false);
 
   // Fetch client data with enhanced logging
   const { data: client, isLoading: isLoadingClient } = useQuery<Client>({
@@ -138,10 +143,6 @@ export default function ClientProfile() {
     queryFn: getQueryFn({ on401: "throw" }),
     enabled: !!clientId,
   });
-
-  // Create a state to store subgoals by goalId
-  const [subgoalsByGoal, setSubgoalsByGoal] = useState<Record<number, Subgoal[]>>({});
-  const [isLoadingSubgoals, setIsLoadingSubgoals] = useState(false);
   
   // Use useEffect to fetch subgoals when goals are loaded
   useEffect(() => {
@@ -226,6 +227,24 @@ export default function ClientProfile() {
   const isLoading = isLoadingClient || isLoadingAllies || isLoadingGoals || 
     isLoadingBudgetItems || isLoadingBudgetSettings || isLoadingSubgoals;
 
+  // Calculate age from date of birth - Define this BEFORE any conditional returns
+  const calculateAge = (dateOfBirth: string): number => {
+    const today = new Date();
+    const birthDate = new Date(dateOfBirth);
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+    
+    return age;
+  };
+
+  // Calculate client age - Safely handle this to avoid errors
+  const clientAge = client && client.dateOfBirth ? calculateAge(client.dateOfBirth) : null;
+
+  // Now we can have conditional returns after ALL hooks have been defined
   if (isLoading) {
     return (
       <div className="w-full max-w-6xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
@@ -290,25 +309,6 @@ export default function ClientProfile() {
       </div>
     );
   }
-
-  // Calculate age from date of birth
-  const calculateAge = (dateOfBirth: string): number => {
-    const today = new Date();
-    const birthDate = new Date(dateOfBirth);
-    let age = today.getFullYear() - birthDate.getFullYear();
-    const monthDiff = today.getMonth() - birthDate.getMonth();
-    
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-      age--;
-    }
-    
-    return age;
-  };
-
-  const clientAge = client.dateOfBirth ? calculateAge(client.dateOfBirth) : null;
-
-  // Use a simple state hook for showing the add ally dialog
-  const [showAddAllyDialog, setShowAddAllyDialog] = useState(false);
 
   return (
     <div className="w-full max-w-6xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
