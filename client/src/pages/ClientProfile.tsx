@@ -112,26 +112,54 @@ export default function ClientProfile() {
     enabled: !!clientId,
   });
 
-  // Create empty array to store subgoal queries
-  const subgoalQueries: any[] = [];
+  // Create a state to store subgoals by goalId
+  const [subgoalsByGoal, setSubgoalsByGoal] = useState<Record<number, Subgoal[]>>({});
+  const [isLoadingSubgoals, setIsLoadingSubgoals] = useState(false);
   
-  // Only run this if goals is properly defined
-  if (goals && goals.length > 0) {
-    // For each goal, fetch its subgoals
-    goals.forEach((goal: Goal) => {
-      if (goal && goal.id) {
-        const query = useQuery<Subgoal[]>({
-          queryKey: ['/api/goals', goal.id, 'subgoals'],
-          queryFn: getQueryFn({ on401: "throw" }),
-          enabled: !!goal.id,
-        });
-        subgoalQueries.push(query);
+  // Use useEffect to fetch subgoals when goals are loaded
+  useEffect(() => {
+    // Only run if goals are valid
+    if (!goals || goals.length === 0) {
+      return;
+    }
+    
+    // Set loading state
+    setIsLoadingSubgoals(true);
+    
+    // Create an array of promises to fetch subgoals for each goal
+    const fetchSubgoals = async () => {
+      try {
+        const result: Record<number, Subgoal[]> = {};
+        
+        // Fetch subgoals for each goal
+        for (const goal of goals) {
+          if (goal && goal.id) {
+            try {
+              console.log(`Fetching subgoals for goal ${goal.id}`);
+              const response = await fetch(`/api/goals/${goal.id}/subgoals`);
+              if (response.ok) {
+                const data = await response.json();
+                result[goal.id] = data;
+                console.log(`Found ${data.length} subgoals for goal ${goal.id}`);
+              }
+            } catch (error) {
+              console.error(`Error fetching subgoals for goal ${goal.id}:`, error);
+              result[goal.id] = [];
+            }
+          }
+        }
+        
+        // Update state with all fetched subgoals
+        setSubgoalsByGoal(result);
+        setIsLoadingSubgoals(false);
+      } catch (error) {
+        console.error("Error fetching subgoals:", error);
+        setIsLoadingSubgoals(false);
       }
-    });
-  }
-
-  const isLoadingSubgoals = subgoalQueries && subgoalQueries.length > 0 ? 
-    subgoalQueries.some((query: any) => query.isLoading) : false;
+    };
+    
+    fetchSubgoals();
+  }, [goals]); // Only re-run when goals change
 
   // Handle tab change
   const handleTabChange = (value: string) => {
@@ -415,15 +443,7 @@ export default function ClientProfile() {
               {/* Create a subgoals map to pass to the ClientGoals component */}
               <ClientGoals 
                 goals={goals || []}
-                subgoals={(subgoalQueries && subgoalQueries.length > 0 && goals) ? 
-                  subgoalQueries.reduce((acc, query, index) => {
-                    if (goals[index] && query && query.data) {
-                      acc[goals[index].id] = query.data;
-                    }
-                    return acc;
-                  }, {} as Record<number, Subgoal[]>) : 
-                  {} as Record<number, Subgoal[]>
-                }
+                subgoals={subgoalsByGoal || {}}
                 onAddGoal={() => console.log("Add goal clicked")}
                 onEditGoal={(goal) => console.log("Edit goal clicked", goal)}
                 onArchiveGoal={(goal) => console.log("Archive goal clicked", goal)}
