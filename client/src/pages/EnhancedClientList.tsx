@@ -470,12 +470,17 @@ export default function EnhancedClientList() {
       accessorFn: (client) => {
         // Calculate budget usage
         const totalBudget = client.budgetItems.reduce((acc, item) => {
-          return acc + (item.unitPrice * item.quantity);
+          const unitPrice = typeof item.unitPrice === 'string' ? parseFloat(item.unitPrice) : item.unitPrice;
+          const quantity = typeof item.quantity === 'string' ? parseInt(item.quantity) : item.quantity;
+          return acc + (unitPrice * quantity);
         }, 0);
         
-        const availableFunds = client.budgetSettings?.availableFunds || client.availableFunds;
+        // Ensure availableFunds is a number
+        const rawAvailableFunds = client.budgetSettings?.availableFunds || client.availableFunds;
+        const availableFunds = typeof rawAvailableFunds === 'string' ? parseFloat(rawAvailableFunds) : rawAvailableFunds;
+        
         const usagePercentage = availableFunds > 0 ? (totalBudget / availableFunds) * 100 : 0;
-        const formattedUsage = usagePercentage.toFixed(0) + '%';
+        const formattedUsage = Math.round(usagePercentage) + '%';
         
         // Determine color based on usage
         let progressColor = "bg-blue-500";
@@ -498,9 +503,9 @@ export default function EnhancedClientList() {
               <TooltipContent>
                 <div className="text-xs">
                   <div className="font-bold mb-1">Budget Usage</div>
-                  <div>Used: ${totalBudget.toFixed(2)}</div>
-                  <div>Available: ${availableFunds.toFixed(2)}</div>
-                  <div>Remaining: ${(availableFunds - totalBudget).toFixed(2)}</div>
+                  <div>Used: ${Number(totalBudget).toFixed(2)}</div>
+                  <div>Available: ${Number(availableFunds).toFixed(2)}</div>
+                  <div>Remaining: ${Number(availableFunds - totalBudget).toFixed(2)}</div>
                 </div>
               </TooltipContent>
             </Tooltip>
@@ -657,10 +662,24 @@ export default function EnhancedClientList() {
             break;
           case 'budget':
             // Sort by budget usage percentage
-            const aTotalBudget = a.budgetItems.reduce((acc, item) => acc + (item.unitPrice * item.quantity), 0);
-            const bTotalBudget = b.budgetItems.reduce((acc, item) => acc + (item.unitPrice * item.quantity), 0);
-            const aAvailableFunds = a.budgetSettings?.availableFunds || a.availableFunds;
-            const bAvailableFunds = b.budgetSettings?.availableFunds || b.availableFunds;
+            const aTotalBudget = a.budgetItems.reduce((acc, item) => {
+              const unitPrice = typeof item.unitPrice === 'string' ? parseFloat(item.unitPrice) : item.unitPrice;
+              const quantity = typeof item.quantity === 'string' ? parseInt(item.quantity) : item.quantity;
+              return acc + (unitPrice * quantity);
+            }, 0);
+            
+            const bTotalBudget = b.budgetItems.reduce((acc, item) => {
+              const unitPrice = typeof item.unitPrice === 'string' ? parseFloat(item.unitPrice) : item.unitPrice;
+              const quantity = typeof item.quantity === 'string' ? parseInt(item.quantity) : item.quantity;
+              return acc + (unitPrice * quantity);
+            }, 0);
+            
+            const aRawAvailableFunds = a.budgetSettings?.availableFunds || a.availableFunds;
+            const bRawAvailableFunds = b.budgetSettings?.availableFunds || b.availableFunds;
+            
+            const aAvailableFunds = typeof aRawAvailableFunds === 'string' ? parseFloat(aRawAvailableFunds) : aRawAvailableFunds;
+            const bAvailableFunds = typeof bRawAvailableFunds === 'string' ? parseFloat(bRawAvailableFunds) : bRawAvailableFunds;
+            
             aValue = aAvailableFunds > 0 ? (aTotalBudget / aAvailableFunds) * 100 : 0;
             bValue = bAvailableFunds > 0 ? (bTotalBudget / bAvailableFunds) * 100 : 0;
             break;
