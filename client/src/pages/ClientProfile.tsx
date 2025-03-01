@@ -55,10 +55,23 @@ export default function ClientProfile() {
   const [, setLocation] = useLocation();
   const [activeTab, setActiveTab] = useState(getActiveTabFromURL());
 
-  // Fetch client data
+  // Fetch client data with enhanced logging
   const { data: client, isLoading: isLoadingClient } = useQuery<Client>({
     queryKey: ['/api/clients', clientId],
-    queryFn: getQueryFn({ on401: "throw" }),
+    queryFn: async (context) => {
+      console.log("Fetching client data for ID:", clientId);
+      const url = `/api/clients/${clientId}`;
+      console.log("Requesting URL:", url);
+      
+      const result = await fetch(url);
+      if (!result.ok) {
+        throw new Error(`Failed to fetch client: ${result.status}`);
+      }
+      
+      const data = await result.json();
+      console.log("Client data received:", JSON.stringify(data));
+      return data;
+    },
   });
 
   // Fetch allies
