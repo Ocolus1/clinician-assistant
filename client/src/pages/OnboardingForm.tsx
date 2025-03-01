@@ -7,15 +7,55 @@ import BudgetForm from "@/components/onboarding/BudgetForm";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Users } from "lucide-react";
+import { useMutation } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 const steps = ["Client Information", "Allies", "Goals", "Budget"];
 
 export default function OnboardingForm() {
+  const { toast } = useToast();
   const [step, setStep] = useState(0);
+  const [clientData, setClientData] = useState<any>(null);
   const [clientId, setClientId] = useState<number | null>(null);
   const [, setLocation] = useLocation();
+  const [showExitDialog, setShowExitDialog] = useState(false);
   
   const progress = ((step + 1) / steps.length) * 100;
+
+  // Mutation for creating a client
+  const createClient = useMutation({
+    mutationFn: async (data: any) => {
+      const res = await apiRequest("POST", "/api/clients", data);
+      return res.json();
+    },
+    onSuccess: (data) => {
+      setClientId(data.id);
+      toast({
+        title: "Success",
+        description: "Client information saved successfully",
+      });
+    },
+    onError: (error) => {
+      console.error("Error creating client:", error);
+      toast({
+        title: "Error",
+        description: "Failed to save client information",
+        variant: "destructive",
+      });
+    },
+  });
 
   const handleNext = () => {
     if (step === steps.length - 1) {
@@ -32,16 +72,40 @@ export default function OnboardingForm() {
     }
   };
 
+  const handleExit = () => {
+    if (clientData) {
+      setShowExitDialog(true);
+    } else {
+      navigateToClientList();
+    }
+  };
+
   const navigateToClientList = () => {
     setLocation('/clients');
   };
 
   return (
     <div className="w-full">
+      <AlertDialog open={showExitDialog} onOpenChange={setShowExitDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Exit onboarding process?</AlertDialogTitle>
+            <AlertDialogDescription>
+              You are in the middle of creating a new client. All entered data for this client will be lost. 
+              Are you sure you want to exit?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Continue creating client</AlertDialogCancel>
+            <AlertDialogAction onClick={navigateToClientList}>Yes, exit</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-bold">New Client Onboarding</h1>
         <Button 
-          onClick={navigateToClientList}
+          onClick={handleExit}
           variant="outline"
           className="flex items-center gap-2"
         >
@@ -68,10 +132,17 @@ export default function OnboardingForm() {
 
       <div className="bg-card rounded-lg shadow-sm p-6 md:p-8">
         {step === 0 && (
-          <ClientForm onComplete={(id) => {
-            setClientId(id);
-            handleNext();
-          }} />
+          <ClientForm 
+            onComplete={(data) => {
+              setClientData(data);
+              // Create client only at this point
+              createClient.mutate({
+                ...data,
+                availableFunds: 0
+              });
+              handleNext();
+            }} 
+          />
         )}
         {step === 1 && clientId && (
           <AllyForm 

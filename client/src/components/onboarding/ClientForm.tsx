@@ -7,16 +7,15 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FUNDS_MANAGEMENT_OPTIONS, insertClientSchema } from "@shared/schema";
-import { useMutation } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
-import { useToast } from "@/hooks/use-toast";
+import { useState } from "react";
 
 interface ClientFormProps {
-  onComplete: (clientId: number) => void;
+  onComplete: (clientData: any) => void;
 }
 
 export default function ClientForm({ onComplete }: ClientFormProps) {
-  const { toast } = useToast();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
   // Create a modified schema without availableFunds for the form
   // Add additional validation to ensure name is not empty
   const modifiedClientSchema = insertClientSchema
@@ -34,39 +33,13 @@ export default function ClientForm({ onComplete }: ClientFormProps) {
       fundsManagement: FUNDS_MANAGEMENT_OPTIONS[0], // Default to first option
     },
   });
-
-  const createClient = useMutation({
-    mutationFn: async (data: any) => {
-      // Add default value for availableFunds to satisfy the API
-      const dataWithDefaults = {
-        ...data,
-        availableFunds: 0 // This will be properly set in BudgetForm
-      };
-      
-      // Log the data being sent to the API for debugging
-      console.log("Submitting client data:", dataWithDefaults);
-      
-      const res = await apiRequest("POST", "/api/clients", dataWithDefaults);
-      const responseData = await res.json();
-      console.log("API response:", responseData);
-      return responseData;
-    },
-    onSuccess: (data) => {
-      toast({
-        title: "Success",
-        description: "Client information saved successfully",
-      });
-      onComplete(data.id);
-    },
-    onError: (error) => {
-      console.error("Error creating client:", error);
-      toast({
-        title: "Error",
-        description: "Failed to save client information",
-        variant: "destructive",
-      });
-    },
-  });
+  
+  const handleSubmit = (data: any) => {
+    setIsSubmitting(true);
+    // Just return the form data, parent will handle creating the client
+    onComplete(data);
+    setIsSubmitting(false);
+  };
 
   return (
     <div className="grid md:grid-cols-2 gap-8 items-center h-[700px] p-8">
@@ -84,7 +57,7 @@ export default function ClientForm({ onComplete }: ClientFormProps) {
           <p className="text-sm text-muted-foreground mt-2">Fields marked with <span className="text-red-500">*</span> are required</p>
         </div>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit((data) => createClient.mutate(data))} className="space-y-6 w-full">
+          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6 w-full">
             <FormField
               control={form.control}
               name="name"
@@ -148,14 +121,14 @@ export default function ClientForm({ onComplete }: ClientFormProps) {
 
             <Button 
               type="submit" 
-              disabled={createClient.isPending}
+              disabled={isSubmitting}
               size="lg"
               className="w-full bg-primary hover:bg-primary/90 text-white font-medium py-6"
             >
-              {createClient.isPending ? (
+              {isSubmitting ? (
                 <div className="flex items-center justify-center">
                   <div className="animate-spin mr-2 h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
-                  Saving...
+                  Processing...
                 </div>
               ) : (
                 "Next"
