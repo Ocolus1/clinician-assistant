@@ -165,6 +165,11 @@ export default function EnhancedClientList() {
   const [selectedClients, setSelectedClients] = useState<number[]>([]);
   const [showFilters, setShowFilters] = useState(false);
   
+  // State for delete dialog
+  const [clientToDelete, setClientToDelete] = useState<number | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  
   // Fetch all clients
   const { data: clients = [], isLoading, error } = useQuery<Client[]>({
     queryKey: ["/api/clients"],
@@ -596,6 +601,40 @@ export default function EnhancedClientList() {
   // Handle new client button click
   const handleNewClient = () => {
     setLocation("/clients/new");
+  };
+  
+  // Handle client deletion
+  const deleteClient = async (clientId: number) => {
+    if (!clientId) return;
+    
+    setIsDeleting(true);
+    try {
+      const response = await fetch(`/api/clients/${clientId}`, {
+        method: 'DELETE',
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Error deleting client: ${response.statusText}`);
+      }
+      
+      // Invalidate queries to refresh data
+      queryClient.invalidateQueries({ queryKey: ["/api/clients"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/clients/enriched"] });
+      
+      // Reset delete dialog state
+      setClientToDelete(null);
+      setDeleteDialogOpen(false);
+    } catch (error) {
+      console.error("Failed to delete client:", error);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+  
+  // Handle client delete button click
+  const handleDeleteClick = (clientId: number) => {
+    setClientToDelete(clientId);
+    setDeleteDialogOpen(true);
   };
   
   // Filter and sort the clients
