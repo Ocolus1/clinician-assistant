@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from "react";
+import React from "react";
+import { useState, useEffect } from "react";
 import { useParams, useRoute, useLocation } from "wouter";
 import { format } from "date-fns";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -318,6 +319,7 @@ export default function ClientProfile() {
     accessFinancials: z.boolean().default(false),
   });
 
+  // Define the form values type
   type NewAllyFormValues = z.infer<typeof newAllySchema>;
 
   // Define all state hooks at the top level to avoid conditional hooks
