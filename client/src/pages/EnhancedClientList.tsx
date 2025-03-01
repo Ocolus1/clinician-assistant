@@ -375,7 +375,7 @@ export default function EnhancedClientList() {
       ),
       sortable: true,
       width: "80px",
-      alignment: "center"
+      alignment: "start"
     },
     {
       id: "score",
@@ -410,7 +410,7 @@ export default function EnhancedClientList() {
       ),
       sortable: true,
       width: "100px",
-      alignment: "center"
+      alignment: "start"
     },
     {
       id: "progress",
@@ -451,7 +451,7 @@ export default function EnhancedClientList() {
         </TooltipProvider>
       ),
       width: "120px",
-      alignment: "center"
+      alignment: "start"
     },
     {
       id: "budget",
@@ -524,7 +524,7 @@ export default function EnhancedClientList() {
       },
       sortable: true,
       width: "100px",
-      alignment: "center"
+      alignment: "start"
     },
     {
       id: "lastSession",
@@ -537,7 +537,7 @@ export default function EnhancedClientList() {
       ),
       sortable: true,
       width: "100px",
-      alignment: "center"
+      alignment: "start"
     },
     {
       id: "actions",
