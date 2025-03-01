@@ -275,18 +275,7 @@ export default function EnhancedClientList() {
       id: "name",
       header: "Client Name",
       accessorFn: (client) => (
-        <div className="flex items-center">
-          <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center mr-2">
-            <User className="h-4 w-4 text-primary" />
-          </div>
-          <div>
-            <div className="font-medium">{client.name}</div>
-            <div className="text-xs text-gray-500 flex items-center">
-              <CalendarIcon className="h-3 w-3 mr-1" />
-              {format(new Date(client.dateOfBirth), 'dd/MM/yyyy')}
-            </div>
-          </div>
-        </div>
+        <div className="font-medium">{client.name}</div>
       ),
       sortable: true,
       width: "220px",
@@ -300,7 +289,7 @@ export default function EnhancedClientList() {
       ),
       sortable: true,
       width: "80px",
-      alignment: "center"
+      alignment: "start"
     },
     {
       id: "therapists",
