@@ -156,16 +156,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // NOTE: Ally update function is not yet implemented
+  // Update an ally
   app.put("/api/clients/:clientId/allies/:id", async (req, res) => {
+    console.log(`PUT /api/clients/${req.params.clientId}/allies/${req.params.id} - Updating ally`);
+    
     const result = insertAllySchema.safeParse(req.body);
     if (!result.success) {
       return res.status(400).json({ error: result.error });
     }
-    // Using a workaround - delete and recreate
-    await storage.deleteAlly(parseInt(req.params.id));
-    const ally = await storage.createAlly(parseInt(req.params.clientId), result.data);
-    res.json(ally);
+    
+    try {
+      // Use proper update method now
+      const ally = await storage.updateAlly(parseInt(req.params.id), result.data);
+      console.log(`Successfully updated ally with ID ${req.params.id}`);
+      res.json(ally);
+    } catch (error) {
+      console.error(`Error updating ally with ID ${req.params.id}:`, error);
+      res.status(500).json({ error: "Failed to update ally" });
+    }
   });
 
   // Goal routes

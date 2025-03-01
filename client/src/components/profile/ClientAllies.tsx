@@ -145,13 +145,18 @@ export default function ClientAllies({
   // Archive mutation
   const archiveAllyMutation = useMutation({
     mutationFn: (data: { id: number; archived: boolean }) => {
+      console.log("Archiving ally:", data);
       return apiRequest('PUT', `/api/clients/${clientId}/allies/${data.id}/archive`, { archived: data.archived });
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log("Ally archive/restore successful:", data);
       setShowArchiveDialog(false);
       setAllyToArchive(null);
-      // Invalidate and refetch
-      queryClient.invalidateQueries({ queryKey: [`/api/clients/${clientId}/allies`] });
+      // Invalidate and refetch with the correct query key format
+      queryClient.invalidateQueries({ queryKey: ['/api/clients', clientId, 'allies'] });
+    },
+    onError: (error) => {
+      console.error("Error archiving/restoring ally:", error);
     }
   });
   
@@ -159,13 +164,18 @@ export default function ClientAllies({
   const editAllyMutation = useMutation({
     mutationFn: (data: EditAllyFormValues) => {
       if (!currentAlly) return Promise.reject("No ally selected");
+      console.log("Updating ally data:", data);
       return apiRequest('PUT', `/api/clients/${clientId}/allies/${currentAlly.id}`, data);
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log("Ally update successful:", data);
       setShowEditDialog(false);
       setCurrentAlly(null);
-      // Invalidate and refetch
-      queryClient.invalidateQueries({ queryKey: [`/api/clients/${clientId}/allies`] });
+      // Invalidate and refetch with the correct query key format
+      queryClient.invalidateQueries({ queryKey: ['/api/clients', clientId, 'allies'] });
+    },
+    onError: (error) => {
+      console.error("Error updating ally:", error);
     }
   });
   

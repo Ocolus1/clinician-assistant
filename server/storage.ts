@@ -21,6 +21,7 @@ export interface IStorage {
   // Allies
   createAlly(clientId: number, ally: InsertAlly): Promise<Ally>;
   getAlliesByClient(clientId: number): Promise<Ally[]>;
+  updateAlly(id: number, ally: InsertAlly): Promise<Ally>; // Added updateAlly function
   deleteAlly(id: number): Promise<void>; // Added deleteAlly function
 
   // Goals
@@ -168,6 +169,27 @@ export class DBStorage implements IStorage {
       return clientAllies;
     } catch (error) {
       console.error(`Error fetching allies for client ${clientId}:`, error);
+      throw error;
+    }
+  }
+
+  async updateAlly(id: number, ally: InsertAlly): Promise<Ally> {
+    console.log(`Updating ally with ID ${id}:`, JSON.stringify(ally));
+    try {
+      const [updatedAlly] = await db.update(allies)
+        .set(ally)
+        .where(eq(allies.id, id))
+        .returning();
+      
+      if (!updatedAlly) {
+        console.error(`Ally with ID ${id} not found`);
+        throw new Error("Ally not found");
+      }
+      
+      console.log(`Successfully updated ally with ID ${id}`);
+      return updatedAlly;
+    } catch (error) {
+      console.error(`Error updating ally with ID ${id}:`, error);
       throw error;
     }
   }
