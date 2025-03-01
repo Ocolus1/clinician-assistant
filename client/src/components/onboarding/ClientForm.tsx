@@ -1,15 +1,18 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Form, FormField, FormItem, FormLabel, FormControl } from "@/components/ui/form";
+import { Form, FormField, FormItem, FormLabel, FormControl, FormDescription } from "@/components/ui/form";
 import { FormMessageHidden } from "@/components/ui/form-no-message";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FUNDS_MANAGEMENT_OPTIONS, insertClientSchema } from "@shared/schema";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { LANGUAGE_OPTIONS } from "@/lib/constants";
 
 interface ClientFormProps {
   onComplete: (clientId: number) => void;
@@ -24,6 +27,14 @@ export default function ClientForm({ onComplete }: ClientFormProps) {
     .extend({
       name: z.string().min(1, { message: "Client name is required" }),
       dateOfBirth: z.string().min(1, { message: "Date of birth is required" }),
+      gender: z.string().optional(),
+      preferredLanguage: z.string().optional(),
+      contactEmail: z.string().email({ message: "Please enter a valid email" }).optional().or(z.literal('')),
+      contactPhone: z.string().optional(),
+      address: z.string().optional(),
+      medicalHistory: z.string().optional(),
+      communicationNeeds: z.string().optional(),
+      therapyPreferences: z.string().optional(),
     });
 
   const form = useForm({
@@ -32,6 +43,14 @@ export default function ClientForm({ onComplete }: ClientFormProps) {
       name: "",
       dateOfBirth: "",
       fundsManagement: FUNDS_MANAGEMENT_OPTIONS[0], // Default to first option
+      gender: "",
+      preferredLanguage: "",
+      contactEmail: "",
+      contactPhone: "",
+      address: "",
+      medicalHistory: "",
+      communicationNeeds: "",
+      therapyPreferences: "",
     },
   });
 
@@ -139,6 +158,167 @@ export default function ClientForm({ onComplete }: ClientFormProps) {
               )}
             />
 
+            <Tabs defaultValue="personal" className="w-full mb-6">
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="personal">Personal</TabsTrigger>
+                <TabsTrigger value="contact">Contact</TabsTrigger>
+                <TabsTrigger value="medical">Medical</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="personal" className="space-y-4 mt-4">
+                <FormField
+                  control={form.control}
+                  name="gender"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Gender</FormLabel>
+                      <FormControl>
+                        <Select value={field.value} onValueChange={field.onChange}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select gender" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Male">Male</SelectItem>
+                            <SelectItem value="Female">Female</SelectItem>
+                            <SelectItem value="Non-binary">Non-binary</SelectItem>
+                            <SelectItem value="Prefer not to say">Prefer not to say</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </FormControl>
+                      <FormMessageHidden />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="preferredLanguage"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Preferred Language</FormLabel>
+                      <FormControl>
+                        <Select value={field.value} onValueChange={field.onChange}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select preferred language" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {LANGUAGE_OPTIONS.map((option) => (
+                              <SelectItem key={option.value} value={option.value}>
+                                {option.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </FormControl>
+                      <FormMessageHidden />
+                    </FormItem>
+                  )}
+                />
+              </TabsContent>
+              
+              <TabsContent value="contact" className="space-y-4 mt-4">
+                <FormField
+                  control={form.control}
+                  name="contactEmail"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email Address</FormLabel>
+                      <FormControl>
+                        <Input {...field} type="email" placeholder="email@example.com" />
+                      </FormControl>
+                      <FormMessageHidden />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="contactPhone"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Phone Number</FormLabel>
+                      <FormControl>
+                        <Input {...field} placeholder="(XXX) XXX-XXXX" />
+                      </FormControl>
+                      <FormMessageHidden />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="address"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Address</FormLabel>
+                      <FormControl>
+                        <Textarea {...field} placeholder="Enter address" />
+                      </FormControl>
+                      <FormMessageHidden />
+                    </FormItem>
+                  )}
+                />
+              </TabsContent>
+              
+              <TabsContent value="medical" className="space-y-4 mt-4">
+                <FormField
+                  control={form.control}
+                  name="medicalHistory"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Medical History</FormLabel>
+                      <FormControl>
+                        <Textarea 
+                          {...field} 
+                          placeholder="Enter relevant medical history"
+                          className="min-h-[100px]"
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        Include any relevant medical conditions or history that might affect speech therapy.
+                      </FormDescription>
+                      <FormMessageHidden />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="communicationNeeds"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Communication Needs</FormLabel>
+                      <FormControl>
+                        <Textarea 
+                          {...field} 
+                          placeholder="Describe specific communication needs"
+                          className="min-h-[100px]"
+                        />
+                      </FormControl>
+                      <FormMessageHidden />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="therapyPreferences"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Therapy Preferences</FormLabel>
+                      <FormControl>
+                        <Textarea 
+                          {...field} 
+                          placeholder="Any specific preferences for therapy sessions"
+                          className="min-h-[100px]"
+                        />
+                      </FormControl>
+                      <FormMessageHidden />
+                    </FormItem>
+                  )}
+                />
+              </TabsContent>
+            </Tabs>
 
             <Button 
               type="submit" 
