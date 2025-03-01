@@ -87,7 +87,13 @@ export default function ClientProfile() {
   // Fetch allies
   const { data: allies = [], isLoading: isLoadingAllies } = useQuery<Ally[]>({
     queryKey: ['/api/clients', clientId, 'allies'],
-    queryFn: getQueryFn({ on401: "throw" }),
+    queryFn: async () => {
+      console.log("Fetching allies for client ID:", clientId);
+      const response = await fetch(`/api/clients/${clientId}/allies`);
+      const data = await response.json();
+      console.log("Allies data received:", JSON.stringify(data));
+      return data;
+    },
     enabled: !!clientId,
   });
 
