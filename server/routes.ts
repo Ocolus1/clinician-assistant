@@ -21,9 +21,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/clients", async (req, res) => {
     console.log("GET /api/clients - Retrieving all clients");
     try {
+      // Check if we should include incomplete clients
+      const includeIncomplete = req.query.includeIncomplete === 'true';
+      console.log(`Include incomplete clients: ${includeIncomplete}`);
+      
       // Get all clients using the storage's getAllClients method
-      const clients = await storage.getAllClients();
-      console.log(`Found ${clients.length} clients in database`);
+      const allClients = await storage.getAllClients();
+      console.log(`Found ${allClients.length} clients in database`);
+      
+      // Filter out incomplete clients unless specifically requested
+      const clients = includeIncomplete 
+        ? allClients 
+        : allClients.filter(client => client.onboardingStatus === 'complete');
+      
+      console.log(`Returning ${clients.length} clients after filtering`);
       res.json(clients);
     } catch (error) {
       console.error("Error retrieving clients:", error);

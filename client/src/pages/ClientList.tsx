@@ -16,28 +16,24 @@ export default function ClientList() {
   const [showIncomplete, setShowIncomplete] = useState(false);
   const queryClient = useQueryClient();
   
-  // Fetch all clients
-  const { data: allClients = [], isLoading, error } = useQuery<Client[]>({
-    queryKey: ["/api/clients"],
+  // Fetch clients with server-side filtering
+  const { data: clients = [], isLoading, error, refetch } = useQuery<Client[]>({
+    queryKey: ["/api/clients", { includeIncomplete: showIncomplete }],
+    queryFn: async ({ queryKey }) => {
+      // Extract includeIncomplete from queryKey
+      const params = queryKey[1] as { includeIncomplete: boolean };
+      const response = await fetch(`/api/clients?includeIncomplete=${params.includeIncomplete}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch clients');
+      }
+      return response.json();
+    }
   });
   
-  // Apply the filter with a useEffect to ensure it runs on initial render
-  // and whenever allClients or showIncomplete changes
-  const [filteredClients, setFilteredClients] = useState<Client[]>([]);
-  
+  // When showIncomplete changes, refetch with the new parameter
   useEffect(() => {
-    console.log('Filtering clients:', allClients.length, 'showIncomplete:', showIncomplete);
-    if (allClients) {
-      const filtered = showIncomplete 
-        ? allClients 
-        : allClients.filter(client => client.onboardingStatus === 'complete');
-      console.log('After filtering:', filtered.length);
-      setFilteredClients(filtered);
-    }
-  }, [allClients, showIncomplete]);
-  
-  // Use the filtered clients in the UI
-  const clients = filteredClients;
+    refetch();
+  }, [showIncomplete, refetch]);
   
   // Delete client mutation
   const deleteClientMutation = useMutation({
