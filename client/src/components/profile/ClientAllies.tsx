@@ -95,10 +95,36 @@ export default function ClientAllies({
     }
   });
   
-  // Filter allies into active and archived
+  // Filter allies into active and archived with deduplication
   useEffect(() => {
-    setActiveAllies(allies.filter(ally => !ally.archived));
-    setArchivedAllies(allies.filter(ally => ally.archived));
+    // Create maps to track already added allies by key identifiers
+    const activeMap = new Map<string, Ally>();
+    const archivedMap = new Map<string, Ally>();
+    
+    // Process all allies
+    allies.forEach(ally => {
+      // Create a unique key based on name and email
+      const key = `${ally.name}-${ally.email}`;
+      
+      if (ally.archived) {
+        // Only add if not already in map or has a lower ID (likely the original)
+        if (!archivedMap.has(key) || ally.id < archivedMap.get(key)!.id) {
+          archivedMap.set(key, ally);
+        }
+      } else {
+        // Only add if not already in map or has a lower ID
+        if (!activeMap.has(key) || ally.id < activeMap.get(key)!.id) {
+          activeMap.set(key, ally);
+        }
+      }
+    });
+    
+    // Convert maps back to arrays
+    setActiveAllies(Array.from(activeMap.values()));
+    setArchivedAllies(Array.from(archivedMap.values()));
+    
+    console.log("Filtered active allies:", Array.from(activeMap.values()));
+    console.log("Filtered archived allies:", Array.from(archivedMap.values()));
   }, [allies]);
 
   // Handle archive/restore button click
