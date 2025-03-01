@@ -20,6 +20,8 @@ export const allies = pgTable("allies", {
   relationship: text("relationship").notNull(),
   preferredLanguage: text("preferred_language").notNull(),
   email: text("email").notNull(),
+  phone: text("phone"),
+  notes: text("notes"),
   accessTherapeutics: boolean("access_therapeutics").notNull(),
   accessFinancials: boolean("access_financials").notNull(),
 });
@@ -37,6 +39,7 @@ export const subgoals = pgTable("subgoals", {
   goalId: integer("goal_id").notNull(),
   title: text("title").notNull(),
   description: text("description").notNull(),
+  status: text("status").default("pending"),
 });
 
 // Add these budget settings
@@ -44,6 +47,7 @@ export const budgetSettings = pgTable("budget_settings", {
   id: serial("id").primaryKey(),
   clientId: integer("client_id").notNull(),
   planSerialNumber: text("plan_serial_number"),
+  planCode: text("plan_code"),
   isActive: boolean("is_active").default(true),
   availableFunds: numeric("available_funds").notNull().$type<number>().default(0),
   endOfPlan: text("end_of_plan"),
@@ -65,6 +69,7 @@ export const budgetItems = pgTable("budget_items", {
   clientId: integer("client_id").notNull(),
   budgetSettingsId: integer("budget_settings_id").notNull(),
   itemCode: text("item_code").notNull(),
+  name: text("name"),
   description: text("description").notNull(),
   unitPrice: numeric("unit_price").notNull().$type<number>(),
   quantity: integer("quantity").notNull(),
