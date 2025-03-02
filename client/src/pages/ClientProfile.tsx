@@ -123,10 +123,16 @@ export default function ClientProfile() {
     enabled: !!clientId,
   });
 
-  // Fetch goals
+  // Fetch goals - using explicit fetch to debug
   const { data: goals = [], isLoading: isLoadingGoals } = useQuery<Goal[]>({
     queryKey: ['/api/clients', clientId, 'goals'],
-    queryFn: getQueryFn({ on401: "throw" }),
+    queryFn: async () => {
+      console.log("Explicitly fetching goals for client ID:", clientId);
+      const response = await fetch(`/api/clients/${clientId}/goals`);
+      const data = await response.json();
+      console.log("Goals data received:", data);
+      return data;
+    },
     enabled: !!clientId,
   });
 

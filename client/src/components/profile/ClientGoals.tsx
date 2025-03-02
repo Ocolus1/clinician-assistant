@@ -35,9 +35,15 @@ export default function ClientGoals({
   onEditSubgoal,
   onToggleSubgoalStatus
 }: ClientGoalsProps) {
+  // Added debugging
+  console.log("ClientGoals: Goals received:", goals);
+  console.log("ClientGoals: Subgoals received:", subgoals);
+  
   // Calculate goal progress based on subgoals status
   const calculateProgress = (goalId: number): number => {
     const goalSubgoals = subgoals[goalId] || [];
+    console.log(`Calculating progress for goal ${goalId}, found ${goalSubgoals.length} subgoals`);
+    
     if (goalSubgoals.length === 0) return 0;
     
     const completedSubgoals = goalSubgoals.filter(sg => sg.status === 'completed').length;
