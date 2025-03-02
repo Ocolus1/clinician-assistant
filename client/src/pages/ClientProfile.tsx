@@ -357,47 +357,62 @@ export default function ClientProfile() {
       
       {/* Edit Goal Dialog */}
       {selectedGoal && (
-        <EditGoalDialog
-          open={showEditGoalDialog}
-          onOpenChange={(open) => {
-            setShowEditGoalDialog(open);
-            // When dialog closes, refresh the goals and subgoals
-            if (!open) {
-              // Invalidate the goals query to trigger a refresh
-              queryClient.invalidateQueries({ queryKey: ['/api/clients', clientId, 'goals'] });
-            }
-          }}
-          goal={selectedGoal}
-        />
+        <>
+          {console.log("Rendering EditGoalDialog with goal:", JSON.stringify(selectedGoal))}
+          <EditGoalDialog
+            key={`goal-edit-${selectedGoal.id}`}
+            open={showEditGoalDialog}
+            onOpenChange={(open) => {
+              console.log("EditGoalDialog onOpenChange called with:", open);
+              setShowEditGoalDialog(open);
+              // When dialog closes, refresh the goals and subgoals
+              if (!open) {
+                // Invalidate the goals query to trigger a refresh
+                queryClient.invalidateQueries({ queryKey: ['/api/clients', clientId, 'goals'] });
+                // Reset selectedGoal to null to ensure clean state for next edit
+                setSelectedGoal(null);
+              }
+            }}
+            goal={selectedGoal}
+          />
+        </>
       )}
       
       {/* Edit Subgoal Dialog */}
       {selectedSubgoal && (
-        <EditSubgoalDialog
-          open={showEditSubgoalDialog}
-          onOpenChange={(open) => {
-            setShowEditSubgoalDialog(open);
-            // When dialog closes, refresh the subgoals data
-            if (!open && selectedSubgoal) {
-              // Fetch the specific subgoals for the related goal
-              const goalId = selectedSubgoal.goalId;
-              fetch(`/api/goals/${goalId}/subgoals`)
-                .then(response => response.json())
-                .then(data => {
-                  console.log(`Refreshed subgoals for goal ${goalId}:`, data);
-                  // Update the subgoals in state
-                  setSubgoalsByGoal(prevState => ({
-                    ...prevState,
-                    [goalId]: data
-                  }));
-                })
-                .catch(error => {
-                  console.error(`Error refreshing subgoals for goal ${goalId}:`, error);
-                });
-            }
-          }}
-          subgoal={selectedSubgoal}
-        />
+        <>
+          {console.log("Rendering EditSubgoalDialog with subgoal:", JSON.stringify(selectedSubgoal))}
+          <EditSubgoalDialog
+            key={`subgoal-edit-${selectedSubgoal.id}`} 
+            open={showEditSubgoalDialog}
+            onOpenChange={(open) => {
+              console.log("EditSubgoalDialog onOpenChange called with:", open);
+              setShowEditSubgoalDialog(open);
+              // When dialog closes, refresh the subgoals data
+              if (!open && selectedSubgoal) {
+                // Fetch the specific subgoals for the related goal
+                const goalId = selectedSubgoal.goalId;
+                console.log(`Refreshing subgoals for goal ${goalId} after dialog closed`);
+                fetch(`/api/goals/${goalId}/subgoals`)
+                  .then(response => response.json())
+                  .then(data => {
+                    console.log(`Refreshed subgoals for goal ${goalId}:`, data);
+                    // Update the subgoals in state
+                    setSubgoalsByGoal(prevState => ({
+                      ...prevState,
+                      [goalId]: data
+                    }));
+                    // Reset selectedSubgoal to null to ensure clean state for next edit
+                    setSelectedSubgoal(null);
+                  })
+                  .catch(error => {
+                    console.error(`Error refreshing subgoals for goal ${goalId}:`, error);
+                  });
+              }
+            }}
+            subgoal={selectedSubgoal}
+          />
+        </>
       )}
       
       {/* Tabs section */}
