@@ -148,11 +148,13 @@ export default function ClientProfile() {
   useEffect(() => {
     // Only run if goals are valid
     if (!goals || goals.length === 0) {
+      console.log("No goals found, skipping subgoal fetch");
       return;
     }
     
     // Set loading state
     setIsLoadingSubgoals(true);
+    console.log(`Found ${goals.length} goals, fetching subgoals for each`);
     
     // Create an array of promises to fetch subgoals for each goal
     const fetchSubgoals = async () => {
@@ -163,12 +165,16 @@ export default function ClientProfile() {
         for (const goal of goals) {
           if (goal && goal.id) {
             try {
-              console.log(`Fetching subgoals for goal ${goal.id}`);
+              console.log(`Fetching subgoals for goal ID: ${goal.id}, Title: ${goal.title}`);
               const response = await fetch(`/api/goals/${goal.id}/subgoals`);
               if (response.ok) {
                 const data = await response.json();
+                console.log(`Received subgoals response for goal ${goal.id}:`, data);
                 result[goal.id] = data;
                 console.log(`Found ${data.length} subgoals for goal ${goal.id}`);
+              } else {
+                console.error(`Failed to fetch subgoals for goal ${goal.id}, status: ${response.status}`);
+                result[goal.id] = [];
               }
             } catch (error) {
               console.error(`Error fetching subgoals for goal ${goal.id}:`, error);
@@ -178,6 +184,7 @@ export default function ClientProfile() {
         }
         
         // Update state with all fetched subgoals
+        console.log("Setting subgoals by goal:", result);
         setSubgoalsByGoal(result);
         setIsLoadingSubgoals(false);
       } catch (error) {
