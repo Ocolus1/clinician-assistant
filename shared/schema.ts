@@ -161,6 +161,31 @@ export type InsertAlly = z.infer<typeof insertAllySchema>;
 export type InsertGoal = z.infer<typeof insertGoalSchema>;
 export type InsertSubgoal = z.infer<typeof insertSubgoalSchema>;
 export type InsertBudgetItem = z.infer<typeof insertBudgetItemSchema>;
+// Sessions table for tracking therapy sessions
+export const sessions = pgTable("sessions", {
+  id: serial("id").primaryKey(),
+  clientId: integer("client_id").notNull(),
+  therapistId: integer("therapist_id"), // Reference to an ally who is the therapist
+  title: text("title").notNull(),
+  description: text("description"),
+  sessionDate: timestamp("session_date").notNull(),
+  duration: integer("duration").notNull(), // Duration in minutes
+  status: text("status").notNull().default("scheduled"), // scheduled, completed, cancelled, etc.
+  location: text("location"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Insert schema for sessions
+export const insertSessionSchema = createInsertSchema(sessions)
+  .omit({ id: true })
+  .extend({
+    sessionDate: z.coerce.date(),
+    duration: z.coerce.number().min(1, { message: "Duration must be at least 1 minute" }),
+  });
+
 export type InsertBudgetSettings = z.infer<typeof insertBudgetSettingsSchema>;
 export type InsertBudgetItemCatalog = z.infer<typeof insertBudgetItemCatalogSchema>;
 export type BudgetItemCatalog = typeof budgetItemCatalog.$inferSelect;
+export type Session = typeof sessions.$inferSelect;
+export type InsertSession = z.infer<typeof insertSessionSchema>;

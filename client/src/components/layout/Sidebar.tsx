@@ -43,8 +43,8 @@ export function Sidebar() {
       icon: Users,
     },
     {
-      name: "Speech Therapy",
-      href: "/therapy",
+      name: "Sessions",
+      href: "/sessions",
       icon: Mic,
     },
     {
