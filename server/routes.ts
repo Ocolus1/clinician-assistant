@@ -428,6 +428,148 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Session routes
+  app.get("/api/sessions", async (req, res) => {
+    console.log("GET /api/sessions - Retrieving all sessions");
+    try {
+      const sessions = await storage.getAllSessions();
+      console.log(`Found ${sessions.length} sessions`);
+
+      // If there's a clientId filter, apply it
+      const clientId = req.query.clientId ? parseInt(req.query.clientId as string) : null;
+      if (clientId && !isNaN(clientId)) {
+        console.log(`Filtering sessions for client ${clientId}`);
+        const clientSessions = sessions.filter(session => session.clientId === clientId);
+        console.log(`Found ${clientSessions.length} sessions for client ${clientId}`);
+        return res.json(clientSessions);
+      }
+
+      res.json(sessions);
+    } catch (error) {
+      console.error("Error retrieving sessions:", error);
+      res.status(500).json({ error: "Failed to retrieve sessions" });
+    }
+  });
+
+  app.get("/api/clients/:clientId/sessions", async (req, res) => {
+    console.log(`GET /api/clients/${req.params.clientId}/sessions - Retrieving sessions for client`);
+    try {
+      const clientId = parseInt(req.params.clientId);
+      if (isNaN(clientId)) {
+        return res.status(400).json({ error: "Invalid client ID" });
+      }
+
+      const sessions = await storage.getSessionsByClient(clientId);
+      console.log(`Found ${sessions.length} sessions for client ${clientId}`);
+      res.json(sessions);
+    } catch (error) {
+      console.error(`Error retrieving sessions for client ${req.params.clientId}:`, error);
+      res.status(500).json({ error: "Failed to retrieve client sessions" });
+    }
+  });
+
+  app.get("/api/sessions/:id", async (req, res) => {
+    console.log(`GET /api/sessions/${req.params.id} - Retrieving session by ID`);
+    try {
+      const sessionId = parseInt(req.params.id);
+      if (isNaN(sessionId)) {
+        return res.status(400).json({ error: "Invalid session ID" });
+      }
+
+      const session = await storage.getSessionById(sessionId);
+      if (!session) {
+        return res.status(404).json({ error: "Session not found" });
+      }
+
+      res.json(session);
+    } catch (error) {
+      console.error(`Error retrieving session ${req.params.id}:`, error);
+      res.status(500).json({ error: "Failed to retrieve session" });
+    }
+  });
+
+  app.post("/api/sessions", async (req, res) => {
+    console.log("POST /api/sessions - Creating a new session");
+    try {
+      const result = insertSessionSchema.safeParse(req.body);
+      if (!result.success) {
+        console.error("Session validation error:", result.error);
+        return res.status(400).json({ error: result.error });
+      }
+
+      // Ensure client exists
+      const client = await storage.getClient(result.data.clientId);
+      if (!client) {
+        return res.status(404).json({ error: "Client not found" });
+      }
+
+      // If a therapistId is provided, ensure it exists as an ally
+      if (result.data.therapistId) {
+        const allies = await storage.getAlliesByClient(result.data.clientId);
+        const therapistExists = allies.some(ally => ally.id === result.data.therapistId);
+        if (!therapistExists) {
+          return res.status(400).json({ error: "Therapist not found among client's allies" });
+        }
+      }
+
+      const session = await storage.createSession(result.data);
+      res.status(201).json(session);
+    } catch (error) {
+      console.error("Error creating session:", error);
+      res.status(500).json({ error: "Failed to create session" });
+    }
+  });
+
+  app.put("/api/sessions/:id", async (req, res) => {
+    console.log(`PUT /api/sessions/${req.params.id} - Updating session`);
+    try {
+      const sessionId = parseInt(req.params.id);
+      if (isNaN(sessionId)) {
+        return res.status(400).json({ error: "Invalid session ID" });
+      }
+
+      const result = insertSessionSchema.safeParse(req.body);
+      if (!result.success) {
+        console.error("Session validation error:", result.error);
+        return res.status(400).json({ error: result.error });
+      }
+
+      // Ensure session exists
+      const existingSession = await storage.getSessionById(sessionId);
+      if (!existingSession) {
+        return res.status(404).json({ error: "Session not found" });
+      }
+
+      const updatedSession = await storage.updateSession(sessionId, result.data);
+      res.json(updatedSession);
+    } catch (error) {
+      console.error(`Error updating session ${req.params.id}:`, error);
+      res.status(500).json({ error: "Failed to update session" });
+    }
+  });
+
+  app.delete("/api/sessions/:id", async (req, res) => {
+    console.log(`DELETE /api/sessions/${req.params.id} - Deleting session`);
+    try {
+      const sessionId = parseInt(req.params.id);
+      if (isNaN(sessionId)) {
+        return res.status(400).json({ error: "Invalid session ID" });
+      }
+
+      // Ensure session exists
+      const existingSession = await storage.getSessionById(sessionId);
+      if (!existingSession) {
+        return res.status(404).json({ error: "Session not found" });
+      }
+
+      await storage.deleteSession(sessionId);
+      res.json({ success: true, message: "Session deleted successfully" });
+    } catch (error) {
+      console.error(`Error deleting session ${req.params.id}:`, error);
+      res.status(500).json({ error: "Failed to delete session" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
