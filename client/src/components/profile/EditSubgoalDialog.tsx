@@ -78,7 +78,10 @@ export default function EditSubgoalDialog({
       });
       
       // Invalidate relevant queries to refetch data
+      // First invalidate the specific subgoals query
       queryClient.invalidateQueries({ queryKey: ['/api/goals', subgoal.goalId, 'subgoals'] });
+      // Also invalidate the client goals query to ensure everything is updated
+      queryClient.invalidateQueries({ queryKey: ['/api/clients', 'goals'] });
     },
     onError: (error) => {
       console.error("Error updating milestone:", error);

@@ -79,6 +79,8 @@ export default function EditGoalDialog({
       
       // Invalidate relevant queries to refetch data
       queryClient.invalidateQueries({ queryKey: ['/api/clients', goal.clientId, 'goals'] });
+      // Also invalidate any related subgoals queries
+      queryClient.invalidateQueries({ queryKey: ['/api/goals', goal.id, 'subgoals'] });
     },
     onError: (error) => {
       console.error("Error updating goal:", error);

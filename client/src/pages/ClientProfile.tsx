@@ -91,6 +91,14 @@ export default function ClientProfile() {
   const [subgoalsByGoal, setSubgoalsByGoal] = useState<Record<number, Subgoal[]>>({});
   const [isLoadingSubgoals, setIsLoadingSubgoals] = useState(false);
   const [showAddAllyDialog, setShowAddAllyDialog] = useState(false);
+  
+  // State for edit goal dialog
+  const [showEditGoalDialog, setShowEditGoalDialog] = useState(false);
+  const [selectedGoal, setSelectedGoal] = useState<Goal | null>(null);
+  
+  // State for edit subgoal dialog
+  const [showEditSubgoalDialog, setShowEditSubgoalDialog] = useState(false);
+  const [selectedSubgoal, setSelectedSubgoal] = useState<Subgoal | null>(null);
 
   // Fetch client data with enhanced logging
   const { data: client, isLoading: isLoadingClient } = useQuery<Client>({
@@ -340,10 +348,55 @@ export default function ClientProfile() {
       {/* Add Ally Dialog - using separate component to avoid React hooks issues */}
       {client && (
         <AddAllyDialog
-          open={false}
-          onOpenChange={() => {}}
+          open={showAddAllyDialog}
+          onOpenChange={setShowAddAllyDialog}
           clientId={clientId}
           clientName={client.name}
+        />
+      )}
+      
+      {/* Edit Goal Dialog */}
+      {selectedGoal && (
+        <EditGoalDialog
+          open={showEditGoalDialog}
+          onOpenChange={(open) => {
+            setShowEditGoalDialog(open);
+            // When dialog closes, refresh the goals and subgoals
+            if (!open) {
+              // Invalidate the goals query to trigger a refresh
+              queryClient.invalidateQueries({ queryKey: ['/api/clients', clientId, 'goals'] });
+            }
+          }}
+          goal={selectedGoal}
+        />
+      )}
+      
+      {/* Edit Subgoal Dialog */}
+      {selectedSubgoal && (
+        <EditSubgoalDialog
+          open={showEditSubgoalDialog}
+          onOpenChange={(open) => {
+            setShowEditSubgoalDialog(open);
+            // When dialog closes, refresh the subgoals data
+            if (!open && selectedSubgoal) {
+              // Fetch the specific subgoals for the related goal
+              const goalId = selectedSubgoal.goalId;
+              fetch(`/api/goals/${goalId}/subgoals`)
+                .then(response => response.json())
+                .then(data => {
+                  console.log(`Refreshed subgoals for goal ${goalId}:`, data);
+                  // Update the subgoals in state
+                  setSubgoalsByGoal(prevState => ({
+                    ...prevState,
+                    [goalId]: data
+                  }));
+                })
+                .catch(error => {
+                  console.error(`Error refreshing subgoals for goal ${goalId}:`, error);
+                });
+            }
+          }}
+          subgoal={selectedSubgoal}
         />
       )}
       
@@ -436,10 +489,18 @@ export default function ClientProfile() {
                 goals={goals || []}
                 subgoals={subgoalsByGoal || {}}
                 onAddGoal={() => console.log("Add goal clicked")}
-                onEditGoal={(goal) => console.log("Edit goal clicked", goal)}
+                onEditGoal={(goal) => {
+                  console.log("Edit goal clicked", goal);
+                  setSelectedGoal(goal);
+                  setShowEditGoalDialog(true);
+                }}
                 onArchiveGoal={(goal) => console.log("Archive goal clicked", goal)}
                 onAddSubgoal={(goalId) => console.log("Add subgoal clicked for goal", goalId)}
-                onEditSubgoal={(subgoal) => console.log("Edit subgoal clicked", subgoal)}
+                onEditSubgoal={(subgoal) => {
+                  console.log("Edit subgoal clicked", subgoal);
+                  setSelectedSubgoal(subgoal);
+                  setShowEditSubgoalDialog(true);
+                }}
                 onToggleSubgoalStatus={(subgoal) => console.log("Toggle subgoal status clicked", subgoal)}
               />
             </TabsContent>
