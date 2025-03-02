@@ -53,7 +53,7 @@ import { useToast } from "@/hooks/use-toast";
 export default function Sessions() {
   // State for search, filters, and view type
   const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState<string | null>("all");
   const [viewType, setViewType] = useState<"grid" | "list">("grid");
   const [createSessionDialogOpen, setCreateSessionDialogOpen] = useState(false);
   
@@ -88,8 +88,8 @@ export default function Sessions() {
       session.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       session.location?.toLowerCase().includes(searchQuery.toLowerCase());
       
-    // Apply status filter
-    const matchesStatus = statusFilter === null || session.status === statusFilter;
+    // Apply status filter (if 'all' or null, show all statuses)
+    const matchesStatus = statusFilter === null || statusFilter === "all" || session.status === statusFilter;
     
     return matchesSearch && matchesStatus;
   });
@@ -147,7 +147,7 @@ export default function Sessions() {
               <SelectValue placeholder="Filter by status" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Statuses</SelectItem>
+              <SelectItem value="all">All Statuses</SelectItem>
               <SelectItem value="scheduled">Scheduled</SelectItem>
               <SelectItem value="completed">Completed</SelectItem>
               <SelectItem value="cancelled">Cancelled</SelectItem>
