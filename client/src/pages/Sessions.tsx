@@ -503,7 +503,7 @@ function CreateSessionDialog({ open, onOpenChange }: CreateSessionDialogProps) {
                     <FormLabel>Client</FormLabel>
                     <Select
                       onValueChange={(value) => field.onChange(parseInt(value))}
-                      defaultValue={field.value?.toString()}
+                      value={field.value?.toString() || undefined}
                     >
                       <FormControl>
                         <SelectTrigger>
@@ -532,7 +532,7 @@ function CreateSessionDialog({ open, onOpenChange }: CreateSessionDialogProps) {
                     <FormLabel>Therapist</FormLabel>
                     <Select
                       onValueChange={(value) => field.onChange(parseInt(value))}
-                      defaultValue={field.value?.toString()}
+                      value={field.value?.toString() || undefined}
                       disabled={!selectedClientId}
                     >
                       <FormControl>
@@ -674,7 +674,7 @@ function CreateSessionDialog({ open, onOpenChange }: CreateSessionDialogProps) {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Status</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select onValueChange={field.onChange} value={field.value || "scheduled"}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select status" />
