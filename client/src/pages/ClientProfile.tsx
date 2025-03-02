@@ -160,7 +160,7 @@ export default function ClientProfile() {
     
     // Set loading state
     setIsLoadingSubgoals(true);
-    console.log(`Found ${goals.length} goals, fetching subgoals for each`);
+    console.log(`Found ${goals.length} goals, fetching subgoals for each goal`);
     
     // Create an array of promises to fetch subgoals for each goal
     const fetchSubgoals = async () => {
@@ -175,9 +175,8 @@ export default function ClientProfile() {
               const response = await fetch(`/api/goals/${goal.id}/subgoals`);
               if (response.ok) {
                 const data = await response.json();
-                console.log(`Received subgoals response for goal ${goal.id}:`, data);
+                console.log(`Received ${data.length} subgoals for goal ${goal.id}:`, data);
                 result[goal.id] = data;
-                console.log(`Found ${data.length} subgoals for goal ${goal.id}`);
               } else {
                 console.error(`Failed to fetch subgoals for goal ${goal.id}, status: ${response.status}`);
                 result[goal.id] = [];
@@ -190,7 +189,7 @@ export default function ClientProfile() {
         }
         
         // Update state with all fetched subgoals
-        console.log("Setting subgoals by goal:", result);
+        console.log("Final subgoals by goal:", result);
         setSubgoalsByGoal(result);
         setIsLoadingSubgoals(false);
       } catch (error) {
