@@ -389,11 +389,6 @@ export default function ClientProfile() {
             </TabsContent>
             
             <TabsContent value="allies" className="mt-0">
-              <h3 className="text-lg font-medium mb-4">Support Network</h3>
-              <p className="text-gray-500 mb-6">
-                Manage the client's support network including family members, caregivers, and therapists.
-              </p>
-              
               {/* Use the ClientAllies component */}
               <ClientAllies
                 allies={allies}

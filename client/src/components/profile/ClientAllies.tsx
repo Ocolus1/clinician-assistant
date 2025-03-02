@@ -274,31 +274,23 @@ export default function ClientAllies({
                     </Button>
                   </div>
                   
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-lg">{ally.name}</CardTitle>
-                    <CardDescription className="flex items-center">
-                      <FaBriefcase className="mr-1" />
+                  <CardHeader className="pb-2 pt-4">
+                    <CardTitle className="text-lg font-semibold">{ally.name}</CardTitle>
+                    <CardDescription className="flex items-center mt-1">
+                      <FaBriefcase className="mr-1.5" />
                       {RELATIONSHIP_OPTIONS.find(opt => opt.value === ally.relationship)?.label || ally.relationship}
                     </CardDescription>
                   </CardHeader>
                   
-                  <CardContent className="space-y-4 pb-1">
+                  <CardContent className="space-y-5 pb-3 px-6">
                     <div className="space-y-3">
                       {ally.email && (
                         <div className="flex items-center justify-between">
-                          <div className="flex items-center text-sm">
-                            <FaMailBulk className="mr-2 h-4 w-4 text-muted-foreground" />
-                            <span>{ally.email}</span>
+                          <div className="flex items-center text-sm cursor-pointer" 
+                               onClick={() => handleContactEmail(ally)} 
+                               title="Click to send email">
+                            <span className="text-blue-600 hover:underline">{ally.email}</span>
                           </div>
-                          <Button 
-                            variant="ghost" 
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={() => handleContactEmail(ally)}
-                            title="Send email"
-                          >
-                            <Mail className="h-4 w-4" />
-                          </Button>
                         </div>
                       )}
                       
@@ -369,22 +361,21 @@ export default function ClientAllies({
                     </Button>
                   </div>
                   
-                  <CardHeader className="pb-2">
+                  <CardHeader className="pb-2 pt-4">
                     <Badge variant="outline" className="w-fit mb-2">Archived</Badge>
-                    <CardTitle className="text-lg">{ally.name}</CardTitle>
-                    <CardDescription className="flex items-center">
-                      <FaBriefcase className="mr-1" />
+                    <CardTitle className="text-lg font-semibold">{ally.name}</CardTitle>
+                    <CardDescription className="flex items-center mt-1">
+                      <FaBriefcase className="mr-1.5" />
                       {RELATIONSHIP_OPTIONS.find(opt => opt.value === ally.relationship)?.label || ally.relationship}
                     </CardDescription>
                   </CardHeader>
                   
-                  <CardContent className="space-y-4 pb-1">
+                  <CardContent className="space-y-5 pb-3 px-6">
                     <div className="space-y-3">
                       {ally.email && (
                         <div className="flex items-center justify-between">
                           <div className="flex items-center text-sm">
-                            <FaMailBulk className="mr-2 h-4 w-4 text-muted-foreground" />
-                            <span>{ally.email}</span>
+                            <span className="text-gray-600">{ally.email}</span>
                           </div>
                         </div>
                       )}
