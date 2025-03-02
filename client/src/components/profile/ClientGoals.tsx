@@ -4,12 +4,14 @@ import {
   Card, 
   CardHeader, 
   CardContent, 
-  CardFooter 
+  CardFooter,
+  CardTitle,
+  CardDescription 
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { format } from "date-fns";
-import { Target, Award, Edit, Plus, Archive, Trash2 } from "lucide-react";
+import { Target, Award, Edit, Plus, Archive, CheckCircle, Circle } from "lucide-react";
 import type { Goal, Subgoal } from "@shared/schema";
 
 interface ClientGoalsProps {
@@ -58,20 +60,36 @@ export default function ClientGoals({
             const goalSubgoals = subgoals[goal.id] || [];
             
             return (
-              <Card key={goal.id} className="overflow-hidden">
-                <CardHeader className="py-4 px-6 bg-gray-50 border-b">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center">
-                      <div className="h-8 w-8 rounded-full bg-green-100 flex items-center justify-center mr-3">
-                        <Award className="h-4 w-4 text-green-600" />
-                      </div>
-                      <div>
-                        <h4 className="font-medium">{goal.title}</h4>
-                        <div className="text-sm text-gray-500">
-                          Added {format(new Date(), 'PP')}
-                        </div>
-                      </div>
-                    </div>
+              <Card key={goal.id} className="overflow-hidden shadow-sm">
+                <CardHeader className="pt-5 pb-4 px-6 relative">
+                  <div className="absolute top-4 right-4 flex space-x-1">
+                    {onEditGoal && (
+                      <Button 
+                        variant="ghost" 
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => onEditGoal(goal)}
+                        title="Edit goal"
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                    )}
+                    {onArchiveGoal && (
+                      <Button 
+                        variant="ghost" 
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => onArchiveGoal(goal)}
+                        title="Archive goal"
+                      >
+                        <Archive className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                  
+                  <CardTitle className="text-xl font-semibold">{goal.title}</CardTitle>
+                  
+                  <div className="flex items-center justify-between mt-1">
                     <Badge 
                       className={
                         progress >= 100 ? "bg-green-100 text-green-700 border-green-200" :
@@ -84,91 +102,79 @@ export default function ClientGoals({
                        progress > 0 ? "In Progress" : 
                        "Not Started"}
                     </Badge>
+                    <div className="text-sm text-muted-foreground">
+                      Progress: {progress}%
+                    </div>
                   </div>
                 </CardHeader>
+                
+                <Progress value={progress} className="h-1" />
+                
                 <CardContent className="p-6">
-                  <div className="mb-4">
-                    <p className="text-gray-600">{goal.description}</p>
-                  </div>
-                  
-                  <div className="mb-6">
-                    <div className="flex justify-between items-center mb-2">
-                      <h5 className="text-sm font-medium">Overall Progress</h5>
-                      <span className="text-sm font-medium">{progress}%</span>
-                    </div>
-                    <Progress value={progress} className="h-2" />
+                  <div className="mb-5">
+                    <p className="text-gray-700">{goal.description}</p>
                   </div>
                   
                   <div className="space-y-3">
-                    <h5 className="text-sm font-medium">Subgoals</h5>
+                    <h3 className="font-medium text-base border-b pb-2 mb-3">Milestones</h3>
                     
                     {goalSubgoals.length === 0 ? (
-                      <div className="text-sm text-gray-500 italic py-2">
-                        No subgoals added yet. Add subgoals to track specific milestones.
+                      <div className="text-sm text-gray-500 italic py-2 border rounded-md border-dashed p-4 text-center">
+                        No milestones added yet. Add milestones to track specific progress points.
                       </div>
                     ) : (
-                      <div className="space-y-2">
+                      <div className="space-y-3">
                         {goalSubgoals.map((subgoal) => (
                           <div 
                             key={subgoal.id} 
-                            className="flex items-center py-2 px-3 border border-gray-100 rounded-md hover:bg-gray-50"
-                            onClick={() => onToggleSubgoalStatus && onToggleSubgoalStatus(subgoal)}
+                            className="border rounded-lg p-4 hover:bg-gray-50 transition-colors"
                           >
-                            <div 
-                              className={`h-6 w-6 rounded-full flex items-center justify-center mr-3
-                                ${subgoal.status === 'completed' 
-                                  ? 'bg-green-100 text-green-600' 
-                                  : 'bg-blue-50 text-blue-600'}`}
-                            >
-                              <Target className="h-3 w-3" />
-                            </div>
-                            <div className="flex-1">
-                              <h6 className={`font-medium text-sm ${subgoal.status === 'completed' ? 'line-through text-gray-500' : ''}`}>
-                                {subgoal.title}
-                              </h6>
-                              {subgoal.description && (
-                                <p className="text-xs text-gray-500">{subgoal.description}</p>
+                            <div className="flex items-start">
+                              <div 
+                                className="flex-shrink-0 mt-0.5 mr-3 cursor-pointer"
+                                onClick={() => onToggleSubgoalStatus && onToggleSubgoalStatus(subgoal)}
+                              >
+                                {subgoal.status === 'completed' ? (
+                                  <CheckCircle className="h-5 w-5 text-green-600" />
+                                ) : (
+                                  <Circle className="h-5 w-5 text-gray-400" />
+                                )}
+                              </div>
+                              <div className="flex-1">
+                                <h4 className={`font-medium text-md ${subgoal.status === 'completed' ? 'text-gray-500' : ''}`}>
+                                  {subgoal.title}
+                                </h4>
+                                {subgoal.description && (
+                                  <p className="text-sm text-gray-600 mt-1">{subgoal.description}</p>
+                                )}
+                              </div>
+                              {onEditSubgoal && (
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon"
+                                  className="ml-2 h-7 w-7 flex-shrink-0" 
+                                  onClick={() => onEditSubgoal(subgoal)}
+                                >
+                                  <Edit className="h-3.5 w-3.5" />
+                                </Button>
                               )}
                             </div>
-                            <Badge variant="outline" className="ml-2">
-                              {subgoal.status || 'Pending'}
-                            </Badge>
-                            {onEditSubgoal && (
-                              <Button 
-                                variant="ghost" 
-                                size="sm" 
-                                className="ml-2" 
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  onEditSubgoal(subgoal);
-                                }}
-                              >
-                                <Edit className="h-3 w-3" />
-                              </Button>
-                            )}
                           </div>
                         ))}
                       </div>
                     )}
                   </div>
                 </CardContent>
-                <CardFooter className="flex justify-end gap-2 py-3 px-6 bg-gray-50 border-t">
-                  {onArchiveGoal && (
-                    <Button variant="outline" size="sm" onClick={() => onArchiveGoal(goal)}>
-                      <Archive className="h-4 w-4 mr-2" />
-                      Archive
-                    </Button>
-                  )}
-                  {onEditGoal && (
-                    <Button variant="outline" size="sm" onClick={() => onEditGoal(goal)}>
-                      <Edit className="h-4 w-4 mr-2" />
-                      Edit Goal
-                    </Button>
-                  )}
+                <CardFooter className="flex justify-end gap-2 py-3 px-6 border-t">
                   {onAddSubgoal && (
-                    <Button size="sm" onClick={() => onAddSubgoal(goal.id)}>
+                    <Button 
+                      variant="default" 
+                      size="sm" 
+                      onClick={() => onAddSubgoal(goal.id)}
+                      className="bg-green-600 hover:bg-green-700"
+                    >
                       <Plus className="h-4 w-4 mr-2" />
-                      Add Subgoal
+                      Add Milestone
                     </Button>
                   )}
                 </CardFooter>
