@@ -18,6 +18,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import type { BudgetSettings, BudgetItem, BudgetItemCatalog } from "@shared/schema";
+import BudgetPlansView from './BudgetPlansView';
 
 interface ClientBudgetProps {
   budgetSettings?: BudgetSettings;
@@ -104,6 +105,37 @@ export default function ClientBudget({
     setItemToDelete(null);
   };
   
+  // State for the budget plan editing
+  const [showPlanView, setShowPlanView] = React.useState(false);
+  
+  // Handle plan actions
+  const handleCreatePlan = () => {
+    if (onEditSettings) {
+      onEditSettings();
+    }
+  };
+  
+  const handleEditPlan = (plan: Parameters<typeof BudgetPlansView>[0]['onEditPlan'][0]) => {
+    if (onEditSettings) {
+      onEditSettings();
+    }
+  };
+  
+  const handleArchivePlan = (plan: Parameters<typeof BudgetPlansView>[0]['onArchivePlan'][0]) => {
+    // To be implemented: Archive plan logic
+    console.log('Archive plan:', plan);
+  };
+  
+  const handleSetActivePlan = (plan: Parameters<typeof BudgetPlansView>[0]['onSetActivePlan'][0]) => {
+    // To be implemented: Set active plan logic
+    console.log('Set active plan:', plan);
+  };
+  
+  // Switch between Plan View and Item List View
+  const toggleView = () => {
+    setShowPlanView(!showPlanView);
+  };
+  
   // Check if budget settings exist
   if (!budgetSettings) {
     return (
@@ -126,72 +158,95 @@ export default function ClientBudget({
       </div>
     );
   }
-
+  
   return (
     <div className="space-y-6">
-      <Card className="bg-gray-50 border-gray-200">
-        <CardHeader className="pb-2">
-          <div className="flex justify-between items-center">
-            <CardTitle className="text-lg">Budget Overview</CardTitle>
-            {onEditSettings && (
-              <Button variant="outline" size="sm" onClick={onEditSettings}>
-                <Edit className="h-4 w-4 mr-2" />
-                Edit Budget Settings
-              </Button>
-            )}
-          </div>
-        </CardHeader>
-        <CardContent className="pt-2">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div>
-              <h4 className="text-sm font-medium text-gray-500 mb-1">Available Funds</h4>
-              <p className="text-2xl font-bold">${availableFunds.toFixed(2)}</p>
-              <div className="text-xs text-gray-500 mt-1">
-                {budgetSettings && budgetSettings.planCode 
-                  ? `Plan: ${budgetSettings.planCode}` 
-                  : ''}
+      {/* View Toggle Button */}
+      <div className="flex justify-end">
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={toggleView}
+        >
+          {showPlanView ? 'Show Budget Items' : 'Show Budget Plans'}
+        </Button>
+      </div>
+      
+      {/* Show either Plans View or Budget Overview */}
+      {showPlanView ? (
+        <BudgetPlansView 
+          budgetSettings={budgetSettings}
+          budgetItems={budgetItems}
+          onCreatePlan={handleCreatePlan}
+          onEditPlan={handleEditPlan}
+          onArchivePlan={handleArchivePlan}
+          onSetActivePlan={handleSetActivePlan}
+        />
+      ) : (
+        <Card className="bg-gray-50 border-gray-200">
+          <CardHeader className="pb-2">
+            <div className="flex justify-between items-center">
+              <CardTitle className="text-lg">Budget Overview</CardTitle>
+              {onEditSettings && (
+                <Button variant="outline" size="sm" onClick={onEditSettings}>
+                  <Edit className="h-4 w-4 mr-2" />
+                  Edit Budget Settings
+                </Button>
+              )}
+            </div>
+          </CardHeader>
+          <CardContent className="pt-2">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div>
+                <h4 className="text-sm font-medium text-gray-500 mb-1">Available Funds</h4>
+                <p className="text-2xl font-bold">${availableFunds.toFixed(2)}</p>
+                <div className="text-xs text-gray-500 mt-1">
+                  {budgetSettings && budgetSettings.planCode 
+                    ? `Plan: ${budgetSettings.planCode}` 
+                    : ''}
+                </div>
+              </div>
+              <div>
+                <h4 className="text-sm font-medium text-gray-500 mb-1">Used</h4>
+                <p className="text-2xl font-bold">${totalBudget.toFixed(2)}</p>
+                <div className="text-xs text-gray-500 mt-1">
+                  ({budgetItems ? budgetItems.length : 0} budget items)
+                </div>
+              </div>
+              <div>
+                <h4 className="text-sm font-medium text-gray-500 mb-1">Remaining</h4>
+                <p className={`text-2xl font-bold ${remainingFunds < 0 ? 'text-red-600' : ''}`}>
+                  ${remainingFunds.toFixed(2)}
+                </p>
+                <div className="text-xs text-gray-500 mt-1">
+                  {remainingFunds < 0 ? 'Over budget' : 'Under budget'}
+                </div>
               </div>
             </div>
-            <div>
-              <h4 className="text-sm font-medium text-gray-500 mb-1">Used</h4>
-              <p className="text-2xl font-bold">${totalBudget.toFixed(2)}</p>
-              <div className="text-xs text-gray-500 mt-1">
-                ({budgetItems ? budgetItems.length : 0} budget items)
+            <div className="mt-4">
+              <div className="flex justify-between text-sm mb-1">
+                <span>Budget Utilization</span>
+                <span>{Math.min(100, budgetPercentage).toFixed(0)}%</span>
               </div>
+              <Progress 
+                value={Math.min(100, budgetPercentage)} 
+                className="h-2"
+                indicatorClassName={
+                  budgetPercentage > 100 ? "bg-red-500" :
+                  budgetPercentage > 90 ? "bg-amber-500" :
+                  budgetPercentage > 50 ? "bg-green-500" :
+                  "bg-blue-500"
+                }
+              />
+              {budgetPercentage > 100 && availableFunds > 0 && (
+                <div className="text-xs text-red-600 mt-1">
+                  Budget exceeded by ${(totalBudget - availableFunds).toFixed(2)}
+                </div>
+              )}
             </div>
-            <div>
-              <h4 className="text-sm font-medium text-gray-500 mb-1">Remaining</h4>
-              <p className={`text-2xl font-bold ${remainingFunds < 0 ? 'text-red-600' : ''}`}>
-                ${remainingFunds.toFixed(2)}
-              </p>
-              <div className="text-xs text-gray-500 mt-1">
-                {remainingFunds < 0 ? 'Over budget' : 'Under budget'}
-              </div>
-            </div>
-          </div>
-          <div className="mt-4">
-            <div className="flex justify-between text-sm mb-1">
-              <span>Budget Utilization</span>
-              <span>{Math.min(100, budgetPercentage).toFixed(0)}%</span>
-            </div>
-            <Progress 
-              value={Math.min(100, budgetPercentage)} 
-              className="h-2"
-              indicatorClassName={
-                budgetPercentage > 100 ? "bg-red-500" :
-                budgetPercentage > 90 ? "bg-amber-500" :
-                budgetPercentage > 50 ? "bg-green-500" :
-                "bg-blue-500"
-              }
-            />
-            {budgetPercentage > 100 && availableFunds > 0 && (
-              <div className="text-xs text-red-600 mt-1">
-                Budget exceeded by ${(totalBudget - availableFunds).toFixed(2)}
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
       
       <div className="space-y-4">
         <div className="flex justify-between items-center">

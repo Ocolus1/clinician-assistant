@@ -23,13 +23,25 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { ScrollArea } from "@/components/ui/scroll-area";
 import type { BudgetSettings, BudgetItem } from "@shared/schema";
 
-interface BudgetPlan extends BudgetSettings {
+interface BudgetPlan {
+  // Original BudgetSettings properties
+  id: number;
+  clientId: number;
+  planSerialNumber: string | null;
+  planCode: string | null;
+  isActive: boolean | null;
+  availableFunds: number;
+  endOfPlan: string | null;
+  createdAt: Date | null;
+  
+  // Additional properties for UI display
   active: boolean;
   archived: boolean;
   totalUsed: number;
   itemCount: number;
   percentUsed: number;
-  // Ensure these properties exist to match the component usage
+  
+  // Mapped properties for consistent UI naming
   planName: string;
   fundingSource: string;
   startDate: string | null;
@@ -40,9 +52,9 @@ interface BudgetPlansViewProps {
   budgetSettings: BudgetSettings | undefined;
   budgetItems: BudgetItem[];
   onCreatePlan: () => void;
-  onEditPlan: (plan: BudgetSettings) => void;
-  onArchivePlan: (plan: BudgetSettings) => void;
-  onSetActivePlan: (plan: BudgetSettings) => void;
+  onEditPlan: (plan: BudgetPlan) => void;
+  onArchivePlan: (plan: BudgetPlan) => void;
+  onSetActivePlan: (plan: BudgetPlan) => void;
 }
 
 export default function BudgetPlansView({
@@ -53,7 +65,7 @@ export default function BudgetPlansView({
   onArchivePlan,
   onSetActivePlan
 }: BudgetPlansViewProps) {
-  const [selectedPlan, setSelectedPlan] = React.useState<BudgetSettings | null>(null);
+  const [selectedPlan, setSelectedPlan] = React.useState<BudgetPlan | null>(null);
   const [detailsOpen, setDetailsOpen] = React.useState(false);
   
   // Convert budget settings to budget plan with additional properties
