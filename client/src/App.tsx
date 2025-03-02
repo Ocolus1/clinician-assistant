@@ -10,6 +10,7 @@ import PrintSummary from "@/pages/PrintSummary";
 import ClientList from "@/pages/ClientList";
 import EnhancedClientList from "@/pages/EnhancedClientList";
 import ClientProfile from "@/pages/ClientProfile";
+import Sessions from "@/pages/Sessions";
 import { AppLayout } from "@/components/layout/AppLayout";
 
 function Router() {
@@ -31,6 +32,7 @@ function Router() {
         <Route path="/client/:id/profile" component={ClientProfile} />
         <Route path="/clients/:id/profile" component={ClientProfile} />
         <Route path="/client/:id/print" component={PrintSummary} />
+        <Route path="/sessions" component={Sessions} />
         <Route component={NotFound} />
       </Switch>
     </AppLayout>
