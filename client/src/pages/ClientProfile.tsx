@@ -94,11 +94,14 @@ export default function ClientProfile() {
   
   // State for edit goal dialog
   const [showEditGoalDialog, setShowEditGoalDialog] = useState(false);
+  const [showAddGoalDialog, setShowAddGoalDialog] = useState(false);
   const [selectedGoal, setSelectedGoal] = useState<Goal | null>(null);
   
   // State for edit subgoal dialog
   const [showEditSubgoalDialog, setShowEditSubgoalDialog] = useState(false);
+  const [showAddSubgoalDialog, setShowAddSubgoalDialog] = useState(false);
   const [selectedSubgoal, setSelectedSubgoal] = useState<Subgoal | null>(null);
+  const [selectedGoalForSubgoal, setSelectedGoalForSubgoal] = useState<Goal | null>(null);
 
   // Fetch client data with enhanced logging
   const { data: client, isLoading: isLoadingClient } = useQuery<Client>({
