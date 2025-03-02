@@ -128,7 +128,7 @@ export default function ClientBudget({
               <h4 className="text-sm font-medium text-gray-500 mb-1">Available Funds</h4>
               <p className="text-2xl font-bold">${availableFunds.toFixed(2)}</p>
               <div className="text-xs text-gray-500 mt-1">
-                {budgetSettings?.planCode && `Plan: ${budgetSettings.planCode}`}
+                {budgetSettings && budgetSettings.planCode ? `Plan: ${budgetSettings.planCode}` : ''}
               </div>
             </div>
             <div>
@@ -163,7 +163,7 @@ export default function ClientBudget({
                 "bg-blue-500"
               }
             />
-            {budgetPercentage > 100 && (
+            {budgetPercentage > 100 && availableFunds > 0 && (
               <div className="text-xs text-red-600 mt-1">
                 Budget exceeded by ${(totalBudget - availableFunds).toFixed(2)}
               </div>
