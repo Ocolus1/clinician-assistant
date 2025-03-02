@@ -91,6 +91,11 @@ export default function BudgetPlansView({
     
     const percentUsed = availableFunds > 0 ? (totalUsed / availableFunds) * 100 : 0;
     
+    // Log the budget settings to help with debugging
+    console.log("Creating budget plan from settings:", budgetSettings);
+    console.log("Budget items count:", budgetItems.length);
+    console.log("Total used:", totalUsed);
+    
     // Create the budget plan with all the properties we need
     const plan: BudgetPlan = {
       ...budgetSettings,
@@ -99,8 +104,8 @@ export default function BudgetPlansView({
       totalUsed,
       itemCount: budgetItems.length,
       percentUsed,
-      // Map database fields to the fields used in UI
-      planName: budgetSettings.planCode || 'Default Plan',
+      // Map database fields to the fields used in UI with improved fallbacks
+      planName: budgetSettings.planCode || `Plan ${budgetSettings.planSerialNumber?.substr(-6) || ''}`.trim() || 'Default Plan',
       fundingSource: 'NDIS', // Default until we add this to schema
       startDate: budgetSettings.createdAt?.toString() || null,
       endDate: budgetSettings.endOfPlan || null
@@ -205,7 +210,15 @@ export default function BudgetPlansView({
                       {plan.planName || 'Unnamed Plan'}
                     </CardTitle>
                     <CardDescription>
-                      {plan.planCode} • {formatDate(plan.startDate)} - {formatDate(plan.endDate)}
+                      {plan.planSerialNumber ? (
+                        <>
+                          {plan.planSerialNumber?.substr(-6) || ''} 
+                          {(plan.startDate || plan.endDate) && ' • '}
+                          {plan.startDate && formatDate(plan.startDate)}
+                          {plan.startDate && plan.endDate && ' - '}
+                          {plan.endDate && formatDate(plan.endDate)}
+                        </>
+                      ) : 'No plan details available'}
                     </CardDescription>
                   </div>
                   <Badge 
@@ -292,7 +305,15 @@ export default function BudgetPlansView({
               {selectedPlan?.planName || 'Budget Plan Details'}
             </DialogTitle>
             <DialogDescription>
-              {selectedPlan?.planCode} • {formatDate(selectedPlan?.startDate || null)} - {formatDate(selectedPlan?.endDate || null)}
+              {selectedPlan?.planSerialNumber ? (
+                <>
+                  {selectedPlan.planSerialNumber.substr(-6) || ''} 
+                  {(selectedPlan.startDate || selectedPlan.endDate) && ' • '}
+                  {selectedPlan.startDate && formatDate(selectedPlan.startDate)}
+                  {selectedPlan.startDate && selectedPlan.endDate && ' - '}
+                  {selectedPlan.endDate && formatDate(selectedPlan.endDate)}
+                </>
+              ) : 'No plan details available'}
             </DialogDescription>
           </DialogHeader>
           

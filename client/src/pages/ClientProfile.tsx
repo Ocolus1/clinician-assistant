@@ -150,17 +150,37 @@ export default function ClientProfile() {
     enabled: !!clientId,
   });
 
-  // Fetch budget items
+  // Fetch budget items with logging for debugging
   const { data: budgetItems = [], isLoading: isLoadingBudgetItems } = useQuery<BudgetItem[]>({
     queryKey: ['/api/clients', clientId, 'budget-items'],
-    queryFn: getQueryFn({ on401: "throw" }),
+    queryFn: async () => {
+      console.log("Explicitly fetching budget items for client ID:", clientId);
+      const response = await fetch(`/api/clients/${clientId}/budget-items`);
+      if (!response.ok) {
+        console.error("Error fetching budget items:", response.status, response.statusText);
+        throw new Error(`Error fetching budget items: ${response.status} ${response.statusText}`);
+      }
+      const data = await response.json();
+      console.log("Budget items data received:", data);
+      return data;
+    },
     enabled: !!clientId,
   });
 
-  // Fetch budget settings
+  // Fetch budget settings with logging for debugging
   const { data: budgetSettings, isLoading: isLoadingBudgetSettings } = useQuery<BudgetSettings>({
     queryKey: ['/api/clients', clientId, 'budget-settings'],
-    queryFn: getQueryFn({ on401: "throw" }),
+    queryFn: async () => {
+      console.log("Explicitly fetching budget settings for client ID:", clientId);
+      const response = await fetch(`/api/clients/${clientId}/budget-settings`);
+      if (!response.ok) {
+        console.error("Error fetching budget settings:", response.status, response.statusText);
+        throw new Error(`Error fetching budget settings: ${response.status} ${response.statusText}`);
+      }
+      const data = await response.json();
+      console.log("Budget settings data received:", data);
+      return data;
+    },
     enabled: !!clientId,
   });
   
