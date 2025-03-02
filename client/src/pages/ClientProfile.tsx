@@ -59,6 +59,8 @@ import ClientBudget from "@/components/profile/ClientBudget";
 import ClientSessions from "@/components/profile/ClientSessions";
 import ClientReports from "@/components/profile/ClientReports";
 import AddAllyDialog from "@/components/profile/AddAllyDialog";
+import AddGoalDialog from "@/components/profile/AddGoalDialog";
+import AddSubgoalDialog from "@/components/profile/AddSubgoalDialog";
 import EditGoalDialog from "@/components/profile/EditGoalDialog";
 import EditSubgoalDialog from "@/components/profile/EditSubgoalDialog";
 
@@ -418,6 +420,54 @@ export default function ClientProfile() {
         </>
       )}
       
+      {/* Add Goal Dialog */}
+      <AddGoalDialog
+        open={showAddGoalDialog}
+        onOpenChange={(open) => {
+          setShowAddGoalDialog(open);
+          // When dialog closes, refresh the goals
+          if (!open) {
+            // Invalidate the goals query to trigger a refresh
+            queryClient.invalidateQueries({ queryKey: ['/api/clients', clientId, 'goals'] });
+          }
+        }}
+        clientId={clientId}
+      />
+      
+      {/* Add Subgoal Dialog */}
+      {selectedGoalForSubgoal && (
+        <AddSubgoalDialog
+          key={`subgoal-add-${selectedGoalForSubgoal.id}`}
+          open={showAddSubgoalDialog}
+          onOpenChange={(open) => {
+            setShowAddSubgoalDialog(open);
+            // When dialog closes, refresh the subgoals
+            if (!open) {
+              // Fetch the updated subgoals
+              const goalId = selectedGoalForSubgoal.id;
+              console.log(`Refreshing subgoals for goal ${goalId} after adding new subgoal`);
+              fetch(`/api/goals/${goalId}/subgoals`)
+                .then(response => response.json())
+                .then(data => {
+                  console.log(`Refreshed subgoals for goal ${goalId}:`, data);
+                  // Update the subgoals in state
+                  setSubgoalsByGoal(prevState => ({
+                    ...prevState,
+                    [goalId]: data
+                  }));
+                  // Reset selected goal for clean state
+                  setSelectedGoalForSubgoal(null);
+                })
+                .catch(error => {
+                  console.error(`Error refreshing subgoals for goal ${goalId}:`, error);
+                });
+            }
+          }}
+          goalId={selectedGoalForSubgoal.id}
+          goalTitle={selectedGoalForSubgoal.title}
+        />
+      )}
+      
       {/* Tabs section */}
       <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
         <TabsList className="w-full grid grid-cols-2 md:grid-cols-6 mb-6">
@@ -506,14 +556,32 @@ export default function ClientProfile() {
               <ClientGoals 
                 goals={goals || []}
                 subgoals={subgoalsByGoal || {}}
-                onAddGoal={() => console.log("Add goal clicked")}
+                onAddGoal={() => {
+                  console.log("Add goal clicked");
+                  setShowAddGoalDialog(true);
+                }}
                 onEditGoal={(goal) => {
                   console.log("Edit goal clicked", goal);
                   setSelectedGoal(goal);
                   setShowEditGoalDialog(true);
                 }}
                 onArchiveGoal={(goal) => console.log("Archive goal clicked", goal)}
-                onAddSubgoal={(goalId) => console.log("Add subgoal clicked for goal", goalId)}
+                onAddSubgoal={(goalId) => {
+                  console.log("Add subgoal clicked for goal", goalId);
+                  // Find the goal by its ID
+                  const goal = goals.find(g => g.id === goalId);
+                  if (goal) {
+                    setSelectedGoalForSubgoal(goal);
+                    setShowAddSubgoalDialog(true);
+                  } else {
+                    console.error("Could not find goal with ID:", goalId);
+                    toast({
+                      title: "Error",
+                      description: "Could not find the specified goal.",
+                      variant: "destructive",
+                    });
+                  }
+                }}
                 onEditSubgoal={(subgoal) => {
                   console.log("Edit subgoal clicked", subgoal);
                   setSelectedSubgoal(subgoal);
