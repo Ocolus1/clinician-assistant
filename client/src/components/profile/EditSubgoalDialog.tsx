@@ -58,7 +58,7 @@ export default function EditSubgoalDialog({
     defaultValues: {
       title: subgoal.title,
       description: subgoal.description || "",
-      status: subgoal.status || "pending",
+      status: (subgoal.status as "pending" | "in-progress" | "completed") || "pending",
     },
   });
 

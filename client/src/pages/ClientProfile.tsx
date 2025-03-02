@@ -59,6 +59,8 @@ import ClientBudget from "@/components/profile/ClientBudget";
 import ClientSessions from "@/components/profile/ClientSessions";
 import ClientReports from "@/components/profile/ClientReports";
 import AddAllyDialog from "@/components/profile/AddAllyDialog";
+import EditGoalDialog from "@/components/profile/EditGoalDialog";
+import EditSubgoalDialog from "@/components/profile/EditSubgoalDialog";
 
 // Function to parse URL parameters for active tab
 function getActiveTabFromURL(): string {
@@ -88,7 +90,6 @@ export default function ClientProfile() {
   // IMPORTANT: Define all state hooks at the top level, before any conditional returns
   const [subgoalsByGoal, setSubgoalsByGoal] = useState<Record<number, Subgoal[]>>({});
   const [isLoadingSubgoals, setIsLoadingSubgoals] = useState(false);
-  // Define the showAddAllyDialog state hook here, BEFORE any conditional returns
   const [showAddAllyDialog, setShowAddAllyDialog] = useState(false);
 
   // Fetch client data with enhanced logging
@@ -339,8 +340,8 @@ export default function ClientProfile() {
       {/* Add Ally Dialog - using separate component to avoid React hooks issues */}
       {client && (
         <AddAllyDialog
-          open={showAddAllyDialog}
-          onOpenChange={setShowAddAllyDialog}
+          open={false}
+          onOpenChange={() => {}}
           clientId={clientId}
           clientName={client.name}
         />
@@ -406,8 +407,6 @@ export default function ClientProfile() {
                 allies={allies}
                 clientId={clientId}
                 onAddAlly={() => {
-                  // Just show the dialog, form is managed by AddAllyDialog component
-                  setShowAddAllyDialog(true);
                 }}
                 onEditAlly={(ally) => {
                   // We've implemented this already in ClientAllies
