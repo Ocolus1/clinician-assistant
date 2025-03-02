@@ -210,7 +210,7 @@ export default function Sessions() {
                 <Calendar className="h-12 w-12 text-gray-300 mx-auto mb-3" />
                 <h4 className="text-lg font-medium text-gray-500 mb-2">No upcoming sessions</h4>
                 <p className="text-gray-500 mb-4">Schedule therapy sessions to start tracking progress.</p>
-                <Button>Schedule First Session</Button>
+                <Button onClick={() => setCreateSessionDialogOpen(true)}>Schedule First Session</Button>
               </div>
             ) : (
               viewType === "grid" ? (
@@ -435,6 +435,7 @@ function CreateSessionDialog({ open, onOpenChange }: CreateSessionDialogProps) {
     duration: 60,
     status: "scheduled",
     location: "Main Office",
+    notes: "",
   };
 
   // Form definition
@@ -582,7 +583,11 @@ function CreateSessionDialog({ open, onOpenChange }: CreateSessionDialogProps) {
                     <Textarea 
                       placeholder="Brief description of the session"
                       className="resize-none"
-                      {...field} 
+                      value={field.value || ''}
+                      onChange={field.onChange}
+                      onBlur={field.onBlur}
+                      name={field.name}
+                      ref={field.ref}
                     />
                   </FormControl>
                   <FormMessage />
@@ -695,7 +700,14 @@ function CreateSessionDialog({ open, onOpenChange }: CreateSessionDialogProps) {
                   <FormItem>
                     <FormLabel>Location</FormLabel>
                     <FormControl>
-                      <Input placeholder="e.g., Office Room 101, Virtual Meeting" {...field} />
+                      <Input 
+                        placeholder="e.g., Office Room 101, Virtual Meeting" 
+                        value={field.value || ''}
+                        onChange={field.onChange}
+                        onBlur={field.onBlur}
+                        name={field.name}
+                        ref={field.ref}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -714,7 +726,11 @@ function CreateSessionDialog({ open, onOpenChange }: CreateSessionDialogProps) {
                     <Textarea 
                       placeholder="Additional notes for this session"
                       className="resize-none"
-                      {...field} 
+                      value={field.value || ''}
+                      onChange={field.onChange}
+                      onBlur={field.onBlur}
+                      name={field.name}
+                      ref={field.ref}
                     />
                   </FormControl>
                   <FormMessage />
