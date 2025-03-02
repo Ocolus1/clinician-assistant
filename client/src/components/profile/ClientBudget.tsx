@@ -31,7 +31,7 @@ interface ClientBudgetProps {
 
 export default function ClientBudget({ 
   budgetSettings, 
-  budgetItems,
+  budgetItems = [],
   catalogItems,
   onEditSettings,
   onAddItem,
@@ -43,22 +43,51 @@ export default function ClientBudget({
   
   // Calculate total budget
   const totalBudget = React.useMemo(() => {
+    if (!budgetItems || budgetItems.length === 0) return 0;
+    
     return budgetItems.reduce((acc, item) => {
-      const unitPrice = typeof item.unitPrice === 'string' ? parseFloat(item.unitPrice) : item.unitPrice;
-      const quantity = typeof item.quantity === 'string' ? parseInt(item.quantity) : item.quantity;
+      if (!item) return acc;
+      
+      // Handle unitPrice
+      let unitPrice = 0;
+      if (item.unitPrice !== undefined && item.unitPrice !== null) {
+        unitPrice = typeof item.unitPrice === 'string' 
+          ? parseFloat(item.unitPrice) || 0 
+          : item.unitPrice;
+      }
+      
+      // Handle quantity
+      let quantity = 0;
+      if (item.quantity !== undefined && item.quantity !== null) {
+        quantity = typeof item.quantity === 'string' 
+          ? parseInt(item.quantity) || 0 
+          : item.quantity;
+      }
+      
       return acc + (unitPrice * quantity);
     }, 0);
   }, [budgetItems]);
   
+  // Parse available funds safely
+  const availableFunds = React.useMemo(() => {
+    if (!budgetSettings) return 0;
+    
+    const fundsValue = budgetSettings.availableFunds;
+    if (fundsValue === undefined || fundsValue === null) return 0;
+    
+    return typeof fundsValue === 'string' 
+      ? parseFloat(fundsValue) || 0 
+      : fundsValue;
+  }, [budgetSettings]);
+  
   // Calculate budget percentage
   const budgetPercentage = React.useMemo(() => {
-    if (!budgetSettings) return 0;
-    const availableFunds = typeof budgetSettings.availableFunds === 'string' 
-      ? parseFloat(budgetSettings.availableFunds) 
-      : budgetSettings.availableFunds;
-    
-    return availableFunds > 0 ? (totalBudget / availableFunds) * 100 : 0;
-  }, [totalBudget, budgetSettings]);
+    if (!budgetSettings || availableFunds <= 0) return 0;
+    return (totalBudget / availableFunds) * 100;
+  }, [totalBudget, budgetSettings, availableFunds]);
+  
+  // Calculate remaining funds
+  const remainingFunds = availableFunds - totalBudget;
   
   // Handle delete click
   const handleDeleteClick = (item: BudgetItem) => {
@@ -74,16 +103,6 @@ export default function ClientBudget({
     setShowDeleteDialog(false);
     setItemToDelete(null);
   };
-  
-  // Get available funds
-  const availableFunds = budgetSettings 
-    ? (typeof budgetSettings.availableFunds === 'string' 
-      ? parseFloat(budgetSettings.availableFunds) 
-      : budgetSettings.availableFunds)
-    : 0;
-  
-  // Calculate remaining funds
-  const remainingFunds = availableFunds - totalBudget;
   
   // Check if budget settings exist
   if (!budgetSettings) {
@@ -128,14 +147,16 @@ export default function ClientBudget({
               <h4 className="text-sm font-medium text-gray-500 mb-1">Available Funds</h4>
               <p className="text-2xl font-bold">${availableFunds.toFixed(2)}</p>
               <div className="text-xs text-gray-500 mt-1">
-                {budgetSettings && budgetSettings.planCode ? `Plan: ${budgetSettings.planCode}` : ''}
+                {budgetSettings && budgetSettings.planCode 
+                  ? `Plan: ${budgetSettings.planCode}` 
+                  : ''}
               </div>
             </div>
             <div>
               <h4 className="text-sm font-medium text-gray-500 mb-1">Used</h4>
               <p className="text-2xl font-bold">${totalBudget.toFixed(2)}</p>
               <div className="text-xs text-gray-500 mt-1">
-                ({budgetItems.length} budget items)
+                ({budgetItems ? budgetItems.length : 0} budget items)
               </div>
             </div>
             <div>
@@ -183,7 +204,7 @@ export default function ClientBudget({
           )}
         </div>
         
-        {budgetItems.length === 0 ? (
+        {!budgetItems || budgetItems.length === 0 ? (
           <div className="text-center py-8 bg-gray-50 rounded-lg">
             <DollarSign className="h-10 w-10 text-gray-300 mx-auto mb-3" />
             <h4 className="text-lg font-medium text-gray-500 mb-2">No budget items added</h4>
@@ -207,21 +228,30 @@ export default function ClientBudget({
               </thead>
               <tbody>
                 {budgetItems.map((item) => {
-                  const unitPrice = typeof item.unitPrice === 'string' ? parseFloat(item.unitPrice) : item.unitPrice;
-                  const quantity = typeof item.quantity === 'string' ? parseInt(item.quantity) : item.quantity;
+                  if (!item) return null;
+                  
+                  // Handle null/undefined values
+                  const unitPrice = typeof item.unitPrice === 'string' 
+                    ? parseFloat(item.unitPrice) || 0 
+                    : (item.unitPrice || 0);
+                    
+                  const quantity = typeof item.quantity === 'string' 
+                    ? parseInt(item.quantity) || 0 
+                    : (item.quantity || 0);
+                    
                   const total = unitPrice * quantity;
                   
                   return (
                     <tr key={item.id} className="border-b hover:bg-gray-50">
                       <td className="p-3">
-                        <div className="font-medium">{item.name}</div>
+                        <div className="font-medium">{item.name || 'Unnamed Item'}</div>
                         {item.description && (
                           <div className="text-xs text-gray-500">{item.description}</div>
                         )}
                       </td>
                       <td className="p-3">
                         <Badge variant="outline" className="font-normal">
-                          {item.category}
+                          {item.category || 'Uncategorized'}
                         </Badge>
                       </td>
                       <td className="p-3 text-right">${unitPrice.toFixed(2)}</td>
