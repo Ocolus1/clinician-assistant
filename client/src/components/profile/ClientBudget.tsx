@@ -85,6 +85,29 @@ export default function ClientBudget({
   // Calculate remaining funds
   const remainingFunds = availableFunds - totalBudget;
   
+  // Check if budget settings exist
+  if (!budgetSettings) {
+    return (
+      <div className="space-y-6">
+        <Card className="bg-gray-50 border-gray-200">
+          <CardContent className="py-10 text-center">
+            <DollarSign className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-700 mb-2">Budget Settings Not Found</h3>
+            <p className="text-gray-500 mb-6 max-w-md mx-auto">
+              Budget settings haven't been created for this client yet. You'll need to set up the budget first.
+            </p>
+            {onEditSettings && (
+              <Button onClick={onEditSettings}>
+                <Plus className="h-4 w-4 mr-2" />
+                Create Budget Settings
+              </Button>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <Card className="bg-gray-50 border-gray-200">
