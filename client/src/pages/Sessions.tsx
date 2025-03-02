@@ -206,11 +206,10 @@ export default function Sessions() {
               s.status === "scheduled" || 
               s.status === "rescheduled"
             ).length === 0 ? (
-              <div className="text-center py-12 bg-gray-50 rounded-lg max-w-md mx-auto">
-                <Calendar className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+              <div className="text-center py-8 bg-gray-50 rounded-lg max-w-md mx-auto">
                 <h4 className="text-lg font-medium text-gray-500 mb-2">No upcoming sessions</h4>
-                <p className="text-gray-500 mb-4">Schedule therapy sessions to start tracking progress.</p>
-                <Button onClick={() => setCreateSessionDialogOpen(true)}>Schedule First Session</Button>
+                <p className="text-gray-500 mb-4">No scheduled therapy sessions found.</p>
+                <Button onClick={() => setCreateSessionDialogOpen(true)}>Schedule New Session</Button>
               </div>
             ) : (
               viewType === "grid" ? (
@@ -256,8 +255,7 @@ export default function Sessions() {
               s.status === "completed" || 
               s.status === "cancelled"
             ).length === 0 ? (
-              <div className="text-center py-12 bg-gray-50 rounded-lg max-w-md mx-auto">
-                <Clock className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+              <div className="text-center py-8 bg-gray-50 rounded-lg max-w-md mx-auto">
                 <h4 className="text-lg font-medium text-gray-500 mb-2">No past sessions</h4>
                 <p className="text-gray-500">Session history will appear here once sessions are completed.</p>
               </div>
