@@ -16,6 +16,7 @@ import {
   ShoppingCart,
   RefreshCw
 } from "lucide-react";
+import { ProductDebugHelper } from "@/components/debug/ProductDebugHelper";
 import { Ally, BudgetItem, BudgetSettings, Client, Goal, Session, Subgoal, insertSessionSchema } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { useSafeForm } from "@/hooks/use-safe-hooks";
@@ -489,6 +490,12 @@ export function IntegratedSessionForm({
   
   // Filter to only show items from the active plan
   const availableProducts = useMemo(() => {
+    // Check for debug override
+    if (import.meta.env.DEV && (window as any).__debugAvailableProducts?.length > 0) {
+      console.log('Using debug override products:', (window as any).__debugAvailableProducts);
+      return (window as any).__debugAvailableProducts;
+    }
+  
     // Log debug information
     console.log('Budget items:', allBudgetItems);
     console.log('Budget settings:', budgetSettings);
