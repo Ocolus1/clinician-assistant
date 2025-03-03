@@ -334,10 +334,19 @@ export function IntegratedSessionForm({
   const clientId = form.watch("session.clientId");
   
   // Fetch allies for therapist dropdown and participant selection
-  const { data: allies = [] } = useQuery<Ally[]>({
+  const { data: allAllies = [] } = useQuery<Ally[]>({
     queryKey: ["/api/clients", clientId, "allies"],
     enabled: open && !!clientId,
   });
+
+  // Filter out archived allies and client themselves
+  const allies = React.useMemo(() => {
+    // Filter to only include non-archived allies
+    return allAllies.filter(ally => 
+      !ally.archived && 
+      ally.name !== clients.find(c => c.id === clientId)?.name
+    );
+  }, [allAllies, clientId, clients]);
 
   // Fetch goals for the selected client
   const { data: goals = [] } = useQuery<Goal[]>({
