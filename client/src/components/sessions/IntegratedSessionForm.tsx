@@ -729,7 +729,7 @@ export function IntegratedSessionForm({
                 </TabsContent>
 
                 {/* Participants and Observations Tab */}
-                <TabsContent value="participants" className="space-y-6 mt-0">
+                <TabsContent value="participants" className="space-y-6 mt-0 px-2">
                   {/* Present Allies Section */}
                   <div className="space-y-4">
                     <h3 className="font-medium text-lg">Present in Session</h3>
@@ -914,7 +914,7 @@ export function IntegratedSessionForm({
                 </TabsContent>
 
                 {/* Performance Assessment Tab */}
-                <TabsContent value="performance" className="space-y-4 mt-0">
+                <TabsContent value="performance" className="space-y-4 mt-0 px-2">
                   <div className="flex justify-between items-center">
                     <h3 className="font-medium text-lg">Performance Assessment</h3>
                     <Button 
@@ -1187,7 +1187,7 @@ export function IntegratedSessionForm({
       </div>
     );
   }
-  
+
   // Return the dialog version if not in full-screen mode
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -1209,7 +1209,7 @@ export function IntegratedSessionForm({
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 overflow-hidden flex flex-col flex-grow">
               <div className="flex-grow overflow-auto pr-2">
-                {/* Tab content from above goes here */}
+                {/* Tab contents go here - use the same content as above */}
               </div>
               
               {/* Footer with navigation and submit buttons */}
