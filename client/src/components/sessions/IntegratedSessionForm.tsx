@@ -504,12 +504,21 @@ export function IntegratedSessionForm({
       return [];
     }
     
-    // Check if the budget plan is active (isActive could be null, undefined, or boolean)
-    // Default to true if isActive is null or undefined (since it defaults to true in the schema)
-    const isActive = budgetSettings.isActive === null || budgetSettings.isActive === undefined ? true : budgetSettings.isActive;
-    console.log('Budget plan active status:', isActive);
+    // Force coerce isActive to boolean
+    // PostgreSQL boolean can sometimes be returned as string 'true'/'false', null, or boolean
+    let isActiveBool = true; // Default to true per schema default
     
-    if (!isActive) {
+    if (budgetSettings.isActive === false) {
+      isActiveBool = false;
+    } else if (typeof budgetSettings.isActive === 'string' && budgetSettings.isActive.toLowerCase() === 'false') {
+      isActiveBool = false;
+    }
+    
+    console.log('Budget plan active status (original):', budgetSettings.isActive);
+    console.log('Budget plan active status (coerced):', isActiveBool);
+    console.log('Budget settings ID:', budgetSettings.id);
+    
+    if (!isActiveBool) {
       console.log('Budget settings not active');
       return [];
     }
@@ -517,12 +526,11 @@ export function IntegratedSessionForm({
     // Since our schema doesn't track used quantity yet, we'll assume all quantity is available
     // In a real implementation, this would be tracked in the database
     const filteredProducts = allBudgetItems
-      .filter((item: BudgetItem) => 
-        // Only items from active budget plan
-        item.budgetSettingsId === budgetSettings.id && 
-        // Only items with remaining quantity
-        item.quantity > 0
-      )
+      .filter((item: BudgetItem) => {
+        const matches = item.budgetSettingsId === budgetSettings.id && item.quantity > 0;
+        console.log(`Product ${item.itemCode}: budgetSettingsId=${item.budgetSettingsId}, quantity=${item.quantity}, matches=${matches}`);
+        return matches;
+      })
       .map((item: BudgetItem) => ({
         ...item,
         availableQuantity: item.quantity // For now, all quantity is available
@@ -1223,7 +1231,10 @@ const ProductSelectionDialog = ({
                               }
                             }}
                           >
-                            <RefreshCw className="h-4 w-4 mr-2" />
+                            <svg className="h-4 w-4 mr-2" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                              <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+                              <path d="M3 3v5h5"/>
+                            </svg>
                             Debug
                           </Button>
                           <Button
