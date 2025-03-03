@@ -32,6 +32,10 @@ export function ProductDebugHelper({
   return (
     <div className="bg-amber-50 border border-amber-200 rounded p-2 mb-4">
       <h3 className="text-amber-800 font-medium text-sm mb-2">Development Tools</h3>
+      <p className="text-xs text-amber-700 mb-2">
+        These tools are only visible in development mode. Use "Force Mock Products" to add test products 
+        when no active budget plan is available. This helps test the product selection feature.
+      </p>
       <div className="flex flex-wrap gap-2">
         <Button
           type="button"
@@ -89,7 +93,8 @@ export function ProductDebugHelper({
                   unitPrice: 150,
                   availableQuantity: 10,
                   productCode: "THERAPY-001",
-                  productDescription: "Speech Therapy Session"
+                  productDescription: "Speech Therapy Session",
+                  name: "Speech Therapy Session" // Required by the component
                 },
                 {
                   id: 998,
@@ -101,10 +106,25 @@ export function ProductDebugHelper({
                   unitPrice: 200,
                   availableQuantity: 5,
                   productCode: "ASSESS-001",
-                  productDescription: "Assessment Session"
+                  productDescription: "Assessment Session",
+                  name: "Assessment Session" // Required by the component
                 }
               ];
+              
+              // First update the global debug override
+              (window as any).__debugAvailableProducts = mockProducts;
+              
+              // Then update the component state
               setAvailableProducts(mockProducts);
+              
+              // Force a timeout to let React rerender first
+              setTimeout(() => {
+                // Force the Add Product button to be enabled by manually setting its availability
+                const addProductBtn = document.querySelector('[data-testid="add-product-btn"]');
+                if (addProductBtn) {
+                  (addProductBtn as HTMLButtonElement).disabled = false;
+                }
+              }, 100);
               
               // Show confirmation
               toast({

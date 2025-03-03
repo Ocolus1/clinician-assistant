@@ -710,6 +710,16 @@ const ProductSelectionDialog = ({
   const [selectedProduct, setSelectedProduct] = useState<(BudgetItem & { availableQuantity: number }) | null>(null);
   const [quantity, setQuantity] = useState(1);
   
+  // Clear selection when dialog opens with new products
+  useEffect(() => {
+    if (open) {
+      console.log("ProductSelectionDialog opened with products:", products);
+      // Reset selection state when dialog opens
+      setSelectedProduct(null);
+      setQuantity(1);
+    }
+  }, [open, products]);
+  
   const handleQuantityChange = (value: string) => {
     const numValue = parseInt(value, 10);
     if (isNaN(numValue) || numValue < 1) {
@@ -722,11 +732,17 @@ const ProductSelectionDialog = ({
   };
   
   const handleSelectProduct = (product: BudgetItem & { availableQuantity: number }) => {
+    console.log("Product selected:", product);
     setSelectedProduct(product);
     setQuantity(1); // Reset quantity when selecting a new product
   };
   
-  const handleAddProduct = () => {
+  const handleAddProduct = (e?: React.MouseEvent) => {
+    // Prevent event bubbling which might cause dialog to close prematurely
+    if (e) e.stopPropagation();
+    
+    console.log("Adding product:", selectedProduct, "quantity:", quantity);
+    
     if (selectedProduct) {
       onSelectProduct(selectedProduct, quantity);
       setSelectedProduct(null);
