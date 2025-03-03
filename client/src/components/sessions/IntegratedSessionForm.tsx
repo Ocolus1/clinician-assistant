@@ -365,7 +365,7 @@ export function IntegratedSessionForm({
     }
   }, [allAllies, clientId]);
 
-  // Only use non-archived allies
+  // Only use non-archived allies and deduplicate by name
   const allies = React.useMemo(() => {
     // Create the testing ally if none are found
     if (allAllies.length === 0 && clientId === 37) {
@@ -379,10 +379,21 @@ export function IntegratedSessionForm({
       }];
     }
     
-    // Filter out archived allies only
+    // Filter out archived allies and deduplicate by name
     const filtered = allAllies.filter(ally => !ally.archived);
-    console.log("Filtered non-archived allies:", filtered);
-    return filtered;
+    
+    // Deduplicate allies by name (keep the first occurrence)
+    const nameMap = new Map<string, typeof filtered[0]>();
+    filtered.forEach(ally => {
+      if (!nameMap.has(ally.name)) {
+        nameMap.set(ally.name, ally);
+      }
+    });
+    
+    const uniqueAllies = Array.from(nameMap.values());
+    console.log("Deduplicated filtered allies:", uniqueAllies);
+    
+    return uniqueAllies;
   }, [allAllies, clientId]);
 
   // Fetch goals for the selected client
