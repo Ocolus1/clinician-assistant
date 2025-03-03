@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { SessionNoteView } from "./SessionNoteView";
 import { SessionNoteForm } from "./SessionNoteForm";
-import { Session, SessionNote } from "@/shared/schema";
+import { Session, SessionNote } from "@shared/schema";
 
 interface SessionDetailsProps {
   session: Session & { clientName: string };

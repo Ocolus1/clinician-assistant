@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Session, SessionNote, PerformanceAssessment, MilestoneAssessment, Goal, Subgoal } from "@/shared/schema";
+import { Session, SessionNote, PerformanceAssessment, MilestoneAssessment, Goal, Subgoal } from "@shared/schema";
 
 interface SessionNoteViewProps {
   session: Session & { clientName: string };

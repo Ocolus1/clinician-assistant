@@ -3,7 +3,6 @@ import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ApiError } from "@/lib/queryClient";
 import { apiRequest } from "@/lib/utils";
 import { Check, HelpCircle, Loader2 } from "lucide-react";
 
@@ -31,7 +30,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Slider } from "@/components/ui/slider";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
-import { Ally, Goal, Session, Subgoal } from "@/shared/schema";
+import { Ally, Goal, Session, Subgoal } from "@shared/schema";
 import { 
   Card, 
   CardContent, 
@@ -263,7 +262,7 @@ export function SessionNoteForm({ open, onOpenChange, session, initialData }: Se
       });
       onOpenChange(false);
     },
-    onError: (error: ApiError) => {
+    onError: (error: any) => {
       toast({
         title: "Error",
         description: error.message || "Failed to save session note",

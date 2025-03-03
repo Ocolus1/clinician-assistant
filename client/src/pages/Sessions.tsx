@@ -37,7 +37,8 @@ import {
   User,
   Filter,
   Grid,
-  List
+  List,
+  ChevronLeft,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -50,12 +51,16 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useToast } from "@/hooks/use-toast";
 
+// Import our new components
+import { SessionDetails } from "@/components/sessions/SessionDetails";
+
 export default function Sessions() {
-  // State for search, filters, and view type
+  // State for search, filters, view type, and selected session
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string | null>("all");
   const [viewType, setViewType] = useState<"grid" | "list">("grid");
   const [createSessionDialogOpen, setCreateSessionDialogOpen] = useState(false);
+  const [selectedSession, setSelectedSession] = useState<(Session & { clientName: string }) | null>(null);
   
   // Fetch clients to associate with session data
   const { data: clients = [], isLoading: clientsLoading } = useQuery<Client[]>({
@@ -114,173 +119,205 @@ export default function Sessions() {
         return <Badge>{status}</Badge>;
     }
   };
+  
+  // Function to handle session selection
+  const handleSelectSession = (session: Session & { clientName: string }) => {
+    setSelectedSession(session);
+  };
 
   return (
     <div className="container mx-auto py-6">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Sessions</h1>
-        <Button onClick={() => setCreateSessionDialogOpen(true)}>
-          <Plus className="h-4 w-4 mr-2" /> Add Session
-        </Button>
-      </div>
-      
-      {/* Create Session Dialog */}
-      <CreateSessionDialog 
-        open={createSessionDialogOpen} 
-        onOpenChange={setCreateSessionDialogOpen} 
-      />
-      
-      {/* Search and filters */}
-      <div className="flex flex-col md:flex-row gap-4 mb-6">
-        <div className="relative flex-grow">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-          <Input 
-            placeholder="Search sessions..." 
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9"
-          />
-        </div>
-        <div className="flex gap-2">
-          <Select value={statusFilter || ""} onValueChange={(value) => setStatusFilter(value || null)}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Filter by status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Statuses</SelectItem>
-              <SelectItem value="scheduled">Scheduled</SelectItem>
-              <SelectItem value="completed">Completed</SelectItem>
-              <SelectItem value="cancelled">Cancelled</SelectItem>
-              <SelectItem value="rescheduled">Rescheduled</SelectItem>
-            </SelectContent>
-          </Select>
-          
-          <div className="bg-gray-100 rounded-md p-1 flex">
-            <Button
-              variant={viewType === "grid" ? "default" : "ghost"}
-              size="icon"
-              onClick={() => setViewType("grid")}
-              className="h-8 w-8"
-            >
-              <Grid className="h-4 w-4" />
-            </Button>
-            <Button
-              variant={viewType === "list" ? "default" : "ghost"}
-              size="icon"
-              onClick={() => setViewType("list")}
-              className="h-8 w-8"
-            >
-              <List className="h-4 w-4" />
+      {selectedSession ? (
+        // Display session details and notes when a session is selected
+        <SessionDetails 
+          session={selectedSession} 
+          onBack={() => setSelectedSession(null)}
+        />
+      ) : (
+        // Display sessions list when no session is selected
+        <>
+          <div className="flex justify-between items-center mb-6">
+            <h1 className="text-2xl font-bold text-gray-900">Sessions</h1>
+            <Button onClick={() => setCreateSessionDialogOpen(true)}>
+              <Plus className="h-4 w-4 mr-2" /> Add Session
             </Button>
           </div>
-        </div>
-      </div>
-      
-      {/* View tabs for upcoming vs. past sessions */}
-      <Tabs defaultValue="upcoming" className="mb-6">
-        <TabsList>
-          <TabsTrigger value="upcoming">Upcoming Sessions</TabsTrigger>
-          <TabsTrigger value="past">Past Sessions</TabsTrigger>
-        </TabsList>
-        <TabsContent value="upcoming">
-          {/* Show loading skeleton during data fetch */}
-          {sessionsLoading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {[1, 2, 3].map(i => (
-                <Card key={i}>
-                  <CardContent className="p-4">
-                    <Skeleton className="h-4 w-3/4 mb-2" />
-                    <Skeleton className="h-4 w-1/2 mb-4" />
-                    <div className="space-y-2">
-                      <Skeleton className="h-3 w-full" />
-                      <Skeleton className="h-3 w-full" />
-                      <Skeleton className="h-3 w-2/3" />
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+          
+          {/* Create Session Dialog */}
+          <CreateSessionDialog 
+            open={createSessionDialogOpen} 
+            onOpenChange={setCreateSessionDialogOpen} 
+          />
+          
+          {/* Search and filters */}
+          <div className="flex flex-col md:flex-row gap-4 mb-6">
+            <div className="relative flex-grow">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+              <Input 
+                placeholder="Search sessions..." 
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9"
+              />
             </div>
-          ) : (
-            // Filter for upcoming sessions (scheduled, rescheduled)
-            sortedSessions.filter(s => 
-              s.status === "scheduled" || 
-              s.status === "rescheduled"
-            ).length === 0 ? (
-              <div className="text-center py-8 bg-gray-50 rounded-lg max-w-md mx-auto">
-                <h4 className="text-lg font-medium text-gray-500 mb-2">No upcoming sessions</h4>
-                <p className="text-gray-500 mb-4">No scheduled therapy sessions found.</p>
-                <Button onClick={() => setCreateSessionDialogOpen(true)}>Schedule New Session</Button>
+            <div className="flex gap-2">
+              <Select value={statusFilter || ""} onValueChange={(value) => setStatusFilter(value || null)}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Filter by status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Statuses</SelectItem>
+                  <SelectItem value="scheduled">Scheduled</SelectItem>
+                  <SelectItem value="completed">Completed</SelectItem>
+                  <SelectItem value="cancelled">Cancelled</SelectItem>
+                  <SelectItem value="rescheduled">Rescheduled</SelectItem>
+                </SelectContent>
+              </Select>
+              
+              <div className="bg-gray-100 rounded-md p-1 flex">
+                <Button
+                  variant={viewType === "grid" ? "default" : "ghost"}
+                  size="icon"
+                  onClick={() => setViewType("grid")}
+                  className="h-8 w-8"
+                >
+                  <Grid className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant={viewType === "list" ? "default" : "ghost"}
+                  size="icon"
+                  onClick={() => setViewType("list")}
+                  className="h-8 w-8"
+                >
+                  <List className="h-4 w-4" />
+                </Button>
               </div>
-            ) : (
-              viewType === "grid" ? (
+            </div>
+          </div>
+          
+          {/* View tabs for upcoming vs. past sessions */}
+          <Tabs defaultValue="upcoming" className="mb-6">
+            <TabsList>
+              <TabsTrigger value="upcoming">Upcoming Sessions</TabsTrigger>
+              <TabsTrigger value="past">Past Sessions</TabsTrigger>
+            </TabsList>
+            <TabsContent value="upcoming">
+              {/* Show loading skeleton during data fetch */}
+              {sessionsLoading ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {sortedSessions
-                    .filter(s => s.status === "scheduled" || s.status === "rescheduled")
-                    .map(session => (
-                      <SessionCard key={session.id} session={session} />
-                    ))}
+                  {[1, 2, 3].map(i => (
+                    <Card key={i}>
+                      <CardContent className="p-4">
+                        <Skeleton className="h-4 w-3/4 mb-2" />
+                        <Skeleton className="h-4 w-1/2 mb-4" />
+                        <div className="space-y-2">
+                          <Skeleton className="h-3 w-full" />
+                          <Skeleton className="h-3 w-full" />
+                          <Skeleton className="h-3 w-2/3" />
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
                 </div>
               ) : (
-                <div className="space-y-2">
-                  {sortedSessions
-                    .filter(s => s.status === "scheduled" || s.status === "rescheduled")
-                    .map(session => (
-                      <SessionListItem key={session.id} session={session} />
-                    ))}
-                </div>
-              )
-            )
-          )}
-        </TabsContent>
-        <TabsContent value="past">
-          {/* Filter for past sessions (completed, cancelled) */}
-          {sessionsLoading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {[1, 2, 3].map(i => (
-                <Card key={i}>
-                  <CardContent className="p-4">
-                    <Skeleton className="h-4 w-3/4 mb-2" />
-                    <Skeleton className="h-4 w-1/2 mb-4" />
-                    <div className="space-y-2">
-                      <Skeleton className="h-3 w-full" />
-                      <Skeleton className="h-3 w-full" />
-                      <Skeleton className="h-3 w-2/3" />
+                // Filter for upcoming sessions (scheduled, rescheduled)
+                sortedSessions.filter(s => 
+                  s.status === "scheduled" || 
+                  s.status === "rescheduled"
+                ).length === 0 ? (
+                  <div className="text-center py-8 bg-gray-50 rounded-lg max-w-md mx-auto">
+                    <h4 className="text-lg font-medium text-gray-500 mb-2">No upcoming sessions</h4>
+                    <p className="text-gray-500 mb-4">No scheduled therapy sessions found.</p>
+                    <Button onClick={() => setCreateSessionDialogOpen(true)}>Schedule New Session</Button>
+                  </div>
+                ) : (
+                  viewType === "grid" ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {sortedSessions
+                        .filter(s => s.status === "scheduled" || s.status === "rescheduled")
+                        .map(session => (
+                          <SessionCard 
+                            key={session.id} 
+                            session={session}
+                            onClick={() => handleSelectSession(session)}
+                          />
+                        ))}
                     </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          ) : (
-            sortedSessions.filter(s => 
-              s.status === "completed" || 
-              s.status === "cancelled"
-            ).length === 0 ? (
-              <div className="text-center py-8 bg-gray-50 rounded-lg max-w-md mx-auto">
-                <h4 className="text-lg font-medium text-gray-500 mb-2">No past sessions</h4>
-                <p className="text-gray-500">Session history will appear here once sessions are completed.</p>
-              </div>
-            ) : (
-              viewType === "grid" ? (
+                  ) : (
+                    <div className="space-y-2">
+                      {sortedSessions
+                        .filter(s => s.status === "scheduled" || s.status === "rescheduled")
+                        .map(session => (
+                          <SessionListItem 
+                            key={session.id} 
+                            session={session}
+                            onClick={() => handleSelectSession(session)}
+                          />
+                        ))}
+                    </div>
+                  )
+                )
+              )}
+            </TabsContent>
+            <TabsContent value="past">
+              {/* Filter for past sessions (completed, cancelled) */}
+              {sessionsLoading ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {sortedSessions
-                    .filter(s => s.status === "completed" || s.status === "cancelled")
-                    .map(session => (
-                      <SessionCard key={session.id} session={session} />
-                    ))}
+                  {[1, 2, 3].map(i => (
+                    <Card key={i}>
+                      <CardContent className="p-4">
+                        <Skeleton className="h-4 w-3/4 mb-2" />
+                        <Skeleton className="h-4 w-1/2 mb-4" />
+                        <div className="space-y-2">
+                          <Skeleton className="h-3 w-full" />
+                          <Skeleton className="h-3 w-full" />
+                          <Skeleton className="h-3 w-2/3" />
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
                 </div>
               ) : (
-                <div className="space-y-2">
-                  {sortedSessions
-                    .filter(s => s.status === "completed" || s.status === "cancelled")
-                    .map(session => (
-                      <SessionListItem key={session.id} session={session} />
-                    ))}
-                </div>
-              )
-            )
-          )}
-        </TabsContent>
-      </Tabs>
+                sortedSessions.filter(s => 
+                  s.status === "completed" || 
+                  s.status === "cancelled"
+                ).length === 0 ? (
+                  <div className="text-center py-8 bg-gray-50 rounded-lg max-w-md mx-auto">
+                    <h4 className="text-lg font-medium text-gray-500 mb-2">No past sessions</h4>
+                    <p className="text-gray-500">Session history will appear here once sessions are completed.</p>
+                  </div>
+                ) : (
+                  viewType === "grid" ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {sortedSessions
+                        .filter(s => s.status === "completed" || s.status === "cancelled")
+                        .map(session => (
+                          <SessionCard 
+                            key={session.id} 
+                            session={session}
+                            onClick={() => handleSelectSession(session)}
+                          />
+                        ))}
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {sortedSessions
+                        .filter(s => s.status === "completed" || s.status === "cancelled")
+                        .map(session => (
+                          <SessionListItem 
+                            key={session.id} 
+                            session={session}
+                            onClick={() => handleSelectSession(session)}
+                          />
+                        ))}
+                    </div>
+                  )
+                )
+              )}
+            </TabsContent>
+          </Tabs>
+        </>
+      )}
     </div>
   );
 }
@@ -288,9 +325,10 @@ export default function Sessions() {
 // Card view component for sessions
 interface SessionProps {
   session: Session & { clientName: string };
+  onClick?: () => void;
 }
 
-function SessionCard({ session }: SessionProps) {
+function SessionCard({ session, onClick }: SessionProps) {
   return (
     <Card className="overflow-hidden">
       <div className="bg-primary/10 p-4">
@@ -325,14 +363,14 @@ function SessionCard({ session }: SessionProps) {
         </div>
       </CardContent>
       <CardFooter className="flex justify-end p-4 pt-0">
-        <Button variant="outline" size="sm">View Details</Button>
+        <Button variant="outline" size="sm" onClick={onClick}>View Details</Button>
       </CardFooter>
     </Card>
   );
 }
 
 // List view component for sessions
-function SessionListItem({ session }: SessionProps) {
+function SessionListItem({ session, onClick }: SessionProps) {
   return (
     <Card>
       <CardContent className="p-4">
@@ -362,7 +400,7 @@ function SessionListItem({ session }: SessionProps) {
           </div>
         </div>
         <div className="flex justify-end mt-3">
-          <Button variant="outline" size="sm">View Details</Button>
+          <Button variant="outline" size="sm" onClick={onClick}>View Details</Button>
         </div>
       </CardContent>
     </Card>
