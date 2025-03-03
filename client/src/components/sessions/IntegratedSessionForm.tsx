@@ -494,26 +494,42 @@ export function IntegratedSessionForm({
     console.log('Budget settings:', budgetSettings);
     console.log('Client ID:', clientId);
     
-    // Make sure we have budget items and settings
-    if (!Array.isArray(allBudgetItems) || allBudgetItems.length === 0 || !budgetSettings) {
-      console.log('No budget items or settings:', {
-        hasItems: Array.isArray(allBudgetItems) && allBudgetItems.length > 0,
-        hasSettings: !!budgetSettings,
-        isActive: budgetSettings?.isActive
-      });
+    // Make sure we have budget items
+    if (!Array.isArray(allBudgetItems) || allBudgetItems.length === 0) {
+      console.log('No budget items available');
       return [];
     }
     
-    // Force coerce isActive to boolean
-    // PostgreSQL boolean can sometimes come as null or string in certain db drivers
+    // Check if we have settings
+    if (!budgetSettings) {
+      console.log('No budget settings available');
+      
+      // TEMPORARY WORKAROUND: If we don't have settings but do have budget items,
+      // we'll still allow the use of products for testing purposes
+      if (import.meta.env.DEV) {
+        const tempProducts = allBudgetItems.map(item => ({
+          ...item,
+          availableQuantity: item.quantity
+        }));
+        console.log('DEV MODE: Using budget items without settings:', tempProducts);
+        return tempProducts;
+      }
+      
+      return [];
+    }
+    
+    // Force coerce isActive to boolean - PostgreSQL treats booleans differently
     let isActiveBool = true; // Default to true per schema default
     
     if (budgetSettings.isActive === false) {
       isActiveBool = false;
     } 
-    // Explicit null check to make TypeScript happy
     else if (budgetSettings.isActive === null) {
       isActiveBool = true; // Default value per schema
+    }
+    else if (typeof budgetSettings.isActive === 'string') {
+      // Handle string representations of boolean values (from some APIs/drivers)
+      isActiveBool = (budgetSettings.isActive as string).toLowerCase() !== 'false';
     }
     
     console.log('Budget plan active status (original):', budgetSettings.isActive);
@@ -529,13 +545,17 @@ export function IntegratedSessionForm({
     // In a real implementation, this would be tracked in the database
     const filteredProducts = allBudgetItems
       .filter((item: BudgetItem) => {
+        // Check if this item belongs to the active budget plan and has quantity available
         const matches = item.budgetSettingsId === budgetSettings.id && item.quantity > 0;
         console.log(`Product ${item.itemCode}: budgetSettingsId=${item.budgetSettingsId}, quantity=${item.quantity}, matches=${matches}`);
         return matches;
       })
       .map((item: BudgetItem) => ({
         ...item,
-        availableQuantity: item.quantity // For now, all quantity is available
+        availableQuantity: item.quantity, // For now, all quantity is available
+        productCode: item.itemCode,  // Normalized naming for UI consistency
+        productDescription: item.description, // Normalized naming for UI consistency
+        unitPrice: item.unitPrice
       }));
       
     console.log('Filtered products:', filteredProducts);
@@ -918,6 +938,9 @@ const ProductSelectionDialog = ({
                               // Reset performance assessments when client changes
                               form.setValue("performanceAssessments", []);
                               
+                              // Reset products when client changes
+                              form.setValue("sessionNote.products", []);
+                              
                               // Log when client changes to help debug
                               console.log('Client changed to:', clientId);
                               console.log('Initiating budget item fetch for client:', clientId);
@@ -925,8 +948,11 @@ const ProductSelectionDialog = ({
                               // Manually trigger refetch of budget items and settings
                               if (refetchBudgetItems && refetchBudgetSettings) {
                                 console.log('Manually refetching budget data for client:', clientId);
-                                refetchBudgetItems();
-                                refetchBudgetSettings();
+                                // Use timeout to ensure components finish rendering first
+                                setTimeout(() => {
+                                  refetchBudgetItems();
+                                  refetchBudgetSettings();
+                                }, 100);
                               }
                             }}
                             value={field.value?.toString() || undefined}
