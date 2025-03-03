@@ -433,12 +433,27 @@ export function IntegratedSessionForm({
     queryKey: ["/api/clients", clientId, "budget-settings"],
     enabled: open && !!clientId,
   });
+  
+  // Log budget settings for debugging
+  useEffect(() => {
+    if (budgetSettings) {
+      console.log('Budget settings loaded successfully:', budgetSettings);
+      console.log('Budget settings isActive:', budgetSettings.isActive);
+    }
+  }, [budgetSettings]);
 
   // Get all budget items for the client
   const { data: allBudgetItems = [] } = useQuery<BudgetItem[]>({
     queryKey: ["/api/clients", clientId, "budget-items"],
     enabled: open && !!clientId, // Only need client ID to fetch budget items
   });
+  
+  // Log budget items for debugging
+  useEffect(() => {
+    if (allBudgetItems?.length > 0) {
+      console.log('Budget items loaded successfully:', allBudgetItems);
+    }
+  }, [allBudgetItems]);
   
   // Dialog state for product selection
   const [productSelectionOpen, setProductSelectionOpen] = useState(false);
@@ -453,21 +468,32 @@ export function IntegratedSessionForm({
     console.log('Budget settings:', budgetSettings);
     console.log('Client ID:', clientId);
     
-    if (!allBudgetItems.length || !budgetSettings?.isActive) {
-      console.log('No available products: items length =', allBudgetItems.length, 'settings active =', budgetSettings?.isActive);
+    // Make sure we have budget items and active settings
+    if (!Array.isArray(allBudgetItems) || allBudgetItems.length === 0 || !budgetSettings) {
+      console.log('No budget items or settings:', {
+        hasItems: Array.isArray(allBudgetItems) && allBudgetItems.length > 0,
+        hasSettings: !!budgetSettings,
+        isActive: budgetSettings?.isActive
+      });
+      return [];
+    }
+    
+    // Make sure we have an active budget plan
+    if (!budgetSettings.isActive) {
+      console.log('Budget settings not active');
       return [];
     }
     
     // Since our schema doesn't track used quantity yet, we'll assume all quantity is available
     // In a real implementation, this would be tracked in the database
     const filteredProducts = allBudgetItems
-      .filter(item => 
+      .filter((item: BudgetItem) => 
         // Only items from active budget plan
         item.budgetSettingsId === budgetSettings.id && 
         // Only items with remaining quantity
         item.quantity > 0
       )
-      .map(item => ({
+      .map((item: BudgetItem) => ({
         ...item,
         availableQuantity: item.quantity // For now, all quantity is available
       }));
