@@ -488,62 +488,16 @@ export function IntegratedSessionForm({
   // Get current selected products from form
   const selectedProducts = form.watch("sessionNote.products") || [];
   
-  // Track if we're in debug mode
-  const [isUsingDebugProducts, setIsUsingDebugProducts] = useState(false);
-  
-  // Check for debug mode updates
-  useEffect(() => {
-    if (import.meta.env.DEV) {
-      // Listen for the custom event from the debug helper
-      const handleDebugUpdate = (event: Event) => {
-        console.log("Debug product update detected");
-        
-        // Get the passed products from the custom event if available
-        const customEvent = event as CustomEvent;
-        const products = customEvent.detail?.products;
-        
-        if (products && Array.isArray(products)) {
-          console.log("Received products via event:", products);
-          // Update the global debug object
-          (window as any).__debugAvailableProducts = products;
-        }
-        
-        // Check if debug products are available
-        if ((window as any).__debugAvailableProducts?.length > 0) {
-          console.log("Debug products available, enabling debug mode");
-          setIsUsingDebugProducts(true);
-          
-          // When in debug mode, auto-open the product selection dialog
-          // with a slight delay to avoid React conflicts
-          setTimeout(() => {
-            if (import.meta.env.DEV) {
-              console.log("Auto-opening product selection dialog in debug mode");
-              setProductSelectionOpen(true);
-            }
-          }, 200);
-        }
-      };
-      
-      window.addEventListener('force-products-update', handleDebugUpdate);
-      
-      // Check if debug products are already set
-      if ((window as any).__debugAvailableProducts?.length > 0) {
-        console.log("Debug products already set, enabling debug mode");
-        setIsUsingDebugProducts(true);
-      }
-      
-      return () => {
-        window.removeEventListener('force-products-update', handleDebugUpdate);
-      };
-    }
-  }, []);
+  // Simple flags to track client selection and product availability
+  const hasClientSelected = clientId !== null && clientId !== undefined;
+  const [hasSampleProducts, setHasSampleProducts] = useState(false);
   
   // Filter to only show items from the active plan
   const availableProducts = useMemo(() => {
-    // Check for debug override
-    if (import.meta.env.DEV && (window as any).__debugAvailableProducts?.length > 0) {
-      console.log('Using debug override products:', (window as any).__debugAvailableProducts);
-      return (window as any).__debugAvailableProducts;
+    // Check for sample products
+    if (import.meta.env.DEV && (window as any).__sampleProducts?.length > 0) {
+      console.log('Using sample products:', (window as any).__sampleProducts);
+      return (window as any).__sampleProducts;
     }
   
     // Log debug information
@@ -561,19 +515,20 @@ export function IntegratedSessionForm({
     if (!budgetSettings) {
       console.log('No budget settings available');
       
-      // TEMPORARY WORKAROUND: If we don't have settings but do have budget items,
-      // we'll still allow the use of products for testing purposes
-      if (import.meta.env.DEV) {
-        const tempProducts = allBudgetItems
-          .filter(item => item.quantity > 0)
-          .map(item => ({
-            ...item,
-            availableQuantity: item.quantity,
-            productCode: item.itemCode,
-            productDescription: item.description || item.itemCode,
-            unitPrice: item.unitPrice
-          }));
-        console.log('DEV MODE: Using budget items without settings:', tempProducts);
+      // If we don't have settings but do have budget items,
+      // allow use of all budget items for this client
+      const tempProducts = allBudgetItems
+        .filter(item => item.clientId === clientId && item.quantity > 0)
+        .map(item => ({
+          ...item,
+          availableQuantity: item.quantity,
+          productCode: item.itemCode,
+          productDescription: item.description || item.itemCode,
+          unitPrice: item.unitPrice
+        }));
+      
+      if (tempProducts.length > 0) {
+        console.log('Using budget items without active plan:', tempProducts);
         return tempProducts;
       }
       
@@ -620,13 +575,13 @@ export function IntegratedSessionForm({
         ...item,
         availableQuantity: item.quantity, // For now, all quantity is available
         productCode: item.itemCode,  // Normalized naming for UI consistency
-        productDescription: item.description, // Normalized naming for UI consistency
+        productDescription: item.description || item.name || item.itemCode, // Normalized naming for UI consistency
         unitPrice: item.unitPrice
       }));
       
     console.log('Filtered products:', filteredProducts);
     return filteredProducts;
-  }, [allBudgetItems, budgetSettings, clientId]);
+  }, [allBudgetItems, budgetSettings, clientId, hasSampleProducts]);
   
   // Create a simple lookup object for subgoals by goal ID
   const subgoalsByGoalId = React.useMemo(() => {
@@ -1356,20 +1311,51 @@ const ProductSelectionDialog = ({
                               console.log('Available products:', availableProducts);
                               console.log('Debug override products:', (window as any).__debugAvailableProducts);
                               
-                              // Check if we should be using debug products
-                              if (isUsingDebugProducts) {
+                              // In dev mode, create sample products if none are available
+                              if (import.meta.env.DEV && hasClientSelected && availableProducts.length === 0) {
+                                console.log('Creating sample products for development');
+                                
+                                // Create sample products for development/testing
+                                const sampleProducts = [
+                                  {
+                                    id: 9001,
+                                    budgetSettingsId: clientId || 0,
+                                    clientId: clientId || 0,
+                                    itemCode: "THERAPY-001",
+                                    description: "Speech Therapy Session",
+                                    quantity: 10,
+                                    unitPrice: 150,
+                                    availableQuantity: 10,
+                                    productCode: "THERAPY-001",
+                                    productDescription: "Speech Therapy Session",
+                                    name: "Speech Therapy Session"
+                                  },
+                                  {
+                                    id: 9002,
+                                    budgetSettingsId: clientId || 0,
+                                    clientId: clientId || 0,
+                                    itemCode: "ASSESS-001",
+                                    description: "Assessment Session",
+                                    quantity: 5,
+                                    unitPrice: 200,
+                                    availableQuantity: 5,
+                                    productCode: "ASSESS-001",
+                                    productDescription: "Assessment Session",
+                                    name: "Assessment Session"
+                                  }
+                                ];
+                                
+                                // Store in global window for use in the useMemo
+                                (window as any).__sampleProducts = sampleProducts;
+                                
+                                // Update local state to track sample products
+                                setHasSampleProducts(true);
+                                
+                                // Show a toast notification
                                 toast({
-                                  title: "DEV MODE",
-                                  description: "Using debug products override",
+                                  title: "Sample Products Added",
+                                  description: "Sample products have been added for this session."
                                 });
-                                console.log('Using debug product override in Add Product button');
-                              } 
-                              // If not already using debug products but they're available, enable them
-                              else if (import.meta.env.DEV && 
-                                  (window as any).__debugAvailableProducts?.length > 0 && 
-                                  availableProducts.length === 0) {
-                                setIsUsingDebugProducts(true);
-                                console.log('Enabling debug product mode');
                               }
                               
                               // Delay slightly to avoid React state issues
@@ -1378,7 +1364,7 @@ const ProductSelectionDialog = ({
                                 console.log('Product selection dialog should be open now');
                               }, 50);
                             }}
-                            disabled={!availableProducts.length && !isUsingDebugProducts}
+                            disabled={!availableProducts.length && !hasSampleProducts && !hasClientSelected}
                           >
                             <ShoppingCart className="h-4 w-4 mr-2" />
                             Add Product
@@ -1390,9 +1376,7 @@ const ProductSelectionDialog = ({
                       <ProductSelectionDialog
                         open={productSelectionOpen}
                         onOpenChange={setProductSelectionOpen}
-                        products={isUsingDebugProducts && (window as any).__debugAvailableProducts?.length > 0
-                          ? (window as any).__debugAvailableProducts 
-                          : availableProducts}
+                        products={availableProducts}
                         onSelectProduct={handleAddProduct}
                       />
                       
