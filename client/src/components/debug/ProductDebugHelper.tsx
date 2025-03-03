@@ -64,12 +64,13 @@ export function ProductDebugHelper({
           Show Debug Info
         </Button>
         
-        {availableProducts.length === 0 && clientId && (
+        {/* Always show the mock products button when in development mode */}
+        {clientId && (
           <Button
             type="button"
             size="sm"
             variant="destructive"
-            className="h-8 py-0 text-xs"
+            className="h-8 py-0 text-xs font-bold"
             onClick={() => {
               toast({
                 title: "DEV MODE",
@@ -104,9 +105,15 @@ export function ProductDebugHelper({
                 }
               ];
               setAvailableProducts(mockProducts);
+              
+              // Show confirmation
+              toast({
+                title: "Mock Products Added",
+                description: `Added 2 mock products for testing. Click "Add Product" to use them.`,
+              });
             }}
           >
-            Force Mock Products
+            🚨 Force Mock Products 🚨
           </Button>
         )}
         
