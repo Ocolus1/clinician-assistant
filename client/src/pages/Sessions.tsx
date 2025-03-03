@@ -11,13 +11,12 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import {
   Form,
   FormControl,
@@ -39,6 +38,7 @@ import {
   Grid,
   List,
   ChevronLeft,
+  XCircle
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -144,11 +144,29 @@ export default function Sessions() {
             </Button>
           </div>
           
-          {/* Create Session Dialog with Integrated Notes */}
-          <IntegratedSessionForm 
+          {/* Create Session Sheet with Integrated Notes */}
+          <Sheet 
             open={createSessionDialogOpen} 
-            onOpenChange={setCreateSessionDialogOpen} 
-          />
+            onOpenChange={setCreateSessionDialogOpen}
+          >
+            <SheetContent className="w-full sm:max-w-full p-0 overflow-hidden">
+              <div className="h-full flex flex-col">
+                <SheetHeader className="px-6 pt-6 pb-2">
+                  <SheetTitle>Create Session with Notes</SheetTitle>
+                  <SheetDescription>
+                    Create a new therapy session with detailed notes
+                  </SheetDescription>
+                </SheetHeader>
+                <div className="flex-grow overflow-auto">
+                  <IntegratedSessionForm 
+                    open={createSessionDialogOpen} 
+                    onOpenChange={setCreateSessionDialogOpen} 
+                    isFullScreen={true}
+                  />
+                </div>
+              </div>
+            </SheetContent>
+          </Sheet>
           
           {/* Search and filters */}
           <div className="flex flex-col md:flex-row gap-4 mb-6">
