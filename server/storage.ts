@@ -7,7 +7,12 @@ import {
   BudgetSettings, InsertBudgetSettings,
   BudgetItemCatalog, InsertBudgetItemCatalog,
   Session, InsertSession,
-  clients, allies, goals, subgoals, budgetItems, budgetSettings, budgetItemCatalog, sessions
+  SessionNote, InsertSessionNote,
+  PerformanceAssessment, InsertPerformanceAssessment,
+  MilestoneAssessment, InsertMilestoneAssessment,
+  Strategy,
+  clients, allies, goals, subgoals, budgetItems, budgetSettings, budgetItemCatalog, sessions,
+  sessionNotes, performanceAssessments, milestoneAssessments, strategies
 } from "@shared/schema";
 import { db } from "./db";
 import { eq } from "drizzle-orm";
@@ -675,6 +680,291 @@ export class DBStorage implements IStorage {
       console.log(`Successfully deleted session with ID ${id}`);
     } catch (error) {
       console.error(`Error deleting session with ID ${id}:`, error);
+      throw error;
+    }
+  }
+
+  // Session Notes Methods
+  async createSessionNote(note: InsertSessionNote): Promise<SessionNote> {
+    console.log(`Creating session note for session ${note.sessionId}:`, JSON.stringify(note));
+    try {
+      const [newNote] = await db.insert(sessionNotes)
+        .values(note)
+        .returning();
+      
+      console.log(`Successfully created session note with ID ${newNote.id}`);
+      return newNote;
+    } catch (error) {
+      console.error(`Error creating session note for session ${note.sessionId}:`, error);
+      throw error;
+    }
+  }
+
+  async getSessionNoteById(id: number): Promise<SessionNote | undefined> {
+    console.log(`Getting session note with ID ${id}`);
+    try {
+      const result = await db.select()
+        .from(sessionNotes)
+        .where(eq(sessionNotes.id, id));
+      
+      if (result.length === 0) {
+        console.log(`Session note with ID ${id} not found`);
+        return undefined;
+      }
+      
+      console.log(`Found session note with ID ${id}`);
+      return result[0];
+    } catch (error) {
+      console.error(`Error getting session note with ID ${id}:`, error);
+      throw error;
+    }
+  }
+
+  async getSessionNoteBySessionId(sessionId: number): Promise<SessionNote | undefined> {
+    console.log(`Getting session note for session ${sessionId}`);
+    try {
+      const result = await db.select()
+        .from(sessionNotes)
+        .where(eq(sessionNotes.sessionId, sessionId));
+      
+      if (result.length === 0) {
+        console.log(`No session note found for session ${sessionId}`);
+        return undefined;
+      }
+      
+      console.log(`Found session note for session ${sessionId}`);
+      return result[0];
+    } catch (error) {
+      console.error(`Error getting session note for session ${sessionId}:`, error);
+      throw error;
+    }
+  }
+
+  async updateSessionNote(id: number, note: InsertSessionNote): Promise<SessionNote> {
+    console.log(`Updating session note with ID ${id}:`, JSON.stringify(note));
+    try {
+      const [updatedNote] = await db.update(sessionNotes)
+        .set(note)
+        .where(eq(sessionNotes.id, id))
+        .returning();
+      
+      if (!updatedNote) {
+        console.error(`Session note with ID ${id} not found`);
+        throw new Error("Session note not found");
+      }
+      
+      console.log(`Successfully updated session note with ID ${id}`);
+      return updatedNote;
+    } catch (error) {
+      console.error(`Error updating session note with ID ${id}:`, error);
+      throw error;
+    }
+  }
+
+  async deleteSessionNote(id: number): Promise<void> {
+    console.log(`Deleting session note with ID ${id}`);
+    try {
+      await db.delete(sessionNotes)
+        .where(eq(sessionNotes.id, id));
+      console.log(`Successfully deleted session note with ID ${id}`);
+    } catch (error) {
+      console.error(`Error deleting session note with ID ${id}:`, error);
+      throw error;
+    }
+  }
+
+  // Performance Assessment Methods
+  async createPerformanceAssessment(assessment: InsertPerformanceAssessment): Promise<PerformanceAssessment> {
+    console.log(`Creating performance assessment for session note ${assessment.sessionNoteId}:`, JSON.stringify(assessment));
+    try {
+      const [newAssessment] = await db.insert(performanceAssessments)
+        .values(assessment)
+        .returning();
+      
+      console.log(`Successfully created performance assessment with ID ${newAssessment.id}`);
+      return newAssessment;
+    } catch (error) {
+      console.error(`Error creating performance assessment for session note ${assessment.sessionNoteId}:`, error);
+      throw error;
+    }
+  }
+
+  async getPerformanceAssessmentsBySessionNote(sessionNoteId: number): Promise<PerformanceAssessment[]> {
+    console.log(`Getting performance assessments for session note ${sessionNoteId}`);
+    try {
+      const assessments = await db.select()
+        .from(performanceAssessments)
+        .where(eq(performanceAssessments.sessionNoteId, sessionNoteId));
+      
+      console.log(`Found ${assessments.length} performance assessments for session note ${sessionNoteId}`);
+      return assessments;
+    } catch (error) {
+      console.error(`Error getting performance assessments for session note ${sessionNoteId}:`, error);
+      throw error;
+    }
+  }
+
+  async getPerformanceAssessmentById(id: number): Promise<PerformanceAssessment | undefined> {
+    console.log(`Getting performance assessment with ID ${id}`);
+    try {
+      const result = await db.select()
+        .from(performanceAssessments)
+        .where(eq(performanceAssessments.id, id));
+      
+      if (result.length === 0) {
+        console.log(`Performance assessment with ID ${id} not found`);
+        return undefined;
+      }
+      
+      console.log(`Found performance assessment with ID ${id}`);
+      return result[0];
+    } catch (error) {
+      console.error(`Error getting performance assessment with ID ${id}:`, error);
+      throw error;
+    }
+  }
+
+  async updatePerformanceAssessment(id: number, assessment: InsertPerformanceAssessment): Promise<PerformanceAssessment> {
+    console.log(`Updating performance assessment with ID ${id}:`, JSON.stringify(assessment));
+    try {
+      const [updatedAssessment] = await db.update(performanceAssessments)
+        .set(assessment)
+        .where(eq(performanceAssessments.id, id))
+        .returning();
+      
+      if (!updatedAssessment) {
+        console.error(`Performance assessment with ID ${id} not found`);
+        throw new Error("Performance assessment not found");
+      }
+      
+      console.log(`Successfully updated performance assessment with ID ${id}`);
+      return updatedAssessment;
+    } catch (error) {
+      console.error(`Error updating performance assessment with ID ${id}:`, error);
+      throw error;
+    }
+  }
+
+  async deletePerformanceAssessment(id: number): Promise<void> {
+    console.log(`Deleting performance assessment with ID ${id}`);
+    try {
+      await db.delete(performanceAssessments)
+        .where(eq(performanceAssessments.id, id));
+      console.log(`Successfully deleted performance assessment with ID ${id}`);
+    } catch (error) {
+      console.error(`Error deleting performance assessment with ID ${id}:`, error);
+      throw error;
+    }
+  }
+
+  // Milestone Assessment Methods
+  async createMilestoneAssessment(assessment: InsertMilestoneAssessment): Promise<MilestoneAssessment> {
+    console.log(`Creating milestone assessment for performance assessment ${assessment.performanceAssessmentId}:`, JSON.stringify(assessment));
+    try {
+      const [newAssessment] = await db.insert(milestoneAssessments)
+        .values(assessment)
+        .returning();
+      
+      console.log(`Successfully created milestone assessment with ID ${newAssessment.id}`);
+      return newAssessment;
+    } catch (error) {
+      console.error(`Error creating milestone assessment for performance assessment ${assessment.performanceAssessmentId}:`, error);
+      throw error;
+    }
+  }
+
+  async getMilestoneAssessmentsByPerformanceAssessment(performanceAssessmentId: number): Promise<MilestoneAssessment[]> {
+    console.log(`Getting milestone assessments for performance assessment ${performanceAssessmentId}`);
+    try {
+      const assessments = await db.select()
+        .from(milestoneAssessments)
+        .where(eq(milestoneAssessments.performanceAssessmentId, performanceAssessmentId));
+      
+      console.log(`Found ${assessments.length} milestone assessments for performance assessment ${performanceAssessmentId}`);
+      return assessments;
+    } catch (error) {
+      console.error(`Error getting milestone assessments for performance assessment ${performanceAssessmentId}:`, error);
+      throw error;
+    }
+  }
+
+  async updateMilestoneAssessment(id: number, assessment: InsertMilestoneAssessment): Promise<MilestoneAssessment> {
+    console.log(`Updating milestone assessment with ID ${id}:`, JSON.stringify(assessment));
+    try {
+      const [updatedAssessment] = await db.update(milestoneAssessments)
+        .set(assessment)
+        .where(eq(milestoneAssessments.id, id))
+        .returning();
+      
+      if (!updatedAssessment) {
+        console.error(`Milestone assessment with ID ${id} not found`);
+        throw new Error("Milestone assessment not found");
+      }
+      
+      console.log(`Successfully updated milestone assessment with ID ${id}`);
+      return updatedAssessment;
+    } catch (error) {
+      console.error(`Error updating milestone assessment with ID ${id}:`, error);
+      throw error;
+    }
+  }
+
+  async deleteMilestoneAssessment(id: number): Promise<void> {
+    console.log(`Deleting milestone assessment with ID ${id}`);
+    try {
+      await db.delete(milestoneAssessments)
+        .where(eq(milestoneAssessments.id, id));
+      console.log(`Successfully deleted milestone assessment with ID ${id}`);
+    } catch (error) {
+      console.error(`Error deleting milestone assessment with ID ${id}:`, error);
+      throw error;
+    }
+  }
+
+  // Strategy Methods
+  async getAllStrategies(): Promise<Strategy[]> {
+    console.log("Getting all strategies");
+    try {
+      const allStrategies = await db.select().from(strategies);
+      console.log(`Found ${allStrategies.length} strategies`);
+      return allStrategies;
+    } catch (error) {
+      console.error("Error getting all strategies:", error);
+      throw error;
+    }
+  }
+
+  async getStrategyById(id: number): Promise<Strategy | undefined> {
+    console.log(`Getting strategy with ID ${id}`);
+    try {
+      const result = await db.select()
+        .from(strategies)
+        .where(eq(strategies.id, id));
+      
+      if (result.length === 0) {
+        console.log(`Strategy with ID ${id} not found`);
+        return undefined;
+      }
+      
+      console.log(`Found strategy with ID ${id}`);
+      return result[0];
+    } catch (error) {
+      console.error(`Error getting strategy with ID ${id}:`, error);
+      throw error;
+    }
+  }
+
+  async getStrategiesByCategory(category: string): Promise<Strategy[]> {
+    console.log(`Getting strategies for category ${category}`);
+    try {
+      const categoryStrategies = await db.select()
+        .from(strategies)
+        .where(eq(strategies.category, category));
+      
+      console.log(`Found ${categoryStrategies.length} strategies for category ${category}`);
+      return categoryStrategies;
+    } catch (error) {
+      console.error(`Error getting strategies for category ${category}:`, error);
       throw error;
     }
   }
