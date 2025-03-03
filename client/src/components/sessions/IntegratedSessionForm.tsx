@@ -430,7 +430,7 @@ export function IntegratedSessionForm({
   });
   
   // Get budget settings to identify active plan
-  const { data: budgetSettings, isLoading: isLoadingBudgetSettings, error: budgetSettingsError } = useQuery<BudgetSettings>({
+  const { data: budgetSettings, isLoading: isLoadingBudgetSettings, error: budgetSettingsError, refetch: refetchBudgetSettings } = useQuery<BudgetSettings>({
     queryKey: ["/api/clients", clientId, "budget-settings"],
     enabled: open && !!clientId,
   });
@@ -510,8 +510,12 @@ export function IntegratedSessionForm({
     
     if (budgetSettings.isActive === false) {
       isActiveBool = false;
-    } else if (typeof budgetSettings.isActive === 'string' && budgetSettings.isActive.toLowerCase() === 'false') {
-      isActiveBool = false;
+    } 
+    // Check if it's a string value of 'false'
+    else if (typeof budgetSettings.isActive === 'string') {
+      if (budgetSettings.isActive === 'false') {
+        isActiveBool = false;
+      }
     }
     
     console.log('Budget plan active status (original):', budgetSettings.isActive);
@@ -920,10 +924,11 @@ const ProductSelectionDialog = ({
                               console.log('Client changed to:', clientId);
                               console.log('Initiating budget item fetch for client:', clientId);
                               
-                              // Manually trigger refetch of budget items
-                              if (refetchBudgetItems) {
-                                console.log('Manually refetching budget items for client:', clientId);
+                              // Manually trigger refetch of budget items and settings
+                              if (refetchBudgetItems && refetchBudgetSettings) {
+                                console.log('Manually refetching budget data for client:', clientId);
                                 refetchBudgetItems();
+                                refetchBudgetSettings();
                               }
                             }}
                             value={field.value?.toString() || undefined}
@@ -1225,9 +1230,10 @@ const ProductSelectionDialog = ({
                                 isActive: budgetSettings?.isActive
                               });
                               
-                              if (refetchBudgetItems) {
-                                console.log('Manually refetching budget items');
+                              if (refetchBudgetItems && refetchBudgetSettings) {
+                                console.log('Manually refetching budget data');
                                 refetchBudgetItems();
+                                refetchBudgetSettings();
                               }
                             }}
                           >
