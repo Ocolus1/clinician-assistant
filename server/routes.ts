@@ -10,7 +10,10 @@ import {
   insertBudgetItemSchema, 
   insertBudgetSettingsSchema,
   insertBudgetItemCatalogSchema,
-  insertSessionSchema
+  insertSessionSchema,
+  insertSessionNoteSchema,
+  insertPerformanceAssessmentSchema,
+  insertMilestoneAssessmentSchema
 } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
