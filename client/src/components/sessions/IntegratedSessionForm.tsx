@@ -448,21 +448,32 @@ export function IntegratedSessionForm({
   
   // Filter to only show items from the active plan
   const availableProducts = useMemo(() => {
-    if (!allBudgetItems.length || !budgetSettings?.isActive) return [];
+    if (!allBudgetItems.length) return [];
     
-    // Since our schema doesn't track used quantity yet, we'll assume all quantity is available
-    // In a real implementation, this would be tracked in the database
-    return allBudgetItems
-      .filter(item => 
-        // Only items from active budget plan
-        item.budgetSettingsId === budgetSettings.id && 
-        // Only items with remaining quantity
-        item.quantity > 0
-      )
-      .map(item => ({
-        ...item,
-        availableQuantity: item.quantity // For now, all quantity is available
-      }));
+    // If we have budget settings, filter items from the active budget
+    if (budgetSettings) {
+      // Since our schema doesn't track used quantity yet, we'll assume all quantity is available
+      // In a real implementation, this would be tracked in the database
+      return allBudgetItems
+        .filter(item => 
+          // Only items from this budget plan
+          item.budgetSettingsId === budgetSettings.id && 
+          // Only items with remaining quantity
+          item.quantity > 0
+        )
+        .map(item => ({
+          ...item,
+          availableQuantity: item.quantity // For now, all quantity is available
+        }));
+    } else {
+      // If no budget settings, return all available items
+      return allBudgetItems
+        .filter(item => item.quantity > 0)
+        .map(item => ({
+          ...item,
+          availableQuantity: item.quantity
+        }));
+    }
   }, [allBudgetItems, budgetSettings]);
   
   // Create a simple lookup object for subgoals by goal ID
