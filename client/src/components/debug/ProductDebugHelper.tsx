@@ -125,7 +125,10 @@ export function ProductDebugHelper({
               // Force a timeout to let React rerender first
               setTimeout(() => {
                 // Make sure the refresh event propagates through React
-                window.dispatchEvent(new Event('force-products-update'));
+                // Using CustomEvent to allow passing data
+                window.dispatchEvent(new CustomEvent('force-products-update', {
+                  detail: { products: mockProducts }
+                }));
               }, 100);
               
               // Show confirmation

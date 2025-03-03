@@ -495,10 +495,32 @@ export function IntegratedSessionForm({
   useEffect(() => {
     if (import.meta.env.DEV) {
       // Listen for the custom event from the debug helper
-      const handleDebugUpdate = () => {
+      const handleDebugUpdate = (event: Event) => {
         console.log("Debug product update detected");
+        
+        // Get the passed products from the custom event if available
+        const customEvent = event as CustomEvent;
+        const products = customEvent.detail?.products;
+        
+        if (products && Array.isArray(products)) {
+          console.log("Received products via event:", products);
+          // Update the global debug object
+          (window as any).__debugAvailableProducts = products;
+        }
+        
+        // Check if debug products are available
         if ((window as any).__debugAvailableProducts?.length > 0) {
+          console.log("Debug products available, enabling debug mode");
           setIsUsingDebugProducts(true);
+          
+          // When in debug mode, auto-open the product selection dialog
+          // with a slight delay to avoid React conflicts
+          setTimeout(() => {
+            if (import.meta.env.DEV) {
+              console.log("Auto-opening product selection dialog in debug mode");
+              setProductSelectionOpen(true);
+            }
+          }, 200);
         }
       };
       
@@ -506,6 +528,7 @@ export function IntegratedSessionForm({
       
       // Check if debug products are already set
       if ((window as any).__debugAvailableProducts?.length > 0) {
+        console.log("Debug products already set, enabling debug mode");
         setIsUsingDebugProducts(true);
       }
       
@@ -1333,15 +1356,20 @@ const ProductSelectionDialog = ({
                               console.log('Available products:', availableProducts);
                               console.log('Debug override products:', (window as any).__debugAvailableProducts);
                               
-                              // Use the debug override if available in dev mode
-                              if (import.meta.env.DEV && 
-                                  (window as any).__debugAvailableProducts?.length > 0 && 
-                                  availableProducts.length === 0) {
+                              // Check if we should be using debug products
+                              if (isUsingDebugProducts) {
                                 toast({
                                   title: "DEV MODE",
                                   description: "Using debug products override",
                                 });
                                 console.log('Using debug product override in Add Product button');
+                              } 
+                              // If not already using debug products but they're available, enable them
+                              else if (import.meta.env.DEV && 
+                                  (window as any).__debugAvailableProducts?.length > 0 && 
+                                  availableProducts.length === 0) {
+                                setIsUsingDebugProducts(true);
+                                console.log('Enabling debug product mode');
                               }
                               
                               // Delay slightly to avoid React state issues
@@ -1362,7 +1390,7 @@ const ProductSelectionDialog = ({
                       <ProductSelectionDialog
                         open={productSelectionOpen}
                         onOpenChange={setProductSelectionOpen}
-                        products={import.meta.env.DEV && (window as any).__debugAvailableProducts?.length > 0 
+                        products={isUsingDebugProducts && (window as any).__debugAvailableProducts?.length > 0
                           ? (window as any).__debugAvailableProducts 
                           : availableProducts}
                         onSelectProduct={handleAddProduct}
