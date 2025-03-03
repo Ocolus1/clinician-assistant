@@ -11,7 +11,9 @@ import {
   Plus,
   X,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Minus,
+  ShoppingCart
 } from "lucide-react";
 import { Ally, BudgetItem, BudgetSettings, Client, Goal, Session, Subgoal, insertSessionSchema } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
@@ -577,6 +579,166 @@ export function IntegratedSessionForm({
     updatedProducts.splice(index, 1);
     form.setValue("sessionNote.products", updatedProducts);
   };
+  
+// Product selection dialog component
+interface ProductSelectionDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  products: (BudgetItem & { availableQuantity: number })[];
+  onSelectProduct: (product: BudgetItem & { availableQuantity: number }, quantity: number) => void;
+}
+
+const ProductSelectionDialog = ({
+  open,
+  onOpenChange,
+  products,
+  onSelectProduct
+}: ProductSelectionDialogProps) => {
+  const [selectedProduct, setSelectedProduct] = useState<(BudgetItem & { availableQuantity: number }) | null>(null);
+  const [quantity, setQuantity] = useState(1);
+  
+  const handleQuantityChange = (value: string) => {
+    const numValue = parseInt(value, 10);
+    if (isNaN(numValue) || numValue < 1) {
+      setQuantity(1);
+    } else if (selectedProduct && numValue > selectedProduct.availableQuantity) {
+      setQuantity(selectedProduct.availableQuantity);
+    } else {
+      setQuantity(numValue);
+    }
+  };
+  
+  const handleSelectProduct = (product: BudgetItem & { availableQuantity: number }) => {
+    setSelectedProduct(product);
+    setQuantity(1); // Reset quantity when selecting a new product
+  };
+  
+  const handleAddProduct = () => {
+    if (selectedProduct) {
+      onSelectProduct(selectedProduct, quantity);
+      setSelectedProduct(null);
+      setQuantity(1);
+    }
+  };
+  
+  // Format currency for display
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 2
+    }).format(amount);
+  };
+  
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[550px]">
+        <DialogHeader>
+          <DialogTitle>Add Product to Session</DialogTitle>
+          <DialogDescription>
+            Select a product from the active budget plan
+          </DialogDescription>
+        </DialogHeader>
+        
+        <div className="py-4 grid grid-cols-1 gap-4">
+          {products.length === 0 ? (
+            <div className="p-4 border rounded-md bg-muted/20 text-center">
+              <p className="text-muted-foreground">No products available in active budget plan</p>
+            </div>
+          ) : (
+            <>
+              {/* Product selection */}
+              <div className="max-h-[300px] overflow-y-auto border rounded-md">
+                <ScrollArea className="h-full pr-3">
+                  <div className="space-y-1 p-1">
+                    {products.map(product => (
+                      <div 
+                        key={product.id} 
+                        className={`p-3 border rounded-md cursor-pointer ${selectedProduct?.id === product.id ? 'bg-primary/10 border-primary' : 'hover:bg-muted/20'}`}
+                        onClick={() => handleSelectProduct(product)}
+                      >
+                        <div className="flex justify-between items-start gap-2">
+                          <div className="flex-1">
+                            <h4 className="font-medium">{product.description || product.name}</h4>
+                            <p className="text-sm text-muted-foreground">Code: {product.itemCode}</p>
+                          </div>
+                          <div className="text-right">
+                            <div className="font-medium">{formatCurrency(product.unitPrice)}</div>
+                            <div className="text-sm text-muted-foreground">
+                              Available: {product.availableQuantity}
+                            </div>
+                          </div>
+                        </div>
+                        {selectedProduct?.id === product.id && (
+                          <div className="mt-3 pt-3 border-t flex items-center gap-3">
+                            <div className="flex items-center border rounded-md">
+                              <Button 
+                                type="button" 
+                                variant="ghost" 
+                                size="icon"
+                                className="h-9 w-9"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (quantity > 1) setQuantity(quantity - 1);
+                                }}
+                              >
+                                <Minus className="h-4 w-4" />
+                              </Button>
+                              <Input 
+                                type="number" 
+                                className="w-14 h-9 text-center border-0"
+                                min={1}
+                                max={product.availableQuantity}
+                                value={quantity}
+                                onChange={(e) => {
+                                  e.stopPropagation();
+                                  handleQuantityChange(e.target.value);
+                                }}
+                              />
+                              <Button 
+                                type="button" 
+                                variant="ghost" 
+                                size="icon"
+                                className="h-9 w-9"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (quantity < product.availableQuantity) {
+                                    setQuantity(quantity + 1);
+                                  }
+                                }}
+                              >
+                                <Plus className="h-4 w-4" />
+                              </Button>
+                            </div>
+                            <Button 
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleAddProduct();
+                              }}
+                            >
+                              Add to Session
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
+              </div>
+            </>
+          )}
+        </div>
+        
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+};
 
   // Create session and session note mutation
   const createSessionMutation = useMutation({
