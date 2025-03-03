@@ -92,6 +92,7 @@ const performanceAssessmentSchema = z.object({
 // Session notes schema
 const sessionNoteSchema = z.object({
   presentAllies: z.array(z.string()).default([]),
+  presentAllyIds: z.array(z.number()).default([]), // Store ally IDs for data integrity
   moodRating: z.number().min(0).max(10).default(5),
   focusRating: z.number().min(0).max(10).default(5),
   cooperationRating: z.number().min(0).max(10).default(5),
@@ -314,6 +315,7 @@ export function IntegratedSessionForm({
     },
     sessionNote: {
       presentAllies: [],
+      presentAllyIds: [], // Track ally IDs
       moodRating: 5,
       focusRating: 5,
       cooperationRating: 5,
@@ -727,11 +729,24 @@ export function IntegratedSessionForm({
                                 size="sm"
                                 className="h-8 w-8 p-0 rounded-full"
                                 onClick={() => {
+                                  // Get the allied ID by looking up in our allies array
+                                  const allyToRemove = allies.find(a => a.name === name);
+                                  
+                                  // Remove from the name display array
                                   const currentAllies = form.getValues("sessionNote.presentAllies") || [];
                                   form.setValue(
                                     "sessionNote.presentAllies", 
                                     currentAllies.filter(a => a !== name)
                                   );
+                                  
+                                  // Also remove from the ID array if we found the ally
+                                  if (allyToRemove) {
+                                    const currentAllyIds = form.getValues("sessionNote.presentAllyIds") || [];
+                                    form.setValue(
+                                      "sessionNote.presentAllyIds", 
+                                      currentAllyIds.filter(id => id !== allyToRemove.id)
+                                    );
+                                  }
                                 }}
                               >
                                 <svg width="18" height="18" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -820,10 +835,22 @@ export function IntegratedSessionForm({
                           <Select
                             onValueChange={(value) => {
                               const currentAllies = form.getValues("sessionNote.presentAllies") || [];
-                              // Remove the selection marker and add the selected ally
+                              
+                              // Parse the selected value to get the ally ID and name
+                              const [allyId, allyName] = value.split('|');
+                              console.log(`Selected ally: ID=${allyId}, Name=${allyName}`);
+                              
+                              // Remove the selection marker and add the selected ally (just using the name for display)
                               form.setValue(
                                 "sessionNote.presentAllies", 
-                                [...currentAllies.filter(a => a !== "__select__"), value]
+                                [...currentAllies.filter(a => a !== "__select__"), allyName]
+                              );
+                              
+                              // Store the ally IDs separately for data integrity
+                              const currentAllyIds = form.getValues("sessionNote.presentAllyIds") || [];
+                              form.setValue(
+                                "sessionNote.presentAllyIds",
+                                [...currentAllyIds, parseInt(allyId)]
                               );
                             }}
                           >
@@ -837,7 +864,7 @@ export function IntegratedSessionForm({
                                   return !currentAllies.includes(ally.name);
                                 })
                                 .map((ally) => (
-                                  <SelectItem key={ally.id} value={ally.name}>
+                                  <SelectItem key={ally.id} value={`${ally.id}|${ally.name}`}>
                                     {ally.name} ({ally.relationship || "Ally"})
                                   </SelectItem>
                                 ))
