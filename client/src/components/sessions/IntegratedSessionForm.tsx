@@ -1290,8 +1290,24 @@ const ProductSelectionDialog = ({
                             type="button"
                             variant="outline"
                             size="sm"
-                            onClick={() => setProductSelectionOpen(true)}
-                            disabled={!availableProducts.length}
+                            onClick={() => {
+                              console.log('Opening product selection dialog');
+                              console.log('Available products:', availableProducts);
+                              console.log('Debug override products:', (window as any).__debugAvailableProducts);
+                              
+                              // Use the debug override if available in dev mode
+                              if (import.meta.env.DEV && 
+                                  (window as any).__debugAvailableProducts?.length > 0 && 
+                                  availableProducts.length === 0) {
+                                toast({
+                                  title: "DEV MODE",
+                                  description: "Using debug products override",
+                                });
+                              }
+                              
+                              setProductSelectionOpen(true);
+                            }}
+                            disabled={!availableProducts.length && !(import.meta.env.DEV && (window as any).__debugAvailableProducts?.length > 0)}
                           >
                             <ShoppingCart className="h-4 w-4 mr-2" />
                             Add Product
@@ -1303,7 +1319,9 @@ const ProductSelectionDialog = ({
                       <ProductSelectionDialog
                         open={productSelectionOpen}
                         onOpenChange={setProductSelectionOpen}
-                        products={availableProducts}
+                        products={import.meta.env.DEV && (window as any).__debugAvailableProducts?.length > 0 
+                          ? (window as any).__debugAvailableProducts 
+                          : availableProducts}
                         onSelectProduct={handleAddProduct}
                       />
                       
