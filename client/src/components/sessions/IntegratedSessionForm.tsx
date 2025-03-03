@@ -13,7 +13,7 @@ import {
   ChevronLeft,
   ChevronRight
 } from "lucide-react";
-import { Ally, Client, Goal, Session, Subgoal, insertSessionSchema } from "@shared/schema";
+import { Ally, BudgetItem, BudgetSettings, Client, Goal, Session, Subgoal, insertSessionSchema } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { useSafeForm } from "@/hooks/use-safe-hooks";
 import { useToast } from "@/hooks/use-toast";
@@ -89,6 +89,16 @@ const performanceAssessmentSchema = z.object({
   })).default([]),
 });
 
+// Product schema for session notes
+const sessionProductSchema = z.object({
+  budgetItemId: z.number(),
+  productCode: z.string(),
+  productDescription: z.string(),
+  quantity: z.number().min(0.01),
+  unitPrice: z.number(),
+  availableQuantity: z.number(), // For validation only, not sent to server
+});
+
 // Session notes schema
 const sessionNoteSchema = z.object({
   presentAllies: z.array(z.string()).default([]),
@@ -98,6 +108,7 @@ const sessionNoteSchema = z.object({
   cooperationRating: z.number().min(0).max(10).default(5),
   physicalActivityRating: z.number().min(0).max(10).default(5),
   notes: z.string().optional(),
+  products: z.array(sessionProductSchema).default([]),
   status: z.enum(["draft", "completed"]).default("draft"),
 });
 
@@ -321,6 +332,7 @@ export function IntegratedSessionForm({
       cooperationRating: 5,
       physicalActivityRating: 5,
       notes: "",
+      products: [], // Products used in the session
       status: "draft",
     },
     performanceAssessments: [],
@@ -413,6 +425,38 @@ export function IntegratedSessionForm({
     enabled: open && !!selectedGoalId,
   });
   
+  // Get budget settings to identify active plan
+  const { data: budgetSettings } = useQuery<BudgetSettings>({
+    queryKey: ["/api/clients", clientId, "budget-settings"],
+    enabled: open && !!clientId,
+  });
+
+  // Get all budget items for the client
+  const { data: allBudgetItems = [] } = useQuery<BudgetItem[]>({
+    queryKey: ["/api/clients", clientId, "budget-items"],
+    enabled: open && !!clientId && !!budgetSettings?.id,
+  });
+  
+  // Dialog state for product selection
+  const [productSelectionOpen, setProductSelectionOpen] = useState(false);
+  
+  // Filter to only show items from the active plan
+  const availableProducts = useMemo(() => {
+    if (!allBudgetItems.length || !budgetSettings?.isActive) return [];
+    
+    return allBudgetItems
+      .filter(item => 
+        // Only items from active budget plan
+        item.budgetSettingsId === budgetSettings.id && 
+        // Only items with remaining quantity
+        (item.quantity - (item.quantityUsed || 0)) > 0
+      )
+      .map(item => ({
+        ...item,
+        availableQuantity: item.quantity - (item.quantityUsed || 0)
+      }));
+  }, [allBudgetItems, budgetSettings]);
+  
   // Create a simple lookup object for subgoals by goal ID
   const subgoalsByGoalId = React.useMemo(() => {
     const result: Record<number, Subgoal[]> = {};
@@ -493,6 +537,42 @@ export function IntegratedSessionForm({
     milestones.splice(milestoneIndex, 1);
     updatedAssessments[goalIndex].milestones = milestones;
     form.setValue("performanceAssessments", updatedAssessments);
+  };
+  
+  // Get currently selected products
+  const selectedProducts = form.watch("sessionNote.products") || [];
+  
+  // Handle adding a product
+  const handleAddProduct = (budgetItem: BudgetItem & { availableQuantity: number }, quantity: number) => {
+    // Ensure valid quantity
+    if (!quantity || quantity <= 0 || quantity > budgetItem.availableQuantity) {
+      toast({
+        title: "Invalid quantity",
+        description: `Please enter a quantity between 1 and ${budgetItem.availableQuantity}`,
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    // Add product to the form
+    const product = {
+      budgetItemId: budgetItem.id,
+      productCode: budgetItem.itemCode,
+      productDescription: budgetItem.description || budgetItem.itemCode,
+      quantity,
+      unitPrice: budgetItem.unitPrice,
+      availableQuantity: budgetItem.availableQuantity
+    };
+    
+    form.setValue("sessionNote.products", [...selectedProducts, product]);
+    setProductSelectionOpen(false);
+  };
+  
+  // Handle removing a product
+  const handleRemoveProduct = (index: number) => {
+    const updatedProducts = [...selectedProducts];
+    updatedProducts.splice(index, 1);
+    form.setValue("sessionNote.products", updatedProducts);
   };
 
   // Create session and session note mutation
