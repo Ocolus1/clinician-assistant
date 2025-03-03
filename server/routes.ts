@@ -621,6 +621,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  app.get("/api/sessions/:sessionId/notes/complete", async (req, res) => {
+    console.log(`GET /api/sessions/${req.params.sessionId}/notes/complete - Getting complete session note`);
+    try {
+      const sessionId = parseInt(req.params.sessionId);
+      
+      // Get the session note
+      const note = await storage.getSessionNoteBySessionId(sessionId);
+      if (!note) {
+        return res.status(404).json({ error: "Session note not found" });
+      }
+      
+      // Get the performance assessments for this note
+      const performanceAssessments = await storage.getPerformanceAssessmentsBySessionNote(note.id);
+      
+      // For each performance assessment, get the milestone assessments
+      const completePerformanceAssessments = await Promise.all(
+        performanceAssessments.map(async (assessment) => {
+          const milestones = await storage.getMilestoneAssessmentsByPerformanceAssessment(assessment.id);
+          return {
+            ...assessment,
+            milestones
+          };
+        })
+      );
+      
+      // Build the complete session note object
+      const completeNote = {
+        ...note,
+        performanceAssessments: completePerformanceAssessments
+      };
+      
+      // Set content type to ensure it's treated as JSON
+      res.setHeader('Content-Type', 'application/json');
+      res.status(200).send(JSON.stringify(completeNote));
+    } catch (error) {
+      console.error(`Error getting complete session note for session ${req.params.sessionId}:`, error);
+      res.status(500).json({ error: "Failed to get complete session note" });
+    }
+  });
+  
   app.put("/api/session-notes/:id", async (req, res) => {
     console.log(`PUT /api/session-notes/${req.params.id} - Updating session note`);
     try {
