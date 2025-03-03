@@ -19,6 +19,14 @@ import { useSafeForm } from "@/hooks/use-safe-hooks";
 import { useToast } from "@/hooks/use-toast";
 
 // UI Components
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
@@ -274,12 +282,14 @@ interface IntegratedSessionFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   initialClient?: Client;
+  isFullScreen?: boolean;
 }
 
 export function IntegratedSessionForm({ 
   open, 
   onOpenChange,
-  initialClient 
+  initialClient,
+  isFullScreen = false
 }: IntegratedSessionFormProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -487,16 +497,10 @@ export function IntegratedSessionForm({
     else if (activeTab === "participants") setActiveTab("details");
   };
 
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-hidden flex flex-col">
-        <DialogHeader>
-          <DialogTitle>Create Session with Notes</DialogTitle>
-          <DialogDescription>
-            Create a new therapy session with detailed notes
-          </DialogDescription>
-        </DialogHeader>
-
+  // Return just the content without dialog wrapper if in full-screen mode
+  if (isFullScreen) {
+    return (
+      <div className="w-full h-full flex flex-col px-6">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-grow flex flex-col overflow-hidden">
           <TabsList className="grid grid-cols-3 mb-4">
             <TabsTrigger value="details">Session Details</TabsTrigger>
@@ -1103,6 +1107,79 @@ export function IntegratedSessionForm({
                 </TabsContent>
               </div>
 
+              {/* Footer with navigation and submit buttons */}
+              <div className="pt-2 border-t flex justify-between items-center">
+                <div className="flex items-center">
+                  {activeTab !== "details" && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={handleBack}
+                      className="mr-2"
+                    >
+                      <ChevronLeft className="h-4 w-4 mr-1" />
+                      Back
+                    </Button>
+                  )}
+                  {activeTab !== "performance" && (
+                    <Button
+                      type="button"
+                      onClick={handleNext}
+                      variant="ghost"
+                    >
+                      Next
+                      <ChevronRight className="h-4 w-4 ml-1" />
+                    </Button>
+                  )}
+                </div>
+                
+                <div className="flex items-center space-x-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => onOpenChange(false)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button 
+                    type="submit"
+                    disabled={createSessionMutation.isPending}
+                  >
+                    {createSessionMutation.isPending ? "Creating..." : "Create Session"}
+                  </Button>
+                </div>
+              </div>
+            </form>
+          </Form>
+        </Tabs>
+      </div>
+    );
+  }
+  
+  // Return the dialog version if not in full-screen mode
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[800px] max-h-[90vh] flex flex-col">
+        <DialogHeader>
+          <DialogTitle>Create Session</DialogTitle>
+          <DialogDescription>
+            Track a therapy session and record progress
+          </DialogDescription>
+        </DialogHeader>
+        
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-grow flex flex-col overflow-hidden">
+          <TabsList className="grid grid-cols-3 mb-4">
+            <TabsTrigger value="details">Session Details</TabsTrigger>
+            <TabsTrigger value="participants">Observations</TabsTrigger>
+            <TabsTrigger value="performance">Performance Assessment</TabsTrigger>
+          </TabsList>
+
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 overflow-hidden flex flex-col flex-grow">
+              <div className="flex-grow overflow-auto pr-2">
+                {/* Tab content from above goes here */}
+              </div>
+              
               {/* Footer with navigation and submit buttons */}
               <div className="pt-2 border-t flex justify-between items-center">
                 <div className="flex items-center">
