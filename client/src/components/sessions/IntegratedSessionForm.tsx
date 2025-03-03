@@ -437,7 +437,7 @@ export function IntegratedSessionForm({
   // Get all budget items for the client
   const { data: allBudgetItems = [] } = useQuery<BudgetItem[]>({
     queryKey: ["/api/clients", clientId, "budget-items"],
-    enabled: open && !!clientId && !!budgetSettings?.id,
+    enabled: open && !!clientId, // Only need client ID to fetch budget items
   });
   
   // Dialog state for product selection
@@ -448,33 +448,33 @@ export function IntegratedSessionForm({
   
   // Filter to only show items from the active plan
   const availableProducts = useMemo(() => {
-    if (!allBudgetItems.length) return [];
+    // Log debug information
+    console.log('Budget items:', allBudgetItems);
+    console.log('Budget settings:', budgetSettings);
+    console.log('Client ID:', clientId);
     
-    // If we have budget settings, filter items from the active budget
-    if (budgetSettings) {
-      // Since our schema doesn't track used quantity yet, we'll assume all quantity is available
-      // In a real implementation, this would be tracked in the database
-      return allBudgetItems
-        .filter(item => 
-          // Only items from this budget plan
-          item.budgetSettingsId === budgetSettings.id && 
-          // Only items with remaining quantity
-          item.quantity > 0
-        )
-        .map(item => ({
-          ...item,
-          availableQuantity: item.quantity // For now, all quantity is available
-        }));
-    } else {
-      // If no budget settings, return all available items
-      return allBudgetItems
-        .filter(item => item.quantity > 0)
-        .map(item => ({
-          ...item,
-          availableQuantity: item.quantity
-        }));
+    if (!allBudgetItems.length || !budgetSettings?.isActive) {
+      console.log('No available products: items length =', allBudgetItems.length, 'settings active =', budgetSettings?.isActive);
+      return [];
     }
-  }, [allBudgetItems, budgetSettings]);
+    
+    // Since our schema doesn't track used quantity yet, we'll assume all quantity is available
+    // In a real implementation, this would be tracked in the database
+    const filteredProducts = allBudgetItems
+      .filter(item => 
+        // Only items from active budget plan
+        item.budgetSettingsId === budgetSettings.id && 
+        // Only items with remaining quantity
+        item.quantity > 0
+      )
+      .map(item => ({
+        ...item,
+        availableQuantity: item.quantity // For now, all quantity is available
+      }));
+      
+    console.log('Filtered products:', filteredProducts);
+    return filteredProducts;
+  }, [allBudgetItems, budgetSettings, clientId]);
   
   // Create a simple lookup object for subgoals by goal ID
   const subgoalsByGoalId = React.useMemo(() => {
