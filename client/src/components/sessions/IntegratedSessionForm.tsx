@@ -468,7 +468,7 @@ export function IntegratedSessionForm({
     console.log('Budget settings:', budgetSettings);
     console.log('Client ID:', clientId);
     
-    // Make sure we have budget items and active settings
+    // Make sure we have budget items and settings
     if (!Array.isArray(allBudgetItems) || allBudgetItems.length === 0 || !budgetSettings) {
       console.log('No budget items or settings:', {
         hasItems: Array.isArray(allBudgetItems) && allBudgetItems.length > 0,
@@ -478,8 +478,12 @@ export function IntegratedSessionForm({
       return [];
     }
     
-    // Make sure we have an active budget plan
-    if (!budgetSettings.isActive) {
+    // Check if the budget plan is active (isActive could be null, undefined, or boolean)
+    // Default to true if isActive is null or undefined (since it defaults to true in the schema)
+    const isActive = budgetSettings.isActive === null || budgetSettings.isActive === undefined ? true : budgetSettings.isActive;
+    console.log('Budget plan active status:', isActive);
+    
+    if (!isActive) {
       console.log('Budget settings not active');
       return [];
     }
