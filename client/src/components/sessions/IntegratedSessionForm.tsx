@@ -307,6 +307,10 @@ export function IntegratedSessionForm({
       sessionDate: new Date(),
       location: "Clinic - Room 101",
       clientId: initialClient?.id || 0,
+      title: "Therapy Session",  // Required field in schema
+      duration: 60,              // Required field in schema
+      status: "scheduled",       // Required field in schema
+      description: "",           // Optional but initialize empty
     },
     sessionNote: {
       presentAllies: [],
@@ -641,67 +645,144 @@ export function IntegratedSessionForm({
 
                   {/* Present In Session Section */}
                   <div className="mt-6">
-                    <h3 className="text-base font-medium mb-3">Present in Session</h3>
-                    <div className="space-y-4">
-                      {/* Allied Dropdown */}
-                      {allies.length > 0 && (
-                        <div className="relative">
+                    <h3 className="text-base font-medium mb-3">Present</h3>
+                    <div className="bg-muted/20 rounded-lg p-4 space-y-2">
+                      {/* Selected Allies List */}
+                      {form.watch("sessionNote.presentAllies")?.map((name, index) => {
+                        // Find the ally object to get relationship
+                        const ally = allies.find(a => a.name === name);
+                        return (
+                          <div 
+                            key={index} 
+                            className="flex items-center justify-between py-2 px-1 border-b last:border-0"
+                          >
+                            <div className="flex items-center gap-3">
+                              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                                {name.charAt(0)}
+                              </div>
+                              <span className="font-medium">{name}</span>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <span className="text-sm text-primary">{ally?.relationship || "Attendee"}</span>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 w-8 p-0 rounded-full"
+                                onClick={() => {
+                                  const currentAllies = form.getValues("sessionNote.presentAllies") || [];
+                                  form.setValue(
+                                    "sessionNote.presentAllies", 
+                                    currentAllies.filter(a => a !== name)
+                                  );
+                                }}
+                              >
+                                <svg width="18" height="18" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                  <path d="M3.625 7.5C3.625 8.12 3.12 8.625 2.5 8.625C1.88 8.625 1.375 8.12 1.375 7.5C1.375 6.88 1.88 6.375 2.5 6.375C3.12 6.375 3.625 6.88 3.625 7.5ZM8.625 7.5C8.625 8.12 8.12 8.625 7.5 8.625C6.88 8.625 6.375 8.12 6.375 7.5C6.375 6.88 6.88 6.375 7.5 6.375C8.12 6.375 8.625 6.88 8.625 7.5ZM13.625 7.5C13.625 8.12 13.12 8.625 12.5 8.625C11.88 8.625 11.375 8.12 11.375 7.5C11.375 6.88 11.88 6.375 12.5 6.375C13.12 6.375 13.625 6.88 13.625 7.5Z" fill="currentColor" fillRule="evenodd" clipRule="evenodd"></path>
+                                </svg>
+                              </Button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                      
+                      {/* Add New Attendee Button */}
+                      <button
+                        type="button"
+                        className="flex items-center gap-3 py-2 px-1 text-primary hover:bg-primary/5 rounded-md transition-colors w-full"
+                        onClick={() => {
+                          if (allies.length > 0) {
+                            // Add a special marker to show the selection dialog
+                            const currentAllies = form.getValues("sessionNote.presentAllies") || [];
+                            const availableAllies = allies.filter(ally => !currentAllies.includes(ally.name));
+                            
+                            if (availableAllies.length > 0) {
+                              // Add special marker to trigger dialog
+                              form.setValue("sessionNote.presentAllies", [...currentAllies, "__select__"]);
+                            } else {
+                              toast({
+                                title: "No more allies available",
+                                description: "All client allies have been added to the session.",
+                                variant: "default"
+                              });
+                            }
+                          } else {
+                            toast({
+                              title: "No allies found",
+                              description: "This client doesn't have any allies added to their profile yet.",
+                              variant: "default"
+                            });
+                          }
+                        }}
+                      >
+                        <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                          <Plus className="h-4 w-4" />
+                        </div>
+                        <span>New Attendee</span>
+                      </button>
+                      
+                      {(!form.watch("sessionNote.presentAllies") || 
+                        form.watch("sessionNote.presentAllies").length === 0) && (
+                        <div className="text-center py-4">
+                          <p className="text-sm text-muted-foreground">
+                            No one added yet. Click "New Attendee" to add people present in this session.
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                    
+                    {/* Ally Selection Dialog */}
+                    <Dialog 
+                      open={allies.length > 0 && form.getValues("sessionNote.presentAllies")?.includes("__select__")}
+                      onOpenChange={(open) => {
+                        if (!open) {
+                          // Remove the special marker if dialog is closed
+                          const currentAllies = form.getValues("sessionNote.presentAllies") || [];
+                          form.setValue(
+                            "sessionNote.presentAllies", 
+                            currentAllies.filter(a => a !== "__select__")
+                          );
+                        }
+                      }}
+                    >
+                      <DialogContent className="sm:max-w-[425px]">
+                        <DialogHeader>
+                          <DialogTitle>Add Attendee</DialogTitle>
+                          <DialogDescription>
+                            Select a person who was present in this therapy session.
+                          </DialogDescription>
+                        </DialogHeader>
+                        <div className="py-4">
                           <Select
                             onValueChange={(value) => {
                               const currentAllies = form.getValues("sessionNote.presentAllies") || [];
-                              if (!currentAllies.includes(value)) {
-                                form.setValue("sessionNote.presentAllies", [...currentAllies, value]);
-                              }
+                              // Remove the selection marker and add the selected ally
+                              form.setValue(
+                                "sessionNote.presentAllies", 
+                                [...currentAllies.filter(a => a !== "__select__"), value]
+                              );
                             }}
                           >
-                            <SelectTrigger className="w-full">
-                              <SelectValue placeholder="Add person present in session" />
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select person" />
                             </SelectTrigger>
                             <SelectContent>
-                              {allies.map((ally) => (
-                                <SelectItem key={ally.id} value={ally.name}>
-                                  {ally.name} ({ally.relationship || "Ally"})
-                                </SelectItem>
-                              ))}
+                              {allies
+                                .filter(ally => {
+                                  const currentAllies = form.getValues("sessionNote.presentAllies") || [];
+                                  return !currentAllies.includes(ally.name);
+                                })
+                                .map((ally) => (
+                                  <SelectItem key={ally.id} value={ally.name}>
+                                    {ally.name} ({ally.relationship || "Ally"})
+                                  </SelectItem>
+                                ))
+                              }
                             </SelectContent>
                           </Select>
                         </div>
-                      )}
-                      
-                      {/* Selected Allies */}
-                      <div className="flex flex-wrap gap-2 mt-2">
-                        {form.watch("sessionNote.presentAllies")?.map((name) => (
-                          <Badge 
-                            key={name} 
-                            variant="secondary"
-                            className="py-2 px-3"
-                          >
-                            {name}
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              className="h-4 w-4 p-0 ml-2"
-                              onClick={() => {
-                                const currentAllies = form.getValues("sessionNote.presentAllies") || [];
-                                form.setValue(
-                                  "sessionNote.presentAllies", 
-                                  currentAllies.filter(a => a !== name)
-                                );
-                              }}
-                            >
-                              <X className="h-3 w-3" />
-                            </Button>
-                          </Badge>
-                        ))}
-                        {(!form.watch("sessionNote.presentAllies") || 
-                          form.watch("sessionNote.presentAllies").length === 0) && (
-                          <p className="text-sm text-muted-foreground px-1">
-                            No one added yet. Use the dropdown to add people present in this session.
-                          </p>
-                        )}
-                      </div>
-                    </div>
+                      </DialogContent>
+                    </Dialog>
                   </div>
                 </TabsContent>
 
