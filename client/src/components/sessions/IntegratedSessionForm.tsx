@@ -13,7 +13,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Minus,
-  ShoppingCart
+  ShoppingCart,
+  RefreshCw
 } from "lucide-react";
 import { Ally, BudgetItem, BudgetSettings, Client, Goal, Session, Subgoal, insertSessionSchema } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
@@ -429,10 +430,20 @@ export function IntegratedSessionForm({
   });
   
   // Get budget settings to identify active plan
-  const { data: budgetSettings } = useQuery<BudgetSettings>({
+  const { data: budgetSettings, isLoading: isLoadingBudgetSettings, error: budgetSettingsError } = useQuery<BudgetSettings>({
     queryKey: ["/api/clients", clientId, "budget-settings"],
     enabled: open && !!clientId,
   });
+  
+  // Log budget settings status
+  useEffect(() => {
+    console.log('Budget settings query:', { 
+      clientId, 
+      isLoadingBudgetSettings, 
+      hasData: !!budgetSettings, 
+      error: budgetSettingsError
+    });
+  }, [clientId, budgetSettings, isLoadingBudgetSettings, budgetSettingsError]);
   
   // Log budget settings for debugging
   useEffect(() => {
@@ -443,10 +454,25 @@ export function IntegratedSessionForm({
   }, [budgetSettings]);
 
   // Get all budget items for the client
-  const { data: allBudgetItems = [] } = useQuery<BudgetItem[]>({
+  const { 
+    data: allBudgetItems = [], 
+    isLoading: isLoadingBudgetItems, 
+    error: budgetItemsError,
+    refetch: refetchBudgetItems 
+  } = useQuery<BudgetItem[]>({
     queryKey: ["/api/clients", clientId, "budget-items"],
     enabled: open && !!clientId, // Only need client ID to fetch budget items
   });
+  
+  // Log budget items status
+  useEffect(() => {
+    console.log('Budget items query:', { 
+      clientId, 
+      isLoadingBudgetItems, 
+      itemCount: allBudgetItems?.length, 
+      error: budgetItemsError
+    });
+  }, [clientId, allBudgetItems, isLoadingBudgetItems, budgetItemsError]);
   
   // Log budget items for debugging
   useEffect(() => {
@@ -876,10 +902,21 @@ const ProductSelectionDialog = ({
                           <Select
                             onValueChange={(value) => {
                               // Set the client ID
-                              field.onChange(parseInt(value));
+                              const clientId = parseInt(value);
+                              field.onChange(clientId);
                               
                               // Reset performance assessments when client changes
                               form.setValue("performanceAssessments", []);
+                              
+                              // Log when client changes to help debug
+                              console.log('Client changed to:', clientId);
+                              console.log('Initiating budget item fetch for client:', clientId);
+                              
+                              // Manually trigger refetch of budget items
+                              if (refetchBudgetItems) {
+                                console.log('Manually refetching budget items for client:', clientId);
+                                refetchBudgetItems();
+                              }
                             }}
                             value={field.value?.toString() || undefined}
                           >
@@ -1165,16 +1202,41 @@ const ProductSelectionDialog = ({
                     <div className="mt-6">
                       <div className="flex justify-between items-center">
                         <h3 className="text-base font-medium mb-3">Products Used</h3>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setProductSelectionOpen(true)}
-                          disabled={!availableProducts.length}
-                        >
-                          <ShoppingCart className="h-4 w-4 mr-2" />
-                          Add Product
-                        </Button>
+                        <div className="flex gap-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              console.log('Debug button clicked');
+                              console.log('Current state:', {
+                                clientId,
+                                budgetSettings,
+                                budgetItems: allBudgetItems,
+                                availableProducts,
+                                isActive: budgetSettings?.isActive
+                              });
+                              
+                              if (refetchBudgetItems) {
+                                console.log('Manually refetching budget items');
+                                refetchBudgetItems();
+                              }
+                            }}
+                          >
+                            <RefreshCw className="h-4 w-4 mr-2" />
+                            Debug
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setProductSelectionOpen(true)}
+                            disabled={!availableProducts.length}
+                          >
+                            <ShoppingCart className="h-4 w-4 mr-2" />
+                            Add Product
+                          </Button>
+                        </div>
                       </div>
                       
                       {/* Product Selection Dialog */}
