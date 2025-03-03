@@ -662,6 +662,8 @@ export function IntegratedSessionForm({
   
   // Handle adding a product
   const handleAddProduct = (budgetItem: BudgetItem & { availableQuantity: number }, quantity: number) => {
+    console.log('handleAddProduct called with:', budgetItem, quantity);
+    
     // Ensure valid quantity
     if (!quantity || quantity <= 0 || quantity > budgetItem.availableQuantity) {
       toast({
@@ -676,7 +678,7 @@ export function IntegratedSessionForm({
     const product = {
       budgetItemId: budgetItem.id,
       productCode: budgetItem.itemCode,
-      productDescription: budgetItem.description || budgetItem.itemCode,
+      productDescription: budgetItem.description || budgetItem.name || budgetItem.itemCode,
       quantity,
       unitPrice: budgetItem.unitPrice,
       availableQuantity: budgetItem.availableQuantity
@@ -843,8 +845,10 @@ const ProductSelectionDialog = ({
                               type="button"
                               onClick={(e) => {
                                 e.stopPropagation();
+                                console.log('Add to Session button clicked');
                                 handleAddProduct();
                               }}
+                              data-testid="add-to-session-btn"
                             >
                               Add to Session
                             </Button>

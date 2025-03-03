@@ -117,13 +117,15 @@ export function ProductDebugHelper({
               // Then update the component state
               setAvailableProducts(mockProducts);
               
+              toast({
+                title: "Debug Tools Active",
+                description: "Mock products are now available! Click Add Product to see them.",
+              });
+              
               // Force a timeout to let React rerender first
               setTimeout(() => {
-                // Force the Add Product button to be enabled by manually setting its availability
-                const addProductBtn = document.querySelector('[data-testid="add-product-btn"]');
-                if (addProductBtn) {
-                  (addProductBtn as HTMLButtonElement).disabled = false;
-                }
+                // Make sure the refresh event propagates through React
+                window.dispatchEvent(new Event('force-products-update'));
               }, 100);
               
               // Show confirmation
