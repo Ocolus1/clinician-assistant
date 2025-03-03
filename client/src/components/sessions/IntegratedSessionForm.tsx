@@ -72,12 +72,7 @@ const sessionFormSchema = insertSessionSchema.extend({
     required_error: "Client is required",
   }),
   therapistId: z.coerce.number().optional(),
-  duration: z.coerce.number({
-    required_error: "Duration is required",
-  }).min(1, "Duration must be at least 1 minute"),
-  status: z.string({
-    required_error: "Status is required",
-  }),
+  location: z.string().optional(),
 });
 
 // Performance assessment schema
@@ -309,13 +304,8 @@ export function IntegratedSessionForm({
   // Default form values
   const defaultValues: Partial<IntegratedSessionFormValues> = {
     session: {
-      title: "",
-      description: "",
       sessionDate: new Date(),
-      duration: 60,
-      status: "scheduled",
-      location: "Main Office",
-      notes: "",
+      location: "Clinic - Room 101",
       clientId: initialClient?.id || 0,
     },
     sessionNote: {
@@ -524,16 +514,16 @@ export function IntegratedSessionForm({
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 overflow-hidden flex flex-col flex-grow">
               <div className="flex-grow overflow-auto pr-2">
                 {/* Session Details Tab */}
-                <TabsContent value="details" className="space-y-4 mt-0 px-2">
+                <TabsContent value="details" className="space-y-6 mt-0 px-4">
                   {/* First row: Client, Location, Date & Time in a single row */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-4">
                     {/* Client Selection */}
                     <FormField
                       control={form.control}
                       name="session.clientId"
                       render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Client</FormLabel>
+                        <FormItem className="flex-1">
+                          <FormLabel className="text-base">Client</FormLabel>
                           <Select
                             onValueChange={(value) => {
                               // Set the client ID
@@ -545,7 +535,7 @@ export function IntegratedSessionForm({
                             value={field.value?.toString() || undefined}
                           >
                             <FormControl>
-                              <SelectTrigger>
+                              <SelectTrigger className="h-10">
                                 <SelectValue placeholder="Select client" />
                               </SelectTrigger>
                             </FormControl>
@@ -567,15 +557,15 @@ export function IntegratedSessionForm({
                       control={form.control}
                       name="session.location"
                       render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Location</FormLabel>
+                        <FormItem className="flex-1">
+                          <FormLabel className="text-base">Location</FormLabel>
                           <Select 
                             onValueChange={field.onChange} 
                             value={field.value || ""}
                             defaultValue=""
                           >
                             <FormControl>
-                              <SelectTrigger>
+                              <SelectTrigger className="h-10">
                                 <SelectValue placeholder="Select location" />
                               </SelectTrigger>
                             </FormControl>
@@ -599,14 +589,14 @@ export function IntegratedSessionForm({
                       control={form.control}
                       name="session.sessionDate"
                       render={({ field }) => (
-                        <FormItem className="flex flex-col">
-                          <FormLabel>Date & Time</FormLabel>
+                        <FormItem className="flex flex-col flex-1">
+                          <FormLabel className="text-base">Date & Time</FormLabel>
                           <Popover>
                             <PopoverTrigger asChild>
                               <FormControl>
                                 <Button
                                   variant={"outline"}
-                                  className={`w-full pl-3 text-left font-normal ${
+                                  className={`w-full h-10 pl-3 text-left font-normal ${
                                     !field.value ? "text-muted-foreground" : ""
                                   }`}
                                 >
@@ -649,174 +639,76 @@ export function IntegratedSessionForm({
                     />
                   </div>
 
-                  {/* Second row: Session title and duration */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {/* Session Title */}
-                    <FormField
-                      control={form.control}
-                      name="session.title"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Session Title</FormLabel>
-                          <FormControl>
-                            <Input placeholder="e.g., Speech Therapy Session" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    {/* Session Duration */}
-                    <FormField
-                      control={form.control}
-                      name="session.duration"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Duration (minutes)</FormLabel>
-                          <FormControl>
-                            <Input type="number" min="1" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-
-                  {/* Session Description */}
-                  <FormField
-                    control={form.control}
-                    name="session.description"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Description</FormLabel>
-                        <FormControl>
-                          <Textarea 
-                            placeholder="Brief description of the session"
-                            className="resize-none min-h-24"
-                            value={field.value || ''}
-                            onChange={field.onChange}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  {/* Session Status */}
-                  <FormField
-                    control={form.control}
-                    name="session.status"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Status</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value || "scheduled"}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select status" />
+                  {/* Present In Session Section */}
+                  <div className="mt-6">
+                    <h3 className="text-base font-medium mb-3">Present in Session</h3>
+                    <div className="space-y-4">
+                      {/* Allied Dropdown */}
+                      {allies.length > 0 && (
+                        <div className="relative">
+                          <Select
+                            onValueChange={(value) => {
+                              const currentAllies = form.getValues("sessionNote.presentAllies") || [];
+                              if (!currentAllies.includes(value)) {
+                                form.setValue("sessionNote.presentAllies", [...currentAllies, value]);
+                              }
+                            }}
+                          >
+                            <SelectTrigger className="w-full">
+                              <SelectValue placeholder="Add person present in session" />
                             </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="scheduled">Scheduled</SelectItem>
-                            <SelectItem value="completed">Completed</SelectItem>
-                            <SelectItem value="cancelled">Cancelled</SelectItem>
-                            <SelectItem value="rescheduled">Rescheduled</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                            <SelectContent>
+                              {allies.map((ally) => (
+                                <SelectItem key={ally.id} value={ally.name}>
+                                  {ally.name} ({ally.relationship || "Ally"})
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
+                      
+                      {/* Selected Allies */}
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {form.watch("sessionNote.presentAllies")?.map((name) => (
+                          <Badge 
+                            key={name} 
+                            variant="secondary"
+                            className="py-2 px-3"
+                          >
+                            {name}
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="h-4 w-4 p-0 ml-2"
+                              onClick={() => {
+                                const currentAllies = form.getValues("sessionNote.presentAllies") || [];
+                                form.setValue(
+                                  "sessionNote.presentAllies", 
+                                  currentAllies.filter(a => a !== name)
+                                );
+                              }}
+                            >
+                              <X className="h-3 w-3" />
+                            </Button>
+                          </Badge>
+                        ))}
+                        {(!form.watch("sessionNote.presentAllies") || 
+                          form.watch("sessionNote.presentAllies").length === 0) && (
+                          <p className="text-sm text-muted-foreground px-1">
+                            No one added yet. Use the dropdown to add people present in this session.
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
                 </TabsContent>
 
-                {/* Participants and Observations Tab */}
-                <TabsContent value="participants" className="space-y-6 mt-0 px-2">
-                  {/* Present Allies Section */}
-                  <div className="space-y-4">
-                    <h3 className="font-medium text-lg">Present in Session</h3>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {["Parent", "Guardian", "Sibling", "Aide", "Teacher", "Other Professional"].map((role) => (
-                        <FormField
-                          key={role}
-                          control={form.control}
-                          name="sessionNote.presentAllies"
-                          render={({ field }) => (
-                            <FormItem
-                              key={role}
-                              className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4"
-                            >
-                              <FormControl>
-                                <Checkbox
-                                  checked={field.value?.includes(role)}
-                                  onCheckedChange={(checked) => {
-                                    return checked
-                                      ? field.onChange([...field.value, role])
-                                      : field.onChange(
-                                          field.value?.filter(
-                                            (value) => value !== role
-                                          )
-                                        );
-                                  }}
-                                />
-                              </FormControl>
-                              <div className="space-y-1 leading-none">
-                                <FormLabel className="text-sm font-medium leading-none">
-                                  {role}
-                                </FormLabel>
-                              </div>
-                            </FormItem>
-                          )}
-                        />
-                      ))}
-                    </div>
-                    
-                    {allies.length > 0 && (
-                      <div className="mt-4">
-                        <h4 className="font-medium mb-2">Client's Allies</h4>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          {allies.map((ally) => (
-                            <FormField
-                              key={ally.id}
-                              control={form.control}
-                              name="sessionNote.presentAllies"
-                              render={({ field }) => (
-                                <FormItem
-                                  key={ally.id}
-                                  className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4"
-                                >
-                                  <FormControl>
-                                    <Checkbox
-                                      checked={field.value?.includes(ally.name)}
-                                      onCheckedChange={(checked) => {
-                                        return checked
-                                          ? field.onChange([...field.value, ally.name])
-                                          : field.onChange(
-                                              field.value?.filter(
-                                                (value) => value !== ally.name
-                                              )
-                                            );
-                                      }}
-                                    />
-                                  </FormControl>
-                                  <div className="space-y-1 leading-none">
-                                    <FormLabel className="text-sm font-medium leading-none">
-                                      {ally.name}
-                                    </FormLabel>
-                                    <p className="text-xs text-muted-foreground">
-                                      {ally.relationship || "Relationship not specified"}
-                                    </p>
-                                  </div>
-                                </FormItem>
-                              )}
-                            />
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                  
+                {/* Observations Tab */}
+                <TabsContent value="participants" className="space-y-6 mt-0 px-4">
                   {/* Session Observations */}
-                  <div className="space-y-4">
+                  <div className="space-y-4 mt-4">
                     <h3 className="font-medium text-lg">Session Observations</h3>
                     
                     <FormField
