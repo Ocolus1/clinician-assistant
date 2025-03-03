@@ -573,6 +573,291 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Session Notes routes
+  app.post("/api/sessions/:sessionId/notes", async (req, res) => {
+    console.log(`POST /api/sessions/${req.params.sessionId}/notes - Creating session note`);
+    try {
+      const sessionId = parseInt(req.params.sessionId);
+      
+      // First check if the session exists
+      const session = await storage.getSessionById(sessionId);
+      if (!session) {
+        return res.status(404).json({ error: "Session not found" });
+      }
+      
+      const result = insertSessionNoteSchema.safeParse({
+        ...req.body,
+        sessionId,
+        clientId: session.clientId
+      });
+      
+      if (!result.success) {
+        console.error("Session note validation error:", result.error);
+        return res.status(400).json({ error: result.error });
+      }
+      
+      const note = await storage.createSessionNote(result.data);
+      res.json(note);
+    } catch (error) {
+      console.error(`Error creating session note for session ${req.params.sessionId}:`, error);
+      res.status(500).json({ error: "Failed to create session note" });
+    }
+  });
+  
+  app.get("/api/sessions/:sessionId/notes", async (req, res) => {
+    console.log(`GET /api/sessions/${req.params.sessionId}/notes - Getting session note`);
+    try {
+      const sessionId = parseInt(req.params.sessionId);
+      const note = await storage.getSessionNoteBySessionId(sessionId);
+      
+      if (!note) {
+        return res.status(404).json({ error: "Session note not found" });
+      }
+      
+      res.json(note);
+    } catch (error) {
+      console.error(`Error getting session note for session ${req.params.sessionId}:`, error);
+      res.status(500).json({ error: "Failed to get session note" });
+    }
+  });
+  
+  app.put("/api/session-notes/:id", async (req, res) => {
+    console.log(`PUT /api/session-notes/${req.params.id} - Updating session note`);
+    try {
+      const noteId = parseInt(req.params.id);
+      
+      // First check if the note exists
+      const existingNote = await storage.getSessionNoteById(noteId);
+      if (!existingNote) {
+        return res.status(404).json({ error: "Session note not found" });
+      }
+      
+      const result = insertSessionNoteSchema.safeParse({
+        ...req.body,
+        id: noteId,
+        sessionId: existingNote.sessionId,
+        clientId: existingNote.clientId
+      });
+      
+      if (!result.success) {
+        console.error("Session note validation error:", result.error);
+        return res.status(400).json({ error: result.error });
+      }
+      
+      const updatedNote = await storage.updateSessionNote(noteId, result.data);
+      res.json(updatedNote);
+    } catch (error) {
+      console.error(`Error updating session note ${req.params.id}:`, error);
+      res.status(500).json({ error: "Failed to update session note" });
+    }
+  });
+  
+  app.delete("/api/session-notes/:id", async (req, res) => {
+    console.log(`DELETE /api/session-notes/${req.params.id} - Deleting session note`);
+    try {
+      const noteId = parseInt(req.params.id);
+      await storage.deleteSessionNote(noteId);
+      res.json({ success: true, message: "Session note deleted successfully" });
+    } catch (error) {
+      console.error(`Error deleting session note ${req.params.id}:`, error);
+      res.status(500).json({ error: "Failed to delete session note" });
+    }
+  });
+  
+  // Performance Assessment routes
+  app.post("/api/session-notes/:sessionNoteId/performance", async (req, res) => {
+    console.log(`POST /api/session-notes/${req.params.sessionNoteId}/performance - Creating performance assessment`);
+    try {
+      const sessionNoteId = parseInt(req.params.sessionNoteId);
+      
+      // First check if the session note exists
+      const sessionNote = await storage.getSessionNoteById(sessionNoteId);
+      if (!sessionNote) {
+        return res.status(404).json({ error: "Session note not found" });
+      }
+      
+      const result = insertPerformanceAssessmentSchema.safeParse({
+        ...req.body,
+        sessionNoteId
+      });
+      
+      if (!result.success) {
+        console.error("Performance assessment validation error:", result.error);
+        return res.status(400).json({ error: result.error });
+      }
+      
+      const assessment = await storage.createPerformanceAssessment(result.data);
+      res.json(assessment);
+    } catch (error) {
+      console.error(`Error creating performance assessment for session note ${req.params.sessionNoteId}:`, error);
+      res.status(500).json({ error: "Failed to create performance assessment" });
+    }
+  });
+  
+  app.get("/api/session-notes/:sessionNoteId/performance", async (req, res) => {
+    console.log(`GET /api/session-notes/${req.params.sessionNoteId}/performance - Getting performance assessments`);
+    try {
+      const sessionNoteId = parseInt(req.params.sessionNoteId);
+      const assessments = await storage.getPerformanceAssessmentsBySessionNote(sessionNoteId);
+      res.json(assessments);
+    } catch (error) {
+      console.error(`Error getting performance assessments for session note ${req.params.sessionNoteId}:`, error);
+      res.status(500).json({ error: "Failed to get performance assessments" });
+    }
+  });
+  
+  app.put("/api/performance-assessments/:id", async (req, res) => {
+    console.log(`PUT /api/performance-assessments/${req.params.id} - Updating performance assessment`);
+    try {
+      const assessmentId = parseInt(req.params.id);
+      
+      // First check if the assessment exists
+      const existingAssessment = await storage.getPerformanceAssessmentById(assessmentId);
+      if (!existingAssessment) {
+        return res.status(404).json({ error: "Performance assessment not found" });
+      }
+      
+      const result = insertPerformanceAssessmentSchema.safeParse({
+        ...req.body,
+        id: assessmentId,
+        sessionNoteId: existingAssessment.sessionNoteId
+      });
+      
+      if (!result.success) {
+        console.error("Performance assessment validation error:", result.error);
+        return res.status(400).json({ error: result.error });
+      }
+      
+      const updatedAssessment = await storage.updatePerformanceAssessment(assessmentId, result.data);
+      res.json(updatedAssessment);
+    } catch (error) {
+      console.error(`Error updating performance assessment ${req.params.id}:`, error);
+      res.status(500).json({ error: "Failed to update performance assessment" });
+    }
+  });
+  
+  app.delete("/api/performance-assessments/:id", async (req, res) => {
+    console.log(`DELETE /api/performance-assessments/${req.params.id} - Deleting performance assessment`);
+    try {
+      const assessmentId = parseInt(req.params.id);
+      await storage.deletePerformanceAssessment(assessmentId);
+      res.json({ success: true, message: "Performance assessment deleted successfully" });
+    } catch (error) {
+      console.error(`Error deleting performance assessment ${req.params.id}:`, error);
+      res.status(500).json({ error: "Failed to delete performance assessment" });
+    }
+  });
+  
+  // Milestone Assessment routes
+  app.post("/api/performance-assessments/:performanceAssessmentId/milestones", async (req, res) => {
+    console.log(`POST /api/performance-assessments/${req.params.performanceAssessmentId}/milestones - Creating milestone assessment`);
+    try {
+      const performanceAssessmentId = parseInt(req.params.performanceAssessmentId);
+      
+      // First check if the performance assessment exists
+      const assessment = await storage.getPerformanceAssessmentById(performanceAssessmentId);
+      if (!assessment) {
+        return res.status(404).json({ error: "Performance assessment not found" });
+      }
+      
+      const result = insertMilestoneAssessmentSchema.safeParse({
+        ...req.body,
+        performanceAssessmentId
+      });
+      
+      if (!result.success) {
+        console.error("Milestone assessment validation error:", result.error);
+        return res.status(400).json({ error: result.error });
+      }
+      
+      const milestone = await storage.createMilestoneAssessment(result.data);
+      res.json(milestone);
+    } catch (error) {
+      console.error(`Error creating milestone assessment for performance assessment ${req.params.performanceAssessmentId}:`, error);
+      res.status(500).json({ error: "Failed to create milestone assessment" });
+    }
+  });
+  
+  app.get("/api/performance-assessments/:performanceAssessmentId/milestones", async (req, res) => {
+    console.log(`GET /api/performance-assessments/${req.params.performanceAssessmentId}/milestones - Getting milestone assessments`);
+    try {
+      const performanceAssessmentId = parseInt(req.params.performanceAssessmentId);
+      const milestones = await storage.getMilestoneAssessmentsByPerformanceAssessment(performanceAssessmentId);
+      res.json(milestones);
+    } catch (error) {
+      console.error(`Error getting milestone assessments for performance assessment ${req.params.performanceAssessmentId}:`, error);
+      res.status(500).json({ error: "Failed to get milestone assessments" });
+    }
+  });
+  
+  app.put("/api/milestone-assessments/:id", async (req, res) => {
+    console.log(`PUT /api/milestone-assessments/${req.params.id} - Updating milestone assessment`);
+    try {
+      const milestoneId = parseInt(req.params.id);
+      
+      const result = insertMilestoneAssessmentSchema.safeParse(req.body);
+      if (!result.success) {
+        console.error("Milestone assessment validation error:", result.error);
+        return res.status(400).json({ error: result.error });
+      }
+      
+      const updatedMilestone = await storage.updateMilestoneAssessment(milestoneId, result.data);
+      res.json(updatedMilestone);
+    } catch (error) {
+      console.error(`Error updating milestone assessment ${req.params.id}:`, error);
+      res.status(500).json({ error: "Failed to update milestone assessment" });
+    }
+  });
+  
+  app.delete("/api/milestone-assessments/:id", async (req, res) => {
+    console.log(`DELETE /api/milestone-assessments/${req.params.id} - Deleting milestone assessment`);
+    try {
+      const milestoneId = parseInt(req.params.id);
+      await storage.deleteMilestoneAssessment(milestoneId);
+      res.json({ success: true, message: "Milestone assessment deleted successfully" });
+    } catch (error) {
+      console.error(`Error deleting milestone assessment ${req.params.id}:`, error);
+      res.status(500).json({ error: "Failed to delete milestone assessment" });
+    }
+  });
+  
+  // Strategies routes
+  app.get("/api/strategies", async (req, res) => {
+    console.log("GET /api/strategies - Getting all strategies");
+    try {
+      const category = req.query.category as string | undefined;
+      
+      if (category) {
+        console.log(`Filtering strategies by category: ${category}`);
+        const filteredStrategies = await storage.getStrategiesByCategory(category);
+        return res.json(filteredStrategies);
+      }
+      
+      const strategies = await storage.getAllStrategies();
+      res.json(strategies);
+    } catch (error) {
+      console.error("Error getting strategies:", error);
+      res.status(500).json({ error: "Failed to get strategies" });
+    }
+  });
+  
+  app.get("/api/strategies/:id", async (req, res) => {
+    console.log(`GET /api/strategies/${req.params.id} - Getting strategy by ID`);
+    try {
+      const strategyId = parseInt(req.params.id);
+      const strategy = await storage.getStrategyById(strategyId);
+      
+      if (!strategy) {
+        return res.status(404).json({ error: "Strategy not found" });
+      }
+      
+      res.json(strategy);
+    } catch (error) {
+      console.error(`Error getting strategy ${req.params.id}:`, error);
+      res.status(500).json({ error: "Failed to get strategy" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
