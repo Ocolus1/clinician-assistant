@@ -53,6 +53,7 @@ import { useToast } from "@/hooks/use-toast";
 
 // Import our new components
 import { SessionDetails } from "@/components/sessions/SessionDetails";
+import { IntegratedSessionForm } from "@/components/sessions/IntegratedSessionForm";
 
 export default function Sessions() {
   // State for search, filters, view type, and selected session
@@ -143,8 +144,8 @@ export default function Sessions() {
             </Button>
           </div>
           
-          {/* Create Session Dialog */}
-          <CreateSessionDialog 
+          {/* Create Session Dialog with Integrated Notes */}
+          <IntegratedSessionForm 
             open={createSessionDialogOpen} 
             onOpenChange={setCreateSessionDialogOpen} 
           />
