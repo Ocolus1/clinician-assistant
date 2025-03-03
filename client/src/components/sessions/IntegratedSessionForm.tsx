@@ -507,10 +507,15 @@ export function IntegratedSessionForm({
       // TEMPORARY WORKAROUND: If we don't have settings but do have budget items,
       // we'll still allow the use of products for testing purposes
       if (import.meta.env.DEV) {
-        const tempProducts = allBudgetItems.map(item => ({
-          ...item,
-          availableQuantity: item.quantity
-        }));
+        const tempProducts = allBudgetItems
+          .filter(item => item.quantity > 0)
+          .map(item => ({
+            ...item,
+            availableQuantity: item.quantity,
+            productCode: item.itemCode,
+            productDescription: item.description || item.itemCode,
+            unitPrice: item.unitPrice
+          }));
         console.log('DEV MODE: Using budget items without settings:', tempProducts);
         return tempProducts;
       }
@@ -521,6 +526,9 @@ export function IntegratedSessionForm({
     // Force coerce isActive to boolean - PostgreSQL treats booleans differently
     let isActiveBool = true; // Default to true per schema default
     
+    // Log the exact type of the isActive field to help debug
+    console.log('isActive type:', typeof budgetSettings.isActive);
+    
     if (budgetSettings.isActive === false) {
       isActiveBool = false;
     } 
@@ -529,7 +537,8 @@ export function IntegratedSessionForm({
     }
     else if (typeof budgetSettings.isActive === 'string') {
       // Handle string representations of boolean values (from some APIs/drivers)
-      isActiveBool = (budgetSettings.isActive as string).toLowerCase() !== 'false';
+      const isActiveStr = String(budgetSettings.isActive);
+      isActiveBool = isActiveStr.toLowerCase() !== 'false';
     }
     
     console.log('Budget plan active status (original):', budgetSettings.isActive);
