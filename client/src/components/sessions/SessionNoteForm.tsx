@@ -230,7 +230,8 @@ export function SessionNoteForm({ open, onOpenChange, session, initialData }: Se
               if (existingPa) {
                 return apiRequest("PUT", `/api/performance-assessments/${existingPa.id}`, pa);
               } else {
-                return apiRequest("POST", `/api/session-notes/${noteResponse.id}/performance`, pa);
+                const responseData = await apiRequest("POST", `/api/session-notes/${initialData.id}/performance`, pa);
+                return responseData;
               }
             })
           );
@@ -240,12 +241,13 @@ export function SessionNoteForm({ open, onOpenChange, session, initialData }: Se
       } else {
         // Create new note
         const noteResponse = await apiRequest("POST", `/api/sessions/${session.id}/notes`, data.sessionNote);
+        const noteData = noteResponse as any;
         
         // Create performance assessments
         if (data.performanceAssessments) {
           await Promise.all(
             data.performanceAssessments.map((pa) =>
-              apiRequest("POST", `/api/session-notes/${noteResponse.id}/performance`, pa)
+              apiRequest("POST", `/api/session-notes/${noteData.id}/performance`, pa)
             )
           );
         }
