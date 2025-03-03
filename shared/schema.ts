@@ -203,6 +203,9 @@ export const sessionNotes = pgTable("session_notes", {
   // General note
   notes: text("notes"),
   
+  // Products used in session
+  products: text("products"),
+  
   // Metadata
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),

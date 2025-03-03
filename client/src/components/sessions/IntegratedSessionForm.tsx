@@ -443,6 +443,9 @@ export function IntegratedSessionForm({
   // Dialog state for product selection
   const [productSelectionOpen, setProductSelectionOpen] = useState(false);
   
+  // Get current selected products from form
+  const selectedProducts = form.watch("sessionNote.products") || [];
+  
   // Filter to only show items from the active plan
   const availableProducts = useMemo(() => {
     if (!allBudgetItems.length || !budgetSettings?.isActive) return [];
@@ -543,9 +546,6 @@ export function IntegratedSessionForm({
     updatedAssessments[goalIndex].milestones = milestones;
     form.setValue("performanceAssessments", updatedAssessments);
   };
-  
-  // Get currently selected products
-  const selectedProducts = form.watch("sessionNote.products") || [];
   
   // Handle adding a product
   const handleAddProduct = (budgetItem: BudgetItem & { availableQuantity: number }, quantity: number) => {
