@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, Controller } from "react-hook-form";
@@ -62,6 +62,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Progress } from "@/components/ui/progress";
 
 // Session form schema
 const sessionFormSchema = insertSessionSchema.extend({
@@ -444,16 +445,18 @@ export function IntegratedSessionForm({
   const availableProducts = useMemo(() => {
     if (!allBudgetItems.length || !budgetSettings?.isActive) return [];
     
+    // Since our schema doesn't track used quantity yet, we'll assume all quantity is available
+    // In a real implementation, this would be tracked in the database
     return allBudgetItems
       .filter(item => 
         // Only items from active budget plan
         item.budgetSettingsId === budgetSettings.id && 
         // Only items with remaining quantity
-        (item.quantity - (item.quantityUsed || 0)) > 0
+        item.quantity > 0
       )
       .map(item => ({
         ...item,
-        availableQuantity: item.quantity - (item.quantityUsed || 0)
+        availableQuantity: item.quantity // For now, all quantity is available
       }));
   }, [allBudgetItems, budgetSettings]);
   
