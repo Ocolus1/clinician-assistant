@@ -1119,6 +1119,105 @@ const ProductSelectionDialog = ({
                         </div>
                       </DialogContent>
                     </Dialog>
+                    
+                    {/* Products Section */}
+                    <div className="mt-6">
+                      <div className="flex justify-between items-center">
+                        <h3 className="text-base font-medium mb-3">Products Used</h3>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setProductSelectionOpen(true)}
+                          disabled={!availableProducts.length}
+                        >
+                          <ShoppingCart className="h-4 w-4 mr-2" />
+                          Add Product
+                        </Button>
+                      </div>
+                      
+                      {/* Product Selection Dialog */}
+                      <ProductSelectionDialog
+                        open={productSelectionOpen}
+                        onOpenChange={setProductSelectionOpen}
+                        products={availableProducts}
+                        onSelectProduct={handleAddProduct}
+                      />
+                      
+                      {/* Selected Products List */}
+                      {selectedProducts.length === 0 ? (
+                        <div className="bg-muted/20 rounded-lg p-4 text-center">
+                          <p className="text-muted-foreground">No products added to this session</p>
+                        </div>
+                      ) : (
+                        <div className="bg-muted/20 rounded-lg p-4 space-y-2">
+                          {selectedProducts.map((product, index) => {
+                            const totalPrice = product.quantity * product.unitPrice;
+                            
+                            return (
+                              <div 
+                                key={index} 
+                                className="flex items-center justify-between py-2 px-1 border-b last:border-0"
+                              >
+                                <div className="flex-1">
+                                  <div className="font-medium">{product.productDescription}</div>
+                                  <div className="text-sm text-muted-foreground">
+                                    Code: {product.productCode}
+                                  </div>
+                                </div>
+                                
+                                <div className="flex items-center gap-4">
+                                  <div className="text-right">
+                                    <div>
+                                      <span className="font-medium">{product.quantity}</span>
+                                      <span className="text-muted-foreground"> × </span>
+                                      <span>
+                                        {new Intl.NumberFormat('en-US', {
+                                          style: 'currency',
+                                          currency: 'USD'
+                                        }).format(product.unitPrice)}
+                                      </span>
+                                    </div>
+                                    <div className="text-sm font-medium">
+                                      {new Intl.NumberFormat('en-US', {
+                                        style: 'currency',
+                                        currency: 'USD'
+                                      }).format(totalPrice)}
+                                    </div>
+                                  </div>
+                                  
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-8 w-8 p-0 rounded-full"
+                                    onClick={() => handleRemoveProduct(index)}
+                                  >
+                                    <X className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              </div>
+                            );
+                          })}
+                          
+                          {/* Total Value */}
+                          <div className="pt-3 mt-2 border-t flex justify-between items-center">
+                            <span className="font-medium">Total Value:</span>
+                            <span className="font-bold">
+                              {new Intl.NumberFormat('en-US', {
+                                style: 'currency',
+                                currency: 'USD'
+                              }).format(
+                                selectedProducts.reduce(
+                                  (total, product) => total + (product.quantity * product.unitPrice), 
+                                  0
+                                )
+                              )}
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </TabsContent>
 
@@ -1218,105 +1317,6 @@ const ProductSelectionDialog = ({
                           </FormItem>
                         )}
                       />
-                    </div>
-                    
-                    {/* Products Section */}
-                    <div className="mt-6">
-                      <div className="flex justify-between items-center">
-                        <h3 className="text-base font-medium mb-3">Products Used</h3>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setProductSelectionOpen(true)}
-                          disabled={!availableProducts.length}
-                        >
-                          <ShoppingCart className="h-4 w-4 mr-2" />
-                          Add Product
-                        </Button>
-                      </div>
-                      
-                      {/* Product Selection Dialog */}
-                      <ProductSelectionDialog
-                        open={productSelectionOpen}
-                        onOpenChange={setProductSelectionOpen}
-                        products={availableProducts}
-                        onSelectProduct={handleAddProduct}
-                      />
-                      
-                      {/* Selected Products List */}
-                      {selectedProducts.length === 0 ? (
-                        <div className="bg-muted/20 rounded-lg p-4 text-center">
-                          <p className="text-muted-foreground">No products added to this session</p>
-                        </div>
-                      ) : (
-                        <div className="bg-muted/20 rounded-lg p-4 space-y-2">
-                          {selectedProducts.map((product, index) => {
-                            const totalPrice = product.quantity * product.unitPrice;
-                            
-                            return (
-                              <div 
-                                key={index} 
-                                className="flex items-center justify-between py-2 px-1 border-b last:border-0"
-                              >
-                                <div className="flex-1">
-                                  <div className="font-medium">{product.productDescription}</div>
-                                  <div className="text-sm text-muted-foreground">
-                                    Code: {product.productCode}
-                                  </div>
-                                </div>
-                                
-                                <div className="flex items-center gap-4">
-                                  <div className="text-right">
-                                    <div>
-                                      <span className="font-medium">{product.quantity}</span>
-                                      <span className="text-muted-foreground"> × </span>
-                                      <span>
-                                        {new Intl.NumberFormat('en-US', {
-                                          style: 'currency',
-                                          currency: 'USD'
-                                        }).format(product.unitPrice)}
-                                      </span>
-                                    </div>
-                                    <div className="text-sm font-medium">
-                                      {new Intl.NumberFormat('en-US', {
-                                        style: 'currency',
-                                        currency: 'USD'
-                                      }).format(totalPrice)}
-                                    </div>
-                                  </div>
-                                  
-                                  <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="sm"
-                                    className="h-8 w-8 p-0 rounded-full"
-                                    onClick={() => handleRemoveProduct(index)}
-                                  >
-                                    <X className="h-4 w-4" />
-                                  </Button>
-                                </div>
-                              </div>
-                            );
-                          })}
-                          
-                          {/* Total Value */}
-                          <div className="pt-3 mt-2 border-t flex justify-between items-center">
-                            <span className="font-medium">Total Value:</span>
-                            <span className="font-bold">
-                              {new Intl.NumberFormat('en-US', {
-                                style: 'currency',
-                                currency: 'USD'
-                              }).format(
-                                selectedProducts.reduce(
-                                  (total, product) => total + (product.quantity * product.unitPrice), 
-                                  0
-                                )
-                              )}
-                            </span>
-                          </div>
-                        </div>
-                      )}
                     </div>
                   </div>
                 </TabsContent>
