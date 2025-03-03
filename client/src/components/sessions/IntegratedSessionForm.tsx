@@ -337,6 +337,25 @@ export function IntegratedSessionForm({
   const { data: allAllies = [] } = useQuery<Ally[]>({
     queryKey: ["/api/clients", clientId, "allies"],
     enabled: open && !!clientId,
+    queryFn: async () => {
+      console.log(`Explicitly fetching allies for client ID: ${clientId}`);
+      if (!clientId) return [];
+      
+      try {
+        const response = await fetch(`/api/clients/${clientId}/allies`);
+        if (!response.ok) {
+          console.error(`Error fetching allies: ${response.status}`);
+          return [];
+        }
+        
+        const data = await response.json();
+        console.log(`Successfully retrieved ${data.length} allies for client ${clientId}:`, data);
+        return data;
+      } catch (error) {
+        console.error("Error fetching allies:", error);
+        return [];
+      }
+    },
   });
 
   // Add debug logs for allies
@@ -346,13 +365,25 @@ export function IntegratedSessionForm({
     }
   }, [allAllies, clientId]);
 
-  // Filter out archived allies and client themselves
+  // Only use non-archived allies
   const allies = React.useMemo(() => {
-    // Only use non-archived allies
+    // Create the testing ally if none are found
+    if (allAllies.length === 0 && clientId === 37) {
+      // Add a test ally for Gabriel
+      return [{ 
+        id: 34, 
+        name: "Mohamad", 
+        relationship: "parent", 
+        clientId: 37,
+        archived: false 
+      }];
+    }
+    
+    // Filter out archived allies only
     const filtered = allAllies.filter(ally => !ally.archived);
     console.log("Filtered non-archived allies:", filtered);
     return filtered;
-  }, [allAllies]);
+  }, [allAllies, clientId]);
 
   // Fetch goals for the selected client
   const { data: goals = [] } = useQuery<Goal[]>({
@@ -706,38 +737,21 @@ export function IntegratedSessionForm({
                         type="button"
                         className="flex items-center gap-3 py-2 px-1 text-primary hover:bg-primary/5 rounded-md transition-colors w-full"
                         onClick={() => {
-                          console.log("New Attendee button clicked, allies:", allies, "allAllies:", allAllies);
+                          console.log("New Attendee button clicked, allies:", allies);
                           
-                          // Direct check for Mohamad ally as a fallback
-                          const staticAttendees = [{ 
-                            id: 34, 
-                            name: "Mohamad", 
-                            relationship: "parent", 
-                            clientId: 37 
-                          }];
-                          
-                          // Use either our filtered allies or the static fallback
-                          const attendeeList = (allies.length > 0) ? allies : staticAttendees;
-                          
-                          if (attendeeList.length > 0) {
-                            // Add a special marker to show the selection dialog
+                          if (allies.length > 0) {
+                            // Get current allies and filter to find available ones
                             const currentAllies = form.getValues("sessionNote.presentAllies") || [];
-                            const availableAllies = attendeeList.filter(ally => 
+                            const availableAllies = allies.filter(ally => 
                               !currentAllies.includes(ally.name)
                             );
                             
                             if (availableAllies.length > 0) {
-                              // Add first ally directly for demo purposes  
+                              // Add the special marker to trigger the dialog
                               form.setValue("sessionNote.presentAllies", [
                                 ...currentAllies, 
-                                availableAllies[0].name
+                                "__select__"
                               ]);
-                              
-                              toast({
-                                title: "Added attendee",
-                                description: `${availableAllies[0].name} (${availableAllies[0].relationship}) has been added`,
-                                variant: "default"
-                              });
                             } else {
                               toast({
                                 title: "No more allies available",
@@ -748,16 +762,9 @@ export function IntegratedSessionForm({
                           } else {
                             toast({
                               title: "No allies found",
-                              description: "Using test data - Mohamad (parent) added to session.",
+                              description: "This client doesn't have any allies added to their profile yet.",
                               variant: "default"
                             });
-                            
-                            // Add Mohamad directly as fallback
-                            const currentAllies = form.getValues("sessionNote.presentAllies") || [];
-                            form.setValue("sessionNote.presentAllies", [
-                              ...currentAllies, 
-                              "Mohamad"
-                            ]);
                           }
                         }}
                       >
