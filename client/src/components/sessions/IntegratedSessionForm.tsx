@@ -505,17 +505,15 @@ export function IntegratedSessionForm({
     }
     
     // Force coerce isActive to boolean
-    // PostgreSQL boolean can sometimes be returned as string 'true'/'false', null, or boolean
+    // PostgreSQL boolean can sometimes come as null or string in certain db drivers
     let isActiveBool = true; // Default to true per schema default
     
     if (budgetSettings.isActive === false) {
       isActiveBool = false;
     } 
-    // Check if it's a string value of 'false'
-    else if (typeof budgetSettings.isActive === 'string') {
-      if (budgetSettings.isActive === 'false') {
-        isActiveBool = false;
-      }
+    // Explicit null check to make TypeScript happy
+    else if (budgetSettings.isActive === null) {
+      isActiveBool = true; // Default value per schema
     }
     
     console.log('Budget plan active status (original):', budgetSettings.isActive);
