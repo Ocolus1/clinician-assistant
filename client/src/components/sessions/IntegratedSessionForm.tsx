@@ -1310,9 +1310,14 @@ const ProductSelectionDialog = ({
                                   title: "DEV MODE",
                                   description: "Using debug products override",
                                 });
+                                console.log('Using debug product override in Add Product button');
                               }
                               
-                              setProductSelectionOpen(true);
+                              // Delay slightly to avoid React state issues
+                              setTimeout(() => {
+                                setProductSelectionOpen(true);
+                                console.log('Product selection dialog should be open now');
+                              }, 50);
                             }}
                             disabled={!availableProducts.length && !(import.meta.env.DEV && (window as any).__debugAvailableProducts?.length > 0)}
                           >
