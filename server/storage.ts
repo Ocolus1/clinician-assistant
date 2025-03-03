@@ -60,6 +60,31 @@ export interface IStorage {
   getSessionsByClient(clientId: number): Promise<Session[]>;
   updateSession(id: number, session: InsertSession): Promise<Session>;
   deleteSession(id: number): Promise<void>;
+  
+  // Session Notes
+  createSessionNote(note: InsertSessionNote): Promise<SessionNote>;
+  getSessionNoteById(id: number): Promise<SessionNote | undefined>;
+  getSessionNoteBySessionId(sessionId: number): Promise<SessionNote | undefined>;
+  updateSessionNote(id: number, note: InsertSessionNote): Promise<SessionNote>;
+  deleteSessionNote(id: number): Promise<void>;
+  
+  // Performance Assessments
+  createPerformanceAssessment(assessment: InsertPerformanceAssessment): Promise<PerformanceAssessment>;
+  getPerformanceAssessmentsBySessionNote(sessionNoteId: number): Promise<PerformanceAssessment[]>;
+  getPerformanceAssessmentById(id: number): Promise<PerformanceAssessment | undefined>;
+  updatePerformanceAssessment(id: number, assessment: InsertPerformanceAssessment): Promise<PerformanceAssessment>;
+  deletePerformanceAssessment(id: number): Promise<void>;
+  
+  // Milestone Assessments
+  createMilestoneAssessment(assessment: InsertMilestoneAssessment): Promise<MilestoneAssessment>;
+  getMilestoneAssessmentsByPerformanceAssessment(performanceAssessmentId: number): Promise<MilestoneAssessment[]>;
+  updateMilestoneAssessment(id: number, assessment: InsertMilestoneAssessment): Promise<MilestoneAssessment>;
+  deleteMilestoneAssessment(id: number): Promise<void>;
+  
+  // Strategies
+  getAllStrategies(): Promise<Strategy[]>;
+  getStrategyById(id: number): Promise<Strategy | undefined>;
+  getStrategiesByCategory(category: string): Promise<Strategy[]>;
 }
 
 /**

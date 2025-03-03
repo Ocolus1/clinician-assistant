@@ -1,0 +1,240 @@
+I appreciate your detailed vision for the note-taking modal. Let me brainstorm the implementation approach for each section:
+
+1. Present Section (Allies Selection)
+This is a multi-select component for client allies:
+
+// Present Section with Multiple Ally Selection
+<FormField
+  control={form.control}
+  name="presentAllies"
+  render={({ field }) => (
+    <FormItem>
+      <FormLabel>Present</FormLabel>
+      <MultiSelect
+        options={allies.map(ally => ({ value: ally.id.toString(), label: ally.name }))}
+        selected={field.value || []}
+        onChange={(selectedValues) => field.onChange(selectedValues)}
+        placeholder="Select allies present in the session"
+      />
+      <FormDescription>Select all allies who were present in this session</FormDescription>
+      <FormMessage />
+    </FormItem>
+  )}
+/>
+For this, we would create a custom MultiSelect component that allows selecting multiple allies with tags that can be removed.
+
+2. General Observations (Rating Sliders)
+For the rating sliders, we could implement a visually intuitive slider system:
+
+<div className="space-y-4">
+  <h3 className="text-lg font-medium">General Observations</h3>
+  
+  {/* Mood Rating */}
+  <FormField
+    control={form.control}
+    name="moodRating"
+    render={({ field }) => (
+      <FormItem>
+        <div className="flex justify-between items-center">
+          <FormLabel>Mood</FormLabel>
+          <span className="text-sm font-medium">{field.value}/10</span>
+        </div>
+        <FormControl>
+          <Slider
+            min={0}
+            max={10}
+            step={1}
+            value={[field.value]}
+            onValueChange={(values) => field.onChange(values[0])}
+            className="rating-slider"
+          />
+        </FormControl>
+        <div className="flex justify-between text-xs text-muted-foreground">
+          <span>Poor</span>
+          <span>Excellent</span>
+        </div>
+      </FormItem>
+    )}
+  />
+  
+  {/* Similar sliders for Physical Activity, Focus, and Cooperation */}
+</div>
+We could enhance this with color gradients on the sliders (red to green) and potentially add descriptive labels at key points (0, 5, 10).
+
+3. Performance Section (Goals and Milestones)
+This is the most complex part with dynamic state management. Here's my approach:
+
+// Performance Section with dynamic goals and milestone selection
+<div className="space-y-4 border rounded-lg p-4">
+  <h3 className="text-lg font-medium">Performance Assessment</h3>
+  
+  {/* Display selected goals with their milestones */}
+  {selectedGoalsWithMilestones.map((goalWithMilestones, goalIndex) => (
+    <div key={goalWithMilestones.goal.id} className="border rounded p-3 space-y-3">
+      <div className="flex justify-between">
+        <h4 className="font-medium">{goalWithMilestones.goal.title}</h4>
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          onClick={() => removeGoal(goalIndex)}
+        >
+          <X className="h-4 w-4" />
+        </Button>
+      </div>
+      
+      {/* Display selected milestones for this goal */}
+      {goalWithMilestones.milestones.map((milestone, milestoneIndex) => (
+        <div key={milestone.id} className="ml-4 border-l-2 pl-3 space-y-2">
+          <div className="flex justify-between">
+            <p>{milestone.title}</p>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => removeMilestone(goalIndex, milestoneIndex)}
+            >
+              <X className="h-3 w-3" />
+            </Button>
+          </div>
+          
+          {/* Performance rating */}
+          <div className="flex items-center space-x-2">
+            <span className="text-sm font-medium">Performance rating:</span>
+            <div className="flex space-x-1">
+              {[1, 2, 3, 4, 5].map(score => (
+                <Button
+                  key={score}
+                  variant={milestone.score === score ? "default" : "outline"}
+                  size="sm"
+                  className="w-8 h-8 p-0"
+                  onClick={() => scoreMilestone(goalIndex, milestoneIndex, score)}
+                >
+                  {score}
+                </Button>
+              ))}
+            </div>
+          </div>
+          
+          {/* Strategy tags */}
+          <div className="flex flex-wrap gap-2">
+            {availableStrategies.map(strategy => (
+              <Badge
+                key={strategy.id}
+                variant={milestone.strategies.includes(strategy.id) ? "default" : "outline"}
+                className="cursor-pointer"
+                onClick={() => toggleStrategy(goalIndex, milestoneIndex, strategy.id)}
+              >
+                {strategy.name}
+              </Badge>
+            ))}
+          </div>
+        </div>
+      ))}
+      
+      {/* Add milestone button */}
+      <Button 
+        variant="outline" 
+        size="sm" 
+        className="mt-2" 
+        onClick={() => openMilestoneSelector(goalWithMilestones.goal.id)}
+      >
+        <Plus className="h-4 w-4 mr-2" /> Add Milestone
+      </Button>
+    </div>
+  ))}
+  
+  {/* Add goal button */}
+  <Button
+    variant="outline"
+    onClick={openGoalSelector}
+  >
+    <Plus className="h-4 w-4 mr-2" /> Add Goal
+  </Button>
+  
+  {/* Goal selector dialog */}
+  <Dialog open={goalSelectorOpen} onOpenChange={setGoalSelectorOpen}>
+    <DialogContent>
+      <DialogHeader>
+        <DialogTitle>Select a Goal</DialogTitle>
+      </DialogHeader>
+      <div className="space-y-2">
+        {availableGoals.map(goal => (
+          <Button
+            key={goal.id}
+            variant="outline"
+            className="w-full justify-start"
+            onClick={() => selectGoal(goal)}
+          >
+            {goal.title}
+          </Button>
+        ))}
+      </div>
+    </DialogContent>
+  </Dialog>
+  
+  {/* Milestone selector dialog */}
+  <Dialog open={milestoneSelectorOpen} onOpenChange={setMilestoneSelectorOpen}>
+    <DialogContent>
+      <DialogHeader>
+        <DialogTitle>Select a Milestone</DialogTitle>
+      </DialogHeader>
+      <div className="space-y-2">
+        {availableMilestones.map(milestone => (
+          <Button
+            key={milestone.id}
+            variant="outline"
+            className="w-full justify-start"
+            onClick={() => selectMilestone(milestone)}
+          >
+            {milestone.title}
+          </Button>
+        ))}
+      </div>
+    </DialogContent>
+  </Dialog>
+</div>
+State Management for Performance Section
+The complex part here is managing state. I would suggest a React context specifically for this performance assessment:
+
+interface PerformanceState {
+  selectedGoalsWithMilestones: {
+    goal: Goal;
+    milestones: Array<{
+      id: number;
+      title: string;
+      score: number | null;
+      strategies: number[];
+    }>;
+  }[];
+  availableGoals: Goal[];
+  availableMilestones: Milestone[];
+  goalSelectorOpen: boolean;
+  milestoneSelectorOpen: boolean;
+  currentGoalId: number | null;
+}
+const PerformanceContext = createContext<{
+  state: PerformanceState;
+  openGoalSelector: () => void;
+  closeGoalSelector: () => void;
+  selectGoal: (goal: Goal) => void;
+  removeGoal: (goalIndex: number) => void;
+  openMilestoneSelector: (goalId: number) => void;
+  closeMilestoneSelector: () => void;
+  selectMilestone: (milestone: Milestone) => void;
+  removeMilestone: (goalIndex: number, milestoneIndex: number) => void;
+  scoreMilestone: (goalIndex: number, milestoneIndex: number, score: number) => void;
+  toggleStrategy: (goalIndex: number, milestoneIndex: number, strategyId: number) => void;
+} | undefined>(undefined);
+Implementation Considerations
+Data Structure: We need to carefully design the data structure to efficiently track:
+
+Selected goals
+Selected milestones for each goal
+Scores for each milestone
+Strategy tags for each milestone
+Filtering Logic: Implement logic to filter out already selected goals and milestones from their respective dialogs.
+
+Persistence: Store this complex state structure in the form state so it can be submitted along with the rest of the session data.
+
+Validation: Add validation to ensure required performance assessments are completed before submission.
+
+UX Flow: Optimize the flow to minimize the number of clicks needed to complete an assessment.

@@ -187,5 +187,70 @@ export const insertSessionSchema = createInsertSchema(sessions)
 export type InsertBudgetSettings = z.infer<typeof insertBudgetSettingsSchema>;
 export type InsertBudgetItemCatalog = z.infer<typeof insertBudgetItemCatalogSchema>;
 export type BudgetItemCatalog = typeof budgetItemCatalog.$inferSelect;
+// Session Notes schema
+export const sessionNotes = pgTable("session_notes", {
+  id: serial("id").primaryKey(),
+  sessionId: integer("session_id").notNull().references(() => sessions.id, { onDelete: "cascade" }),
+  clientId: integer("client_id").notNull().references(() => clients.id, { onDelete: "cascade" }),
+  presentAllies: text("present_allies").array(),
+  
+  // General observations (ratings from 0-10)
+  moodRating: integer("mood_rating"),
+  physicalActivityRating: integer("physical_activity_rating"),
+  focusRating: integer("focus_rating"),
+  cooperationRating: integer("cooperation_rating"),
+  
+  // General note
+  notes: text("notes"),
+  
+  // Metadata
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+  status: text("status", { enum: ["draft", "completed"] }).default("draft"),
+});
+
+// Performance assessment schema for goals
+export const performanceAssessments = pgTable("performance_assessments", {
+  id: serial("id").primaryKey(),
+  sessionNoteId: integer("session_note_id").notNull().references(() => sessionNotes.id, { onDelete: "cascade" }),
+  goalId: integer("goal_id").notNull().references(() => goals.id, { onDelete: "cascade" }),
+  notes: text("notes"),
+});
+
+// Milestone assessment schema
+export const milestoneAssessments = pgTable("milestone_assessments", {
+  id: serial("id").primaryKey(),
+  performanceAssessmentId: integer("performance_assessment_id").notNull().references(() => performanceAssessments.id, { onDelete: "cascade" }),
+  milestoneId: integer("milestone_id").notNull(), // We don't have a milestones table yet
+  rating: integer("rating"), // 1-5 rating
+  strategies: text("strategies").array(), // Array of strategy identifiers
+  notes: text("notes"),
+});
+
+// Therapy strategies schema
+export const strategies = pgTable("strategies", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  category: text("category").notNull(),
+  description: text("description"),
+});
+
+// Create insert schemas
+export const insertSessionNoteSchema = createInsertSchema(sessionNotes);
+export const insertPerformanceAssessmentSchema = createInsertSchema(performanceAssessments);
+export const insertMilestoneAssessmentSchema = createInsertSchema(milestoneAssessments);
+export const insertStrategySchema = createInsertSchema(strategies);
+
+// Define types for inserts
+export type InsertSessionNote = z.infer<typeof insertSessionNoteSchema>;
+export type InsertPerformanceAssessment = z.infer<typeof insertPerformanceAssessmentSchema>;
+export type InsertMilestoneAssessment = z.infer<typeof insertMilestoneAssessmentSchema>;
+export type InsertStrategy = z.infer<typeof insertStrategySchema>;
+
+// Define types for selects
 export type Session = typeof sessions.$inferSelect;
 export type InsertSession = z.infer<typeof insertSessionSchema>;
+export type SessionNote = typeof sessionNotes.$inferSelect;
+export type PerformanceAssessment = typeof performanceAssessments.$inferSelect;
+export type MilestoneAssessment = typeof milestoneAssessments.$inferSelect;
+export type Strategy = typeof strategies.$inferSelect;
