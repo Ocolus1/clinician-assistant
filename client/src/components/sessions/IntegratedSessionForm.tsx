@@ -488,6 +488,33 @@ export function IntegratedSessionForm({
   // Get current selected products from form
   const selectedProducts = form.watch("sessionNote.products") || [];
   
+  // Track if we're in debug mode
+  const [isUsingDebugProducts, setIsUsingDebugProducts] = useState(false);
+  
+  // Check for debug mode updates
+  useEffect(() => {
+    if (import.meta.env.DEV) {
+      // Listen for the custom event from the debug helper
+      const handleDebugUpdate = () => {
+        console.log("Debug product update detected");
+        if ((window as any).__debugAvailableProducts?.length > 0) {
+          setIsUsingDebugProducts(true);
+        }
+      };
+      
+      window.addEventListener('force-products-update', handleDebugUpdate);
+      
+      // Check if debug products are already set
+      if ((window as any).__debugAvailableProducts?.length > 0) {
+        setIsUsingDebugProducts(true);
+      }
+      
+      return () => {
+        window.removeEventListener('force-products-update', handleDebugUpdate);
+      };
+    }
+  }, []);
+  
   // Filter to only show items from the active plan
   const availableProducts = useMemo(() => {
     // Check for debug override
@@ -1323,7 +1350,7 @@ const ProductSelectionDialog = ({
                                 console.log('Product selection dialog should be open now');
                               }, 50);
                             }}
-                            disabled={!availableProducts.length && !(import.meta.env.DEV && (window as any).__debugAvailableProducts?.length > 0)}
+                            disabled={!availableProducts.length && !isUsingDebugProducts}
                           >
                             <ShoppingCart className="h-4 w-4 mr-2" />
                             Add Product
