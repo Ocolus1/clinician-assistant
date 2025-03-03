@@ -351,19 +351,23 @@ export function IntegratedSessionForm({
     enabled: open && !!clientId,
   });
 
-  // Get subgoals for each goal
-  const subgoalQueries = goals.map(goal => ({
-    queryKey: ["/api/goals", goal.id, "subgoals"],
-    enabled: open && goals.length > 0,
-  }));
-
-  const subgoalsResults = subgoalQueries.map(query => useQuery<Subgoal[]>(query));
+  // Track currently selected goal ID for fetching subgoals
+  const [selectedGoalId, setSelectedGoalId] = useState<number | null>(null);
   
-  // Create lookup object for subgoals by goal ID
-  const subgoalsByGoalId = goals.reduce((acc, goal, index) => {
-    acc[goal.id] = subgoalsResults[index]?.data || [];
-    return acc;
-  }, {} as Record<number, Subgoal[]>);
+  // Get subgoals for the currently selected goal instead of all goals
+  const { data: subgoals = [] } = useQuery<Subgoal[]>({
+    queryKey: ["/api/goals", selectedGoalId, "subgoals"],
+    enabled: open && !!selectedGoalId,
+  });
+  
+  // Create a simple lookup object for subgoals by goal ID
+  const subgoalsByGoalId = React.useMemo(() => {
+    const result: Record<number, Subgoal[]> = {};
+    if (selectedGoalId) {
+      result[selectedGoalId] = subgoals;
+    }
+    return result;
+  }, [selectedGoalId, subgoals]);
 
   // Update form when client is changed
   useEffect(() => {
@@ -393,6 +397,9 @@ export function IntegratedSessionForm({
     });
     
     form.setValue("performanceAssessments", updatedAssessments);
+    
+    // Set the selected goal ID to fetch its subgoals
+    setSelectedGoalId(goal.id);
   };
 
   // Handle milestone selection
@@ -412,6 +419,11 @@ export function IntegratedSessionForm({
     
     updatedAssessments[currentGoalIndex].milestones = milestones;
     form.setValue("performanceAssessments", updatedAssessments);
+    
+    // Ensure we have the goal ID to fetch subgoals
+    if (selectedGoalId === null && updatedAssessments[currentGoalIndex]) {
+      setSelectedGoalId(updatedAssessments[currentGoalIndex].goalId);
+    }
   };
 
   // Handle removing a goal assessment
@@ -522,7 +534,13 @@ export function IntegratedSessionForm({
                         <FormItem>
                           <FormLabel>Client</FormLabel>
                           <Select
-                            onValueChange={(value) => field.onChange(parseInt(value))}
+                            onValueChange={(value) => {
+                              // Set the client ID
+                              field.onChange(parseInt(value));
+                              
+                              // Reset performance assessments when client changes
+                              form.setValue("performanceAssessments", []);
+                            }}
                             value={field.value?.toString() || undefined}
                           >
                             <FormControl>
@@ -970,6 +988,7 @@ export function IntegratedSessionForm({
                                     onClick={() => {
                                       setCurrentGoalIndex(goalIndex);
                                       setMilestoneSelectionOpen(true);
+                                      setSelectedGoalId(assessment.goalId);
                                     }}
                                   >
                                     <Plus className="h-3 w-3 mr-1" />
