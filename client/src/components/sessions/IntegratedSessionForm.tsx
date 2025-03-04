@@ -525,6 +525,7 @@ export function IntegratedSessionForm({
   
   // Dialog state for product selection
   const [productSelectionOpen, setProductSelectionOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
   
   // Get current selected products from form
   const selectedProducts = form.watch("sessionNote.products") || [];
