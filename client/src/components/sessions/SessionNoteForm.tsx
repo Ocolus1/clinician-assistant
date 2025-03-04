@@ -333,31 +333,13 @@ export function SessionNoteForm({ open, onOpenChange, session, initialData }: Se
               </TabsList>
 
               {/* General Observations Tab */}
-              <TabsContent value="general" className="flex-grow overflow-auto p-2">
+              <TabsContent value="general" className="flex-grow overflow-auto p-4">
                 <div className="space-y-6">
-                  <FormField
-                    control={form.control}
-                    name="sessionNote.notes"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Session Notes</FormLabel>
-                        <FormDescription>
-                          Record general observations about the session
-                        </FormDescription>
-                        <FormControl>
-                          <Textarea 
-                            {...field} 
-                            placeholder="Enter general notes about the session..."
-                            className="min-h-32" 
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12">
-                    <div className="space-y-8">
+                  <h3 className="text-lg font-medium mb-4">Session Observations</h3>
+                  
+                  <div className="observations-grid">
+                    {/* Left Column - Rating Sliders */}
+                    <div className="slider-group">
                       <FormField
                         control={form.control}
                         name="sessionNote.moodRating"
@@ -375,7 +357,7 @@ export function SessionNoteForm({ open, onOpenChange, session, initialData }: Se
                           </FormItem>
                         )}
                       />
-
+                      
                       <FormField
                         control={form.control}
                         name="sessionNote.focusRating"
@@ -393,9 +375,25 @@ export function SessionNoteForm({ open, onOpenChange, session, initialData }: Se
                           </FormItem>
                         )}
                       />
-                    </div>
-
-                    <div className="space-y-8">
+                      
+                      <FormField
+                        control={form.control}
+                        name="sessionNote.cooperationRating"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormControl>
+                              <RatingSlider
+                                value={field.value || 5}
+                                onChange={field.onChange}
+                                label="Cooperation"
+                                description="Rate client's overall cooperation"
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
                       <FormField
                         control={form.control}
                         name="sessionNote.physicalActivityRating"
@@ -413,18 +411,24 @@ export function SessionNoteForm({ open, onOpenChange, session, initialData }: Se
                           </FormItem>
                         )}
                       />
-
+                    </div>
+                    
+                    {/* Right Column - Notes Textarea */}
+                    <div className="notes-container">
                       <FormField
                         control={form.control}
-                        name="sessionNote.cooperationRating"
+                        name="sessionNote.notes"
                         render={({ field }) => (
-                          <FormItem>
-                            <FormControl>
-                              <RatingSlider
-                                value={field.value || 5}
-                                onChange={field.onChange}
-                                label="Cooperation"
-                                description="Rate client's overall cooperation"
+                          <FormItem className="h-full flex flex-col">
+                            <FormLabel>General Notes</FormLabel>
+                            <FormDescription>
+                              Record general observations about the session
+                            </FormDescription>
+                            <FormControl className="flex-grow">
+                              <Textarea 
+                                {...field} 
+                                placeholder="Enter general notes about the session..."
+                                className="notes-textarea" 
                               />
                             </FormControl>
                             <FormMessage />
