@@ -115,8 +115,8 @@ export function SessionDetails({ session, onBack }: SessionDetailsProps) {
     }
   };
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
+  const formatDate = (dateString: string | Date) => {
+    const date = typeof dateString === 'string' ? new Date(dateString) : dateString;
     return date.toLocaleDateString("en-US", {
       weekday: "long",
       year: "numeric",
@@ -125,8 +125,8 @@ export function SessionDetails({ session, onBack }: SessionDetailsProps) {
     });
   };
 
-  const formatTime = (dateString: string) => {
-    const date = new Date(dateString);
+  const formatTime = (dateString: string | Date) => {
+    const date = typeof dateString === 'string' ? new Date(dateString) : dateString;
     return date.toLocaleTimeString("en-US", {
       hour: "numeric",
       minute: "2-digit",
@@ -176,13 +176,13 @@ export function SessionDetails({ session, onBack }: SessionDetailsProps) {
             <div className="flex items-center">
               <CalendarIcon className="h-5 w-5 mr-2 text-muted-foreground" />
               <span>Date: </span>
-              <span className="ml-1 font-medium">{formatDate(session.sessionDate)}</span>
+              <span className="ml-1 font-medium">{session.sessionDate ? formatDate(session.sessionDate as any) : ""}</span>
             </div>
             <div className="flex items-center">
               <ClockIcon className="h-5 w-5 mr-2 text-muted-foreground" />
               <span>Time: </span>
               <span className="ml-1 font-medium">
-                {formatTime(session.sessionDate)} ({session.duration} minutes)
+                {session.sessionDate ? formatTime(session.sessionDate as any) : ""} ({session.duration} minutes)
               </span>
             </div>
             <div className="flex items-center">

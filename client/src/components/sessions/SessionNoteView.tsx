@@ -98,7 +98,7 @@ export function SessionNoteView({ session, onEdit, initialTabValue = "general" }
         ...assessment,
         goal,
         subgoals,
-        milestones: assessment.milestones || [],
+        milestones: (assessment as any).milestones || [],
       };
     });
   }, [completeNote, goals, subgoalsResults]);
@@ -142,7 +142,9 @@ export function SessionNoteView({ session, onEdit, initialTabValue = "general" }
           </Button>
         </CardTitle>
         <CardDescription>
-          Session notes for {session.title} - {new Date(session.sessionDate).toLocaleDateString()}
+          Session notes for {session.title} - {typeof session.sessionDate === 'string' ? 
+            new Date(session.sessionDate).toLocaleDateString() : 
+            (session.sessionDate as any)?.toLocaleDateString() || ''}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -238,14 +240,14 @@ export function SessionNoteView({ session, onEdit, initialTabValue = "general" }
                                   <div className="w-full max-w-[200px] bg-gray-200 rounded-full h-2">
                                     <div 
                                       className="h-2 rounded-full bg-primary" 
-                                      style={{ width: `${milestone.rating * 10}%` }}
+                                      style={{ width: `${(milestone.rating || 0) * 10}%` }}
                                     ></div>
                                   </div>
                                   <Badge 
                                     variant="outline" 
                                     className="ml-2 text-xs"
                                   >
-                                    {milestone.rating}/10
+                                    {milestone.rating || 0}/10
                                   </Badge>
                                 </div>
                                 
