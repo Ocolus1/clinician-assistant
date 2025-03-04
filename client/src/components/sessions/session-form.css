@@ -1,545 +1,144 @@
-/* Import our color system */
-@import url('../../styles/colors.css');
+/* Custom styling for session forms */
 
-/* Enhanced Session Form Styles - Stage 1 Visual Refinements */
-
-/* Additional form-specific variable mappings */
-:root {
-  --background-lighter: var(--gray-100);
-  --primary-dark: var(--primary-blue-700);
-  --primary-darker: var(--primary-blue-900);
-  --primary-light: var(--primary-blue-300);
-  --primary-lighter: var(--primary-blue-100);
-  --accent-color: var(--teal-500);
-  --section-header-bg: var(--gray-50);
-  --success-color: var(--success-500);
-  --warning-color: var(--warning-500);
-  --error-color: var(--error-500);
+/* Rating slider colors for different ranges */
+.rating-slider.color-slider.range-low {
+  --slider-thumb-bg: #ef4444;
+  --slider-track-filled: #fecaca;
 }
 
-/* Enhanced tabs styling - FIXED as per color system requirements */
-[data-state="active"] {
-  background-color: var(--tab-bg-active) !important;
-  color: var(--tab-text-active) !important;
-  font-weight: 600 !important;
-  position: relative;
+.rating-slider.color-slider.range-mid {
+  --slider-thumb-bg: #f59e0b;
+  --slider-track-filled: #fde68a;
 }
 
-[data-state="active"]::after {
-  content: "";
-  position: absolute;
-  bottom: 0;
-  left: 10%;
-  width: 80%;
-  height: 2px;
-  background-color: var(--tab-indicator-active);
+.rating-slider.color-slider.range-high {
+  --slider-thumb-bg: #10b981;
+  --slider-track-filled: #a7f3d0;
 }
 
-/* Typography Improvements - FIXED as per color system requirements */
-h3 {
-  font-weight: 600 !important;
-  font-size: 1.125rem !important;
-  color: var(--text-heading) !important; /* Use heading color from system */
-  margin-bottom: 0.875rem !important;
-  position: relative;
-  padding-bottom: 0.5rem;
-}
-
-h3::after {
-  content: "";
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  width: 2rem;
-  height: 2px;
-  background-color: var(--primary-light);
-}
-
-/* Form label styling */
-[class*="FormLabel"] {
-  font-weight: 500 !important;
-  font-size: 0.875rem !important;
-  color: var(--input-label) !important; /* Use label color from system */
-  margin-bottom: 0.5rem !important;
-  letter-spacing: -0.01em !important;
-}
-
-/* Form message/helper text styling */
-[class*="FormMessage"], [class*="FormDescription"] {
-  font-size: 0.75rem !important;
-  color: var(--input-helper-text) !important; /* Use helper text color from system */
-}
-
-[class*="FormMessage"][data-state="error"] {
-  color: var(--input-error-text) !important; /* Use error text color from system */
-}
-
-/* Improved form fields */
-[class*="FormItem"] {
-  margin-bottom: 1.5rem !important;
-}
-
-/* Input field styling - FIXED as per color system requirements */
-input, textarea, select {
-  border-radius: 0.375rem !important;
-  border-color: var(--input-border) !important;
-  background-color: var(--input-bg) !important;
-  transition: all 0.2s ease !important;
-  font-size: 0.9375rem !important;
-  padding: 0.625rem 0.75rem !important;
-  color: var(--input-text) !important;
-}
-
-/* Focus styles for form elements */
-input:focus, textarea:focus, select:focus {
-  border-color: var(--input-border-focus) !important;
-  outline: none !important;
-  box-shadow: 0 0 0 2px rgba(58, 134, 255, 0.2) !important;
-}
-
-/* Error styles for form elements */
-input[aria-invalid="true"], textarea[aria-invalid="true"], select[aria-invalid="true"] {
-  border-color: var(--input-error-border) !important;
-  color: var(--input-error-text) !important;
-}
-
-/* Disabled styles for form elements */
-input:disabled, textarea:disabled, select:disabled {
-  background-color: var(--input-disabled-bg) !important;
-  color: var(--input-disabled-text) !important;
-  cursor: not-allowed !important;
-}
-
-/* Placeholder styling */
-input::placeholder, textarea::placeholder {
-  color: var(--input-placeholder) !important;
-  opacity: 0.7 !important;
-}
-
-/* Add spacing to form sections */
-[role="tabpanel"] {
-  padding: 1.25rem !important;
-}
-
-/* Card styling improvements - FIXED as per color system requirements */
-[class*="Card"] {
-  border-radius: 0.5rem !important;
-  border: 1px solid var(--card-border) !important;
-  transition: all 0.2s ease !important;
-  overflow: hidden !important;
-  box-shadow: var(--card-shadow) !important;
-  background-color: var(--card-background) !important; /* CRITICAL FIX - use white background */
-}
-
-[class*="Card"]:hover {
-  border-color: var(--gray-300) !important; /* More subtle hover state */
-  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08) !important;
-}
-
-/* Card header styling */
-[class*="CardHeader"] {
-  padding: 1rem !important;
-  border-bottom: 1px solid var(--card-header-border) !important;
-}
-
-[class*="CardTitle"] {
-  font-weight: 600 !important;
-  color: var(--session-title) !important; /* Use correct semantic variable */
-}
-
-/* Enhanced form sections - FIXED as per color system requirements */
-.session-form-section {
-  padding: 1.25rem;
-  margin-bottom: 1.5rem;
-  border-radius: 0.5rem;
-  border: 1px solid var(--border-color);
-  background-color: var(--white); /* CRITICAL FIX - use white background */
-  box-shadow: var(--card-shadow);
-}
-
-/* Enhanced badges and indicators - FIXED as per color system requirements */
-[class*="Badge"] {
-  font-weight: 500 !important;
-  border-radius: 9999px !important;
-  padding: 0.25rem 0.625rem !important;
-  font-size: 0.75rem !important;
-  letter-spacing: 0.01em !important;
-  transition: all 0.2s ease !important;
-}
-
-/* Badge variants */
-[class*="Badge"][class*="outline"] {
-  background-color: transparent !important;
-  border: 1px solid var(--border-color) !important;
-}
-
-[class*="Badge"][class*="default"] {
-  background-color: var(--primary-color) !important;
-  color: var(--white) !important;
-}
-
-/* Status badge variants for sessions */
-[class*="Badge"].status-scheduled {
-  background-color: var(--session-scheduled-bg) !important;
-  color: var(--session-scheduled-text) !important;
-}
-
-[class*="Badge"].status-completed {
-  background-color: var(--session-completed-bg) !important;
-  color: var(--session-completed-text) !important;
-}
-
-[class*="Badge"].status-cancelled {
-  background-color: var(--session-cancelled-bg) !important;
-  color: var(--session-cancelled-text) !important;
-}
-
-/* Badge hover effects */
-[class*="Badge"][class*="cursor-pointer"]:hover {
-  transform: translateY(-1px) !important;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
-}
-
-/* Improved sliders and progress indicators */
-.rating-slider [role="slider"] {
-  border: 2px solid white !important;
-  width: 1.25rem !important;
-  height: 1.25rem !important;
-  transition: all 0.2s ease !important;
-}
-
-.rating-slider [role="slider"]:hover {
-  transform: scale(1.1) !important;
-}
-
-.rating-slider [role="slider"]:active {
-  transform: scale(0.95) !important;
-}
-
+/* Override Slider component styling */
 .rating-slider [data-orientation="horizontal"] {
-  height: 0.5rem !important;
-  border-radius: 1rem !important;
+  height: 0.5rem;
 }
 
-.rating-slider [data-orientation="horizontal"] > div {
-  border-top-left-radius: 1rem !important;
-  border-bottom-left-radius: 1rem !important;
+.rating-slider [data-orientation="horizontal"] > span[data-orientation="horizontal"] {
+  height: 100%;
+  background: var(--slider-track-filled, #d1d5db);
 }
 
-/* Color-coded sliders */
-.color-slider [role="slider"] {
-  background-color: var(--thumb-color, var(--primary-color)) !important;
-  box-shadow: 0 0 0 1px var(--thumb-color, var(--primary-color)) !important;
+.rating-slider [role="slider"] {
+  width: 1.25rem;
+  height: 1.25rem;
+  background: var(--slider-thumb-bg, #6b7280);
+  border: 2px solid white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-.color-slider [role="slider"]:hover {
-  box-shadow: 0 0 0 1px var(--thumb-color, var(--primary-color)), 0 0 0 4px rgba(var(--thumb-color-rgb, 58, 134, 255), 0.2) !important;
-}
-
-.color-slider [data-orientation="horizontal"] {
-  background-color: var(--background-lighter) !important;
-}
-
-/* Track color based on range */
-/* Red for 0-3 */
-.color-slider.range-low [data-orientation="horizontal"] > div {
-  background-color: var(--error-500) !important;
-}
-.color-slider.range-low [role="slider"] {
-  background-color: var(--error-500) !important;
-  box-shadow: 0 0 0 1px var(--error-500) !important;
-}
-.color-slider.range-low [role="slider"]:hover {
-  box-shadow: 0 0 0 1px var(--error-500), 0 0 0 4px rgba(239, 68, 68, 0.2) !important;
-}
-
-/* Orange for 4-6 */
-.color-slider.range-mid [data-orientation="horizontal"] > div {
-  background-color: var(--warning-500) !important;
-}
-.color-slider.range-mid [role="slider"] {
-  background-color: var(--warning-500) !important;
-  box-shadow: 0 0 0 1px var(--warning-500) !important;
-}
-.color-slider.range-mid [role="slider"]:hover {
-  box-shadow: 0 0 0 1px var(--warning-500), 0 0 0 4px rgba(234, 179, 8, 0.2) !important;
-}
-
-/* Green for 7-10 */
-.color-slider.range-high [data-orientation="horizontal"] > div {
-  background-color: var(--success-500) !important;
-}
-.color-slider.range-high [role="slider"] {
-  background-color: var(--success-500) !important;
-  box-shadow: 0 0 0 1px var(--success-500) !important;
-}
-.color-slider.range-high [role="slider"]:hover {
-  box-shadow: 0 0 0 1px var(--success-500), 0 0 0 4px rgba(34, 197, 94, 0.2) !important;
-}
-
-/* Component Button Styles - Using our new button system */
-
-/* Map shadcn Button components to our button system */
-[class*="Button"] {
-  /* Use the base button styles */
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  font-weight: 500 !important;
-  font-size: 0.875rem !important;
-  line-height: 1.25rem !important;
-  transition: all 0.2s ease !important;
-  cursor: pointer !important;
-  white-space: nowrap !important;
-}
-
-[class*="Button"]:focus {
-  outline: none !important;
-  box-shadow: 0 0 0 2px white, 0 0 0 4px var(--primary-blue-300) !important;
-}
-
-/* Primary button style */
-[class*="Button"][class*="primary"] {
-  background-color: var(--btn-primary-bg) !important;
-  color: var(--btn-primary-text) !important;
-  border-radius: var(--btn-primary-radius) !important;
-  padding: var(--btn-primary-padding) !important;
-  box-shadow: var(--btn-primary-shadow) !important;
-  border: none !important;
-}
-
-[class*="Button"][class*="primary"]:hover {
-  background-color: var(--btn-primary-hover) !important;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15) !important;
-}
-
-[class*="Button"][class*="primary"]:active {
-  background-color: var(--btn-primary-active) !important;
-  transform: translateY(1px) !important;
-}
-
-[class*="Button"][class*="primary"][disabled] {
-  background-color: var(--btn-disabled-bg) !important;
-  color: var(--btn-disabled-text) !important;
-  cursor: not-allowed !important;
-  transform: none !important;
-  box-shadow: none !important;
-  border-color: transparent !important;
-  pointer-events: none !important;
-}
-
-/* Secondary button style (including outline variant) */
-[class*="Button"][class*="secondary"],
-[class*="Button"][class*="outline"] {
-  background-color: var(--btn-secondary-bg) !important;
-  color: var(--btn-secondary-text) !important;
-  border: var(--btn-secondary-border-width) solid var(--btn-secondary-border) !important;
-  border-radius: var(--btn-secondary-radius) !important;
-  padding: var(--btn-secondary-padding) !important;
-  box-shadow: var(--btn-secondary-shadow) !important;
-}
-
-[class*="Button"][class*="secondary"]:hover,
-[class*="Button"][class*="outline"]:hover {
-  background-color: var(--btn-secondary-hover) !important;
-}
-
-[class*="Button"][class*="secondary"]:active,
-[class*="Button"][class*="outline"]:active {
-  background-color: var(--btn-secondary-hover) !important;
-  border-color: var(--btn-primary-hover) !important;
-  transform: translateY(1px) !important;
-}
-
-/* Tertiary button style (Ghost) */
-[class*="Button"][class*="ghost"] {
-  background-color: var(--btn-icon-bg) !important;
-  color: var(--btn-tertiary-text) !important;
-  border: none !important;
-}
-
-[class*="Button"][class*="ghost"]:hover {
-  background-color: var(--btn-tertiary-hover) !important;
-}
-
-[class*="Button"][class*="ghost"]:active {
-  transform: scale(0.98) !important;
-}
-
-/* Icon button style */
-[class*="Button"][class*="ghost"][class*="icon"],
-[class*="Button"][class*="icon"] {
-  background-color: var(--btn-icon-bg) !important;
-  color: var(--btn-icon-inactive) !important;
-  border: none !important;
-  border-radius: var(--btn-icon-radius) !important;
-  padding: 0 !important;
-  width: var(--btn-icon-size) !important;
-  height: var(--btn-icon-size) !important;
-}
-
-[class*="Button"][class*="ghost"][class*="icon"] svg,
-[class*="Button"][class*="icon"] svg {
-  width: var(--btn-icon-inner-size) !important;
-  height: var(--btn-icon-inner-size) !important;
-}
-
-[class*="Button"][class*="ghost"][class*="icon"]:hover,
-[class*="Button"][class*="icon"]:hover {
-  background-color: var(--btn-icon-hover-bg) !important;
-}
-
-[class*="Button"][class*="ghost"][class*="icon"]:active,
-[class*="Button"][class*="icon"]:active {
-  transform: scale(0.95) !important;
-}
-
-/* Destructive button style */
-[class*="Button"][class*="destructive"] {
-  background-color: var(--btn-danger-bg) !important;
-  color: var(--btn-danger-text) !important;
-  border-radius: var(--btn-primary-radius) !important;
-  padding: var(--btn-primary-padding) !important;
-  border: none !important;
-}
-
-[class*="Button"][class*="destructive"]:hover {
-  background-color: var(--btn-danger-hover) !important;
-}
-
-[class*="Button"][class*="destructive"]:active {
-  transform: translateY(1px) !important;
-}
-
-/* Form navigation styling */
-.form-footer {
-  padding-top: 1rem !important;
-  border-top: 1px solid var(--border-color) !important;
-  margin-top: 1rem !important;
-}
-
-/* Tab styling enhancements - FIXED as per color system requirements */
-[class*="TabsList"] {
-  background-color: var(--gray-50) !important;
-  border-radius: 0.5rem !important;
-  padding: 0.25rem !important;
-  margin-bottom: 1.5rem !important;
-}
-
-[class*="TabsTrigger"] {
-  font-weight: 500 !important;
-  transition: all 0.2s ease !important;
-  position: relative !important;
-  color: var(--tab-text-inactive) !important;
-  background-color: var(--tab-bg-inactive) !important;
-}
-
-[class*="TabsTrigger"]:hover:not([data-state="active"]) {
-  background-color: var(--tab-hover-inactive) !important;
-}
-
-[class*="TabsTrigger"][data-state="active"] {
-  background-color: var(--tab-bg-active) !important;
-  color: var(--tab-text-active) !important;
-  font-weight: 600 !important;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important;
-  border-bottom: 2px solid var(--tab-indicator-active) !important;
-}
-
-/* Tab content transitions */
-[role="tabpanel"] {
-  transition: opacity 0.3s ease !important;
-  animation: fadeIn 0.3s ease-in-out !important;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(5px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-/* Add spacing in form layouts */
-.form-grid {
-  display: grid;
-  gap: 1rem;
-}
-
-/* Enhanced dialog components */
-[role="dialog"] {
-  backdrop-filter: blur(4px);
-}
-
-[class*="DialogHeader"] {
-  padding-bottom: 1rem !important;
-  border-bottom: 1px solid var(--border-color) !important;
-  margin-bottom: 1.25rem !important;
-}
-
-[class*="DialogTitle"] {
-  font-weight: 600 !important;
-  font-size: 1.25rem !important;
-  color: var(--text-primary) !important;
-  letter-spacing: -0.01em !important;
-}
-
-[class*="DialogDescription"] {
-  color: var(--text-secondary) !important;
-  font-size: 0.9375rem !important;
-  margin-top: 0.25rem !important;
-}
-
-[class*="DialogFooter"] {
-  padding-top: 1rem !important;
-  border-top: 1px solid var(--border-color) !important;
-  margin-top: 1.25rem !important;
-}
-
-/* Form section headers with icons */
+/* Section headers */
 .section-header {
   display: flex;
   align-items: center;
+  font-size: 1rem;
+  font-weight: 500;
+  margin-bottom: 0.75rem;
   gap: 0.5rem;
-  color: var(--primary-color);
-  font-weight: 600;
-  margin-bottom: 1rem;
-  font-size: 1.125rem;
-  letter-spacing: -0.01em;
+  color: #374151;
 }
 
-.section-header svg {
-  width: 1.25rem;
-  height: 1.25rem;
+/* Hide uncontained calendars */
+.uncontained-calendar {
+  display: none !important;
 }
 
-/* Empty state styling */
-[class*="border"][class*="rounded-md"][class*="bg-muted"] {
-  background-color: var(--background-lighter) !important;
-  border: 1px dashed var(--border-color) !important;
-  border-radius: 0.5rem !important;
-  padding: 1.5rem !important;
-  text-align: center !important;
-  transition: all 0.2s ease !important;
+/* Form tab styles */
+.tabs-with-underline [role="tablist"] {
+  border-bottom: 1px solid hsl(var(--border));
+  padding-bottom: 0;
 }
 
-[class*="border"][class*="rounded-md"][class*="bg-muted"]:hover {
-  border-color: var(--text-secondary) !important;
+.tabs-with-underline [data-state="active"] {
+  border-bottom: 2px solid hsl(var(--primary));
+  font-weight: 500;
 }
 
-[class*="border"][class*="rounded-md"][class*="bg-muted"] p {
-  color: var(--text-secondary) !important;
-  font-size: 0.9375rem !important;
+/* Strategy tags */
+.strategy-tag {
+  transition: all 0.2s ease;
+  cursor: pointer;
 }
 
-/* Enhanced select controls */
-[role="combobox"] {
-  border-radius: 0.375rem !important;
+.strategy-tag:hover {
+  background-color: hsl(var(--primary) / 0.1);
 }
 
-/* Calendar styling enhancements */
-.rdp-button:hover:not([disabled]) {
-  background-color: var(--primary-light) !important;
-  color: var(--primary-color) !important;
+.strategy-tag.selected {
+  background-color: hsl(var(--primary));
+  color: white;
 }
 
-.rdp-day_selected {
-  background-color: var(--primary-color) !important;
+/* Disabled when maximum reached */
+.strategy-tag.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Progress steps */
+.progress-step {
+  display: flex;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.progress-step-circle {
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.progress-step-circle.active {
+  background-color: hsl(var(--primary));
+  color: white;
+}
+
+.progress-step-circle.completed {
+  background-color: hsl(var(--primary) / 0.8);
+  color: white;
+}
+
+.progress-step-circle.pending {
+  background-color: hsl(var(--muted));
+  color: hsl(var(--muted-foreground));
+}
+
+.progress-step-label {
+  font-size: 0.875rem;
+}
+
+.progress-step-label.active {
+  font-weight: 500;
+  color: hsl(var(--foreground));
+}
+
+.progress-step-label.completed {
+  color: hsl(var(--primary));
+}
+
+.progress-step-label.pending {
+  color: hsl(var(--muted-foreground));
+}
+
+/* Assessment card transitions */
+.assessment-card {
+  transition: all 0.3s ease;
+}
+
+.assessment-card:hover {
+  border-color: hsl(var(--primary) / 0.5);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
 }
