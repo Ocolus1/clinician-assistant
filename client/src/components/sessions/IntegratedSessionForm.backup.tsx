@@ -33,25 +33,6 @@ import { useSafeForm } from "@/hooks/use-safe-hooks";
 import { useToast } from "@/hooks/use-toast";
 
 // UI Components
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -60,12 +41,31 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Slider } from "@/components/ui/slider";
 import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue 
+} from "@/components/ui/select";
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import {
   Card,
   CardContent,
@@ -74,69 +74,92 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Label } from "@/components/ui/label";
-import { Slider } from "@/components/ui/slider";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Separator } from "@/components/ui/separator";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
-// Define the session form schema with validation
-const sessionFormSchema = z.object({
-  title: z.string().min(1, "Title is required"),
-  description: z.string().optional(),
-  sessionDate: z.date(),
-  duration: z.coerce.number().min(1, "Duration must be at least 1 minute"),
-  status: z.string(),
-  location: z.string(),
-  notes: z.string().optional(),
-  clientId: z.number().min(1, "Client is required"),
-});
-
-// Session note schema with validation
-const sessionNoteSchema = z.object({
-  presentAllies: z.array(z.string()).default([]),
-  moodRating: z.number().min(1).max(10),
-  focusRating: z.number().min(1).max(10),
-  cooperationRating: z.number().min(1).max(10),
-  physicalActivityRating: z.number().min(1).max(10),
-  notes: z.string().optional(),
-  status: z.string().default("draft"),
-});
-
-// Milestone assessment schema
-const milestoneAssessmentSchema = z.object({
-  milestoneId: z.number(),
-  milestoneTitle: z.string(),
-  rating: z.number().min(1).max(10),
-  strategies: z.array(z.string()).default([]),
-  notes: z.string().optional(),
+// Session form schema
+const sessionFormSchema = insertSessionSchema.extend({
+  sessionDate: z.coerce.date({
+    required_error: "Session date is required",
+  }),
+  clientId: z.coerce.number({
+    required_error: "Client is required",
+  }),
+  therapistId: z.coerce.number().optional(),
+  duration: z.coerce.number({
+    required_error: "Duration is required",
+  }).min(1, "Duration must be at least 1 minute"),
+  status: z.string({
+    required_error: "Status is required",
+  }),
 });
 
 // Performance assessment schema
 const performanceAssessmentSchema = z.object({
   goalId: z.number(),
-  goalTitle: z.string(),
+  goalTitle: z.string().optional(),
   notes: z.string().optional(),
-  milestones: z.array(milestoneAssessmentSchema).default([]),
+  milestones: z.array(z.object({
+    milestoneId: z.number(),
+    milestoneTitle: z.string().optional(),
+    rating: z.number().min(0).max(10).optional(),
+    strategies: z.array(z.string()).default([]),
+    notes: z.string().optional(),
+  })).default([]),
 });
 
-// Combined schema for the integrated form
+// Session notes schema
+const sessionNoteSchema = z.object({
+  presentAllies: z.array(z.string()).default([]),
+  moodRating: z.number().min(0).max(10).default(5),
+  focusRating: z.number().min(0).max(10).default(5),
+  cooperationRating: z.number().min(0).max(10).default(5),
+  physicalActivityRating: z.number().min(0).max(10).default(5),
+  notes: z.string().optional(),
+  status: z.enum(["draft", "completed"]).default("draft"),
+});
+
+// Complete form schema
 const integratedSessionFormSchema = z.object({
   session: sessionFormSchema,
   sessionNote: sessionNoteSchema,
   performanceAssessments: z.array(performanceAssessmentSchema).default([]),
 });
 
-// Type for the form values
 type IntegratedSessionFormValues = z.infer<typeof integratedSessionFormSchema>;
 
-// Define the Goal Selection Dialog component
+interface RatingSliderProps {
+  value: number;
+  onChange: (value: number) => void;
+  label: string;
+  description?: string;
+}
+
+const RatingSlider = ({ value, onChange, label, description }: RatingSliderProps) => {
+  return (
+    <div className="space-y-2">
+      <div className="flex justify-between items-center">
+        <Label>{label}</Label>
+        <Badge variant="outline">{value}</Badge>
+      </div>
+      {description && <p className="text-sm text-muted-foreground">{description}</p>}
+      <Slider
+        value={[value]}
+        min={0}
+        max={10}
+        step={1}
+        onValueChange={(vals) => onChange(vals[0])}
+        className="py-1"
+      />
+      <div className="flex justify-between text-xs text-muted-foreground">
+        <span>0</span>
+        <span>5</span>
+        <span>10</span>
+      </div>
+    </div>
+  );
+};
+
 interface GoalSelectionDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -145,16 +168,14 @@ interface GoalSelectionDialogProps {
   onSelectGoal: (goal: Goal) => void;
 }
 
-const GoalSelectionDialog = ({
-  open,
-  onOpenChange,
-  goals,
-  selectedGoalIds,
-  onSelectGoal
+const GoalSelectionDialog = ({ 
+  open, 
+  onOpenChange, 
+  goals, 
+  selectedGoalIds, 
+  onSelectGoal 
 }: GoalSelectionDialogProps) => {
-  const availableGoals = goals.filter(
-    goal => !selectedGoalIds.includes(goal.id)
-  );
+  const availableGoals = goals.filter(goal => !selectedGoalIds.includes(goal.id));
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -514,9 +535,18 @@ export function IntegratedSessionForm({
       <div className="w-full h-full flex flex-col px-6 py-4">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-grow flex flex-col overflow-hidden">
           <TabsList className="grid grid-cols-3 mb-4">
-            <TabsTrigger value="details">Session Details</TabsTrigger>
-            <TabsTrigger value="participants">Observations</TabsTrigger>
-            <TabsTrigger value="performance">Performance Assessment</TabsTrigger>
+            <TabsTrigger value="details" className="flex items-center justify-center gap-2">
+              <FileText className="h-4 w-4" />
+              <span>Session Details</span>
+            </TabsTrigger>
+            <TabsTrigger value="participants" className="flex items-center justify-center gap-2">
+              <Users className="h-4 w-4" />
+              <span>Observations</span>
+            </TabsTrigger>
+            <TabsTrigger value="performance" className="flex items-center justify-center gap-2">
+              <BarChart className="h-4 w-4" />
+              <span>Performance Assessment</span>
+            </TabsTrigger>
           </TabsList>
 
           <Form {...form}>
@@ -824,315 +854,121 @@ export function IntegratedSessionForm({
                       </div>
                     )}
                   </div>
-
+                  
                   {/* Session Observations */}
-                  <div className="space-y-6">
-                    <h3 className="font-medium text-lg">Client Observations</h3>
+                  <div className="space-y-4">
+                    <h3 className="font-medium text-lg">Session Observations</h3>
                     
-                    <div className="space-y-4">
-                      {/* Mood Rating */}
-                      <FormField
-                        control={form.control}
-                        name="sessionNote.moodRating"
-                        render={({ field }) => (
-                          <FormItem>
-                            <div className="space-y-2">
-                              <div className="flex justify-between">
-                                <FormLabel>Mood</FormLabel>
-                                <span className="text-sm text-muted-foreground">{field.value}/10</span>
-                              </div>
-                              <FormControl>
-                                <Slider
-                                  min={1}
-                                  max={10}
-                                  step={1}
-                                  defaultValue={[field.value]}
-                                  onValueChange={(values) => {
-                                    field.onChange(values[0]);
-                                  }}
-                                />
-                              </FormControl>
-                              <div className="flex justify-between text-xs text-muted-foreground">
-                                <span>Poor</span>
-                                <span>Excellent</span>
-                              </div>
-                            </div>
-                          </FormItem>
-                        )}
-                      />
-
-                      {/* Focus Rating */}
-                      <FormField
-                        control={form.control}
-                        name="sessionNote.focusRating"
-                        render={({ field }) => (
-                          <FormItem>
-                            <div className="space-y-2">
-                              <div className="flex justify-between">
-                                <FormLabel>Attention/Focus</FormLabel>
-                                <span className="text-sm text-muted-foreground">{field.value}/10</span>
-                              </div>
-                              <FormControl>
-                                <Slider
-                                  min={1}
-                                  max={10}
-                                  step={1}
-                                  defaultValue={[field.value]}
-                                  onValueChange={(values) => {
-                                    field.onChange(values[0]);
-                                  }}
-                                />
-                              </FormControl>
-                              <div className="flex justify-between text-xs text-muted-foreground">
-                                <span>Poor</span>
-                                <span>Excellent</span>
-                              </div>
-                            </div>
-                          </FormItem>
-                        )}
-                      />
-
-                      {/* Cooperation Rating */}
-                      <FormField
-                        control={form.control}
-                        name="sessionNote.cooperationRating"
-                        render={({ field }) => (
-                          <FormItem>
-                            <div className="space-y-2">
-                              <div className="flex justify-between">
-                                <FormLabel>Cooperation</FormLabel>
-                                <span className="text-sm text-muted-foreground">{field.value}/10</span>
-                              </div>
-                              <FormControl>
-                                <Slider
-                                  min={1}
-                                  max={10}
-                                  step={1}
-                                  defaultValue={[field.value]}
-                                  onValueChange={(values) => {
-                                    field.onChange(values[0]);
-                                  }}
-                                />
-                              </FormControl>
-                              <div className="flex justify-between text-xs text-muted-foreground">
-                                <span>Poor</span>
-                                <span>Excellent</span>
-                              </div>
-                            </div>
-                          </FormItem>
-                        )}
-                      />
-
-                      {/* Physical Activity Rating */}
-                      <FormField
-                        control={form.control}
-                        name="sessionNote.physicalActivityRating"
-                        render={({ field }) => (
-                          <FormItem>
-                            <div className="space-y-2">
-                              <div className="flex justify-between">
-                                <FormLabel>Physical Activity Level</FormLabel>
-                                <span className="text-sm text-muted-foreground">{field.value}/10</span>
-                              </div>
-                              <FormControl>
-                                <Slider
-                                  min={1}
-                                  max={10}
-                                  step={1}
-                                  defaultValue={[field.value]}
-                                  onValueChange={(values) => {
-                                    field.onChange(values[0]);
-                                  }}
-                                />
-                              </FormControl>
-                              <div className="flex justify-between text-xs text-muted-foreground">
-                                <span>Low</span>
-                                <span>High</span>
-                              </div>
-                            </div>
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-
-                    {/* Notes/Comments */}
                     <FormField
                       control={form.control}
                       name="sessionNote.notes"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Additional Notes</FormLabel>
+                          <FormLabel>General Notes</FormLabel>
                           <FormControl>
                             <Textarea 
-                              placeholder="Any additional observations or comments about the session"
-                              className="resize-none min-h-24"
-                              value={field.value || ''}
-                              onChange={field.onChange}
+                              placeholder="Enter general observations about the session..."
+                              className="resize-none min-h-32"
+                              {...field}
                             />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <FormField
+                        control={form.control}
+                        name="sessionNote.moodRating"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormControl>
+                              <RatingSlider
+                                value={field.value}
+                                onChange={field.onChange}
+                                label="Mood"
+                                description="Rate client's overall mood during the session"
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <FormField
+                        control={form.control}
+                        name="sessionNote.focusRating"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormControl>
+                              <RatingSlider
+                                value={field.value}
+                                onChange={field.onChange}
+                                label="Focus"
+                                description="Rate client's ability to focus during the session"
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <FormField
+                        control={form.control}
+                        name="sessionNote.cooperationRating"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormControl>
+                              <RatingSlider
+                                value={field.value}
+                                onChange={field.onChange}
+                                label="Cooperation"
+                                description="Rate client's overall cooperation"
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <FormField
+                        control={form.control}
+                        name="sessionNote.physicalActivityRating"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormControl>
+                              <RatingSlider
+                                value={field.value}
+                                onChange={field.onChange}
+                                label="Physical Activity"
+                                description="Rate client's physical activity level"
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
                   </div>
                 </TabsContent>
 
                 {/* Performance Assessment Tab */}
-                <TabsContent value="performance" className="space-y-6 mt-0 px-2">
-                  {selectedPerformanceAssessments.length === 0 ? (
-                    <div className="text-center p-8 border rounded-lg bg-muted/20">
-                      <h3 className="font-medium text-lg mb-4">No goals selected yet</h3>
-                      <p className="text-muted-foreground mb-6">
-                        Select goals to assess for this session
-                      </p>
-                      <Button 
-                        onClick={() => setGoalSelectionOpen(true)}
-                        disabled={!clientId}
-                      >
-                        <Plus className="h-4 w-4 mr-2" />
-                        Add Goal
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="space-y-6">
-                      <div className="flex justify-between items-center">
-                        <h3 className="font-medium text-lg">Goals Assessment</h3>
-                        <Button 
-                          size="sm" 
-                          onClick={() => setGoalSelectionOpen(true)}
-                          disabled={!clientId || goals.length === selectedGoalIds.length}
-                        >
-                          <Plus className="h-4 w-4 mr-1" />
-                          Add Goal
-                        </Button>
-                      </div>
-                      
-                      <div className="space-y-6">
-                        {selectedPerformanceAssessments.map((assessment, goalIndex) => (
-                          <Card key={assessment.goalId} className="overflow-hidden">
-                            <CardHeader className="p-4 pb-2 bg-muted/20">
-                              <div className="flex justify-between items-start">
-                                <CardTitle className="text-base">
-                                  {assessment.goalTitle}
-                                </CardTitle>
-                                <Button 
-                                  variant="ghost" 
-                                  size="icon"
-                                  className="h-6 w-6 rounded-full"
-                                  onClick={() => handleRemoveGoal(goalIndex)}
-                                >
-                                  <X className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            </CardHeader>
-                            <CardContent className="p-4 space-y-3">
-                              {/* Goal Notes */}
-                              <div className="space-y-2">
-                                <Label htmlFor={`goal-notes-${assessment.goalId}`}>
-                                  Goal Progress Notes
-                                </Label>
-                                <Textarea 
-                                  id={`goal-notes-${assessment.goalId}`}
-                                  placeholder="Notes on overall goal progress"
-                                  className="resize-none"
-                                  value={assessment.notes || ''}
-                                  onChange={(e) => {
-                                    const updated = [...selectedPerformanceAssessments];
-                                    updated[goalIndex].notes = e.target.value;
-                                    form.setValue("performanceAssessments", updated);
-                                  }}
-                                />
-                              </div>
-                              
-                              {/* Milestones Section */}
-                              <div className="space-y-4 mt-4">
-                                <div className="flex justify-between items-center">
-                                  <Label>Milestones Assessment</Label>
-                                  <Button 
-                                    variant="outline" 
-                                    size="sm"
-                                    onClick={() => {
-                                      setCurrentGoalIndex(goalIndex);
-                                      setSelectedGoalId(assessment.goalId);
-                                      setMilestoneSelectionOpen(true);
-                                    }}
-                                    disabled={!assessment.goalId}
-                                  >
-                                    <Plus className="h-3 w-3 mr-1" />
-                                    Add Milestone
-                                  </Button>
-                                </div>
-                                
-                                {assessment.milestones?.length === 0 ? (
-                                  <div className="text-sm text-muted-foreground p-2 text-center border rounded-md">
-                                    No milestones selected for this goal
-                                  </div>
-                                ) : (
-                                  <div className="space-y-3">
-                                    {assessment.milestones?.map((milestone, milestoneIndex) => (
-                                      <div key={milestone.milestoneId} className="border rounded-md p-3 space-y-3">
-                                        <div className="flex justify-between items-start">
-                                          <div className="font-medium text-sm">{milestone.milestoneTitle}</div>
-                                          <Button 
-                                            variant="ghost" 
-                                            size="icon"
-                                            className="h-6 w-6 rounded-full"
-                                            onClick={() => handleRemoveMilestone(goalIndex, milestoneIndex)}
-                                          >
-                                            <X className="h-3 w-3" />
-                                          </Button>
-                                        </div>
-                                        
-                                        {/* Milestone Rating */}
-                                        <div className="space-y-2">
-                                          <div className="flex justify-between items-center">
-                                            <span className="text-xs text-muted-foreground">Performance Level</span>
-                                            <span className="text-xs font-medium">{milestone.rating}/10</span>
-                                          </div>
-                                          <Slider
-                                            min={1}
-                                            max={10}
-                                            step={1}
-                                            defaultValue={[milestone.rating]}
-                                            onValueChange={(values) => {
-                                              const updated = [...selectedPerformanceAssessments];
-                                              updated[goalIndex].milestones[milestoneIndex].rating = values[0];
-                                              form.setValue("performanceAssessments", updated);
-                                            }}
-                                          />
-                                          <div className="flex justify-between text-xs text-muted-foreground">
-                                            <span>Beginning</span>
-                                            <span>Emerging</span>
-                                            <span>Developing</span>
-                                            <span>Mastered</span>
-                                          </div>
-                                        </div>
-                                        
-                                        {/* Milestone Notes */}
-                                        <Textarea 
-                                          placeholder="Notes on this milestone"
-                                          className="resize-none text-sm"
-                                          value={milestone.notes || ''}
-                                          onChange={(e) => {
-                                            const updated = [...selectedPerformanceAssessments];
-                                            updated[goalIndex].milestones[milestoneIndex].notes = e.target.value;
-                                            form.setValue("performanceAssessments", updated);
-                                          }}
-                                        />
-                                      </div>
-                                    ))}
-                                  </div>
-                                )}
-                              </div>
-                            </CardContent>
-                          </Card>
-                        ))}
-                      </div>
-                    </div>
-                  )}
+                <TabsContent value="performance" className="space-y-4 mt-0 px-2">
+                  <div className="flex justify-between items-center">
+                    <h3 className="font-medium text-lg">Performance Assessment</h3>
+                    <Button 
+                      type="button" 
+                      onClick={() => setGoalSelectionOpen(true)}
+                      disabled={!clientId}
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Goal
+                    </Button>
+                  </div>
                   
                   {/* Goal Selection Dialog */}
-                  <GoalSelectionDialog 
+                  <GoalSelectionDialog
                     open={goalSelectionOpen}
                     onOpenChange={setGoalSelectionOpen}
                     goals={goals}
@@ -1140,20 +976,209 @@ export function IntegratedSessionForm({
                     onSelectGoal={handleGoalSelection}
                   />
                   
-                  {/* Milestone Selection Dialog */}
-                  <MilestoneSelectionDialog 
-                    open={milestoneSelectionOpen}
-                    onOpenChange={setMilestoneSelectionOpen}
-                    subgoals={subgoals}
-                    selectedMilestoneIds={currentGoalIndex !== null ? 
-                      getSelectedMilestoneIds(selectedPerformanceAssessments[currentGoalIndex].goalId) : 
-                      []
-                    }
-                    onSelectMilestone={handleMilestoneSelection}
-                  />
+                  {/* Selected Goals and Milestones */}
+                  {selectedPerformanceAssessments.length === 0 ? (
+                    <div className="border rounded-md p-6 text-center bg-muted/10">
+                      <p className="text-muted-foreground">
+                        No goals selected yet. Click "Add Goal" to start assessment.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-6">
+                      {selectedPerformanceAssessments.map((assessment, goalIndex) => {
+                        const goal = goals.find(g => g.id === assessment.goalId);
+                        const goalSubgoals = subgoalsByGoalId[assessment.goalId] || [];
+                        const selectedMilestoneIds = getSelectedMilestoneIds(assessment.goalId);
+                        
+                        return (
+                          <Card key={assessment.goalId} className="overflow-hidden">
+                            <CardHeader className="bg-primary/10 pb-3">
+                              <div className="flex justify-between items-start">
+                                <CardTitle className="text-base">
+                                  {goal?.title || assessment.goalTitle}
+                                </CardTitle>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => handleRemoveGoal(goalIndex)}
+                                >
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              </div>
+                              <CardDescription>
+                                {goal?.description}
+                              </CardDescription>
+                            </CardHeader>
+                            
+                            <CardContent className="pt-4">
+                              {/* Goal Notes */}
+                              <FormField
+                                control={form.control}
+                                name={`performanceAssessments.${goalIndex}.notes`}
+                                render={({ field }) => (
+                                  <FormItem className="mb-4">
+                                    <FormLabel>Goal Progress Notes</FormLabel>
+                                    <FormControl>
+                                      <Textarea 
+                                        placeholder="Enter notes about progress on this goal..."
+                                        className="resize-none min-h-20"
+                                        {...field}
+                                      />
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+                              
+                              {/* Milestone Section */}
+                              <div className="mt-4">
+                                <div className="flex justify-between items-center mb-3">
+                                  <h4 className="text-sm font-medium">Milestone Assessment</h4>
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => {
+                                      setCurrentGoalIndex(goalIndex);
+                                      setMilestoneSelectionOpen(true);
+                                      setSelectedGoalId(assessment.goalId);
+                                    }}
+                                  >
+                                    <Plus className="h-3 w-3 mr-1" />
+                                    Add Milestone
+                                  </Button>
+                                </div>
+                                
+                                {/* Milestone Selection Dialog */}
+                                {currentGoalIndex === goalIndex && (
+                                  <MilestoneSelectionDialog
+                                    open={milestoneSelectionOpen}
+                                    onOpenChange={setMilestoneSelectionOpen}
+                                    subgoals={goalSubgoals}
+                                    selectedMilestoneIds={selectedMilestoneIds}
+                                    onSelectMilestone={handleMilestoneSelection}
+                                  />
+                                )}
+                                
+                                {/* Selected Milestones */}
+                                {assessment.milestones.length === 0 ? (
+                                  <div className="border rounded-md p-3 text-center bg-muted/10">
+                                    <p className="text-sm text-muted-foreground">
+                                      No milestones selected yet. Click "Add Milestone" to assess progress.
+                                    </p>
+                                  </div>
+                                ) : (
+                                  <div className="space-y-4">
+                                    {assessment.milestones.map((milestone, milestoneIndex) => {
+                                      const subgoal = goalSubgoals.find(s => s.id === milestone.milestoneId);
+                                      
+                                      return (
+                                        <div 
+                                          key={milestone.milestoneId} 
+                                          className="border rounded-md p-4 space-y-3"
+                                        >
+                                          <div className="flex justify-between items-start">
+                                            <div>
+                                              <h5 className="font-medium">
+                                                {subgoal?.title || milestone.milestoneTitle}
+                                              </h5>
+                                              <p className="text-sm text-muted-foreground mt-1">
+                                                {subgoal?.description}
+                                              </p>
+                                            </div>
+                                            <Button
+                                              variant="ghost"
+                                              size="icon"
+                                              onClick={() => handleRemoveMilestone(goalIndex, milestoneIndex)}
+                                            >
+                                              <X className="h-4 w-4" />
+                                            </Button>
+                                          </div>
+                                          
+                                          {/* Milestone Rating */}
+                                          <FormField
+                                            control={form.control}
+                                            name={`performanceAssessments.${goalIndex}.milestones.${milestoneIndex}.rating`}
+                                            render={({ field }) => (
+                                              <FormItem>
+                                                <FormLabel>Performance Rating</FormLabel>
+                                                <FormControl>
+                                                  <RatingSlider
+                                                    value={field.value !== undefined ? field.value : 5}
+                                                    onChange={field.onChange}
+                                                    label="Performance"
+                                                    description="Rate client's performance on this milestone"
+                                                  />
+                                                </FormControl>
+                                                <FormMessage />
+                                              </FormItem>
+                                            )}
+                                          />
+                                          
+                                          {/* Milestone Notes */}
+                                          <FormField
+                                            control={form.control}
+                                            name={`performanceAssessments.${goalIndex}.milestones.${milestoneIndex}.notes`}
+                                            render={({ field }) => (
+                                              <FormItem>
+                                                <FormLabel>Notes</FormLabel>
+                                                <FormControl>
+                                                  <Textarea 
+                                                    placeholder="Notes about this milestone..."
+                                                    className="resize-none min-h-16"
+                                                    {...field}
+                                                  />
+                                                </FormControl>
+                                                <FormMessage />
+                                              </FormItem>
+                                            )}
+                                          />
+                                          
+                                          {/* Strategies Used */}
+                                          <FormField
+                                            control={form.control}
+                                            name={`performanceAssessments.${goalIndex}.milestones.${milestoneIndex}.strategies`}
+                                            render={({ field }) => (
+                                              <FormItem>
+                                                <FormLabel>Strategies Used</FormLabel>
+                                                <div className="flex flex-wrap gap-2">
+                                                  {["Visual Support", "Verbal Prompting", "Physical Guidance", "Modeling", "Reinforcement"].map((strategy) => (
+                                                    <Badge 
+                                                      key={strategy}
+                                                      variant={field.value?.includes(strategy) ? "default" : "outline"}
+                                                      className="cursor-pointer"
+                                                      onClick={() => {
+                                                        const currentStrategies = field.value || [];
+                                                        if (currentStrategies.includes(strategy)) {
+                                                          field.onChange(currentStrategies.filter(s => s !== strategy));
+                                                        } else {
+                                                          field.onChange([...currentStrategies, strategy]);
+                                                        }
+                                                      }}
+                                                    >
+                                                      {strategy}
+                                                    </Badge>
+                                                  ))}
+                                                </div>
+                                                <FormMessage />
+                                              </FormItem>
+                                            )}
+                                          />
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                )}
+                              </div>
+                            </CardContent>
+                          </Card>
+                        );
+                      })}
+                    </div>
+                  )}
                 </TabsContent>
               </div>
-              
+
               {/* Footer with navigation and submit buttons */}
               <div className="pt-2 border-t flex justify-between items-center">
                 <div className="flex items-center">
@@ -1219,9 +1244,18 @@ export function IntegratedSessionForm({
         
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-grow flex flex-col overflow-hidden">
           <TabsList className="grid grid-cols-3 mb-4">
-            <TabsTrigger value="details">Session Details</TabsTrigger>
-            <TabsTrigger value="participants">Observations</TabsTrigger>
-            <TabsTrigger value="performance">Performance Assessment</TabsTrigger>
+            <TabsTrigger value="details" className="flex items-center justify-center gap-2">
+              <FileText className="h-4 w-4" />
+              <span>Session Details</span>
+            </TabsTrigger>
+            <TabsTrigger value="participants" className="flex items-center justify-center gap-2">
+              <Users className="h-4 w-4" />
+              <span>Observations</span>
+            </TabsTrigger>
+            <TabsTrigger value="performance" className="flex items-center justify-center gap-2">
+              <BarChart className="h-4 w-4" />
+              <span>Performance Assessment</span>
+            </TabsTrigger>
           </TabsList>
 
           <Form {...form}>
