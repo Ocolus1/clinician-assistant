@@ -1215,7 +1215,10 @@ const ProductSelectionDialog = ({
 
                   {/* Present In Session Section */}
                   <div className="mt-6">
-                    <h3 className="text-base font-medium mb-3">Present</h3>
+                    <h3 className="section-header">
+                      <UserCheck className="h-5 w-5" />
+                      Present
+                    </h3>
                     <div className="bg-muted/20 rounded-lg p-4 space-y-2">
                       {/* Selected Allies List */}
                       {form.watch("sessionNote.presentAllies")?.map((name, index) => {
@@ -1401,7 +1404,10 @@ const ProductSelectionDialog = ({
                     {/* Products Section */}
                     <div className="mt-6">
                       <div className="flex justify-between items-center">
-                        <h3 className="text-base font-medium mb-3">Products Used</h3>
+                        <h3 className="section-header">
+                          <ShoppingCart className="h-5 w-5" />
+                          Products Used
+                        </h3>
                         <div className="flex gap-2">
                           <Button
                             type="button"
@@ -1627,7 +1633,10 @@ const ProductSelectionDialog = ({
                 <TabsContent value="participants" className="space-y-6 mt-0 px-4">
                   {/* Session Observations */}
                   <div className="space-y-4 mt-4">
-                    <h3 className="font-medium text-lg">Session Observations</h3>
+                    <h3 className="section-header">
+                      <ClipboardList className="h-5 w-5" />
+                      Session Observations
+                    </h3>
                     
                     <FormField
                       control={form.control}
