@@ -12,6 +12,7 @@ import { Session, SessionNote, PerformanceAssessment, MilestoneAssessment, Goal,
 interface SessionNoteViewProps {
   session: Session & { clientName: string };
   onEdit: () => void;
+  initialTabValue?: string;
 }
 
 interface RatingDisplayProps {
@@ -48,8 +49,8 @@ const RatingDisplay = ({ label, value }: RatingDisplayProps) => {
   );
 };
 
-export function SessionNoteView({ session, onEdit }: SessionNoteViewProps) {
-  const [activeTab, setActiveTab] = React.useState("general");
+export function SessionNoteView({ session, onEdit, initialTabValue = "general" }: SessionNoteViewProps) {
+  const [activeTab, setActiveTab] = React.useState(initialTabValue);
   
   const { 
     data: completeNote,
