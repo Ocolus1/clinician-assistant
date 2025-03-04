@@ -168,11 +168,6 @@ const RatingSlider = ({ value, onChange, label, description }: RatingSliderProps
         onValueChange={(vals) => onChange(vals[0])}
         className="py-2 rating-slider"
       />
-      <div className="flex justify-between text-xs text-muted-foreground px-1">
-        <span>Low (0)</span>
-        <span>Medium (5)</span>
-        <span>High (10)</span>
-      </div>
     </div>
   );
 };
