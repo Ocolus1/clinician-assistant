@@ -17,38 +17,50 @@ function Calendar({
   // This ensures the calendar only renders when JavaScript is available
   const [mounted, setMounted] = React.useState(false);
   
+  // Store a ref to the closest container element for late checking
+  const calendarRef = React.useRef<HTMLDivElement>(null);
+  
   // This will be false during SSR, and true after hydration
   React.useEffect(() => {
     setMounted(true);
   }, []);
   
+  // Check if this calendar is properly contained within a popover/dialog
+  React.useEffect(() => {
+    if (mounted && calendarRef.current) {
+      // If we can't find a proper container, hide this calendar
+      const isProperlyContained = (() => {
+        // Check if any parent has data-calendar-container attribute
+        let element = calendarRef.current;
+        while (element && element !== document.body) {
+          if (
+            element.hasAttribute('data-calendar-container') || 
+            element.getAttribute('role') === 'dialog' ||
+            element.hasAttribute('data-state')
+          ) {
+            return true;
+          }
+          element = element.parentElement as HTMLElement;
+        }
+        return false;
+      })();
+      
+      // Apply a CSS class to hide uncontained calendars
+      if (!isProperlyContained) {
+        calendarRef.current.classList.add('uncontained-calendar');
+      } else {
+        calendarRef.current.classList.remove('uncontained-calendar');
+      }
+    }
+  }, [mounted]);
+  
   // Only render calendar on the client, return nothing during SSR
   if (!mounted) {
     return null;
   }
-
-  // Use a DOM inspection technique that's more robust
-  // We'll check the DOM to ensure this calendar is only rendered when it's in a popup context
-  const isInPopover = () => {
-    try {
-      // Return true when we know we're in a development environment for testing
-      if (import.meta.env.DEV && showOutsideDays) {
-        return true;
-      }
-      
-      // In an actual component instance, check if we're in a dialog/popover context
-      const currentScript = document.currentScript;
-      const popupContext = document.querySelector('[role="dialog"], [data-state="open"], [data-calendar-container="true"]');
-      return !!popupContext;
-    } catch (e) {
-      // If we can't access the DOM (e.g., during SSR), don't render
-      return false;
-    }
-  };
   
-  // Only render if we are confident we're in a popover
   return (
-    <div className="calendar-container">
+    <div ref={calendarRef} className="calendar-container">
       <DayPicker
         showOutsideDays={showOutsideDays}
         className={cn("p-3", className)}
