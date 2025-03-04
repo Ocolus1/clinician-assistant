@@ -145,6 +145,18 @@ export function ProgressiveAssessmentBuilder({
     enabled: !!clientId
   });
   
+  // Force fetch the goals on mount
+  useEffect(() => {
+    if (clientId) {
+      fetch(`/api/clients/${clientId}/goals`)
+        .then(response => response.json())
+        .then(data => {
+          console.log("Direct fetch goals:", data);
+        })
+        .catch(error => console.error("Error fetching goals:", error));
+    }
+  }, [clientId]);
+  
   // Debug goal fetching
   console.log("Client ID:", clientId);
   console.log("Goals data:", goals);
@@ -174,6 +186,9 @@ export function ProgressiveAssessmentBuilder({
   
   // Filter goals to only show those not already selected
   const availableGoals = goals.filter(goal => !getSelectedGoalIds().includes(goal.id));
+  
+  // Log available goals for debugging
+  console.log("Available goals for selection:", availableGoals);
   
   // Filter subgoals to only show those not already selected
   const availableSubgoals = subgoals.filter(
