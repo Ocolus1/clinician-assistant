@@ -16,19 +16,7 @@ import {
   ShoppingCart,
   RefreshCw,
   User as UserIcon,
-  MapPin as MapPinIcon,
-  FileText,
-  Star,
-  Target,
-  Package,
-  Users,
-  BarChart,
-  Hourglass,
-  AlertCircle,
-  Info,
-  LayoutGrid,
-  CheckCircle2,
-  Clipboard
+  MapPin as MapPinIcon
 } from "lucide-react";
 // Debug helper has been removed in favor of a more natural implementation
 import { Ally, BudgetItem, BudgetSettings, Client, Goal, Session, Subgoal, insertSessionSchema } from "@shared/schema";
@@ -205,10 +193,7 @@ const GoalSelectionDialog = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Target className="h-5 w-5 text-primary/80" />
-            <span>Select Goal</span>
-          </DialogTitle>
+          <DialogTitle>Select Goal</DialogTitle>
           <DialogDescription>
             Choose a goal to assess in this session
           </DialogDescription>
@@ -231,10 +216,7 @@ const GoalSelectionDialog = ({
                   }}
                 >
                   <CardHeader className="p-4 pb-2">
-                    <CardTitle className="text-base flex items-center gap-2">
-                      <Target className="h-4 w-4 text-primary/70" />
-                      {goal.title}
-                    </CardTitle>
+                    <CardTitle className="text-base">{goal.title}</CardTitle>
                   </CardHeader>
                   <CardContent className="p-4 pt-0">
                     <p className="text-sm text-muted-foreground">{goal.description}</p>
@@ -278,10 +260,7 @@ const MilestoneSelectionDialog = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <CheckCircle2 className="h-5 w-5 text-primary/80" />
-            <span>Select Milestone</span>
-          </DialogTitle>
+          <DialogTitle>Select Milestone</DialogTitle>
           <DialogDescription>
             Choose a milestone to assess for this goal
           </DialogDescription>
@@ -304,10 +283,7 @@ const MilestoneSelectionDialog = ({
                   }}
                 >
                   <CardHeader className="p-4 pb-2">
-                    <CardTitle className="text-base flex items-center gap-2">
-                      <CheckCircle2 className="h-4 w-4 text-primary/70" />
-                      {subgoal.title}
-                    </CardTitle>
+                    <CardTitle className="text-base">{subgoal.title}</CardTitle>
                   </CardHeader>
                   <CardContent className="p-4 pt-0">
                     <p className="text-sm text-muted-foreground">{subgoal.description}</p>
@@ -323,161 +299,6 @@ const MilestoneSelectionDialog = ({
             Cancel
           </Button>
         </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-};
-
-interface ProductSelectionDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  products: (BudgetItem & { availableQuantity: number })[];
-  onSelectProduct: (product: BudgetItem & { availableQuantity: number }, quantity: number) => void;
-}
-
-const ProductSelectionDialog = ({
-  open,
-  onOpenChange,
-  products,
-  onSelectProduct
-}: ProductSelectionDialogProps) => {
-  const [selectedProduct, setSelectedProduct] = useState<(BudgetItem & { availableQuantity: number }) | null>(null);
-  const [quantity, setQuantity] = useState(1);
-
-  useEffect(() => {
-    if (!open) {
-      setSelectedProduct(null);
-      setQuantity(1);
-    }
-  }, [open]);
-
-  const hasAvailableProducts = products.some(product => product.availableQuantity > 0);
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Package className="h-5 w-5 text-primary/80" />
-            <span>Add Product/Service</span>
-          </DialogTitle>
-          <DialogDescription>
-            Select products or services used in this session
-          </DialogDescription>
-        </DialogHeader>
-
-        {!hasAvailableProducts ? (
-          <div className="py-6 text-center">
-            <p className="text-muted-foreground">No available budget items found for this client</p>
-          </div>
-        ) : (
-          <>
-            <div className="py-2">
-              <Label>Select Product</Label>
-              <Select 
-                value={selectedProduct?.id?.toString() || ""} 
-                onValueChange={(value) => {
-                  const product = products.find(p => p.id.toString() === value);
-                  if (product) {
-                    setSelectedProduct(product);
-                    // Reset quantity to 1 or max available, whichever is smaller
-                    setQuantity(Math.min(1, product.availableQuantity));
-                  }
-                }}
-              >
-                <SelectTrigger className="mt-1">
-                  <SelectValue placeholder="Select a product or service" />
-                </SelectTrigger>
-                <SelectContent>
-                  {products
-                    .filter(product => product.availableQuantity > 0)
-                    .map(product => (
-                      <SelectItem key={product.id} value={product.id.toString()}>
-                        <div className="flex items-center justify-between w-full">
-                          <span className="flex items-center gap-2">
-                            <Package className="h-4 w-4 text-primary/70" />
-                            {product.description}
-                          </span>
-                          <Badge variant="outline" className="ml-2">
-                            {product.availableQuantity.toFixed(product.unitPrice % 1 === 0 ? 0 : 2)} available
-                          </Badge>
-                        </div>
-                      </SelectItem>
-                    ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {selectedProduct && (
-              <div className="space-y-4">
-                <div>
-                  <div className="flex justify-between items-center">
-                    <Label>Quantity</Label>
-                    <Badge variant="outline">{quantity.toFixed(selectedProduct.unitPrice % 1 === 0 ? 0 : 2)}</Badge>
-                  </div>
-                  <div className="flex items-center gap-2 mt-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="icon"
-                      className="h-8 w-8"
-                      onClick={() => setQuantity(Math.max(0.01, quantity - (selectedProduct.unitPrice % 1 === 0 ? 1 : 0.5)))}
-                    >
-                      <Minus className="h-4 w-4" />
-                    </Button>
-                    <Slider
-                      value={[quantity]}
-                      min={0.01}
-                      max={selectedProduct.availableQuantity}
-                      step={selectedProduct.unitPrice % 1 === 0 ? 1 : 0.5}
-                      onValueChange={(vals) => setQuantity(vals[0])}
-                    />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="icon"
-                      className="h-8 w-8"
-                      onClick={() => setQuantity(Math.min(selectedProduct.availableQuantity, quantity + (selectedProduct.unitPrice % 1 === 0 ? 1 : 0.5)))}
-                    >
-                      <Plus className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-
-                <div className="pt-2">
-                  <div className="flex justify-between text-sm">
-                    <span>Unit Price:</span>
-                    <span className="font-medium">${selectedProduct.unitPrice.toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between text-sm font-semibold mt-1">
-                    <span>Total:</span>
-                    <span>${(selectedProduct.unitPrice * quantity).toFixed(2)}</span>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            <DialogFooter>
-              <Button variant="outline" onClick={() => onOpenChange(false)}>
-                Cancel
-              </Button>
-              <Button
-                variant="default"
-                onClick={() => {
-                  if (selectedProduct) {
-                    onSelectProduct(selectedProduct, quantity);
-                    onOpenChange(false);
-                  }
-                }}
-                disabled={!selectedProduct || quantity <= 0 || quantity > selectedProduct.availableQuantity}
-                className="gap-2"
-              >
-                <ShoppingCart className="h-4 w-4" />
-                <span>Add to Session</span>
-              </Button>
-            </DialogFooter>
-          </>
-        )}
       </DialogContent>
     </Dialog>
   );
@@ -504,7 +325,6 @@ export function IntegratedSessionForm({
   const [goalSelectionOpen, setGoalSelectionOpen] = useState(false);
   const [milestoneSelectionOpen, setMilestoneSelectionOpen] = useState(false);
   const [currentGoalIndex, setCurrentGoalIndex] = useState<number | null>(null);
-  const [productSelectionOpen, setProductSelectionOpen] = useState(false);
 
   // Fetch clients for client dropdown
   const { data: clients = [] } = useQuery<Client[]>({
@@ -546,7 +366,7 @@ export function IntegratedSessionForm({
   };
 
   // Create form
-  const form = useSafeForm<IntegratedSessionFormValues>({
+  const form = useForm<IntegratedSessionFormValues>({
     resolver: zodResolver(integratedSessionFormSchema),
     defaultValues,
   });
@@ -678,230 +498,502 @@ export function IntegratedSessionForm({
     refetch: refetchBudgetItems 
   } = useQuery<BudgetItem[]>({
     queryKey: ["/api/clients", clientId, "budget-items"],
-    enabled: open && !!clientId && !!budgetSettings,
+    enabled: open && !!clientId, // Only need client ID to fetch budget items
   });
   
-  // Filter budget items to only include those with available quantity
+  // Log budget items status
+  useEffect(() => {
+    console.log('Budget items query:', { 
+      clientId, 
+      isLoadingBudgetItems, 
+      itemCount: allBudgetItems?.length, 
+      error: budgetItemsError
+    });
+  }, [clientId, allBudgetItems, isLoadingBudgetItems, budgetItemsError]);
+  
+  // Log budget items for debugging
+  useEffect(() => {
+    if (allBudgetItems?.length > 0) {
+      console.log('Budget items loaded successfully:', allBudgetItems);
+    }
+  }, [allBudgetItems]);
+  
+  // Dialog state for product selection
+  const [productSelectionOpen, setProductSelectionOpen] = useState(false);
+  
+  // Get current selected products from form
+  const selectedProducts = form.watch("sessionNote.products") || [];
+  
+  // Simple flags to track client selection and product availability
+  const hasClientSelected = clientId !== null && clientId !== undefined;
+  const [hasSampleProducts, setHasSampleProducts] = useState(false);
+  
+  // Filter to only show items from the active plan
   const availableProducts = useMemo(() => {
-    if (!budgetSettings || !budgetSettings.isActive) {
-      console.log("No active budget plan found");
+    // Check for sample products
+    if (import.meta.env.DEV && (window as any).__sampleProducts?.length > 0) {
+      console.log('Using sample products:', (window as any).__sampleProducts);
+      return (window as any).__sampleProducts;
+    }
+  
+    // Log debug information
+    console.log('Budget items:', allBudgetItems);
+    console.log('Budget settings:', budgetSettings);
+    console.log('Client ID:', clientId);
+    
+    // Make sure we have budget items
+    if (!Array.isArray(allBudgetItems) || allBudgetItems.length === 0) {
+      console.log('No budget items available');
       return [];
     }
-
-    // Only include products from the active budget settings
-    const products = allBudgetItems
+    
+    // Check if we have settings
+    if (!budgetSettings) {
+      console.log('No budget settings available');
+      
+      // If we don't have settings but do have budget items,
+      // allow use of all budget items for this client
+      const tempProducts = allBudgetItems
+        .filter(item => item.clientId === clientId && item.quantity > 0)
+        .map(item => ({
+          ...item,
+          availableQuantity: item.quantity,
+          productCode: item.itemCode,
+          productDescription: item.description || item.itemCode,
+          unitPrice: item.unitPrice
+        }));
+      
+      if (tempProducts.length > 0) {
+        console.log('Using budget items without active plan:', tempProducts);
+        return tempProducts;
+      }
+      
+      return [];
+    }
+    
+    // Force coerce isActive to boolean - PostgreSQL treats booleans differently
+    let isActiveBool = true; // Default to true per schema default
+    
+    // Log the exact type of the isActive field to help debug
+    console.log('isActive type:', typeof budgetSettings.isActive);
+    
+    if (budgetSettings.isActive === false) {
+      isActiveBool = false;
+    } 
+    else if (budgetSettings.isActive === null) {
+      isActiveBool = true; // Default value per schema
+    }
+    else if (typeof budgetSettings.isActive === 'string') {
+      // Handle string representations of boolean values (from some APIs/drivers)
+      const isActiveStr = String(budgetSettings.isActive);
+      isActiveBool = isActiveStr.toLowerCase() !== 'false';
+    }
+    
+    console.log('Budget plan active status (original):', budgetSettings.isActive);
+    console.log('Budget plan active status (coerced):', isActiveBool);
+    console.log('Budget settings ID:', budgetSettings.id);
+    
+    if (!isActiveBool) {
+      console.log('Budget settings not active');
+      return [];
+    }
+    
+    // Since our schema doesn't track used quantity yet, we'll assume all quantity is available
+    // In a real implementation, this would be tracked in the database
+    const filteredProducts = allBudgetItems
       .filter((item: BudgetItem) => {
-        return item.budgetSettingsId === budgetSettings.id;
+        // Check if this item belongs to the active budget plan and has quantity available
+        const matches = item.budgetSettingsId === budgetSettings.id && item.quantity > 0;
+        console.log(`Product ${item.itemCode}: budgetSettingsId=${item.budgetSettingsId}, quantity=${item.quantity}, matches=${matches}`);
+        return matches;
       })
       .map((item: BudgetItem) => ({
         ...item,
-        // Calculate available quantity based on budgeted quantity minus used quantity in the form
-        availableQuantity: item.quantity - 
-          (form.getValues().sessionNote?.products || [])
-            .filter(p => p.budgetItemId === item.id)
-            .reduce((sum, p) => sum + p.quantity, 0)
+        availableQuantity: item.quantity, // For now, all quantity is available
+        productCode: item.itemCode,  // Normalized naming for UI consistency
+        productDescription: item.description || item.name || item.itemCode, // Normalized naming for UI consistency
+        unitPrice: item.unitPrice
       }));
       
-    console.log('Available products for session:', products);
-    return products;
-  }, [allBudgetItems, budgetSettings, form]);
+    console.log('Filtered products:', filteredProducts);
+    return filteredProducts;
+  }, [allBudgetItems, budgetSettings, clientId, hasSampleProducts]);
   
-  // Calculate relevant subgoals based on selected goals in the form
-  const relevantSubgoals = useMemo(() => {
-    const selectedGoalIds = form.getValues().performanceAssessments?.map(a => a.goalId) || [];
-    return subgoals.filter(subgoal => 
-      selectedGoalIds.includes(subgoal.goalId)
-    );
-  }, [form, subgoals]);
-  
-  // Reset form when dialog opens/closes
-  useEffect(() => {
-    if (open) {
-      form.reset(defaultValues);
-      setActiveTab("details");
+  // Create a simple lookup object for subgoals by goal ID
+  const subgoalsByGoalId = React.useMemo(() => {
+    const result: Record<number, Subgoal[]> = {};
+    if (selectedGoalId) {
+      result[selectedGoalId] = subgoals;
     }
-  }, [open, form, defaultValues]);
-  
-  // When client changes, update default values
-  useEffect(() => {
-    if (clientId) {
-      // If this is a client change, reset performance assessments
-      const currentValues = form.getValues();
-      if (currentValues.session?.clientId !== clientId) {
-        form.setValue("performanceAssessments", []);
-        form.setValue("sessionNote.presentAllies", []);
-        form.setValue("sessionNote.presentAllyIds", []);
-        form.setValue("sessionNote.products", []);
-      }
-    }
-  }, [clientId, form]);
+    return result;
+  }, [selectedGoalId, subgoals]);
 
-  // Handle goal selection for performance assessment
+  // Update form when client is changed
+  useEffect(() => {
+    if (initialClient?.id && initialClient.id !== clientId) {
+      form.setValue("session.clientId", initialClient.id);
+    }
+  }, [initialClient, form, clientId]);
+
+  // Get selected goals from form values
+  const selectedPerformanceAssessments = form.watch("performanceAssessments") || [];
+  const selectedGoalIds = selectedPerformanceAssessments.map(pa => pa.goalId);
+
+  // Helper to get selected milestone IDs for a specific goal
+  const getSelectedMilestoneIds = (goalId: number): number[] => {
+    const assessment = selectedPerformanceAssessments.find(pa => pa.goalId === goalId);
+    return assessment?.milestones?.map(m => m.milestoneId) || [];
+  };
+
+  // Handle goal selection
   const handleGoalSelection = (goal: Goal) => {
-    const assessments = [...form.getValues().performanceAssessments];
-    
-    // Find all subgoals for this goal
-    const milestoneIds = subgoals
-      .filter((s: Subgoal) => s.goalId === goal.id)
-      .map((s: Subgoal) => s.id);
-      
-    // Create a new assessment for this goal
-    assessments.push({
+    const updatedAssessments = [...selectedPerformanceAssessments];
+    updatedAssessments.push({
       goalId: goal.id,
       goalTitle: goal.title,
       notes: "",
-      milestones: [] // Initialize with no milestones selected
+      milestones: []
     });
     
-    form.setValue("performanceAssessments", assessments);
+    form.setValue("performanceAssessments", updatedAssessments);
     
-    // Set selected goal ID to fetch its subgoals
+    // Set the selected goal ID to fetch its subgoals
     setSelectedGoalId(goal.id);
   };
 
-  // Handle milestone selection for performance assessment
+  // Handle milestone selection
   const handleMilestoneSelection = (subgoal: Subgoal) => {
-    if (currentGoalIndex === null) {
-      console.error("No goal selected for milestone");
-      return;
-    }
+    if (currentGoalIndex === null) return;
     
-    const assessments = [...form.getValues().performanceAssessments];
-    if (!assessments[currentGoalIndex]) {
-      console.error("Invalid goal index");
-      return;
-    }
+    const updatedAssessments = [...selectedPerformanceAssessments];
+    const milestones = [...(updatedAssessments[currentGoalIndex].milestones || [])];
     
-    // Add the selected milestone to the current goal's assessment
-    const updatedMilestones = [...assessments[currentGoalIndex].milestones];
-    updatedMilestones.push({
+    milestones.push({
       milestoneId: subgoal.id,
       milestoneTitle: subgoal.title,
-      rating: 5, // Default rating
+      rating: 5,
       strategies: [],
       notes: ""
     });
     
-    assessments[currentGoalIndex].milestones = updatedMilestones;
-    form.setValue("performanceAssessments", assessments);
-  };
-  
-  // Handler for adding product to session
-  const handleAddProduct = (product: BudgetItem & { availableQuantity: number }, quantity: number) => {
-    const products = [...form.getValues().sessionNote.products];
+    updatedAssessments[currentGoalIndex].milestones = milestones;
+    form.setValue("performanceAssessments", updatedAssessments);
     
-    // Check if we already have this product
-    const existingProductIndex = products.findIndex(p => p.budgetItemId === product.id);
-    
-    if (existingProductIndex >= 0) {
-      // Update existing product quantity
-      products[existingProductIndex].quantity += quantity;
-    } else {
-      // Add as new product
-      products.push({
-        budgetItemId: product.id,
-        productCode: product.itemCode || "",
-        productDescription: product.description,
-        quantity,
-        unitPrice: product.unitPrice,
-        availableQuantity: product.availableQuantity
-      });
+    // Ensure we have the goal ID to fetch subgoals
+    if (selectedGoalId === null && updatedAssessments[currentGoalIndex]) {
+      setSelectedGoalId(updatedAssessments[currentGoalIndex].goalId);
     }
-    
-    form.setValue("sessionNote.products", products);
   };
 
-  // Create session mutation
-  const createSession = useMutation({
+  // Handle removing a goal assessment
+  const handleRemoveGoal = (index: number) => {
+    const updatedAssessments = [...selectedPerformanceAssessments];
+    updatedAssessments.splice(index, 1);
+    form.setValue("performanceAssessments", updatedAssessments);
+  };
+
+  // Handle removing a milestone assessment
+  const handleRemoveMilestone = (goalIndex: number, milestoneIndex: number) => {
+    const updatedAssessments = [...selectedPerformanceAssessments];
+    const milestones = [...updatedAssessments[goalIndex].milestones];
+    milestones.splice(milestoneIndex, 1);
+    updatedAssessments[goalIndex].milestones = milestones;
+    form.setValue("performanceAssessments", updatedAssessments);
+  };
+  
+  // Handle adding a product
+  const handleAddProduct = (budgetItem: BudgetItem & { availableQuantity: number }, quantity: number) => {
+    console.log('handleAddProduct called with:', budgetItem, quantity);
+    
+    // Ensure valid quantity
+    if (!quantity || quantity <= 0 || quantity > budgetItem.availableQuantity) {
+      toast({
+        title: "Invalid quantity",
+        description: `Please enter a quantity between 1 and ${budgetItem.availableQuantity}`,
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    // Check if this product is already added
+    const existingProductIndex = selectedProducts.findIndex(
+      p => p.budgetItemId === budgetItem.id || p.productCode === budgetItem.itemCode
+    );
+    
+    if (existingProductIndex >= 0) {
+      toast({
+        title: "Product already added",
+        description: "This product is already in your session. Please adjust the quantity instead.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    // Add product to the form
+    const product = {
+      budgetItemId: budgetItem.id,
+      productCode: budgetItem.itemCode,
+      productDescription: budgetItem.description || budgetItem.name || budgetItem.itemCode,
+      quantity,
+      unitPrice: budgetItem.unitPrice,
+      availableQuantity: budgetItem.availableQuantity
+    };
+    
+    form.setValue("sessionNote.products", [...selectedProducts, product]);
+    setProductSelectionOpen(false);
+  };
+  
+  // Handle removing a product
+  const handleRemoveProduct = (index: number) => {
+    const updatedProducts = [...selectedProducts];
+    updatedProducts.splice(index, 1);
+    form.setValue("sessionNote.products", updatedProducts);
+  };
+  
+// Product selection dialog component
+interface ProductSelectionDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  products: (BudgetItem & { availableQuantity: number })[];
+  onSelectProduct: (product: BudgetItem & { availableQuantity: number }, quantity: number) => void;
+}
+
+const ProductSelectionDialog = ({
+  open,
+  onOpenChange,
+  products,
+  onSelectProduct
+}: ProductSelectionDialogProps) => {
+  const [selectedProduct, setSelectedProduct] = useState<(BudgetItem & { availableQuantity: number }) | null>(null);
+  const [quantity, setQuantity] = useState(1);
+  
+  // Clear selection when dialog opens with new products
+  useEffect(() => {
+    if (open) {
+      console.log("ProductSelectionDialog opened with products:", products);
+      // Reset selection state when dialog opens
+      setSelectedProduct(null);
+      setQuantity(1);
+    }
+  }, [open, products]);
+  
+  const handleQuantityChange = (value: string) => {
+    const numValue = parseInt(value, 10);
+    if (isNaN(numValue) || numValue < 1) {
+      setQuantity(1);
+    } else if (selectedProduct && numValue > selectedProduct.availableQuantity) {
+      setQuantity(selectedProduct.availableQuantity);
+    } else {
+      setQuantity(numValue);
+    }
+  };
+  
+  const handleSelectProduct = (product: BudgetItem & { availableQuantity: number }) => {
+    console.log("Product selected:", product);
+    setSelectedProduct(product);
+    setQuantity(1); // Reset quantity when selecting a new product
+  };
+  
+  const handleAddProduct = (e?: React.MouseEvent) => {
+    // Prevent event bubbling which might cause dialog to close prematurely
+    if (e) e.stopPropagation();
+    
+    console.log("Adding product:", selectedProduct, "quantity:", quantity);
+    
+    if (selectedProduct) {
+      onSelectProduct(selectedProduct, quantity);
+      setSelectedProduct(null);
+      setQuantity(1);
+    }
+  };
+  
+  // Format currency for display
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 2
+    }).format(amount);
+  };
+  
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[550px]">
+        <DialogHeader>
+          <DialogTitle>Add Product to Session</DialogTitle>
+          <DialogDescription>
+            Select a product from the active budget plan
+          </DialogDescription>
+        </DialogHeader>
+        
+        <div className="py-4 grid grid-cols-1 gap-4">
+          {products.length === 0 ? (
+            <div className="p-4 border rounded-md bg-muted/20 text-center">
+              <p className="text-muted-foreground">No products available in active budget plan</p>
+            </div>
+          ) : (
+            <>
+              {/* Product selection */}
+              <div className="max-h-[300px] overflow-y-auto border rounded-md">
+                <ScrollArea className="h-full pr-3">
+                  <div className="space-y-1 p-1">
+                    {products.map(product => (
+                      <div 
+                        key={product.id} 
+                        className={`p-3 border rounded-md cursor-pointer ${selectedProduct?.id === product.id ? 'bg-primary/10 border-primary' : 'hover:bg-muted/20'}`}
+                        onClick={() => handleSelectProduct(product)}
+                      >
+                        <div className="flex justify-between items-start gap-2">
+                          <div className="flex-1">
+                            <h4 className="font-medium">{product.description || product.name}</h4>
+                            <p className="text-sm text-muted-foreground">Code: {product.itemCode}</p>
+                          </div>
+                          <div className="text-right">
+                            <div className="font-medium">{formatCurrency(product.unitPrice)}</div>
+                            <div className="text-sm text-muted-foreground">
+                              Available: {product.availableQuantity}
+                            </div>
+                          </div>
+                        </div>
+                        {selectedProduct?.id === product.id && (
+                          <div className="mt-3 pt-3 border-t flex items-center gap-3">
+                            <div className="flex items-center border rounded-md">
+                              <Button 
+                                type="button" 
+                                variant="ghost" 
+                                size="icon"
+                                className="h-9 w-9"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (quantity > 1) setQuantity(quantity - 1);
+                                }}
+                              >
+                                <Minus className="h-4 w-4" />
+                              </Button>
+                              <Input 
+                                type="number" 
+                                className="w-14 h-9 text-center border-0"
+                                min={1}
+                                max={product.availableQuantity}
+                                value={quantity}
+                                onChange={(e) => {
+                                  e.stopPropagation();
+                                  handleQuantityChange(e.target.value);
+                                }}
+                              />
+                              <Button 
+                                type="button" 
+                                variant="ghost" 
+                                size="icon"
+                                className="h-9 w-9"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (quantity < product.availableQuantity) {
+                                    setQuantity(quantity + 1);
+                                  }
+                                }}
+                              >
+                                <Plus className="h-4 w-4" />
+                              </Button>
+                            </div>
+                            <Button 
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                console.log('Add to Session button clicked');
+                                handleAddProduct();
+                              }}
+                              data-testid="add-to-session-btn"
+                            >
+                              Add to Session
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
+              </div>
+            </>
+          )}
+        </div>
+        
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+  // Create session and session note mutation
+  const createSessionMutation = useMutation({
     mutationFn: async (data: IntegratedSessionFormValues) => {
-      console.log("Creating session with data:", data);
+      // Step 1: Create the session
+      const sessionResponse = await apiRequest("POST", "/api/sessions", data.session);
+      const sessionData = sessionResponse as any;
       
-      try {
-        // First create the session
-        const sessionResponse = await apiRequest("POST", "/api/sessions", data.session);
-        if (!sessionResponse || !sessionResponse.id) {
-          throw new Error("Failed to create session");
-        }
-        
-        const sessionId = sessionResponse.id;
-        console.log("Session created successfully with ID:", sessionId);
-        
-        // Then create the session note linked to the session
-        const sessionNoteData = {
-          ...data.sessionNote,
-          sessionId
-        };
-        
-        const sessionNoteResponse = await apiRequest("POST", "/api/session-notes", sessionNoteData);
-        if (!sessionNoteResponse || !sessionNoteResponse.id) {
-          throw new Error("Failed to create session note");
-        }
-        
-        const sessionNoteId = sessionNoteResponse.id;
-        console.log("Session note created successfully with ID:", sessionNoteId);
-        
-        // If we have performance assessments, create them
-        if (data.performanceAssessments && data.performanceAssessments.length > 0) {
-          const performanceAssessments = await Promise.all(
-            data.performanceAssessments.map(async (assessment) => {
-              const assessmentData = {
-                ...assessment,
-                sessionNoteId
-              };
-              
-              const response = await apiRequest("POST", "/api/performance-assessments", assessmentData);
-              return response;
+      // Step 2: Create the session note with the new session ID
+      const noteData = {
+        ...data.sessionNote,
+        sessionId: sessionData.id,
+        clientId: data.session.clientId
+      };
+      
+      const noteResponse = await apiRequest("POST", `/api/sessions/${sessionData.id}/notes`, noteData);
+      const noteResponseData = noteResponse as any;
+      
+      // Step 3: Create performance assessments
+      if (data.performanceAssessments.length > 0) {
+        await Promise.all(
+          data.performanceAssessments.map(assessment => 
+            apiRequest("POST", `/api/session-notes/${noteResponseData.id}/performance`, {
+              goalId: assessment.goalId,
+              notes: assessment.notes,
+              milestones: assessment.milestones
             })
-          );
-          
-          console.log("Performance assessments created successfully:", performanceAssessments);
-        }
-        
-        return { 
-          sessionId, 
-          sessionNoteId 
-        };
-      } catch (error) {
-        console.error("Error creating session:", error);
-        throw error;
+          )
+        );
       }
+      
+      return sessionData;
     },
     onSuccess: () => {
       toast({
-        title: "Session created",
-        description: "The session has been created successfully",
+        title: "Success",
+        description: "Session and notes created successfully",
       });
-      
-      // Reset form and close dialog
+      queryClient.invalidateQueries({ queryKey: ["/api/sessions"] });
       form.reset(defaultValues);
       onOpenChange(false);
-      
-      // Invalidate queries to refresh data
-      queryClient.invalidateQueries({ queryKey: ["/api/sessions"] });
-      if (clientId) {
-        queryClient.invalidateQueries({ queryKey: ["/api/clients", clientId, "sessions"] });
-        
-        // Also refresh budget items if we used any
-        if (form.getValues().sessionNote.products.length > 0) {
-          queryClient.invalidateQueries({ queryKey: ["/api/clients", clientId, "budget-items"] });
-        }
-      }
     },
-    onError: (error: Error) => {
-      console.error("Error in session creation mutation:", error);
+    onError: (error) => {
       toast({
         title: "Error",
-        description: `Failed to create session: ${error.message}`,
+        description: "Failed to create session and notes",
         variant: "destructive",
       });
-    }
+      console.error("Error creating session:", error);
+    },
   });
 
-  // Handle form submission
+  // Form submission handler
   function onSubmit(data: IntegratedSessionFormValues) {
-    console.log("Submitting form data:", data);
-    createSession.mutate(data);
+    createSessionMutation.mutate(data);
   }
+
+  // Handle navigation between tabs
+  const handleNext = () => {
+    if (activeTab === "details") setActiveTab("participants");
+    else if (activeTab === "participants") setActiveTab("performance");
+  };
+
+  const handleBack = () => {
+    if (activeTab === "performance") setActiveTab("participants");
+    else if (activeTab === "participants") setActiveTab("details");
+  };
 
   // Return just the content without dialog wrapper if in full-screen mode
   if (isFullScreen) {
@@ -909,18 +1001,9 @@ export function IntegratedSessionForm({
       <div className="w-full h-full flex flex-col px-6 py-4">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-grow flex flex-col overflow-hidden">
           <TabsList className="grid grid-cols-3 mb-4">
-            <TabsTrigger value="details" className="flex items-center justify-center gap-2">
-              <FileText className="h-4 w-4" />
-              <span>Session Details</span>
-            </TabsTrigger>
-            <TabsTrigger value="participants" className="flex items-center justify-center gap-2">
-              <Users className="h-4 w-4" />
-              <span>Observations</span>
-            </TabsTrigger>
-            <TabsTrigger value="performance" className="flex items-center justify-center gap-2">
-              <BarChart className="h-4 w-4" />
-              <span>Performance</span>
-            </TabsTrigger>
+            <TabsTrigger value="details">Session Details</TabsTrigger>
+            <TabsTrigger value="participants">Observations</TabsTrigger>
+            <TabsTrigger value="performance">Performance Assessment</TabsTrigger>
           </TabsList>
 
           <Form {...form}>
@@ -928,43 +1011,101 @@ export function IntegratedSessionForm({
               <div className="flex-grow overflow-auto pr-2">
                 {/* Session Details Tab */}
                 <TabsContent value="details" className="space-y-6 mt-0 px-4">
-                  <div className="grid gap-4 py-4">
-                    {/* Session ID Display */}
-                    <div className="flex items-start gap-2">
-                      <Clipboard className="h-5 w-5 text-muted-foreground mt-0.5" />
-                      <div>
-                        <p className="text-sm font-medium">Session ID</p>
-                        <p className="text-sm text-muted-foreground font-mono">{sessionId}</p>
-                      </div>
-                    </div>
+                  {/* Card wrapper for basic session info */}
+                  <Card className="shadow-sm border-muted">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-lg font-medium flex items-center">
+                        <Calendar className="h-5 w-5 mr-2 text-primary" />
+                        Session Information
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      {/* First row: Client, Location, Date & Time in a single row */}
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-2">
+                        {/* Client Selection */}
+                        <FormField
+                          control={form.control}
+                          name="session.clientId"
+                          render={({ field }) => (
+                            <FormItem className="flex-1">
+                              <FormLabel className="text-base flex items-center">
+                                <UserIcon className="h-4 w-4 mr-2 text-muted-foreground" />
+                                Client
+                              </FormLabel>
+                              <Select
+                                onValueChange={(value) => {
+                                  // Set the client ID
+                                  const clientId = parseInt(value);
+                                  field.onChange(clientId);
+                                  
+                                  // Reset performance assessments when client changes
+                                  form.setValue("performanceAssessments", []);
+                                  
+                                  // Reset products when client changes
+                                  form.setValue("sessionNote.products", []);
+                                  
+                                  // Log when client changes to help debug
+                                  console.log('Client changed to:', clientId);
+                                  console.log('Initiating budget item fetch for client:', clientId);
+                                  
+                                  // Manually trigger refetch of budget items and settings
+                                  if (refetchBudgetItems && refetchBudgetSettings) {
+                                    console.log('Manually refetching budget data for client:', clientId);
+                                    // Use timeout to ensure components finish rendering first
+                                    setTimeout(() => {
+                                      refetchBudgetItems();
+                                      refetchBudgetSettings();
+                                    }, 100);
+                                  }
+                                }}
+                                value={field.value?.toString() || undefined}
+                              >
+                                <FormControl>
+                                  <SelectTrigger className="h-10">
+                                    <SelectValue placeholder="Select client" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  {clients.map((client) => (
+                                    <SelectItem key={client.id} value={client.id.toString()}>
+                                      {client.name}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                        </FormItem>
+                      )}
+                    />
 
-                    {/* Client Selection */}
+                    {/* Location - with predefined list */}
                     <FormField
                       control={form.control}
-                      name="session.clientId"
+                      name="session.location"
                       render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="flex items-center gap-2">
-                            <UserIcon className="h-4 w-4 text-primary/70" />
-                            Client
+                        <FormItem className="flex-1">
+                          <FormLabel className="text-base flex items-center">
+                            <MapPinIcon className="h-4 w-4 mr-2 text-muted-foreground" />
+                            Location
                           </FormLabel>
-                          <Select
-                            value={field.value?.toString() || ""}
-                            onValueChange={(value) => {
-                              field.onChange(parseInt(value));
-                            }}
+                          <Select 
+                            onValueChange={field.onChange} 
+                            value={field.value || ""}
+                            defaultValue=""
                           >
                             <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select a client" />
+                              <SelectTrigger className="h-10">
+                                <SelectValue placeholder="Select location" />
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              {clients.map((client: Client) => (
-                                <SelectItem key={client.id} value={client.id.toString()}>
-                                  {client.name}
-                                </SelectItem>
-                              ))}
+                              <SelectItem value="Clinic - Room 101">Clinic - Room 101</SelectItem>
+                              <SelectItem value="Clinic - Room 102">Clinic - Room 102</SelectItem>
+                              <SelectItem value="Clinic - Room 103">Clinic - Room 103</SelectItem>
+                              <SelectItem value="Remote - Telehealth">Remote - Telehealth</SelectItem>
+                              <SelectItem value="School Visit">School Visit</SelectItem>
+                              <SelectItem value="Home Visit">Home Visit</SelectItem>
+                              <SelectItem value="Other">Other</SelectItem>
                             </SelectContent>
                           </Select>
                           <FormMessage />
@@ -972,146 +1113,90 @@ export function IntegratedSessionForm({
                       )}
                     />
 
-                    {/* Therapist Selection - only show if we have allies */}
-                    {allies.length > 0 && (
-                      <FormField
-                        control={form.control}
-                        name="session.therapistId"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="flex items-center gap-2">
-                              <Users className="h-4 w-4 text-primary/70" />
-                              Lead Therapist
-                            </FormLabel>
-                            <Select
-                              value={field.value?.toString() || ""}
-                              onValueChange={(value) => {
-                                field.onChange(parseInt(value));
-                              }}
-                            >
-                              <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Select a therapist" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                {allies.map((ally) => (
-                                  <SelectItem key={ally.id} value={ally.id.toString()}>
-                                    {ally.name}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            <FormDescription>
-                              Main therapist conducting the session
-                            </FormDescription>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    )}
-
-                    {/* Session Date + Time */}
+                    {/* Session Date - Enhanced implementation to prevent calendar display issues */}
                     <FormField
                       control={form.control}
                       name="session.sessionDate"
                       render={({ field }) => {
-                        const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+                        // Use a ref to detect if the popover is open
+                        const [isCalendarOpen, setIsCalendarOpen] = React.useState(false);
+                        
+                        // Check for unwanted calendars when this component renders or updates
+                        React.useEffect(() => {
+                          // Immediate check
+                          hideUnwantedCalendars();
+                          
+                          // If calendar isn't explicitly opened by user, ensure it stays hidden
+                          if (!isCalendarOpen) {
+                            const checkTimer = setTimeout(hideUnwantedCalendars, 50);
+                            return () => clearTimeout(checkTimer);
+                          }
+                        }, [isCalendarOpen]);
                         
                         return (
-                          <FormItem className="flex flex-col">
-                            <FormLabel className="flex items-center gap-2">
-                              <CalendarIcon className="h-4 w-4 text-primary/70" />
-                              Date & Time
-                            </FormLabel>
+                          <FormItem className="flex flex-col flex-1">
+                            <FormLabel className="text-base">Date & Time</FormLabel>
                             <Popover onOpenChange={setIsCalendarOpen} open={isCalendarOpen}>
                               <PopoverTrigger asChild>
                                 <FormControl>
                                   <Button
                                     variant={"outline"}
-                                    className="w-full h-10 pl-3 text-left font-normal flex justify-between items-center border-primary/20 hover:border-primary/40 hover:bg-primary/5"
+                                    className={`w-full h-10 pl-3 text-left font-normal ${
+                                      !field.value ? "text-muted-foreground" : ""
+                                    }`}
                                     onClick={() => setIsCalendarOpen(true)} // Explicitly control open state
                                   >
                                     {field.value ? (
-                                      <span>
-                                        {format(field.value, "PPP")} at {format(field.value, "h:mm a")}
-                                      </span>
+                                      format(field.value, "PPP p")
                                     ) : (
                                       <span>Pick a date</span>
                                     )}
-                                    <CalendarIcon className="h-4 w-4 opacity-50" />
+                                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                                   </Button>
                                 </FormControl>
                               </PopoverTrigger>
-                              <PopoverContent className="w-auto p-0" align="start" data-calendar-container="true">
-                                <Calendar
-                                  mode="single"
-                                  selected={field.value}
-                                  onSelect={(date) => {
-                                    // Preserve the time from the current value
-                                    if (date) {
-                                      const hours = field.value ? field.value.getHours() : 9;
-                                      const minutes = field.value ? field.value.getMinutes() : 0;
-                                      date.setHours(hours, minutes);
-                                    }
-                                    
-                                    field.onChange(date);
-                                    // Do not close the popover yet
-                                    hideUnwantedCalendars();
-                                  }}
-                                  initialFocus
-                                />
-                                
-                                <div className="border-t p-3 border-border/50">
-                                  <div className="flex items-center gap-2">
-                                    <Clock className="h-4 w-4 text-muted-foreground" />
-                                    <span className="text-sm font-medium">Time:</span>
-                                    <select 
-                                      className="flex-1 rounded-md border px-3 py-1.5 text-sm"
-                                      value={field.value ? field.value.getHours() : 9}
-                                      onChange={(e) => {
-                                        const newDate = new Date(field.value || new Date());
-                                        newDate.setHours(parseInt(e.target.value), newDate.getMinutes());
-                                        field.onChange(newDate);
-                                        
-                                        const checkTimer = setTimeout(hideUnwantedCalendars, 50);
-                                        return () => clearTimeout(checkTimer);
+                              <PopoverContent 
+                                className="w-auto p-0 z-[100]" 
+                                align="start" 
+                                side="bottom" 
+                                sideOffset={4} 
+                                data-calendar-container="true"
+                                onEscapeKeyDown={() => setIsCalendarOpen(false)}
+                                onInteractOutside={() => setIsCalendarOpen(false)}
+                              >
+                                <div className="bg-background border rounded-md overflow-hidden">
+                                  {isCalendarOpen && ( // Only render calendar when popover is explicitly open
+                                    <Calendar
+                                      mode="single"
+                                      selected={field.value}
+                                      onSelect={(date) => {
+                                        if (date) {
+                                          // Preserve time portion from existing date or use current time
+                                          const existingDate = field.value || new Date();
+                                          date.setHours(existingDate.getHours());
+                                          date.setMinutes(existingDate.getMinutes());
+                                          field.onChange(date);
+                                          
+                                          // Don't close yet - allow time selection
+                                        }
                                       }}
-                                    >
-                                      {Array.from({ length: 24 }).map((_, i) => (
-                                        <option key={i} value={i}>
-                                          {i === 0 ? "12 AM" : i < 12 ? `${i} AM` : i === 12 ? "12 PM" : `${i - 12} PM`}
-                                        </option>
-                                      ))}
-                                    </select>
-                                    <span>:</span>
-                                    <select
-                                      className="flex-1 rounded-md border px-3 py-1.5 text-sm"
-                                      value={field.value ? field.value.getMinutes() : 0}
+                                      initialFocus
+                                    />
+                                  )}
+                                  <div className="p-3 border-t">
+                                    <Input
+                                      type="time"
                                       onChange={(e) => {
-                                        const newDate = new Date(field.value || new Date());
-                                        newDate.setMinutes(parseInt(e.target.value));
-                                        field.onChange(newDate);
+                                        const date = new Date(field.value || new Date());
+                                        const [hours, minutes] = e.target.value.split(':').map(Number);
+                                        date.setHours(hours, minutes);
+                                        field.onChange(date);
                                       }}
-                                    >
-                                      {[0, 15, 30, 45].map((minute) => (
-                                        <option key={minute} value={minute}>
-                                          {minute.toString().padStart(2, "0")}
-                                        </option>
-                                      ))}
-                                    </select>
-                                  </div>
-                                  
-                                  <div className="mt-4 flex justify-end">
-                                    <Button 
-                                      type="button" 
-                                      size="sm"
-                                      className="flex items-center gap-2"
-                                      onClick={() => setIsCalendarOpen(false)}
-                                    >
-                                      <Check className="h-4 w-4" />
-                                      <span>Set Date & Time</span>
-                                    </Button>
+                                      defaultValue={field.value ? 
+                                        format(field.value, "HH:mm") : 
+                                        format(new Date(), "HH:mm")
+                                      }
+                                    />
                                   </div>
                                 </div>
                               </PopoverContent>
@@ -1121,478 +1206,729 @@ export function IntegratedSessionForm({
                         );
                       }}
                     />
+                  </div>
+                    </CardContent>
+                  </Card>
 
-                    {/* Duration */}
-                    <FormField
-                      control={form.control}
-                      name="session.duration"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="flex items-center gap-2">
-                            <Hourglass className="h-4 w-4 text-primary/70" />
-                            Duration (minutes)
-                          </FormLabel>
-                          <FormControl>
-                            <Input
-                              type="number"
-                              {...field}
-                              onChange={(e) => field.onChange(parseInt(e.target.value))}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
+                  {/* Present In Session Section */}
+                  <div className="mt-6">
+                    <h3 className="text-base font-medium mb-3">Present</h3>
+                    <div className="bg-muted/20 rounded-lg p-4 space-y-2">
+                      {/* Selected Allies List */}
+                      {form.watch("sessionNote.presentAllies")?.map((name, index) => {
+                        // Find the ally object to get relationship
+                        const ally = allies.find(a => a.name === name);
+                        return (
+                          <div 
+                            key={index} 
+                            className="flex items-center justify-between py-2 px-1 border-b last:border-0"
+                          >
+                            <div className="flex items-center gap-3">
+                              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                                {name.charAt(0)}
+                              </div>
+                              <span className="font-medium">{name}</span>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <span className="text-sm text-primary">{ally?.relationship || "Attendee"}</span>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 w-8 p-0 rounded-full"
+                                onClick={() => {
+                                  // Get the allied ID by looking up in our allies array
+                                  const allyToRemove = allies.find(a => a.name === name);
+                                  
+                                  // Remove from the name display array
+                                  const currentAllies = form.getValues("sessionNote.presentAllies") || [];
+                                  form.setValue(
+                                    "sessionNote.presentAllies", 
+                                    currentAllies.filter(a => a !== name)
+                                  );
+                                  
+                                  // Also remove from the ID array if we found the ally
+                                  if (allyToRemove) {
+                                    const currentAllyIds = form.getValues("sessionNote.presentAllyIds") || [];
+                                    form.setValue(
+                                      "sessionNote.presentAllyIds", 
+                                      currentAllyIds.filter(id => id !== allyToRemove.id)
+                                    );
+                                  }
+                                }}
+                              >
+                                <svg width="18" height="18" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                  <path d="M3.625 7.5C3.625 8.12 3.12 8.625 2.5 8.625C1.88 8.625 1.375 8.12 1.375 7.5C1.375 6.88 1.88 6.375 2.5 6.375C3.12 6.375 3.625 6.88 3.625 7.5ZM8.625 7.5C8.625 8.12 8.12 8.625 7.5 8.625C6.88 8.625 6.375 8.12 6.375 7.5C6.375 6.88 6.88 6.375 7.5 6.375C8.12 6.375 8.625 6.88 8.625 7.5ZM13.625 7.5C13.625 8.12 13.12 8.625 12.5 8.625C11.88 8.625 11.375 8.12 11.375 7.5C11.375 6.88 11.88 6.375 12.5 6.375C13.12 6.375 13.625 6.88 13.625 7.5Z" fill="currentColor" fillRule="evenodd" clipRule="evenodd"></path>
+                                </svg>
+                              </Button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                      
+                      {/* Add New Attendee Button */}
+                      <button
+                        type="button"
+                        className="flex items-center gap-3 py-2 px-1 text-primary hover:bg-primary/5 rounded-md transition-colors w-full"
+                        onClick={() => {
+                          console.log("New Attendee button clicked, allies:", allies);
+                          
+                          if (allies.length > 0) {
+                            // Get current allies and filter to find available ones
+                            const currentAllies = form.getValues("sessionNote.presentAllies") || [];
+                            const availableAllies = allies.filter(ally => 
+                              !currentAllies.includes(ally.name)
+                            );
+                            
+                            if (availableAllies.length > 0) {
+                              // Add the special marker to trigger the dialog
+                              form.setValue("sessionNote.presentAllies", [
+                                ...currentAllies, 
+                                "__select__"
+                              ]);
+                            } else {
+                              toast({
+                                title: "No more allies available",
+                                description: "All available attendees have been added to the session.",
+                                variant: "default"
+                              });
+                            }
+                          } else {
+                            toast({
+                              title: "No allies found",
+                              description: "This client doesn't have any allies added to their profile yet.",
+                              variant: "default"
+                            });
+                          }
+                        }}
+                      >
+                        <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                          <Plus className="h-4 w-4" />
+                        </div>
+                        <span>New Attendee</span>
+                      </button>
+                      
+                      {(!form.watch("sessionNote.presentAllies") || 
+                        form.watch("sessionNote.presentAllies").length === 0) && (
+                        <div className="text-center py-4">
+                          <p className="text-sm text-muted-foreground">
+                            No one added yet. Click "New Attendee" to add people present in this session.
+                          </p>
+                        </div>
                       )}
-                    />
-
-                    {/* Location */}
-                    <FormField
-                      control={form.control}
-                      name="session.location"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="flex items-center gap-2">
-                            <MapPinIcon className="h-4 w-4 text-primary/70" />
-                            Location
-                          </FormLabel>
-                          <FormControl>
-                            <Input {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
+                    </div>
+                    
+                    {/* Ally Selection Dialog */}
+                    <Dialog 
+                      open={allies.length > 0 && form.getValues("sessionNote.presentAllies")?.includes("__select__")}
+                      onOpenChange={(open) => {
+                        if (!open) {
+                          // Remove the special marker if dialog is closed
+                          const currentAllies = form.getValues("sessionNote.presentAllies") || [];
+                          form.setValue(
+                            "sessionNote.presentAllies", 
+                            currentAllies.filter(a => a !== "__select__")
+                          );
+                        }
+                      }}
+                    >
+                      <DialogContent className="sm:max-w-[425px]">
+                        <DialogHeader>
+                          <DialogTitle>Add Attendee</DialogTitle>
+                          <DialogDescription>
+                            Select a person who was present in this therapy session.
+                          </DialogDescription>
+                        </DialogHeader>
+                        <div className="py-4">
+                          <Select
+                            onValueChange={(value) => {
+                              const currentAllies = form.getValues("sessionNote.presentAllies") || [];
+                              
+                              // Parse the selected value to get the ally ID and name
+                              const [allyId, allyName] = value.split('|');
+                              console.log(`Selected ally: ID=${allyId}, Name=${allyName}`);
+                              
+                              // Check if ally is already in the list
+                              const currentAllyIds = form.getValues("sessionNote.presentAllyIds") || [];
+                              const allyIdNum = parseInt(allyId);
+                              
+                              if (currentAllies.includes(allyName) || currentAllyIds.includes(allyIdNum)) {
+                                toast({
+                                  title: "Attendee already added",
+                                  description: `${allyName} is already present in this session.`,
+                                  variant: "destructive"
+                                });
+                                return;
+                              }
+                              
+                              // Remove the selection marker and add the selected ally (just using the name for display)
+                              form.setValue(
+                                "sessionNote.presentAllies", 
+                                [...currentAllies.filter(a => a !== "__select__"), allyName]
+                              );
+                              
+                              // Store the ally IDs separately for data integrity
+                              form.setValue(
+                                "sessionNote.presentAllyIds",
+                                [...currentAllyIds, allyIdNum]
+                              );
+                            }}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select person" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {allies
+                                .filter(ally => {
+                                  const currentAllies = form.getValues("sessionNote.presentAllies") || [];
+                                  return !currentAllies.includes(ally.name);
+                                })
+                                .map((ally) => (
+                                  <SelectItem key={ally.id} value={`${ally.id}|${ally.name}`}>
+                                    {ally.name} ({ally.relationship || "Ally"})
+                                  </SelectItem>
+                                ))
+                              }
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
+                    
+                    {/* Products Section */}
+                    <div className="mt-6">
+                      <div className="flex justify-between items-center">
+                        <h3 className="text-base font-medium mb-3">Products Used</h3>
+                        <div className="flex gap-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              console.log('Opening product selection dialog');
+                              console.log('Available products:', availableProducts);
+                              
+                              // In dev mode, create sample products if none are available
+                              if (import.meta.env.DEV && hasClientSelected && availableProducts.length === 0) {
+                                console.log('Creating sample products for development');
+                                
+                                // Create sample products for development/testing
+                                const sampleProducts = [
+                                  {
+                                    id: 9001,
+                                    budgetSettingsId: clientId || 0,
+                                    clientId: clientId || 0,
+                                    itemCode: "THERAPY-001",
+                                    description: "Speech Therapy Session",
+                                    quantity: 10,
+                                    unitPrice: 150,
+                                    availableQuantity: 10,
+                                    productCode: "THERAPY-001",
+                                    productDescription: "Speech Therapy Session",
+                                    name: "Speech Therapy Session"
+                                  },
+                                  {
+                                    id: 9002,
+                                    budgetSettingsId: clientId || 0,
+                                    clientId: clientId || 0,
+                                    itemCode: "ASSESS-001",
+                                    description: "Assessment Session",
+                                    quantity: 5,
+                                    unitPrice: 200,
+                                    availableQuantity: 5,
+                                    productCode: "ASSESS-001",
+                                    productDescription: "Assessment Session",
+                                    name: "Assessment Session"
+                                  }
+                                ];
+                                
+                                // Store in global window for use in the useMemo
+                                (window as any).__sampleProducts = sampleProducts;
+                                
+                                // Update local state to track sample products
+                                setHasSampleProducts(true);
+                                
+                                // Show a toast notification
+                                toast({
+                                  title: "Sample Products Added",
+                                  description: "Sample products have been added for this session."
+                                });
+                              }
+                              
+                              // Delay slightly to avoid React state issues
+                              setTimeout(() => {
+                                setProductSelectionOpen(true);
+                                console.log('Product selection dialog should be open now');
+                              }, 50);
+                            }}
+                            disabled={!availableProducts.length && !hasSampleProducts && !hasClientSelected}
+                          >
+                            <ShoppingCart className="h-4 w-4 mr-2" />
+                            Add Product
+                          </Button>
+                        </div>
+                      </div>
+                      
+                      {/* Product Selection Dialog */}
+                      <ProductSelectionDialog
+                        open={productSelectionOpen}
+                        onOpenChange={setProductSelectionOpen}
+                        products={availableProducts}
+                        onSelectProduct={handleAddProduct}
+                      />
+                      
+                      {/* Selected Products List */}
+                      {selectedProducts.length === 0 ? (
+                        <div className="bg-muted/20 rounded-lg p-4 text-center">
+                          <p className="text-muted-foreground">No products added to this session</p>
+                        </div>
+                      ) : (
+                        <div className="bg-muted/20 rounded-lg p-4 space-y-2">
+                          {selectedProducts.map((product, index) => {
+                            const totalPrice = product.quantity * product.unitPrice;
+                            
+                            return (
+                              <div 
+                                key={index} 
+                                className="flex items-center justify-between py-2 px-1 border-b last:border-0"
+                              >
+                                <div className="flex-1">
+                                  <div className="font-medium">{product.productDescription}</div>
+                                  <div className="text-sm text-muted-foreground">
+                                    Code: {product.productCode}
+                                  </div>
+                                  
+                                  {/* Availability Visualization */}
+                                  <div className="mt-1">
+                                    <div className="flex items-center text-xs">
+                                      <span className="text-muted-foreground mr-2">Availability:</span>
+                                      <div className="w-full max-w-[100px] bg-gray-200 rounded-full h-2.5">
+                                        <div 
+                                          className="bg-primary h-2.5 rounded-full" 
+                                          style={{ 
+                                            width: `${Math.min(100, (product.availableQuantity - product.quantity) / product.availableQuantity * 100)}%` 
+                                          }}
+                                        />
+                                      </div>
+                                      <span className="ml-2 text-xs">
+                                        <span className="text-primary font-medium">{product.availableQuantity - product.quantity}</span>
+                                        <span className="text-muted-foreground"> / {product.availableQuantity}</span>
+                                      </span>
+                                    </div>
+                                  </div>
+                                </div>
+                                
+                                <div className="flex items-center gap-3">
+                                  {/* Quantity Controls */}
+                                  <div className="flex items-center border rounded-md mr-2">
+                                    <Button 
+                                      type="button" 
+                                      variant="ghost" 
+                                      size="icon"
+                                      className="h-7 w-7"
+                                      onClick={() => {
+                                        if (product.quantity > 1) {
+                                          const updatedProducts = [...selectedProducts];
+                                          updatedProducts[index] = {
+                                            ...updatedProducts[index],
+                                            quantity: product.quantity - 1
+                                          };
+                                          form.setValue("sessionNote.products", updatedProducts);
+                                        }
+                                      }}
+                                    >
+                                      <Minus className="h-3 w-3" />
+                                    </Button>
+                                    <div className="w-8 text-center">
+                                      <span className="text-sm font-medium">{product.quantity}</span>
+                                    </div>
+                                    <Button 
+                                      type="button" 
+                                      variant="ghost" 
+                                      size="icon"
+                                      className="h-7 w-7"
+                                      onClick={() => {
+                                        if (product.quantity < product.availableQuantity) {
+                                          const updatedProducts = [...selectedProducts];
+                                          updatedProducts[index] = {
+                                            ...updatedProducts[index],
+                                            quantity: product.quantity + 1
+                                          };
+                                          form.setValue("sessionNote.products", updatedProducts);
+                                        } else {
+                                          toast({
+                                            title: "Maximum quantity reached",
+                                            description: `Only ${product.availableQuantity} units available`,
+                                            variant: "destructive"
+                                          });
+                                        }
+                                      }}
+                                    >
+                                      <Plus className="h-3 w-3" />
+                                    </Button>
+                                  </div>
+                                  
+                                  <div className="text-right">
+                                    <div>
+                                      <span className="text-muted-foreground text-sm">
+                                        {new Intl.NumberFormat('en-US', {
+                                          style: 'currency',
+                                          currency: 'USD'
+                                        }).format(product.unitPrice)}
+                                      </span>
+                                    </div>
+                                    <div className="text-sm font-medium">
+                                      {new Intl.NumberFormat('en-US', {
+                                        style: 'currency',
+                                        currency: 'USD'
+                                      }).format(totalPrice)}
+                                    </div>
+                                  </div>
+                                  
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-8 w-8 p-0 rounded-full ml-2"
+                                    onClick={() => handleRemoveProduct(index)}
+                                  >
+                                    <X className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              </div>
+                            );
+                          })}
+                          
+                          {/* Total Value */}
+                          <div className="pt-3 mt-2 border-t flex justify-between items-center">
+                            <span className="font-medium">Total Value:</span>
+                            <span className="font-bold">
+                              {new Intl.NumberFormat('en-US', {
+                                style: 'currency',
+                                currency: 'USD'
+                              }).format(
+                                selectedProducts.reduce(
+                                  (total, product) => total + (product.quantity * product.unitPrice), 
+                                  0
+                                )
+                              )}
+                            </span>
+                          </div>
+                        </div>
                       )}
-                    />
-
-                    {/* Session Title */}
-                    <FormField
-                      control={form.control}
-                      name="session.title"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="flex items-center gap-2">
-                            <FileText className="h-4 w-4 text-primary/70" />
-                            Session Title
-                          </FormLabel>
-                          <FormControl>
-                            <Input {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    {/* Notes */}
-                    <FormField
-                      control={form.control}
-                      name="session.description"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="flex items-center gap-2">
-                            <Info className="h-4 w-4 text-primary/70" />
-                            Session Description
-                          </FormLabel>
-                          <FormControl>
-                            <Textarea rows={3} {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                    </div>
                   </div>
                 </TabsContent>
 
-                {/* Participants Tab */}
-                <TabsContent value="participants" className="mt-0 space-y-6 px-4">
-                  <div className="grid gap-5 py-4">
-                    {/* Present Allies/Participants */}
-                    <div className="space-y-4">
-                      <h3 className="text-lg font-medium flex items-center gap-2">
-                        <Users className="h-5 w-5 text-primary/80" />
-                        <span>Present Allies</span>
-                      </h3>
-                      <div className="space-y-2 pl-7">
-                        {allies.length === 0 ? (
-                          <div className="text-muted-foreground text-sm italic">
-                            No allies found for this client
-                          </div>
-                        ) : (
-                          allies.map((ally) => (
-                            <div key={ally.id} className="flex items-center space-x-2">
-                              <Checkbox
-                                id={`ally-${ally.id}`}
-                                checked={form.getValues().sessionNote.presentAllyIds.includes(ally.id)}
-                                onCheckedChange={(checked) => {
-                                  const currentAllyIds = [...form.getValues().sessionNote.presentAllyIds];
-                                  const currentAllies = [...form.getValues().sessionNote.presentAllies];
-                                  
-                                  if (checked) {
-                                    // Add ally to the list
-                                    if (!currentAllyIds.includes(ally.id)) {
-                                      currentAllyIds.push(ally.id);
-                                      currentAllies.push(ally.name);
-                                    }
-                                  } else {
-                                    // Remove ally from the list
-                                    const allyIdIndex = currentAllyIds.indexOf(ally.id);
-                                    if (allyIdIndex !== -1) {
-                                      currentAllyIds.splice(allyIdIndex, 1);
-                                      currentAllies.splice(allyIdIndex, 1);
-                                    }
-                                  }
-                                  
-                                  form.setValue("sessionNote.presentAllyIds", currentAllyIds);
-                                  form.setValue("sessionNote.presentAllies", currentAllies);
-                                }}
-                              />
-                              <Label
-                                htmlFor={`ally-${ally.id}`}
-                                className="text-sm cursor-pointer"
-                              >
-                                {ally.name} ({ally.relationship})
-                              </Label>
-                            </div>
-                          ))
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Ratings Section */}
-                    <div className="space-y-4">
-                      <h3 className="text-lg font-medium flex items-center gap-2">
-                        <Star className="h-5 w-5 text-primary/80" />
-                        <span>Session Ratings</span>
-                      </h3>
-                      <div className="space-y-6 pl-7">
-                        <Controller
-                          control={form.control}
-                          name="sessionNote.moodRating"
-                          render={({ field }) => (
-                            <RatingSlider
-                              value={field.value}
-                              onChange={field.onChange}
-                              label="Mood"
-                              description="Client's emotional state during the session"
-                            />
-                          )}
-                        />
-                        
-                        <Controller
-                          control={form.control}
-                          name="sessionNote.focusRating"
-                          render={({ field }) => (
-                            <RatingSlider
-                              value={field.value}
-                              onChange={field.onChange}
-                              label="Focus"
-                              description="Client's ability to maintain attention"
-                            />
-                          )}
-                        />
-                        
-                        <Controller
-                          control={form.control}
-                          name="sessionNote.cooperationRating"
-                          render={({ field }) => (
-                            <RatingSlider
-                              value={field.value}
-                              onChange={field.onChange}
-                              label="Cooperation"
-                              description="Client's willingness to participate"
-                            />
-                          )}
-                        />
-                        
-                        <Controller
-                          control={form.control}
-                          name="sessionNote.physicalActivityRating"
-                          render={({ field }) => (
-                            <RatingSlider
-                              value={field.value}
-                              onChange={field.onChange}
-                              label="Physical Activity"
-                              description="Client's energy and activity level"
-                            />
-                          )}
-                        />
-                      </div>
-                    </div>
-
-                    {/* Products Used Section */}
-                    {budgetSettings && budgetSettings.isActive && (
-                      <div className="space-y-4">
-                        <h3 className="text-lg font-medium flex items-center gap-2">
-                          <Package className="h-5 w-5 text-primary/80" />
-                          <span>Products & Services</span>
-                        </h3>
-                        <div className="space-y-4 pl-7">
-                          <div className="flex justify-between items-center">
-                            <p className="text-sm text-muted-foreground">
-                              Record products or services used in this session
-                            </p>
-                            <Button
-                              type="button"
-                              size="sm"
-                              variant="outline"
-                              className="flex items-center gap-2"
-                              onClick={() => setProductSelectionOpen(true)}
-                            >
-                              <Plus className="h-4 w-4" />
-                              <span>Add Product</span>
-                            </Button>
-                          </div>
-                          
-                          {form.getValues().sessionNote.products.length === 0 ? (
-                            <div className="text-sm text-muted-foreground italic">
-                              No products added to this session
-                            </div>
-                          ) : (
-                            <div className="space-y-2">
-                              {form.getValues().sessionNote.products.map((product, index) => (
-                                <Card key={index} className="overflow-hidden">
-                                  <div className="flex justify-between items-center p-3 bg-primary/5">
-                                    <div className="font-medium flex items-center gap-2">
-                                      <Package className="h-4 w-4 text-primary/70" />
-                                      <span>{product.productDescription}</span>
-                                    </div>
-                                    <Button
-                                      type="button"
-                                      size="icon"
-                                      variant="ghost"
-                                      className="h-8 w-8"
-                                      onClick={() => {
-                                        const products = [...form.getValues().sessionNote.products];
-                                        products.splice(index, 1);
-                                        form.setValue("sessionNote.products", products);
-                                      }}
-                                    >
-                                      <X className="h-4 w-4" />
-                                    </Button>
-                                  </div>
-                                  <CardContent className="py-3 flex justify-between items-center">
-                                    <div className="text-sm">
-                                      <span className="text-muted-foreground">Quantity:</span>{" "}
-                                      <span className="font-medium">{product.quantity.toFixed(product.unitPrice % 1 === 0 ? 0 : 2)}</span>
-                                    </div>
-                                    <div className="text-sm">
-                                      <span className="text-muted-foreground">Total:</span>{" "}
-                                      <span className="font-medium">${(product.quantity * product.unitPrice).toFixed(2)}</span>
-                                    </div>
-                                  </CardContent>
-                                </Card>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Notes */}
+                {/* Observations Tab */}
+                <TabsContent value="participants" className="space-y-6 mt-0 px-4">
+                  {/* Session Observations */}
+                  <div className="space-y-4 mt-4">
+                    <h3 className="font-medium text-lg">Session Observations</h3>
+                    
                     <FormField
                       control={form.control}
                       name="sessionNote.notes"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="flex items-center gap-2">
-                            <FileText className="h-4 w-4 text-primary/70" />
-                            Session Notes
-                          </FormLabel>
+                          <FormLabel>General Notes</FormLabel>
                           <FormControl>
-                            <Textarea rows={6} {...field} />
+                            <Textarea 
+                              placeholder="Enter general observations about the session..."
+                              className="resize-none min-h-32"
+                              {...field}
+                            />
                           </FormControl>
-                          <FormDescription>
-                            Detailed notes about the session and observations
-                          </FormDescription>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <FormField
+                        control={form.control}
+                        name="sessionNote.moodRating"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormControl>
+                              <RatingSlider
+                                value={field.value}
+                                onChange={field.onChange}
+                                label="Mood"
+                                description="Rate client's overall mood during the session"
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <FormField
+                        control={form.control}
+                        name="sessionNote.focusRating"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormControl>
+                              <RatingSlider
+                                value={field.value}
+                                onChange={field.onChange}
+                                label="Focus"
+                                description="Rate client's ability to focus during the session"
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <FormField
+                        control={form.control}
+                        name="sessionNote.cooperationRating"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormControl>
+                              <RatingSlider
+                                value={field.value}
+                                onChange={field.onChange}
+                                label="Cooperation"
+                                description="Rate client's overall cooperation"
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <FormField
+                        control={form.control}
+                        name="sessionNote.physicalActivityRating"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormControl>
+                              <RatingSlider
+                                value={field.value}
+                                onChange={field.onChange}
+                                label="Physical Activity"
+                                description="Rate client's physical activity level"
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
                   </div>
                 </TabsContent>
 
                 {/* Performance Assessment Tab */}
-                <TabsContent value="performance" className="mt-0 space-y-6 px-4">
-                  <div className="py-4">
-                    {/* Goals section header with add button */}
-                    <div className="flex justify-between items-center mb-5">
-                      <h3 className="text-lg font-medium flex items-center gap-2">
-                        <Target className="h-5 w-5 text-primary/80" />
-                        <span>Goals Assessment</span>
-                      </h3>
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        className="flex items-center gap-2"
-                        onClick={() => setGoalSelectionOpen(true)}
-                        disabled={!clientId || goals.length === 0}
-                      >
-                        <Plus className="h-4 w-4" />
-                        <span>Add Goal</span>
-                      </Button>
+                <TabsContent value="performance" className="space-y-4 mt-0 px-2">
+                  <div className="flex justify-between items-center">
+                    <h3 className="font-medium text-lg">Performance Assessment</h3>
+                    <Button 
+                      type="button" 
+                      onClick={() => setGoalSelectionOpen(true)}
+                      disabled={!clientId}
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Goal
+                    </Button>
+                  </div>
+                  
+                  {/* Goal Selection Dialog */}
+                  <GoalSelectionDialog
+                    open={goalSelectionOpen}
+                    onOpenChange={setGoalSelectionOpen}
+                    goals={goals}
+                    selectedGoalIds={selectedGoalIds}
+                    onSelectGoal={handleGoalSelection}
+                  />
+                  
+                  {/* Selected Goals and Milestones */}
+                  {selectedPerformanceAssessments.length === 0 ? (
+                    <div className="border rounded-md p-6 text-center bg-muted/10">
+                      <p className="text-muted-foreground">
+                        No goals selected yet. Click "Add Goal" to start assessment.
+                      </p>
                     </div>
-
-                    {/* No goals message */}
-                    {(!clientId || goals.length === 0) && (
-                      <div className="text-center p-4 border rounded-md bg-muted/20">
-                        <AlertCircle className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
-                        <p className="text-muted-foreground mb-1">No goals available for assessment</p>
-                        <p className="text-sm text-muted-foreground/70">
-                          {!clientId 
-                            ? "Select a client to view their goals" 
-                            : "No goals have been created for this client"}
-                        </p>
-                      </div>
-                    )}
-
-                    {/* Performance assessments */}
+                  ) : (
                     <div className="space-y-6">
-                      {form.getValues().performanceAssessments.map((assessment, assessmentIndex) => {
+                      {selectedPerformanceAssessments.map((assessment, goalIndex) => {
                         const goal = goals.find(g => g.id === assessment.goalId);
-                        if (!goal) return null;
+                        const goalSubgoals = subgoalsByGoalId[assessment.goalId] || [];
+                        const selectedMilestoneIds = getSelectedMilestoneIds(assessment.goalId);
                         
                         return (
-                          <Card key={assessment.goalId} className="border-primary/20">
-                            <CardHeader className="pb-2">
-                              <div className="flex justify-between">
-                                <CardTitle className="text-base flex items-center gap-2">
-                                  <Target className="h-4 w-4 text-primary/70" />
-                                  {goal.title}
+                          <Card key={assessment.goalId} className="overflow-hidden">
+                            <CardHeader className="bg-primary/10 pb-3">
+                              <div className="flex justify-between items-start">
+                                <CardTitle className="text-base">
+                                  {goal?.title || assessment.goalTitle}
                                 </CardTitle>
                                 <Button
-                                  type="button"
-                                  size="icon"
                                   variant="ghost"
-                                  className="h-8 w-8"
-                                  onClick={() => {
-                                    const assessments = [...form.getValues().performanceAssessments];
-                                    assessments.splice(assessmentIndex, 1);
-                                    form.setValue("performanceAssessments", assessments);
-                                  }}
+                                  size="icon"
+                                  onClick={() => handleRemoveGoal(goalIndex)}
                                 >
                                   <X className="h-4 w-4" />
                                 </Button>
                               </div>
-                              <CardDescription>{goal.description}</CardDescription>
+                              <CardDescription>
+                                {goal?.description}
+                              </CardDescription>
                             </CardHeader>
-                            <CardContent className="pb-2">
-                              {/* Goal notes */}
-                              <div className="mb-5">
-                                <Controller
-                                  control={form.control}
-                                  name={`performanceAssessments.${assessmentIndex}.notes`}
-                                  render={({ field }) => (
-                                    <div className="space-y-2">
-                                      <Label className="text-sm">Assessment Notes</Label>
+                            
+                            <CardContent className="pt-4">
+                              {/* Goal Notes */}
+                              <FormField
+                                control={form.control}
+                                name={`performanceAssessments.${goalIndex}.notes`}
+                                render={({ field }) => (
+                                  <FormItem className="mb-4">
+                                    <FormLabel>Goal Progress Notes</FormLabel>
+                                    <FormControl>
                                       <Textarea 
-                                        placeholder="Add notes about overall progress on this goal"
-                                        className="h-20"
+                                        placeholder="Enter notes about progress on this goal..."
+                                        className="resize-none min-h-20"
                                         {...field}
                                       />
-                                    </div>
-                                  )}
-                                />
-                              </div>
-
-                              {/* Milestones section */}
-                              <div className="space-y-3">
-                                <div className="flex justify-between items-center">
-                                  <h4 className="text-sm font-medium flex items-center gap-2">
-                                    <CheckCircle2 className="h-4 w-4 text-primary/70" />
-                                    <span>Milestones</span>
-                                  </h4>
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+                              
+                              {/* Milestone Section */}
+                              <div className="mt-4">
+                                <div className="flex justify-between items-center mb-3">
+                                  <h4 className="text-sm font-medium">Milestone Assessment</h4>
                                   <Button
                                     type="button"
                                     size="sm"
                                     variant="outline"
-                                    className="h-7 px-2 text-xs flex items-center gap-1"
                                     onClick={() => {
-                                      setCurrentGoalIndex(assessmentIndex);
-                                      setSelectedGoalId(assessment.goalId);
+                                      setCurrentGoalIndex(goalIndex);
                                       setMilestoneSelectionOpen(true);
+                                      setSelectedGoalId(assessment.goalId);
                                     }}
                                   >
-                                    <Plus className="h-3 w-3" />
-                                    <span>Add</span>
+                                    <Plus className="h-3 w-3 mr-1" />
+                                    Add Milestone
                                   </Button>
                                 </div>
-
+                                
+                                {/* Milestone Selection Dialog */}
+                                {currentGoalIndex === goalIndex && (
+                                  <MilestoneSelectionDialog
+                                    open={milestoneSelectionOpen}
+                                    onOpenChange={setMilestoneSelectionOpen}
+                                    subgoals={goalSubgoals}
+                                    selectedMilestoneIds={selectedMilestoneIds}
+                                    onSelectMilestone={handleMilestoneSelection}
+                                  />
+                                )}
+                                
+                                {/* Selected Milestones */}
                                 {assessment.milestones.length === 0 ? (
-                                  <div className="text-sm text-muted-foreground italic border p-3 rounded-md bg-muted/5">
-                                    No milestones selected for assessment
+                                  <div className="border rounded-md p-3 text-center bg-muted/10">
+                                    <p className="text-sm text-muted-foreground">
+                                      No milestones selected yet. Click "Add Milestone" to assess progress.
+                                    </p>
                                   </div>
                                 ) : (
                                   <div className="space-y-4">
                                     {assessment.milestones.map((milestone, milestoneIndex) => {
-                                      const subgoal = subgoals.find(s => s.id === milestone.milestoneId);
+                                      const subgoal = goalSubgoals.find(s => s.id === milestone.milestoneId);
                                       
                                       return (
-                                        <div key={milestone.milestoneId} className="border rounded-md p-3 pb-4 bg-muted/5">
-                                          <div className="flex justify-between items-start mb-3">
-                                            <div className="space-y-1">
-                                              <h5 className="text-sm font-medium flex items-center gap-2">
-                                                <CheckCircle2 className="h-3.5 w-3.5 text-primary/70" />
-                                                {subgoal?.title || milestone.milestoneTitle || "Unnamed Milestone"}
+                                        <div 
+                                          key={milestone.milestoneId} 
+                                          className="border rounded-md p-4 space-y-3"
+                                        >
+                                          <div className="flex justify-between items-start">
+                                            <div>
+                                              <h5 className="font-medium">
+                                                {subgoal?.title || milestone.milestoneTitle}
                                               </h5>
-                                              {subgoal?.description && (
-                                                <p className="text-xs text-muted-foreground">{subgoal.description}</p>
-                                              )}
+                                              <p className="text-sm text-muted-foreground mt-1">
+                                                {subgoal?.description}
+                                              </p>
                                             </div>
                                             <Button
-                                              type="button"
-                                              size="icon"
                                               variant="ghost"
-                                              className="h-7 w-7"
-                                              onClick={() => {
-                                                const assessments = [...form.getValues().performanceAssessments];
-                                                assessments[assessmentIndex].milestones.splice(milestoneIndex, 1);
-                                                form.setValue("performanceAssessments", assessments);
-                                              }}
+                                              size="icon"
+                                              onClick={() => handleRemoveMilestone(goalIndex, milestoneIndex)}
                                             >
-                                              <X className="h-3.5 w-3.5" />
+                                              <X className="h-4 w-4" />
                                             </Button>
                                           </div>
                                           
-                                          {/* Rating slider for milestone */}
-                                          <Controller
+                                          {/* Milestone Rating */}
+                                          <FormField
                                             control={form.control}
-                                            name={`performanceAssessments.${assessmentIndex}.milestones.${milestoneIndex}.rating`}
+                                            name={`performanceAssessments.${goalIndex}.milestones.${milestoneIndex}.rating`}
                                             render={({ field }) => (
-                                              <div className="space-y-2 mt-3">
-                                                <div className="flex justify-between items-center">
-                                                  <span className="text-xs">Performance Rating</span>
-                                                  <Badge variant="outline" className="h-5 px-1.5 text-[10px]">
-                                                    {field.value || 0}
-                                                  </Badge>
-                                                </div>
-                                                <Slider
-                                                  value={[field.value || 0]}
-                                                  min={0}
-                                                  max={10}
-                                                  step={1}
-                                                  onValueChange={(vals) => field.onChange(vals[0])}
-                                                  className="py-0.5"
-                                                />
-                                                <div className="flex justify-between text-[10px] text-muted-foreground">
-                                                  <span>0</span>
-                                                  <span>5</span>
-                                                  <span>10</span>
-                                                </div>
-                                              </div>
+                                              <FormItem>
+                                                <FormLabel>Performance Rating</FormLabel>
+                                                <FormControl>
+                                                  <RatingSlider
+                                                    value={field.value !== undefined ? field.value : 5}
+                                                    onChange={field.onChange}
+                                                    label="Performance"
+                                                    description="Rate client's performance on this milestone"
+                                                  />
+                                                </FormControl>
+                                                <FormMessage />
+                                              </FormItem>
                                             )}
                                           />
                                           
-                                          {/* Notes for milestone */}
-                                          <Controller
+                                          {/* Milestone Notes */}
+                                          <FormField
                                             control={form.control}
-                                            name={`performanceAssessments.${assessmentIndex}.milestones.${milestoneIndex}.notes`}
+                                            name={`performanceAssessments.${goalIndex}.milestones.${milestoneIndex}.notes`}
                                             render={({ field }) => (
-                                              <div className="space-y-1 mt-3">
-                                                <Label className="text-xs">Notes</Label>
-                                                <Textarea 
-                                                  placeholder="Add notes about this milestone"
-                                                  className="h-16 text-sm"
-                                                  {...field}
-                                                />
-                                              </div>
+                                              <FormItem>
+                                                <FormLabel>Notes</FormLabel>
+                                                <FormControl>
+                                                  <Textarea 
+                                                    placeholder="Notes about this milestone..."
+                                                    className="resize-none min-h-16"
+                                                    {...field}
+                                                  />
+                                                </FormControl>
+                                                <FormMessage />
+                                              </FormItem>
+                                            )}
+                                          />
+                                          
+                                          {/* Strategies Used */}
+                                          <FormField
+                                            control={form.control}
+                                            name={`performanceAssessments.${goalIndex}.milestones.${milestoneIndex}.strategies`}
+                                            render={({ field }) => (
+                                              <FormItem>
+                                                <FormLabel>Strategies Used</FormLabel>
+                                                <div className="flex flex-wrap gap-2">
+                                                  {["Visual Support", "Verbal Prompting", "Physical Guidance", "Modeling", "Reinforcement"].map((strategy) => (
+                                                    <Badge 
+                                                      key={strategy}
+                                                      variant={field.value?.includes(strategy) ? "default" : "outline"}
+                                                      className="cursor-pointer"
+                                                      onClick={() => {
+                                                        const currentStrategies = field.value || [];
+                                                        if (currentStrategies.includes(strategy)) {
+                                                          field.onChange(currentStrategies.filter(s => s !== strategy));
+                                                        } else {
+                                                          field.onChange([...currentStrategies, strategy]);
+                                                        }
+                                                      }}
+                                                    >
+                                                      {strategy}
+                                                    </Badge>
+                                                  ))}
+                                                </div>
+                                                <FormMessage />
+                                              </FormItem>
                                             )}
                                           />
                                         </div>
@@ -1606,37 +1942,53 @@ export function IntegratedSessionForm({
                         );
                       })}
                     </div>
-                  </div>
+                  )}
                 </TabsContent>
               </div>
 
-              {/* Form buttons */}
-              <div className="pt-2 px-4 flex justify-end gap-2">
-                <Button 
-                  type="button"
-                  variant="outline"
-                  disabled={createSession.isPending}
-                  onClick={() => onOpenChange(false)}
-                >
-                  Cancel
-                </Button>
-                <Button 
-                  type="submit" 
-                  disabled={createSession.isPending}
-                  className="gap-2"
-                >
-                  {createSession.isPending ? (
-                    <>
-                      <RefreshCw className="h-4 w-4 animate-spin" />
-                      <span>Creating...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Check className="h-4 w-4" />
-                      <span>Create Session</span>
-                    </>
+              {/* Footer with navigation and submit buttons */}
+              <div className="pt-2 border-t flex justify-between items-center">
+                <div className="flex items-center">
+                  {activeTab !== "details" && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={handleBack}
+                      className="mr-2"
+                    >
+                      <ChevronLeft className="h-4 w-4 mr-1" />
+                      Back
+                    </Button>
                   )}
-                </Button>
+                  {activeTab !== "performance" && (
+                    <Button
+                      type="button"
+                      onClick={handleNext}
+                      variant="ghost"
+                    >
+                      Next
+                      <ChevronRight className="h-4 w-4 ml-1" />
+                    </Button>
+                  )}
+                </div>
+                
+                <div className="flex items-center space-x-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => onOpenChange(false)}
+                  >
+                    Cancel
+                  </Button>
+                  {activeTab === "performance" && (
+                    <Button 
+                      type="submit"
+                      disabled={createSessionMutation.isPending}
+                    >
+                      {createSessionMutation.isPending ? "Creating..." : "Create Session"}
+                    </Button>
+                  )}
+                </div>
               </div>
             </form>
           </Form>
@@ -1645,15 +1997,12 @@ export function IntegratedSessionForm({
     );
   }
 
-  // When not full screen, wrap in dialog
+  // Return the dialog version if not in full-screen mode
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[800px] max-h-[90vh] flex flex-col">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <FileText className="h-5 w-5 text-primary/80" />
-            <span>Create Session</span>
-          </DialogTitle>
+          <DialogTitle>Create Session</DialogTitle>
           <DialogDescription>
             Track a therapy session and record progress
           </DialogDescription>
@@ -1661,773 +2010,65 @@ export function IntegratedSessionForm({
         
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-grow flex flex-col overflow-hidden">
           <TabsList className="grid grid-cols-3 mb-4">
-            <TabsTrigger value="details" className="flex items-center justify-center gap-2">
-              <FileText className="h-4 w-4" />
-              <span>Session Details</span>
-            </TabsTrigger>
-            <TabsTrigger value="participants" className="flex items-center justify-center gap-2">
-              <Users className="h-4 w-4" />
-              <span>Observations</span>
-            </TabsTrigger>
-            <TabsTrigger value="performance" className="flex items-center justify-center gap-2">
-              <BarChart className="h-4 w-4" />
-              <span>Performance</span>
-            </TabsTrigger>
+            <TabsTrigger value="details">Session Details</TabsTrigger>
+            <TabsTrigger value="participants">Observations</TabsTrigger>
+            <TabsTrigger value="performance">Performance Assessment</TabsTrigger>
           </TabsList>
 
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 overflow-hidden flex flex-col flex-grow">
               <div className="flex-grow overflow-auto pr-2">
                 {/* Tab contents go here - use the same content as above */}
-                
-                {/* Session Details Tab */}
-                <TabsContent value="details" className="space-y-6 mt-0 px-4">
-                  <div className="grid gap-4 py-4">
-                    {/* Session ID Display */}
-                    <div className="flex items-start gap-2">
-                      <Clipboard className="h-5 w-5 text-muted-foreground mt-0.5" />
-                      <div>
-                        <p className="text-sm font-medium">Session ID</p>
-                        <p className="text-sm text-muted-foreground font-mono">{sessionId}</p>
-                      </div>
-                    </div>
-
-                    {/* Client Selection */}
-                    <FormField
-                      control={form.control}
-                      name="session.clientId"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="flex items-center gap-2">
-                            <UserIcon className="h-4 w-4 text-primary/70" />
-                            Client
-                          </FormLabel>
-                          <Select
-                            value={field.value?.toString() || ""}
-                            onValueChange={(value) => {
-                              field.onChange(parseInt(value));
-                            }}
-                          >
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select a client" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {clients.map((client: Client) => (
-                                <SelectItem key={client.id} value={client.id.toString()}>
-                                  {client.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    {/* Therapist Selection - only show if we have allies */}
-                    {allies.length > 0 && (
-                      <FormField
-                        control={form.control}
-                        name="session.therapistId"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="flex items-center gap-2">
-                              <Users className="h-4 w-4 text-primary/70" />
-                              Lead Therapist
-                            </FormLabel>
-                            <Select
-                              value={field.value?.toString() || ""}
-                              onValueChange={(value) => {
-                                field.onChange(parseInt(value));
-                              }}
-                            >
-                              <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Select a therapist" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                {allies.map((ally) => (
-                                  <SelectItem key={ally.id} value={ally.id.toString()}>
-                                    {ally.name}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            <FormDescription>
-                              Main therapist conducting the session
-                            </FormDescription>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    )}
-
-                    {/* Session Date + Time */}
-                    <FormField
-                      control={form.control}
-                      name="session.sessionDate"
-                      render={({ field }) => {
-                        const [isCalendarOpen, setIsCalendarOpen] = useState(false);
-                        
-                        return (
-                          <FormItem className="flex flex-col">
-                            <FormLabel className="flex items-center gap-2">
-                              <CalendarIcon className="h-4 w-4 text-primary/70" />
-                              Date & Time
-                            </FormLabel>
-                            <Popover onOpenChange={setIsCalendarOpen} open={isCalendarOpen}>
-                              <PopoverTrigger asChild>
-                                <FormControl>
-                                  <Button
-                                    variant={"outline"}
-                                    className="w-full h-10 pl-3 text-left font-normal flex justify-between items-center border-primary/20 hover:border-primary/40 hover:bg-primary/5"
-                                    onClick={() => setIsCalendarOpen(true)} // Explicitly control open state
-                                  >
-                                    {field.value ? (
-                                      <span>
-                                        {format(field.value, "PPP")} at {format(field.value, "h:mm a")}
-                                      </span>
-                                    ) : (
-                                      <span>Pick a date</span>
-                                    )}
-                                    <CalendarIcon className="h-4 w-4 opacity-50" />
-                                  </Button>
-                                </FormControl>
-                              </PopoverTrigger>
-                              <PopoverContent className="w-auto p-0" align="start" data-calendar-container="true">
-                                <Calendar
-                                  mode="single"
-                                  selected={field.value}
-                                  onSelect={(date) => {
-                                    // Preserve the time from the current value
-                                    if (date) {
-                                      const hours = field.value ? field.value.getHours() : 9;
-                                      const minutes = field.value ? field.value.getMinutes() : 0;
-                                      date.setHours(hours, minutes);
-                                    }
-                                    
-                                    field.onChange(date);
-                                    // Do not close the popover yet
-                                    hideUnwantedCalendars();
-                                  }}
-                                  initialFocus
-                                />
-                                
-                                <div className="border-t p-3 border-border/50">
-                                  <div className="flex items-center gap-2">
-                                    <Clock className="h-4 w-4 text-muted-foreground" />
-                                    <span className="text-sm font-medium">Time:</span>
-                                    <select 
-                                      className="flex-1 rounded-md border px-3 py-1.5 text-sm"
-                                      value={field.value ? field.value.getHours() : 9}
-                                      onChange={(e) => {
-                                        const newDate = new Date(field.value || new Date());
-                                        newDate.setHours(parseInt(e.target.value), newDate.getMinutes());
-                                        field.onChange(newDate);
-                                        
-                                        const checkTimer = setTimeout(hideUnwantedCalendars, 50);
-                                        return () => clearTimeout(checkTimer);
-                                      }}
-                                    >
-                                      {Array.from({ length: 24 }).map((_, i) => (
-                                        <option key={i} value={i}>
-                                          {i === 0 ? "12 AM" : i < 12 ? `${i} AM` : i === 12 ? "12 PM" : `${i - 12} PM`}
-                                        </option>
-                                      ))}
-                                    </select>
-                                    <span>:</span>
-                                    <select
-                                      className="flex-1 rounded-md border px-3 py-1.5 text-sm"
-                                      value={field.value ? field.value.getMinutes() : 0}
-                                      onChange={(e) => {
-                                        const newDate = new Date(field.value || new Date());
-                                        newDate.setMinutes(parseInt(e.target.value));
-                                        field.onChange(newDate);
-                                      }}
-                                    >
-                                      {[0, 15, 30, 45].map((minute) => (
-                                        <option key={minute} value={minute}>
-                                          {minute.toString().padStart(2, "0")}
-                                        </option>
-                                      ))}
-                                    </select>
-                                  </div>
-                                  
-                                  <div className="mt-4 flex justify-end">
-                                    <Button 
-                                      type="button" 
-                                      size="sm"
-                                      className="flex items-center gap-2"
-                                      onClick={() => setIsCalendarOpen(false)}
-                                    >
-                                      <Check className="h-4 w-4" />
-                                      <span>Set Date & Time</span>
-                                    </Button>
-                                  </div>
-                                </div>
-                              </PopoverContent>
-                            </Popover>
-                            <FormMessage />
-                          </FormItem>
-                        );
-                      }}
-                    />
-
-                    {/* Duration */}
-                    <FormField
-                      control={form.control}
-                      name="session.duration"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="flex items-center gap-2">
-                            <Hourglass className="h-4 w-4 text-primary/70" />
-                            Duration (minutes)
-                          </FormLabel>
-                          <FormControl>
-                            <Input
-                              type="number"
-                              {...field}
-                              onChange={(e) => field.onChange(parseInt(e.target.value))}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    {/* Location */}
-                    <FormField
-                      control={form.control}
-                      name="session.location"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="flex items-center gap-2">
-                            <MapPinIcon className="h-4 w-4 text-primary/70" />
-                            Location
-                          </FormLabel>
-                          <FormControl>
-                            <Input {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    {/* Session Title */}
-                    <FormField
-                      control={form.control}
-                      name="session.title"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="flex items-center gap-2">
-                            <FileText className="h-4 w-4 text-primary/70" />
-                            Session Title
-                          </FormLabel>
-                          <FormControl>
-                            <Input {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    {/* Notes */}
-                    <FormField
-                      control={form.control}
-                      name="session.description"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="flex items-center gap-2">
-                            <Info className="h-4 w-4 text-primary/70" />
-                            Session Description
-                          </FormLabel>
-                          <FormControl>
-                            <Textarea rows={3} {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                </TabsContent>
-
-                {/* Participants Tab */}
-                <TabsContent value="participants" className="mt-0 space-y-6 px-4">
-                  <div className="grid gap-5 py-4">
-                    {/* Present Allies/Participants */}
-                    <div className="space-y-4">
-                      <h3 className="text-lg font-medium flex items-center gap-2">
-                        <Users className="h-5 w-5 text-primary/80" />
-                        <span>Present Allies</span>
-                      </h3>
-                      <div className="space-y-2 pl-7">
-                        {allies.length === 0 ? (
-                          <div className="text-muted-foreground text-sm italic">
-                            No allies found for this client
-                          </div>
-                        ) : (
-                          allies.map((ally) => (
-                            <div key={ally.id} className="flex items-center space-x-2">
-                              <Checkbox
-                                id={`ally-${ally.id}`}
-                                checked={form.getValues().sessionNote.presentAllyIds.includes(ally.id)}
-                                onCheckedChange={(checked) => {
-                                  const currentAllyIds = [...form.getValues().sessionNote.presentAllyIds];
-                                  const currentAllies = [...form.getValues().sessionNote.presentAllies];
-                                  
-                                  if (checked) {
-                                    // Add ally to the list
-                                    if (!currentAllyIds.includes(ally.id)) {
-                                      currentAllyIds.push(ally.id);
-                                      currentAllies.push(ally.name);
-                                    }
-                                  } else {
-                                    // Remove ally from the list
-                                    const allyIdIndex = currentAllyIds.indexOf(ally.id);
-                                    if (allyIdIndex !== -1) {
-                                      currentAllyIds.splice(allyIdIndex, 1);
-                                      currentAllies.splice(allyIdIndex, 1);
-                                    }
-                                  }
-                                  
-                                  form.setValue("sessionNote.presentAllyIds", currentAllyIds);
-                                  form.setValue("sessionNote.presentAllies", currentAllies);
-                                }}
-                              />
-                              <Label
-                                htmlFor={`ally-${ally.id}`}
-                                className="text-sm cursor-pointer"
-                              >
-                                {ally.name} ({ally.relationship})
-                              </Label>
-                            </div>
-                          ))
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Ratings Section */}
-                    <div className="space-y-4">
-                      <h3 className="text-lg font-medium flex items-center gap-2">
-                        <Star className="h-5 w-5 text-primary/80" />
-                        <span>Session Ratings</span>
-                      </h3>
-                      <div className="space-y-6 pl-7">
-                        <Controller
-                          control={form.control}
-                          name="sessionNote.moodRating"
-                          render={({ field }) => (
-                            <RatingSlider
-                              value={field.value}
-                              onChange={field.onChange}
-                              label="Mood"
-                              description="Client's emotional state during the session"
-                            />
-                          )}
-                        />
-                        
-                        <Controller
-                          control={form.control}
-                          name="sessionNote.focusRating"
-                          render={({ field }) => (
-                            <RatingSlider
-                              value={field.value}
-                              onChange={field.onChange}
-                              label="Focus"
-                              description="Client's ability to maintain attention"
-                            />
-                          )}
-                        />
-                        
-                        <Controller
-                          control={form.control}
-                          name="sessionNote.cooperationRating"
-                          render={({ field }) => (
-                            <RatingSlider
-                              value={field.value}
-                              onChange={field.onChange}
-                              label="Cooperation"
-                              description="Client's willingness to participate"
-                            />
-                          )}
-                        />
-                        
-                        <Controller
-                          control={form.control}
-                          name="sessionNote.physicalActivityRating"
-                          render={({ field }) => (
-                            <RatingSlider
-                              value={field.value}
-                              onChange={field.onChange}
-                              label="Physical Activity"
-                              description="Client's energy and activity level"
-                            />
-                          )}
-                        />
-                      </div>
-                    </div>
-
-                    {/* Products Used Section */}
-                    {budgetSettings && budgetSettings.isActive && (
-                      <div className="space-y-4">
-                        <h3 className="text-lg font-medium flex items-center gap-2">
-                          <Package className="h-5 w-5 text-primary/80" />
-                          <span>Products & Services</span>
-                        </h3>
-                        <div className="space-y-4 pl-7">
-                          <div className="flex justify-between items-center">
-                            <p className="text-sm text-muted-foreground">
-                              Record products or services used in this session
-                            </p>
-                            <Button
-                              type="button"
-                              size="sm"
-                              variant="outline"
-                              className="flex items-center gap-2"
-                              onClick={() => setProductSelectionOpen(true)}
-                            >
-                              <Plus className="h-4 w-4" />
-                              <span>Add Product</span>
-                            </Button>
-                          </div>
-                          
-                          {form.getValues().sessionNote.products.length === 0 ? (
-                            <div className="text-sm text-muted-foreground italic">
-                              No products added to this session
-                            </div>
-                          ) : (
-                            <div className="space-y-2">
-                              {form.getValues().sessionNote.products.map((product, index) => (
-                                <Card key={index} className="overflow-hidden">
-                                  <div className="flex justify-between items-center p-3 bg-primary/5">
-                                    <div className="font-medium flex items-center gap-2">
-                                      <Package className="h-4 w-4 text-primary/70" />
-                                      <span>{product.productDescription}</span>
-                                    </div>
-                                    <Button
-                                      type="button"
-                                      size="icon"
-                                      variant="ghost"
-                                      className="h-8 w-8"
-                                      onClick={() => {
-                                        const products = [...form.getValues().sessionNote.products];
-                                        products.splice(index, 1);
-                                        form.setValue("sessionNote.products", products);
-                                      }}
-                                    >
-                                      <X className="h-4 w-4" />
-                                    </Button>
-                                  </div>
-                                  <CardContent className="py-3 flex justify-between items-center">
-                                    <div className="text-sm">
-                                      <span className="text-muted-foreground">Quantity:</span>{" "}
-                                      <span className="font-medium">{product.quantity.toFixed(product.unitPrice % 1 === 0 ? 0 : 2)}</span>
-                                    </div>
-                                    <div className="text-sm">
-                                      <span className="text-muted-foreground">Total:</span>{" "}
-                                      <span className="font-medium">${(product.quantity * product.unitPrice).toFixed(2)}</span>
-                                    </div>
-                                  </CardContent>
-                                </Card>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Notes */}
-                    <FormField
-                      control={form.control}
-                      name="sessionNote.notes"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="flex items-center gap-2">
-                            <FileText className="h-4 w-4 text-primary/70" />
-                            Session Notes
-                          </FormLabel>
-                          <FormControl>
-                            <Textarea rows={6} {...field} />
-                          </FormControl>
-                          <FormDescription>
-                            Detailed notes about the session and observations
-                          </FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                </TabsContent>
-
-                {/* Performance Assessment Tab */}
-                <TabsContent value="performance" className="mt-0 space-y-6 px-4">
-                  <div className="py-4">
-                    {/* Goals section header with add button */}
-                    <div className="flex justify-between items-center mb-5">
-                      <h3 className="text-lg font-medium flex items-center gap-2">
-                        <Target className="h-5 w-5 text-primary/80" />
-                        <span>Goals Assessment</span>
-                      </h3>
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        className="flex items-center gap-2"
-                        onClick={() => setGoalSelectionOpen(true)}
-                        disabled={!clientId || goals.length === 0}
-                      >
-                        <Plus className="h-4 w-4" />
-                        <span>Add Goal</span>
-                      </Button>
-                    </div>
-
-                    {/* No goals message */}
-                    {(!clientId || goals.length === 0) && (
-                      <div className="text-center p-4 border rounded-md bg-muted/20">
-                        <AlertCircle className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
-                        <p className="text-muted-foreground mb-1">No goals available for assessment</p>
-                        <p className="text-sm text-muted-foreground/70">
-                          {!clientId 
-                            ? "Select a client to view their goals" 
-                            : "No goals have been created for this client"}
-                        </p>
-                      </div>
-                    )}
-
-                    {/* Performance assessments */}
-                    <div className="space-y-6">
-                      {form.getValues().performanceAssessments.map((assessment, assessmentIndex) => {
-                        const goal = goals.find(g => g.id === assessment.goalId);
-                        if (!goal) return null;
-                        
-                        return (
-                          <Card key={assessment.goalId} className="border-primary/20">
-                            <CardHeader className="pb-2">
-                              <div className="flex justify-between">
-                                <CardTitle className="text-base flex items-center gap-2">
-                                  <Target className="h-4 w-4 text-primary/70" />
-                                  {goal.title}
-                                </CardTitle>
-                                <Button
-                                  type="button"
-                                  size="icon"
-                                  variant="ghost"
-                                  className="h-8 w-8"
-                                  onClick={() => {
-                                    const assessments = [...form.getValues().performanceAssessments];
-                                    assessments.splice(assessmentIndex, 1);
-                                    form.setValue("performanceAssessments", assessments);
-                                  }}
-                                >
-                                  <X className="h-4 w-4" />
-                                </Button>
-                              </div>
-                              <CardDescription>{goal.description}</CardDescription>
-                            </CardHeader>
-                            <CardContent className="pb-2">
-                              {/* Goal notes */}
-                              <div className="mb-5">
-                                <Controller
-                                  control={form.control}
-                                  name={`performanceAssessments.${assessmentIndex}.notes`}
-                                  render={({ field }) => (
-                                    <div className="space-y-2">
-                                      <Label className="text-sm">Assessment Notes</Label>
-                                      <Textarea 
-                                        placeholder="Add notes about overall progress on this goal"
-                                        className="h-20"
-                                        {...field}
-                                      />
-                                    </div>
-                                  )}
-                                />
-                              </div>
-
-                              {/* Milestones section */}
-                              <div className="space-y-3">
-                                <div className="flex justify-between items-center">
-                                  <h4 className="text-sm font-medium flex items-center gap-2">
-                                    <CheckCircle2 className="h-4 w-4 text-primary/70" />
-                                    <span>Milestones</span>
-                                  </h4>
-                                  <Button
-                                    type="button"
-                                    size="sm"
-                                    variant="outline"
-                                    className="h-7 px-2 text-xs flex items-center gap-1"
-                                    onClick={() => {
-                                      setCurrentGoalIndex(assessmentIndex);
-                                      setSelectedGoalId(assessment.goalId);
-                                      setMilestoneSelectionOpen(true);
-                                    }}
-                                  >
-                                    <Plus className="h-3 w-3" />
-                                    <span>Add</span>
-                                  </Button>
-                                </div>
-
-                                {assessment.milestones.length === 0 ? (
-                                  <div className="text-sm text-muted-foreground italic border p-3 rounded-md bg-muted/5">
-                                    No milestones selected for assessment
-                                  </div>
-                                ) : (
-                                  <div className="space-y-4">
-                                    {assessment.milestones.map((milestone, milestoneIndex) => {
-                                      const subgoal = subgoals.find(s => s.id === milestone.milestoneId);
-                                      
-                                      return (
-                                        <div key={milestone.milestoneId} className="border rounded-md p-3 pb-4 bg-muted/5">
-                                          <div className="flex justify-between items-start mb-3">
-                                            <div className="space-y-1">
-                                              <h5 className="text-sm font-medium flex items-center gap-2">
-                                                <CheckCircle2 className="h-3.5 w-3.5 text-primary/70" />
-                                                {subgoal?.title || milestone.milestoneTitle || "Unnamed Milestone"}
-                                              </h5>
-                                              {subgoal?.description && (
-                                                <p className="text-xs text-muted-foreground">{subgoal.description}</p>
-                                              )}
-                                            </div>
-                                            <Button
-                                              type="button"
-                                              size="icon"
-                                              variant="ghost"
-                                              className="h-7 w-7"
-                                              onClick={() => {
-                                                const assessments = [...form.getValues().performanceAssessments];
-                                                assessments[assessmentIndex].milestones.splice(milestoneIndex, 1);
-                                                form.setValue("performanceAssessments", assessments);
-                                              }}
-                                            >
-                                              <X className="h-3.5 w-3.5" />
-                                            </Button>
-                                          </div>
-                                          
-                                          {/* Rating slider for milestone */}
-                                          <Controller
-                                            control={form.control}
-                                            name={`performanceAssessments.${assessmentIndex}.milestones.${milestoneIndex}.rating`}
-                                            render={({ field }) => (
-                                              <div className="space-y-2 mt-3">
-                                                <div className="flex justify-between items-center">
-                                                  <span className="text-xs">Performance Rating</span>
-                                                  <Badge variant="outline" className="h-5 px-1.5 text-[10px]">
-                                                    {field.value || 0}
-                                                  </Badge>
-                                                </div>
-                                                <Slider
-                                                  value={[field.value || 0]}
-                                                  min={0}
-                                                  max={10}
-                                                  step={1}
-                                                  onValueChange={(vals) => field.onChange(vals[0])}
-                                                  className="py-0.5"
-                                                />
-                                                <div className="flex justify-between text-[10px] text-muted-foreground">
-                                                  <span>0</span>
-                                                  <span>5</span>
-                                                  <span>10</span>
-                                                </div>
-                                              </div>
-                                            )}
-                                          />
-                                          
-                                          {/* Notes for milestone */}
-                                          <Controller
-                                            control={form.control}
-                                            name={`performanceAssessments.${assessmentIndex}.milestones.${milestoneIndex}.notes`}
-                                            render={({ field }) => (
-                                              <div className="space-y-1 mt-3">
-                                                <Label className="text-xs">Notes</Label>
-                                                <Textarea 
-                                                  placeholder="Add notes about this milestone"
-                                                  className="h-16 text-sm"
-                                                  {...field}
-                                                />
-                                              </div>
-                                            )}
-                                          />
-                                        </div>
-                                      );
-                                    })}
-                                  </div>
-                                )}
-                              </div>
-                            </CardContent>
-                          </Card>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </TabsContent>
               </div>
-
-              {/* Form buttons */}
-              <div className="pt-2 px-4 flex justify-end gap-2">
-                <Button 
-                  type="button"
-                  variant="outline"
-                  disabled={createSession.isPending}
-                  onClick={() => onOpenChange(false)}
-                >
-                  Cancel
-                </Button>
-                <Button 
-                  type="submit" 
-                  disabled={createSession.isPending}
-                  className="gap-2"
-                >
-                  {createSession.isPending ? (
-                    <>
-                      <RefreshCw className="h-4 w-4 animate-spin" />
-                      <span>Creating...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Check className="h-4 w-4" />
-                      <span>Create Session</span>
-                    </>
+              
+              {/* Footer with navigation and submit buttons */}
+              <div className="pt-2 border-t flex justify-between items-center">
+                <div className="flex items-center">
+                  {activeTab !== "details" && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={handleBack}
+                      className="mr-2"
+                    >
+                      <ChevronLeft className="h-4 w-4 mr-1" />
+                      Back
+                    </Button>
                   )}
-                </Button>
+                  {activeTab !== "performance" && (
+                    <Button
+                      type="button"
+                      onClick={handleNext}
+                      variant="ghost"
+                    >
+                      Next
+                      <ChevronRight className="h-4 w-4 ml-1" />
+                    </Button>
+                  )}
+                </div>
+                
+                <div className="flex items-center space-x-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => onOpenChange(false)}
+                  >
+                    Cancel
+                  </Button>
+                  {activeTab === "performance" && (
+                    <Button 
+                      type="submit"
+                      disabled={createSessionMutation.isPending}
+                    >
+                      {createSessionMutation.isPending ? "Creating..." : "Create Session"}
+                    </Button>
+                  )}
+                </div>
               </div>
             </form>
           </Form>
         </Tabs>
       </DialogContent>
-      
-      {/* Goal selection dialog */}
-      <GoalSelectionDialog
-        open={goalSelectionOpen}
-        onOpenChange={setGoalSelectionOpen}
-        goals={goals}
-        selectedGoalIds={form.getValues().performanceAssessments.map(a => a.goalId)}
-        onSelectGoal={handleGoalSelection}
-      />
-      
-      {/* Milestone selection dialog */}
-      <MilestoneSelectionDialog
-        open={milestoneSelectionOpen}
-        onOpenChange={setMilestoneSelectionOpen}
-        subgoals={subgoals.filter(subgoal => 
-          selectedGoalId === subgoal.goalId
-        )}
-        selectedMilestoneIds={
-          currentGoalIndex !== null && form.getValues().performanceAssessments[currentGoalIndex]
-            ? form.getValues().performanceAssessments[currentGoalIndex].milestones.map(m => m.milestoneId)
-            : []
-        }
-        onSelectMilestone={handleMilestoneSelection}
-      />
-      
-      {/* Product selection dialog */}
-      <ProductSelectionDialog
-        open={productSelectionOpen}
-        onOpenChange={setProductSelectionOpen}
-        products={availableProducts}
-        onSelectProduct={handleAddProduct}
-      />
     </Dialog>
   );
 }
