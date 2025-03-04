@@ -1,5 +1,6 @@
-/* Import our global color system */
+/* Import our global styling system */
 @import url('./styles/colors.css');
+@import url('./styles/buttons.css');
 
 @tailwind base;
 @tailwind components;

@@ -1,0 +1,204 @@
+/* 
+ * Button Styles for Practice Management Software
+ * Following specified design system with consistent styling
+ */
+
+/* Import our global color system */
+@import url('./colors.css');
+
+/* Button Base - Common attributes shared by all buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 500;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.btn:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px white, 0 0 0 4px var(--primary-blue-300);
+}
+
+.btn:active {
+  transform: translateY(1px);
+}
+
+/* Primary Buttons 
+ * Use for main actions: 'Add Session', 'Save', 'Submit', 'View All Clients'
+ */
+.btn-primary {
+  background-color: var(--btn-primary-bg);
+  color: var(--btn-primary-text);
+  border-radius: var(--btn-primary-radius);
+  padding: var(--btn-primary-padding);
+  box-shadow: var(--btn-primary-shadow);
+  border: none;
+}
+
+.btn-primary:hover {
+  background-color: var(--btn-primary-hover);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.btn-primary:active {
+  background-color: var(--btn-primary-active);
+  box-shadow: var(--btn-primary-shadow);
+}
+
+/* Secondary Buttons 
+ * Use for secondary actions: 'Cancel', 'View Details', 'Edit'
+ */
+.btn-secondary {
+  background-color: var(--btn-secondary-bg);
+  color: var(--btn-secondary-text);
+  border: var(--btn-secondary-border-width) solid var(--btn-secondary-border);
+  border-radius: var(--btn-secondary-radius);
+  padding: var(--btn-secondary-padding);
+  box-shadow: var(--btn-secondary-shadow);
+}
+
+.btn-secondary:hover {
+  background-color: var(--btn-secondary-hover);
+}
+
+.btn-secondary:active {
+  background-color: var(--btn-secondary-hover);
+  border-color: var(--btn-primary-hover);
+}
+
+/* Icon Buttons 
+ * Use for icon-only actions
+ */
+.btn-icon {
+  background-color: var(--btn-icon-bg);
+  color: var(--btn-icon-inactive);
+  border: none;
+  border-radius: var(--btn-icon-radius);
+  width: var(--btn-icon-size);
+  height: var(--btn-icon-size);
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-icon svg {
+  width: var(--btn-icon-inner-size);
+  height: var(--btn-icon-inner-size);
+}
+
+.btn-icon:hover {
+  background-color: var(--btn-icon-hover-bg);
+}
+
+.btn-icon:active {
+  transform: scale(0.95);
+}
+
+.btn-icon.active {
+  color: var(--btn-icon-active);
+}
+
+/* Icon with Text Buttons - Combines icon with text label */
+.btn-icon-text {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.btn-icon-text svg {
+  width: var(--btn-icon-inner-size);
+  height: var(--btn-icon-inner-size);
+}
+
+/* Danger Buttons - For destructive actions */
+.btn-danger {
+  background-color: var(--btn-danger-bg);
+  color: var(--btn-danger-text);
+  border-radius: var(--btn-primary-radius);
+  padding: var(--btn-primary-padding);
+  border: none;
+}
+
+.btn-danger:hover {
+  background-color: var(--btn-danger-hover);
+}
+
+/* Disabled State - For any button type */
+.btn:disabled,
+.btn.disabled {
+  background-color: var(--btn-disabled-bg);
+  color: var(--btn-disabled-text);
+  border-color: transparent;
+  cursor: not-allowed;
+  box-shadow: none;
+  pointer-events: none;
+}
+
+.btn:disabled:hover,
+.btn.disabled:hover {
+  background-color: var(--btn-disabled-bg);
+  transform: none;
+  box-shadow: none;
+}
+
+/* Button Sizes */
+.btn-sm {
+  font-size: 0.75rem;
+  padding: 0.5rem 0.75rem;
+}
+
+.btn-lg {
+  font-size: 1rem;
+  padding: 0.75rem 1.25rem;
+}
+
+/* Full Width Button */
+.btn-block {
+  width: 100%;
+  display: flex;
+}
+
+/* Button Groups */
+.btn-group {
+  display: inline-flex;
+}
+
+.btn-group .btn:not(:first-child) {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+
+.btn-group .btn:not(:last-child) {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+/* Button with loading state */
+.btn-loading {
+  position: relative;
+  color: transparent !important;
+}
+
+.btn-loading:before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 1rem;
+  height: 1rem;
+  margin: -0.5rem 0 0 -0.5rem;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.25);
+  border-top-color: white;
+  animation: btn-spinner .6s linear infinite;
+}
+
+@keyframes btn-spinner {
+  to { transform: rotate(360deg); }
+}

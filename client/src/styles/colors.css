@@ -137,17 +137,40 @@
   --tab-indicator-active: var(--primary-blue-500);
   --tab-hover-inactive: var(--gray-100);
   
-  /* Buttons */
-  --btn-primary-bg: var(--primary-blue-500);
+  /* Buttons - Updated with detailed specifications */
+  /* Primary Buttons */
+  --btn-primary-bg: var(--primary-blue-500); /* #3A86FF */
   --btn-primary-text: var(--white);
-  --btn-primary-hover: var(--primary-blue-700);
+  --btn-primary-hover: var(--primary-blue-700); /* #2A69DD */
   --btn-primary-active: var(--primary-blue-900);
-  --btn-primary-disabled-bg: var(--gray-300);
-  --btn-primary-disabled-text: var(--gray-400);
+  --btn-primary-radius: 8px; /* Rounded corners (8px radius) */
+  --btn-primary-padding: 12px; /* 12px padding on all sides */
+  --btn-primary-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Subtle shadow for depth */
+  
+  /* Secondary Buttons */
   --btn-secondary-bg: var(--white);
-  --btn-secondary-border: var(--primary-blue-500);
-  --btn-secondary-text: var(--primary-blue-500);
-  --btn-secondary-hover: var(--primary-blue-100);
+  --btn-secondary-border: var(--primary-blue-500); /* #3A86FF border */
+  --btn-secondary-border-width: 1.5px; /* 1-2px thickness */
+  --btn-secondary-text: var(--primary-blue-500); /* Text color matching border */
+  --btn-secondary-hover: var(--primary-blue-100); /* #C7DDFF light blue background */
+  --btn-secondary-radius: 8px; /* Same rounded corners as primary */
+  --btn-secondary-padding: 12px; /* Same padding as primary */
+  --btn-secondary-shadow: none; /* No shadow in normal state */
+  
+  /* Icon Buttons */
+  --btn-icon-bg: transparent;
+  --btn-icon-active: var(--primary-blue-500); /* #3A86FF for active */
+  --btn-icon-inactive: var(--gray-500); /* #718096 for inactive */
+  --btn-icon-hover-bg: var(--gray-100); /* #EDF2F7 light gray */
+  --btn-icon-radius: 4px; /* Slightly rounded corners */
+  --btn-icon-size: 36px; /* Overall button size */
+  --btn-icon-inner-size: 20px; /* Inner icon sizing (20-24px) */
+  
+  /* Disabled Button State (for any type) */
+  --btn-disabled-bg: var(--gray-300); /* #CBD5E0 light gray */
+  --btn-disabled-text: var(--gray-400); /* #A0AEC0 medium gray */
+  
+  /* Tertiary and Danger Button Types */
   --btn-tertiary-bg: transparent;
   --btn-tertiary-text: var(--primary-blue-500);
   --btn-tertiary-hover: var(--primary-blue-100);
