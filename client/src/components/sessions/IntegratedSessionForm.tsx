@@ -1739,10 +1739,12 @@ const ProductSelectionDialog = ({
                             <FormItem className="h-full flex flex-col">
                               <FormLabel>General Notes</FormLabel>
                               <FormControl className="flex-grow">
-                                <Textarea 
+                                <RichTextEditor 
+                                  value={field.value || ''}
+                                  onChange={field.onChange}
                                   placeholder="Enter general observations about the session..."
-                                  className="resize-none h-full min-h-[300px]"
-                                  {...field}
+                                  className="rich-text-editor-container" 
+                                  minHeight="min-h-[300px]"
                                 />
                               </FormControl>
                               <FormMessage />
@@ -1823,10 +1825,12 @@ const ProductSelectionDialog = ({
                                   <FormItem className="mb-4">
                                     <FormLabel>Goal Progress Notes</FormLabel>
                                     <FormControl>
-                                      <Textarea 
+                                      <RichTextEditor 
+                                        value={field.value || ''}
+                                        onChange={field.onChange}
                                         placeholder="Enter notes about progress on this goal..."
-                                        className="resize-none min-h-20"
-                                        {...field}
+                                        className="rich-text-editor-container" 
+                                        minHeight="min-h-[100px]"
                                       />
                                     </FormControl>
                                     <FormMessage />
@@ -1927,10 +1931,12 @@ const ProductSelectionDialog = ({
                                               <FormItem>
                                                 <FormLabel>Notes</FormLabel>
                                                 <FormControl>
-                                                  <Textarea 
+                                                  <RichTextEditor 
+                                                    value={field.value || ''}
+                                                    onChange={field.onChange}
                                                     placeholder="Notes about this milestone..."
-                                                    className="resize-none min-h-16"
-                                                    {...field}
+                                                    className="rich-text-editor-container" 
+                                                    minHeight="min-h-[80px]"
                                                   />
                                                 </FormControl>
                                                 <FormMessage />
