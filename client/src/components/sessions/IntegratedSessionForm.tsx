@@ -1191,7 +1191,7 @@ const ProductSelectionDialog = ({
               <div className="flex-grow overflow-auto pr-2">
                 {/* Session Details Tab */}
                 <TabsContent value="details" className="space-y-6 mt-0 px-4">
-                  {/* Card wrapper for basic session info */}
+                  {/* Full-width top section for basic session info */}
                   <Card className="shadow-sm border-muted">
                     <CardHeader className="pb-2">
                       <CardTitle className="text-lg font-medium flex items-center">
