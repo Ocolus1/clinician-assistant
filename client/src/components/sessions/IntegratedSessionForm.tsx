@@ -16,7 +16,7 @@ import {
   ShoppingCart,
   RefreshCw
 } from "lucide-react";
-import { ProductDebugHelper } from "@/components/debug/ProductDebugHelper";
+// Debug helper has been removed in favor of a more natural implementation
 import { Ally, BudgetItem, BudgetSettings, Client, Goal, Session, Subgoal, insertSessionSchema } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { useSafeForm } from "@/hooks/use-safe-hooks";
@@ -1400,14 +1400,80 @@ const ProductSelectionDialog = ({
                                   <div className="text-sm text-muted-foreground">
                                     Code: {product.productCode}
                                   </div>
+                                  
+                                  {/* Availability Visualization */}
+                                  <div className="mt-1">
+                                    <div className="flex items-center text-xs">
+                                      <span className="text-muted-foreground mr-2">Availability:</span>
+                                      <div className="w-full max-w-[100px] bg-gray-200 rounded-full h-2.5">
+                                        <div 
+                                          className="bg-primary h-2.5 rounded-full" 
+                                          style={{ 
+                                            width: `${Math.min(100, (product.availableQuantity - product.quantity) / product.availableQuantity * 100)}%` 
+                                          }}
+                                        />
+                                      </div>
+                                      <span className="ml-2 text-xs">
+                                        <span className="text-primary font-medium">{product.availableQuantity - product.quantity}</span>
+                                        <span className="text-muted-foreground"> / {product.availableQuantity}</span>
+                                      </span>
+                                    </div>
+                                  </div>
                                 </div>
                                 
-                                <div className="flex items-center gap-4">
+                                <div className="flex items-center gap-3">
+                                  {/* Quantity Controls */}
+                                  <div className="flex items-center border rounded-md mr-2">
+                                    <Button 
+                                      type="button" 
+                                      variant="ghost" 
+                                      size="icon"
+                                      className="h-7 w-7"
+                                      onClick={() => {
+                                        if (product.quantity > 1) {
+                                          const updatedProducts = [...selectedProducts];
+                                          updatedProducts[index] = {
+                                            ...updatedProducts[index],
+                                            quantity: product.quantity - 1
+                                          };
+                                          form.setValue("sessionNote.products", updatedProducts);
+                                        }
+                                      }}
+                                    >
+                                      <Minus className="h-3 w-3" />
+                                    </Button>
+                                    <div className="w-8 text-center">
+                                      <span className="text-sm font-medium">{product.quantity}</span>
+                                    </div>
+                                    <Button 
+                                      type="button" 
+                                      variant="ghost" 
+                                      size="icon"
+                                      className="h-7 w-7"
+                                      onClick={() => {
+                                        if (product.quantity < product.availableQuantity) {
+                                          const updatedProducts = [...selectedProducts];
+                                          updatedProducts[index] = {
+                                            ...updatedProducts[index],
+                                            quantity: product.quantity + 1
+                                          };
+                                          form.setValue("sessionNote.products", updatedProducts);
+                                        } else {
+                                          toast({
+                                            title: "Maximum quantity reached",
+                                            description: `Only ${product.availableQuantity} units available`,
+                                            variant: "destructive"
+                                          });
+                                        }
+                                      }}
+                                    >
+                                      <Plus className="h-3 w-3" />
+                                    </Button>
+                                  </div>
+                                  
                                   <div className="text-right">
                                     <div>
-                                      <span className="font-medium">{product.quantity}</span>
-                                      <span className="text-muted-foreground"> × </span>
-                                      <span>
+                                      <span className="text-muted-foreground text-sm">
                                         {new Intl.NumberFormat('en-US', {
                                           style: 'currency',
                                           currency: 'USD'
@@ -1426,7 +1492,7 @@ const ProductSelectionDialog = ({
                                     type="button"
                                     variant="ghost"
                                     size="sm"
-                                    className="h-8 w-8 p-0 rounded-full"
+                                    className="h-8 w-8 p-0 rounded-full ml-2"
                                     onClick={() => handleRemoveProduct(index)}
                                   >
                                     <X className="h-4 w-4" />
