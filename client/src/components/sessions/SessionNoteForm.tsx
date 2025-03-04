@@ -42,7 +42,7 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
-import { ProgressiveAssessmentBuilder } from "./ProgressiveAssessmentBuilder";
+import { SimpleAssessmentBuilder } from "./SimpleAssessmentBuilder";
 
 // Form schema for session notes
 const sessionNoteSchema = z.object({
@@ -557,9 +557,9 @@ export function SessionNoteForm({ open, onOpenChange, session, initialData }: Se
                             <FormItem>
                               <FormControl>
                                 <>
-                                  <ProgressiveAssessmentBuilder
+                                  <SimpleAssessmentBuilder
                                     clientId={session.clientId}
-                                    existingAssessments={field.value || []}
+                                    assessments={field.value || []}
                                     onChange={field.onChange}
                                   />
                                 </>
