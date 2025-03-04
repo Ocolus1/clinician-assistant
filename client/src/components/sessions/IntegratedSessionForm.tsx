@@ -169,19 +169,19 @@ const RatingSlider = ({ value, onChange, label, description }: RatingSliderProps
     <div className="space-y-3">
       <div className="flex justify-between items-center">
         <Label className="font-medium text-sm">{label}</Label>
-        <Badge variant="outline" className={`rating-badge ${getBadgeClass()}`}>
+        <Badge variant="outline" className={`font-medium ${getBadgeClass()}`}>
           {value}
         </Badge>
       </div>
       {description && <p className="text-sm text-muted-foreground mt-1">{description}</p>}
-      <div className="relative pt-1 pb-3">
+      <div className="relative">
         <Slider
           value={[value]}
           min={0}
           max={10}
           step={1}
           onValueChange={(vals) => onChange(vals[0])}
-          className={`rating-slider color-slider ${getRangeClass()}`}
+          className={`py-2 rating-slider color-slider ${getRangeClass()}`}
         />
       </div>
     </div>
@@ -1645,17 +1645,17 @@ const ProductSelectionDialog = ({
                 </TabsContent>
 
                 {/* Observations Tab */}
-                <TabsContent value="participants" className="space-y-6 mt-0 px-6 py-4">
+                <TabsContent value="participants" className="space-y-6 mt-0 px-4">
                   {/* Session Observations */}
-                  <div className="space-y-6 mt-2">
+                  <div className="space-y-4 mt-4">
                     <h3 className="section-header">
                       <ClipboardList className="h-5 w-5" />
                       Session Observations
                     </h3>
                     
-                    <div className="observations-grid">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       {/* Left Column - Rating Sliders */}
-                      <div className="slider-group">
+                      <div className="space-y-6">
                         <FormField
                           control={form.control}
                           name="sessionNote.moodRating"
@@ -1730,7 +1730,7 @@ const ProductSelectionDialog = ({
                       </div>
                       
                       {/* Right Column - Notes Textarea */}
-                      <div className="notes-container">
+                      <div className="h-full">
                         <FormField
                           control={form.control}
                           name="sessionNote.notes"
@@ -1740,7 +1740,7 @@ const ProductSelectionDialog = ({
                               <FormControl className="flex-grow">
                                 <Textarea 
                                   placeholder="Enter general observations about the session..."
-                                  className="notes-textarea"
+                                  className="resize-none h-full min-h-[300px]"
                                   {...field}
                                 />
                               </FormControl>

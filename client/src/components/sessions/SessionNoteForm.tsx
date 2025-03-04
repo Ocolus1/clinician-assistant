@@ -6,9 +6,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/utils";
 import { Check, HelpCircle, Loader2 } from "lucide-react";
 
-// Import shared styles
-import "./session-form.css";
-
 import {
   Form,
   FormControl,
@@ -108,22 +105,20 @@ const RatingSlider = ({ value, onChange, label, description }: RatingSliderProps
   };
   
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
       <div className="flex justify-between items-center">
-        <FormLabel className="font-medium text-sm">{label}</FormLabel>
-        <Badge variant="outline" className={`rating-badge ${getBadgeClass()}`}>
-          {value}
-        </Badge>
+        <FormLabel>{label}</FormLabel>
+        <Badge variant="outline" className={getBadgeClass()}>{value}</Badge>
       </div>
-      {description && <p className="text-sm text-muted-foreground mt-1">{description}</p>}
-      <div className="relative pt-1 pb-3">
+      {description && <FormDescription>{description}</FormDescription>}
+      <div className="relative">
         <Slider
           value={[value]}
           min={0}
           max={10}
           step={1}
           onValueChange={(vals) => onChange(vals[0])}
-          className={`rating-slider color-slider ${getRangeClass()}`}
+          className={`py-1 rating-slider color-slider ${getRangeClass()}`}
         />
       </div>
     </div>
@@ -333,109 +328,101 @@ export function SessionNoteForm({ open, onOpenChange, session, initialData }: Se
               </TabsList>
 
               {/* General Observations Tab */}
-              <TabsContent value="general" className="flex-grow overflow-auto p-4">
+              <TabsContent value="general" className="flex-grow overflow-auto p-2">
                 <div className="space-y-6">
-                  <h3 className="text-lg font-medium mb-4">Session Observations</h3>
-                  
-                  <div className="observations-grid">
-                    {/* Left Column - Rating Sliders */}
-                    <div className="slider-group">
-                      <FormField
-                        control={form.control}
-                        name="sessionNote.moodRating"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormControl>
-                              <RatingSlider
-                                value={field.value || 5}
-                                onChange={field.onChange}
-                                label="Mood"
-                                description="Rate client's overall mood during the session"
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      
-                      <FormField
-                        control={form.control}
-                        name="sessionNote.focusRating"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormControl>
-                              <RatingSlider
-                                value={field.value || 5}
-                                onChange={field.onChange}
-                                label="Focus"
-                                description="Rate client's ability to focus during the session"
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      
-                      <FormField
-                        control={form.control}
-                        name="sessionNote.cooperationRating"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormControl>
-                              <RatingSlider
-                                value={field.value || 5}
-                                onChange={field.onChange}
-                                label="Cooperation"
-                                description="Rate client's overall cooperation"
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      
-                      <FormField
-                        control={form.control}
-                        name="sessionNote.physicalActivityRating"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormControl>
-                              <RatingSlider
-                                value={field.value || 5}
-                                onChange={field.onChange}
-                                label="Physical Activity"
-                                description="Rate client's physical activity level"
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-                    
-                    {/* Right Column - Notes Textarea */}
-                    <div className="notes-container">
-                      <FormField
-                        control={form.control}
-                        name="sessionNote.notes"
-                        render={({ field }) => (
-                          <FormItem className="h-full flex flex-col">
-                            <FormLabel>General Notes</FormLabel>
-                            <FormDescription>
-                              Record general observations about the session
-                            </FormDescription>
-                            <FormControl className="flex-grow">
-                              <Textarea 
-                                {...field} 
-                                placeholder="Enter general notes about the session..."
-                                className="notes-textarea" 
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
+                  <FormField
+                    control={form.control}
+                    name="sessionNote.notes"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Session Notes</FormLabel>
+                        <FormDescription>
+                          Record general observations about the session
+                        </FormDescription>
+                        <FormControl>
+                          <Textarea 
+                            {...field} 
+                            placeholder="Enter general notes about the session..."
+                            className="min-h-32" 
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <FormField
+                      control={form.control}
+                      name="sessionNote.moodRating"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormControl>
+                            <RatingSlider
+                              value={field.value || 5}
+                              onChange={field.onChange}
+                              label="Mood"
+                              description="Rate client's overall mood during the session"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="sessionNote.physicalActivityRating"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormControl>
+                            <RatingSlider
+                              value={field.value || 5}
+                              onChange={field.onChange}
+                              label="Physical Activity"
+                              description="Rate client's physical activity level"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="sessionNote.focusRating"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormControl>
+                            <RatingSlider
+                              value={field.value || 5}
+                              onChange={field.onChange}
+                              label="Focus"
+                              description="Rate client's ability to focus during the session"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="sessionNote.cooperationRating"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormControl>
+                            <RatingSlider
+                              value={field.value || 5}
+                              onChange={field.onChange}
+                              label="Cooperation"
+                              description="Rate client's overall cooperation"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                   </div>
                 </div>
               </TabsContent>
