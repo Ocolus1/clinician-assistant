@@ -1735,7 +1735,10 @@ const ProductSelectionDialog = ({
                 {/* Performance Assessment Tab */}
                 <TabsContent value="performance" className="space-y-4 mt-0 px-2">
                   <div className="flex justify-between items-center">
-                    <h3 className="font-medium text-lg">Performance Assessment</h3>
+                    <h3 className="section-header">
+                      <RefreshCw className="h-5 w-5" />
+                      Performance Assessment
+                    </h3>
                     <Button 
                       type="button" 
                       onClick={() => setGoalSelectionOpen(true)}
