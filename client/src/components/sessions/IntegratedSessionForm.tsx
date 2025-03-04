@@ -806,6 +806,9 @@ export function IntegratedSessionForm({
 
   // Handle goal selection
   const handleGoalSelection = (goal: Goal) => {
+    console.log("Goal selected:", goal);
+    
+    // Update the form with the new goal
     const updatedAssessments = [...selectedPerformanceAssessments];
     updatedAssessments.push({
       goalId: goal.id,
@@ -818,6 +821,25 @@ export function IntegratedSessionForm({
     
     // Set the selected goal ID to fetch its subgoals
     setSelectedGoalId(goal.id);
+    
+    // Store selected goal data for cross-component access
+    queryClient.setQueryData(['selectedGoalId'], goal.id);
+    queryClient.setQueryData(['formState'], {
+      ...queryClient.getQueryData(['formState']) || {},
+      clientId,
+      currentGoalIndex: updatedAssessments.length - 1,
+      performanceAssessments: updatedAssessments
+    });
+    
+    // Add a delay to ensure UI updates
+    setTimeout(() => {
+      if (updatedAssessments.length > 0) {
+        // Force a refresh of subgoals data
+        queryClient.invalidateQueries({
+          queryKey: ['/api/goals', goal.id, 'subgoals']
+        });
+      }
+    }, 100);
   };
 
   // Handle milestone selection
