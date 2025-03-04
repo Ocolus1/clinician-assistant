@@ -151,13 +151,6 @@ interface RatingSliderProps {
 }
 
 const RatingSlider = ({ value, onChange, label, description }: RatingSliderProps) => {
-  // Get thumb color based on value range
-  const getThumbColor = () => {
-    if (value <= 3) return 'var(--error-500)'; // Red
-    if (value <= 6) return 'var(--warning-500)'; // Orange
-    return 'var(--success-500)'; // Green
-  };
-  
   // Generate a badge color class based on value
   const getBadgeClass = () => {
     if (value <= 3) return 'bg-red-100 border-red-200 text-red-700';
@@ -181,12 +174,7 @@ const RatingSlider = ({ value, onChange, label, description }: RatingSliderProps
         </Badge>
       </div>
       {description && <p className="text-sm text-muted-foreground mt-1">{description}</p>}
-      <div 
-        className="relative"
-        style={{
-          '--thumb-color': getThumbColor(),
-        } as React.CSSProperties}
-      >
+      <div className="relative">
         <Slider
           value={[value]}
           min={0}

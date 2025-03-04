@@ -241,16 +241,40 @@ input::placeholder, textarea::placeholder {
 }
 
 /* Track color based on range */
+/* Red for 0-3 */
 .color-slider.range-low [data-orientation="horizontal"] > div {
-  background-color: var(--error-500) !important; /* Red for 0-3 */
+  background-color: var(--error-500) !important;
+}
+.color-slider.range-low [role="slider"] {
+  background-color: var(--error-500) !important;
+  box-shadow: 0 0 0 1px var(--error-500) !important;
+}
+.color-slider.range-low [role="slider"]:hover {
+  box-shadow: 0 0 0 1px var(--error-500), 0 0 0 4px rgba(239, 68, 68, 0.2) !important;
 }
 
+/* Orange for 4-6 */
 .color-slider.range-mid [data-orientation="horizontal"] > div {
-  background-color: var(--warning-500) !important; /* Orange for 4-6 */
+  background-color: var(--warning-500) !important;
+}
+.color-slider.range-mid [role="slider"] {
+  background-color: var(--warning-500) !important;
+  box-shadow: 0 0 0 1px var(--warning-500) !important;
+}
+.color-slider.range-mid [role="slider"]:hover {
+  box-shadow: 0 0 0 1px var(--warning-500), 0 0 0 4px rgba(234, 179, 8, 0.2) !important;
 }
 
+/* Green for 7-10 */
 .color-slider.range-high [data-orientation="horizontal"] > div {
-  background-color: var(--success-500) !important; /* Green for 7-10 */
+  background-color: var(--success-500) !important;
+}
+.color-slider.range-high [role="slider"] {
+  background-color: var(--success-500) !important;
+  box-shadow: 0 0 0 1px var(--success-500) !important;
+}
+.color-slider.range-high [role="slider"]:hover {
+  box-shadow: 0 0 0 1px var(--success-500), 0 0 0 4px rgba(34, 197, 94, 0.2) !important;
 }
 
 /* Component Button Styles - Using our new button system */
