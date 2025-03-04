@@ -61,3 +61,21 @@
   position: relative;
   z-index: 100;
 }
+
+/* Hide calendars that are not properly contained */
+.uncontained-calendar {
+  display: none !important;
+}
+
+/* Session creation specific fixes */
+.uncontained-calendar .rdp,
+.uncontained-calendar .rdp * {
+  display: none !important;
+  visibility: hidden !important;
+  height: 0 !important;
+  width: 0 !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  position: absolute !important;
+  overflow: hidden !important;
+}

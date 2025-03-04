@@ -31,7 +31,7 @@ function Calendar({
       // If we can't find a proper container, hide this calendar
       const isProperlyContained = (() => {
         // Check if any parent has data-calendar-container attribute
-        let element = calendarRef.current;
+        let element: HTMLElement | null = calendarRef.current;
         while (element && element !== document.body) {
           if (
             element.hasAttribute('data-calendar-container') || 
@@ -40,7 +40,7 @@ function Calendar({
           ) {
             return true;
           }
-          element = element.parentElement as HTMLElement;
+          element = element.parentElement;
         }
         return false;
       })();
