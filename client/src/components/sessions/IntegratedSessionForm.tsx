@@ -1147,7 +1147,11 @@ const ProductSelectionDialog = ({
                         
                         return (
                           <FormItem className="flex flex-col flex-1">
-                            <FormLabel className="text-base">Date & Time</FormLabel>
+                            <FormLabel className="text-base flex items-center">
+                              <CalendarIcon className="h-4 w-4 mr-2 text-muted-foreground" />
+                              <Clock className="h-4 w-4 mr-2 text-muted-foreground" />
+                              Date & Time
+                            </FormLabel>
                             <Popover onOpenChange={setIsCalendarOpen} open={isCalendarOpen}>
                               <PopoverTrigger asChild>
                                 <FormControl>
@@ -1155,13 +1159,19 @@ const ProductSelectionDialog = ({
                                     variant={"outline"}
                                     className={`w-full h-10 pl-3 text-left font-normal ${
                                       !field.value ? "text-muted-foreground" : ""
-                                    }`}
+                                    } border-primary/20 hover:border-primary/40 hover:bg-primary/5`}
                                     onClick={() => setIsCalendarOpen(true)} // Explicitly control open state
                                   >
                                     {field.value ? (
-                                      format(field.value, "PPP p")
+                                      <span className="flex items-center">
+                                        <CalendarIcon className="h-4 w-4 mr-2 text-primary/70" />
+                                        {format(field.value, "PPP p")}
+                                      </span>
                                     ) : (
-                                      <span>Pick a date</span>
+                                      <span className="flex items-center">
+                                        <CalendarIcon className="h-4 w-4 mr-2 opacity-50" />
+                                        <span>Select date and time</span>
+                                      </span>
                                     )}
                                     <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                                   </Button>
