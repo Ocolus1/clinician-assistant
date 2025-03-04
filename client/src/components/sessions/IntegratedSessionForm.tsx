@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useLayoutEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, Controller } from "react-hook-form";
@@ -23,6 +23,17 @@ import { Ally, BudgetItem, BudgetSettings, Client, Goal, Session, Subgoal, inser
 import { apiRequest } from "@/lib/queryClient";
 import { useSafeForm } from "@/hooks/use-safe-hooks";
 import { useToast } from "@/hooks/use-toast";
+
+// Function to hide unwanted calendars in the UI
+const hideUnwantedCalendars = () => {
+  // Hide any calendar not properly contained
+  const unwantedCalendars = document.querySelectorAll('.rdp:not([data-calendar-container="true"] .rdp, [data-state="open"] .rdp)');
+  unwantedCalendars.forEach(calendar => {
+    if (calendar.parentElement) {
+      calendar.parentElement.classList.add('uncontained-calendar');
+    }
+  });
+};
 
 // UI Components
 import {
@@ -440,6 +451,20 @@ export function IntegratedSessionForm({
     queryKey: ["/api/goals", selectedGoalId, "subgoals"],
     enabled: open && !!selectedGoalId,
   });
+  
+  // Hide unwanted calendar elements that might appear out of context
+  useEffect(() => {
+    // Function to find and hide unwanted calendars
+    const hideUnwantedCalendarsTimer = setInterval(hideUnwantedCalendars, 100);
+    
+    // Also run immediately
+    hideUnwantedCalendars();
+    
+    // Cleanup on unmount or when dialog closes
+    return () => {
+      clearInterval(hideUnwantedCalendarsTimer);
+    };
+  }, [open]);
   
   // Get budget settings to identify active plan
   const { data: budgetSettings, isLoading: isLoadingBudgetSettings, error: budgetSettingsError, refetch: refetchBudgetSettings } = useQuery<BudgetSettings>({
