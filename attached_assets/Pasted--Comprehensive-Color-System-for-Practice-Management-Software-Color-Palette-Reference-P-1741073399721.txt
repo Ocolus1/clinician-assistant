@@ -1,0 +1,237 @@
+# Comprehensive Color System for Practice Management Software
+
+## Color Palette Reference
+
+### Primary Colors
+| Name | Hex Code | Usage |
+|------|----------|-------|
+| Primary Blue 900 | #1E4E8C | Dark accents, hover states |
+| Primary Blue 700 | #2A69DD | Strong emphasis elements |
+| Primary Blue 500 | #3A86FF | Main primary color |
+| Primary Blue 300 | #7EB0FF | Light UI elements |
+| Primary Blue 100 | #C7DDFF | Subtle backgrounds |
+
+### Secondary Colors
+| Name | Hex Code | Usage |
+|------|----------|-------|
+| Teal 900 | #1D6A66 | Dark teal accents |
+| Teal 700 | #2C9490 | Strong teal emphasis |
+| Teal 500 | #38B2AC | Main secondary color |
+| Teal 300 | #7AD1CC | Light teal elements |
+| Teal 100 | #C4F1EE | Subtle backgrounds |
+
+### Neutral Colors
+| Name | Hex Code | Usage |
+|------|----------|-------|
+| Gray 900 | #1A202C | Darkest gray, sidebar background |
+| Gray 800 | #2D3748 | Primary text |
+| Gray 600 | #4A5568 | Headings and subheadings |
+| Gray 500 | #718096 | Secondary text |
+| Gray 400 | #A0AEC0 | Placeholder text, disabled states |
+| Gray 300 | #CBD5E0 | Borders and dividers |
+| Gray 200 | #E2E8F0 | Light backgrounds, hover states |
+| Gray 100 | #EDF2F7 | Interactive element backgrounds |
+| Gray 50 | #F7FAFC | Main content backgrounds |
+| White | #FFFFFF | Card backgrounds, form fields |
+
+### Feedback Colors
+| Name | Hex Code | Usage |
+|------|----------|-------|
+| Success 700 | #2F855A | Dark green hover states |
+| Success 500 | #48BB78 | Primary success color |
+| Success 300 | #9AE6B4 | Light success backgrounds |
+| Success 100 | #C6F6D5 | Very light success backgrounds |
+| Warning 700 | #C05621 | Dark orange hover states |
+| Warning 500 | #F6AD55 | Primary warning color |
+| Warning 300 | #FBD38D | Light warning backgrounds |
+| Warning 100 | #FEEBC8 | Very light warning backgrounds |
+| Error 700 | #C53030 | Dark red hover states |
+| Error 500 | #F56565 | Primary error color |
+| Error 300 | #FC8181 | Light error backgrounds |
+| Error 100 | #FED7D7 | Very light error backgrounds |
+| Info 700 | #2B6CB0 | Dark blue hover states |
+| Info 500 | #4299E1 | Primary info color |
+| Info 300 | #90CDF4 | Light info backgrounds |
+| Info 100 | #D0E5FA | Very light info backgrounds |
+
+## Exact Color Application Guide
+
+### Global Layout
+
+#### Main Structure
+- **Page Background**: Gray 50 (#F7FAFC)
+- **Sidebar Background**: Gray 900 (#1A202C)
+- **Sidebar Active Item**: Primary Blue 500 (#3A86FF) with Gray 800 (#2D3748) background
+- **Sidebar Text**: White (#FFFFFF)
+- **Sidebar Icon**: White (#FFFFFF)
+- **Header Background**: White (#FFFFFF)
+- **Header Border Bottom**: Gray 200 (#E2E8F0)
+- **Footer Background**: Gray 50 (#F7FAFC)
+- **Footer Text**: Gray 500 (#718096)
+
+#### Cards/Containers
+- **Card Background**: White (#FFFFFF)
+- **Card Border**: Gray 200 (#E2E8F0)
+- **Card Shadow**: 0 2px 4px rgba(0, 0, 0, 0.05)
+- **Card Header Border**: Gray 200 (#E2E8F0)
+- **Section Divider**: Gray 200 (#E2E8F0)
+
+### Dashboard Elements
+
+#### Stat Cards
+- **Card Background**: White (#FFFFFF)
+- **Card Border**: Gray 200 (#E2E8F0)
+- **Card Title**: Gray 600 (#4A5568)
+- **Stat Value**: Gray 800 (#2D3748)
+- **Icon Color**: Primary Blue 500 (#3A86FF)
+
+#### Client List
+- **Table Header Background**: Gray 100 (#EDF2F7)
+- **Table Header Text**: Gray 600 (#4A5568)
+- **Table Row Border**: Gray 200 (#E2E8F0)
+- **Table Row Hover**: Gray 100 (#EDF2F7)
+- **Client Name**: Gray 800 (#2D3748)
+- **Client Details**: Gray 500 (#718096)
+- **Status Indicator - Active**: Success 500 (#48BB78)
+- **Status Indicator - Pending**: Warning 500 (#F6AD55)
+- **Status Indicator - Inactive**: Gray 400 (#A0AEC0)
+
+#### Data Visualizations
+- **Chart Primary Color**: Primary Blue 500 (#3A86FF)
+- **Chart Secondary Color**: Teal 500 (#38B2AC)
+- **Chart Tertiary Color**: Gray 400 (#A0AEC0)
+- **Chart Axis Lines**: Gray 300 (#CBD5E0)
+- **Chart Axis Text**: Gray 500 (#718096)
+- **Chart Title**: Gray 600 (#4A5568)
+- **Chart Legend Text**: Gray 500 (#718096)
+
+### Session/Appointment Elements
+
+#### Session Card (CRITICAL FIX)
+- **Card Background**: White (#FFFFFF) - NOT blue
+- **Card Border**: Gray 200 (#E2E8F0)
+- **Card Shadow**: 0 2px 4px rgba(0, 0, 0, 0.05)
+- **Session Title**: Gray 800 (#2D3748)
+- **Session Description**: Gray 500 (#718096)
+- **Status Tag Background - Scheduled**: Primary Blue 100 (#C7DDFF)
+- **Status Tag Text - Scheduled**: Primary Blue 700 (#2A69DD)
+- **Status Tag Background - Completed**: Success 100 (#C6F6D5)
+- **Status Tag Text - Completed**: Success 700 (#2F855A)
+- **Status Tag Background - Cancelled**: Error 100 (#FED7D7)
+- **Status Tag Text - Cancelled**: Error 700 (#C53030)
+- **Date/Time Text**: Gray 600 (#4A5568)
+- **Location Text**: Gray 500 (#718096)
+
+#### Calendar/Scheduler
+- **Calendar Background**: White (#FFFFFF)
+- **Calendar Header**: Gray 800 (#2D3748)
+- **Calendar Day Names**: Gray 600 (#4A5568)
+- **Calendar Day Background**: White (#FFFFFF)
+- **Calendar Day Border**: Gray 200 (#E2E8F0)
+- **Calendar Current Day Highlight**: Primary Blue 100 (#C7DDFF)
+- **Calendar Event Indicator**: Primary Blue 500 (#3A86FF)
+- **Calendar Time Slots**: Gray 200 (#E2E8F0)
+
+### Form Elements (CRITICAL FIX)
+
+#### Inputs/Selects
+- **Input Background**: White (#FFFFFF)
+- **Input Border**: Gray 300 (#CBD5E0)
+- **Input Border Focus**: Primary Blue 500 (#3A86FF)
+- **Input Text**: Gray 800 (#2D3748)
+- **Input Placeholder**: Gray 400 (#A0AEC0)
+- **Input Label**: Gray 600 (#4A5568)
+- **Input Helper Text**: Gray 500 (#718096)
+- **Input Error Text**: Error 500 (#F56565)
+- **Input Error Border**: Error 500 (#F56565)
+- **Input Disabled Background**: Gray 100 (#EDF2F7)
+- **Input Disabled Text**: Gray 400 (#A0AEC0)
+
+#### Buttons
+- **Primary Button Background**: Primary Blue 500 (#3A86FF)
+- **Primary Button Text**: White (#FFFFFF)
+- **Primary Button Hover**: Primary Blue 700 (#2A69DD)
+- **Primary Button Active/Pressed**: Primary Blue 900 (#1E4E8C)
+- **Primary Button Disabled**: Gray 300 (#CBD5E0) with Gray 400 (#A0AEC0) text
+- **Secondary Button Background**: White (#FFFFFF)
+- **Secondary Button Border**: Primary Blue 500 (#3A86FF)
+- **Secondary Button Text**: Primary Blue 500 (#3A86FF)
+- **Secondary Button Hover**: Primary Blue 100 (#C7DDFF)
+- **Tertiary Button Background**: Transparent
+- **Tertiary Button Text**: Primary Blue 500 (#3A86FF)
+- **Tertiary Button Hover**: Primary Blue 100 (#C7DDFF)
+- **Danger Button Background**: Error 500 (#F56565)
+- **Danger Button Text**: White (#FFFFFF)
+- **Danger Button Hover**: Error 700 (#C53030)
+
+#### Tabs (CRITICAL FIX)
+- **Tab Background - Inactive**: White (#FFFFFF) or Gray 50 (#F7FAFC)
+- **Tab Text - Inactive**: Gray 500 (#718096)
+- **Tab Border - Inactive**: Gray 300 (#CBD5E0) or none
+- **Tab Background - Active**: White (#FFFFFF)
+- **Tab Text - Active**: Primary Blue 500 (#3A86FF)
+- **Tab Indicator - Active**: Primary Blue 500 (#3A86FF) bottom border
+- **Tab Hover - Inactive**: Gray 100 (#EDF2F7)
+
+#### Section Backgrounds (Create Session Form) (CRITICAL FIX)
+- **Main Form Background**: White (#FFFFFF)
+- **Form Section Background**: White (#FFFFFF)
+- **Form Section Border**: Gray 200 (#E2E8F0)
+- **Secondary Form Background**: Gray 50 (#F7FAFC)
+- **Tab Content Area**: White (#FFFFFF)
+
+### Notifications and Feedback
+
+#### Toast/Alert Messages
+- **Success Background**: Success 100 (#C6F6D5)
+- **Success Border**: Success 300 (#9AE6B4)
+- **Success Text**: Success 700 (#2F855A)
+- **Warning Background**: Warning 100 (#FEEBC8)
+- **Warning Border**: Warning 300 (#FBD38D)
+- **Warning Text**: Warning 700 (#C05621)
+- **Error Background**: Error 100 (#FED7D7)
+- **Error Border**: Error 300 (#FC8181)
+- **Error Text**: Error 700 (#C53030)
+- **Info Background**: Info 100 (#D0E5FA)
+- **Info Border**: Info 300 (#90CDF4)
+- **Info Text**: Info 700 (#2B6CB0)
+
+### Typography
+
+#### Font Colors
+- **Primary Text**: Gray 800 (#2D3748)
+- **Secondary Text**: Gray 500 (#718096)
+- **Tertiary Text**: Gray 400 (#A0AEC0)
+- **Link Text**: Primary Blue 500 (#3A86FF)
+- **Link Text Hover**: Primary Blue 700 (#2A69DD)
+
+## Implementation Notes for Key Pages
+
+### Dashboard Page
+- Use white backgrounds for all cards and containers
+- Use Primary Blue 500 only for icons, numbers, and interactive elements
+- Keep the main content area background light gray (Gray 50)
+- Use sparse and deliberate blue accents rather than large blue areas
+
+### Sessions Page (CRITICAL FIX)
+- Replace the solid blue background with white (#FFFFFF) for session cards
+- Use a small colored left border or tag to indicate session status
+- Maintain high contrast with dark text on light backgrounds
+- Use blue highlights only for status indicators and interactive elements
+
+### Create Session Form (CRITICAL FIX)
+- All form sections should have white backgrounds
+- Use tab design with subtle blue indicators for active state
+- Maintain consistent form field styling
+- Use blue only for buttons, active states, and accents
+
+## Special Considerations
+
+### Accessibility
+- Ensure all text colors maintain at least 4.5:1 contrast ratio with their backgrounds
+- Use color AND shape/text to convey status information
+- Make sure interactive elements have clear hover/focus states
+
+### Mobile Responsiveness
+- Maintain color consistency across screen sizes
+- Consider using slightly larger touch targets with the same color scheme on mobile

@@ -14,15 +14,16 @@
   --teal-100: #C4F1EE; /* For very subtle teal backgrounds */
 
   /* Neutral Colors */
-  --gray-900: #1A202C; /* Darkest gray for high contrast text */
+  --gray-900: #1A202C; /* Darkest gray, sidebar background */
   --gray-800: #2D3748; /* For primary text */
   --gray-600: #4A5568; /* For headings and subheadings */
   --gray-500: #718096; /* For secondary text */
-  --gray-400: #A0AEC0; /* For placeholder text and disabled states */
+  --gray-400: #A0AEC0; /* For placeholder text, disabled states */
   --gray-300: #CBD5E0; /* For borders and dividers */
-  --gray-200: #E2E8F0; /* For light backgrounds and hover states */
-  --gray-100: #EDF2F7; /* For backgrounds of interactive elements */
+  --gray-200: #E2E8F0; /* For light backgrounds, hover states */
+  --gray-100: #EDF2F7; /* For interactive element backgrounds */
   --gray-50: #F7FAFC; /* For main content backgrounds */
+  --white: #FFFFFF; /* Card backgrounds, form fields */
 
   /* Feedback Colors */
   --success-700: #2F855A; /* Dark green for hover states on success buttons */
@@ -45,34 +46,132 @@
   --info-300: #90CDF4; /* Light info for backgrounds and subtle indicators */
   --info-100: #D0E5FA; /* Very light info for background states */
 
-  /* Semantic mappings for application */
+  /* === Application-Specific Mappings === */
+  
+  /* Layout */
+  --page-background: var(--gray-50);
+  --sidebar-background: var(--gray-900);
+  --sidebar-active-item-bg: var(--gray-800);
+  --sidebar-active-item-color: var(--primary-blue-500);
+  --sidebar-text: var(--white);
+  --sidebar-icon: var(--white);
+  --header-background: var(--white);
+  --header-border-bottom: var(--gray-200);
+  --footer-background: var(--gray-50);
+  --footer-text: var(--gray-500);
+
+  /* Cards & Containers */
+  --card-background: var(--white);
+  --card-border: var(--gray-200);
+  --card-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  --card-header-border: var(--gray-200);
+  --section-divider: var(--gray-200);
+
+  /* Typography */
   --text-primary: var(--gray-800);
-  --text-heading: var(--gray-600);
   --text-secondary: var(--gray-500);
+  --text-tertiary: var(--gray-400);
+  --text-link: var(--primary-blue-500);
+  --text-link-hover: var(--primary-blue-700);
+  --text-heading: var(--gray-600);
   --text-placeholder: var(--gray-400);
   --text-disabled: var(--gray-400);
   
+  /* Borders */
   --border-color: var(--gray-300);
   --border-light: var(--gray-200);
   
+  /* Backgrounds */
   --background-main: var(--gray-50);
-  --background-card: white;
+  --background-card: var(--white);
   --background-lighter: var(--gray-100);
+  --background-input: var(--white);
   
+  /* Primary Color */
   --primary-color: var(--primary-blue-500);
   --primary-dark: var(--primary-blue-700);
   --primary-darker: var(--primary-blue-900);
   --primary-light: var(--primary-blue-300);
   --primary-lighter: var(--primary-blue-100);
   
+  /* Secondary Color */
   --secondary-color: var(--teal-500);
   --secondary-dark: var(--teal-700);
   --secondary-darker: var(--teal-900);
   --secondary-light: var(--teal-300);
   --secondary-lighter: var(--teal-100);
   
+  /* Session Cards */
+  --session-card-bg: var(--white);
+  --session-card-border: var(--gray-200);
+  --session-title: var(--gray-800);
+  --session-description: var(--gray-500);
+  --session-scheduled-bg: var(--primary-blue-100);
+  --session-scheduled-text: var(--primary-blue-700);
+  --session-completed-bg: var(--success-100);
+  --session-completed-text: var(--success-700);
+  --session-cancelled-bg: var(--error-100);
+  --session-cancelled-text: var(--error-700);
+  --session-date-time: var(--gray-600);
+  --session-location: var(--gray-500);
+  
+  /* Form Elements */
+  --input-bg: var(--white);
+  --input-border: var(--gray-300);
+  --input-border-focus: var(--primary-blue-500);
+  --input-text: var(--gray-800);
+  --input-placeholder: var(--gray-400);
+  --input-label: var(--gray-600);
+  --input-helper-text: var(--gray-500);
+  --input-error-text: var(--error-500);
+  --input-error-border: var(--error-500);
+  --input-disabled-bg: var(--gray-100);
+  --input-disabled-text: var(--gray-400);
+  
+  /* Tab Elements */
+  --tab-bg-inactive: var(--white);
+  --tab-text-inactive: var(--gray-500);
+  --tab-border-inactive: var(--gray-300);
+  --tab-bg-active: var(--white);
+  --tab-text-active: var(--primary-blue-500);
+  --tab-indicator-active: var(--primary-blue-500);
+  --tab-hover-inactive: var(--gray-100);
+  
+  /* Buttons */
+  --btn-primary-bg: var(--primary-blue-500);
+  --btn-primary-text: var(--white);
+  --btn-primary-hover: var(--primary-blue-700);
+  --btn-primary-active: var(--primary-blue-900);
+  --btn-primary-disabled-bg: var(--gray-300);
+  --btn-primary-disabled-text: var(--gray-400);
+  --btn-secondary-bg: var(--white);
+  --btn-secondary-border: var(--primary-blue-500);
+  --btn-secondary-text: var(--primary-blue-500);
+  --btn-secondary-hover: var(--primary-blue-100);
+  --btn-tertiary-bg: transparent;
+  --btn-tertiary-text: var(--primary-blue-500);
+  --btn-tertiary-hover: var(--primary-blue-100);
+  --btn-danger-bg: var(--error-500);
+  --btn-danger-text: var(--white);
+  --btn-danger-hover: var(--error-700);
+  
+  /* Notifications */
+  --toast-success-bg: var(--success-100);
+  --toast-success-border: var(--success-300);
+  --toast-success-text: var(--success-700);
+  --toast-warning-bg: var(--warning-100);
+  --toast-warning-border: var(--warning-300);
+  --toast-warning-text: var(--warning-700);
+  --toast-error-bg: var(--error-100);
+  --toast-error-border: var(--error-300);
+  --toast-error-text: var(--error-700);
+  --toast-info-bg: var(--info-100);
+  --toast-info-border: var(--info-300);
+  --toast-info-text: var(--info-700);
+  
   /* Shadow values */
   --shadow-sm: 0px 1px 2px rgba(0, 0, 0, 0.05);
   --shadow-md: 0px 4px 6px rgba(0, 0, 0, 0.05);
   --shadow-lg: 0px 10px 15px -3px rgba(0, 0, 0, 0.05);
+  --card-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
