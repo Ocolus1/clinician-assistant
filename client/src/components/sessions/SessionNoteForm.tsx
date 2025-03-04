@@ -340,10 +340,11 @@ export function SessionNoteForm({ open, onOpenChange, session, initialData }: Se
                           Record general observations about the session
                         </FormDescription>
                         <FormControl>
-                          <Textarea 
-                            {...field} 
+                          <RichTextEditor 
+                            value={field.value || ''}
+                            onChange={field.onChange}
                             placeholder="Enter general notes about the session..."
-                            className="min-h-32" 
+                            className="rich-text-editor-container" 
                           />
                         </FormControl>
                         <FormMessage />
