@@ -14,7 +14,9 @@ import {
   ChevronRight,
   Minus,
   ShoppingCart,
-  RefreshCw
+  RefreshCw,
+  User as UserIcon,
+  MapPin as MapPinIcon
 } from "lucide-react";
 // Debug helper has been removed in favor of a more natural implementation
 import { Ally, BudgetItem, BudgetSettings, Client, Goal, Session, Subgoal, insertSessionSchema } from "@shared/schema";
@@ -984,17 +986,29 @@ const ProductSelectionDialog = ({
               <div className="flex-grow overflow-auto pr-2">
                 {/* Session Details Tab */}
                 <TabsContent value="details" className="space-y-6 mt-0 px-4">
-                  {/* First row: Client, Location, Date & Time in a single row */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-4">
-                    {/* Client Selection */}
-                    <FormField
-                      control={form.control}
-                      name="session.clientId"
-                      render={({ field }) => (
-                        <FormItem className="flex-1">
-                          <FormLabel className="text-base">Client</FormLabel>
-                          <Select
-                            onValueChange={(value) => {
+                  {/* Card wrapper for basic session info */}
+                  <Card className="shadow-sm border-muted">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-lg font-medium flex items-center">
+                        <Calendar className="h-5 w-5 mr-2 text-primary" />
+                        Session Information
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      {/* First row: Client, Location, Date & Time in a single row */}
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-2">
+                        {/* Client Selection */}
+                        <FormField
+                          control={form.control}
+                          name="session.clientId"
+                          render={({ field }) => (
+                            <FormItem className="flex-1">
+                              <FormLabel className="text-base flex items-center">
+                                <UserIcon className="h-4 w-4 mr-2 text-muted-foreground" />
+                                Client
+                              </FormLabel>
+                              <Select
+                                onValueChange={(value) => {
                               // Set the client ID
                               const clientId = parseInt(value);
                               field.onChange(clientId);
@@ -1045,7 +1059,10 @@ const ProductSelectionDialog = ({
                       name="session.location"
                       render={({ field }) => (
                         <FormItem className="flex-1">
-                          <FormLabel className="text-base">Location</FormLabel>
+                          <FormLabel className="text-base flex items-center">
+                            <MapPinIcon className="h-4 w-4 mr-2 text-muted-foreground" />
+                            Location
+                          </FormLabel>
                           <Select 
                             onValueChange={field.onChange} 
                             value={field.value || ""}
@@ -1125,6 +1142,8 @@ const ProductSelectionDialog = ({
                       )}
                     />
                   </div>
+                      </CardContent>
+                    </Card>
 
                   {/* Present In Session Section */}
                   <div className="mt-6">
