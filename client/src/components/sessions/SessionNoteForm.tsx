@@ -42,6 +42,7 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
+import { ProgressiveAssessmentBuilder } from "./ProgressiveAssessmentBuilder";
 
 // Form schema for session notes
 const sessionNoteSchema = z.object({
@@ -536,6 +537,32 @@ export function SessionNoteForm({ open, onOpenChange, session, initialData }: Se
               <TabsContent value="performance" className="flex-grow overflow-hidden flex flex-col">
                 <ScrollArea className="flex-grow">
                   <div className="space-y-6 p-2">
+                    {/* Progressive Assessment Builder */}
+                    <Card className="mb-6">
+                      <CardHeader>
+                        <CardTitle className="text-lg font-medium">Progressive Assessment Builder</CardTitle>
+                        <CardDescription>Build structured assessments for goals and milestones</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <FormField
+                          control={form.control}
+                          name="performanceAssessments"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormControl>
+                                <ProgressiveAssessmentBuilder
+                                  clientId={session.clientId}
+                                  existingAssessments={field.value || []}
+                                  onChange={field.onChange}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </CardContent>
+                    </Card>
+                    
                     {goalsWithSubgoals.length > 0 ? (
                       goalsWithSubgoals.map((goal, goalIndex) => (
                         <Card key={goal.id} className="mb-6">
