@@ -60,13 +60,15 @@ const sessionNoteSchema = z.object({
 // Form schema for performance assessments
 const performanceAssessmentSchema = z.object({
   goalId: z.number(),
+  goalTitle: z.string().optional(),
   notes: z.string().optional(),
   milestones: z.array(z.object({
     milestoneId: z.number(),
+    milestoneTitle: z.string().optional(),
     rating: z.number().min(0).max(10).optional(),
     strategies: z.array(z.string()).default([]),
     notes: z.string().optional(),
-  })).optional(),
+  })),
 });
 
 // Complete form schema
@@ -175,13 +177,15 @@ export function SessionNoteForm({ open, onOpenChange, session, initialData }: Se
         },
         performanceAssessments: initialData.performanceAssessments?.map((pa: any) => ({
           goalId: pa.goalId,
+          goalTitle: pa.goalTitle || "",
           notes: pa.notes || "",
           milestones: pa.milestones?.map((m: any) => ({
             milestoneId: m.milestoneId,
+            milestoneTitle: m.milestoneTitle || "",
             rating: m.rating || 5,
             strategies: m.strategies || [],
             notes: m.notes || "",
-          })),
+          })) || [],
         })),
       }
     : {
@@ -198,6 +202,7 @@ export function SessionNoteForm({ open, onOpenChange, session, initialData }: Se
         },
         performanceAssessments: goals.map((goal) => ({
           goalId: goal.id,
+          goalTitle: goal.title,
           notes: "",
           milestones: [],
         })),
@@ -218,6 +223,7 @@ export function SessionNoteForm({ open, onOpenChange, session, initialData }: Se
         "performanceAssessments",
         goals.map((goal) => ({
           goalId: goal.id,
+          goalTitle: goal.title,
           notes: "",
           milestones: [],
         }))
