@@ -73,6 +73,22 @@ input, textarea, select {
   border-color: var(--border-color) !important;
   background-color: white !important;
   transition: all 0.2s ease !important;
+  font-size: 0.9375rem !important;
+  padding: 0.625rem 0.75rem !important;
+  color: var(--text-primary) !important;
+}
+
+/* Focus styles for form elements */
+input:focus, textarea:focus, select:focus {
+  border-color: var(--primary-color) !important;
+  outline: none !important;
+  box-shadow: 0 0 0 2px var(--primary-light) !important;
+}
+
+/* Placeholder styling */
+input::placeholder, textarea::placeholder {
+  color: var(--text-muted) !important;
+  opacity: 0.7 !important;
 }
 
 /* Add spacing to form sections */
@@ -115,8 +131,30 @@ input, textarea, select {
 }
 
 /* Enhanced badges and indicators */
-.badge {
+[class*="Badge"] {
   font-weight: 500 !important;
+  border-radius: 9999px !important;
+  padding: 0.25rem 0.625rem !important;
+  font-size: 0.75rem !important;
+  letter-spacing: 0.01em !important;
+  transition: all 0.2s ease !important;
+}
+
+/* Badge variants */
+[class*="Badge"][class*="outline"] {
+  background-color: transparent !important;
+  border: 1px solid var(--border-color) !important;
+}
+
+[class*="Badge"][class*="default"] {
+  background-color: var(--primary-color) !important;
+  color: white !important;
+}
+
+/* Badge hover effects */
+[class*="Badge"][class*="cursor-pointer"]:hover {
+  transform: translateY(-1px) !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
 }
 
 /* Improved sliders and progress indicators */
@@ -231,9 +269,34 @@ input, textarea, select {
   gap: 1rem;
 }
 
-/* Enhance dialog components */
+/* Enhanced dialog components */
 [role="dialog"] {
   backdrop-filter: blur(4px);
+}
+
+[class*="DialogHeader"] {
+  padding-bottom: 1rem !important;
+  border-bottom: 1px solid var(--border-color) !important;
+  margin-bottom: 1.25rem !important;
+}
+
+[class*="DialogTitle"] {
+  font-weight: 600 !important;
+  font-size: 1.25rem !important;
+  color: var(--text-primary) !important;
+  letter-spacing: -0.01em !important;
+}
+
+[class*="DialogDescription"] {
+  color: var(--text-secondary) !important;
+  font-size: 0.9375rem !important;
+  margin-top: 0.25rem !important;
+}
+
+[class*="DialogFooter"] {
+  padding-top: 1rem !important;
+  border-top: 1px solid var(--border-color) !important;
+  margin-top: 1.25rem !important;
 }
 
 /* Form section headers with icons */
@@ -244,11 +307,32 @@ input, textarea, select {
   color: var(--primary-color);
   font-weight: 600;
   margin-bottom: 1rem;
+  font-size: 1.125rem;
+  letter-spacing: -0.01em;
 }
 
 .section-header svg {
   width: 1.25rem;
   height: 1.25rem;
+}
+
+/* Empty state styling */
+[class*="border"][class*="rounded-md"][class*="bg-muted"] {
+  background-color: var(--background-lighter) !important;
+  border: 1px dashed var(--border-color) !important;
+  border-radius: 0.5rem !important;
+  padding: 1.5rem !important;
+  text-align: center !important;
+  transition: all 0.2s ease !important;
+}
+
+[class*="border"][class*="rounded-md"][class*="bg-muted"]:hover {
+  border-color: var(--text-secondary) !important;
+}
+
+[class*="border"][class*="rounded-md"][class*="bg-muted"] p {
+  color: var(--text-secondary) !important;
+  font-size: 0.9375rem !important;
 }
 
 /* Enhanced select controls */
