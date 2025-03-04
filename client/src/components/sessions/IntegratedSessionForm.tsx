@@ -1181,9 +1181,8 @@ const ProductSelectionDialog = ({
     return (
       <div className="w-full h-full flex flex-col px-6 py-4">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-grow flex flex-col overflow-hidden">
-          <TabsList className="grid grid-cols-3 mb-4">
-            <TabsTrigger value="details">Session Details</TabsTrigger>
-            <TabsTrigger value="participants">Observations</TabsTrigger>
+          <TabsList className="grid grid-cols-2 mb-4">
+            <TabsTrigger value="details">Session Details & Observations</TabsTrigger>
             <TabsTrigger value="performance">Performance Assessment</TabsTrigger>
           </TabsList>
 
@@ -2210,9 +2209,8 @@ const ProductSelectionDialog = ({
         </DialogHeader>
         
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-grow flex flex-col overflow-hidden">
-          <TabsList className="grid grid-cols-3 mb-4">
-            <TabsTrigger value="details">Session Details</TabsTrigger>
-            <TabsTrigger value="participants">Observations</TabsTrigger>
+          <TabsList className="grid grid-cols-2 mb-4">
+            <TabsTrigger value="details">Session Details & Observations</TabsTrigger>
             <TabsTrigger value="performance">Performance Assessment</TabsTrigger>
           </TabsList>
 
