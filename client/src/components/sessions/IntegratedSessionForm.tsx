@@ -1113,68 +1113,98 @@ const ProductSelectionDialog = ({
                       )}
                     />
 
-                    {/* Session Date */}
+                    {/* Session Date - Enhanced implementation to prevent calendar display issues */}
                     <FormField
                       control={form.control}
                       name="session.sessionDate"
-                      render={({ field }) => (
-                        <FormItem className="flex flex-col flex-1">
-                          <FormLabel className="text-base">Date & Time</FormLabel>
-                          <Popover>
-                            <PopoverTrigger asChild>
-                              <FormControl>
-                                <Button
-                                  variant={"outline"}
-                                  className={`w-full h-10 pl-3 text-left font-normal ${
-                                    !field.value ? "text-muted-foreground" : ""
-                                  }`}
-                                >
-                                  {field.value ? (
-                                    format(field.value, "PPP p")
-                                  ) : (
-                                    <span>Pick a date</span>
+                      render={({ field }) => {
+                        // Use a ref to detect if the popover is open
+                        const [isCalendarOpen, setIsCalendarOpen] = React.useState(false);
+                        
+                        // Check for unwanted calendars when this component renders or updates
+                        React.useEffect(() => {
+                          // Immediate check
+                          hideUnwantedCalendars();
+                          
+                          // If calendar isn't explicitly opened by user, ensure it stays hidden
+                          if (!isCalendarOpen) {
+                            const checkTimer = setTimeout(hideUnwantedCalendars, 50);
+                            return () => clearTimeout(checkTimer);
+                          }
+                        }, [isCalendarOpen]);
+                        
+                        return (
+                          <FormItem className="flex flex-col flex-1">
+                            <FormLabel className="text-base">Date & Time</FormLabel>
+                            <Popover onOpenChange={setIsCalendarOpen} open={isCalendarOpen}>
+                              <PopoverTrigger asChild>
+                                <FormControl>
+                                  <Button
+                                    variant={"outline"}
+                                    className={`w-full h-10 pl-3 text-left font-normal ${
+                                      !field.value ? "text-muted-foreground" : ""
+                                    }`}
+                                    onClick={() => setIsCalendarOpen(true)} // Explicitly control open state
+                                  >
+                                    {field.value ? (
+                                      format(field.value, "PPP p")
+                                    ) : (
+                                      <span>Pick a date</span>
+                                    )}
+                                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                  </Button>
+                                </FormControl>
+                              </PopoverTrigger>
+                              <PopoverContent 
+                                className="w-auto p-0 z-[100]" 
+                                align="start" 
+                                side="bottom" 
+                                sideOffset={4} 
+                                data-calendar-container="true"
+                                onEscapeKeyDown={() => setIsCalendarOpen(false)}
+                                onInteractOutside={() => setIsCalendarOpen(false)}
+                              >
+                                <div className="bg-background border rounded-md overflow-hidden">
+                                  {isCalendarOpen && ( // Only render calendar when popover is explicitly open
+                                    <Calendar
+                                      mode="single"
+                                      selected={field.value}
+                                      onSelect={(date) => {
+                                        if (date) {
+                                          // Preserve time portion from existing date or use current time
+                                          const existingDate = field.value || new Date();
+                                          date.setHours(existingDate.getHours());
+                                          date.setMinutes(existingDate.getMinutes());
+                                          field.onChange(date);
+                                          
+                                          // Don't close yet - allow time selection
+                                        }
+                                      }}
+                                      initialFocus
+                                    />
                                   )}
-                                  <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                </Button>
-                              </FormControl>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0 z-[100]" align="start" side="bottom" sideOffset={4} data-calendar-container="true">
-                              <div className="bg-background border rounded-md overflow-hidden">
-                                <Calendar
-                                  mode="single"
-                                  selected={field.value}
-                                  onSelect={(date) => {
-                                    if (date) {
-                                      // Preserve time portion from existing date or use current time
-                                      const existingDate = field.value || new Date();
-                                      date.setHours(existingDate.getHours());
-                                      date.setMinutes(existingDate.getMinutes());
-                                      field.onChange(date);
-                                    }
-                                  }}
-                                  initialFocus
-                                />
-                                <div className="p-3 border-t">
-                                  <Input
-                                    type="time"
-                                    onChange={(e) => {
-                                      const date = new Date(field.value || new Date());
-                                      const [hours, minutes] = e.target.value.split(':').map(Number);
-                                      date.setHours(hours, minutes);
-                                      field.onChange(date);
-                                    }}
-                                    defaultValue={field.value ? 
-                                      format(field.value, "HH:mm") : 
-                                      format(new Date(), "HH:mm")
-                                    }
-                                  />
+                                  <div className="p-3 border-t">
+                                    <Input
+                                      type="time"
+                                      onChange={(e) => {
+                                        const date = new Date(field.value || new Date());
+                                        const [hours, minutes] = e.target.value.split(':').map(Number);
+                                        date.setHours(hours, minutes);
+                                        field.onChange(date);
+                                      }}
+                                      defaultValue={field.value ? 
+                                        format(field.value, "HH:mm") : 
+                                        format(new Date(), "HH:mm")
+                                      }
+                                    />
+                                  </div>
                                 </div>
-                              </div>
-                            </PopoverContent>
-                          </Popover>
-                          <FormMessage />
-                        </FormItem>
-                      )}
+                              </PopoverContent>
+                            </Popover>
+                            <FormMessage />
+                          </FormItem>
+                        );
+                      }}
                     />
                   </div>
                     </CardContent>
