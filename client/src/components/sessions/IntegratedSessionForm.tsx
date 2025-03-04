@@ -525,7 +525,6 @@ export function IntegratedSessionForm({
   
   // Dialog state for product selection
   const [productSelectionOpen, setProductSelectionOpen] = useState(false);
-  const [searchTerm, setSearchTerm] = useState("");
   
   // Get current selected products from form
   const selectedProducts = form.watch("sessionNote.products") || [];
@@ -824,58 +823,29 @@ const ProductSelectionDialog = ({
   
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px]">
+      <DialogContent className="sm:max-w-[550px]">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <ShoppingCart className="h-5 w-5 text-primary" />
-            <span>Add Product to Session</span>
-          </DialogTitle>
+          <DialogTitle>Add Product to Session</DialogTitle>
           <DialogDescription>
-            Select a product from the active budget plan to include in this session
+            Select a product from the active budget plan
           </DialogDescription>
         </DialogHeader>
         
         <div className="py-4 grid grid-cols-1 gap-4">
           {products.length === 0 ? (
-            <div className="p-6 border rounded-md bg-muted/10 text-center">
-              <div className="mb-3 w-12 h-12 rounded-full bg-muted/30 flex items-center justify-center mx-auto">
-                <ShoppingCart className="h-5 w-5 text-muted-foreground" />
-              </div>
-              <p className="text-base font-medium mb-1">No products available</p>
-              <p className="text-muted-foreground text-sm">There are no products available in the active budget plan</p>
+            <div className="p-4 border rounded-md bg-muted/20 text-center">
+              <p className="text-muted-foreground">No products available in active budget plan</p>
             </div>
           ) : (
             <>
-              {/* Search and filter section */}
-              <div className="flex items-center mb-2 gap-2">
-                <div className="relative flex-grow">
-                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground pointer-events-none" />
-                  <Input 
-                    type="text" 
-                    placeholder="Search products..." 
-                    className="pl-9"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                  />
-                </div>
-                <Badge variant="outline" className="px-3 py-1">
-                  {products.length} items
-                </Badge>
-              </div>
-              
               {/* Product selection */}
-              <div className="max-h-[340px] overflow-y-auto border rounded-md bg-muted/5">
+              <div className="max-h-[300px] overflow-y-auto border rounded-md">
                 <ScrollArea className="h-full pr-3">
-                  <div className="space-y-2 p-2">
-                    {products
-                      .filter(p => 
-                        p.productDescription?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                        p.productCode?.toLowerCase().includes(searchTerm.toLowerCase())
-                      )
-                      .map(product => (
+                  <div className="space-y-1 p-1">
+                    {products.map(product => (
                       <div 
                         key={product.id} 
-                        className={`p-3 border rounded-md cursor-pointer transition-colors ${selectedProduct?.id === product.id ? 'bg-primary/10 border-primary shadow-sm' : 'hover:bg-muted/20 hover:border-muted-foreground/30'}`}
+                        className={`p-3 border rounded-md cursor-pointer ${selectedProduct?.id === product.id ? 'bg-primary/10 border-primary' : 'hover:bg-muted/20'}`}
                         onClick={() => handleSelectProduct(product)}
                       >
                         <div className="flex justify-between items-start gap-2">
@@ -1435,17 +1405,16 @@ const ProductSelectionDialog = ({
                     
                     {/* Products Section */}
                     <div className="mt-6">
-                      <div className="flex justify-between items-center mb-3">
-                        <h3 className="section-header flex items-center gap-2 text-primary-foreground font-medium">
-                          <ShoppingCart className="h-5 w-5 text-primary" />
-                          <span>Products Used</span>
+                      <div className="flex justify-between items-center">
+                        <h3 className="section-header">
+                          <ShoppingCart className="h-5 w-5" />
+                          Products Used
                         </h3>
                         <div className="flex gap-2">
                           <Button
                             type="button"
                             variant="outline"
                             size="sm"
-                            className="flex items-center hover:bg-primary/10 border-primary/30 hover:border-primary"
                             onClick={() => {
                               console.log('Opening product selection dialog');
                               console.log('Available products:', availableProducts);
@@ -1521,23 +1490,8 @@ const ProductSelectionDialog = ({
                       
                       {/* Selected Products List */}
                       {selectedProducts.length === 0 ? (
-                        <div className="bg-muted/20 rounded-lg p-6 text-center">
-                          <div className="mb-3 w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
-                            <ShoppingCart className="h-6 w-6 text-primary" />
-                          </div>
-                          <p className="text-base font-medium mb-1">No products added</p>
-                          <p className="text-muted-foreground text-sm mb-4">Add products that were used during this therapy session</p>
-                          <Button 
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            className="mx-auto border-primary/30 hover:border-primary"
-                            onClick={() => setProductSelectionOpen(true)}
-                            disabled={!availableProducts.length && !hasSampleProducts && !hasClientSelected}
-                          >
-                            <Plus className="h-4 w-4 mr-2" />
-                            Add Product
-                          </Button>
+                        <div className="bg-muted/20 rounded-lg p-4 text-center">
+                          <p className="text-muted-foreground">No products added to this session</p>
                         </div>
                       ) : (
                         <div className="bg-muted/20 rounded-lg p-4 space-y-2">
