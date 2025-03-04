@@ -1,0 +1,78 @@
+:root {
+  /* Primary Colors */
+  --primary-blue-900: #1E4E8C; /* For darkest accents and hover states */
+  --primary-blue-700: #2A69DD; /* For strong emphasis and important elements */
+  --primary-blue-500: #3A86FF; /* Main primary color */
+  --primary-blue-300: #7EB0FF; /* For lighter UI elements and highlights */
+  --primary-blue-100: #C7DDFF; /* For very subtle blue backgrounds */
+
+  /* Secondary Colors */
+  --teal-900: #1D6A66; /* For darkest teal accents */
+  --teal-700: #2C9490; /* For strong teal emphasis */
+  --teal-500: #38B2AC; /* Main secondary color */
+  --teal-300: #7AD1CC; /* For lighter teal elements */
+  --teal-100: #C4F1EE; /* For very subtle teal backgrounds */
+
+  /* Neutral Colors */
+  --gray-900: #1A202C; /* Darkest gray for high contrast text */
+  --gray-800: #2D3748; /* For primary text */
+  --gray-600: #4A5568; /* For headings and subheadings */
+  --gray-500: #718096; /* For secondary text */
+  --gray-400: #A0AEC0; /* For placeholder text and disabled states */
+  --gray-300: #CBD5E0; /* For borders and dividers */
+  --gray-200: #E2E8F0; /* For light backgrounds and hover states */
+  --gray-100: #EDF2F7; /* For backgrounds of interactive elements */
+  --gray-50: #F7FAFC; /* For main content backgrounds */
+
+  /* Feedback Colors */
+  --success-700: #2F855A; /* Dark green for hover states on success buttons */
+  --success-500: #48BB78; /* Primary success color */
+  --success-300: #9AE6B4; /* Light success for backgrounds and subtle indicators */
+  --success-100: #C6F6D5; /* Very light success for background states */
+  
+  --warning-700: #C05621; /* Dark orange for hover states on warning buttons */
+  --warning-500: #F6AD55; /* Primary warning color */
+  --warning-300: #FBD38D; /* Light warning for backgrounds and subtle indicators */
+  --warning-100: #FEEBC8; /* Very light warning for background states */
+  
+  --error-700: #C53030; /* Dark red for hover states on error buttons */
+  --error-500: #F56565; /* Primary error color */
+  --error-300: #FC8181; /* Light error for backgrounds and subtle indicators */
+  --error-100: #FED7D7; /* Very light error for background states */
+  
+  --info-700: #2B6CB0; /* Dark blue for hover states on info buttons */
+  --info-500: #4299E1; /* Primary info color */
+  --info-300: #90CDF4; /* Light info for backgrounds and subtle indicators */
+  --info-100: #D0E5FA; /* Very light info for background states */
+
+  /* Semantic mappings for application */
+  --text-primary: var(--gray-800);
+  --text-heading: var(--gray-600);
+  --text-secondary: var(--gray-500);
+  --text-placeholder: var(--gray-400);
+  --text-disabled: var(--gray-400);
+  
+  --border-color: var(--gray-300);
+  --border-light: var(--gray-200);
+  
+  --background-main: var(--gray-50);
+  --background-card: white;
+  --background-lighter: var(--gray-100);
+  
+  --primary-color: var(--primary-blue-500);
+  --primary-dark: var(--primary-blue-700);
+  --primary-darker: var(--primary-blue-900);
+  --primary-light: var(--primary-blue-300);
+  --primary-lighter: var(--primary-blue-100);
+  
+  --secondary-color: var(--teal-500);
+  --secondary-dark: var(--teal-700);
+  --secondary-darker: var(--teal-900);
+  --secondary-light: var(--teal-300);
+  --secondary-lighter: var(--teal-100);
+  
+  /* Shadow values */
+  --shadow-sm: 0px 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0px 4px 6px rgba(0, 0, 0, 0.05);
+  --shadow-lg: 0px 10px 15px -3px rgba(0, 0, 0, 0.05);
+}

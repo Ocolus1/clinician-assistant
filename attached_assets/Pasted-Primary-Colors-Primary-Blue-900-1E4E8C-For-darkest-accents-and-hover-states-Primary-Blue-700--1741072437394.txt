@@ -1,0 +1,87 @@
+Primary Colors
+
+Primary Blue 900: #1E4E8C - For darkest accents and hover states
+Primary Blue 700: #2A69DD - For strong emphasis and important elements
+Primary Blue 500: #3A86FF - Main primary color
+Primary Blue 300: #7EB0FF - For lighter UI elements and highlights
+Primary Blue 100: #C7DDFF - For very subtle blue backgrounds
+
+Secondary Colors
+
+Teal 900: #1D6A66 - For darkest teal accents
+Teal 700: #2C9490 - For strong teal emphasis
+Teal 500: #38B2AC - Main secondary color
+Teal 300: #7AD1CC - For lighter teal elements
+Teal 100: #C4F1EE - For very subtle teal backgrounds
+
+Neutral Colors
+
+Gray 900: #1A202C - Darkest gray for high contrast text
+Gray 800: #2D3748 - For primary text
+Gray 600: #4A5568 - For headings and subheadings
+Gray 500: #718096 - For secondary text
+Gray 400: #A0AEC0 - For placeholder text and disabled states
+Gray 300: #CBD5E0 - For borders and dividers
+Gray 200: #E2E8F0 - For light backgrounds and hover states
+Gray 100: #EDF2F7 - For backgrounds of interactive elements
+Gray 50: #F7FAFC - For main content backgrounds
+
+Feedback Colors
+
+Success 700: #2F855A - Dark green for hover states on success buttons
+Success 500: #48BB78 - Primary success color
+Success 300: #9AE6B4 - Light success for backgrounds and subtle indicators
+Success 100: #C6F6D5 - Very light success for background states
+Warning 700: #C05621 - Dark orange for hover states on warning buttons
+Warning 500: #F6AD55 - Primary warning color
+Warning 300: #FBD38D - Light warning for backgrounds and subtle indicators
+Warning 100: #FEEBC8 - Very light warning for background states
+Error 700: #C53030 - Dark red for hover states on error buttons
+Error 500: #F56565 - Primary error color
+Error 300: #FC8181 - Light error for backgrounds and subtle indicators
+Error 100: #FED7D7 - Very light error for background states
+Info 700: #2B6CB0 - Dark blue for hover states on info buttons
+Info 500: #4299E1 - Primary info color
+Info 300: #90CDF4 - Light info for backgrounds and subtle indicators
+Info 100: #D0E5FA - Very light info for background states
+
+Usage Guidelines
+
+Text Colors:
+
+Use Gray 800 for primary text
+Use Gray 600 for headings
+Use Gray 500 for secondary or supporting text
+Use Gray 400 for placeholder or disabled text
+Always use white text on dark backgrounds
+
+
+Button Colors:
+
+Primary actions: Primary Blue 500 (background) with white text
+Secondary actions: White background with Primary Blue 500 border and text
+Tertiary actions: No background/border with Primary Blue 500 text
+Disabled state: Gray 300 background with Gray 400 text
+
+
+Form Elements:
+
+Input borders: Gray 300
+Focus states: Primary Blue 500
+Error states: Error 500
+Background: White or Gray 50
+
+
+Cards and Containers:
+
+Background: White
+Borders: Gray 200
+Shadows: 0px 4px 6px rgba(0, 0, 0, 0.05)
+
+
+Navigation:
+
+Active: Primary Blue 500
+Hover: Gray 100
+Background: White
+Borders: Gray 200

@@ -1,18 +1,20 @@
 /* Enhanced Session Form Styles - Stage 1 Visual Refinements */
 
-/* 1. Cohesive Color Scheme */
+/* Import our color system */
+@import url('../../styles/colors.css');
+
+/* Additional form-specific variable mappings */
 :root {
-  --primary-color: #4f46e5;
-  --primary-light: #ebe9ff;
-  --accent-color: #8b5cf6;
-  --section-header-bg: #f9fafb;
-  --border-color: #e5e7eb;
-  --text-primary: #111827;
-  --text-secondary: #374151;
-  --text-muted: #6b7280;
-  --success-color: #10b981;
-  --warning-color: #f59e0b;
-  --error-color: #ef4444;
+  --background-lighter: var(--gray-100);
+  --primary-dark: var(--primary-blue-700);
+  --primary-darker: var(--primary-blue-900);
+  --primary-light: var(--primary-blue-300);
+  --primary-lighter: var(--primary-blue-100);
+  --accent-color: var(--teal-500);
+  --section-header-bg: var(--gray-50);
+  --success-color: var(--success-500);
+  --warning-color: var(--warning-500);
+  --error-color: var(--error-500);
 }
 
 /* Enhanced tabs styling */
