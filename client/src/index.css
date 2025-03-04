@@ -46,3 +46,18 @@
     @apply bg-google-blue text-white px-6 py-2 rounded hover:bg-blue-600 transition-colors;
   }
 }
+
+/* Fix for unwanted calendars in the UI */
+.rdp {
+  display: none !important;
+}
+
+[data-calendar-container="true"] .rdp,
+[data-state="open"] .rdp {
+  display: block !important;
+}
+
+.calendar-container {
+  position: relative;
+  z-index: 100;
+}

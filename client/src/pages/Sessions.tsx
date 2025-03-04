@@ -630,7 +630,7 @@ function CreateSessionDialog({ open, onOpenChange }: CreateSessionDialogProps) {
                                 </Button>
                               </FormControl>
                             </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0 z-[100]" align="start" side="bottom" sideOffset={4}>
+                            <PopoverContent className="w-auto p-0 z-[100]" align="start" side="bottom" sideOffset={4} data-calendar-container="true">
                               <div className="bg-background border rounded-md overflow-hidden">
                                 <Calendar
                                   mode="single"
