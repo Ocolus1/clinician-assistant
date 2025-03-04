@@ -1278,27 +1278,6 @@ const ProductSelectionDialog = ({
                     
                     {/* Products Section */}
                     <div className="mt-6">
-                      {/* Debug Helper - only shown in development mode */}
-                      {import.meta.env.DEV && (
-                        <ProductDebugHelper 
-                          clientId={clientId}
-                          allBudgetItems={allBudgetItems}
-                          budgetSettings={budgetSettings}
-                          availableProducts={availableProducts}
-                          setAvailableProducts={(products) => {
-                            // For development: directly update the state used by the Add Product button
-                            console.log('Debug: setting available products to', products);
-                            // We can't directly modify the useMemo result, but we can manually mock it
-                            // This is ONLY for development debugging purposes
-                            (window as any).__debugAvailableProducts = products;
-                            // Force a re-render
-                            form.setValue('session.clientId', form.getValues('session.clientId')); 
-                          }}
-                          refetchBudgetItems={refetchBudgetItems}
-                          refetchBudgetSettings={refetchBudgetSettings}
-                        />
-                      )}
-                      
                       <div className="flex justify-between items-center">
                         <h3 className="text-base font-medium mb-3">Products Used</h3>
                         <div className="flex gap-2">
@@ -1309,7 +1288,6 @@ const ProductSelectionDialog = ({
                             onClick={() => {
                               console.log('Opening product selection dialog');
                               console.log('Available products:', availableProducts);
-                              console.log('Debug override products:', (window as any).__debugAvailableProducts);
                               
                               // In dev mode, create sample products if none are available
                               if (import.meta.env.DEV && hasClientSelected && availableProducts.length === 0) {
