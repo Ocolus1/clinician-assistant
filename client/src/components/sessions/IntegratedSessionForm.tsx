@@ -11,7 +11,21 @@ import {
   Plus,
   X,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  User as UserIcon,
+  MapPin as MapPinIcon,
+  FileText,
+  Star,
+  Target,
+  Package,
+  Users,
+  BarChart,
+  Hourglass,
+  AlertCircle,
+  Info,
+  LayoutGrid,
+  CheckCircle2,
+  Clipboard
 } from "lucide-react";
 import { Ally, Client, Goal, Session, Subgoal, insertSessionSchema } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
@@ -167,7 +181,10 @@ const GoalSelectionDialog = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>Select Goal</DialogTitle>
+          <DialogTitle className="flex items-center gap-2">
+            <Target className="h-5 w-5 text-primary/80" />
+            <span>Select Goal</span>
+          </DialogTitle>
           <DialogDescription>
             Choose a goal to assess in this session
           </DialogDescription>
@@ -234,7 +251,10 @@ const MilestoneSelectionDialog = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>Select Milestone</DialogTitle>
+          <DialogTitle className="flex items-center gap-2">
+            <CheckCircle2 className="h-5 w-5 text-primary/80" />
+            <span>Select Milestone</span>
+          </DialogTitle>
           <DialogDescription>
             Choose a milestone to assess for this goal
           </DialogDescription>
@@ -571,7 +591,10 @@ export function IntegratedSessionForm({
                       name="session.location"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Location</FormLabel>
+                          <FormLabel className="flex items-center gap-2">
+                            <MapPinIcon className="h-4 w-4 text-primary/70" />
+                            <span>Location</span>
+                          </FormLabel>
                           <Select 
                             onValueChange={field.onChange} 
                             value={field.value || ""}
@@ -603,7 +626,10 @@ export function IntegratedSessionForm({
                       name="session.sessionDate"
                       render={({ field }) => (
                         <FormItem className="flex flex-col">
-                          <FormLabel>Date & Time</FormLabel>
+                          <FormLabel className="flex items-center gap-2">
+                            <CalendarIcon className="h-4 w-4 text-primary/70" />
+                            <span>Date & Time</span>
+                          </FormLabel>
                           <Popover>
                             <PopoverTrigger asChild>
                               <FormControl>
