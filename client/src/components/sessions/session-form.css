@@ -1,0 +1,123 @@
+/* Enhanced Session Form Styles - Stage 1 Visual Refinements */
+
+/* 1. Cohesive Color Scheme */
+.session-form-container {
+  --primary-color: #4f46e5;
+  --primary-light: #ebe9ff;
+  --accent-color: #8b5cf6;
+  --section-header-bg: #f9fafb;
+  --border-color: #e5e7eb;
+}
+
+/* Section headers styling */
+.session-form-section-header {
+  color: var(--primary-color);
+  font-weight: 600;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid var(--primary-light);
+  margin-bottom: 1rem;
+}
+
+/* Active tabs styling */
+.session-form-tabs .active-tab {
+  background-color: var(--primary-light);
+  color: var(--primary-color);
+  border-bottom: 2px solid var(--primary-color);
+  font-weight: 500;
+}
+
+/* 2. Typography Improvements */
+.session-form-container h3 {
+  font-weight: 600;
+  font-size: 1.125rem;
+  color: #111827;
+  margin-bottom: 0.75rem;
+}
+
+.session-form-label {
+  font-weight: 500;
+  font-size: 0.875rem;
+  color: #374151;
+  margin-bottom: 0.25rem;
+}
+
+.session-form-container .form-field {
+  margin-bottom: 1.25rem;
+}
+
+/* 3. Spacing and Layout */
+.session-form-section {
+  padding: 1.25rem;
+  margin-bottom: 1.5rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--border-color);
+  background-color: white;
+}
+
+.session-form-grid {
+  display: grid;
+  gap: 1.25rem;
+}
+
+.session-form-row {
+  margin-bottom: 1.5rem;
+}
+
+/* 4. Form Field Styling */
+.session-form-input {
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.session-form-input:hover {
+  border-color: var(--primary-color);
+}
+
+.session-form-input:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px var(--primary-light);
+  outline: none;
+}
+
+.session-form-select {
+  border-radius: 0.375rem;
+  padding: 0.5rem;
+  border: 1px solid var(--border-color);
+  width: 100%;
+  transition: all 0.2s ease;
+}
+
+.session-form-select:hover {
+  border-color: var(--primary-color);
+}
+
+/* Enhancing card elements */
+.session-form-card {
+  border: 1px solid var(--border-color);
+  border-radius: 0.5rem;
+  overflow: hidden;
+  transition: all 0.2s ease;
+}
+
+.session-form-card:hover {
+  border-color: var(--primary-color);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+/* General element styling */
+.session-form-badge {
+  padding: 0.25rem 0.5rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+/* Tab content transitions */
+.session-form-tab-content {
+  transition: opacity 0.3s ease;
+}
+
+/* Consistent focused element styling */
+.session-form-container :focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+}

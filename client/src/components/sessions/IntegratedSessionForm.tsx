@@ -16,8 +16,11 @@ import {
   ShoppingCart,
   RefreshCw,
   User as UserIcon,
-  MapPin as MapPinIcon
+  MapPin as MapPinIcon,
+  ClipboardList,
+  UserCheck
 } from "lucide-react";
+import "./session-form.css";
 // Debug helper has been removed in favor of a more natural implementation
 import { Ally, BudgetItem, BudgetSettings, Client, Goal, Session, Subgoal, insertSessionSchema } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
