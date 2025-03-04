@@ -300,7 +300,7 @@ export function ProgressiveAssessmentBuilder({
       case AssessmentStep.GOAL_SELECTION:
         return (
           <div className="space-y-4">
-            <Alert variant="outline" className="bg-muted/20">
+            <Alert className="bg-muted/20 border">
               <AlertTitle className="flex items-center">
                 <CheckCircle className="h-4 w-4 mr-2" />
                 Select a Goal
@@ -360,7 +360,7 @@ export function ProgressiveAssessmentBuilder({
               </Button>
             </div>
             
-            <Alert variant="outline" className="bg-muted/20">
+            <Alert className="bg-muted/20 border">
               <AlertTitle className="flex items-center">
                 <CheckCircle className="h-4 w-4 mr-2" />
                 Select a Milestone
@@ -444,7 +444,7 @@ export function ProgressiveAssessmentBuilder({
               </Button>
             </div>
             
-            <Alert variant="outline" className="bg-muted/20">
+            <Alert className="bg-muted/20 border">
               <AlertTitle className="flex items-center">
                 <CheckCircle className="h-4 w-4 mr-2" />
                 Rate Performance
@@ -501,7 +501,7 @@ export function ProgressiveAssessmentBuilder({
               </Button>
             </div>
             
-            <Alert variant="outline" className="bg-muted/20">
+            <Alert className="bg-muted/20 border">
               <AlertTitle className="flex items-center">
                 <CheckCircle className="h-4 w-4 mr-2" />
                 Tag Strategies
