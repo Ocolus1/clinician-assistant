@@ -140,17 +140,16 @@ export function ProgressiveAssessmentBuilder({
   } | null>(null);
   
   // Fetch goals for the selected client
-  const { data: goals = [], isLoading: isLoadingGoals } = useQuery<Goal[]>({
+  const { data: goals = [] } = useQuery<Goal[]>({
     queryKey: ["/api/clients", clientId, "goals"],
-    enabled: !!clientId,
-    onSuccess: (data) => {
-      console.log("Goals fetched successfully:", data);
-      console.log("Client ID used for fetching:", clientId);
-    },
-    onError: (error) => {
-      console.error("Error fetching goals:", error);
-    }
+    enabled: !!clientId
   });
+  
+  // Log debugging information
+  React.useEffect(() => {
+    console.log("ProgressiveAssessmentBuilder - clientId:", clientId);
+    console.log("ProgressiveAssessmentBuilder - goals:", goals);
+  }, [clientId, goals]);
   
   // Fetch subgoals for the currently selected goal
   const { data: subgoals = [] } = useQuery<Subgoal[]>({

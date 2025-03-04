@@ -550,11 +550,13 @@ export function SessionNoteForm({ open, onOpenChange, session, initialData }: Se
                           render={({ field }) => (
                             <FormItem>
                               <FormControl>
-                                <ProgressiveAssessmentBuilder
-                                  clientId={session.clientId}
-                                  existingAssessments={field.value || []}
-                                  onChange={field.onChange}
-                                />
+                                <>
+                                  <ProgressiveAssessmentBuilder
+                                    clientId={session.clientId}
+                                    existingAssessments={field.value || []}
+                                    onChange={field.onChange}
+                                  />
+                                </>
                               </FormControl>
                               <FormMessage />
                             </FormItem>
