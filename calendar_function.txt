@@ -1,0 +1,10 @@
+// Function to hide unwanted calendars in the UI
+const hideUnwantedCalendars = () => {
+  // Hide any calendar not properly contained
+  const unwantedCalendars = document.querySelectorAll('.rdp:not([data-calendar-container="true"] .rdp, [data-state="open"] .rdp)');
+  unwantedCalendars.forEach(calendar => {
+    if (calendar.parentElement) {
+      calendar.parentElement.classList.add('uncontained-calendar');
+    }
+  });
+};
