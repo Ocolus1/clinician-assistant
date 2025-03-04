@@ -78,6 +78,7 @@ const sessionFormSchema = insertSessionSchema.extend({
   }),
   therapistId: z.coerce.number().optional(),
   location: z.string().optional(),
+  sessionId: z.string().optional(), // Added session ID field for display
 });
 
 // Performance assessment schema
@@ -318,6 +319,13 @@ export function IntegratedSessionForm({
     enabled: open,
   });
 
+  // Generate a unique session ID for tracking
+  const sessionId = useMemo(() => {
+    const now = new Date();
+    // Format: SES-YYYYMMDD-HHMMSS-XXXX (where XXXX is a random number)
+    return `SES-${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}-${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}${String(now.getSeconds()).padStart(2, '0')}-${Math.floor(1000 + Math.random() * 9000)}`;
+  }, []);
+
   // Default form values
   const defaultValues: Partial<IntegratedSessionFormValues> = {
     session: {
@@ -328,6 +336,7 @@ export function IntegratedSessionForm({
       duration: 60,              // Required field in schema
       status: "scheduled",       // Required field in schema
       description: "",           // Optional but initialize empty
+      sessionId: sessionId,      // Add the generated session ID
     },
     sessionNote: {
       presentAllies: [],
@@ -674,6 +683,20 @@ export function IntegratedSessionForm({
       toast({
         title: "Invalid quantity",
         description: `Please enter a quantity between 1 and ${budgetItem.availableQuantity}`,
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    // Check if this product is already added
+    const existingProductIndex = selectedProducts.findIndex(
+      p => p.budgetItemId === budgetItem.id || p.productCode === budgetItem.itemCode
+    );
+    
+    if (existingProductIndex >= 0) {
+      toast({
+        title: "Product already added",
+        description: "This product is already in your session. Please adjust the quantity instead.",
         variant: "destructive"
       });
       return;
