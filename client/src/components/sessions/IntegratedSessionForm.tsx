@@ -16,7 +16,19 @@ import {
   ShoppingCart,
   RefreshCw,
   User as UserIcon,
-  MapPin as MapPinIcon
+  MapPin as MapPinIcon,
+  FileText,
+  Star,
+  Target,
+  Package,
+  Users,
+  BarChart,
+  Hourglass,
+  AlertCircle,
+  Info,
+  LayoutGrid,
+  CheckCircle2,
+  Clipboard
 } from "lucide-react";
 // Debug helper has been removed in favor of a more natural implementation
 import { Ally, BudgetItem, BudgetSettings, Client, Goal, Session, Subgoal, insertSessionSchema } from "@shared/schema";
