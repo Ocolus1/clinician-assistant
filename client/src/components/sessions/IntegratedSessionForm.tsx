@@ -535,9 +535,18 @@ export function IntegratedSessionForm({
       <div className="w-full h-full flex flex-col px-6 py-4">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-grow flex flex-col overflow-hidden">
           <TabsList className="grid grid-cols-3 mb-4">
-            <TabsTrigger value="details">Session Details</TabsTrigger>
-            <TabsTrigger value="participants">Observations</TabsTrigger>
-            <TabsTrigger value="performance">Performance Assessment</TabsTrigger>
+            <TabsTrigger value="details" className="flex items-center justify-center gap-2">
+              <FileText className="h-4 w-4" />
+              <span>Session Details</span>
+            </TabsTrigger>
+            <TabsTrigger value="participants" className="flex items-center justify-center gap-2">
+              <Users className="h-4 w-4" />
+              <span>Observations</span>
+            </TabsTrigger>
+            <TabsTrigger value="performance" className="flex items-center justify-center gap-2">
+              <BarChart className="h-4 w-4" />
+              <span>Performance Assessment</span>
+            </TabsTrigger>
           </TabsList>
 
           <Form {...form}>
@@ -1235,9 +1244,18 @@ export function IntegratedSessionForm({
         
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-grow flex flex-col overflow-hidden">
           <TabsList className="grid grid-cols-3 mb-4">
-            <TabsTrigger value="details">Session Details</TabsTrigger>
-            <TabsTrigger value="participants">Observations</TabsTrigger>
-            <TabsTrigger value="performance">Performance Assessment</TabsTrigger>
+            <TabsTrigger value="details" className="flex items-center justify-center gap-2">
+              <FileText className="h-4 w-4" />
+              <span>Session Details</span>
+            </TabsTrigger>
+            <TabsTrigger value="participants" className="flex items-center justify-center gap-2">
+              <Users className="h-4 w-4" />
+              <span>Observations</span>
+            </TabsTrigger>
+            <TabsTrigger value="performance" className="flex items-center justify-center gap-2">
+              <BarChart className="h-4 w-4" />
+              <span>Performance Assessment</span>
+            </TabsTrigger>
           </TabsList>
 
           <Form {...form}>
