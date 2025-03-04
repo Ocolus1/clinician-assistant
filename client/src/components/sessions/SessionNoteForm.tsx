@@ -6,6 +6,9 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/utils";
 import { Check, HelpCircle, Loader2 } from "lucide-react";
 
+// Import shared styles
+import "./session-form.css";
+
 import {
   Form,
   FormControl,
@@ -105,20 +108,22 @@ const RatingSlider = ({ value, onChange, label, description }: RatingSliderProps
   };
   
   return (
-    <div className="space-y-2">
+    <div className="space-y-3">
       <div className="flex justify-between items-center">
-        <FormLabel>{label}</FormLabel>
-        <Badge variant="outline" className={getBadgeClass()}>{value}</Badge>
+        <FormLabel className="font-medium text-sm">{label}</FormLabel>
+        <Badge variant="outline" className={`rating-badge ${getBadgeClass()}`}>
+          {value}
+        </Badge>
       </div>
-      {description && <FormDescription>{description}</FormDescription>}
-      <div className="relative">
+      {description && <p className="text-sm text-muted-foreground mt-1">{description}</p>}
+      <div className="relative pt-1 pb-3">
         <Slider
           value={[value]}
           min={0}
           max={10}
           step={1}
           onValueChange={(vals) => onChange(vals[0])}
-          className={`py-1 rating-slider color-slider ${getRangeClass()}`}
+          className={`rating-slider color-slider ${getRangeClass()}`}
         />
       </div>
     </div>
