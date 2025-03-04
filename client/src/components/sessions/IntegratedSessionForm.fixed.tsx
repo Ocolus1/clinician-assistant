@@ -619,27 +619,29 @@ export function IntegratedSessionForm({
                                 </Button>
                               </FormControl>
                             </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0" align="start">
-                              <Calendar
-                                mode="single"
-                                selected={field.value}
-                                onSelect={field.onChange}
-                                initialFocus
-                              />
-                              <div className="p-3 border-t">
-                                <Input
-                                  type="time"
-                                  onChange={(e) => {
-                                    const date = new Date(field.value);
-                                    const [hours, minutes] = e.target.value.split(':').map(Number);
-                                    date.setHours(hours, minutes);
-                                    field.onChange(date);
-                                  }}
-                                  defaultValue={field.value ? 
-                                    format(field.value, "HH:mm") : 
-                                    format(new Date(), "HH:mm")
-                                  }
+                            <PopoverContent className="w-auto p-0 z-[100]" align="start" side="bottom" sideOffset={4}>
+                              <div className="bg-background border rounded-md overflow-hidden">
+                                <Calendar
+                                  mode="single"
+                                  selected={field.value}
+                                  onSelect={field.onChange}
+                                  initialFocus
                                 />
+                                <div className="p-3 border-t">
+                                  <Input
+                                    type="time"
+                                    onChange={(e) => {
+                                      const date = new Date(field.value);
+                                      const [hours, minutes] = e.target.value.split(':').map(Number);
+                                      date.setHours(hours, minutes);
+                                      field.onChange(date);
+                                    }}
+                                    defaultValue={field.value ? 
+                                      format(field.value, "HH:mm") : 
+                                      format(new Date(), "HH:mm")
+                                    }
+                                  />
+                                </div>
                               </div>
                             </PopoverContent>
                           </Popover>
