@@ -1142,8 +1142,8 @@ const ProductSelectionDialog = ({
                       )}
                     />
                   </div>
-                      </CardContent>
-                    </Card>
+                    </CardContent>
+                  </Card>
 
                   {/* Present In Session Section */}
                   <div className="mt-6">
