@@ -1264,6 +1264,19 @@ const ProductSelectionDialog = ({
                               const [allyId, allyName] = value.split('|');
                               console.log(`Selected ally: ID=${allyId}, Name=${allyName}`);
                               
+                              // Check if ally is already in the list
+                              const currentAllyIds = form.getValues("sessionNote.presentAllyIds") || [];
+                              const allyIdNum = parseInt(allyId);
+                              
+                              if (currentAllies.includes(allyName) || currentAllyIds.includes(allyIdNum)) {
+                                toast({
+                                  title: "Attendee already added",
+                                  description: `${allyName} is already present in this session.`,
+                                  variant: "destructive"
+                                });
+                                return;
+                              }
+                              
                               // Remove the selection marker and add the selected ally (just using the name for display)
                               form.setValue(
                                 "sessionNote.presentAllies", 
@@ -1271,10 +1284,9 @@ const ProductSelectionDialog = ({
                               );
                               
                               // Store the ally IDs separately for data integrity
-                              const currentAllyIds = form.getValues("sessionNote.presentAllyIds") || [];
                               form.setValue(
                                 "sessionNote.presentAllyIds",
-                                [...currentAllyIds, parseInt(allyId)]
+                                [...currentAllyIds, allyIdNum]
                               );
                             }}
                           >
