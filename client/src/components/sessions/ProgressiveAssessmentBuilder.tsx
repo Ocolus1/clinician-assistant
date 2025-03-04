@@ -145,6 +145,10 @@ export function ProgressiveAssessmentBuilder({
     enabled: !!clientId
   });
   
+  // Debug goal fetching
+  console.log("Client ID:", clientId);
+  console.log("Goals data:", goals);
+  
   // Log debugging information
   React.useEffect(() => {
     console.log("ProgressiveAssessmentBuilder - clientId:", clientId);
