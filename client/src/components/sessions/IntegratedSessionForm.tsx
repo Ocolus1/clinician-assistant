@@ -734,7 +734,21 @@ export function IntegratedSessionForm({
                 <TabsContent value="participants" className="space-y-6 mt-0 px-2">
                   {/* Present Allies Section */}
                   <div className="space-y-4">
-                    <h3 className="font-medium text-lg">Present in Session</h3>
+                    <div className="flex justify-between items-center">
+                      <h3 className="font-medium text-lg">Present in Session</h3>
+                      <Button 
+                        type="button"
+                        size="sm"
+                        className="flex items-center"
+                        onClick={() => {
+                          // Here you would handle adding a new attendee
+                          console.log("Add new attendee clicked");
+                        }}
+                      >
+                        <Plus className="h-4 w-4 mr-1" />
+                        New Attendee
+                      </Button>
+                    </div>
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {["Parent", "Guardian", "Sibling", "Aide", "Teacher", "Other Professional"].map((role) => (
