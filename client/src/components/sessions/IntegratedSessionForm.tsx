@@ -322,8 +322,8 @@ export function IntegratedSessionForm({
   // Generate a unique session ID for tracking
   const sessionId = useMemo(() => {
     const now = new Date();
-    // Format: SES-YYYYMMDD-HHMMSS-XXXX (where XXXX is a random number)
-    return `SES-${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}-${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}${String(now.getSeconds()).padStart(2, '0')}-${Math.floor(1000 + Math.random() * 9000)}`;
+    // Format: ST-YYYYMMDD-XXXX (ST = Speech Therapy, XXXX is a random number)
+    return `ST-${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}-${Math.floor(1000 + Math.random() * 9000)}`;
   }, []);
 
   // Default form values
