@@ -52,7 +52,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Slider } from "@/components/ui/slider";
 import { Calendar } from "@/components/ui/calendar";
@@ -1739,12 +1738,10 @@ const ProductSelectionDialog = ({
                             <FormItem className="h-full flex flex-col">
                               <FormLabel>General Notes</FormLabel>
                               <FormControl className="flex-grow">
-                                <RichTextEditor 
-                                  value={field.value || ''}
-                                  onChange={field.onChange}
+                                <Textarea 
                                   placeholder="Enter general observations about the session..."
-                                  className="rich-text-editor-container" 
-                                  minHeight="min-h-[300px]"
+                                  className="resize-none h-full min-h-[300px]"
+                                  {...field}
                                 />
                               </FormControl>
                               <FormMessage />
@@ -1825,12 +1822,10 @@ const ProductSelectionDialog = ({
                                   <FormItem className="mb-4">
                                     <FormLabel>Goal Progress Notes</FormLabel>
                                     <FormControl>
-                                      <RichTextEditor 
-                                        value={field.value || ''}
-                                        onChange={field.onChange}
+                                      <Textarea 
                                         placeholder="Enter notes about progress on this goal..."
-                                        className="rich-text-editor-container" 
-                                        minHeight="min-h-[100px]"
+                                        className="resize-none min-h-20"
+                                        {...field}
                                       />
                                     </FormControl>
                                     <FormMessage />
@@ -1931,12 +1926,10 @@ const ProductSelectionDialog = ({
                                               <FormItem>
                                                 <FormLabel>Notes</FormLabel>
                                                 <FormControl>
-                                                  <RichTextEditor 
-                                                    value={field.value || ''}
-                                                    onChange={field.onChange}
+                                                  <Textarea 
                                                     placeholder="Notes about this milestone..."
-                                                    className="rich-text-editor-container" 
-                                                    minHeight="min-h-[80px]"
+                                                    className="resize-none min-h-16"
+                                                    {...field}
                                                   />
                                                 </FormControl>
                                                 <FormMessage />

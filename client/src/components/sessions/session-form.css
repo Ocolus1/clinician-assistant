@@ -1,106 +1,545 @@
-/* Rating Slider Styles */
-.rating-slider {
-  width: 100%;
+/* Import our color system */
+@import url('../../styles/colors.css');
+
+/* Enhanced Session Form Styles - Stage 1 Visual Refinements */
+
+/* Additional form-specific variable mappings */
+:root {
+  --background-lighter: var(--gray-100);
+  --primary-dark: var(--primary-blue-700);
+  --primary-darker: var(--primary-blue-900);
+  --primary-light: var(--primary-blue-300);
+  --primary-lighter: var(--primary-blue-100);
+  --accent-color: var(--teal-500);
+  --section-header-bg: var(--gray-50);
+  --success-color: var(--success-500);
+  --warning-color: var(--warning-500);
+  --error-color: var(--error-500);
 }
 
-.color-slider.range-low [data-orientation="horizontal"] {
-  background: linear-gradient(to right, #fee2e2, #fecaca);
+/* Enhanced tabs styling - FIXED as per color system requirements */
+[data-state="active"] {
+  background-color: var(--tab-bg-active) !important;
+  color: var(--tab-text-active) !important;
+  font-weight: 600 !important;
+  position: relative;
 }
 
-.color-slider.range-low .data-[orientation=horizontal] {
-  background: #f87171;
+[data-state="active"]::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 10%;
+  width: 80%;
+  height: 2px;
+  background-color: var(--tab-indicator-active);
 }
 
-.color-slider.range-mid [data-orientation="horizontal"] {
-  background: linear-gradient(to right, #fef3c7, #fde68a);
+/* Typography Improvements - FIXED as per color system requirements */
+h3 {
+  font-weight: 600 !important;
+  font-size: 1.125rem !important;
+  color: var(--text-heading) !important; /* Use heading color from system */
+  margin-bottom: 0.875rem !important;
+  position: relative;
+  padding-bottom: 0.5rem;
 }
 
-.color-slider.range-mid .data-[orientation=horizontal] {
-  background: #fbbf24;
+h3::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 2rem;
+  height: 2px;
+  background-color: var(--primary-light);
 }
 
-.color-slider.range-high [data-orientation="horizontal"] {
-  background: linear-gradient(to right, #dcfce7, #bbf7d0);
+/* Form label styling */
+[class*="FormLabel"] {
+  font-weight: 500 !important;
+  font-size: 0.875rem !important;
+  color: var(--input-label) !important; /* Use label color from system */
+  margin-bottom: 0.5rem !important;
+  letter-spacing: -0.01em !important;
 }
 
-.color-slider.range-high .data-[orientation=horizontal] {
-  background: #34d399;
+/* Form message/helper text styling */
+[class*="FormMessage"], [class*="FormDescription"] {
+  font-size: 0.75rem !important;
+  color: var(--input-helper-text) !important; /* Use helper text color from system */
 }
 
-/* Color for track and thumb */
+[class*="FormMessage"][data-state="error"] {
+  color: var(--input-error-text) !important; /* Use error text color from system */
+}
+
+/* Improved form fields */
+[class*="FormItem"] {
+  margin-bottom: 1.5rem !important;
+}
+
+/* Input field styling - FIXED as per color system requirements */
+input, textarea, select {
+  border-radius: 0.375rem !important;
+  border-color: var(--input-border) !important;
+  background-color: var(--input-bg) !important;
+  transition: all 0.2s ease !important;
+  font-size: 0.9375rem !important;
+  padding: 0.625rem 0.75rem !important;
+  color: var(--input-text) !important;
+}
+
+/* Focus styles for form elements */
+input:focus, textarea:focus, select:focus {
+  border-color: var(--input-border-focus) !important;
+  outline: none !important;
+  box-shadow: 0 0 0 2px rgba(58, 134, 255, 0.2) !important;
+}
+
+/* Error styles for form elements */
+input[aria-invalid="true"], textarea[aria-invalid="true"], select[aria-invalid="true"] {
+  border-color: var(--input-error-border) !important;
+  color: var(--input-error-text) !important;
+}
+
+/* Disabled styles for form elements */
+input:disabled, textarea:disabled, select:disabled {
+  background-color: var(--input-disabled-bg) !important;
+  color: var(--input-disabled-text) !important;
+  cursor: not-allowed !important;
+}
+
+/* Placeholder styling */
+input::placeholder, textarea::placeholder {
+  color: var(--input-placeholder) !important;
+  opacity: 0.7 !important;
+}
+
+/* Add spacing to form sections */
+[role="tabpanel"] {
+  padding: 1.25rem !important;
+}
+
+/* Card styling improvements - FIXED as per color system requirements */
+[class*="Card"] {
+  border-radius: 0.5rem !important;
+  border: 1px solid var(--card-border) !important;
+  transition: all 0.2s ease !important;
+  overflow: hidden !important;
+  box-shadow: var(--card-shadow) !important;
+  background-color: var(--card-background) !important; /* CRITICAL FIX - use white background */
+}
+
+[class*="Card"]:hover {
+  border-color: var(--gray-300) !important; /* More subtle hover state */
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08) !important;
+}
+
+/* Card header styling */
+[class*="CardHeader"] {
+  padding: 1rem !important;
+  border-bottom: 1px solid var(--card-header-border) !important;
+}
+
+[class*="CardTitle"] {
+  font-weight: 600 !important;
+  color: var(--session-title) !important; /* Use correct semantic variable */
+}
+
+/* Enhanced form sections - FIXED as per color system requirements */
+.session-form-section {
+  padding: 1.25rem;
+  margin-bottom: 1.5rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--border-color);
+  background-color: var(--white); /* CRITICAL FIX - use white background */
+  box-shadow: var(--card-shadow);
+}
+
+/* Enhanced badges and indicators - FIXED as per color system requirements */
+[class*="Badge"] {
+  font-weight: 500 !important;
+  border-radius: 9999px !important;
+  padding: 0.25rem 0.625rem !important;
+  font-size: 0.75rem !important;
+  letter-spacing: 0.01em !important;
+  transition: all 0.2s ease !important;
+}
+
+/* Badge variants */
+[class*="Badge"][class*="outline"] {
+  background-color: transparent !important;
+  border: 1px solid var(--border-color) !important;
+}
+
+[class*="Badge"][class*="default"] {
+  background-color: var(--primary-color) !important;
+  color: var(--white) !important;
+}
+
+/* Status badge variants for sessions */
+[class*="Badge"].status-scheduled {
+  background-color: var(--session-scheduled-bg) !important;
+  color: var(--session-scheduled-text) !important;
+}
+
+[class*="Badge"].status-completed {
+  background-color: var(--session-completed-bg) !important;
+  color: var(--session-completed-text) !important;
+}
+
+[class*="Badge"].status-cancelled {
+  background-color: var(--session-cancelled-bg) !important;
+  color: var(--session-cancelled-text) !important;
+}
+
+/* Badge hover effects */
+[class*="Badge"][class*="cursor-pointer"]:hover {
+  transform: translateY(-1px) !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Improved sliders and progress indicators */
+.rating-slider [role="slider"] {
+  border: 2px solid white !important;
+  width: 1.25rem !important;
+  height: 1.25rem !important;
+  transition: all 0.2s ease !important;
+}
+
+.rating-slider [role="slider"]:hover {
+  transform: scale(1.1) !important;
+}
+
+.rating-slider [role="slider"]:active {
+  transform: scale(0.95) !important;
+}
+
+.rating-slider [data-orientation="horizontal"] {
+  height: 0.5rem !important;
+  border-radius: 1rem !important;
+}
+
+.rating-slider [data-orientation="horizontal"] > div {
+  border-top-left-radius: 1rem !important;
+  border-bottom-left-radius: 1rem !important;
+}
+
+/* Color-coded sliders */
+.color-slider [role="slider"] {
+  background-color: var(--thumb-color, var(--primary-color)) !important;
+  box-shadow: 0 0 0 1px var(--thumb-color, var(--primary-color)) !important;
+}
+
+.color-slider [role="slider"]:hover {
+  box-shadow: 0 0 0 1px var(--thumb-color, var(--primary-color)), 0 0 0 4px rgba(var(--thumb-color-rgb, 58, 134, 255), 0.2) !important;
+}
+
+.color-slider [data-orientation="horizontal"] {
+  background-color: var(--background-lighter) !important;
+}
+
+/* Track color based on range */
+/* Red for 0-3 */
+.color-slider.range-low [data-orientation="horizontal"] > div {
+  background-color: var(--error-500) !important;
+}
 .color-slider.range-low [role="slider"] {
-  background-color: #ef4444;
-  border-color: #ef4444;
+  background-color: var(--error-500) !important;
+  box-shadow: 0 0 0 1px var(--error-500) !important;
+}
+.color-slider.range-low [role="slider"]:hover {
+  box-shadow: 0 0 0 1px var(--error-500), 0 0 0 4px rgba(239, 68, 68, 0.2) !important;
 }
 
+/* Orange for 4-6 */
+.color-slider.range-mid [data-orientation="horizontal"] > div {
+  background-color: var(--warning-500) !important;
+}
 .color-slider.range-mid [role="slider"] {
-  background-color: #f59e0b;
-  border-color: #f59e0b;
+  background-color: var(--warning-500) !important;
+  box-shadow: 0 0 0 1px var(--warning-500) !important;
+}
+.color-slider.range-mid [role="slider"]:hover {
+  box-shadow: 0 0 0 1px var(--warning-500), 0 0 0 4px rgba(234, 179, 8, 0.2) !important;
 }
 
+/* Green for 7-10 */
+.color-slider.range-high [data-orientation="horizontal"] > div {
+  background-color: var(--success-500) !important;
+}
 .color-slider.range-high [role="slider"] {
-  background-color: #10b981;
-  border-color: #10b981;
+  background-color: var(--success-500) !important;
+  box-shadow: 0 0 0 1px var(--success-500) !important;
+}
+.color-slider.range-high [role="slider"]:hover {
+  box-shadow: 0 0 0 1px var(--success-500), 0 0 0 4px rgba(34, 197, 94, 0.2) !important;
 }
 
-/* Rich text editor container */
-.rich-text-editor-container {
-  min-height: 200px;
+/* Component Button Styles - Using our new button system */
+
+/* Map shadcn Button components to our button system */
+[class*="Button"] {
+  /* Use the base button styles */
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-weight: 500 !important;
+  font-size: 0.875rem !important;
+  line-height: 1.25rem !important;
+  transition: all 0.2s ease !important;
+  cursor: pointer !important;
+  white-space: nowrap !important;
+}
+
+[class*="Button"]:focus {
+  outline: none !important;
+  box-shadow: 0 0 0 2px white, 0 0 0 4px var(--primary-blue-300) !important;
+}
+
+/* Primary button style */
+[class*="Button"][class*="primary"] {
+  background-color: var(--btn-primary-bg) !important;
+  color: var(--btn-primary-text) !important;
+  border-radius: var(--btn-primary-radius) !important;
+  padding: var(--btn-primary-padding) !important;
+  box-shadow: var(--btn-primary-shadow) !important;
+  border: none !important;
+}
+
+[class*="Button"][class*="primary"]:hover {
+  background-color: var(--btn-primary-hover) !important;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15) !important;
+}
+
+[class*="Button"][class*="primary"]:active {
+  background-color: var(--btn-primary-active) !important;
+  transform: translateY(1px) !important;
+}
+
+[class*="Button"][class*="primary"][disabled] {
+  background-color: var(--btn-disabled-bg) !important;
+  color: var(--btn-disabled-text) !important;
+  cursor: not-allowed !important;
+  transform: none !important;
+  box-shadow: none !important;
+  border-color: transparent !important;
+  pointer-events: none !important;
+}
+
+/* Secondary button style (including outline variant) */
+[class*="Button"][class*="secondary"],
+[class*="Button"][class*="outline"] {
+  background-color: var(--btn-secondary-bg) !important;
+  color: var(--btn-secondary-text) !important;
+  border: var(--btn-secondary-border-width) solid var(--btn-secondary-border) !important;
+  border-radius: var(--btn-secondary-radius) !important;
+  padding: var(--btn-secondary-padding) !important;
+  box-shadow: var(--btn-secondary-shadow) !important;
+}
+
+[class*="Button"][class*="secondary"]:hover,
+[class*="Button"][class*="outline"]:hover {
+  background-color: var(--btn-secondary-hover) !important;
+}
+
+[class*="Button"][class*="secondary"]:active,
+[class*="Button"][class*="outline"]:active {
+  background-color: var(--btn-secondary-hover) !important;
+  border-color: var(--btn-primary-hover) !important;
+  transform: translateY(1px) !important;
+}
+
+/* Tertiary button style (Ghost) */
+[class*="Button"][class*="ghost"] {
+  background-color: var(--btn-icon-bg) !important;
+  color: var(--btn-tertiary-text) !important;
+  border: none !important;
+}
+
+[class*="Button"][class*="ghost"]:hover {
+  background-color: var(--btn-tertiary-hover) !important;
+}
+
+[class*="Button"][class*="ghost"]:active {
+  transform: scale(0.98) !important;
+}
+
+/* Icon button style */
+[class*="Button"][class*="ghost"][class*="icon"],
+[class*="Button"][class*="icon"] {
+  background-color: var(--btn-icon-bg) !important;
+  color: var(--btn-icon-inactive) !important;
+  border: none !important;
+  border-radius: var(--btn-icon-radius) !important;
+  padding: 0 !important;
+  width: var(--btn-icon-size) !important;
+  height: var(--btn-icon-size) !important;
+}
+
+[class*="Button"][class*="ghost"][class*="icon"] svg,
+[class*="Button"][class*="icon"] svg {
+  width: var(--btn-icon-inner-size) !important;
+  height: var(--btn-icon-inner-size) !important;
+}
+
+[class*="Button"][class*="ghost"][class*="icon"]:hover,
+[class*="Button"][class*="icon"]:hover {
+  background-color: var(--btn-icon-hover-bg) !important;
+}
+
+[class*="Button"][class*="ghost"][class*="icon"]:active,
+[class*="Button"][class*="icon"]:active {
+  transform: scale(0.95) !important;
+}
+
+/* Destructive button style */
+[class*="Button"][class*="destructive"] {
+  background-color: var(--btn-danger-bg) !important;
+  color: var(--btn-danger-text) !important;
+  border-radius: var(--btn-primary-radius) !important;
+  padding: var(--btn-primary-padding) !important;
+  border: none !important;
+}
+
+[class*="Button"][class*="destructive"]:hover {
+  background-color: var(--btn-danger-hover) !important;
+}
+
+[class*="Button"][class*="destructive"]:active {
+  transform: translateY(1px) !important;
+}
+
+/* Form navigation styling */
+.form-footer {
+  padding-top: 1rem !important;
+  border-top: 1px solid var(--border-color) !important;
+  margin-top: 1rem !important;
+}
+
+/* Tab styling enhancements - FIXED as per color system requirements */
+[class*="TabsList"] {
+  background-color: var(--gray-50) !important;
+  border-radius: 0.5rem !important;
+  padding: 0.25rem !important;
+  margin-bottom: 1.5rem !important;
+}
+
+[class*="TabsTrigger"] {
+  font-weight: 500 !important;
+  transition: all 0.2s ease !important;
+  position: relative !important;
+  color: var(--tab-text-inactive) !important;
+  background-color: var(--tab-bg-inactive) !important;
+}
+
+[class*="TabsTrigger"]:hover:not([data-state="active"]) {
+  background-color: var(--tab-hover-inactive) !important;
+}
+
+[class*="TabsTrigger"][data-state="active"] {
+  background-color: var(--tab-bg-active) !important;
+  color: var(--tab-text-active) !important;
+  font-weight: 600 !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important;
+  border-bottom: 2px solid var(--tab-indicator-active) !important;
+}
+
+/* Tab content transitions */
+[role="tabpanel"] {
+  transition: opacity 0.3s ease !important;
+  animation: fadeIn 0.3s ease-in-out !important;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Add spacing in form layouts */
+.form-grid {
+  display: grid;
+  gap: 1rem;
+}
+
+/* Enhanced dialog components */
+[role="dialog"] {
+  backdrop-filter: blur(4px);
+}
+
+[class*="DialogHeader"] {
+  padding-bottom: 1rem !important;
+  border-bottom: 1px solid var(--border-color) !important;
+  margin-bottom: 1.25rem !important;
+}
+
+[class*="DialogTitle"] {
+  font-weight: 600 !important;
+  font-size: 1.25rem !important;
+  color: var(--text-primary) !important;
+  letter-spacing: -0.01em !important;
+}
+
+[class*="DialogDescription"] {
+  color: var(--text-secondary) !important;
+  font-size: 0.9375rem !important;
+  margin-top: 0.25rem !important;
+}
+
+[class*="DialogFooter"] {
+  padding-top: 1rem !important;
+  border-top: 1px solid var(--border-color) !important;
+  margin-top: 1.25rem !important;
+}
+
+/* Form section headers with icons */
+.section-header {
   display: flex;
-  flex-direction: column;
-}
-
-.rich-text-editor-container .ProseMirror {
-  flex-grow: 1;
-  min-height: 150px;
-  overflow-y: auto;
-  padding: 0.5rem;
-  outline: none;
-}
-
-.rich-text-editor-container .ProseMirror p.is-editor-empty:first-child::before {
-  content: attr(data-placeholder);
-  float: left;
-  color: #9ca3af;
-  pointer-events: none;
-  height: 0;
-}
-
-/* Alignment styles */
-.ProseMirror .text-left {
-  text-align: left;
-}
-
-.ProseMirror .text-center {
-  text-align: center;
-}
-
-.ProseMirror .text-right {
-  text-align: right;
-}
-
-/* Adding some spacing and styles for editor content */
-.ProseMirror h3 {
-  font-size: 1.25rem;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--primary-color);
   font-weight: 600;
-  margin-top: 1rem;
-  margin-bottom: 0.5rem;
+  margin-bottom: 1rem;
+  font-size: 1.125rem;
+  letter-spacing: -0.01em;
 }
 
-.ProseMirror ul {
-  list-style-type: disc;
-  padding-left: 1.5rem;
+.section-header svg {
+  width: 1.25rem;
+  height: 1.25rem;
 }
 
-.ProseMirror ol {
-  list-style-type: decimal;
-  padding-left: 1.5rem;
+/* Empty state styling */
+[class*="border"][class*="rounded-md"][class*="bg-muted"] {
+  background-color: var(--background-lighter) !important;
+  border: 1px dashed var(--border-color) !important;
+  border-radius: 0.5rem !important;
+  padding: 1.5rem !important;
+  text-align: center !important;
+  transition: all 0.2s ease !important;
 }
 
-.ProseMirror li {
-  margin-bottom: 0.25rem;
+[class*="border"][class*="rounded-md"][class*="bg-muted"]:hover {
+  border-color: var(--text-secondary) !important;
 }
 
-.ProseMirror p {
-  margin-bottom: 0.5rem;
+[class*="border"][class*="rounded-md"][class*="bg-muted"] p {
+  color: var(--text-secondary) !important;
+  font-size: 0.9375rem !important;
+}
+
+/* Enhanced select controls */
+[role="combobox"] {
+  border-radius: 0.375rem !important;
+}
+
+/* Calendar styling enhancements */
+.rdp-button:hover:not([disabled]) {
+  background-color: var(--primary-light) !important;
+  color: var(--primary-color) !important;
+}
+
+.rdp-day_selected {
+  background-color: var(--primary-color) !important;
 }
