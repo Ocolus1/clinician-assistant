@@ -203,7 +203,41 @@ const GoalSelectionDialog = ({
   selectedGoalIds, 
   onSelectGoal 
 }: GoalSelectionDialogProps) => {
-  const availableGoals = goals.filter(goal => !selectedGoalIds.includes(goal.id));
+  const [localGoals, setLocalGoals] = useState<Goal[]>([]);
+  // Get the first client from the list as a fallback
+  const clientIdFromGoals = goals.length > 0 ? goals[0].clientId : 0;
+  
+  // Manually fetch goals on dialog open to ensure we have the latest data
+  useEffect(() => {
+    if (open && clientIdFromGoals) {
+      console.log("GoalSelectionDialog: Fetching goals for client:", clientIdFromGoals);
+      
+      // Fetch goals directly to bypass any caching issues
+      fetch(`/api/clients/${clientIdFromGoals}/goals`)
+        .then(response => {
+          if (!response.ok) {
+            throw new Error("Failed to fetch goals");
+          }
+          return response.json();
+        })
+        .then(data => {
+          console.log("GoalSelectionDialog: Received goals:", data);
+          setLocalGoals(data || []);
+        })
+        .catch(error => {
+          console.error("Error fetching goals:", error);
+        });
+    }
+  }, [open, clientIdFromGoals]);
+  
+  // Filter out already selected goals
+  const availableGoals = localGoals.filter(goal => !selectedGoalIds.includes(goal.id));
+  
+  // Use local goals if available, otherwise fallback to prop goals
+  const displayGoals = availableGoals.length > 0 ? availableGoals : goals.filter(goal => !selectedGoalIds.includes(goal.id));
+  
+  console.log("GoalSelectionDialog - Available goals:", displayGoals);
+  console.log("GoalSelectionDialog - Selected goal IDs:", selectedGoalIds);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -216,13 +250,15 @@ const GoalSelectionDialog = ({
         </DialogHeader>
         
         <div className="py-4">
-          {availableGoals.length === 0 ? (
+          {displayGoals.length === 0 ? (
             <div className="p-4 border rounded-md bg-muted/20 text-center">
-              <p className="text-muted-foreground">All goals have been selected</p>
+              <p className="text-muted-foreground">
+                {localGoals.length > 0 ? "All goals have been selected" : "No goals found for this client"}
+              </p>
             </div>
           ) : (
             <div className="space-y-2">
-              {availableGoals.map(goal => (
+              {displayGoals.map(goal => (
                 <Card 
                   key={goal.id} 
                   className="cursor-pointer hover:bg-muted/20"
@@ -268,9 +304,51 @@ const MilestoneSelectionDialog = ({
   selectedMilestoneIds,
   onSelectMilestone
 }: MilestoneSelectionDialogProps) => {
-  const availableSubgoals = subgoals.filter(
-    subgoal => !selectedMilestoneIds.includes(subgoal.id)
-  );
+  const [localSubgoals, setLocalSubgoals] = useState<Subgoal[]>([]);
+  const [goalId, setGoalId] = useState<number | null>(null);
+  
+  // Get the goalId from the current context
+  useEffect(() => {
+    if (open && subgoals.length > 0) {
+      // Extract the goal ID from the first subgoal
+      const extractedGoalId = subgoals[0]?.goalId;
+      if (extractedGoalId) {
+        setGoalId(extractedGoalId);
+        console.log("MilestoneSelectionDialog: Found goalId:", extractedGoalId);
+      }
+    }
+  }, [open, subgoals]);
+  
+  // Manually fetch subgoals on dialog open to ensure we have the latest data
+  useEffect(() => {
+    if (open && goalId) {
+      console.log("MilestoneSelectionDialog: Fetching subgoals for goal:", goalId);
+      
+      // Fetch subgoals directly to bypass any caching issues
+      fetch(`/api/goals/${goalId}/subgoals`)
+        .then(response => {
+          if (!response.ok) {
+            throw new Error("Failed to fetch subgoals");
+          }
+          return response.json();
+        })
+        .then(data => {
+          console.log("MilestoneSelectionDialog: Received subgoals:", data);
+          setLocalSubgoals(data || []);
+        })
+        .catch(error => {
+          console.error("Error fetching subgoals:", error);
+        });
+    }
+  }, [open, goalId]);
+  
+  // Filter out already selected subgoals
+  const availableSubgoals = localSubgoals.length > 0 
+    ? localSubgoals.filter(subgoal => !selectedMilestoneIds.includes(subgoal.id))
+    : subgoals.filter(subgoal => !selectedMilestoneIds.includes(subgoal.id));
+  
+  console.log("MilestoneSelectionDialog - Available subgoals:", availableSubgoals);
+  console.log("MilestoneSelectionDialog - Selected milestone IDs:", selectedMilestoneIds);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -285,7 +363,9 @@ const MilestoneSelectionDialog = ({
         <div className="py-4">
           {availableSubgoals.length === 0 ? (
             <div className="p-4 border rounded-md bg-muted/20 text-center">
-              <p className="text-muted-foreground">All milestones have been selected</p>
+              <p className="text-muted-foreground">
+                {localSubgoals.length > 0 ? "All milestones have been selected" : "No milestones found for this goal"}
+              </p>
             </div>
           ) : (
             <div className="space-y-2">
