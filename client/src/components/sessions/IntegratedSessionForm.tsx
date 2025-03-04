@@ -1009,46 +1009,46 @@ const ProductSelectionDialog = ({
                               </FormLabel>
                               <Select
                                 onValueChange={(value) => {
-                              // Set the client ID
-                              const clientId = parseInt(value);
-                              field.onChange(clientId);
-                              
-                              // Reset performance assessments when client changes
-                              form.setValue("performanceAssessments", []);
-                              
-                              // Reset products when client changes
-                              form.setValue("sessionNote.products", []);
-                              
-                              // Log when client changes to help debug
-                              console.log('Client changed to:', clientId);
-                              console.log('Initiating budget item fetch for client:', clientId);
-                              
-                              // Manually trigger refetch of budget items and settings
-                              if (refetchBudgetItems && refetchBudgetSettings) {
-                                console.log('Manually refetching budget data for client:', clientId);
-                                // Use timeout to ensure components finish rendering first
-                                setTimeout(() => {
-                                  refetchBudgetItems();
-                                  refetchBudgetSettings();
-                                }, 100);
-                              }
-                            }}
-                            value={field.value?.toString() || undefined}
-                          >
-                            <FormControl>
-                              <SelectTrigger className="h-10">
-                                <SelectValue placeholder="Select client" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {clients.map((client) => (
-                                <SelectItem key={client.id} value={client.id.toString()}>
-                                  {client.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
+                                  // Set the client ID
+                                  const clientId = parseInt(value);
+                                  field.onChange(clientId);
+                                  
+                                  // Reset performance assessments when client changes
+                                  form.setValue("performanceAssessments", []);
+                                  
+                                  // Reset products when client changes
+                                  form.setValue("sessionNote.products", []);
+                                  
+                                  // Log when client changes to help debug
+                                  console.log('Client changed to:', clientId);
+                                  console.log('Initiating budget item fetch for client:', clientId);
+                                  
+                                  // Manually trigger refetch of budget items and settings
+                                  if (refetchBudgetItems && refetchBudgetSettings) {
+                                    console.log('Manually refetching budget data for client:', clientId);
+                                    // Use timeout to ensure components finish rendering first
+                                    setTimeout(() => {
+                                      refetchBudgetItems();
+                                      refetchBudgetSettings();
+                                    }, 100);
+                                  }
+                                }}
+                                value={field.value?.toString() || undefined}
+                              >
+                                <FormControl>
+                                  <SelectTrigger className="h-10">
+                                    <SelectValue placeholder="Select client" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  {clients.map((client) => (
+                                    <SelectItem key={client.id} value={client.id.toString()}>
+                                      {client.name}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
                         </FormItem>
                       )}
                     />
@@ -1113,18 +1113,26 @@ const ProductSelectionDialog = ({
                                 </Button>
                               </FormControl>
                             </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0" align="start">
+                            <PopoverContent className="w-auto p-0 z-50" align="start">
                               <Calendar
                                 mode="single"
                                 selected={field.value}
-                                onSelect={field.onChange}
+                                onSelect={(date) => {
+                                  if (date) {
+                                    // Preserve time portion from existing date or use current time
+                                    const existingDate = field.value || new Date();
+                                    date.setHours(existingDate.getHours());
+                                    date.setMinutes(existingDate.getMinutes());
+                                    field.onChange(date);
+                                  }
+                                }}
                                 initialFocus
                               />
                               <div className="p-3 border-t">
                                 <Input
                                   type="time"
                                   onChange={(e) => {
-                                    const date = new Date(field.value);
+                                    const date = new Date(field.value || new Date());
                                     const [hours, minutes] = e.target.value.split(':').map(Number);
                                     date.setHours(hours, minutes);
                                     field.onChange(date);
