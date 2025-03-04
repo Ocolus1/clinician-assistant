@@ -152,24 +152,26 @@ interface RatingSliderProps {
 
 const RatingSlider = ({ value, onChange, label, description }: RatingSliderProps) => {
   return (
-    <div className="space-y-2">
+    <div className="space-y-3">
       <div className="flex justify-between items-center">
-        <Label>{label}</Label>
-        <Badge variant="outline">{value}</Badge>
+        <Label className="font-medium text-sm">{label}</Label>
+        <Badge variant="outline" className="font-medium bg-primary/10 border-primary/20 text-primary">
+          {value}
+        </Badge>
       </div>
-      {description && <p className="text-sm text-muted-foreground">{description}</p>}
+      {description && <p className="text-sm text-muted-foreground mt-1">{description}</p>}
       <Slider
         value={[value]}
         min={0}
         max={10}
         step={1}
         onValueChange={(vals) => onChange(vals[0])}
-        className="py-1"
+        className="py-2 rating-slider"
       />
-      <div className="flex justify-between text-xs text-muted-foreground">
-        <span>0</span>
-        <span>5</span>
-        <span>10</span>
+      <div className="flex justify-between text-xs text-muted-foreground px-1">
+        <span>Low (0)</span>
+        <span>Medium (5)</span>
+        <span>High (10)</span>
       </div>
     </div>
   );
