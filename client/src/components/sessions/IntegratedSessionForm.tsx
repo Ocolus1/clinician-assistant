@@ -1896,12 +1896,14 @@ const ProductSelectionDialog = ({
                   >
                     Cancel
                   </Button>
-                  <Button 
-                    type="submit"
-                    disabled={createSessionMutation.isPending}
-                  >
-                    {createSessionMutation.isPending ? "Creating..." : "Create Session"}
-                  </Button>
+                  {activeTab === "performance" && (
+                    <Button 
+                      type="submit"
+                      disabled={createSessionMutation.isPending}
+                    >
+                      {createSessionMutation.isPending ? "Creating..." : "Create Session"}
+                    </Button>
+                  )}
                 </div>
               </div>
             </form>
@@ -1969,12 +1971,14 @@ const ProductSelectionDialog = ({
                   >
                     Cancel
                   </Button>
-                  <Button 
-                    type="submit"
-                    disabled={createSessionMutation.isPending}
-                  >
-                    {createSessionMutation.isPending ? "Creating..." : "Create Session"}
-                  </Button>
+                  {activeTab === "performance" && (
+                    <Button 
+                      type="submit"
+                      disabled={createSessionMutation.isPending}
+                    >
+                      {createSessionMutation.isPending ? "Creating..." : "Create Session"}
+                    </Button>
+                  )}
                 </div>
               </div>
             </form>
