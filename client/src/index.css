@@ -1,9 +1,9 @@
+/* Import our global color system */
+@import url('./styles/colors.css');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-/* Import our global color system */
-@import url('./styles/colors.css');
 
 :root {
   --sidebar-width-expanded: 16rem; /* 64px * 4 = 256px = 16rem */
@@ -21,6 +21,7 @@
   --text-primary: var(--gray-800);
   --text-secondary: var(--gray-600);
   --text-muted: var(--gray-400);
+  --text-placeholder: var(--gray-400);
   --background-lighter: var(--gray-100);
 }
 

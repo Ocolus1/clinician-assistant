@@ -1,7 +1,7 @@
-/* Enhanced Session Form Styles - Stage 1 Visual Refinements */
-
 /* Import our color system */
 @import url('../../styles/colors.css');
+
+/* Enhanced Session Form Styles - Stage 1 Visual Refinements */
 
 /* Additional form-specific variable mappings */
 :root {
@@ -89,7 +89,7 @@ input:focus, textarea:focus, select:focus {
 
 /* Placeholder styling */
 input::placeholder, textarea::placeholder {
-  color: var(--text-muted) !important;
+  color: var(--text-placeholder) !important;
   opacity: 0.7 !important;
 }
 
