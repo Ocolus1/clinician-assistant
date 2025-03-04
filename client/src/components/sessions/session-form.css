@@ -237,11 +237,20 @@ input::placeholder, textarea::placeholder {
 }
 
 .color-slider [data-orientation="horizontal"] {
-  background: linear-gradient(90deg, rgba(239, 68, 68, 0.2), rgba(234, 179, 8, 0.2), rgba(34, 197, 94, 0.2)) !important;
+  background-color: var(--background-lighter) !important;
 }
 
-.color-slider [data-orientation="horizontal"] > div {
-  background: var(--slider-track-background, var(--primary-color)) !important;
+/* Track color based on range */
+.color-slider.range-low [data-orientation="horizontal"] > div {
+  background-color: var(--error-500) !important; /* Red for 0-3 */
+}
+
+.color-slider.range-mid [data-orientation="horizontal"] > div {
+  background-color: var(--warning-500) !important; /* Orange for 4-6 */
+}
+
+.color-slider.range-high [data-orientation="horizontal"] > div {
+  background-color: var(--success-500) !important; /* Green for 7-10 */
 }
 
 /* Component Button Styles - Using our new button system */

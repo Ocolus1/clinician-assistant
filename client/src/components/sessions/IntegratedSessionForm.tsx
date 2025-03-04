@@ -151,29 +151,25 @@ interface RatingSliderProps {
 }
 
 const RatingSlider = ({ value, onChange, label, description }: RatingSliderProps) => {
-  // Calculate the color based on the value
-  // Low values (0-3): Red to Orange
-  // Medium values (4-7): Orange to Yellow-Green
-  // High values (8-10): Yellow-Green to Green
-  const getTrackColor = () => {
-    return `linear-gradient(90deg, 
-      rgba(239, 68, 68, 1) 0%, 
-      rgba(234, 179, 8, 1) 50%, 
-      rgba(34, 197, 94, 1) 100%)`;
-  };
-  
   // Get thumb color based on value range
   const getThumbColor = () => {
-    if (value <= 3) return 'rgba(239, 68, 68, 1)'; // Red
-    if (value <= 7) return 'rgba(234, 179, 8, 1)'; // Yellow
-    return 'rgba(34, 197, 94, 1)'; // Green
+    if (value <= 3) return 'var(--error-500)'; // Red
+    if (value <= 6) return 'var(--warning-500)'; // Orange
+    return 'var(--success-500)'; // Green
   };
   
   // Generate a badge color class based on value
   const getBadgeClass = () => {
     if (value <= 3) return 'bg-red-100 border-red-200 text-red-700';
-    if (value <= 7) return 'bg-yellow-100 border-yellow-200 text-yellow-700';
+    if (value <= 6) return 'bg-amber-100 border-amber-200 text-amber-700';
     return 'bg-green-100 border-green-200 text-green-700';
+  };
+  
+  // Get range class for the slider
+  const getRangeClass = () => {
+    if (value <= 3) return 'range-low';
+    if (value <= 6) return 'range-mid';
+    return 'range-high';
   };
   
   return (
@@ -188,7 +184,6 @@ const RatingSlider = ({ value, onChange, label, description }: RatingSliderProps
       <div 
         className="relative"
         style={{
-          '--slider-track-background': getTrackColor(),
           '--thumb-color': getThumbColor(),
         } as React.CSSProperties}
       >
@@ -198,7 +193,7 @@ const RatingSlider = ({ value, onChange, label, description }: RatingSliderProps
           max={10}
           step={1}
           onValueChange={(vals) => onChange(vals[0])}
-          className="py-2 rating-slider color-slider"
+          className={`py-2 rating-slider color-slider ${getRangeClass()}`}
         />
       </div>
     </div>
