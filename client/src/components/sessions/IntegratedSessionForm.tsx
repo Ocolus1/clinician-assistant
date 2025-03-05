@@ -2426,7 +2426,7 @@ const ProductSelectionDialog = ({
                       </Card>
                     }
                     middleColumn={
-                      <Card className="shadow-sm border-primary/10 overflow-hidden h-full">
+                      <Card className="shadow-sm border-2 border-primary/20 overflow-hidden h-full">
                         <CardHeader className="bg-primary/5 pb-3 border-b border-primary/10">
                           <CardTitle className="text-md flex items-center">
                             <Package className="h-4 w-4 mr-2 text-primary/70" />
