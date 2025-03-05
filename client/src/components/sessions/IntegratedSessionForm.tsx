@@ -19,7 +19,9 @@ import {
   MapPin as MapPinIcon,
   ClipboardList,
   UserCheck,
-  ChevronsUpDown
+  ChevronsUpDown,
+  Package,
+  BarChart
 } from "lucide-react";
 import "./session-form.css";
 import { ThreeColumnLayout } from "./ThreeColumnLayout";
