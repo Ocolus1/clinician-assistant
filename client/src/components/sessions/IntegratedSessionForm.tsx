@@ -2046,38 +2046,60 @@ const ProductSelectionDialog = ({
                                               key={milestone.milestoneId} 
                                               className="border rounded-md p-4 space-y-3"
                                             >
-                                              <div className="flex justify-between items-start">
-                                                <div>
-                                                  <h5 className="font-medium">
-                                                    {subgoal?.title || milestone.milestoneTitle}
-                                                  </h5>
-                                                  <p className="text-sm text-muted-foreground mt-1">
-                                                    {subgoal?.description}
-                                                  </p>
-                                                </div>
-                                                <Button
-                                                  variant="ghost"
-                                                  size="icon"
-                                                  onClick={() => handleRemoveMilestone(goalIndex, milestoneIndex)}
-                                                >
-                                                  <X className="h-4 w-4" />
-                                                </Button>
-                                              </div>
+                                              <FormField
+                                                control={form.control}
+                                                name={`performanceAssessments.${goalIndex}.milestones.${milestoneIndex}.rating`}
+                                                render={({ field }) => {
+                                                  // Generate badge color class based on rating value
+                                                  const getRatingColorClass = () => {
+                                                    const value = field.value !== undefined ? field.value : 5;
+                                                    if (value <= 3) return 'text-red-700';
+                                                    if (value <= 6) return 'text-amber-700';
+                                                    return 'text-green-700';
+                                                  };
+                                                  
+                                                  return (
+                                                    <div className="flex justify-between items-start">
+                                                      <div>
+                                                        <h5 className="font-medium">
+                                                          {subgoal?.title || milestone.milestoneTitle}
+                                                          <span className={`ml-2 ${getRatingColorClass()}`}>
+                                                            - Score {field.value !== undefined ? field.value : 5}
+                                                          </span>
+                                                        </h5>
+                                                        <p className="text-sm text-muted-foreground mt-1">
+                                                          {subgoal?.description}
+                                                        </p>
+                                                      </div>
+                                                      <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        onClick={() => handleRemoveMilestone(goalIndex, milestoneIndex)}
+                                                      >
+                                                        <X className="h-4 w-4" />
+                                                      </Button>
+                                                    </div>
+                                                  );
+                                                }}
+                                              />
 
-                                              {/* Milestone Rating */}
+                                              {/* Milestone Rating Slider (no labels) */}
                                               <FormField
                                                 control={form.control}
                                                 name={`performanceAssessments.${goalIndex}.milestones.${milestoneIndex}.rating`}
                                                 render={({ field }) => (
                                                   <FormItem>
-                                                    <FormLabel>Performance Rating</FormLabel>
                                                     <FormControl>
-                                                      <RatingSlider
-                                                        value={field.value !== undefined ? field.value : 5}
-                                                        onChange={field.onChange}
-                                                        label="Performance"
-                                                        description="Rate client's performance on this milestone"
-                                                      />
+                                                      <div className="px-1 py-2">
+                                                        <Slider
+                                                          value={[field.value !== undefined ? field.value : 5]}
+                                                          min={0}
+                                                          max={10}
+                                                          step={1}
+                                                          onValueChange={(vals) => field.onChange(vals[0])}
+                                                          className="py-2 rating-slider color-slider"
+                                                        />
+                                                      </div>
                                                     </FormControl>
                                                     <FormMessage />
                                                   </FormItem>

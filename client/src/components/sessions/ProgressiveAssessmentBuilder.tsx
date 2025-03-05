@@ -456,11 +456,24 @@ export function ProgressiveAssessmentBuilder({
         
         const milestone = subgoals.find(s => s.id === currentMilestone.id);
         
+        // Generate badge color class based on rating value
+        const getBadgeClass = () => {
+          const value = currentMilestone.rating || 5;
+          if (value <= 3) return 'text-red-700';
+          if (value <= 6) return 'text-amber-700';
+          return 'text-green-700';
+        };
+        
         return (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-lg font-semibold">{milestone?.title}</h3>
+                <h3 className="text-lg font-semibold">
+                  {milestone?.title} 
+                  <span className={`ml-2 ${getBadgeClass()}`}>
+                    - Score {currentMilestone.rating || 5}
+                  </span>
+                </h3>
                 <p className="text-sm text-muted-foreground">{milestone?.description}</p>
               </div>
               <Button variant="ghost" size="sm" onClick={() => setCurrentStep(AssessmentStep.MILESTONE_SELECTION)}>
@@ -480,12 +493,16 @@ export function ProgressiveAssessmentBuilder({
             </Alert>
             
             <div className="border rounded-md p-4 space-y-4">
-              <RatingSlider
-                value={currentMilestone.rating || 5}
-                onChange={handleRatingChange}
-                label="Performance Rating"
-                description="How well did the client perform on this milestone?"
-              />
+              <div className="relative py-2">
+                <Slider
+                  value={[currentMilestone.rating || 5]}
+                  min={0}
+                  max={10}
+                  step={1}
+                  onValueChange={(vals) => handleRatingChange(vals[0])}
+                  className={`py-2 rating-slider color-slider`}
+                />
+              </div>
               
               <div className="space-y-2">
                 <Label>Notes</Label>
