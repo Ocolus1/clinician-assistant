@@ -2,40 +2,28 @@ import { ReactNode } from "react";
 import "./three-column-layout.css";
 
 interface ThreeColumnLayoutProps {
-  headerSection?: ReactNode;
-  presentSection: ReactNode;
-  productsSection: ReactNode;
-  observationsSection: ReactNode;
+  leftColumn: ReactNode;
+  middleColumn: ReactNode;
+  rightColumn: ReactNode;
   className?: string;
 }
 
 export function ThreeColumnLayout({ 
-  headerSection,
-  presentSection, 
-  productsSection, 
-  observationsSection,
+  leftColumn, 
+  middleColumn, 
+  rightColumn,
   className = ""
 }: ThreeColumnLayoutProps) {
   return (
-    <div className={`${className}`}>
-      {/* Full-width header section */}
-      {headerSection && (
-        <div className="w-full mb-6">
-          {headerSection}
-        </div>
-      )}
-      
-      {/* Three-column layout below */}
-      <div className="three-column-container">
-        <div className="three-column-left">
-          {presentSection}
-        </div>
-        <div className="three-column-middle">
-          {productsSection}
-        </div>
-        <div className="three-column-right">
-          {observationsSection}
-        </div>
+    <div className={`three-column-container ${className}`}>
+      <div className="three-column-left">
+        {leftColumn}
+      </div>
+      <div className="three-column-middle">
+        {middleColumn}
+      </div>
+      <div className="three-column-right">
+        {rightColumn}
       </div>
     </div>
   );
