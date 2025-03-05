@@ -62,6 +62,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Slider } from "@/components/ui/slider";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { 
   Select,
   SelectContent,
@@ -1094,6 +1095,91 @@ export function IntegratedSessionForm({
   };
 
 // Product selection dialog component
+interface AllySelectionDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  allies: Ally[];
+  selectedAllies: string[];
+  onSelectAlly: (ally: Ally) => void;
+}
+
+const AllySelectionDialog = ({
+  open,
+  onOpenChange,
+  allies,
+  selectedAllies,
+  onSelectAlly
+}: AllySelectionDialogProps) => {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[500px]">
+        <DialogHeader>
+          <DialogTitle>Select Attendee</DialogTitle>
+          <DialogDescription>
+            Choose an attendee to add to this session.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="py-4 max-h-[400px] overflow-y-auto">
+          {allies.length === 0 ? (
+            <div className="text-center text-muted-foreground py-4">
+              No attendees available for this client.
+            </div>
+          ) : (
+            <div className="grid gap-2">
+              {allies.map((ally) => {
+                const isSelected = selectedAllies.includes(ally.name);
+                return (
+                  <div
+                    key={ally.id}
+                    className={cn(
+                      "flex items-center justify-between p-3 rounded-md border cursor-pointer hover:bg-accent",
+                      isSelected && "border-primary bg-primary/10"
+                    )}
+                    onClick={() => {
+                      onSelectAlly(ally);
+                      onOpenChange(false);
+                    }}
+                  >
+                    <div className="flex items-center gap-2">
+                      <Avatar className="h-8 w-8">
+                        <AvatarFallback>{ally.name.charAt(0)}</AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <div className="font-medium">{ally.name}</div>
+                        <div className="text-sm text-muted-foreground">{ally.relationship}</div>
+                      </div>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className={cn(
+                        "gap-1",
+                        isSelected && "text-primary"
+                      )}
+                    >
+                      {isSelected ? (
+                        <Check className="h-4 w-4" />
+                      ) : (
+                        <Plus className="h-4 w-4" />
+                      )}
+                      {isSelected ? "Selected" : "Add"}
+                    </Button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
 interface ProductSelectionDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
