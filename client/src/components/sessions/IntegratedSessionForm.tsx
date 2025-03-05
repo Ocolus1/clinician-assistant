@@ -524,56 +524,32 @@ export function IntegratedSessionForm({
       return;
     }
     
-    if (allies.length > 0) {
-      // Get current allies and filter to find available ones
-      const currentAllies = form.getValues("sessionNote.presentAllies") || [];
-      const availableAllies = allies.filter(ally => 
-        !currentAllies.includes(ally.name)
-      );
-
-      if (availableAllies.length > 0) {
-        // In full-screen mode, just add the first available ally directly
-        const firstAvailableAlly = availableAllies[0];
-        
-        console.log("Adding ally in full-screen mode:", firstAvailableAlly);
-        
-        // Add the ally directly (simplified approach for full-screen)
-        const updatedAllies = [...currentAllies, firstAvailableAlly.name];
-        form.setValue("sessionNote.presentAllies", updatedAllies);
-        
-        // Note: We don't need to explicitly set clientId on sessionNote
-        // since it's handled in the mutation function
-        
-        toast({
-          title: "Attendee Added",
-          description: `${firstAvailableAlly.name} added to the session.`,
-        });
-        
-        // Store the ally IDs separately for data integrity
-        const currentAllyIds = form.getValues("sessionNote.presentAllyIds") || [];
-        form.setValue(
-          "sessionNote.presentAllyIds",
-          [...currentAllyIds, firstAvailableAlly.id]
-        );
-        
-        toast({
-          title: "Attendee added",
-          description: `${firstAvailableAlly.name} has been added to the session.`,
-          variant: "default"
-        });
-      } else {
-        toast({
-          title: "No more allies available",
-          description: "All available attendees have been added to the session.",
-          variant: "default"
-        });
-      }
-    } else {
+    // Simply open the ally selection dialog
+    setAllySelectionOpen(true);
+    
+    // Check if there are any allies available first
+    if (allies.length === 0) {
       toast({
         title: "No allies found",
         description: "This client doesn't have any allies added to their profile yet.",
         variant: "default"
       });
+      return;
+    }
+    
+    // Get current allies and filter to find available ones
+    const currentAllies = form.getValues("sessionNote.presentAllies") || [];
+    const availableAllies = allies.filter(ally => 
+      !currentAllies.includes(ally.name)
+    );
+    
+    if (availableAllies.length === 0) {
+      toast({
+        title: "No more allies available",
+        description: "All available attendees have been added to the session.",
+        variant: "default"
+      });
+      return;
     }
   };
   
