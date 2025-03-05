@@ -534,26 +534,9 @@ export function IntegratedSessionForm({
         ...item,
         availableQuantity: item.quantity,
         productCode: item.itemCode || "UNKNOWN",
-        productDescription: item.description || item.itemName || "Unknown Product"
+        productDescription: item.description || item.name || "Unknown Product"
       }));
   }, [allBudgetItems]);
-  
-  // Compute selected goal IDs for filtering in goal selection dialog
-  const selectedGoalIds = useMemo(() => {
-    const goalIds = form.watch('performanceAssessments')?.map(a => a.goalId) || [];
-    return goalIds.filter(id => id !== undefined);
-  }, [form.watch('performanceAssessments')]);
-  
-  // Helper function to get selected milestone IDs for a specific goal
-  const getSelectedMilestoneIds = (goalId: number) => {
-    const assessments = form.watch('performanceAssessments') || [];
-    const goalAssessment = assessments.find(a => a.goalId === goalId);
-    if (!goalAssessment) return [];
-    
-    return goalAssessment.milestones
-      .map(m => m.milestoneId)
-      .filter(id => id !== undefined) as number[];
-  };
   
   // Default form values
   const defaultValues: Partial<IntegratedSessionFormValues> = {
@@ -734,7 +717,7 @@ export function IntegratedSessionForm({
       const newProduct = {
         budgetItemId: product.id,
         productCode: product.itemCode || 'UNKNOWN',
-        productDescription: product.description || product.itemName || 'Unknown Product',
+        productDescription: product.description || product.name || 'Unknown Product',
         quantity: quantity,
         unitPrice: product.unitPrice || 0,
         availableQuantity: product.availableQuantity
@@ -835,6 +818,23 @@ export function IntegratedSessionForm({
     sessionMutation.mutate(data);
   }
   
+  // Helper function to get selected milestone IDs for a specific goal
+  const getSelectedMilestoneIds = (goalId: number) => {
+    const assessments = form.watch('performanceAssessments') || [];
+    const goalAssessment = assessments.find(a => a.goalId === goalId);
+    if (!goalAssessment) return [];
+    
+    return goalAssessment.milestones
+      .map(m => m.milestoneId)
+      .filter(id => id !== undefined) as number[];
+  };
+
+  // Compute selected goal IDs for filtering in goal selection dialog
+  const selectedGoalIds = useMemo(() => {
+    const assessments = form.getValues('performanceAssessments') || [];
+    return assessments.map(a => a.goalId).filter(id => id !== undefined);
+  }, [form]);
+  
   // Watch form fields for selected performance assessments
   const selectedPerformanceAssessments = form.watch('performanceAssessments') || [];
   
@@ -900,7 +900,7 @@ export function IntegratedSessionForm({
                     <SelectContent>
                       {products.map(product => (
                         <SelectItem key={product.id} value={product.id.toString()}>
-                          {product.itemName} ({product.itemCode})
+                          {product.name || product.description} ({product.itemCode})
                         </SelectItem>
                       ))}
                     </SelectContent>
