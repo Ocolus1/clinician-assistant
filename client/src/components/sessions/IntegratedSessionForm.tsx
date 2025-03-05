@@ -2395,87 +2395,109 @@ const ProductSelectionDialog = ({
                   {/* Three-column layout implementation for Session Details */}
                   <ThreeColumnLayout
                     leftColumn={
-                      <div className="space-y-4">
-                        <h3 className="font-medium text-sm">Present</h3>
-                        <FormField
-                          control={form.control}
-                          name="sessionNote.presentAllies"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Attendees</FormLabel>
-                              <FormControl>
-                                <Textarea 
-                                  placeholder="Who was present at the session..."
-                                  className="resize-none min-h-16"
-                                  {...field}
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
+                      <Card className="shadow-sm border-primary/10 overflow-hidden h-full">
+                        <CardHeader className="bg-primary/5 pb-3 border-b border-primary/10">
+                          <CardTitle className="text-md flex items-center">
+                            <UserCheck className="h-4 w-4 mr-2 text-primary/70" />
+                            Present in Session
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="p-4">
+                          <FormField
+                            control={form.control}
+                            name="sessionNote.presentAllies"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel className="text-primary/70">Attendees</FormLabel>
+                                <FormControl>
+                                  <Textarea 
+                                    placeholder="Who was present at the session..."
+                                    className="resize-none min-h-24 border-primary/10 focus:border-primary/30"
+                                    {...field}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </CardContent>
+                      </Card>
                     }
                     middleColumn={
-                      <div className="space-y-4">
-                        <h3 className="font-medium text-sm">Products Used</h3>
-                        {selectedProducts.length === 0 ? (
-                          <div className="border rounded-lg p-4 text-center text-muted-foreground">
-                            No products selected
-                          </div>
-                        ) : (
-                          <div className="space-y-2">
-                            {selectedProducts.map((product, index) => (
-                              <div key={index} className="flex items-center justify-between border rounded-lg p-3 bg-card">
-                                <div>
-                                  <p className="font-medium">{product.name}</p>
-                                  <p className="text-sm text-muted-foreground">{product.quantity} × ${product.unitPrice.toFixed(2)}</p>
+                      <Card className="shadow-sm border-primary/10 overflow-hidden h-full">
+                        <CardHeader className="bg-primary/5 pb-3 border-b border-primary/10">
+                          <CardTitle className="text-md flex items-center">
+                            <Package className="h-4 w-4 mr-2 text-primary/70" />
+                            Products Used
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="p-4">
+                          {selectedProducts.length === 0 ? (
+                            <div className="border border-primary/10 rounded-lg p-4 text-center text-muted-foreground bg-muted/5">
+                              No products selected
+                            </div>
+                          ) : (
+                            <div className="space-y-3">
+                              {selectedProducts.map((product, index) => (
+                                <div key={index} className="flex items-center justify-between border border-primary/10 rounded-lg p-3 shadow-sm">
+                                  <div>
+                                    <p className="font-medium">{product.productDescription}</p>
+                                    <p className="text-sm text-muted-foreground">{product.quantity} × ${product.unitPrice.toFixed(2)}</p>
+                                  </div>
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => removeProduct(index)}
+                                    className="h-8 w-8"
+                                  >
+                                    <X className="h-4 w-4 text-primary/70" />
+                                  </Button>
                                 </div>
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() => removeProduct(index)}
-                                >
-                                  <X className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={() => setProductSelectionOpen(true)}
-                          className="w-full"
-                          disabled={!clientId || (!budgetItems?.length && !availableProducts?.length)}
-                        >
-                          <Plus className="h-4 w-4 mr-2" />
-                          Add Product
-                        </Button>
-                      </div>
+                              ))}
+                            </div>
+                          )}
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => setProductSelectionOpen(true)}
+                            className="w-full mt-4 border-primary/20 hover:bg-primary/5"
+                            disabled={!clientId || (!availableProducts?.length)}
+                          >
+                            <Plus className="h-4 w-4 mr-2 text-primary/70" />
+                            Add Product
+                          </Button>
+                        </CardContent>
+                      </Card>
                     }
                     rightColumn={
-                      <div className="space-y-4">
-                        <h3 className="font-medium text-sm">Session Observations</h3>
-                        <FormField
-                          control={form.control}
-                          name="sessionNote.notes"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Notes</FormLabel>
-                              <FormControl>
-                                <Textarea 
-                                  placeholder="Enter session observations..."
-                                  className="resize-none min-h-32"
-                                  {...field}
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
+                      <Card className="shadow-sm border-primary/10 overflow-hidden h-full">
+                        <CardHeader className="bg-primary/5 pb-3 border-b border-primary/10">
+                          <CardTitle className="text-md flex items-center">
+                            <BarChart className="h-4 w-4 mr-2 text-primary/70" />
+                            Session Observations
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="p-4">
+                          <FormField
+                            control={form.control}
+                            name="sessionNote.notes"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel className="text-primary/70">Notes</FormLabel>
+                                <FormControl>
+                                  <Textarea 
+                                    placeholder="Enter session observations..."
+                                    className="resize-none min-h-32 border-primary/10 focus:border-primary/30"
+                                    {...field}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </CardContent>
+                      </Card>
                     }
                   />
                 </TabsContent>
