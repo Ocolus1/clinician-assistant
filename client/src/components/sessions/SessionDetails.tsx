@@ -15,7 +15,7 @@ import {
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SessionNoteView } from "./SessionNoteView";
 import { SessionNoteForm } from "./SessionNoteForm";
@@ -139,84 +139,89 @@ export function SessionDetails({ session, onBack }: SessionDetailsProps) {
     return (
       <div className="space-y-6">
         {/* Session Information (Full Width) */}
-        <div className="bg-white rounded-md border p-4 shadow-sm">
-          <div className="space-y-2 mb-4">
+        <Card className="shadow-md border-primary/20 overflow-hidden">
+          <CardHeader className="bg-primary/5 pb-4 border-b border-primary/10">
             <div className="flex justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Session ID: #{session.id}</p>
-                <h2 className="text-2xl font-bold">{session.title}</h2>
+                <CardTitle className="text-2xl">{session.title}</CardTitle>
               </div>
               <div className="flex items-start space-x-2">
                 {getStatusBadge(session.status)}
                 {session.status === "completed" && !sessionNote && (
-                  <Button size="sm" onClick={() => setEditingNote(true)}>
+                  <Button size="sm" onClick={() => setEditingNote(true)} variant="secondary" className="shadow-sm">
                     <Edit className="h-4 w-4 mr-2" />
                     Add Note
                   </Button>
                 )}
                 {session.status === "completed" && sessionNote && (
-                  <Button size="sm" onClick={() => setEditingNote(true)}>
+                  <Button size="sm" onClick={() => setEditingNote(true)} variant="secondary" className="shadow-sm">
                     <Edit className="h-4 w-4 mr-2" />
                     Edit Note
                   </Button>
                 )}
               </div>
             </div>
-            <p className="text-muted-foreground">
-              {session.description || "No description provided."}
-            </p>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="flex items-center">
-              <UserIcon className="h-5 w-5 mr-2 text-muted-foreground" />
-              <span>Client: </span>
-              <span className="ml-1 font-medium">{session.clientName}</span>
+            {session.description && (
+              <CardDescription className="mt-2">
+                {session.description}
+              </CardDescription>
+            )}
+          </CardHeader>
+          <CardContent className="p-5">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="flex items-center">
+                <UserIcon className="h-5 w-5 mr-3 text-primary/70" />
+                <span className="text-muted-foreground">Client: </span>
+                <span className="ml-1 font-medium">{session.clientName}</span>
+              </div>
+              <div className="flex items-center">
+                <CalendarIcon className="h-5 w-5 mr-3 text-primary/70" />
+                <span className="text-muted-foreground">Date: </span>
+                <span className="ml-1 font-medium">{session.sessionDate ? formatDate(session.sessionDate as any) : ""}</span>
+              </div>
+              <div className="flex items-center">
+                <ClockIcon className="h-5 w-5 mr-3 text-primary/70" />
+                <span className="text-muted-foreground">Time: </span>
+                <span className="ml-1 font-medium">
+                  {session.sessionDate ? formatTime(session.sessionDate as any) : ""} ({session.duration} minutes)
+                </span>
+              </div>
+              <div className="flex items-center">
+                <MapPinIcon className="h-5 w-5 mr-3 text-primary/70" />
+                <span className="text-muted-foreground">Location: </span>
+                <span className="ml-1 font-medium">{session.location || "No location specified"}</span>
+              </div>
             </div>
-            <div className="flex items-center">
-              <CalendarIcon className="h-5 w-5 mr-2 text-muted-foreground" />
-              <span>Date: </span>
-              <span className="ml-1 font-medium">{session.sessionDate ? formatDate(session.sessionDate as any) : ""}</span>
-            </div>
-            <div className="flex items-center">
-              <ClockIcon className="h-5 w-5 mr-2 text-muted-foreground" />
-              <span>Time: </span>
-              <span className="ml-1 font-medium">
-                {session.sessionDate ? formatTime(session.sessionDate as any) : ""} ({session.duration} minutes)
-              </span>
-            </div>
-            <div className="flex items-center">
-              <MapPinIcon className="h-5 w-5 mr-2 text-muted-foreground" />
-              <span>Location: </span>
-              <span className="ml-1 font-medium">{session.location || "No location specified"}</span>
-            </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
 
         {/* Show loading state while fetching notes */}
         {(noteLoading || completeNoteLoading) && (
-          <div className="flex items-center justify-center h-24">
-            <Loader2 className="h-5 w-5 animate-spin mr-2" />
-            <span>Loading session notes...</span>
-          </div>
+          <Card className="shadow-sm border-primary/10">
+            <CardContent className="flex items-center justify-center h-24">
+              <Loader2 className="h-5 w-5 animate-spin mr-2 text-primary" />
+              <span className="text-muted-foreground">Loading session notes...</span>
+            </CardContent>
+          </Card>
         )}
 
         {/* Three-column layout if we have session notes */}
         {!noteLoading && !completeNoteLoading && sessionNote && completeNote && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {/* Left Column - Present Section */}
-            <Card className="shadow-sm">
-              <CardHeader className="pb-2">
+            <Card className="shadow-sm border-primary/10 overflow-hidden">
+              <CardHeader className="bg-primary/5 pb-3 border-b border-primary/10">
                 <CardTitle className="text-md flex items-center">
-                  <Users className="h-4 w-4 mr-2 text-muted-foreground" />
+                  <Users className="h-4 w-4 mr-2 text-primary/70" />
                   Present in Session
                 </CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-4">
                 {completeNote.presentAllies && completeNote.presentAllies.length > 0 ? (
                   <div className="flex flex-wrap gap-2">
                     {completeNote.presentAllies.map((ally: string) => (
-                      <Badge key={ally} variant="secondary">
+                      <Badge key={ally} variant="secondary" className="shadow-sm">
                         {ally}
                       </Badge>
                     ))}
@@ -228,23 +233,23 @@ export function SessionDetails({ session, onBack }: SessionDetailsProps) {
             </Card>
 
             {/* Middle Column - Products Used Section */}
-            <Card className="shadow-sm">
-              <CardHeader className="pb-2">
+            <Card className="shadow-sm border-primary/10 overflow-hidden">
+              <CardHeader className="bg-primary/5 pb-3 border-b border-primary/10">
                 <CardTitle className="text-md flex items-center">
-                  <Package className="h-4 w-4 mr-2 text-muted-foreground" />
+                  <Package className="h-4 w-4 mr-2 text-primary/70" />
                   Products Used
                 </CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-4">
                 {completeNote.products && completeNote.products.length > 0 ? (
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     {completeNote.products.map((product: any, index: number) => (
-                      <div key={index} className="flex justify-between items-center border-b pb-2">
+                      <div key={index} className="flex justify-between items-center border-b border-primary/10 pb-3 last:border-0 last:pb-0">
                         <div>
                           <p className="font-medium">{product.name}</p>
                           <p className="text-xs text-muted-foreground">{product.code}</p>
                         </div>
-                        <Badge>{product.quantity} used</Badge>
+                        <Badge className="shadow-sm">{product.quantity} used</Badge>
                       </div>
                     ))}
                   </div>
@@ -255,14 +260,14 @@ export function SessionDetails({ session, onBack }: SessionDetailsProps) {
             </Card>
 
             {/* Right Column - Observations Section */}
-            <Card className="shadow-sm">
-              <CardHeader className="pb-2">
+            <Card className="shadow-sm border-primary/10 overflow-hidden">
+              <CardHeader className="bg-primary/5 pb-3 border-b border-primary/10">
                 <CardTitle className="text-md flex items-center">
-                  <BarChart className="h-4 w-4 mr-2 text-muted-foreground" />
+                  <BarChart className="h-4 w-4 mr-2 text-primary/70" />
                   Observations
                 </CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-4">
                 <RatingDisplay label="Mood" value={completeNote.moodRating || 0} />
                 <RatingDisplay label="Physical Activity" value={completeNote.physicalActivityRating || 0} />
                 <RatingDisplay label="Focus" value={completeNote.focusRating || 0} />
@@ -274,25 +279,29 @@ export function SessionDetails({ session, onBack }: SessionDetailsProps) {
 
         {/* If no session notes yet, show placeholder */}
         {!noteLoading && !sessionNote && session.status === "completed" && (
-          <div className="text-center py-8 border rounded-md">
-            <h3 className="text-lg font-medium mb-2">No Session Notes</h3>
-            <p className="text-muted-foreground mb-4">
-              No notes have been recorded for this session yet.
-            </p>
-            <Button onClick={() => setEditingNote(true)}>
-              <Edit className="h-4 w-4 mr-2" />
-              Add Session Note
-            </Button>
-          </div>
+          <Card className="text-center py-8 shadow-sm border-primary/10">
+            <CardContent className="pt-6">
+              <h3 className="text-lg font-medium mb-2">No Session Notes</h3>
+              <p className="text-muted-foreground mb-4">
+                No notes have been recorded for this session yet.
+              </p>
+              <Button onClick={() => setEditingNote(true)} className="shadow-sm">
+                <Edit className="h-4 w-4 mr-2" />
+                Add Session Note
+              </Button>
+            </CardContent>
+          </Card>
         )}
 
         {!noteLoading && !sessionNote && session.status === "scheduled" && (
-          <div className="text-center py-8 border rounded-md">
-            <h3 className="text-lg font-medium mb-2">No Session Notes</h3>
-            <p className="text-muted-foreground mb-4">
-              Notes can be added after the session is completed.
-            </p>
-          </div>
+          <Card className="text-center py-8 shadow-sm border-primary/10">
+            <CardContent className="pt-6">
+              <h3 className="text-lg font-medium mb-2">No Session Notes</h3>
+              <p className="text-muted-foreground mb-4">
+                Notes can be added after the session is completed.
+              </p>
+            </CardContent>
+          </Card>
         )}
       </div>
     );
@@ -301,14 +310,19 @@ export function SessionDetails({ session, onBack }: SessionDetailsProps) {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <Button variant="outline" size="sm" onClick={onBack}>
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={onBack}
+          className="shadow-sm border-primary/20 hover:bg-primary/5 hover:text-primary"
+        >
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back to Sessions
         </Button>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="mb-4">
+        <TabsList className="mb-6 bg-primary/5 w-full">
           <TabsTrigger value="details">Session Details</TabsTrigger>
           <TabsTrigger value="performance">Performance Assessment</TabsTrigger>
         </TabsList>
@@ -332,20 +346,22 @@ export function SessionDetails({ session, onBack }: SessionDetailsProps) {
               initialTabValue="performance"
             />
           ) : (
-            <div className="text-center py-8 border rounded-md">
-              <h3 className="text-lg font-medium mb-2">No Performance Assessment</h3>
-              <p className="text-muted-foreground mb-4">
-                {session.status === "scheduled" 
-                  ? "Performance assessment can be added after the session is completed." 
-                  : "No performance assessment has been recorded for this session yet."}
-              </p>
-              {session.status === "completed" && (
-                <Button onClick={() => setEditingNote(true)}>
-                  <Edit className="h-4 w-4 mr-2" />
-                  Add Session Note
-                </Button>
-              )}
-            </div>
+            <Card className="text-center py-8 shadow-sm border-primary/10">
+              <CardContent className="pt-6">
+                <h3 className="text-lg font-medium mb-2">No Performance Assessment</h3>
+                <p className="text-muted-foreground mb-4">
+                  {session.status === "scheduled" 
+                    ? "Performance assessment can be added after the session is completed." 
+                    : "No performance assessment has been recorded for this session yet."}
+                </p>
+                {session.status === "completed" && (
+                  <Button onClick={() => setEditingNote(true)} className="shadow-sm">
+                    <Edit className="h-4 w-4 mr-2" />
+                    Add Session Note
+                  </Button>
+                )}
+              </CardContent>
+            </Card>
           )}
         </TabsContent>
       </Tabs>

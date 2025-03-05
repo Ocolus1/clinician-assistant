@@ -132,11 +132,11 @@ export function SessionNoteView({ session, onEdit, initialTabValue = "general" }
   }
 
   return (
-    <Card className="w-full">
-      <CardHeader>
+    <Card className="w-full shadow-md border-primary/20">
+      <CardHeader className="bg-primary/5 rounded-t-lg border-b border-primary/10">
         <CardTitle className="flex justify-between items-center">
           <span>Session Notes</span>
-          <Button size="sm" onClick={onEdit}>
+          <Button size="sm" onClick={onEdit} variant="secondary" className="shadow-sm">
             <Edit className="h-4 w-4 mr-2" />
             Edit Note
           </Button>
@@ -147,145 +147,168 @@ export function SessionNoteView({ session, onEdit, initialTabValue = "general" }
             (session.sessionDate as any)?.toLocaleDateString() || ''}
         </CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="p-6">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid grid-cols-3 mb-4">
+          <TabsList className="grid grid-cols-3 mb-6 bg-primary/5">
             <TabsTrigger value="general">General Observations</TabsTrigger>
             <TabsTrigger value="present">Present in Session</TabsTrigger>
             <TabsTrigger value="performance">Performance Assessment</TabsTrigger>
           </TabsList>
           
-          <TabsContent value="general" className="space-y-4">
-            <div className="border rounded-md p-4 bg-muted/10">
-              <h4 className="text-sm font-medium mb-2">Notes</h4>
-              <p className="whitespace-pre-line">
-                {completeNote.notes || "No general notes recorded for this session."}
-              </p>
-            </div>
+          <TabsContent value="general" className="space-y-6">
+            <Card className="shadow-sm border-primary/10 overflow-hidden">
+              <CardHeader className="bg-primary/5 pb-3">
+                <CardTitle className="text-md">Notes</CardTitle>
+              </CardHeader>
+              <CardContent className="p-4 bg-white">
+                <p className="whitespace-pre-line">
+                  {completeNote.notes || "No general notes recorded for this session."}
+                </p>
+              </CardContent>
+            </Card>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-              <RatingDisplay label="Mood" value={completeNote.moodRating || 0} />
-              <RatingDisplay label="Physical Activity" value={completeNote.physicalActivityRating || 0} />
-              <RatingDisplay label="Focus" value={completeNote.focusRating || 0} />
-              <RatingDisplay label="Cooperation" value={completeNote.cooperationRating || 0} />
-            </div>
+            <Card className="shadow-sm border-primary/10">
+              <CardHeader className="bg-primary/5 pb-3">
+                <CardTitle className="text-md">Ratings</CardTitle>
+              </CardHeader>
+              <CardContent className="p-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <RatingDisplay label="Mood" value={completeNote.moodRating || 0} />
+                  <RatingDisplay label="Physical Activity" value={completeNote.physicalActivityRating || 0} />
+                  <RatingDisplay label="Focus" value={completeNote.focusRating || 0} />
+                  <RatingDisplay label="Cooperation" value={completeNote.cooperationRating || 0} />
+                </div>
+              </CardContent>
+            </Card>
           </TabsContent>
           
           <TabsContent value="present">
-            <div className="border rounded-md p-4">
-              <h4 className="text-sm font-medium mb-2">Present in Session</h4>
-              {completeNote.presentAllies && completeNote.presentAllies.length > 0 ? (
-                <div className="flex flex-wrap gap-2">
-                  {completeNote.presentAllies.map((ally: string) => (
-                    <Badge key={ally} variant="secondary">
-                      {ally}
-                    </Badge>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-muted-foreground">No allies were present in this session.</p>
-              )}
-            </div>
+            <Card className="shadow-sm border-primary/10">
+              <CardHeader className="bg-primary/5 pb-3">
+                <CardTitle className="text-md">Present in Session</CardTitle>
+              </CardHeader>
+              <CardContent className="p-4">
+                {completeNote.presentAllies && completeNote.presentAllies.length > 0 ? (
+                  <div className="flex flex-wrap gap-2">
+                    {completeNote.presentAllies.map((ally: string) => (
+                      <Badge key={ally} variant="secondary" className="shadow-sm">
+                        {ally}
+                      </Badge>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-muted-foreground">No allies were present in this session.</p>
+                )}
+              </CardContent>
+            </Card>
           </TabsContent>
           
           <TabsContent value="performance">
-            <ScrollArea className="h-[400px] pr-4">
+            <ScrollArea className="h-[480px] pr-4">
               {assessmentsWithGoals.length > 0 ? (
                 <div className="space-y-6">
                   {assessmentsWithGoals.map((assessment: any) => (
-                    <div key={assessment.id} className="border rounded-md p-4">
-                      <h4 className="text-base font-medium mb-1">
-                        {assessment.goal?.title || "Unknown Goal"}
-                      </h4>
-                      <p className="text-sm text-muted-foreground mb-3">
-                        {assessment.goal?.description || ""}
-                      </p>
-                      
-                      {assessment.notes && (
-                        <div className="mb-4">
-                          <h5 className="text-sm font-medium mb-1">Goal Notes</h5>
-                          <p className="text-sm bg-muted/10 p-2 rounded-md whitespace-pre-line">
-                            {assessment.notes}
-                          </p>
-                        </div>
-                      )}
-                      
-                      {assessment.milestones && assessment.milestones.length > 0 && (
-                        <div className="space-y-4 mt-4">
-                          <h5 className="text-sm font-medium">Milestone Assessments</h5>
-                          
-                          {assessment.milestones.map((milestone: MilestoneAssessment) => {
-                            // Find corresponding subgoal using milestoneId
-                            // The milestoneId is a combination of goalId and subgoalId
-                            const milestoneIdStr = milestone.milestoneId.toString();
-                            const subgoalIdStr = milestoneIdStr.substring(
-                              assessment.goal?.id.toString().length
-                            );
+                    <Card key={assessment.id} className="shadow-sm border-primary/10 overflow-hidden">
+                      <CardHeader className="bg-primary/5 pb-3">
+                        <CardTitle className="text-md">
+                          {assessment.goal?.title || "Unknown Goal"}
+                        </CardTitle>
+                        <CardDescription>
+                          {assessment.goal?.description || ""}
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent className="p-4 space-y-4">
+                        {assessment.notes && (
+                          <div className="rounded-md bg-muted/10 p-3 border border-primary/10">
+                            <h5 className="text-sm font-medium mb-2">Goal Notes</h5>
+                            <p className="text-sm whitespace-pre-line">
+                              {assessment.notes}
+                            </p>
+                          </div>
+                        )}
+                        
+                        {assessment.milestones && assessment.milestones.length > 0 && (
+                          <div className="space-y-4">
+                            <h5 className="text-sm font-medium">Milestone Assessments</h5>
                             
-                            const subgoal = assessment.subgoals.find(
-                              (s: Subgoal) => s.id.toString() === subgoalIdStr
-                            );
-                            
-                            return (
-                              <div key={milestone.id} className="border rounded-md p-3">
-                                <h6 className="text-sm font-medium mb-1">
-                                  {subgoal?.title || "Unknown Milestone"}
-                                </h6>
-                                <p className="text-xs text-muted-foreground mb-2">
-                                  {subgoal?.description || ""}
-                                </p>
-                                
-                                <div className="flex items-center mb-3">
-                                  <span className="text-xs font-medium text-gray-500 mr-2">Progress Rating:</span>
-                                  <div className="w-full max-w-[200px] bg-gray-200 rounded-full h-2">
-                                    <div 
-                                      className="h-2 rounded-full bg-primary" 
-                                      style={{ width: `${(milestone.rating || 0) * 10}%` }}
-                                    ></div>
-                                  </div>
-                                  <Badge 
-                                    variant="outline" 
-                                    className="ml-2 text-xs"
-                                  >
-                                    {milestone.rating || 0}/10
-                                  </Badge>
-                                </div>
-                                
-                                {milestone.strategies && milestone.strategies.length > 0 && (
-                                  <div className="mb-2">
-                                    <span className="text-xs font-medium text-gray-500 block mb-1">Strategies Used:</span>
-                                    <div className="flex flex-wrap gap-1">
-                                      {milestone.strategies.map((strategy: string) => (
-                                        <Badge key={strategy} variant="outline" className="text-xs">
-                                          {strategy}
-                                        </Badge>
-                                      ))}
+                            {assessment.milestones.map((milestone: MilestoneAssessment) => {
+                              // Find corresponding subgoal using milestoneId
+                              // The milestoneId is a combination of goalId and subgoalId
+                              const milestoneIdStr = milestone.milestoneId.toString();
+                              const subgoalIdStr = milestoneIdStr.substring(
+                                assessment.goal?.id.toString().length
+                              );
+                              
+                              const subgoal = assessment.subgoals.find(
+                                (s: Subgoal) => s.id.toString() === subgoalIdStr
+                              );
+                              
+                              return (
+                                <Card key={milestone.id} className="border-primary/10 shadow-sm">
+                                  <CardHeader className="py-2 px-3 bg-primary/5">
+                                    <CardTitle className="text-sm">
+                                      {subgoal?.title || "Unknown Milestone"}
+                                    </CardTitle>
+                                    <CardDescription className="text-xs">
+                                      {subgoal?.description || ""}
+                                    </CardDescription>
+                                  </CardHeader>
+                                  <CardContent className="p-3 space-y-3">
+                                    <div className="flex items-center">
+                                      <span className="text-xs font-medium text-primary/80 mr-2">Progress Rating:</span>
+                                      <div className="w-full max-w-[200px] bg-gray-200 rounded-full h-2.5">
+                                        <div 
+                                          className="h-2.5 rounded-full bg-primary" 
+                                          style={{ width: `${(milestone.rating || 0) * 10}%` }}
+                                        ></div>
+                                      </div>
+                                      <Badge 
+                                        variant="outline" 
+                                        className="ml-2 text-xs shadow-sm"
+                                      >
+                                        {milestone.rating || 0}/10
+                                      </Badge>
                                     </div>
-                                  </div>
-                                )}
-                                
-                                {milestone.notes && (
-                                  <div>
-                                    <span className="text-xs font-medium text-gray-500 block mb-1">Notes:</span>
-                                    <p className="text-xs bg-muted/10 p-2 rounded-md whitespace-pre-line">
-                                      {milestone.notes}
-                                    </p>
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
+                                    
+                                    {milestone.strategies && milestone.strategies.length > 0 && (
+                                      <div>
+                                        <span className="text-xs font-medium text-primary/80 block mb-1">Strategies Used:</span>
+                                        <div className="flex flex-wrap gap-1">
+                                          {milestone.strategies.map((strategy: string) => (
+                                            <Badge key={strategy} variant="outline" className="text-xs shadow-sm">
+                                              {strategy}
+                                            </Badge>
+                                          ))}
+                                        </div>
+                                      </div>
+                                    )}
+                                    
+                                    {milestone.notes && (
+                                      <div className="border border-primary/10 rounded-md p-2 bg-muted/5">
+                                        <span className="text-xs font-medium text-primary/80 block mb-1">Notes:</span>
+                                        <p className="text-xs whitespace-pre-line">
+                                          {milestone.notes}
+                                        </p>
+                                      </div>
+                                    )}
+                                  </CardContent>
+                                </Card>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-8 border rounded-md">
-                  <p className="text-muted-foreground">
-                    No performance assessments have been recorded for this session.
-                  </p>
-                </div>
+                <Card className="text-center py-8 shadow-sm border-primary/10">
+                  <CardContent className="pt-6">
+                    <p className="text-muted-foreground">
+                      No performance assessments have been recorded for this session.
+                    </p>
+                  </CardContent>
+                </Card>
               )}
             </ScrollArea>
           </TabsContent>
