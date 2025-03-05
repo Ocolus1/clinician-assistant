@@ -21,6 +21,7 @@ import {
   UserCheck
 } from "lucide-react";
 import "./session-form.css";
+import { ThreeColumnLayout } from "./ThreeColumnLayout";
 // Debug helper has been removed in favor of a more natural implementation
 import { Ally, BudgetItem, BudgetSettings, Client, Goal, Session, Subgoal, insertSessionSchema } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
