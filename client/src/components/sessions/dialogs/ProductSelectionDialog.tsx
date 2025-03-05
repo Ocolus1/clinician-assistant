@@ -118,7 +118,7 @@ export function ProductSelectionDialog({
                     >
                       <CardHeader className="p-3 pb-1">
                         <div className="flex justify-between items-center">
-                          <CardTitle className="text-sm">{product.itemName}</CardTitle>
+                          <CardTitle className="text-sm">{product.description}</CardTitle>
                           {selectedProduct?.id === product.id && (
                             <Check className="h-4 w-4 text-primary" />
                           )}
@@ -142,7 +142,7 @@ export function ProductSelectionDialog({
             {selectedProduct ? (
               <div className="space-y-4 border rounded-md p-4">
                 <div>
-                  <h4 className="font-medium">{selectedProduct.itemName}</h4>
+                  <h4 className="font-medium">{selectedProduct.description}</h4>
                   <p className="text-sm text-muted-foreground">{selectedProduct.itemCode}</p>
                   <div className="flex justify-between items-center mt-2">
                     <span className="text-sm">Unit Price:</span>

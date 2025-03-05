@@ -173,10 +173,10 @@ export function useSessionForm(initialClientId?: number) {
         const currentStrategies = updated[currentGoalIndex].milestones[currentMilestoneIndex].strategies;
         
         // Add the strategy if it's not already included
-        if (!currentStrategies.includes(strategy.title)) {
+        if (!currentStrategies.includes(strategy.name)) {
           updated[currentGoalIndex].milestones[currentMilestoneIndex].strategies = [
             ...currentStrategies,
-            strategy.title
+            strategy.name
           ];
         }
       }

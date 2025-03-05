@@ -1,144 +1,51 @@
-/* Custom styling for session forms */
-
-/* Rating slider colors for different ranges */
-.rating-slider.color-slider.range-low {
-  --slider-thumb-bg: #ef4444;
-  --slider-track-filled: #fecaca;
+/* Session form specific styles */
+.rating-slider.range-low [data-orientation="horizontal"] .slider-range {
+  background: linear-gradient(to right, rgb(239 68 68), rgb(248 113 113));
 }
 
-.rating-slider.color-slider.range-mid {
-  --slider-thumb-bg: #f59e0b;
-  --slider-track-filled: #fde68a;
+.rating-slider.range-mid [data-orientation="horizontal"] .slider-range {
+  background: linear-gradient(to right, rgb(245 158 11), rgb(251 191 36));
 }
 
-.rating-slider.color-slider.range-high {
-  --slider-thumb-bg: #10b981;
-  --slider-track-filled: #a7f3d0;
+.rating-slider.range-high [data-orientation="horizontal"] .slider-range {
+  background: linear-gradient(to right, rgb(34 197 94), rgb(74 222 128));
 }
 
-/* Override Slider component styling */
-.rating-slider [data-orientation="horizontal"] {
-  height: 0.5rem;
-}
-
-.rating-slider [data-orientation="horizontal"] > span[data-orientation="horizontal"] {
-  height: 100%;
-  background: var(--slider-track-filled, #d1d5db);
-}
-
-.rating-slider [role="slider"] {
-  width: 1.25rem;
-  height: 1.25rem;
-  background: var(--slider-thumb-bg, #6b7280);
-  border: 2px solid white;
+.color-slider [data-orientation="horizontal"] .slider-thumb {
+  background-color: white;
+  border: 2px solid rgb(226 232 240);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-/* Section headers */
-.section-header {
-  display: flex;
-  align-items: center;
-  font-size: 1rem;
-  font-weight: 500;
-  margin-bottom: 0.75rem;
-  gap: 0.5rem;
-  color: #374151;
-}
-
-/* Hide uncontained calendars */
+/* Fix for calendar overflow issues */
 .uncontained-calendar {
   display: none !important;
 }
 
-/* Form tab styles */
-.tabs-with-underline [role="tablist"] {
-  border-bottom: 1px solid hsl(var(--border));
-  padding-bottom: 0;
+/* Ensure dialog has padding on small screens */
+@media (max-width: 640px) {
+  .session-form-dialog {
+    padding: 1rem;
+  }
 }
 
-.tabs-with-underline [data-state="active"] {
-  border-bottom: 2px solid hsl(var(--primary));
-  font-weight: 500;
+/* Ensure three-column layout is usable on small screens */
+@media (max-width: 1024px) {
+  .three-column-layout {
+    grid-template-columns: 1fr !important;
+    overflow-y: auto;
+  }
 }
 
-/* Strategy tags */
-.strategy-tag {
-  transition: all 0.2s ease;
-  cursor: pointer;
+/* Improved scrolling for long form sections */
+.form-scroll-container {
+  max-height: calc(100vh - 200px);
+  overflow-y: auto;
 }
 
-.strategy-tag:hover {
-  background-color: hsl(var(--primary) / 0.1);
-}
-
-.strategy-tag.selected {
-  background-color: hsl(var(--primary));
-  color: white;
-}
-
-/* Disabled when maximum reached */
-.strategy-tag.disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-/* Progress steps */
-.progress-step {
-  display: flex;
-  align-items: center;
-  margin-bottom: 0.5rem;
-}
-
-.progress-step-circle {
-  width: 1.5rem;
-  height: 1.5rem;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-right: 0.5rem;
-  font-size: 0.75rem;
-  font-weight: 500;
-}
-
-.progress-step-circle.active {
-  background-color: hsl(var(--primary));
-  color: white;
-}
-
-.progress-step-circle.completed {
-  background-color: hsl(var(--primary) / 0.8);
-  color: white;
-}
-
-.progress-step-circle.pending {
-  background-color: hsl(var(--muted));
-  color: hsl(var(--muted-foreground));
-}
-
-.progress-step-label {
-  font-size: 0.875rem;
-}
-
-.progress-step-label.active {
-  font-weight: 500;
-  color: hsl(var(--foreground));
-}
-
-.progress-step-label.completed {
-  color: hsl(var(--primary));
-}
-
-.progress-step-label.pending {
-  color: hsl(var(--muted-foreground));
-}
-
-/* Assessment card transitions */
-.assessment-card {
-  transition: all 0.3s ease;
-}
-
-.assessment-card:hover {
-  border-color: hsl(var(--primary) / 0.5);
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+/* Styles for mobile view */
+@media (max-width: 768px) {
+  .form-scroll-container {
+    max-height: calc(100vh - 150px);
+  }
 }
