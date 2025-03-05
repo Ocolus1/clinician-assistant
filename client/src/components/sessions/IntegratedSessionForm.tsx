@@ -514,6 +514,16 @@ export function IntegratedSessionForm({
   const handleAddAttendeeFullScreen = () => {
     console.log("Adding attendee in full-screen mode, allies:", allies);
     
+    // If no client is selected, show warning toast
+    if (!clientId || clientId === 0) {
+      toast({
+        title: "Client not selected",
+        description: "Please select a client before adding attendees.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     if (allies.length > 0) {
       // Get current allies and filter to find available ones
       const currentAllies = form.getValues("sessionNote.presentAllies") || [];
@@ -525,11 +535,19 @@ export function IntegratedSessionForm({
         // In full-screen mode, just add the first available ally directly
         const firstAvailableAlly = availableAllies[0];
         
+        console.log("Adding ally in full-screen mode:", firstAvailableAlly);
+        
         // Add the ally directly (simplified approach for full-screen)
-        form.setValue("sessionNote.presentAllies", [
-          ...currentAllies, 
-          firstAvailableAlly.name
-        ]);
+        const updatedAllies = [...currentAllies, firstAvailableAlly.name];
+        form.setValue("sessionNote.presentAllies", updatedAllies);
+        
+        // Note: We don't need to explicitly set clientId on sessionNote
+        // since it's handled in the mutation function
+        
+        toast({
+          title: "Attendee Added",
+          description: `${firstAvailableAlly.name} added to the session.`,
+        });
         
         // Store the ally IDs separately for data integrity
         const currentAllyIds = form.getValues("sessionNote.presentAllyIds") || [];
@@ -562,6 +580,16 @@ export function IntegratedSessionForm({
   // Handler for adding attendees in dialog mode
   const handleAddAttendeeDialogMode = () => {
     console.log("Adding attendee in dialog mode, allies:", allies);
+    
+    // If no client is selected, show warning toast
+    if (!clientId || clientId === 0) {
+      toast({
+        title: "Client not selected",
+        description: "Please select a client before adding attendees.",
+        variant: "destructive"
+      });
+      return;
+    }
 
     if (allies.length > 0) {
       // Get current allies and filter to find available ones
@@ -571,6 +599,11 @@ export function IntegratedSessionForm({
       );
 
       if (availableAllies.length > 0) {
+        console.log("Setting up ally selection in dialog mode");
+        
+        // Immediately ensure the session note has the right client ID
+        form.setValue("sessionNote.clientId", clientId);
+        
         // Add the special marker to trigger the dialog
         form.setValue("sessionNote.presentAllies", [
           ...currentAllies, 
@@ -1344,6 +1377,22 @@ const ProductSelectionDialog = ({
   function onSubmit(data: IntegratedSessionFormValues) {
     console.log("Form data:", data);
     console.log("Form errors:", form.formState.errors);
+    
+    // Data validation check before submitting
+    if (!data.session.clientId) {
+      toast({
+        title: "Missing client",
+        description: "Please select a client before creating a session",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    // Ensure we have all required data before submitting
+    if (isFullScreen) {
+      console.log("Submitting in full-screen mode with client ID:", data.session.clientId);
+    }
+    
     createSessionMutation.mutate(data);
   }
 
