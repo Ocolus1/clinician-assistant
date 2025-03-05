@@ -1101,24 +1101,27 @@ export function IntegratedSessionFormRefactored({
                       
                       <div className="border rounded-md p-3">
                         <h3 className="text-sm font-medium mb-2">Products Used</h3>
-                        {form.watch("sessionNote.products").length === 0 ? (
-                          <p className="text-xs text-muted-foreground italic">No products have been added</p>
-                        ) : (
-                          <div className="space-y-1">
-                            {form.watch("sessionNote.products").map((product, index) => (
-                              <div key={`preview-product-${index}`} className="flex justify-between text-sm">
-                                <span>{product.productDescription} (x{product.quantity})</span>
-                                <span className="font-medium">${(product.quantity * product.unitPrice).toFixed(2)}</span>
+                        {(() => {
+                          const products = form.watch("sessionNote.products") || [];
+                          return products.length === 0 ? (
+                            <p className="text-xs text-muted-foreground italic">No products have been added</p>
+                          ) : (
+                            <div className="space-y-1">
+                              {products.map((product: any, index: number) => (
+                                <div key={`preview-product-${index}`} className="flex justify-between text-sm">
+                                  <span>{product.productDescription} (x{product.quantity})</span>
+                                  <span className="font-medium">${(product.quantity * product.unitPrice).toFixed(2)}</span>
+                                </div>
+                              ))}
+                              <div className="flex justify-between text-sm pt-1 border-t">
+                                <span className="font-medium">Total</span>
+                                <span className="font-bold">
+                                  ${products.reduce((total: number, product: any) => total + (product.quantity * product.unitPrice), 0).toFixed(2)}
+                                </span>
                               </div>
-                            ))}
-                            <div className="flex justify-between text-sm pt-1 border-t">
-                              <span className="font-medium">Total</span>
-                              <span className="font-bold">
-                                ${form.watch("sessionNote.products").reduce((total, product) => total + (product.quantity * product.unitPrice), 0).toFixed(2)}
-                              </span>
                             </div>
-                          </div>
-                        )}
+                          );
+                        })()}
                       </div>
                     </div>
                   )}
@@ -1281,13 +1284,16 @@ export function IntegratedSessionFormRefactored({
       case 0:
         return form.watch("session.title") ? 50 : 0;
       case 1:
-        return form.watch("sessionNote.presentAllyIds").length > 0 ? 50 : 0;
+        const presentAllies = form.watch("sessionNote.presentAllyIds") || [];
+        return presentAllies.length > 0 ? 50 : 0;
       case 2:
         return performanceAssessments.length > 0 ? performanceAssessments.length * 20 : 0;
       case 3:
-        return form.watch("sessionNote.products").length > 0 ? 50 : 0;
+        const products = form.watch("sessionNote.products") || [];
+        return products.length > 0 ? 50 : 0;
       case 4:
-        return form.watch("sessionNote.notes") ? (form.watch("sessionNote.notes").length > 50 ? 100 : 50) : 0;
+        const notes = form.watch("sessionNote.notes") || '';
+        return notes ? (notes.length > 50 ? 100 : 50) : 0;
       default:
         return 0;
     }

@@ -61,7 +61,7 @@ import { useToast } from "@/hooks/use-toast";
 
 // Import our new components
 import { SessionDetails } from "@/components/sessions/SessionDetails";
-import { IntegratedSessionForm } from "@/components/sessions/IntegratedSessionForm";
+import { IntegratedSessionFormRefactored } from "@/components/sessions/IntegratedSessionFormRefactored";
 
 export default function Sessions() {
   // State for search, filters, view type, and selected session
@@ -166,7 +166,7 @@ export default function Sessions() {
                   </SheetDescription>
                 </SheetHeader>
                 <div className="flex-grow overflow-auto">
-                  <IntegratedSessionForm 
+                  <IntegratedSessionFormRefactored 
                     open={createSessionDialogOpen} 
                     onOpenChange={setCreateSessionDialogOpen} 
                     isFullScreen={true}

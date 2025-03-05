@@ -1,5 +1,5 @@
-import { ReactNode } from "react";
-import "./three-column-layout.css";
+import React, { ReactNode } from "react";
+import { cn } from "@/lib/utils";
 
 interface ThreeColumnLayoutProps {
   leftColumn: ReactNode;
@@ -8,21 +8,31 @@ interface ThreeColumnLayoutProps {
   className?: string;
 }
 
+/**
+ * A three column layout component for complex forms and detail views
+ * Provides a consistent layout with left column for forms/navigation,
+ * middle column for previews/visualizations, and right column for meta information
+ */
 export function ThreeColumnLayout({ 
   leftColumn, 
   middleColumn, 
-  rightColumn,
-  className = ""
+  rightColumn, 
+  className 
 }: ThreeColumnLayoutProps) {
   return (
-    <div className={`three-column-container ${className}`}>
-      <div className="three-column-left">
+    <div 
+      className={cn(
+        "grid grid-cols-1 lg:grid-cols-[375px_1fr_300px] h-[calc(100vh-100px)] max-h-[900px] overflow-hidden",
+        className
+      )}
+    >
+      <div className="h-full overflow-y-auto">
         {leftColumn}
       </div>
-      <div className="three-column-middle">
+      <div className="h-full overflow-y-auto border-x border-border">
         {middleColumn}
       </div>
-      <div className="three-column-right">
+      <div className="h-full overflow-y-auto">
         {rightColumn}
       </div>
     </div>
