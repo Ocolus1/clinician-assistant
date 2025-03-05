@@ -1,7 +1,5 @@
 import React from "react";
 import { Slider } from "@/components/ui/slider";
-import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 
 interface RatingSliderProps {
   value: number;
@@ -14,38 +12,39 @@ interface RatingSliderProps {
  * A slider component that visualizes ratings from 0-10 with appropriate color indicators
  */
 export function RatingSlider({ value, onChange, label, description }: RatingSliderProps) {
-  // Generate a badge color class based on value
-  const getBadgeClass = () => {
-    if (value <= 3) return 'bg-red-100 border-red-200 text-red-700';
-    if (value <= 6) return 'bg-amber-100 border-amber-200 text-amber-700';
-    return 'bg-green-100 border-green-200 text-green-700';
+  // Get appropriate color based on the rating value
+  const getColorClass = (value: number) => {
+    if (value >= 8) return "bg-green-500";
+    if (value >= 5) return "bg-blue-500";
+    if (value >= 3) return "bg-yellow-500";
+    return "bg-red-500";
   };
-
-  // Get range class for the slider
-  const getRangeClass = () => {
-    if (value <= 3) return 'range-low';
-    if (value <= 6) return 'range-mid';
-    return 'range-high';
-  };
-
+  
   return (
-    <div className="space-y-3">
-      <div className="flex justify-between items-center">
-        <Label className="font-medium text-sm">{label}</Label>
-        <Badge variant="outline" className={`font-medium ${getBadgeClass()}`}>
-          {value}
-        </Badge>
+    <div className="space-y-2">
+      <div className="flex justify-between">
+        <div>
+          <div className="font-medium">{label}</div>
+          {description && <div className="text-sm text-muted-foreground">{description}</div>}
+        </div>
+        <div className="font-medium flex items-center">
+          <span className={`inline-block h-3 w-3 rounded-full mr-2 ${getColorClass(value)}`}></span>
+          <span>{value}/10</span>
+        </div>
       </div>
-      {description && <p className="text-sm text-muted-foreground mt-1">{description}</p>}
-      <div className="relative">
-        <Slider
-          value={[value]}
-          min={0}
-          max={10}
-          step={1}
-          onValueChange={(vals) => onChange(vals[0])}
-          className={`py-2 rating-slider color-slider ${getRangeClass()}`}
-        />
+      
+      <Slider
+        value={[value]}
+        onValueChange={(values) => onChange(values[0])}
+        min={0}
+        max={10}
+        step={1}
+        className="cursor-pointer"
+      />
+      
+      <div className="flex justify-between text-xs text-muted-foreground">
+        <span>Low</span>
+        <span>High</span>
       </div>
     </div>
   );

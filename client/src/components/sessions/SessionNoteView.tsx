@@ -1,13 +1,8 @@
-import React from "react";
+import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Edit, Loader2 } from "lucide-react";
-
+import { Session, SessionNote } from "@shared/schema";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Session, SessionNote, PerformanceAssessment, MilestoneAssessment, Goal, Subgoal } from "@shared/schema";
 
 interface SessionNoteViewProps {
   session: Session & { clientName: string };
@@ -21,299 +16,224 @@ interface RatingDisplayProps {
 }
 
 const RatingDisplay = ({ label, value }: RatingDisplayProps) => {
-  const getColorClass = (val: number) => {
-    if (val >= 8) return "bg-green-100 text-green-800 border-green-300";
-    if (val >= 5) return "bg-blue-100 text-blue-800 border-blue-300";
-    if (val >= 3) return "bg-yellow-100 text-yellow-800 border-yellow-300";
-    return "bg-red-100 text-red-800 border-red-300";
-  };
-
   return (
-    <div className="flex flex-col">
-      <span className="text-sm font-medium text-gray-500 mb-1">{label}</span>
-      <div className="flex items-center">
-        <div className="w-full bg-gray-200 rounded-full h-2.5">
-          <div 
-            className="h-2.5 rounded-full bg-primary" 
-            style={{ width: `${value * 10}%` }}
-          ></div>
-        </div>
-        <Badge 
-          variant="outline" 
-          className={`ml-2 ${getColorClass(value)}`}
-        >
-          {value}/10
-        </Badge>
+    <div className="mb-4">
+      <div className="flex justify-between mb-1">
+        <span>{label}</span>
+        <span className="font-medium">{value}/10</span>
+      </div>
+      <div className="w-full bg-gray-200 rounded-full h-2">
+        <div 
+          className="bg-primary h-2 rounded-full" 
+          style={{ width: `${value * 10}%` }}
+        ></div>
       </div>
     </div>
   );
 };
 
 export function SessionNoteView({ session, onEdit, initialTabValue = "general" }: SessionNoteViewProps) {
-  const [activeTab, setActiveTab] = React.useState(initialTabValue);
+  const [activeTab, setActiveTab] = useState(initialTabValue);
   
-  const { 
-    data: completeNote,
-    isLoading: noteLoading,
-    error: noteError
-  } = useQuery({
-    queryKey: ["/api/sessions", session.id, "notes", "complete"],
+  const { data: sessionNote, isLoading: noteLoading } = useQuery<SessionNote>({
+    queryKey: ["/api/sessions", session.id, "notes"],
     queryFn: async () => {
-      const response = await fetch(`/api/sessions/${session.id}/notes/complete`);
+      const response = await fetch(`/api/sessions/${session.id}/notes`);
       if (!response.ok) {
         throw new Error("Failed to fetch session note");
       }
       return response.json();
-    },
+    }
   });
-
-  // Fetch goals to get their titles
-  const { 
-    data: goals = [],
-    isLoading: goalsLoading
-  } = useQuery<Goal[]>({
-    queryKey: ["/api/clients", session.clientId, "goals"],
-    enabled: !!completeNote,
-  });
-
-  // Fetch subgoals for each goal
-  const subgoalQueries = goals.map((goal) => ({
-    queryKey: ["/api/goals", goal.id, "subgoals"],
-    enabled: !!goals.length,
-  }));
-
-  const subgoalsResults = subgoalQueries.map((query) => useQuery<Subgoal[]>(query));
   
-  // Map performance assessments to goals
-  const assessmentsWithGoals = React.useMemo(() => {
-    if (!completeNote?.performanceAssessments || !goals.length) return [];
-    
-    return completeNote.performanceAssessments.map((assessment: PerformanceAssessment) => {
-      const goal = goals.find(g => g.id === assessment.goalId);
-      const subgoals = subgoalsResults.find(
-        (_, index) => goals[index].id === assessment.goalId
-      )?.data || [];
-      
-      return {
-        ...assessment,
-        goal,
-        subgoals,
-        milestones: (assessment as any).milestones || [],
-      };
-    });
-  }, [completeNote, goals, subgoalsResults]);
-
-  if (noteLoading || goalsLoading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <span className="ml-2 text-lg text-muted-foreground">Loading session note...</span>
-      </div>
-    );
+  const { data: completeNote, isLoading: completeNoteLoading } = useQuery({
+    queryKey: ["/api/sessions", session.id, "notes", "complete"],
+    queryFn: async () => {
+      try {
+        const response = await fetch(`/api/sessions/${session.id}/notes/complete`);
+        if (!response.ok) {
+          throw new Error("Failed to fetch complete note");
+        }
+        return response.json();
+      } catch (error) {
+        console.error("Error fetching complete note:", error);
+        return null;
+      }
+    },
+    enabled: !!sessionNote
+  });
+  
+  if (noteLoading || completeNoteLoading) {
+    return <div>Loading session notes...</div>;
   }
-
-  if (noteError || !completeNote) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex justify-between items-center">
-            <span>Session Notes</span>
-            <Button size="sm" onClick={onEdit}>
-              <Edit className="h-4 w-4 mr-2" />
-              Create Note
-            </Button>
-          </CardTitle>
-          <CardDescription>
-            No notes have been recorded for this session yet.
-          </CardDescription>
-        </CardHeader>
-      </Card>
-    );
+  
+  if (!sessionNote) {
+    return <div>No session notes found.</div>;
   }
-
+  
   return (
-    <Card className="w-full shadow-md border-primary/20">
-      <CardHeader className="bg-primary/5 rounded-t-lg border-b border-primary/10">
-        <CardTitle className="flex justify-between items-center">
-          <span>Session Notes</span>
-          <Button size="sm" onClick={onEdit} variant="secondary" className="shadow-sm">
-            <Edit className="h-4 w-4 mr-2" />
-            Edit Note
-          </Button>
-        </CardTitle>
-        <CardDescription>
-          Session notes for {session.title} - {typeof session.sessionDate === 'string' ? 
-            new Date(session.sessionDate).toLocaleDateString() : 
-            (session.sessionDate as any)?.toLocaleDateString() || ''}
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="p-6">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid grid-cols-3 mb-6 bg-primary/5">
-            <TabsTrigger value="general">General Observations</TabsTrigger>
-            <TabsTrigger value="present">Present in Session</TabsTrigger>
-            <TabsTrigger value="performance">Performance Assessment</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="general" className="space-y-6">
-            <Card className="shadow-sm border-primary/10 overflow-hidden">
-              <CardHeader className="bg-primary/5 pb-3">
-                <CardTitle className="text-md">Notes</CardTitle>
-              </CardHeader>
-              <CardContent className="p-4 bg-white">
-                <p className="whitespace-pre-line">
-                  {completeNote.notes || "No general notes recorded for this session."}
-                </p>
-              </CardContent>
-            </Card>
-            
-            <Card className="shadow-sm border-primary/10">
-              <CardHeader className="bg-primary/5 pb-3">
-                <CardTitle className="text-md">Ratings</CardTitle>
-              </CardHeader>
-              <CardContent className="p-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <RatingDisplay label="Mood" value={completeNote.moodRating || 0} />
-                  <RatingDisplay label="Physical Activity" value={completeNote.physicalActivityRating || 0} />
-                  <RatingDisplay label="Focus" value={completeNote.focusRating || 0} />
-                  <RatingDisplay label="Cooperation" value={completeNote.cooperationRating || 0} />
+    <div>
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="w-full">
+          <TabsTrigger value="general">General</TabsTrigger>
+          <TabsTrigger value="performance">Performance</TabsTrigger>
+          <TabsTrigger value="products">Products</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="general">
+          <Card>
+            <CardHeader>
+              <CardTitle>Session Notes</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div>
+                  <h3 className="text-base font-medium mb-2">Present</h3>
+                  <p>{sessionNote.presentAllies?.join(", ") || "No one listed as present"}</p>
                 </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-          
-          <TabsContent value="present">
-            <Card className="shadow-sm border-primary/10">
-              <CardHeader className="bg-primary/5 pb-3">
-                <CardTitle className="text-md">Present in Session</CardTitle>
-              </CardHeader>
-              <CardContent className="p-4">
-                {completeNote.presentAllies && completeNote.presentAllies.length > 0 ? (
-                  <div className="flex flex-wrap gap-2">
-                    {completeNote.presentAllies.map((ally: string) => (
-                      <Badge key={ally} variant="secondary" className="shadow-sm">
-                        {ally}
-                      </Badge>
-                    ))}
+                
+                <div>
+                  <h3 className="text-base font-medium mb-2">Notes</h3>
+                  <div className="border rounded-md p-4 min-h-[100px]">
+                    {sessionNote.notes ? (
+                      <div dangerouslySetInnerHTML={{ __html: sessionNote.notes }} />
+                    ) : (
+                      <p className="text-muted-foreground">No detailed notes provided</p>
+                    )}
                   </div>
-                ) : (
-                  <p className="text-muted-foreground">No allies were present in this session.</p>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-          
-          <TabsContent value="performance">
-            <ScrollArea className="h-[480px] pr-4">
-              {assessmentsWithGoals.length > 0 ? (
-                <div className="space-y-6">
-                  {assessmentsWithGoals.map((assessment: any) => (
-                    <Card key={assessment.id} className="shadow-sm border-primary/10 overflow-hidden">
-                      <CardHeader className="bg-primary/5 pb-3">
-                        <CardTitle className="text-md">
-                          {assessment.goal?.title || "Unknown Goal"}
-                        </CardTitle>
-                        <CardDescription>
-                          {assessment.goal?.description || ""}
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent className="p-4 space-y-4">
-                        {assessment.notes && (
-                          <div className="rounded-md bg-muted/10 p-3 border border-primary/10">
-                            <h5 className="text-sm font-medium mb-2">Goal Notes</h5>
-                            <p className="text-sm whitespace-pre-line">
-                              {assessment.notes}
-                            </p>
-                          </div>
-                        )}
+                </div>
+                
+                <div>
+                  <h3 className="text-base font-medium mb-2">Ratings</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <RatingDisplay label="Mood" value={sessionNote.moodRating || 0} />
+                    <RatingDisplay label="Focus" value={sessionNote.focusRating || 0} />
+                    <RatingDisplay label="Cooperation" value={sessionNote.cooperationRating || 0} />
+                    <RatingDisplay label="Physical Activity" value={sessionNote.physicalActivityRating || 0} />
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="performance">
+          <Card>
+            <CardHeader>
+              <CardTitle>Performance Assessment</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {completeNote && completeNote.performanceAssessments && 
+               completeNote.performanceAssessments.length > 0 ? (
+                <div className="space-y-4">
+                  {completeNote.performanceAssessments.map((assessment: any) => (
+                    <div key={assessment.id || assessment.goalId} className="border-b pb-4 mb-4 last:border-0">
+                      <h3 className="font-medium text-lg">{assessment.goalTitle}</h3>
+                      {assessment.notes && <p className="text-sm mb-2">{assessment.notes}</p>}
+                      
+                      <div className="space-y-3 mt-3">
+                        <h4 className="font-medium text-sm">Milestones</h4>
                         
-                        {assessment.milestones && assessment.milestones.length > 0 && (
-                          <div className="space-y-4">
-                            <h5 className="text-sm font-medium">Milestone Assessments</h5>
+                        {assessment.milestones.map((milestone: any) => (
+                          <div key={milestone.id || milestone.milestoneId} className="border rounded-md p-3">
+                            <div className="flex justify-between">
+                              <h5 className="font-medium">{milestone.milestoneTitle}</h5>
+                              <span className="text-sm bg-primary/10 px-2 py-0.5 rounded-full">
+                                {milestone.rating}/10
+                              </span>
+                            </div>
                             
-                            {assessment.milestones.map((milestone: MilestoneAssessment) => {
-                              // Find corresponding subgoal using milestoneId
-                              // The milestoneId is a combination of goalId and subgoalId
-                              const milestoneIdStr = milestone.milestoneId.toString();
-                              const subgoalIdStr = milestoneIdStr.substring(
-                                assessment.goal?.id.toString().length
-                              );
-                              
-                              const subgoal = assessment.subgoals.find(
-                                (s: Subgoal) => s.id.toString() === subgoalIdStr
-                              );
-                              
-                              return (
-                                <Card key={milestone.id} className="border-primary/10 shadow-sm">
-                                  <CardHeader className="py-2 px-3 bg-primary/5">
-                                    <CardTitle className="text-sm">
-                                      {subgoal?.title || "Unknown Milestone"}
-                                    </CardTitle>
-                                    <CardDescription className="text-xs">
-                                      {subgoal?.description || ""}
-                                    </CardDescription>
-                                  </CardHeader>
-                                  <CardContent className="p-3 space-y-3">
-                                    <div className="flex items-center">
-                                      <span className="text-xs font-medium text-primary/80 mr-2">Progress Rating:</span>
-                                      <div className="w-full max-w-[200px] bg-gray-200 rounded-full h-2.5">
-                                        <div 
-                                          className="h-2.5 rounded-full bg-primary" 
-                                          style={{ width: `${(milestone.rating || 0) * 10}%` }}
-                                        ></div>
-                                      </div>
-                                      <Badge 
-                                        variant="outline" 
-                                        className="ml-2 text-xs shadow-sm"
+                            {milestone.strategies && milestone.strategies.length > 0 && (
+                              <div className="mt-2">
+                                <h6 className="text-xs font-medium mb-1">Strategies:</h6>
+                                <div className="flex flex-wrap gap-1">
+                                  {Array.isArray(milestone.strategies) ? (
+                                    milestone.strategies.map((strategy: string, idx: number) => (
+                                      <span 
+                                        key={idx}
+                                        className="text-xs bg-secondary px-2 py-0.5 rounded-full"
                                       >
-                                        {milestone.rating || 0}/10
-                                      </Badge>
-                                    </div>
-                                    
-                                    {milestone.strategies && milestone.strategies.length > 0 && (
-                                      <div>
-                                        <span className="text-xs font-medium text-primary/80 block mb-1">Strategies Used:</span>
-                                        <div className="flex flex-wrap gap-1">
-                                          {milestone.strategies.map((strategy: string) => (
-                                            <Badge key={strategy} variant="outline" className="text-xs shadow-sm">
-                                              {strategy}
-                                            </Badge>
-                                          ))}
-                                        </div>
-                                      </div>
-                                    )}
-                                    
-                                    {milestone.notes && (
-                                      <div className="border border-primary/10 rounded-md p-2 bg-muted/5">
-                                        <span className="text-xs font-medium text-primary/80 block mb-1">Notes:</span>
-                                        <p className="text-xs whitespace-pre-line">
-                                          {milestone.notes}
-                                        </p>
-                                      </div>
-                                    )}
-                                  </CardContent>
-                                </Card>
-                              );
-                            })}
+                                        {strategy}
+                                      </span>
+                                    ))
+                                  ) : (
+                                    <span className="text-xs bg-secondary px-2 py-0.5 rounded-full">
+                                      {milestone.strategies}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            )}
+                            
+                            {milestone.notes && (
+                              <div className="mt-2 text-sm">
+                                <h6 className="text-xs font-medium mb-1">Notes:</h6>
+                                <p className="text-muted-foreground">{milestone.notes}</p>
+                              </div>
+                            )}
                           </div>
-                        )}
-                      </CardContent>
-                    </Card>
+                        ))}
+                      </div>
+                    </div>
                   ))}
                 </div>
               ) : (
-                <Card className="text-center py-8 shadow-sm border-primary/10">
-                  <CardContent className="pt-6">
-                    <p className="text-muted-foreground">
-                      No performance assessments have been recorded for this session.
-                    </p>
-                  </CardContent>
-                </Card>
+                <p>No performance assessments recorded for this session.</p>
               )}
-            </ScrollArea>
-          </TabsContent>
-        </Tabs>
-      </CardContent>
-    </Card>
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="products">
+          <Card>
+            <CardHeader>
+              <CardTitle>Products Used</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {sessionNote && sessionNote.products && sessionNote.products.length > 0 ? (
+                <div>
+                  <table className="w-full border-collapse">
+                    <thead>
+                      <tr className="border-b">
+                        <th className="text-left p-2">Product</th>
+                        <th className="text-center p-2">Quantity</th>
+                        <th className="text-right p-2">Unit Price</th>
+                        <th className="text-right p-2">Total</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {sessionNote.products.map((product: any, index: number) => (
+                        <tr key={index} className="border-b">
+                          <td className="p-2">
+                            <div className="font-medium">{product.productDescription}</div>
+                            <div className="text-xs text-muted-foreground">{product.productCode}</div>
+                          </td>
+                          <td className="text-center p-2">{product.quantity}</td>
+                          <td className="text-right p-2">${product.unitPrice?.toFixed(2)}</td>
+                          <td className="text-right p-2 font-medium">
+                            ${(product.quantity * product.unitPrice).toFixed(2)}
+                          </td>
+                        </tr>
+                      ))}
+                      
+                      <tr className="bg-muted/20">
+                        <td colSpan={3} className="text-right p-2 font-medium">Total:</td>
+                        <td className="text-right p-2 font-bold">
+                          ${sessionNote.products.reduce((total: number, product: any) => (
+                            total + (product.quantity * product.unitPrice)
+                          ), 0).toFixed(2)}
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <p>No products used in this session.</p>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+    </div>
   );
 }
