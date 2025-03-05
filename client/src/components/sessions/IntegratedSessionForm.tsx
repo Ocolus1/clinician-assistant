@@ -23,10 +23,11 @@ import {
 import "./session-form.css";
 import { ThreeColumnLayout } from "./ThreeColumnLayout";
 // Debug helper has been removed in favor of a more natural implementation
-import { Ally, BudgetItem, BudgetSettings, Client, Goal, Session, Subgoal, insertSessionSchema } from "@shared/schema";
+import { Ally, BudgetItem, BudgetSettings, Client, Goal, Session, Subgoal, Strategy, insertSessionSchema } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { useSafeForm } from "@/hooks/use-safe-hooks";
 import { useToast } from "@/hooks/use-toast";
+import { StrategySelectionDialog } from "./StrategySelectionDialog";
 
 // Function to hide unwanted calendars in the UI
 const hideUnwantedCalendars = () => {
@@ -479,6 +480,10 @@ export function IntegratedSessionForm({
   const [milestoneSelectionOpen, setMilestoneSelectionOpen] = useState(false);
   const [milestoneGoalId, setMilestoneGoalId] = useState<number | null>(null);
   const [currentGoalIndex, setCurrentGoalIndex] = useState<number | null>(null);
+  
+  // Dialog state for strategy selection
+  const [strategySelectionOpen, setStrategySelectionOpen] = useState(false);
+  const [currentMilestoneIndex, setCurrentMilestoneIndex] = useState<number | null>(null);
 
   // Handlers for removing items
   const removeProduct = (index: number) => {
@@ -895,6 +900,30 @@ export function IntegratedSessionForm({
     if (selectedGoalId=== null && updatedAssessments[currentGoalIndex]) {
       setSelectedGoalId(updatedAssessments[currentGoalIndex].goalId);
     }
+  };
+  
+  // Handle strategy selection
+  const handleStrategySelection = (strategy: Strategy) => {
+    if (currentGoalIndex === null || currentMilestoneIndex === null) return;
+    
+    const updatedAssessments = [...selectedPerformanceAssessments];
+    const milestone = updatedAssessments[currentGoalIndex].milestones[currentMilestoneIndex];
+    const currentStrategies = [...(milestone.strategies || [])];
+    
+    // Check if strategy is already selected
+    const strategyName = strategy.name;
+    if (currentStrategies.includes(strategyName)) {
+      // Remove strategy if already selected
+      const updatedStrategies = currentStrategies.filter(s => s !== strategyName);
+      updatedAssessments[currentGoalIndex].milestones[currentMilestoneIndex].strategies = updatedStrategies;
+    } else {
+      // Only add if we haven't reached the maximum of 5 strategies
+      if (currentStrategies.length < 5) {
+        updatedAssessments[currentGoalIndex].milestones[currentMilestoneIndex].strategies = [...currentStrategies, strategyName];
+      }
+    }
+    
+    form.setValue("performanceAssessments", updatedAssessments);
   };
 
   // Handle removing a goal assessment
