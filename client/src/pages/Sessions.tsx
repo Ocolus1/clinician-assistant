@@ -152,29 +152,12 @@ export default function Sessions() {
             </Button>
           </div>
           
-          {/* Create Session Sheet with Integrated Notes */}
-          <Sheet 
+          {/* Open the IntegratedSessionForm directly using Dialog */}
+          <IntegratedSessionFormRefactored 
             open={createSessionDialogOpen} 
-            onOpenChange={setCreateSessionDialogOpen}
-          >
-            <SheetContent className="w-full sm:max-w-full p-0 overflow-hidden">
-              <div className="h-full flex flex-col">
-                <SheetHeader className="px-6 pt-6 pb-2">
-                  <SheetTitle>Create Session with Notes</SheetTitle>
-                  <SheetDescription>
-                    Create a new therapy session with detailed notes
-                  </SheetDescription>
-                </SheetHeader>
-                <div className="flex-grow overflow-auto">
-                  <IntegratedSessionFormRefactored 
-                    open={createSessionDialogOpen} 
-                    onOpenChange={setCreateSessionDialogOpen} 
-                    isFullScreen={true}
-                  />
-                </div>
-              </div>
-            </SheetContent>
-          </Sheet>
+            onOpenChange={setCreateSessionDialogOpen} 
+            isFullScreen={true}
+          />
           
           {/* Search and filters */}
           <div className="flex flex-col md:flex-row gap-4 mb-6">

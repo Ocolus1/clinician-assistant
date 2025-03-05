@@ -22,18 +22,24 @@ export function ThreeColumnLayout({
   return (
     <div 
       className={cn(
-        "grid grid-cols-1 lg:grid-cols-[375px_1fr_300px] h-[calc(100vh-100px)] max-h-[900px] overflow-hidden",
+        "grid grid-cols-1 lg:grid-cols-[350px_1fr_320px] h-full min-h-[90vh] overflow-hidden",
         className
       )}
     >
-      <div className="h-full overflow-y-auto">
+      <div className="h-full overflow-y-auto order-1">
         {leftColumn}
       </div>
-      <div className="h-full overflow-y-auto border-x border-border">
+      <div className="h-full overflow-y-auto border-x border-border hidden lg:block order-2">
         {middleColumn}
       </div>
-      <div className="h-full overflow-y-auto">
+      <div className="h-full overflow-y-auto hidden lg:block order-3">
         {rightColumn}
+      </div>
+      <div className="block lg:hidden row-start-2 col-span-1 border-t overflow-y-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4">
+          <div>{middleColumn}</div>
+          <div>{rightColumn}</div>
+        </div>
       </div>
     </div>
   );

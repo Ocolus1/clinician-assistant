@@ -1,51 +1,60 @@
 /* Session form specific styles */
-.rating-slider.range-low [data-orientation="horizontal"] .slider-range {
-  background: linear-gradient(to right, rgb(239 68 68), rgb(248 113 113));
-}
-
-.rating-slider.range-mid [data-orientation="horizontal"] .slider-range {
-  background: linear-gradient(to right, rgb(245 158 11), rgb(251 191 36));
-}
-
-.rating-slider.range-high [data-orientation="horizontal"] .slider-range {
-  background: linear-gradient(to right, rgb(34 197 94), rgb(74 222 128));
-}
-
-.color-slider [data-orientation="horizontal"] .slider-thumb {
+.fullscreen-form {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 50;
+  overflow: hidden;
   background-color: white;
-  border: 2px solid rgb(226 232 240);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-/* Fix for calendar overflow issues */
-.uncontained-calendar {
-  display: none !important;
+.fullscreen-dialog {
+  width: 100vw !important;
+  height: 100vh !important;
+  max-width: none !important;
+  max-height: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
 }
 
-/* Ensure dialog has padding on small screens */
-@media (max-width: 640px) {
-  .session-form-dialog {
-    padding: 1rem;
-  }
-}
-
-/* Ensure three-column layout is usable on small screens */
-@media (max-width: 1024px) {
-  .three-column-layout {
-    grid-template-columns: 1fr !important;
-    overflow-y: auto;
-  }
-}
-
-/* Improved scrolling for long form sections */
-.form-scroll-container {
-  max-height: calc(100vh - 200px);
-  overflow-y: auto;
-}
-
-/* Styles for mobile view */
+/* Mobile optimizations */
 @media (max-width: 768px) {
-  .form-scroll-container {
-    max-height: calc(100vh - 150px);
+  .session-form-tabs {
+    flex-direction: column;
   }
+  
+  .session-form-content {
+    padding: 0.5rem;
+  }
+  
+  .session-form-footer {
+    position: sticky;
+    bottom: 0;
+    background-color: white;
+    border-top: 1px solid hsl(var(--border));
+    padding: 0.5rem;
+    z-index: 10;
+  }
+}
+
+/* Customized scrollbars for better UX */
+.scrollable-content {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--muted-foreground)) transparent;
+}
+
+.scrollable-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.scrollable-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scrollable-content::-webkit-scrollbar-thumb {
+  background-color: hsl(var(--muted-foreground));
+  border-radius: 4px;
 }

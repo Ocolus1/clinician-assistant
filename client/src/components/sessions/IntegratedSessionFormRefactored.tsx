@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, Controller } from "react-hook-form";
 import { format } from "date-fns";
+import "./session-form.css";
 import { 
   Calendar as CalendarIcon,
   Clock,
@@ -978,11 +979,11 @@ export function IntegratedSessionFormRefactored({
 
   // Main render
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={onOpenChange} className={isFullScreen ? "fullscreen-form" : ""}>
       <DialogContent 
         className={cn(
-          "sm:max-w-[600px] lg:max-w-[900px] p-0 overflow-hidden",
-          isFullScreen && "w-screen h-screen max-w-none max-h-none rounded-none"
+          "p-0 overflow-hidden w-[95vw] h-[90vh] max-w-none scrollable-content",
+          isFullScreen && "fullscreen-dialog"
         )}
       >
         <Form {...form}>
