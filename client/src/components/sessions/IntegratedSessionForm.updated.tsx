@@ -22,7 +22,7 @@ import {
 } from "lucide-react";
 import "./session-form.css";
 import { ThreeColumnLayout } from "./ThreeColumnLayout";
-
+// Debug helper has been removed in favor of a more natural implementation
 import { Ally, BudgetItem, BudgetSettings, Client, Goal, Session, Subgoal, insertSessionSchema } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { useSafeForm } from "@/hooks/use-safe-hooks";
@@ -375,74 +375,12 @@ export function IntegratedSessionForm({
     defaultValues,
   });
 
-  // Watch clientId to update related data
-  const clientId = form.watch("session.clientId");
-  
-  // Fetch clients for client dropdown
-  const { data: clients = [] } = useQuery<Client[]>({
-    queryKey: ["/api/clients"],
-    enabled: open,
-  });
-
-  // Fetch allies for therapist dropdown and participant selection
-  const { data: allies = [] } = useQuery<Ally[]>({
-    queryKey: ["/api/clients", clientId, "allies"],
-    enabled: open && !!clientId,
-  });
-
-  // Fetch budget for available products
-  const { data: budgetSettings } = useQuery<BudgetSettings>({
-    queryKey: ["/api/clients", clientId, "budget-settings"],
-    enabled: open && !!clientId,
-  });
-
-  const { data: budgetItems = [] } = useQuery<BudgetItem[]>({
-    queryKey: ["/api/clients", clientId, "budget-items"],
-    enabled: open && !!clientId,
-  });
-
-  // Fetch goals for the selected client for assessment
-  const { data: goals = [] } = useQuery<Goal[]>({
-    queryKey: ["/api/clients", clientId, "goals"],
-    enabled: open && !!clientId,
-  });
-  
-  // Get subgoals for the currently selected goal
-  const { data: subgoals = [] } = useQuery<Subgoal[]>({
-    queryKey: ["/api/goals", selectedGoalId, "subgoals"],
-    enabled: open && !!selectedGoalId,
-  });
-
-  // Update subgoals when they are fetched
-  useEffect(() => {
-    if (selectedGoalId && subgoals.length > 0) {
-      setSubgoalsByGoal(prev => ({
-        ...prev,
-        [selectedGoalId]: subgoals
-      }));
-    }
-  }, [selectedGoalId, subgoals]);
-
   // Update form when client is changed
   useEffect(() => {
     if (initialClient?.id && initialClient.id !== clientId) {
       form.setValue("session.clientId", initialClient.id);
     }
   }, [initialClient, form, clientId]);
-
-  // Handlers for removing items
-  const removeProduct = (index: number) => {
-    const products = form.getValues("sessionNote.products") || [];
-    const updatedProducts = [...products];
-    updatedProducts.splice(index, 1);
-    form.setValue("sessionNote.products", updatedProducts);
-  };
-
-  const removeGoal = (goalId: number) => {
-    const assessments = form.getValues("performanceAssessments") || [];
-    const updatedAssessments = assessments.filter(a => a.goalId !== goalId);
-    form.setValue("performanceAssessments", updatedAssessments);
-  };
 
   // Calculate available products
   const availableProducts = useMemo(() => {
@@ -456,9 +394,8 @@ export function IntegratedSessionForm({
     }> = {};
     
     budgetItems.forEach((item: BudgetItem) => {
-      const itemCode = item.itemCode || "unknown";
-      if (!itemsByCode[itemCode]) {
-        itemsByCode[itemCode] = {
+      if (!itemsByCode[item.code]) {
+        itemsByCode[item.code] = {
           item,
           totalQuantity: 0,
           usedQuantity: 0
@@ -466,11 +403,11 @@ export function IntegratedSessionForm({
       }
       
       // Total quantity of this item in the budget
-      itemsByCode[itemCode].totalQuantity += item.quantity;
+      itemsByCode[item.code].totalQuantity += item.quantity;
       
       // Handle usage tracking (would need to be calculated from session data)
       // This is a placeholder - in a real app, you'd fetch usage from sessions
-      itemsByCode[itemCode].usedQuantity += 0; // For now, assume no usage
+      itemsByCode[item.code].usedQuantity += 0; // For now, assume no usage
     });
     
     // Convert to array of available products
@@ -500,8 +437,8 @@ export function IntegratedSessionForm({
         ...currentProducts,
         {
           id: product.id,
-          name: product.name || "Unknown Product", 
-          code: product.itemCode,
+          name: product.name,
+          code: product.code,
           quantity: quantity,
           unitPrice: product.unitPrice,
           category: product.category
@@ -517,27 +454,27 @@ export function IntegratedSessionForm({
   const createSession = useMutation({
     mutationFn: async (data: IntegratedSessionFormValues) => {
       // Create session first
-      const sessionResponse = await apiRequest("POST", "/api/sessions", {
+      const session = await apiRequest("POST", "/api/sessions", {
         ...data.session
       });
       
       // Then create session note with session ID
-      const noteResponse = await apiRequest("POST", `/api/sessions/${sessionResponse.id}/notes`, {
+      const sessionNote = await apiRequest("POST", `/api/sessions/${session.id}/notes`, {
         ...data.sessionNote,
-        sessionId: sessionResponse.id
+        sessionId: session.id
       });
       
       // Create performance assessments if any
       if (data.performanceAssessments.length > 0) {
         for (const assessment of data.performanceAssessments) {
-          await apiRequest("POST", `/api/sessions/${sessionResponse.id}/notes/${noteResponse.id}/assessments`, {
+          await apiRequest("POST", `/api/sessions/${session.id}/notes/${sessionNote.id}/assessments`, {
             ...assessment,
-            sessionNoteId: noteResponse.id
+            sessionNoteId: sessionNote.id
           });
         }
       }
       
-      return sessionResponse;
+      return session;
     },
     onSuccess: () => {
       // Invalidate queries to refetch data
@@ -662,6 +599,15 @@ export function IntegratedSessionForm({
   // Get the subgoals for a specific goal
   const getSubgoalsForGoal = (goalId: number): Subgoal[] => {
     return subgoalsByGoal[goalId] || [];
+  };
+
+  // Return selected products for UI display
+  const getCurrentSelectedProducts = () => {
+    const products = form.getValues("sessionNote.products") || [];
+    return products.map(product => ({
+      ...product,
+      totalPrice: product.quantity * product.unitPrice
+    }));
   };
 
   // Product selection dialog component
@@ -795,7 +741,7 @@ export function IntegratedSessionForm({
                         </div>
                         <div>
                           <span className="text-muted-foreground">Code:</span>
-                          <span className="ml-1">{selectedProduct.itemCode || "N/A"}</span>
+                          <span className="ml-1">{selectedProduct.code || "N/A"}</span>
                         </div>
                       </div>
                     </div>
@@ -996,7 +942,6 @@ export function IntegratedSessionForm({
                           placeholder="Enter a brief description of the session"
                           className="min-h-20"
                           {...field}
-                          value={field.value || ""}
                         />
                       </FormControl>
                       <FormMessage />
@@ -1226,45 +1171,125 @@ export function IntegratedSessionForm({
               {/* ASSESSMENT & NOTES TAB */}
               <TabsContent value="assessment" className="space-y-6">
                 <div className="flex flex-col md:flex-row md:space-x-4 space-y-4 md:space-y-0">
-                  {/* Left column (1/3) - removed Goal Progress Notes section */}
-                  <div className="md:w-1/3">
-                  </div>
-                    
-                  {/* Middle column (1/3) - removed Milestone Notes section */}
-                  <div className="md:w-1/3">
-                  </div>
-                    
-                  {/* Right column (1/3) - General Notes section - KEEPING THIS */}
-                  <div className="md:w-1/3">
-                    <Card>
-                      <CardHeader>
-                        <CardTitle className="text-base">General Session Notes</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <FormField
-                          control={form.control}
-                          name="sessionNote.notes"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Notes</FormLabel>
-                              <FormControl>
-                                <RichTextEditor
-                                  value={field.value || ""}
-                                  onChange={field.onChange}
-                                  placeholder="Enter general notes about the session..."
-                                  minHeight="min-h-[300px]"
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
+                    {/* Left column (1/3) - Goal selection */}
+                    <div className="md:w-1/3">
+                      <Card>
+                        <CardHeader className="pb-3">
+                          <div className="flex justify-between items-center">
+                            <CardTitle className="text-base">Goal Progress</CardTitle>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              disabled={!clientId || goals.length === 0}
+                              onClick={() => setGoalSelectionOpen(true)}
+                            >
+                              <Plus className="h-3 w-3 mr-1" />
+                              Add Goal
+                            </Button>
+                          </div>
+                          <CardDescription>
+                            Select goals to assess during this session
+                          </CardDescription>
+                        </CardHeader>
+                        
+                        {/* Goal Selection Dialog */}
+                        <GoalSelectionDialog
+                          open={goalSelectionOpen}
+                          onOpenChange={setGoalSelectionOpen}
+                          goals={goals}
+                          selectedGoalIds={selectedGoalIds}
+                          onSelectGoal={handleGoalSelection}
                         />
-                      </CardContent>
-                    </Card>
+                        
+                        {/* No goals selected message */}
+                        {form.getValues("performanceAssessments").length === 0 ? (
+                          <CardContent>
+                            <div className="border rounded-md p-3 text-center">
+                              <p className="text-muted-foreground">
+                                No goals selected yet. Click "Add Goal" to start assessment.
+                              </p>
+                            </div>
+                          </CardContent>
+                        ) : (
+                          <div className="px-6 pb-4 space-y-4">
+                            {/* Render selected goals */}
+                            {form.getValues("performanceAssessments").map((assessment, goalIndex) => {
+                              // Find goal information
+                              const goal = goals.find(g => g.id === assessment.goalId);
+                              
+                              // Find subgoals for this goal
+                              const goalSubgoals = getSubgoalsForGoal(assessment.goalId);
+                              
+                              // Keep track of selected milestone IDs to avoid duplicates
+                              const selectedMilestoneIds = assessment.milestones.map(m => m.milestoneId);
+                              
+                              return (
+                                <Card key={assessment.goalId} className="border-muted">
+                                  <CardHeader className="p-4 pb-3">
+                                    <div className="flex justify-between items-start">
+                                      <CardTitle className="text-sm font-medium">
+                                        {goal?.title || assessment.goalTitle}
+                                      </CardTitle>
+                                      <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-8 w-8 -mt-1 -mr-2"
+                                        onClick={() => removeGoal(assessment.goalId)}
+                                      >
+                                        <X className="h-4 w-4" />
+                                      </Button>
+                                    </div>
+                                    {goal?.description && (
+                                      <CardDescription className="text-xs mt-1">
+                                        {goal.description}
+                                      </CardDescription>
+                                    )}
+                                  </CardHeader>
+                                </Card>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </Card>
+                    </div>
+                    
+                    {/* Middle column (1/3) - Session Notes */}
+                    <div className="md:w-1/3">
+                    </div>
+                    
+                    {/* Right column (1/3) - General Notes section */}
+                    <div className="md:w-1/3">
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="text-base">General Session Notes</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <FormField
+                            control={form.control}
+                            name="sessionNote.notes"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Notes</FormLabel>
+                                <FormControl>
+                                  <RichTextEditor
+                                    value={field.value || ""}
+                                    onChange={field.onChange}
+                                    placeholder="Enter general notes about the session..."
+                                    minHeight="min-h-[300px]"
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </CardContent>
+                      </Card>
+                    </div>
                   </div>
-                </div>
-              </TabsContent>
-            </Tabs>
+                </TabsContent>
+              </Tabs>
             
             <DialogFooter>
               <Button 
