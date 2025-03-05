@@ -478,50 +478,83 @@ export function IntegratedSessionForm({
   // Dialog states for goal and milestone selection
   const [goalSelectionOpen, setGoalSelectionOpen] = useState(false);
   const [milestoneSelectionOpen, setMilestoneSelectionOpen] = useState(false);
-  const [milestoneGoalId, setMilestoneGoalId] = useState<number | null>(null);
   const [currentGoalIndex, setCurrentGoalIndex] = useState<number | null>(null);
-
-  // Handlers for removing items
-  const removeProduct = (index: number) => {
-    const products = form.getValues("sessionNote.products") || [];
-    const updatedProducts = [...products];
-    updatedProducts.splice(index, 1);
-    form.setValue("sessionNote.products", updatedProducts);
-  };
-
-  const removeGoal = (goalId: number) => {
-    const assessments = form.getValues("performanceAssessments") || [];
-    const updatedAssessments = assessments.filter(a => a.goalId !== goalId);
-    form.setValue("performanceAssessments", updatedAssessments);
-  };
-
-  const removeMilestone = (goalId: number, milestoneId: number) => {
-    const assessments = form.getValues("performanceAssessments") || [];
-    const updatedAssessments = assessments.map(assessment => {
-      if (assessment.goalId === goalId) {
-        return {
-          ...assessment,
-          milestones: assessment.milestones.filter(m => m.milestoneId !== milestoneId)
-        };
-      }
-      return assessment;
-    });
-    form.setValue("performanceAssessments", updatedAssessments);
-  };
-
+  
+  // Generate a unique session ID
+  const sessionId = useMemo(() => {
+    const timestamp = new Date().getTime().toString(36);
+    const random = Math.random().toString(36).substring(2, 7);
+    return `SES-${timestamp}-${random}`.toUpperCase();
+  }, []);
+  
+  // Track the selected client ID for fetching goals and subgoals
+  const [selectedClientId, setSelectedClientId] = useState<number | null>(initialClient?.id || null);
+  
   // Fetch clients for client dropdown
   const { data: clients = [] } = useQuery<Client[]>({
     queryKey: ["/api/clients"],
     enabled: open,
   });
-
-  // Generate a unique session ID for tracking
-  const sessionId = useMemo(() => {
-    const now = new Date();
-    // Format: ST-YYYYMMDD-XXXX (ST = Speech Therapy, XXXX is a random number)
-    return `ST-${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}-${Math.floor(1000 + Math.random() * 9000)}`;
-  }, []);
-
+  
+  // Fetch goals for the selected client
+  const { data: goals = [] } = useQuery<Goal[]>({
+    queryKey: ["/api/clients", selectedClientId, "goals"],
+    enabled: !!selectedClientId && open,
+  });
+  
+  // Fetch subgoals for each goal
+  const [subgoalsByGoalId, setSubgoalsByGoalId] = useState<Record<number, Subgoal[]>>({});
+  
+  // Fetch allies for the selected client
+  const { data: allies = [] } = useQuery<Ally[]>({
+    queryKey: ["/api/clients", selectedClientId, "allies"],
+    enabled: !!selectedClientId && open,
+  });
+  
+  // Fetch budget items for the selected client to use as products
+  const { data: allBudgetItems = [] } = useQuery<BudgetItem[]>({
+    queryKey: ["/api/clients", selectedClientId, "budget-items"],
+    enabled: !!selectedClientId && open,
+  });
+  
+  // Fetch budget settings for quantities and availability
+  const { data: budgetSettings } = useQuery<BudgetSettings>({
+    queryKey: ["/api/clients", selectedClientId, "budget-settings"],
+    enabled: !!selectedClientId && open,
+  });
+  
+  // Add product quantities
+  const availableProducts = useMemo(() => {
+    // Filter only valid product types (those with item codes and quantities)
+    return allBudgetItems
+      .filter((item: BudgetItem) => {
+        return item.itemCode && item.quantity > 0;
+      })
+      .map((item: BudgetItem) => ({
+        ...item,
+        availableQuantity: item.quantity,
+        productCode: item.itemCode || "UNKNOWN",
+        productDescription: item.description || item.itemName || "Unknown Product"
+      }));
+  }, [allBudgetItems]);
+  
+  // Compute selected goal IDs for filtering in goal selection dialog
+  const selectedGoalIds = useMemo(() => {
+    const goalIds = form.watch('performanceAssessments')?.map(a => a.goalId) || [];
+    return goalIds.filter(id => id !== undefined);
+  }, [form.watch('performanceAssessments')]);
+  
+  // Helper function to get selected milestone IDs for a specific goal
+  const getSelectedMilestoneIds = (goalId: number) => {
+    const assessments = form.watch('performanceAssessments') || [];
+    const goalAssessment = assessments.find(a => a.goalId === goalId);
+    if (!goalAssessment) return [];
+    
+    return goalAssessment.milestones
+      .map(m => m.milestoneId)
+      .filter(id => id !== undefined) as number[];
+  };
+  
   // Default form values
   const defaultValues: Partial<IntegratedSessionFormValues> = {
     session: {
@@ -547,2121 +580,1318 @@ export function IntegratedSessionForm({
     },
     performanceAssessments: [],
   };
-
+  
   // Create form
   const form = useForm<IntegratedSessionFormValues>({
     resolver: zodResolver(integratedSessionFormSchema),
     defaultValues,
   });
-
-  // Watch clientId to update related data
-  const clientId = form.watch("session.clientId");
   
-  // Store clientId in queryClient for cross-component access
-  useEffect(() => {
-    if (clientId) {
-      queryClient.setQueryData(['formState'], { clientId });
-      console.log("Stored clientId in formState:", clientId);
-    }
-  }, [clientId, queryClient]);
-  
-  // Fetch allies for therapist dropdown and participant selection
-  const { data: allAllies = [] } = useQuery<Ally[]>({
-    queryKey: ["/api/clients", clientId, "allies"],
-    enabled: open && !!clientId,
-    queryFn: async () => {
-      console.log(`Explicitly fetching allies for client ID: ${clientId}`);
-      if (!clientId) return [];
-      
-      try {
-        const response = await fetch(`/api/clients/${clientId}/allies`);
-        if (!response.ok) {
-          console.error(`Error fetching allies: ${response.status}`);
-          return [];
-        }
-        
-        const data = await response.json();
-        console.log(`Successfully retrieved ${data.length} allies for client ${clientId}:`, data);
-        return data;
-      } catch (error) {
-        console.error("Error fetching allies:", error);
-        return [];
-      }
-    },
-  });
-
-  // Add debug logs for allies
-  useEffect(() => {
-    if (allAllies.length > 0) {
-      console.log("Fetched allies for client:", clientId, allAllies);
-    }
-  }, [allAllies, clientId]);
-
-  // Only use non-archived allies and deduplicate by name
-  const allies = React.useMemo(() => {
-    // Create the testing ally if none are found
-    if (allAllies.length === 0 && clientId === 37) {
-      // Add a test ally for Gabriel
-      return [{ 
-        id: 34, 
-        name: "Mohamad", 
-        relationship: "parent", 
-        clientId: 37,
-        archived: false 
-      }];
-    }
-    
-    // Filter out archived allies and deduplicate by name
-    const filtered = allAllies.filter(ally => !ally.archived);
-    
-    // Deduplicate allies by name (keep the first occurrence)
-    const nameMap = new Map<string, typeof filtered[0]>();
-    filtered.forEach(ally => {
-      if (!nameMap.has(ally.name)) {
-        nameMap.set(ally.name, ally);
-      }
-    });
-    
-    const uniqueAllies = Array.from(nameMap.values());
-    console.log("Deduplicated filtered allies:", uniqueAllies);
-    
-    return uniqueAllies;
-  }, [allAllies, clientId]);
-
-  // Fetch goals for the selected client
-  const { data: goals = [] } = useQuery<Goal[]>({
-    queryKey: ["/api/clients", clientId, "goals"],
-    enabled: open && !!clientId,
-  });
-
-  // Track currently selected goal ID for fetching subgoals
-  const [selectedGoalId, setSelectedGoalId] = useState<number | null>(null);
-  
-  // Get subgoals for the currently selected goal instead of all goals
-  const { data: subgoals = [] } = useQuery<Subgoal[]>({
-    queryKey: ["/api/goals", selectedGoalId, "subgoals"],
-    enabled: open && !!selectedGoalId,
-  });
-  
-  // Hide unwanted calendar elements that might appear out of context
-  useEffect(() => {
-    // Function to find and hide unwanted calendars
-    const hideUnwantedCalendarsTimer = setInterval(hideUnwantedCalendars, 100);
-    
-    // Also run immediately
-    hideUnwantedCalendars();
-    
-    // Cleanup on unmount or when dialog closes
-    return () => {
-      clearInterval(hideUnwantedCalendarsTimer);
-    };
-  }, [open]);
-  
-  // Get budget settings to identify active plan
-  const { data: budgetSettings, isLoading: isLoadingBudgetSettings, error: budgetSettingsError, refetch: refetchBudgetSettings } = useQuery<BudgetSettings>({
-    queryKey: ["/api/clients", clientId, "budget-settings"],
-    enabled: open && !!clientId,
-  });
-  
-  // Log budget settings status
-  useEffect(() => {
-    console.log('Budget settings query:', { 
-      clientId, 
-      isLoadingBudgetSettings, 
-      hasData: !!budgetSettings, 
-      error: budgetSettingsError
-    });
-  }, [clientId, budgetSettings, isLoadingBudgetSettings, budgetSettingsError]);
-  
-  // Log budget settings for debugging
-  useEffect(() => {
-    if (budgetSettings) {
-      console.log('Budget settings loaded successfully:', budgetSettings);
-      console.log('Budget settings isActive:', budgetSettings.isActive);
-    }
-  }, [budgetSettings]);
-
-  // Get all budget items for the client
-  const { 
-    data: allBudgetItems = [], 
-    isLoading: isLoadingBudgetItems, 
-    error: budgetItemsError,
-    refetch: refetchBudgetItems 
-  } = useQuery<BudgetItem[]>({
-    queryKey: ["/api/clients", clientId, "budget-items"],
-    enabled: open && !!clientId, // Only need client ID to fetch budget items
-  });
-  
-  // Log budget items status
-  useEffect(() => {
-    console.log('Budget items query:', { 
-      clientId, 
-      isLoadingBudgetItems, 
-      itemCount: allBudgetItems?.length, 
-      error: budgetItemsError
-    });
-  }, [clientId, allBudgetItems, isLoadingBudgetItems, budgetItemsError]);
-  
-  // Log budget items for debugging
-  useEffect(() => {
-    if (allBudgetItems?.length > 0) {
-      console.log('Budget items loaded successfully:', allBudgetItems);
-    }
-  }, [allBudgetItems]);
-  
-  // Dialog state for product selection
-  const [productSelectionOpen, setProductSelectionOpen] = useState(false);
-  
-  // Get current selected products from form
-  const selectedProducts = form.watch("sessionNote.products") || [];
-  
-  // Simple flags to track client selection and product availability
-  const hasClientSelected = clientId !== null && clientId !== undefined;
-  const [hasSampleProducts, setHasSampleProducts] = useState(false);
-  
-  // Filter to only show items from the active plan
-  const availableProducts = useMemo(() => {
-    // Check for sample products
-    if (import.meta.env.DEV && (window as any).__sampleProducts?.length > 0) {
-      console.log('Using sample products:', (window as any).__sampleProducts);
-      return (window as any).__sampleProducts;
-    }
-  
-    // Log debug information
-    console.log('Budget items:', allBudgetItems);
-    console.log('Budget settings:', budgetSettings);
-    console.log('Client ID:', clientId);
-    
-    // Make sure we have budget items
-    if (!Array.isArray(allBudgetItems) || allBudgetItems.length === 0) {
-      console.log('No budget items available');
-      return [];
-    }
-    
-    // Check if we have settings
-    if (!budgetSettings) {
-      console.log('No budget settings available');
-      
-      // If we don't have settings but do have budget items,
-      // allow use of all budget items for this client
-      const tempProducts = allBudgetItems
-        .filter(item => item.clientId === clientId && item.quantity > 0)
-        .map(item => ({
-          ...item,
-          availableQuantity: item.quantity,
-          productCode: item.itemCode,
-          productDescription: item.description || item.itemCode,
-          unitPrice: item.unitPrice
-        }));
-      
-      if (tempProducts.length > 0) {
-        console.log('Using budget items without active plan:', tempProducts);
-        return tempProducts;
-      }
-      
-      return [];
-    }
-    
-    // Force coerce isActive to boolean - PostgreSQL treats booleans differently
-    let isActiveBool = true; // Default to true per schema default
-    
-    // Log the exact type of the isActive field to help debug
-    console.log('isActive type:', typeof budgetSettings.isActive);
-    
-    if (budgetSettings.isActive === false) {
-      isActiveBool = false;
-    } 
-    else if (budgetSettings.isActive === null) {
-      isActiveBool = true; // Default value per schema
-    }
-    else if (typeof budgetSettings.isActive === 'string') {
-      // Handle string representations of boolean values (from some APIs/drivers)
-      const isActiveStr = String(budgetSettings.isActive);
-      isActiveBool = isActiveStr.toLowerCase() !== 'false';
-    }
-    
-    console.log('Budget plan active status (original):', budgetSettings.isActive);
-    console.log('Budget plan active status (coerced):', isActiveBool);
-    console.log('Budget settings ID:', budgetSettings.id);
-    
-    if (!isActiveBool) {
-      console.log('Budget settings not active');
-      return [];
-    }
-    
-    // Since our schema doesn't track used quantity yet, we'll assume all quantity is available
-    // In a real implementation, this would be tracked in the database
-    const filteredProducts = allBudgetItems
-      .filter((item: BudgetItem) => {
-        // Check if this item belongs to the active budget plan and has quantity available
-        const matches = item.budgetSettingsId === budgetSettings.id && item.quantity > 0;
-        console.log(`Product ${item.itemCode}: budgetSettingsId=${item.budgetSettingsId}, quantity=${item.quantity}, matches=${matches}`);
-        return matches;
-      })
-      .map((item: BudgetItem) => ({
-        ...item,
-        availableQuantity: item.quantity, // For now, all quantity is available
-        productCode: item.itemCode,  // Normalized naming for UI consistency
-        productDescription: item.description || item.name || item.itemCode, // Normalized naming for UI consistency
-        unitPrice: item.unitPrice
-      }));
-      
-    console.log('Filtered products:', filteredProducts);
-    return filteredProducts;
-  }, [allBudgetItems, budgetSettings, clientId, hasSampleProducts]);
-  
-  // Create a simple lookup object for subgoals by goal ID
-  const subgoalsByGoalId = React.useMemo(() => {
-    const result: Record<number, Subgoal[]> = {};
-    if (selectedGoalId) {
-      result[selectedGoalId] = subgoals;
-    }
-    return result;
-  }, [selectedGoalId, subgoals]);
-
-  // Update form when client is changed
-  useEffect(() => {
-    if (initialClient?.id && initialClient.id !== clientId) {
-      form.setValue("session.clientId", initialClient.id);
-    }
-  }, [initialClient, form, clientId]);
-
-  // Get selected goals from form values
-  const selectedPerformanceAssessments = form.watch("performanceAssessments") || [];
-  const selectedGoalIds = selectedPerformanceAssessments.map(pa => pa.goalId);
-
-  // Helper to get selected milestone IDs for a specific goal
-  const getSelectedMilestoneIds = (goalId: number): number[] => {
-    const assessment = selectedPerformanceAssessments.find(pa => pa.goalId === goalId);
-    return assessment?.milestones?.map(m => m.milestoneId) || [];
-  };
-
   // Handle goal selection
   const handleGoalSelection = (goal: Goal) => {
-    console.log("Goal selected:", goal);
+    const currentAssessments = form.getValues('performanceAssessments') || [];
     
-    // Update the form with the new goal
-    const updatedAssessments = [...selectedPerformanceAssessments];
-    updatedAssessments.push({
-      goalId: goal.id,
-      goalTitle: goal.title,
-      notes: "",
-      milestones: []
-    });
+    // Check if the goal already exists in assessments
+    if (currentAssessments.some(a => a.goalId === goal.id)) {
+      toast({
+        title: "Goal already selected",
+        description: "This goal is already part of the assessment.",
+        variant: "destructive",
+      });
+      return;
+    }
     
-    form.setValue("performanceAssessments", updatedAssessments);
+    // Add the new goal assessment
+    const updatedAssessments = [
+      ...currentAssessments,
+      {
+        goalId: goal.id,
+        goalTitle: goal.title,
+        notes: "",
+        milestones: [],
+      }
+    ];
     
-    // Set the selected goal ID to fetch its subgoals
-    setSelectedGoalId(goal.id);
+    form.setValue('performanceAssessments', updatedAssessments);
     
-    // Store selected goal data for cross-component access
+    // Store the selected goal and client ID in the query cache for later use
     queryClient.setQueryData(['selectedGoalId'], goal.id);
     queryClient.setQueryData(['formState'], {
-      ...queryClient.getQueryData(['formState']) || {},
-      clientId,
+      clientId: selectedClientId,
+      performanceAssessments: updatedAssessments,
       currentGoalIndex: updatedAssessments.length - 1,
-      performanceAssessments: updatedAssessments
     });
     
-    // Add a delay to ensure UI updates
-    setTimeout(() => {
-      if (updatedAssessments.length > 0) {
-        // Force a refresh of subgoals data
-        queryClient.invalidateQueries({
-          queryKey: ['/api/goals', goal.id, 'subgoals']
+    // Fetch subgoals for the selected goal if not already in state
+    if (!subgoalsByGoalId[goal.id]) {
+      fetch(`/api/goals/${goal.id}/subgoals`)
+        .then(response => {
+          if (!response.ok) throw new Error(`Failed to fetch subgoals: ${response.status}`);
+          return response.json();
+        })
+        .then(data => {
+          console.log("Subgoals fetched for goal:", goal.id, data);
+          setSubgoalsByGoalId(prev => ({
+            ...prev,
+            [goal.id]: data
+          }));
+        })
+        .catch(error => {
+          console.error("Error fetching subgoals:", error);
+          // Set an empty array if fetch fails
+          setSubgoalsByGoalId(prev => ({
+            ...prev,
+            [goal.id]: []
+          }));
         });
-      }
-    }, 100);
+    }
   };
-
+  
   // Handle milestone selection
   const handleMilestoneSelection = (subgoal: Subgoal) => {
+    // Make sure we have a goal selected
     if (currentGoalIndex === null) return;
     
-    const updatedAssessments = [...selectedPerformanceAssessments];
-    const milestones = [...(updatedAssessments[currentGoalIndex].milestones || [])];
+    const currentAssessments = form.getValues('performanceAssessments');
+    const currentGoal = currentAssessments[currentGoalIndex];
     
-    milestones.push({
-      milestoneId: subgoal.id,
-      milestoneTitle: subgoal.title,
-      rating: 5,
-      strategies: [],
-      notes: ""
-    });
-    
-    updatedAssessments[currentGoalIndex].milestones = milestones;
-    form.setValue("performanceAssessments", updatedAssessments);
-    
-    // Ensure we have the goal ID to fetch subgoals
-    if (selectedGoalId === null && updatedAssessments[currentGoalIndex]) {
-      setSelectedGoalId(updatedAssessments[currentGoalIndex].goalId);
-    }
-  };
-
-  // Handle removing a goal assessment
-  const handleRemoveGoal = (index: number) => {
-    const updatedAssessments = [...selectedPerformanceAssessments];
-    updatedAssessments.splice(index, 1);
-    form.setValue("performanceAssessments", updatedAssessments);
-  };
-
-  // Handle removing a milestone assessment
-  const handleRemoveMilestone = (goalIndex: number, milestoneIndex: number) => {
-    const updatedAssessments = [...selectedPerformanceAssessments];
-    const milestones = [...updatedAssessments[goalIndex].milestones];
-    milestones.splice(milestoneIndex, 1);
-    updatedAssessments[goalIndex].milestones = milestones;
-    form.setValue("performanceAssessments", updatedAssessments);
-  };
-  
-  // Handle adding a product
-  const handleAddProduct = (budgetItem: BudgetItem & { availableQuantity: number }, quantity: number) => {
-    console.log('handleAddProduct called with:', budgetItem, quantity);
-    
-    // Ensure valid quantity
-    if (!quantity || quantity <= 0 || quantity > budgetItem.availableQuantity) {
+    // Check if the milestone already exists
+    if (currentGoal.milestones.some(m => m.milestoneId === subgoal.id)) {
       toast({
-        title: "Invalid quantity",
-        description: `Please enter a quantity between 1 and ${budgetItem.availableQuantity}`,
-        variant: "destructive"
+        title: "Milestone already selected",
+        description: "This milestone is already part of the assessment.",
+        variant: "destructive",
       });
       return;
     }
     
-    // Check if this product is already added
-    const existingProductIndex = selectedProducts.findIndex(
-      p => p.budgetItemId === budgetItem.id || p.productCode === budgetItem.itemCode
-    );
+    // Add the new milestone to the current goal
+    const updatedMilestones = [
+      ...currentGoal.milestones,
+      {
+        milestoneId: subgoal.id,
+        milestoneTitle: subgoal.title,
+        rating: 5, // Default rating
+        strategies: [],
+        notes: ""
+      }
+    ];
     
-    if (existingProductIndex >= 0) {
-      toast({
-        title: "Product already added",
-        description: "This product is already in your session. Please adjust the quantity instead.",
-        variant: "destructive"
-      });
-      return;
-    }
-    
-    // Add product to the form
-    const product = {
-      budgetItemId: budgetItem.id,
-      productCode: budgetItem.itemCode,
-      productDescription: budgetItem.description || budgetItem.name || budgetItem.itemCode,
-      quantity,
-      unitPrice: budgetItem.unitPrice,
-      availableQuantity: budgetItem.availableQuantity
+    // Update the form data
+    const updatedAssessments = [...currentAssessments];
+    updatedAssessments[currentGoalIndex] = {
+      ...currentGoal,
+      milestones: updatedMilestones
     };
     
-    form.setValue("sessionNote.products", [...selectedProducts, product]);
-    setProductSelectionOpen(false);
+    form.setValue('performanceAssessments', updatedAssessments);
   };
   
-  // Handle removing a product
-  const handleRemoveProduct = (index: number) => {
-    const updatedProducts = [...selectedProducts];
-    updatedProducts.splice(index, 1);
-    form.setValue("sessionNote.products", updatedProducts);
+  // Handlers for adding and removing assessment items
+  
+  // Handle Remove Goal
+  const handleRemoveGoal = (goalIndex: number) => {
+    const currentAssessments = form.getValues('performanceAssessments');
+    const updatedAssessments = currentAssessments.filter((_, index) => index !== goalIndex);
+    form.setValue('performanceAssessments', updatedAssessments);
   };
   
-// Product selection dialog component
-interface ProductSelectionDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  products: (BudgetItem & { availableQuantity: number })[];
-  onSelectProduct: (product: BudgetItem & { availableQuantity: number }, quantity: number) => void;
-}
-
-const ProductSelectionDialog = ({
-  open,
-  onOpenChange,
-  products,
-  onSelectProduct
-}: ProductSelectionDialogProps) => {
-  const [selectedProduct, setSelectedProduct] = useState<(BudgetItem & { availableQuantity: number }) | null>(null);
-  const [quantity, setQuantity] = useState(1);
+  // Handle Remove Milestone
+  const handleRemoveMilestone = (goalIndex: number, milestoneIndex: number) => {
+    const currentAssessments = form.getValues('performanceAssessments');
+    const currentGoal = currentAssessments[goalIndex];
+    
+    const updatedMilestones = currentGoal.milestones.filter((_, index) => index !== milestoneIndex);
+    
+    const updatedAssessments = [...currentAssessments];
+    updatedAssessments[goalIndex] = {
+      ...currentGoal,
+      milestones: updatedMilestones
+    };
+    
+    form.setValue('performanceAssessments', updatedAssessments);
+  };
   
-  // Clear selection when dialog opens with new products
-  useEffect(() => {
-    if (open) {
-      console.log("ProductSelectionDialog opened with products:", products);
-      // Reset selection state when dialog opens
-      setSelectedProduct(null);
-      setQuantity(1);
-    }
-  }, [open, products]);
+  // Handle Add Product (for session notes)
+  const [productSelectionOpen, setProductSelectionOpen] = useState(false);
   
-  const handleQuantityChange = (value: string) => {
-    const numValue = parseInt(value, 10);
-    if (isNaN(numValue) || numValue < 1) {
-      setQuantity(1);
-    } else if (selectedProduct && numValue > selectedProduct.availableQuantity) {
-      setQuantity(selectedProduct.availableQuantity);
+  const handleAddProduct = (product: BudgetItem & { availableQuantity: number }, quantity: number) => {
+    const currentProducts = form.getValues('sessionNote.products') || [];
+    
+    // Check if the product already exists
+    const existingProductIndex = currentProducts.findIndex(p => p.budgetItemId === product.id);
+    
+    if (existingProductIndex >= 0) {
+      // Update quantity of existing product
+      const updatedProducts = [...currentProducts];
+      updatedProducts[existingProductIndex] = {
+        ...updatedProducts[existingProductIndex],
+        quantity: updatedProducts[existingProductIndex].quantity + quantity
+      };
+      form.setValue('sessionNote.products', updatedProducts);
     } else {
-      setQuantity(numValue);
-    }
-  };
-  
-  const handleSelectProduct = (product: BudgetItem & { availableQuantity: number }) => {
-    console.log("Product selected:", product);
-    setSelectedProduct(product);
-    setQuantity(1); // Reset quantity when selecting a new product
-  };
-  
-  const handleAddProduct = (e?: React.MouseEvent) => {
-    // Prevent event bubbling which might cause dialog to close prematurely
-    if (e) e.stopPropagation();
-    
-    console.log("Adding product:", selectedProduct, "quantity:", quantity);
-    
-    if (selectedProduct) {
-      onSelectProduct(selectedProduct, quantity);
-      setSelectedProduct(null);
-      setQuantity(1);
-    }
-  };
-  
-  // Format currency for display
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 2
-    }).format(amount);
-  };
-  
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[550px]">
-        <DialogHeader>
-          <DialogTitle>Add Product to Session</DialogTitle>
-          <DialogDescription>
-            Select a product from the active budget plan
-          </DialogDescription>
-        </DialogHeader>
-        
-        <div className="py-4 grid grid-cols-1 gap-4">
-          {products.length === 0 ? (
-            <div className="p-4 border rounded-md bg-muted/20 text-center">
-              <p className="text-muted-foreground">No products available in active budget plan</p>
-            </div>
-          ) : (
-            <>
-              {/* Product selection */}
-              <div className="max-h-[300px] overflow-y-auto border rounded-md">
-                <ScrollArea className="h-full pr-3">
-                  <div className="space-y-1 p-1">
-                    {products.map(product => (
-                      <div 
-                        key={product.id} 
-                        className={`p-3 border rounded-md cursor-pointer ${selectedProduct?.id === product.id ? 'bg-primary/10 border-primary' : 'hover:bg-muted/20'}`}
-                        onClick={() => handleSelectProduct(product)}
-                      >
-                        <div className="flex justify-between items-start gap-2">
-                          <div className="flex-1">
-                            <h4 className="font-medium">{product.description || product.name}</h4>
-                            <p className="text-sm text-muted-foreground">Code: {product.itemCode}</p>
-                          </div>
-                          <div className="text-right">
-                            <div className="font-medium">{formatCurrency(product.unitPrice)}</div>
-                            <div className="text-sm text-muted-foreground">
-                              Available: {product.availableQuantity}
-                            </div>
-                          </div>
-                        </div>
-                        {selectedProduct?.id === product.id && (
-                          <div className="mt-3 pt-3 border-t flex items-center gap-3">
-                            <div className="flex items-center border rounded-md">
-                              <Button 
-                                type="button" 
-                                variant="ghost" 
-                                size="icon"
-                                className="h-9 w-9"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  if (quantity > 1) setQuantity(quantity - 1);
-                                }}
-                              >
-                                <Minus className="h-4 w-4" />
-                              </Button>
-                              <Input 
-                                type="number" 
-                                className="w-14 h-9 text-center border-0"
-                                min={1}
-                                max={product.availableQuantity}
-                                value={quantity}
-                                onChange={(e) => {
-                                  e.stopPropagation();
-                                  handleQuantityChange(e.target.value);
-                                }}
-                              />
-                              <Button 
-                                type="button" 
-                                variant="ghost" 
-                                size="icon"
-                                className="h-9 w-9"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  if (quantity < product.availableQuantity) {
-                                    setQuantity(quantity + 1);
-                                  }
-                                }}
-                              >
-                                <Plus className="h-4 w-4" />
-                              </Button>
-                            </div>
-                            <Button 
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                console.log('Add to Session button clicked');
-                                handleAddProduct();
-                              }}
-                              data-testid="add-to-session-btn"
-                            >
-                              Add to Session
-                            </Button>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </ScrollArea>
-              </div>
-            </>
-          )}
-        </div>
-        
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-};
-
-  // Create session and session note mutation
-  const createSessionMutation = useMutation({
-    mutationFn: async (data: IntegratedSessionFormValues) => {
-      // Step 1: Create the session
-      const sessionResponse = await apiRequest("POST", "/api/sessions", data.session);
-      const sessionData = sessionResponse as any;
-      
-      // Step 2: Create the session note with the new session ID
-      const noteData = {
-        ...data.sessionNote,
-        sessionId: sessionData.id,
-        clientId: data.session.clientId
+      // Add new product
+      const newProduct = {
+        budgetItemId: product.id,
+        productCode: product.itemCode || 'UNKNOWN',
+        productDescription: product.description || product.itemName || 'Unknown Product',
+        quantity: quantity,
+        unitPrice: product.unitPrice || 0,
+        availableQuantity: product.availableQuantity
       };
       
-      const noteResponse = await apiRequest("POST", `/api/sessions/${sessionData.id}/notes`, noteData);
-      const noteResponseData = noteResponse as any;
+      form.setValue('sessionNote.products', [...currentProducts, newProduct]);
+    }
+  };
+  
+  // Handle Remove Product
+  const handleRemoveProduct = (productIndex: number) => {
+    const currentProducts = form.getValues('sessionNote.products');
+    const updatedProducts = currentProducts.filter((_, index) => index !== productIndex);
+    form.setValue('sessionNote.products', updatedProducts);
+  };
+  
+  // Effect to update selected client ID when client changes in form
+  useEffect(() => {
+    const subscription = form.watch((value, { name }) => {
+      if (name === 'session.clientId') {
+        const newClientId = value.session?.clientId;
+        if (newClientId && newClientId !== selectedClientId) {
+          setSelectedClientId(Number(newClientId));
+        }
+      }
+    });
+    
+    return () => subscription.unsubscribe();
+  }, [form, selectedClientId]);
+  
+  // Fix for duplicate calendars. If calendar duplicates happen, use this effect
+  useEffect(() => {
+    hideUnwantedCalendars();
+  }, [form.formState.isSubmitting]);
+  
+  // Mutation for saving the session
+  const sessionMutation = useMutation({
+    mutationFn: async (data: IntegratedSessionFormValues) => {
+      // First create the session
+      const sessionResponse = await apiRequest('POST', '/api/sessions', data.session);
       
-      // Step 3: Create performance assessments
-      if (data.performanceAssessments.length > 0) {
-        await Promise.all(
-          data.performanceAssessments.map(assessment => 
-            apiRequest("POST", `/api/session-notes/${noteResponseData.id}/performance`, {
+      // If successful, create the session note
+      if (sessionResponse && sessionResponse.id) {
+        const sessionId = sessionResponse.id;
+        
+        // Create the session note
+        const noteResponse = await apiRequest('POST', `/api/sessions/${sessionId}/notes`, {
+          ...data.sessionNote,
+          sessionId,
+        });
+        
+        // Create the performance assessments
+        if (data.performanceAssessments.length > 0) {
+          for (const assessment of data.performanceAssessments) {
+            await apiRequest('POST', `/api/sessions/${sessionId}/performance-assessments`, {
+              sessionId,
               goalId: assessment.goalId,
-              notes: assessment.notes,
-              milestones: assessment.milestones
-            })
-          )
-        );
+              notes: assessment.notes || "",
+              milestones: assessment.milestones.map(m => ({
+                milestoneId: m.milestoneId,
+                rating: m.rating || 5,
+                notes: m.notes || "",
+                strategies: m.strategies || []
+              }))
+            });
+          }
+        }
+        
+        return { sessionId, success: true };
       }
       
-      return sessionData;
+      throw new Error("Failed to create session");
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       toast({
-        title: "Success",
-        description: "Session and notes created successfully",
+        title: "Session created",
+        description: `Session successfully created with ID: ${data.sessionId}`,
       });
+      
       queryClient.invalidateQueries({ queryKey: ["/api/sessions"] });
-      form.reset(defaultValues);
       onOpenChange(false);
     },
     onError: (error) => {
+      console.error("Error saving session:", error);
       toast({
         title: "Error",
-        description: "Failed to create session and notes",
+        description: "Failed to save session. Please try again.",
         variant: "destructive",
       });
-      console.error("Error creating session:", error);
-    },
+    }
   });
-
+  
   // Form submission handler
   function onSubmit(data: IntegratedSessionFormValues) {
-    console.log("Form data:", data);
-    console.log("Form errors:", form.formState.errors);
-    createSessionMutation.mutate(data);
+    console.log("Submitting session form data:", data);
+    
+    // Validation passed - create the session
+    sessionMutation.mutate(data);
   }
-
-  // Handle navigation between tabs
-  const handleNext = () => {
-    if (activeTab === "details") setActiveTab("participants");
-    else if (activeTab === "participants") setActiveTab("performance");
-  };
-
-  const handleBack = () => {
-    if (activeTab === "performance") setActiveTab("participants");
-    else if (activeTab === "participants") setActiveTab("details");
-  };
-
-  // Return just the content without dialog wrapper if in full-screen mode
-  if (isFullScreen) {
+  
+  // Watch form fields for selected performance assessments
+  const selectedPerformanceAssessments = form.watch('performanceAssessments') || [];
+  
+  // Product selection dialog
+  interface ProductSelectionDialogProps {
+    open: boolean;
+    onOpenChange: (open: boolean) => void;
+    products: (BudgetItem & { availableQuantity: number })[];
+    onSelectProduct: (product: BudgetItem & { availableQuantity: number }, quantity: number) => void;
+  }
+  
+  const ProductSelectionDialog = ({
+    open,
+    onOpenChange,
+    products,
+    onSelectProduct
+  }: ProductSelectionDialogProps) => {
+    const [selectedProduct, setSelectedProduct] = useState<(BudgetItem & { availableQuantity: number }) | null>(null);
+    const [quantity, setQuantity] = useState(1);
+    
+    // Reset the form when dialog opens/closes
+    useEffect(() => {
+      if (!open) {
+        setSelectedProduct(null);
+        setQuantity(1);
+      }
+    }, [open]);
+    
     return (
-      <div className="w-full h-full flex flex-col px-6 py-4">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-grow flex flex-col overflow-hidden">
-          <TabsList className="grid grid-cols-2 mb-4">
-            <TabsTrigger value="details">Session Details & Observations</TabsTrigger>
-            <TabsTrigger value="performance">Performance Assessment</TabsTrigger>
-          </TabsList>
-
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 overflow-hidden flex flex-col flex-grow">
-              <div className="flex-grow overflow-auto pr-2">
-                {/* Session Details Tab */}
-                <TabsContent value="details" className="space-y-6 mt-0 px-4">
-                  {/* Full-width top section for basic session info */}
-                  <Card className="shadow-sm border-muted">
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-lg font-medium flex items-center">
-                        <Calendar className="h-5 w-5 mr-2 text-primary" />
-                        Session Information
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      {/* First row: Client, Location, Date & Time in a single row */}
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-2">
-                        {/* Client Selection */}
-                        <FormField
-                          control={form.control}
-                          name="session.clientId"
-                          render={({ field }) => (
-                            <FormItem className="flex-1">
-                              <FormLabel className="text-base flex items-center">
-                                <UserIcon className="h-4 w-4 mr-2 text-muted-foreground" />
-                                Client
-                              </FormLabel>
-                              <Select
-                                onValueChange={(value) => {
-                                  // Set the client ID
-                                  const clientId = parseInt(value);
-                                  field.onChange(clientId);
-                                  
-                                  // Reset performance assessments when client changes
-                                  form.setValue("performanceAssessments", []);
-                                  
-                                  // Reset products when client changes
-                                  form.setValue("sessionNote.products", []);
-                                  
-                                  // Log when client changes to help debug
-                                  console.log('Client changed to:', clientId);
-                                  console.log('Initiating budget item fetch for client:', clientId);
-                                  
-                                  // Manually trigger refetch of budget items and settings
-                                  if (refetchBudgetItems && refetchBudgetSettings) {
-                                    console.log('Manually refetching budget data for client:', clientId);
-                                    // Use timeout to ensure components finish rendering first
-                                    setTimeout(() => {
-                                      refetchBudgetItems();
-                                      refetchBudgetSettings();
-                                    }, 100);
-                                  }
-                                }}
-                                value={field.value?.toString() || undefined}
-                              >
-                                <FormControl>
-                                  <SelectTrigger className="h-10">
-                                    <SelectValue placeholder="Select client" />
-                                  </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                  {clients.map((client) => (
-                                    <SelectItem key={client.id} value={client.id.toString()}>
-                                      {client.name}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                              <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    {/* Location - with predefined list */}
-                    <FormField
-                      control={form.control}
-                      name="session.location"
-                      render={({ field }) => (
-                        <FormItem className="flex-1">
-                          <FormLabel className="text-base flex items-center">
-                            <MapPinIcon className="h-4 w-4 mr-2 text-muted-foreground" />
-                            Location
-                          </FormLabel>
-                          <Select 
-                            onValueChange={field.onChange} 
-                            value={field.value || ""}
-                            defaultValue=""
-                          >
-                            <FormControl>
-                              <SelectTrigger className="h-10">
-                                <SelectValue placeholder="Select location" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="Clinic - Room 101">Clinic - Room 101</SelectItem>
-                              <SelectItem value="Clinic - Room 102">Clinic - Room 102</SelectItem>
-                              <SelectItem value="Clinic - Room 103">Clinic - Room 103</SelectItem>
-                              <SelectItem value="Remote - Telehealth">Remote - Telehealth</SelectItem>
-                              <SelectItem value="School Visit">School Visit</SelectItem>
-                              <SelectItem value="Home Visit">Home Visit</SelectItem>
-                              <SelectItem value="Other">Other</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    {/* Session Date - Enhanced implementation to prevent calendar display issues */}
-                    <FormField
-                      control={form.control}
-                      name="session.sessionDate"
-                      render={({ field }) => {
-                        // Use a ref to detect if the popover is open
-                        const [isCalendarOpen, setIsCalendarOpen] = React.useState(false);
-                        
-                        // Check for unwanted calendars when this component renders or updates
-                        React.useEffect(() => {
-                          // Immediate check
-                          hideUnwantedCalendars();
-                          
-                          // If calendar isn't explicitly opened by user, ensure it stays hidden
-                          if (!isCalendarOpen) {
-                            const checkTimer = setTimeout(hideUnwantedCalendars, 50);
-                            return () => clearTimeout(checkTimer);
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Add Product</DialogTitle>
+            <DialogDescription>
+              Select a product used in this session
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="py-4 space-y-4">
+            {products.length === 0 ? (
+              <div className="p-4 border rounded-md bg-muted/20 text-center">
+                <p className="text-muted-foreground">
+                  No products available for this client
+                </p>
+              </div>
+            ) : (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="product">Product</Label>
+                  <Select 
+                    value={selectedProduct?.id?.toString() || ""} 
+                    onValueChange={(value) => {
+                      const product = products.find(p => p.id.toString() === value);
+                      if (product) {
+                        setSelectedProduct(product);
+                        setQuantity(1); // Reset quantity when product changes
+                      }
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a product" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {products.map(product => (
+                        <SelectItem key={product.id} value={product.id.toString()}>
+                          {product.itemName} ({product.itemCode})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                {selectedProduct && (
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <Label htmlFor="quantity">Quantity</Label>
+                      <span className="text-sm text-muted-foreground">
+                        Available: {selectedProduct.availableQuantity}
+                      </span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        className="w-8 h-8"
+                        onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                        disabled={quantity <= 1}
+                      >
+                        <Minus className="h-4 w-4" />
+                      </Button>
+                      <Input
+                        id="quantity"
+                        type="number"
+                        value={quantity}
+                        onChange={(e) => {
+                          const newValue = parseInt(e.target.value);
+                          if (!isNaN(newValue) && newValue > 0) {
+                            setQuantity(Math.min(newValue, selectedProduct.availableQuantity));
                           }
-                        }, [isCalendarOpen]);
-                        
-                        return (
-                          <FormItem className="flex flex-col flex-1">
-                            <FormLabel className="text-base">Date & Time</FormLabel>
-                            <Popover onOpenChange={setIsCalendarOpen} open={isCalendarOpen}>
+                        }}
+                        className="max-w-16 text-center"
+                        min={1}
+                        max={selectedProduct.availableQuantity}
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        className="w-8 h-8"
+                        onClick={() => setQuantity(Math.min(quantity + 1, selectedProduct.availableQuantity))}
+                        disabled={quantity >= selectedProduct.availableQuantity}
+                      >
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    {selectedProduct.unitPrice > 0 && (
+                      <p className="text-sm text-muted-foreground">
+                        Total: ${(selectedProduct.unitPrice * quantity).toFixed(2)}
+                      </p>
+                    )}
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => onOpenChange(false)}>
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              disabled={!selectedProduct || quantity <= 0}
+              onClick={() => {
+                if (selectedProduct) {
+                  onSelectProduct(selectedProduct, quantity);
+                  onOpenChange(false);
+                }
+              }}
+            >
+              Add Product
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    );
+  };
+  
+  // Calculate remaining content height based on heading height for ScrollArea
+  const [headingHeight, setHeadingHeight] = useState(0);
+  const headerRef = React.useRef<HTMLDivElement>(null);
+  
+  useLayoutEffect(() => {
+    if (headerRef.current) {
+      const height = headerRef.current.getBoundingClientRect().height;
+      setHeadingHeight(height);
+    }
+  }, [open]);
+  
+  const dialogMaxHeight = typeof window !== 'undefined' ? window.innerHeight * 0.8 : 600;
+  const contentMaxHeight = dialogMaxHeight - headingHeight - 50; // 50px for padding
+  
+  // Full Screen mode classes
+  const dialogClasses = isFullScreen 
+    ? "fixed inset-0 w-full h-full rounded-none flex flex-col max-w-none bg-background" 
+    : "sm:max-w-[95vw] max-h-[95vh] flex flex-col";
+  
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className={dialogClasses}>
+        <div ref={headerRef}>
+          <DialogHeader className="pb-2">
+            <DialogTitle className="text-2xl">
+              {form.watch('session.sessionId') ? `Session ${form.watch('session.sessionId')}` : "New Session"}
+            </DialogTitle>
+            <DialogDescription>
+              Create a comprehensive session record including notes and assessments
+            </DialogDescription>
+          </DialogHeader>
+        </div>
+        
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 flex-1 flex flex-col">
+            <ScrollArea className="flex-1" style={{ height: isFullScreen ? 'calc(100vh - 150px)' : `${contentMaxHeight}px` }}>
+              <div className="pr-4 pb-8">
+                <div className="space-y-6">
+                  {/* Tab Selection */}
+                  <Tabs defaultValue="details" value={activeTab} onValueChange={setActiveTab} className="w-full">
+                    <TabsList className="grid grid-cols-3 mb-4">
+                      <TabsTrigger value="details">Session Details</TabsTrigger>
+                      <TabsTrigger value="performance">Performance</TabsTrigger>
+                      <TabsTrigger value="summary">Summary & Submit</TabsTrigger>
+                    </TabsList>
+                    
+                    {/* Session Details Tab */}
+                    <TabsContent value="details" className="space-y-4 mt-0 px-2">
+                      <FormField
+                        control={form.control}
+                        name="session.clientId"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Client</FormLabel>
+                            <Select
+                              disabled={!!initialClient}
+                              value={field.value?.toString() || ""}
+                              onValueChange={(value) => {
+                                // Only update if value is different
+                                if (value !== field.value?.toString()) {
+                                  field.onChange(parseInt(value, 10));
+                                  setSelectedClientId(parseInt(value, 10));
+                                }
+                              }}
+                            >
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select client" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {clients.map((client) => (
+                                  <SelectItem key={client.id} value={client.id.toString()}>
+                                    {client.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      {/* Session Date */}
+                      <FormField
+                        control={form.control}
+                        name="session.sessionDate"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-col">
+                            <FormLabel>Session Date</FormLabel>
+                            <Popover>
                               <PopoverTrigger asChild>
                                 <FormControl>
                                   <Button
-                                    variant={"outline"}
-                                    className={`w-full h-10 pl-3 text-left font-normal ${
-                                      !field.value ? "text-muted-foreground" : ""
-                                    }`}
-                                    onClick={() => setIsCalendarOpen(true)} // Explicitly control open state
+                                    variant="outline"
+                                    className="w-full pl-3 text-left font-normal"
                                   >
                                     {field.value ? (
-                                      format(field.value, "PPP p")
+                                      format(field.value, "PPP")
                                     ) : (
-                                      <span>Pick a date</span>
+                                      <span>Select a date</span>
                                     )}
                                     <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                                   </Button>
                                 </FormControl>
                               </PopoverTrigger>
-                              <PopoverContent 
-                                className="w-auto p-0 z-[100]" 
-                                align="start" 
-                                side="bottom" 
-                                sideOffset={4} 
-                                data-calendar-container="true"
-                                onEscapeKeyDown={() => setIsCalendarOpen(false)}
-                                onInteractOutside={() => setIsCalendarOpen(false)}
-                              >
-                                <div className="bg-background border rounded-md overflow-hidden">
-                                  {isCalendarOpen && ( // Only render calendar when popover is explicitly open
-                                    <Calendar
-                                      mode="single"
-                                      selected={field.value}
-                                      onSelect={(date) => {
-                                        if (date) {
-                                          // Preserve time portion from existing date or use current time
-                                          const existingDate = field.value || new Date();
-                                          date.setHours(existingDate.getHours());
-                                          date.setMinutes(existingDate.getMinutes());
-                                          field.onChange(date);
-                                          
-                                          // Don't close yet - allow time selection
-                                        }
-                                      }}
-                                      initialFocus
-                                    />
-                                  )}
-                                  <div className="p-3 border-t">
-                                    <Input
-                                      type="time"
-                                      onChange={(e) => {
-                                        const date = new Date(field.value || new Date());
-                                        const [hours, minutes] = e.target.value.split(':').map(Number);
-                                        date.setHours(hours, minutes);
-                                        field.onChange(date);
-                                      }}
-                                      defaultValue={field.value ? 
-                                        format(field.value, "HH:mm") : 
-                                        format(new Date(), "HH:mm")
-                                      }
-                                    />
-                                  </div>
-                                </div>
+                              <PopoverContent className="w-auto p-0" align="start">
+                                <Calendar
+                                  mode="single"
+                                  selected={field.value}
+                                  onSelect={field.onChange}
+                                  disabled={(date) =>
+                                    date > new Date() || date < new Date("2023-01-01")
+                                  }
+                                  data-calendar-container="true"
+                                />
                               </PopoverContent>
                             </Popover>
                             <FormMessage />
                           </FormItem>
-                        );
-                      }}
-                    />
-                  </div>
-                    </CardContent>
-                  </Card>
-
-                  {/* Three-Column Layout */}
-                  <ThreeColumnLayout
-                    className="mt-6"
-                    leftColumn={
-                      <>
-                        <div className="flex justify-between items-center mb-2">
-                          <h3 className="section-header">
-                            <UserCheck className="h-5 w-5" />
-                            Present
-                          </h3>
-                          
-                          {/* Add New Attendee Button moved to header */}
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                              console.log("New Attendee button clicked, allies:", allies);
-                              
-                              if (allies.length > 0) {
-                                // Get current allies and filter to find available ones
-                                const currentAllies = form.getValues("sessionNote.presentAllies") || [];
-                                const availableAllies = allies.filter(ally => 
-                                  !currentAllies.includes(ally.name)
-                                );
-                                
-                                if (availableAllies.length > 0) {
-                                  // Add the special marker to trigger the dialog
-                                  form.setValue("sessionNote.presentAllies", [
-                                    ...currentAllies, 
-                                    "__select__"
-                                  ]);
-                                } else {
-                                  toast({
-                                    title: "No more allies available",
-                                    description: "All available attendees have been added to the session.",
-                                    variant: "default"
-                                  });
-                                }
-                              } else {
-                                toast({
-                                  title: "No allies found",
-                                  description: "This client doesn't have any allies added to their profile yet.",
-                                  variant: "default"
-                                });
-                              }
-                            }}
-                          >
-                            <Plus className="h-4 w-4 mr-2" />
-                            New Attendee
-                          </Button>
-                        </div>
-                        <div className="bg-muted/20 rounded-lg p-4 space-y-2">
-                        {/* Selected Allies List */}
-                        {form.watch("sessionNote.presentAllies")?.map((name, index) => {
-                          // Find the ally object to get relationship
-                          const ally = allies.find(a => a.name === name);
-                          return (
-                            <div 
-                              key={index} 
-                              className="flex items-center justify-between py-2 px-1 border-b last:border-0"
-                            >
-                              <div className="flex items-center gap-3">
-                                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                                  {name.charAt(0)}
-                                </div>
-                                <span className="font-medium">{name}</span>
-                              </div>
-                              <div className="flex items-center space-x-2">
-                                <span className="text-sm text-primary">{ally?.relationship || "Attendee"}</span>
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-8 w-8 p-0 rounded-full"
-                                  onClick={() => {
-                                    // Get the allied ID by looking up in our allies array
-                                    const allyToRemove = allies.find(a => a.name === name);
-                                    
-                                    // Remove from the name display array
-                                    const currentAllies = form.getValues("sessionNote.presentAllies") || [];
-                                    form.setValue(
-                                      "sessionNote.presentAllies", 
-                                      currentAllies.filter(a => a !== name)
-                                    );
-                                    
-                                    // Also remove from the ID array if we found the ally
-                                    if (allyToRemove) {
-                                      const currentAllyIds = form.getValues("sessionNote.presentAllyIds") || [];
-                                      form.setValue(
-                                        "sessionNote.presentAllyIds", 
-                                        currentAllyIds.filter(id => id !== allyToRemove.id)
-                                      );
-                                    }
-                                  }}
-                                >
-                                  <svg width="18" height="18" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <path d="M3.625 7.5C3.625 8.12 3.12 8.625 2.5 8.625C1.88 8.625 1.375 8.12 1.375 7.5C1.375 6.88 1.88 6.375 2.5 6.375C3.12 6.375 3.625 6.88 3.625 7.5ZM8.625 7.5C8.625 8.12 8.12 8.625 7.5 8.625C6.88 8.625 6.375 8.12 6.375 7.5C6.375 6.88 6.88 6.375 7.5 6.375C8.12 6.375 8.625 6.88 8.625 7.5ZM13.625 7.5C13.625 8.12 13.12 8.625 12.5 8.625C11.88 8.625 11.375 8.12 11.375 7.5C11.375 6.88 11.88 6.375 12.5 6.375C13.12 6.375 13.625 6.88 13.625 7.5Z" fill="currentColor" fillRule="evenodd" clipRule="evenodd"></path>
-                                  </svg>
-                                </Button>
-                              </div>
-                            </div>
-                          );
-                        })}
-                        
-                        {/* New Attendee button has been moved to the header */}
-                        
-                        {(!form.watch("sessionNote.presentAllies") || 
-                          form.watch("sessionNote.presentAllies").length === 0) && (
-                          <div className="text-center py-4">
-                            <p className="text-sm text-muted-foreground">
-                              No one added yet. Click "New Attendee" to add people present in this session.
-                            </p>
-                          </div>
                         )}
-                        </div>
-                        
-                        {/* Ally Selection Dialog */}
-                        <Dialog 
-                          open={allies.length > 0 && form.getValues("sessionNote.presentAllies")?.includes("__select__")}
-                          onOpenChange={(open) => {
-                            if (!open) {
-                              // Remove the special marker if dialog is closed
-                              const currentAllies = form.getValues("sessionNote.presentAllies") || [];
-                              form.setValue(
-                                "sessionNote.presentAllies", 
-                                currentAllies.filter(a => a !== "__select__")
-                              );
-                            }
-                          }}
-                        >
-                          <DialogContent className="sm:max-w-[425px]">
-                            <DialogHeader>
-                              <DialogTitle>Add Attendee</DialogTitle>
-                              <DialogDescription>
-                                Select a person who was present in this therapy session.
-                              </DialogDescription>
-                            </DialogHeader>
-                            <div className="py-4">
-                              <Select
-                                onValueChange={(value) => {
-                                  const currentAllies = form.getValues("sessionNote.presentAllies") || [];
-                                  
-                                  // Parse the selected value to get the ally ID and name
-                                  const [allyId, allyName] = value.split('|');
-                                  console.log(`Selected ally: ID=${allyId}, Name=${allyName}`);
-                                  
-                                  // Check if ally is already in the list
-                                  const currentAllyIds = form.getValues("sessionNote.presentAllyIds") || [];
-                                  const allyIdNum = parseInt(allyId);
-                                  
-                                  if (currentAllies.includes(allyName) || currentAllyIds.includes(allyIdNum)) {
-                                    toast({
-                                      title: "Attendee already added",
-                                      description: `${allyName} is already present in this session.`,
-                                      variant: "destructive"
-                                    });
-                                    return;
-                                  }
-                                  
-                                  // Remove the selection marker and add the selected ally (just using the name for display)
-                                  form.setValue(
-                                    "sessionNote.presentAllies", 
-                                    [...currentAllies.filter(a => a !== "__select__"), allyName]
-                                  );
-                                  
-                                  // Store the ally IDs separately for data integrity
-                                  form.setValue(
-                                    "sessionNote.presentAllyIds",
-                                    [...currentAllyIds, allyIdNum]
-                                  );
-                                }}
-                              >
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Select person" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {allies
-                                    .filter(ally => {
-                                      const currentAllies = form.getValues("sessionNote.presentAllies") || [];
-                                      return !currentAllies.includes(ally.name);
-                                    })
-                                    .map((ally) => (
-                                      <SelectItem key={ally.id} value={`${ally.id}|${ally.name}`}>
-                                        {ally.name} ({ally.relationship || "Ally"})
-                                      </SelectItem>
-                                    ))
-                                  }
-                                </SelectContent>
-                              </Select>
-                            </div>
-                          </DialogContent>
-                        </Dialog>
-                      </>
-                    }
-                    
-                    middleColumn={
-                      <>
-                        <div className="flex justify-between items-center">
-                          <h3 className="section-header">
-                            <ShoppingCart className="h-5 w-5" />
-                            Products Used
-                          </h3>
-                          <div className="flex gap-2">
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              onClick={() => {
-                                console.log('Opening product selection dialog');
-                                console.log('Available products:', availableProducts);
-                                
-                                // In dev mode, create sample products if none are available
-                                if (import.meta.env.DEV && hasClientSelected && availableProducts.length === 0) {
-                                  console.log('Creating sample products for development');
-                                  
-                                  // Create sample products for development/testing
-                                  const sampleProducts = [
-                                    {
-                                      id: 9001,
-                                      budgetSettingsId: clientId || 0,
-                                      clientId: clientId || 0,
-                                      itemCode: "THERAPY-001",
-                                      description: "Speech Therapy Session",
-                                      quantity: 10,
-                                      unitPrice: 150,
-                                      availableQuantity: 10,
-                                      productCode: "THERAPY-001",
-                                      productDescription: "Speech Therapy Session",
-                                      name: "Speech Therapy Session"
-                                    },
-                                    {
-                                      id: 9002,
-                                      budgetSettingsId: clientId || 0,
-                                      clientId: clientId || 0,
-                                      itemCode: "ASSESS-001",
-                                      description: "Assessment Session",
-                                      quantity: 5,
-                                      unitPrice: 200,
-                                      availableQuantity: 5,
-                                      productCode: "ASSESS-001",
-                                      productDescription: "Assessment Session",
-                                      name: "Assessment Session"
-                                    }
-                                  ];
-                                  
-                                  // Store in global window for use in the useMemo
-                                  (window as any).__sampleProducts = sampleProducts;
-                                  
-                                  // Update local state to track sample products
-                                  setHasSampleProducts(true);
-                                  
-                                  // Show a toast notification
-                                  toast({
-                                    title: "Sample Products Added",
-                                    description: "Sample products have been added for this session."
-                                  });
-                                }
-                                
-                                // Delay slightly to avoid React state issues
-                                setTimeout(() => {
-                                  setProductSelectionOpen(true);
-                                  console.log('Product selection dialog should be open now');
-                                }, 50);
-                              }}
-                              disabled={!availableProducts.length && !hasSampleProducts && !hasClientSelected}
-                            >
-                              <ShoppingCart className="h-4 w-4 mr-2" />
-                              Add Product
-                            </Button>
-                          </div>
-                        </div>
-                        
-                        {/* Product Selection Dialog */}
-                        <ProductSelectionDialog
-                          open={productSelectionOpen}
-                          onOpenChange={setProductSelectionOpen}
-                          products={availableProducts}
-                          onSelectProduct={handleAddProduct}
-                        />
-                        
-                        {/* Selected Products List */}
-                        {selectedProducts.length === 0 ? (
-                          <div className="bg-muted/20 rounded-lg p-4 text-center">
-                            <p className="text-muted-foreground">No products added to this session</p>
-                          </div>
-                        ) : (
-                          <div className="bg-muted/20 rounded-lg p-4 space-y-2">
-                            {selectedProducts.map((product, index) => {
-                              const totalPrice = product.quantity * product.unitPrice;
-                              
-                              return (
-                                <div 
-                                  key={index} 
-                                  className="flex items-center justify-between py-2 px-1 border-b last:border-0"
-                                >
-                                  <div className="flex-1">
-                                    <div className="font-medium">{product.productDescription}</div>
-                                    <div className="text-sm text-muted-foreground">
-                                      Code: {product.productCode}
-                                    </div>
-                                    
-                                    {/* Availability Visualization */}
-                                    <div className="mt-1">
-                                      <div className="flex items-center text-xs">
-                                        <span className="text-muted-foreground mr-2">Availability:</span>
-                                        <div className="w-full max-w-[100px] bg-gray-200 rounded-full h-2.5">
-                                          <div 
-                                            className="bg-primary h-2.5 rounded-full" 
-                                            style={{ 
-                                              width: `${Math.min(100, (product.availableQuantity - product.quantity) / product.availableQuantity * 100)}%` 
-                                            }}
-                                          />
-                                        </div>
-                                        <span className="ml-2 text-xs">
-                                          <span className="text-primary font-medium">{product.availableQuantity - product.quantity}</span>
-                                          <span className="text-muted-foreground"> / {product.availableQuantity}</span>
-                                        </span>
-                                      </div>
-                                    </div>
-                                  </div>
-                                  
-                                  <div className="flex items-center gap-3">
-                                    {/* Quantity Controls */}
-                                    <div className="flex items-center border rounded-md mr-2">
-                                      <Button 
-                                        type="button" 
-                                        variant="ghost" 
-                                        size="icon"
-                                        className="h-7 w-7"
-                                        onClick={() => {
-                                          if (product.quantity > 1) {
-                                            const updatedProducts = [...selectedProducts];
-                                            updatedProducts[index] = {
-                                              ...updatedProducts[index],
-                                              quantity: product.quantity - 1
-                                            };
-                                            form.setValue("sessionNote.products", updatedProducts);
-                                          }
-                                        }}
-                                      >
-                                        <Minus className="h-3 w-3" />
-                                      </Button>
-                                      <div className="w-8 text-center">
-                                        <span className="text-sm font-medium">{product.quantity}</span>
-                                      </div>
-                                      <Button 
-                                        type="button" 
-                                        variant="ghost" 
-                                        size="icon"
-                                        className="h-7 w-7"
-                                        onClick={() => {
-                                          if (product.quantity < product.availableQuantity) {
-                                            const updatedProducts = [...selectedProducts];
-                                            updatedProducts[index] = {
-                                              ...updatedProducts[index],
-                                              quantity: product.quantity + 1
-                                            };
-                                            form.setValue("sessionNote.products", updatedProducts);
-                                          } else {
-                                            toast({
-                                              title: "Maximum quantity reached",
-                                              description: `Only ${product.availableQuantity} units available`,
-                                              variant: "destructive"
-                                            });
-                                          }
-                                        }}
-                                      >
-                                        <Plus className="h-3 w-3" />
-                                      </Button>
-                                    </div>
-                                    
-                                    <div className="text-right">
-                                      <div>
-                                        <span className="text-muted-foreground text-sm">
-                                          {new Intl.NumberFormat('en-US', {
-                                            style: 'currency',
-                                            currency: 'USD'
-                                          }).format(product.unitPrice)}
-                                        </span>
-                                      </div>
-                                      <div className="text-sm font-medium">
-                                        {new Intl.NumberFormat('en-US', {
-                                          style: 'currency',
-                                          currency: 'USD'
-                                        }).format(totalPrice)}
-                                      </div>
-                                    </div>
-                                    
-                                    <Button
-                                      type="button"
-                                      variant="ghost"
-                                      size="sm"
-                                      className="h-8 w-8 p-0 rounded-full ml-2"
-                                      onClick={() => handleRemoveProduct(index)}
-                                    >
-                                      <X className="h-4 w-4" />
-                                    </Button>
-                                  </div>
-                                </div>
-                              );
-                            })}
-                            
-                            {/* Total Value */}
-                            <div className="pt-3 mt-2 border-t flex justify-between items-center">
-                              <span className="font-medium">Total Value:</span>
-                              <span className="font-bold">
-                                {new Intl.NumberFormat('en-US', {
-                                  style: 'currency',
-                                  currency: 'USD'
-                                }).format(
-                                  selectedProducts.reduce(
-                                    (total, product) => total + (product.quantity * product.unitPrice), 
-                                    0
-                                  )
-                                )}
-                              </span>
-                            </div>
-                          </div>
-                        )}
-                      </>
-                    }
-                    
-                    rightColumn={
-                      <>
-                        <h3 className="section-header">
-                          <ClipboardList className="h-5 w-5" />
-                          Session Observations
-                        </h3>
-                        
-                        {/* Rating Sliders */}
-                        <div className="space-y-4">
-                          <FormField
-                            control={form.control}
-                            name="sessionNote.moodRating"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormControl>
-                                  <RatingSlider
-                                    value={field.value}
-                                    onChange={field.onChange}
-                                    label="Mood"
-                                    description="Rate client's overall mood during the session"
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          
-                          <FormField
-                            control={form.control}
-                            name="sessionNote.focusRating"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormControl>
-                                  <RatingSlider
-                                    value={field.value}
-                                    onChange={field.onChange}
-                                    label="Focus"
-                                    description="Rate client's ability to focus during the session"
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          
-                          <FormField
-                            control={form.control}
-                            name="sessionNote.cooperationRating"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormControl>
-                                  <RatingSlider
-                                    value={field.value}
-                                    onChange={field.onChange}
-                                    label="Cooperation"
-                                    description="Rate client's overall cooperation"
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          
-                          <FormField
-                            control={form.control}
-                            name="sessionNote.physicalActivityRating"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormControl>
-                                  <RatingSlider
-                                    value={field.value}
-                                    onChange={field.onChange}
-                                    label="Physical Activity"
-                                    description="Rate client's physical activity level"
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                        </div>
-                        
-                        {/* General Notes moved to Performance Assessment tab */}
-                      </>
-                    }
-                  />
-                </TabsContent>
-
-                {/* Performance Assessment Tab */}
-                <TabsContent value="performance" className="space-y-4 mt-0 px-2">
-                  <div className="flex justify-between items-center">
-                    <h3 className="section-header">
-                      <RefreshCw className="h-5 w-5" />
-                      Performance Assessment
-                    </h3>
-                    <Button 
-                      type="button" 
-                      onClick={() => setGoalSelectionOpen(true)}
-                      disabled={!clientId}
-                    >
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add Goal
-                    </Button>
-                  </div>
-                  
-                  {/* Two-column layout: 2/3 goals, 1/3 general notes */}
-                  <div className="flex flex-col md:flex-row gap-4">
-                    {/* Left column (2/3) - Goals section */}
-                    <div className="md:w-2/3">
-                      {/* Goal Selection Dialog */}
-                      <GoalSelectionDialog
-                        open={goalSelectionOpen}
-                        onOpenChange={setGoalSelectionOpen}
-                        goals={goals}
-                        selectedGoalIds={selectedGoalIds}
-                        onSelectGoal={handleGoalSelection}
                       />
                       
-                      {/* Selected Goals and Milestones */}
-                      {selectedPerformanceAssessments.length === 0 ? (
-                        <div className="border rounded-md p-6 text-center bg-muted/10">
-                          <p className="text-muted-foreground">
-                            No goals selected yet. Click "Add Goal" to start assessment.
-                          </p>
-                        </div>
-                      ) : (
-                        <div className="space-y-6">
-                          {selectedPerformanceAssessments.map((assessment, goalIndex) => {
-                            const goal = goals.find(g => g.id === assessment.goalId);
-                            const goalSubgoals = subgoalsByGoalId[assessment.goalId] || [];
-                            const selectedMilestoneIds = getSelectedMilestoneIds(assessment.goalId);
-                            
-                            return (
-                              <Card key={assessment.goalId} className="overflow-hidden">
-                                <CardHeader className="bg-primary/10 pb-3">
-                                  <div className="flex justify-between items-start">
-                                    <CardTitle className="text-base">
-                                      {goal?.title || assessment.goalTitle}
-                                    </CardTitle>
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      onClick={() => handleRemoveGoal(goalIndex)}
-                                    >
-                                      <X className="h-4 w-4" />
-                                    </Button>
+                      {/* Duration */}
+                      <FormField
+                        control={form.control}
+                        name="session.duration"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Duration (minutes)</FormLabel>
+                            <FormControl>
+                              <div className="flex items-center space-x-2">
+                                <Input
+                                  type="number"
+                                  {...field}
+                                  onChange={(e) => field.onChange(parseInt(e.target.value, 10))}
+                                />
+                                <Clock className="h-5 w-5 text-muted-foreground" />
+                              </div>
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      {/* Title */}
+                      <FormField
+                        control={form.control}
+                        name="session.title"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Session Title</FormLabel>
+                            <FormControl>
+                              <Input {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      {/* Location */}
+                      <FormField
+                        control={form.control}
+                        name="session.location"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Location</FormLabel>
+                            <FormControl>
+                              <div className="flex items-center space-x-2">
+                                <Input {...field} />
+                                <MapPinIcon className="h-5 w-5 text-muted-foreground" />
+                              </div>
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      {/* Present Allies */}
+                      <FormField
+                        control={form.control}
+                        name="sessionNote.presentAllyIds"
+                        render={({ field }) => (
+                          <FormItem>
+                            <div className="mb-4">
+                              <FormLabel>Present Allies</FormLabel>
+                              <FormDescription>
+                                Select allies who were present during the session
+                              </FormDescription>
+                            </div>
+                            <div className="space-y-2">
+                              {allies.length === 0 ? (
+                                <div className="p-4 border rounded-md text-center bg-muted/10">
+                                  <p className="text-muted-foreground">No allies found for this client</p>
+                                </div>
+                              ) : (
+                                allies.map((ally) => (
+                                  <div key={ally.id} className="flex items-start space-x-2 p-2 border rounded-md">
+                                    <Checkbox
+                                      checked={field.value?.includes(ally.id)}
+                                      onCheckedChange={(checked) => {
+                                        const currentIds = field.value || [];
+                                        let updatedIds;
+                                        let updatedNames;
+                                        
+                                        if (checked) {
+                                          // Add ally ID and name
+                                          updatedIds = [...currentIds, ally.id];
+                                          updatedNames = [...(form.getValues('sessionNote.presentAllies') || []), ally.name];
+                                        } else {
+                                          // Remove ally ID and name
+                                          updatedIds = currentIds.filter((id) => id !== ally.id);
+                                          updatedNames = (form.getValues('sessionNote.presentAllies') || [])
+                                            .filter((name) => name !== ally.name);
+                                        }
+                                        
+                                        field.onChange(updatedIds);
+                                        form.setValue('sessionNote.presentAllies', updatedNames);
+                                      }}
+                                      id={`ally-${ally.id}`}
+                                    />
+                                    <div className="grid gap-1">
+                                      <Label
+                                        htmlFor={`ally-${ally.id}`}
+                                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                                      >
+                                        {ally.name}
+                                      </Label>
+                                      <p className="text-xs text-muted-foreground">
+                                        {ally.role || "Support Role"} • {ally.relationship || "Professional"}
+                                      </p>
+                                    </div>
                                   </div>
-                                  <CardDescription>
-                                    {goal?.description}
-                                  </CardDescription>
-                                </CardHeader>
-                            
-                                <CardContent className="pt-4">
-                                  {/* Goal Notes */}
-                                  <FormField
+                                ))
+                              )}
+                            </div>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                     
+                      {/* Observation Ratings */}
+                      <div className="space-y-4">
+                        <h3 className="section-header">
+                          <UserCheck className="h-5 w-5" />
+                          Session Observations
+                        </h3>
+                                                
+                        {/* Three-column layout for session details */}
+                        <ThreeColumnLayout
+                          leftColumn={
+                            <>
+                              <h4 className="text-sm font-semibold">Present</h4>
+                              
+                              <div className="border rounded-md p-4 h-full">
+                                {/* Present Allies List */}
+                                <div className="space-y-2">
+                                  <p className="text-sm font-medium">Allies Present:</p>
+                                  {form.watch('sessionNote.presentAllyIds')?.length > 0 ? (
+                                    <div className="flex flex-wrap gap-2">
+                                      {form.watch('sessionNote.presentAllyIds')?.map((allyId, index) => {
+                                        const ally = allies.find(a => a.id === allyId);
+                                        return (
+                                          <Badge key={allyId} variant="outline" className="bg-primary/10">
+                                            {ally?.name || `Ally ${index + 1}`}
+                                          </Badge>
+                                        );
+                                      })}
+                                    </div>
+                                  ) : (
+                                    <p className="text-sm text-muted-foreground">No allies selected</p>
+                                  )}
+                                </div>
+                                
+                                {/* Ratings */}
+                                <div className="space-y-8 mt-6">
+                                  <Controller
                                     control={form.control}
-                                    name={`performanceAssessments.${goalIndex}.notes`}
+                                    name="sessionNote.moodRating"
                                     render={({ field }) => (
-                                      <FormItem className="mb-4">
-                                        <FormLabel>Goal Progress Notes</FormLabel>
-                                        <FormControl>
-                                          <Textarea 
-                                            placeholder="Enter notes about progress on this goal..."
-                                            className="resize-none min-h-20"
-                                            {...field}
-                                          />
-                                        </FormControl>
-                                        <FormMessage />
-                                      </FormItem>
+                                      <RatingSlider
+                                        value={field.value}
+                                        onChange={field.onChange}
+                                        label="Mood"
+                                        description="Overall emotional state during session"
+                                      />
                                     )}
                                   />
                                   
-                                  {/* Milestone Section */}
-                                  <div className="mt-4">
-                                    <div className="flex justify-between items-center mb-3">
-                                      <h4 className="text-sm font-medium">Milestone Assessment</h4>
+                                  <Controller
+                                    control={form.control}
+                                    name="sessionNote.focusRating"
+                                    render={({ field }) => (
+                                      <RatingSlider
+                                        value={field.value}
+                                        onChange={field.onChange}
+                                        label="Focus"
+                                        description="Ability to maintain attention on tasks"
+                                      />
+                                    )}
+                                  />
+                                  
+                                  <Controller
+                                    control={form.control}
+                                    name="sessionNote.cooperationRating"
+                                    render={({ field }) => (
+                                      <RatingSlider
+                                        value={field.value}
+                                        onChange={field.onChange}
+                                        label="Cooperation"
+                                        description="Willingness to engage in activities"
+                                      />
+                                    )}
+                                  />
+                                  
+                                  <Controller
+                                    control={form.control}
+                                    name="sessionNote.physicalActivityRating"
+                                    render={({ field }) => (
+                                      <RatingSlider
+                                        value={field.value}
+                                        onChange={field.onChange}
+                                        label="Physical Activity"
+                                        description="Energy level and movement during session"
+                                      />
+                                    )}
+                                  />
+                                </div>
+                              </div>
+                            </>
+                          }
+                          middleColumn={
+                            <>
+                              <div className="flex justify-between items-center">
+                                <h4 className="text-sm font-semibold">Products Used</h4>
+                                <Button 
+                                  type="button" 
+                                  size="sm" 
+                                  variant="outline"
+                                  onClick={() => setProductSelectionOpen(true)}
+                                  disabled={!selectedClientId}
+                                >
+                                  <Plus className="h-3 w-3 mr-1" />
+                                  Add
+                                </Button>
+                              </div>
+                              
+                              <div className="border rounded-md p-4 h-full">
+                                {/* Products Selection Dialog */}
+                                <ProductSelectionDialog
+                                  open={productSelectionOpen}
+                                  onOpenChange={setProductSelectionOpen}
+                                  products={availableProducts}
+                                  onSelectProduct={handleAddProduct}
+                                />
+                                
+                                {/* Products List */}
+                                <div className="space-y-3">
+                                  {form.watch('sessionNote.products')?.length > 0 ? (
+                                    form.watch('sessionNote.products').map((product, index) => (
+                                      <div key={index} className="flex justify-between items-start p-2 border rounded-md">
+                                        <div className="space-y-1">
+                                          <p className="text-sm font-medium">{product.productDescription}</p>
+                                          <div className="flex space-x-2 text-xs text-muted-foreground">
+                                            <span>Code: {product.productCode}</span>
+                                            <span>•</span>
+                                            <span>Qty: {product.quantity}</span>
+                                            {product.unitPrice > 0 && (
+                                              <>
+                                                <span>•</span>
+                                                <span>${(product.quantity * product.unitPrice).toFixed(2)}</span>
+                                              </>
+                                            )}
+                                          </div>
+                                        </div>
+                                        <Button
+                                          type="button"
+                                          size="icon"
+                                          variant="ghost"
+                                          onClick={() => handleRemoveProduct(index)}
+                                          className="h-6 w-6"
+                                        >
+                                          <X className="h-4 w-4" />
+                                        </Button>
+                                      </div>
+                                    ))
+                                  ) : (
+                                    <div className="p-4 text-center">
+                                      <ShoppingCart className="mx-auto h-8 w-8 text-muted-foreground/60" />
+                                      <p className="mt-2 text-sm text-muted-foreground">
+                                        No products added yet
+                                      </p>
+                                      <p className="text-xs text-muted-foreground/80 mt-1">
+                                        Click "Add" to include products used in this session
+                                      </p>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </>
+                          }
+                          rightColumn={
+                            <>
+                              <h4 className="text-sm font-semibold">Session Observations</h4>
+                              
+                              <div className="border rounded-md p-4 h-full">
+                                <FormField
+                                  control={form.control}
+                                  name="sessionNote.notes"
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <FormControl>
+                                        <div className="min-h-[200px]">
+                                          <RichTextEditor
+                                            value={field.value || ""}
+                                            onChange={field.onChange}
+                                            placeholder="Enter general notes and observations about the session..."
+                                            className="min-h-[200px]"
+                                          />
+                                        </div>
+                                      </FormControl>
+                                      <FormMessage />
+                                    </FormItem>
+                                  )}
+                                />
+                              </div>
+                            </>
+                          }
+                        />
+                      </div>
+                    </TabsContent>
+                    
+                    {/* Performance Tab */}
+                    <TabsContent value="performance" className="space-y-4 mt-0 px-2">
+                      {/* Two-column layout: 2/3 goals, 1/3 general notes */}
+                      <div className="flex flex-col md:flex-row gap-4">
+                        {/* Left column (2/3) - Goals section */}
+                        <div className="md:w-2/3">
+                          {/* Goal Selection Dialog */}
+                          <GoalSelectionDialog
+                            open={goalSelectionOpen}
+                            onOpenChange={setGoalSelectionOpen}
+                            goals={goals}
+                            selectedGoalIds={selectedGoalIds}
+                            onSelectGoal={handleGoalSelection}
+                          />
+                          
+                          {/* Performance Assessment Section */}
+                          <PerformanceHeader 
+                            isEmpty={selectedPerformanceAssessments.length === 0}
+                            onAddGoal={() => setGoalSelectionOpen(true)}
+                            clientId={selectedClientId}
+                          />
+                          
+                          {/* Selected Goals and Milestones */}
+                          {selectedPerformanceAssessments.length === 0 ? (
+                            <></>
+                          ) : (
+                            <div className="space-y-6">
+                              {selectedPerformanceAssessments.map((assessment, goalIndex) => {
+                                const goal = goals.find(g => g.id === assessment.goalId);
+                                const goalSubgoals = subgoalsByGoalId[assessment.goalId] || [];
+                                const selectedMilestoneIds = getSelectedMilestoneIds(assessment.goalId);
+                                
+                                return (
+                                  <Card key={goalIndex} className="performance-goal-card">
+                                    <CardHeader className="p-4 pb-2 flex flex-row items-start justify-between">
+                                      <div>
+                                        <CardTitle className="text-base">
+                                          {goal?.title || assessment.goalTitle || `Goal ${goalIndex + 1}`}
+                                        </CardTitle>
+                                        <CardDescription>
+                                          {goal?.description || "No description available"}
+                                        </CardDescription>
+                                      </div>
                                       <Button
                                         type="button"
-                                        size="sm"
-                                        variant="outline"
-                                        onClick={() => {
-                                          setCurrentGoalIndex(goalIndex);
-                                          setMilestoneSelectionOpen(true);
-                                          setSelectedGoalId(assessment.goalId);
-                                        }}
+                                        size="icon"
+                                        variant="ghost"
+                                        onClick={() => handleRemoveGoal(goalIndex)}
+                                        className="h-6 w-6 -mt-1 -mr-2"
                                       >
-                                        <Plus className="h-3 w-3 mr-1" />
-                                        Add Milestone
+                                        <X className="h-4 w-4" />
                                       </Button>
-                                    </div>
-                                    
-                                    {/* Milestone Selection Dialog */}
-                                    {currentGoalIndex === goalIndex && (
+                                    </CardHeader>
+                                    <CardContent className="p-4 pt-2 space-y-4">
+                                      {/* Goal Notes */}
+                                      <FormField
+                                        control={form.control}
+                                        name={`performanceAssessments.${goalIndex}.notes`}
+                                        render={({ field }) => (
+                                          <FormItem>
+                                            <FormLabel>Goal Notes</FormLabel>
+                                            <FormControl>
+                                              <div className="min-h-[80px]">
+                                                <RichTextEditor
+                                                  value={field.value || ""}
+                                                  onChange={field.onChange}
+                                                  placeholder="Enter notes about progress on this goal..."
+                                                  className="min-h-[80px]"
+                                                />
+                                              </div>
+                                            </FormControl>
+                                            <FormMessage />
+                                          </FormItem>
+                                        )}
+                                      />
+                                      
+                                      {/* Milestone Selection Dialog */}
                                       <MilestoneSelectionDialog
-                                        open={milestoneSelectionOpen}
-                                        onOpenChange={setMilestoneSelectionOpen}
+                                        open={milestoneSelectionOpen && currentGoalIndex === goalIndex}
+                                        onOpenChange={(open) => {
+                                          setMilestoneSelectionOpen(open);
+                                          if (open) {
+                                            setCurrentGoalIndex(goalIndex);
+                                          }
+                                        }}
                                         subgoals={goalSubgoals}
                                         selectedMilestoneIds={selectedMilestoneIds}
                                         onSelectMilestone={handleMilestoneSelection}
                                       />
-                                    )}
-                                    
-                                    {/* Selected Milestones */}
-                                    {assessment.milestones.length === 0 ? (
-                                      <div className="border rounded-md p-3 text-center bg-muted/10">
-                                        <p className="text-sm text-muted-foreground">
-                                          No milestones selected yet. Click "Add Milestone" to assess progress.
-                                        </p>
-                                      </div>
-                                    ) : (
-                                      <div className="space-y-4">
-                                        {assessment.milestones.map((milestone, milestoneIndex) => {
-                                          const subgoal = goalSubgoals.find(s => s.id === milestone.milestoneId);
-                                          
-                                          return (
-                                            <div 
-                                              key={milestone.milestoneId} 
-                                              className="border rounded-md p-4 space-y-3"
-                                            >
-                                              <div className="flex justify-between items-start">
-                                                <div>
-                                                  <h5 className="font-medium">
-                                                    {subgoal?.title || milestone.milestoneTitle}
-                                                  </h5>
-                                                  <p className="text-sm text-muted-foreground mt-1">
-                                                    {subgoal?.description}
-                                                  </p>
-                                                </div>
-                                                <Button
-                                                  variant="ghost"
-                                                  size="icon"
-                                                  onClick={() => handleRemoveMilestone(goalIndex, milestoneIndex)}
-                                                >
-                                                  <X className="h-4 w-4" />
-                                                </Button>
-                                              </div>
-                                              
-                                              {/* Milestone Rating */}
-                                              <FormField
-                                                control={form.control}
-                                                name={`performanceAssessments.${goalIndex}.milestones.${milestoneIndex}.rating`}
-                                                render={({ field }) => (
-                                                  <FormItem>
-                                                    <FormLabel>Performance Rating</FormLabel>
-                                                    <FormControl>
-                                                      <RatingSlider
-                                                        value={field.value !== undefined ? field.value : 5}
-                                                        onChange={field.onChange}
-                                                        label="Performance"
-                                                        description="Rate client's performance on this milestone"
-                                                      />
-                                                    </FormControl>
-                                                    <FormMessage />
-                                                  </FormItem>
-                                                )}
-                                              />
-                                              
-                                              {/* Milestone Notes */}
-                                              <FormField
-                                                control={form.control}
-                                                name={`performanceAssessments.${goalIndex}.milestones.${milestoneIndex}.notes`}
-                                                render={({ field }) => (
-                                                  <FormItem>
-                                                    <FormLabel>Notes</FormLabel>
-                                                    <FormControl>
-                                                      <Textarea 
-                                                        placeholder="Notes about this milestone..."
-                                                        className="resize-none min-h-16"
-                                                        {...field}
-                                                      />
-                                                    </FormControl>
-                                                    <FormMessage />
-                                                  </FormItem>
-                                                )}
-                                              />
-                                              
-                                              {/* Strategies Used */}
-                                              <FormField
-                                                control={form.control}
-                                                name={`performanceAssessments.${goalIndex}.milestones.${milestoneIndex}.strategies`}
-                                                render={({ field }) => (
-                                                  <FormItem>
-                                                    <FormLabel>Strategies Used</FormLabel>
-                                                    <div className="flex flex-wrap gap-2">
-                                                      {["Visual Support", "Verbal Prompting", "Physical Guidance", "Modeling", "Reinforcement"].map((strategy) => (
-                                                        <Badge 
-                                                          key={strategy}
-                                                          variant={field.value?.includes(strategy) ? "default" : "outline"}
-                                                          className="cursor-pointer"
-                                                          onClick={() => {
-                                                            const currentStrategies = field.value || [];
-                                                            if (currentStrategies.includes(strategy)) {
-                                                              field.onChange(currentStrategies.filter(s => s !== strategy));
-                                                            } else {
-                                                              field.onChange([...currentStrategies, strategy]);
-                                                            }
-                                                          }}
-                                                        >
-                                                          {strategy}
-                                                        </Badge>
-                                                      ))}
-                                                    </div>
-                                                    <FormMessage />
-                                                  </FormItem>
-                                                )}
-                                              />
+                                      
+                                      {/* Milestones */}
+                                      <div className="space-y-2">
+                                        <div className="flex justify-between items-center">
+                                          <Label>Milestones</Label>
+                                          <Button
+                                            type="button"
+                                            size="sm"
+                                            variant="outline"
+                                            onClick={() => {
+                                              setCurrentGoalIndex(goalIndex);
+                                              setMilestoneSelectionOpen(true);
+                                            }}
+                                            disabled={!assessment.goalId}
+                                          >
+                                            <Plus className="h-3 w-3 mr-1" />
+                                            Add Milestone
+                                          </Button>
+                                        </div>
+                                        
+                                        {/* Milestone List */}
+                                        <div className="space-y-4 mt-2">
+                                          {assessment.milestones.length === 0 ? (
+                                            <div className="p-4 border rounded-md bg-muted/10 text-center">
+                                              <p className="text-muted-foreground">
+                                                No milestones added yet
+                                              </p>
                                             </div>
-                                          );
-                                        })}
+                                          ) : (
+                                            assessment.milestones.map((milestone, milestoneIndex) => {
+                                              const subgoal = goalSubgoals.find(s => s.id === milestone.milestoneId);
+                                              
+                                              return (
+                                                <div
+                                                  key={milestoneIndex}
+                                                  className="p-3 border rounded-md space-y-3"
+                                                >
+                                                  <div className="flex justify-between items-start">
+                                                    <div>
+                                                      <p className="font-medium text-sm">
+                                                        {subgoal?.title || milestone.milestoneTitle || `Milestone ${milestoneIndex + 1}`}
+                                                      </p>
+                                                      <p className="text-xs text-muted-foreground">
+                                                        {subgoal?.description || "No description available"}
+                                                      </p>
+                                                    </div>
+                                                    <Button
+                                                      type="button"
+                                                      size="icon"
+                                                      variant="ghost"
+                                                      onClick={() => handleRemoveMilestone(goalIndex, milestoneIndex)}
+                                                      className="h-6 w-6 -mt-1 -mr-1"
+                                                    >
+                                                      <X className="h-4 w-4" />
+                                                    </Button>
+                                                  </div>
+                                                  
+                                                  {/* Performance Rating Slider */}
+                                                  <FormField
+                                                    control={form.control}
+                                                    name={`performanceAssessments.${goalIndex}.milestones.${milestoneIndex}.rating`}
+                                                    render={({ field }) => (
+                                                      <FormItem>
+                                                        <FormLabel className="text-xs">Performance Rating</FormLabel>
+                                                        <FormControl>
+                                                          <Slider
+                                                            value={[field.value || 5]}
+                                                            min={0}
+                                                            max={10}
+                                                            step={1}
+                                                            onValueChange={(vals) => field.onChange(vals[0])}
+                                                            className="py-2 rating-slider color-slider"
+                                                          />
+                                                        </FormControl>
+                                                        <div className="flex justify-between text-xs text-muted-foreground">
+                                                          <span>Needs Work</span>
+                                                          <span>Excellent</span>
+                                                        </div>
+                                                      </FormItem>
+                                                    )}
+                                                  />
+                                                  
+                                                  {/* Milestone Notes */}
+                                                  <FormField
+                                                    control={form.control}
+                                                    name={`performanceAssessments.${goalIndex}.milestones.${milestoneIndex}.notes`}
+                                                    render={({ field }) => (
+                                                      <FormItem>
+                                                        <FormLabel className="text-xs">Notes</FormLabel>
+                                                        <FormControl>
+                                                          <RichTextEditor
+                                                            value={field.value || ""}
+                                                            onChange={field.onChange}
+                                                            placeholder="Add notes about this milestone..."
+                                                            className="min-h-[80px]"
+                                                          />
+                                                        </FormControl>
+                                                        <FormMessage />
+                                                      </FormItem>
+                                                    )}
+                                                  />
+                                                </div>
+                                              );
+                                            })
+                                          )}
+                                        </div>
                                       </div>
-                                    )}
-                                  </div>
-                                </CardContent>
-                              </Card>
-                            );
-                          })}
+                                    </CardContent>
+                                  </Card>
+                                );
+                              })}
+                            </div>
+                          )}
                         </div>
-                      )}
-                    </div>
+                        
+                        {/* Right column (1/3) - Session progress notes */}
+                        <div className="md:w-1/3">
+                          <h4 className="text-sm font-semibold mb-4">General Notes</h4>
+                          
+                          <div className="border rounded-md p-4 h-full">
+                            <FormField
+                              control={form.control}
+                              name="session.description"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Session Description</FormLabel>
+                                  <FormControl>
+                                    <RichTextEditor
+                                      value={field.value || ""}
+                                      onChange={field.onChange}
+                                      placeholder="Enter general session notes and observations..."
+                                      className="min-h-[250px]"
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </TabsContent>
                     
-                    {/* Right column (1/3) - General Notes section */}
-                    <div className="md:w-1/3">
+                    {/* Summary Tab */}
+                    <TabsContent value="summary" className="space-y-4 mt-0 px-2">
                       <Card>
                         <CardHeader>
-                          <CardTitle className="text-base">General Session Notes</CardTitle>
+                          <CardTitle>Session Summary</CardTitle>
+                          <CardDescription>
+                            Review and submit the session information
+                          </CardDescription>
                         </CardHeader>
-                        <CardContent>
-                          <FormField
-                            control={form.control}
-                            name="sessionNote.notes"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Notes</FormLabel>
-                                <FormControl>
-                                  <RichTextEditor
-                                    value={field.value || ""}
-                                    onChange={field.onChange}
-                                    placeholder="Enter general notes about the session..."
-                                    minHeight="min-h-[300px]"
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                        </CardContent>
-                      </Card>
-                    </div>
-                  </div>
-                </TabsContent>
-              </div>
-
-              {/* Footer with navigation and submit buttons */}
-              <div className="pt-2 border-t flex justify-between items-center">
-                <div className="flex items-center">
-                  {activeTab !== "details" && (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={handleBack}
-                      className="mr-2"
-                    >
-                      <ChevronLeft className="h-4 w-4 mr-1" />
-                      Back
-                    </Button>
-                  )}
-                  {activeTab !== "performance" && (
-                    <Button
-                      type="button"
-                      onClick={handleNext}
-                      variant="ghost"
-                    >
-                      Next
-                      <ChevronRight className="h-4 w-4 ml-1" />
-                    </Button>
-                  )}
-                </div>
-                
-                <div className="flex items-center space-x-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => onOpenChange(false)}
-                  >
-                    Cancel
-                  </Button>
-                  {activeTab === "performance" && (
-                    <Button 
-                      type="submit"
-                      disabled={createSessionMutation.isPending}
-                    >
-                      {createSessionMutation.isPending ? "Creating..." : "Create Session"}
-                    </Button>
-                  )}
-                </div>
-              </div>
-            </form>
-          </Form>
-        </Tabs>
-      </div>
-    );
-  }
-
-  // Return the dialog version if not in full-screen mode
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[800px] max-h-[90vh] flex flex-col">
-        <DialogHeader>
-          <DialogTitle>Create Session</DialogTitle>
-          <DialogDescription>
-            Track a therapy session and record progress
-          </DialogDescription>
-        </DialogHeader>
-        
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-grow flex flex-col overflow-hidden">
-          <TabsList className="grid grid-cols-2 mb-4">
-            <TabsTrigger value="details">Session Details & Observations</TabsTrigger>
-            <TabsTrigger value="performance">Performance Assessment</TabsTrigger>
-          </TabsList>
-
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 overflow-hidden flex flex-col flex-grow">
-              <div className="flex-grow overflow-auto pr-2">
-                {/* Reuse the same tab content from the full-screen version */}
-                <TabsContent value="details" className="space-y-6 mt-0 px-4">
-                  {/* Three-column layout implementation for Session Details */}
-                  <ThreeColumnLayout
-                    leftColumn={
-                      <div className="space-y-4">
-                        <h3 className="font-medium text-sm">Present</h3>
-                        <FormField
-                          control={form.control}
-                          name="sessionNote.presentAllies"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Attendees</FormLabel>
-                              <FormControl>
-                                <Textarea 
-                                  placeholder="Who was present at the session..."
-                                  className="resize-none min-h-16"
-                                  {...field}
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
-                    }
-                    middleColumn={
-                      <div className="space-y-4">
-                        <h3 className="font-medium text-sm">Products Used</h3>
-                        {selectedProducts.length === 0 ? (
-                          <div className="border rounded-lg p-4 text-center text-muted-foreground">
-                            No products selected
-                          </div>
-                        ) : (
-                          <div className="space-y-2">
-                            {selectedProducts.map((product, index) => (
-                              <div key={index} className="flex items-center justify-between border rounded-lg p-3 bg-card">
-                                <div>
-                                  <p className="font-medium">{product.name}</p>
-                                  <p className="text-sm text-muted-foreground">{product.quantity} × ${product.unitPrice.toFixed(2)}</p>
-                                </div>
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() => removeProduct(index)}
-                                >
-                                  <X className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={() => setProductSelectionOpen(true)}
-                          className="w-full"
-                          disabled={!clientId || (!budgetItems?.length && !availableProducts?.length)}
-                        >
-                          <Plus className="h-4 w-4 mr-2" />
-                          Add Product
-                        </Button>
-                      </div>
-                    }
-                    rightColumn={
-                      <div className="space-y-4">
-                        <h3 className="font-medium text-sm">Session Observations</h3>
-                        <FormField
-                          control={form.control}
-                          name="sessionNote.notes"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Notes</FormLabel>
-                              <FormControl>
-                                <Textarea 
-                                  placeholder="Enter session observations..."
-                                  className="resize-none min-h-32"
-                                  {...field}
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
-                    }
-                  />
-                </TabsContent>
-                
-                <TabsContent value="performance" className="space-y-4 mt-0 px-2">
-                  <div className="flex justify-between items-center">
-                    <h3 className="section-header">
-                      <RefreshCw className="h-5 w-5" />
-                      Performance Assessment
-                    </h3>
-                    <Button 
-                      type="button" 
-                      onClick={() => setGoalSelectionOpen(true)}
-                      disabled={!clientId}
-                    >
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add Goal
-                    </Button>
-                  </div>
-                  
-                  {/* Two-column layout: 2/3 goals, 1/3 general notes */}
-                  <div className="flex flex-col md:flex-row gap-4">
-                    {/* Left column (2/3) - Goals section */}
-                    <div className="md:w-2/3">
-                      {/* Goal Selection Dialog */}
-                      <GoalSelectionDialog
-                        open={goalSelectionOpen}
-                        onOpenChange={setGoalSelectionOpen}
-                        goals={goals}
-                        selectedGoalIds={selectedGoalIds}
-                        onSelectGoal={handleGoalSelection}
-                      />
-                      
-                      {/* Selected Goals and Milestones */}
-                      {selectedPerformanceAssessments.length === 0 ? (
-                        <div className="border rounded-md p-6 text-center bg-muted/10">
-                          <p className="text-muted-foreground">
-                            No goals selected yet. Click "Add Goal" to start assessment.
-                          </p>
-                        </div>
-                      ) : (
-                        <div className="space-y-6">
-                          {selectedPerformanceAssessments.map((assessment, goalIndex) => {
-                            const goal = goals.find(g => g.id === assessment.goalId);
-                            const goalSubgoals = subgoalsByGoalId[assessment.goalId] || [];
-                            const selectedMilestoneIds = getSelectedMilestoneIds(assessment.goalId);
+                        <CardContent className="space-y-4">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-1">
+                              <Label className="text-muted-foreground text-xs">Client</Label>
+                              <p>
+                                {clients.find(c => c.id === form.watch('session.clientId'))?.name || "Not selected"}
+                              </p>
+                            </div>
                             
-                            return (
-                              <Card key={assessment.goalId} className="overflow-hidden">
-                                <CardHeader className="bg-primary/10 pb-3">
-                                  <div className="flex justify-between items-start">
-                                    <div>
-                                      <CardTitle className="text-base mb-1">{goal?.title}</CardTitle>
-                                      <CardDescription className="text-xs">{goal?.description}</CardDescription>
-                                    </div>
-                                    <Button
-                                      type="button"
-                                      variant="ghost"
-                                      size="icon"
-                                      onClick={() => removeGoal(assessment.goalId)}
-                                    >
-                                      <X className="h-4 w-4" />
-                                    </Button>
+                            <div className="space-y-1">
+                              <Label className="text-muted-foreground text-xs">Session Date</Label>
+                              <p>
+                                {form.watch('session.sessionDate') 
+                                  ? format(form.watch('session.sessionDate'), "PPP") 
+                                  : "Not selected"}
+                              </p>
+                            </div>
+                            
+                            <div className="space-y-1">
+                              <Label className="text-muted-foreground text-xs">Duration</Label>
+                              <p>{form.watch('session.duration')} minutes</p>
+                            </div>
+                            
+                            <div className="space-y-1">
+                              <Label className="text-muted-foreground text-xs">Location</Label>
+                              <p>{form.watch('session.location') || "Not specified"}</p>
+                            </div>
+                            
+                            <div className="space-y-1">
+                              <Label className="text-muted-foreground text-xs">Title</Label>
+                              <p>{form.watch('session.title') || "Not specified"}</p>
+                            </div>
+                            
+                            <div className="space-y-1">
+                              <Label className="text-muted-foreground text-xs">Session ID</Label>
+                              <p>{form.watch('session.sessionId') || "Will be generated"}</p>
+                            </div>
+                          </div>
+                          
+                          <div className="pt-2">
+                            <Label className="text-muted-foreground text-xs">Allies Present</Label>
+                            <div className="flex flex-wrap gap-2 mt-1">
+                              {form.watch('sessionNote.presentAllyIds')?.length > 0 ? (
+                                form.watch('sessionNote.presentAllyIds').map((allyId) => {
+                                  const ally = allies.find(a => a.id === allyId);
+                                  return (
+                                    <Badge key={allyId} variant="outline" className="bg-primary/10">
+                                      {ally?.name || `Ally ID: ${allyId}`}
+                                    </Badge>
+                                  );
+                                })
+                              ) : (
+                                <p className="text-sm text-muted-foreground">No allies selected</p>
+                              )}
+                            </div>
+                          </div>
+                          
+                          <div className="pt-2">
+                            <Label className="text-muted-foreground text-xs">Products Used</Label>
+                            <div className="space-y-2 mt-1">
+                              {form.watch('sessionNote.products')?.length > 0 ? (
+                                form.watch('sessionNote.products').map((product, index) => (
+                                  <div key={index} className="flex justify-between text-sm border p-2 rounded-md">
+                                    <span>{product.productDescription}</span>
+                                    <span>
+                                      {product.quantity} x ${product.unitPrice.toFixed(2)} = 
+                                      ${(product.quantity * product.unitPrice).toFixed(2)}
+                                    </span>
                                   </div>
-                                </CardHeader>
-                                <CardContent className="p-4">
-                                  {/* Progress Rating Field */}
-                                  <div className="mb-6">
-                                    <FormField
-                                      control={form.control}
-                                      name={`performanceAssessments.${goalIndex}.rating`}
-                                      render={({ field }) => (
-                                        <FormItem>
-                                          <FormLabel>Progress Rating</FormLabel>
-                                          <FormControl>
-                                            <RatingSlider
-                                              value={field.value}
-                                              onChange={field.onChange}
-                                              label="Progress"
-                                              description="Rate overall progress towards this goal"
-                                            />
-                                          </FormControl>
-                                          <FormMessage />
-                                        </FormItem>
+                                ))
+                              ) : (
+                                <p className="text-sm text-muted-foreground">No products added</p>
+                              )}
+                            </div>
+                          </div>
+                          
+                          <div className="pt-2">
+                            <Label className="text-muted-foreground text-xs">Client Ratings</Label>
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-2">
+                              <div className="space-y-1">
+                                <span className="text-xs">Mood</span>
+                                <Progress value={form.watch('sessionNote.moodRating') * 10} 
+                                  className={`h-2 ${form.watch('sessionNote.moodRating') > 6 ? 'bg-green-100' : 
+                                    form.watch('sessionNote.moodRating') > 3 ? 'bg-amber-100' : 'bg-red-100'}`} />
+                                <span className="text-sm font-medium">{form.watch('sessionNote.moodRating')}/10</span>
+                              </div>
+                              <div className="space-y-1">
+                                <span className="text-xs">Focus</span>
+                                <Progress value={form.watch('sessionNote.focusRating') * 10} 
+                                  className={`h-2 ${form.watch('sessionNote.focusRating') > 6 ? 'bg-green-100' : 
+                                    form.watch('sessionNote.focusRating') > 3 ? 'bg-amber-100' : 'bg-red-100'}`} />
+                                <span className="text-sm font-medium">{form.watch('sessionNote.focusRating')}/10</span>
+                              </div>
+                              <div className="space-y-1">
+                                <span className="text-xs">Cooperation</span>
+                                <Progress value={form.watch('sessionNote.cooperationRating') * 10} 
+                                  className={`h-2 ${form.watch('sessionNote.cooperationRating') > 6 ? 'bg-green-100' : 
+                                    form.watch('sessionNote.cooperationRating') > 3 ? 'bg-amber-100' : 'bg-red-100'}`} />
+                                <span className="text-sm font-medium">{form.watch('sessionNote.cooperationRating')}/10</span>
+                              </div>
+                              <div className="space-y-1">
+                                <span className="text-xs">Physical</span>
+                                <Progress value={form.watch('sessionNote.physicalActivityRating') * 10} 
+                                  className={`h-2 ${form.watch('sessionNote.physicalActivityRating') > 6 ? 'bg-green-100' : 
+                                    form.watch('sessionNote.physicalActivityRating') > 3 ? 'bg-amber-100' : 'bg-red-100'}`} />
+                                <span className="text-sm font-medium">{form.watch('sessionNote.physicalActivityRating')}/10</span>
+                              </div>
+                            </div>
+                          </div>
+                          
+                          <div className="pt-2">
+                            <Label className="text-muted-foreground text-xs">Goals Assessed</Label>
+                            <div className="space-y-2 mt-1">
+                              {form.watch('performanceAssessments')?.length > 0 ? (
+                                form.watch('performanceAssessments').map((assessment, index) => (
+                                  <div key={index} className="border p-2 rounded-md">
+                                    <p className="font-medium">{assessment.goalTitle || `Goal ${index + 1}`}</p>
+                                    <div className="mt-1 pl-2 border-l-2 border-primary/30">
+                                      <p className="text-xs text-muted-foreground">Milestones Assessed:</p>
+                                      {assessment.milestones.length > 0 ? (
+                                        <ul className="list-disc list-inside text-sm">
+                                          {assessment.milestones.map((milestone, mIndex) => (
+                                            <li key={mIndex}>
+                                              {milestone.milestoneTitle || `Milestone ${mIndex + 1}`} 
+                                              <span className="text-muted-foreground"> - Rating: {milestone.rating}/10</span>
+                                            </li>
+                                          ))}
+                                        </ul>
+                                      ) : (
+                                        <p className="text-sm text-muted-foreground">No milestones assessed</p>
                                       )}
-                                    />
-                                  </div>
-                                  
-                                  {/* Milestone Selection */}
-                                  <div>
-                                    <div className="flex justify-between items-center mb-3">
-                                      <FormLabel>Milestones Addressed</FormLabel>
-                                      <Button
-                                        type="button"
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() => {
-                                          setMilestoneGoalId(assessment.goalId);
-                                          setMilestoneSelectionOpen(true);
-                                        }}
-                                        disabled={goalSubgoals.length === 0}
-                                      >
-                                        <Plus className="h-3 w-3 mr-1" />
-                                        Add Milestone
-                                      </Button>
                                     </div>
-                                    
-                                    <MilestoneSelectionDialog
-                                      open={milestoneSelectionOpen && milestoneGoalId === assessment.goalId}
-                                      onOpenChange={(open) => {
-                                        if (!open) setMilestoneSelectionOpen(false);
-                                      }}
-                                      subgoals={goalSubgoals}
-                                      selectedMilestoneIds={selectedMilestoneIds}
-                                      onSelectMilestone={handleMilestoneSelection}
-                                    />
-                                    
-                                    {assessment.milestones.length === 0 ? (
-                                      <div className="border rounded-md p-4 text-center bg-muted/10">
-                                        <p className="text-muted-foreground text-sm">
-                                          No milestones selected. Click "Add Milestone" to assess specific skills.
-                                        </p>
-                                      </div>
-                                    ) : (
-                                      <div className="space-y-5">
-                                        {assessment.milestones.map((milestone, milestoneIndex) => {
-                                          const subgoal = goalSubgoals.find(sg => sg.id === milestone.subgoalId);
-                                          
-                                          return (
-                                            <div key={milestone.subgoalId} className="border rounded-md p-3 bg-card">
-                                              <div className="flex justify-between items-start mb-3">
-                                                <div>
-                                                  <h4 className="font-medium text-sm">{subgoal?.title}</h4>
-                                                  <p className="text-xs text-muted-foreground">{subgoal?.description}</p>
-                                                </div>
-                                                <Button
-                                                  type="button"
-                                                  variant="ghost"
-                                                  size="icon"
-                                                  onClick={() => removeMilestone(assessment.goalId, milestone.subgoalId)}
-                                                >
-                                                  <X className="h-4 w-4" />
-                                                </Button>
-                                              </div>
-                                              
-                                              {/* Rating Field */}
-                                              <FormField
-                                                control={form.control}
-                                                name={`performanceAssessments.${goalIndex}.milestones.${milestoneIndex}.rating`}
-                                                render={({ field }) => (
-                                                  <FormItem className="mb-3">
-                                                    <FormLabel>Performance Rating</FormLabel>
-                                                    <FormControl>
-                                                      <RatingSlider
-                                                        value={field.value}
-                                                        onChange={field.onChange}
-                                                        label="Performance"
-                                                        description="Rate performance on this milestone"
-                                                      />
-                                                    </FormControl>
-                                                    <FormMessage />
-                                                  </FormItem>
-                                                )}
-                                              />
-                                              
-                                              {/* Milestone Notes */}
-                                              <FormField
-                                                control={form.control}
-                                                name={`performanceAssessments.${goalIndex}.milestones.${milestoneIndex}.notes`}
-                                                render={({ field }) => (
-                                                  <FormItem>
-                                                    <FormLabel>Notes</FormLabel>
-                                                    <FormControl>
-                                                      <Textarea 
-                                                        placeholder="Notes about this milestone..."
-                                                        className="resize-none min-h-16"
-                                                        {...field}
-                                                      />
-                                                    </FormControl>
-                                                    <FormMessage />
-                                                  </FormItem>
-                                                )}
-                                              />
-                                              
-                                              {/* Strategies Used */}
-                                              <FormField
-                                                control={form.control}
-                                                name={`performanceAssessments.${goalIndex}.milestones.${milestoneIndex}.strategies`}
-                                                render={({ field }) => (
-                                                  <FormItem>
-                                                    <FormLabel>Strategies Used</FormLabel>
-                                                    <div className="flex flex-wrap gap-2">
-                                                      {["Visual Support", "Verbal Prompting", "Physical Guidance", "Modeling", "Reinforcement"].map((strategy) => (
-                                                        <Badge
-                                                          key={strategy}
-                                                          variant={field.value?.includes(strategy) ? "default" : "outline"}
-                                                          className="cursor-pointer"
-                                                          onClick={() => {
-                                                            const currentStrategies = field.value || [];
-                                                            if (currentStrategies.includes(strategy)) {
-                                                              field.onChange(currentStrategies.filter(s => s !== strategy));
-                                                            } else {
-                                                              field.onChange([...currentStrategies, strategy]);
-                                                            }
-                                                          }}
-                                                        >
-                                                          {strategy}
-                                                        </Badge>
-                                                      ))}
-                                                    </div>
-                                                    <FormMessage />
-                                                  </FormItem>
-                                                )}
-                                              />
-                                            </div>
-                                          );
-                                        })}
-                                      </div>
-                                    )}
                                   </div>
-                                </CardContent>
-                              </Card>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
-                    
-                    {/* Right column (1/3) - General Notes section */}
-                    <div className="md:w-1/3">
-                      <Card>
-                        <CardHeader>
-                          <CardTitle className="text-base">General Session Notes</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          <FormField
-                            control={form.control}
-                            name="sessionNote.notes"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Notes</FormLabel>
-                                <FormControl>
-                                  <RichTextEditor
-                                    value={field.value || ""}
-                                    onChange={field.onChange}
-                                    placeholder="Enter general notes about the session..."
-                                    minHeight="min-h-[300px]"
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
+                                ))
+                              ) : (
+                                <p className="text-sm text-muted-foreground">No goals assessed</p>
+                              )}
+                            </div>
+                          </div>
+                          
+                          <div className="pt-2">
+                            <Label className="text-muted-foreground text-xs">Session Note Status</Label>
+                            <div className="flex items-center space-x-2 mt-1">
+                              <FormField
+                                control={form.control}
+                                name="sessionNote.status"
+                                render={({ field }) => (
+                                  <FormItem className="flex items-center space-x-2">
+                                    <FormControl>
+                                      <Checkbox
+                                        checked={field.value === "completed"}
+                                        onCheckedChange={(checked) => {
+                                          field.onChange(checked ? "completed" : "draft");
+                                        }}
+                                        id="status"
+                                      />
+                                    </FormControl>
+                                    <div className="space-y-1 leading-none">
+                                      <FormLabel htmlFor="status">
+                                        Mark as completed
+                                      </FormLabel>
+                                      <FormDescription>
+                                        You can save as a draft and complete later if needed
+                                      </FormDescription>
+                                    </div>
+                                  </FormItem>
+                                )}
+                              />
+                            </div>
+                          </div>
                         </CardContent>
                       </Card>
-                    </div>
-                  </div>
-                </TabsContent>
+                    </TabsContent>
+                  </Tabs>
+                </div>
               </div>
-              
-              {/* Footer with navigation and submit buttons */}
-              <div className="pt-2 border-t flex justify-between items-center">
-                <div className="flex items-center">
+            </ScrollArea>
+            
+            <DialogFooter className="px-6 pb-6">
+              <div className="flex justify-between w-full">
+                <div className="flex gap-2">
                   {activeTab !== "details" && (
                     <Button
                       type="button"
                       variant="outline"
-                      onClick={handleBack}
-                      className="mr-2"
+                      onClick={() => {
+                        if (activeTab === "performance") setActiveTab("details");
+                        if (activeTab === "summary") setActiveTab("performance");
+                      }}
                     >
-                      <ChevronLeft className="h-4 w-4 mr-1" />
-                      Back
-                    </Button>
-                  )}
-                  {activeTab !== "performance" && (
-                    <Button
-                      type="button"
-                      onClick={handleNext}
-                      variant="ghost"
-                    >
-                      Next
-                      <ChevronRight className="h-4 w-4 ml-1" />
+                      <ChevronLeft className="h-4 w-4 mr-2" />
+                      Previous
                     </Button>
                   )}
                 </div>
-                
-                <div className="flex items-center space-x-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => onOpenChange(false)}
-                  >
+                <div className="flex gap-2">
+                  <Button variant="outline" onClick={() => onOpenChange(false)}>
                     Cancel
                   </Button>
-                  {activeTab === "performance" && (
-                    <Button 
-                      type="submit"
-                      disabled={createSessionMutation.isPending}
+                  
+                  {activeTab !== "summary" ? (
+                    <Button
+                      type="button"
+                      onClick={() => {
+                        if (activeTab === "details") setActiveTab("performance");
+                        if (activeTab === "performance") setActiveTab("summary");
+                      }}
                     >
-                      {createSessionMutation.isPending ? "Creating..." : "Create Session"}
+                      Next
+                      <ChevronRight className="h-4 w-4 ml-2" />
+                    </Button>
+                  ) : (
+                    <Button 
+                      type="submit" 
+                      disabled={form.formState.isSubmitting}
+                      className="min-w-32"
+                    >
+                      {form.formState.isSubmitting ? (
+                        <>
+                          <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                          Saving...
+                        </>
+                      ) : (
+                        <>
+                          <Check className="h-4 w-4 mr-2" />
+                          Save Session
+                        </>
+                      )}
                     </Button>
                   )}
                 </div>
               </div>
-            </form>
-          </Form>
-        </Tabs>
+            </DialogFooter>
+          </form>
+        </Form>
       </DialogContent>
     </Dialog>
   );
