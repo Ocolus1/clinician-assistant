@@ -1265,34 +1265,61 @@ const ProductSelectionDialog = ({
   // Create session and session note mutation
   const createSessionMutation = useMutation({
     mutationFn: async (data: IntegratedSessionFormValues) => {
-      // Step 1: Create the session
-      const sessionResponse = await apiRequest("POST", "/api/sessions", data.session);
-      const sessionData = sessionResponse as any;
+      try {
+        console.log("Creating session with data:", data.session);
+        
+        // Step 1: Create the session
+        const sessionResponse = await apiRequest("POST", "/api/sessions", data.session);
+        if (!sessionResponse) {
+          throw new Error("Failed to create session - no response received");
+        }
+        
+        const sessionData = sessionResponse as any;
+        console.log("Session created successfully:", sessionData);
+        
+        if (!sessionData.id) {
+          throw new Error("Invalid session ID received from server");
+        }
 
-      // Step 2: Create the session note with the new session ID
-      const noteData = {
-        ...data.sessionNote,
-        sessionId: sessionData.id,
-        clientId: data.session.clientId
-      };
+        // Step 2: Create the session note with the new session ID
+        const noteData = {
+          ...data.sessionNote,
+          sessionId: sessionData.id,
+          clientId: data.session.clientId
+        };
+        
+        console.log(`Creating note for session ${sessionData.id}:`, noteData);
 
-      const noteResponse = await apiRequest("POST", `/api/sessions/${sessionData.id}/notes`, noteData);
-      const noteResponseData = noteResponse as any;
+        const noteResponse = await apiRequest("POST", `/api/sessions/${sessionData.id}/notes`, noteData);
+        if (!noteResponse) {
+          throw new Error("Failed to create session note - no response received");
+        }
+        
+        const noteResponseData = noteResponse as any;
+        console.log("Session note created successfully:", noteResponseData);
 
-      // Step 3: Create performance assessments
-      if (data.performanceAssessments.length > 0) {
-        await Promise.all(
-          data.performanceAssessments.map(assessment => 
-            apiRequest("POST", `/api/session-notes/${noteResponseData.id}/performance`, {
-              goalId: assessment.goalId,
-              notes: assessment.notes,
-              milestones: assessment.milestones
-            })
-          )
-        );
+        // Step 3: Create performance assessments
+        if (data.performanceAssessments && data.performanceAssessments.length > 0) {
+          console.log(`Creating ${data.performanceAssessments.length} performance assessments`);
+          
+          await Promise.all(
+            data.performanceAssessments.map(assessment => 
+              apiRequest("POST", `/api/session-notes/${noteResponseData.id}/performance`, {
+                goalId: assessment.goalId,
+                notes: assessment.notes,
+                milestones: assessment.milestones
+              })
+            )
+          );
+          
+          console.log("Performance assessments created successfully");
+        }
+
+        return sessionData;
+      } catch (error) {
+        console.error("Error creating session:", error);
+        throw error;
       }
-
-      return sessionData;
     },
     onSuccess: () => {
       toast({
