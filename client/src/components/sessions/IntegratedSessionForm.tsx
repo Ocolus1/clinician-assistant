@@ -2235,7 +2235,349 @@ const ProductSelectionDialog = ({
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 overflow-hidden flex flex-col flex-grow">
               <div className="flex-grow overflow-auto pr-2">
-                {/* Tab contents go here - use the same content as above */}
+                {/* Reuse the same tab content from the full-screen version */}
+                <TabsContent value="details" className="space-y-6 mt-0 px-4">
+                  {/* Three-column layout implementation for Session Details */}
+                  <ThreeColumnLayout
+                    leftColumn={
+                      <div className="space-y-4">
+                        <h3 className="font-medium text-sm">Present</h3>
+                        <FormField
+                          control={form.control}
+                          name="attendees"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Attendees</FormLabel>
+                              <FormControl>
+                                <Textarea 
+                                  placeholder="Who was present at the session..."
+                                  className="resize-none min-h-16"
+                                  {...field}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                    }
+                    middleColumn={
+                      <div className="space-y-4">
+                        <h3 className="font-medium text-sm">Products Used</h3>
+                        {selectedProducts.length === 0 ? (
+                          <div className="border rounded-lg p-4 text-center text-muted-foreground">
+                            No products selected
+                          </div>
+                        ) : (
+                          <div className="space-y-2">
+                            {selectedProducts.map((product, index) => (
+                              <div key={index} className="flex items-center justify-between border rounded-lg p-3 bg-card">
+                                <div>
+                                  <p className="font-medium">{product.name}</p>
+                                  <p className="text-sm text-muted-foreground">{product.quantity} × ${product.unitPrice.toFixed(2)}</p>
+                                </div>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => removeProduct(index)}
+                                >
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => setProductSelectionOpen(true)}
+                          className="w-full"
+                          disabled={!clientId || (!budgetItems?.length && !availableProducts?.length)}
+                        >
+                          <Plus className="h-4 w-4 mr-2" />
+                          Add Product
+                        </Button>
+                      </div>
+                    }
+                    rightColumn={
+                      <div className="space-y-4">
+                        <h3 className="font-medium text-sm">Session Observations</h3>
+                        <FormField
+                          control={form.control}
+                          name="observations"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Notes</FormLabel>
+                              <FormControl>
+                                <Textarea 
+                                  placeholder="Enter session observations..."
+                                  className="resize-none min-h-32"
+                                  {...field}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                    }
+                  />
+                </TabsContent>
+                
+                <TabsContent value="performance" className="space-y-4 mt-0 px-2">
+                  <div className="flex justify-between items-center">
+                    <h3 className="section-header">
+                      <RefreshCw className="h-5 w-5" />
+                      Performance Assessment
+                    </h3>
+                    <Button 
+                      type="button" 
+                      onClick={() => setGoalSelectionOpen(true)}
+                      disabled={!clientId}
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Goal
+                    </Button>
+                  </div>
+                  
+                  {/* Two-column layout: 2/3 goals, 1/3 general notes */}
+                  <div className="flex flex-col md:flex-row gap-4">
+                    {/* Left column (2/3) - Goals section */}
+                    <div className="md:w-2/3">
+                      {/* Goal Selection Dialog */}
+                      <GoalSelectionDialog
+                        open={goalSelectionOpen}
+                        onOpenChange={setGoalSelectionOpen}
+                        goals={goals}
+                        selectedGoalIds={selectedGoalIds}
+                        onSelectGoal={handleGoalSelection}
+                      />
+                      
+                      {/* Selected Goals and Milestones */}
+                      {selectedPerformanceAssessments.length === 0 ? (
+                        <div className="border rounded-md p-6 text-center bg-muted/10">
+                          <p className="text-muted-foreground">
+                            No goals selected yet. Click "Add Goal" to start assessment.
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="space-y-6">
+                          {selectedPerformanceAssessments.map((assessment, goalIndex) => {
+                            const goal = goals.find(g => g.id === assessment.goalId);
+                            const goalSubgoals = subgoalsByGoalId[assessment.goalId] || [];
+                            const selectedMilestoneIds = getSelectedMilestoneIds(assessment.goalId);
+                            
+                            return (
+                              <Card key={assessment.goalId} className="overflow-hidden">
+                                <CardHeader className="bg-primary/10 pb-3">
+                                  <div className="flex justify-between items-start">
+                                    <div>
+                                      <CardTitle className="text-base mb-1">{goal?.title}</CardTitle>
+                                      <CardDescription className="text-xs">{goal?.description}</CardDescription>
+                                    </div>
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="icon"
+                                      onClick={() => removeGoal(assessment.goalId)}
+                                    >
+                                      <X className="h-4 w-4" />
+                                    </Button>
+                                  </div>
+                                </CardHeader>
+                                <CardContent className="p-4">
+                                  {/* Progress Rating Field */}
+                                  <div className="mb-6">
+                                    <FormField
+                                      control={form.control}
+                                      name={`performanceAssessments.${goalIndex}.rating`}
+                                      render={({ field }) => (
+                                        <FormItem>
+                                          <FormLabel>Progress Rating</FormLabel>
+                                          <FormControl>
+                                            <RatingSlider
+                                              value={field.value}
+                                              onChange={field.onChange}
+                                              label="Progress"
+                                              description="Rate overall progress towards this goal"
+                                            />
+                                          </FormControl>
+                                          <FormMessage />
+                                        </FormItem>
+                                      )}
+                                    />
+                                  </div>
+                                  
+                                  {/* Milestone Selection */}
+                                  <div>
+                                    <div className="flex justify-between items-center mb-3">
+                                      <FormLabel>Milestones Addressed</FormLabel>
+                                      <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => {
+                                          setMilestoneGoalId(assessment.goalId);
+                                          setMilestoneSelectionOpen(true);
+                                        }}
+                                        disabled={goalSubgoals.length === 0}
+                                      >
+                                        <Plus className="h-3 w-3 mr-1" />
+                                        Add Milestone
+                                      </Button>
+                                    </div>
+                                    
+                                    <MilestoneSelectionDialog
+                                      open={milestoneSelectionOpen && milestoneGoalId === assessment.goalId}
+                                      onOpenChange={(open) => {
+                                        if (!open) setMilestoneSelectionOpen(false);
+                                      }}
+                                      subgoals={goalSubgoals}
+                                      selectedMilestoneIds={selectedMilestoneIds}
+                                      onSelectMilestone={handleMilestoneSelection}
+                                    />
+                                    
+                                    {assessment.milestones.length === 0 ? (
+                                      <div className="border rounded-md p-4 text-center bg-muted/10">
+                                        <p className="text-muted-foreground text-sm">
+                                          No milestones selected. Click "Add Milestone" to assess specific skills.
+                                        </p>
+                                      </div>
+                                    ) : (
+                                      <div className="space-y-5">
+                                        {assessment.milestones.map((milestone, milestoneIndex) => {
+                                          const subgoal = goalSubgoals.find(sg => sg.id === milestone.subgoalId);
+                                          
+                                          return (
+                                            <div key={milestone.subgoalId} className="border rounded-md p-3 bg-card">
+                                              <div className="flex justify-between items-start mb-3">
+                                                <div>
+                                                  <h4 className="font-medium text-sm">{subgoal?.title}</h4>
+                                                  <p className="text-xs text-muted-foreground">{subgoal?.description}</p>
+                                                </div>
+                                                <Button
+                                                  type="button"
+                                                  variant="ghost"
+                                                  size="icon"
+                                                  onClick={() => removeMilestone(assessment.goalId, milestone.subgoalId)}
+                                                >
+                                                  <X className="h-4 w-4" />
+                                                </Button>
+                                              </div>
+                                              
+                                              {/* Rating Field */}
+                                              <FormField
+                                                control={form.control}
+                                                name={`performanceAssessments.${goalIndex}.milestones.${milestoneIndex}.rating`}
+                                                render={({ field }) => (
+                                                  <FormItem className="mb-3">
+                                                    <FormLabel>Performance Rating</FormLabel>
+                                                    <FormControl>
+                                                      <RatingSlider
+                                                        value={field.value}
+                                                        onChange={field.onChange}
+                                                        label="Performance"
+                                                        description="Rate performance on this milestone"
+                                                      />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                  </FormItem>
+                                                )}
+                                              />
+                                              
+                                              {/* Milestone Notes */}
+                                              <FormField
+                                                control={form.control}
+                                                name={`performanceAssessments.${goalIndex}.milestones.${milestoneIndex}.notes`}
+                                                render={({ field }) => (
+                                                  <FormItem>
+                                                    <FormLabel>Notes</FormLabel>
+                                                    <FormControl>
+                                                      <Textarea 
+                                                        placeholder="Notes about this milestone..."
+                                                        className="resize-none min-h-16"
+                                                        {...field}
+                                                      />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                  </FormItem>
+                                                )}
+                                              />
+                                              
+                                              {/* Strategies Used */}
+                                              <FormField
+                                                control={form.control}
+                                                name={`performanceAssessments.${goalIndex}.milestones.${milestoneIndex}.strategies`}
+                                                render={({ field }) => (
+                                                  <FormItem>
+                                                    <FormLabel>Strategies Used</FormLabel>
+                                                    <div className="flex flex-wrap gap-2">
+                                                      {["Visual Support", "Verbal Prompting", "Physical Guidance", "Modeling", "Reinforcement"].map((strategy) => (
+                                                        <Badge
+                                                          key={strategy}
+                                                          variant={field.value?.includes(strategy) ? "default" : "outline"}
+                                                          className="cursor-pointer"
+                                                          onClick={() => {
+                                                            const currentStrategies = field.value || [];
+                                                            if (currentStrategies.includes(strategy)) {
+                                                              field.onChange(currentStrategies.filter(s => s !== strategy));
+                                                            } else {
+                                                              field.onChange([...currentStrategies, strategy]);
+                                                            }
+                                                          }}
+                                                        >
+                                                          {strategy}
+                                                        </Badge>
+                                                      ))}
+                                                    </div>
+                                                    <FormMessage />
+                                                  </FormItem>
+                                                )}
+                                              />
+                                            </div>
+                                          );
+                                        })}
+                                      </div>
+                                    )}
+                                  </div>
+                                </CardContent>
+                              </Card>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                    
+                    {/* Right column (1/3) - General Notes section */}
+                    <div className="md:w-1/3">
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="text-base">General Session Notes</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <FormField
+                            control={form.control}
+                            name="generalNotes"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Notes</FormLabel>
+                                <FormControl>
+                                  <Textarea 
+                                    placeholder="Enter general notes about the session..."
+                                    className="resize-none min-h-[300px]"
+                                    {...field}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </CardContent>
+                      </Card>
+                    </div>
+                  </div>
+                </TabsContent>
               </div>
               
               {/* Footer with navigation and submit buttons */}
