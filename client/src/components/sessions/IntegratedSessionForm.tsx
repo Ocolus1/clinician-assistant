@@ -1582,8 +1582,8 @@ const ProductSelectionDialog = ({
                       </DialogContent>
                     </Dialog>
                     
-                    {/* Products Section */}
-                    <div className="mt-6">
+                    {/* Middle Column - Products Section */}
+                    <div className="space-y-4">
                       <div className="flex justify-between items-center">
                         <h3 className="section-header">
                           <ShoppingCart className="h-5 w-5" />
@@ -1806,6 +1806,108 @@ const ProductSelectionDialog = ({
                           </div>
                         </div>
                       )}
+                    </div>
+                    
+                    {/* Right Column - Session Observations */}
+                    <div className="space-y-4">
+                      <h3 className="section-header">
+                        <ClipboardList className="h-5 w-5" />
+                        Session Observations
+                      </h3>
+                      
+                      {/* Rating Sliders */}
+                      <div className="space-y-4">
+                        <FormField
+                          control={form.control}
+                          name="sessionNote.moodRating"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormControl>
+                                <RatingSlider
+                                  value={field.value}
+                                  onChange={field.onChange}
+                                  label="Mood"
+                                  description="Rate client's overall mood during the session"
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        
+                        <FormField
+                          control={form.control}
+                          name="sessionNote.focusRating"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormControl>
+                                <RatingSlider
+                                  value={field.value}
+                                  onChange={field.onChange}
+                                  label="Focus"
+                                  description="Rate client's ability to focus during the session"
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        
+                        <FormField
+                          control={form.control}
+                          name="sessionNote.cooperationRating"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormControl>
+                                <RatingSlider
+                                  value={field.value}
+                                  onChange={field.onChange}
+                                  label="Cooperation"
+                                  description="Rate client's overall cooperation"
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        
+                        <FormField
+                          control={form.control}
+                          name="sessionNote.physicalActivityRating"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormControl>
+                                <RatingSlider
+                                  value={field.value}
+                                  onChange={field.onChange}
+                                  label="Physical Activity"
+                                  description="Rate client's physical activity level"
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                      
+                      {/* Notes Textarea */}
+                      <FormField
+                        control={form.control}
+                        name="sessionNote.notes"
+                        render={({ field }) => (
+                          <FormItem className="mt-4">
+                            <FormLabel>General Notes</FormLabel>
+                            <FormControl>
+                              <Textarea 
+                                placeholder="Enter general observations about the session..."
+                                className="resize-none min-h-[220px]"
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
                     </div>
                   </div>
                   {/* Close third column div */}
