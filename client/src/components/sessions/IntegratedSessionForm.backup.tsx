@@ -1910,7 +1910,6 @@ const ProductSelectionDialog = ({
                       />
                     </div>
                   </div>
-                  </div>
                 </TabsContent>
 
                 {/* Performance Assessment Tab */}

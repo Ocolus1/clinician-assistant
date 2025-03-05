@@ -1,0 +1,180 @@
+/* Import our global styling system */
+@import url('./styles/colors.css');
+@import url('./styles/buttons.css');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Layout measurements */
+  --sidebar-width-expanded: 16rem; /* 64px * 4 = 256px = 16rem */
+  --sidebar-width-collapsed: 5rem;  /* 20px * 4 = 80px = 5rem */
+  --sidebar-width: var(--sidebar-width-expanded);
+}
+
+@layer base {
+  * {
+    @apply border-gray-300;
+    box-sizing: border-box;
+  }
+
+  body {
+    @apply font-sans antialiased bg-gray-50 text-gray-800;
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
+    width: 100%;
+  }
+
+  h1 {
+    @apply text-[2.75rem] font-normal leading-tight text-gray-800;
+  }
+
+  h2 {
+    @apply text-[1.75rem] font-normal leading-normal text-gray-600;
+  }
+
+  p {
+    @apply text-base leading-relaxed text-gray-500;
+  }
+
+  /* Layout components */
+  .sidebar {
+    @apply w-sidebar bg-gray-900 border-r border-gray-800 fixed h-full left-0 top-0;
+  }
+
+  .sidebar-text {
+    @apply text-white;
+  }
+  
+  .sidebar-icon {
+    @apply text-white;
+  }
+  
+  .sidebar-item-active {
+    @apply bg-gray-800 text-primary-blue-500;
+  }
+
+  .main-content {
+    @apply ml-sidebar min-h-screen p-8 bg-gray-50;
+  }
+
+  /* Button styles */
+  .button-primary {
+    @apply bg-primary-blue-500 text-white px-6 py-2 rounded hover:bg-primary-blue-700 transition-colors;
+  }
+  
+  .button-secondary {
+    @apply bg-white text-primary-blue-500 border border-primary-blue-500 px-6 py-2 rounded hover:bg-primary-blue-100 transition-colors;
+  }
+  
+  .button-tertiary {
+    @apply bg-transparent text-primary-blue-500 px-6 py-2 rounded hover:bg-primary-blue-100 transition-colors;
+  }
+  
+  .button-danger {
+    @apply bg-error-500 text-white px-6 py-2 rounded hover:bg-error-700 transition-colors;
+  }
+  
+  /* Status indicators */
+  .status-active {
+    @apply bg-success-100 text-success-700 px-2 py-1 rounded-full text-xs font-medium;
+  }
+  
+  .status-pending {
+    @apply bg-warning-100 text-warning-700 px-2 py-1 rounded-full text-xs font-medium;
+  }
+  
+  .status-inactive {
+    @apply bg-gray-100 text-gray-400 px-2 py-1 rounded-full text-xs font-medium;
+  }
+  
+  /* Card styles */
+  .card {
+    @apply bg-white border border-gray-200 rounded-lg p-4 shadow-sm;
+  }
+  
+  .card-header {
+    @apply pb-3 mb-3 border-b border-gray-200;
+  }
+  
+  .card-title {
+    @apply text-gray-800 font-semibold text-lg;
+  }
+}
+
+/* Fix for unwanted calendars in the UI - ultra aggressive version */
+.rdp {
+  display: none !important;
+}
+
+/* Only display calendars in specific containment contexts */
+[data-calendar-container="true"] .rdp,
+[data-state="open"] .rdp {
+  display: block !important;
+}
+
+/* Additional calendar containment */
+.calendar-container {
+  position: relative;
+  z-index: 100;
+}
+
+/* Hide calendars that are not properly contained */
+.uncontained-calendar,
+.uncontained-calendar * {
+  display: none !important;
+}
+
+/* Target unwanted calendars in the session creation form specifically */
+[id^="radix-"] > div > div > .rdp:not([data-calendar-container="true"] .rdp, [data-state="open"] .rdp) {
+  display: none !important;
+  visibility: hidden !important;
+}
+
+/* Session creation specific fixes */
+.uncontained-calendar .rdp,
+.uncontained-calendar .rdp * {
+  display: none !important;
+  visibility: hidden !important;
+  height: 0 !important;
+  width: 0 !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  position: absolute !important;
+  overflow: hidden !important;
+}
+
+/* Directly target the calendar in the tabs */
+.tabs-content .rdp:not([data-calendar-container="true"] .rdp) {
+  display: none !important;
+}
+
+/* Target possible March calendar */
+body:not([data-calendar-container="true"]) table.rdp-table,
+body > div > div > table.rdp-table {
+  display: none !important;
+  visibility: hidden !important;
+  max-height: 0 !important;
+  overflow: hidden !important;
+}
+
+/* Only show calendars in React Popovers */
+div:not([data-popover-content]) > .rdp {
+  display: none !important;
+}
+
+/* Three-column layout for session forms */
+.three-column-container {
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  width: 100% !important;
+  gap: 24px !important;
+}
+
+.three-column-container > div {
+  flex: 1 !important;
+  min-width: 0 !important;
+}
