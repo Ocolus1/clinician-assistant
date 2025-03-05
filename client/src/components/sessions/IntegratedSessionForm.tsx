@@ -1998,25 +1998,7 @@ const ProductSelectionDialog = ({
                                 </CardHeader>
                             
                                 <CardContent className="pt-4">
-                                  {/* Goal Notes */}
-                                  <FormField
-                                    control={form.control}
-                                    name={`performanceAssessments.${goalIndex}.notes`}
-                                    render={({ field }) => (
-                                      <FormItem className="mb-4">
-                                        <FormLabel>Goal Progress Notes</FormLabel>
-                                        <FormControl>
-                                          <RichTextEditor 
-                                            value={field.value || ""}
-                                            onChange={field.onChange}
-                                            placeholder="Enter notes about progress on this goal..."
-                                            minHeight="min-h-20"
-                                          />
-                                        </FormControl>
-                                        <FormMessage />
-                                      </FormItem>
-                                    )}
-                                  />
+                                  {/* Goal Notes section removed as requested */}
                                   
                                   {/* Milestone Section */}
                                   <div className="mt-4">
