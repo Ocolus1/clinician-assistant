@@ -23,7 +23,6 @@ import {
   Package,
   BarChart
 } from "lucide-react";
-import "./session-form.css";
 
 // Extracted components
 import { ThreeColumnLayout } from "./ThreeColumnLayout";
@@ -274,10 +273,10 @@ export function IntegratedSessionFormRefactored({
       
       // Calculate available quantities
       const productsWithQuantity = budgetItems
-        .filter((item: BudgetItem) => !selectedIds.includes(item.id))
-        .map((item: BudgetItem) => ({
+        .filter((item: any) => !selectedIds.includes(item.id))
+        .map((item: any) => ({
           ...item,
-          availableQuantity: item.quantityAvailable - (item.quantityUsed || 0)
+          availableQuantity: item.quantity || 0
         }))
         .filter((item: any) => item.availableQuantity > 0);
       
@@ -311,30 +310,30 @@ export function IntegratedSessionFormRefactored({
 
   // Handle ally selection
   const handleAllySelection = (allyId: number) => {
-    const currentAllies = form.getValues("sessionNote.presentAllyIds");
-    const currentAllyNames = form.getValues("sessionNote.presentAllies");
+    const currentAllies = form.getValues("sessionNote.presentAllyIds") || [];
+    const currentAllyNames = form.getValues("sessionNote.presentAllies") || [];
     
     // Find the ally to get their name
-    const ally = allies.find(a => a.id === allyId);
+    const allyObj = allies.find((a: any) => a.id === allyId);
     
     if (currentAllies.includes(allyId)) {
       // Remove ally
       form.setValue("sessionNote.presentAllyIds", currentAllies.filter(id => id !== allyId));
-      if (ally) {
-        form.setValue("sessionNote.presentAllies", currentAllyNames.filter(name => name !== ally.name));
+      if (allyObj) {
+        form.setValue("sessionNote.presentAllies", currentAllyNames.filter(name => name !== allyObj.name));
       }
     } else {
       // Add ally
       form.setValue("sessionNote.presentAllyIds", [...currentAllies, allyId]);
-      if (ally) {
-        form.setValue("sessionNote.presentAllies", [...currentAllyNames, ally.name]);
+      if (allyObj) {
+        form.setValue("sessionNote.presentAllies", [...currentAllyNames, allyObj.name]);
       }
     }
   };
 
   // Submission handling
   const createSession = useMutation({
-    mutationFn: async (data: typeof form.getValues) => {
+    mutationFn: async (data: any) => {
       // Step 1: Create the session
       const sessionResponse = await apiRequest('POST', '/api/sessions', data.session);
       const sessionId = sessionResponse.id;
@@ -348,7 +347,7 @@ export function IntegratedSessionFormRefactored({
       const sessionNoteId = sessionNoteResponse.id;
       
       // Step 3: Create performance assessments
-      const assessmentPromises = data.performanceAssessments.map(async (assessment) => {
+      const assessmentPromises = data.performanceAssessments.map(async (assessment: any) => {
         const assessmentData = {
           sessionNoteId,
           goalId: assessment.goalId,
@@ -359,7 +358,7 @@ export function IntegratedSessionFormRefactored({
         const assessmentId = assessmentResponse.id;
         
         // Step 4: Create milestone assessments for each performance assessment
-        const milestonePromises = assessment.milestones.map(async (milestone) => {
+        const milestonePromises = assessment.milestones.map(async (milestone: any) => {
           const milestoneData = {
             performanceAssessmentId: assessmentId,
             subgoalId: milestone.milestoneId,
@@ -425,7 +424,7 @@ export function IntegratedSessionFormRefactored({
     }
   }, [open, setActiveTab, setPerformanceAssessments, setCurrentGoalIndex, setCurrentMilestoneIndex]);
 
-  // Content sections
+  // Section renders
   const renderClientSelection = () => (
     <div className="space-y-4 mb-4">
       <div className="space-y-2">
@@ -480,9 +479,9 @@ export function IntegratedSessionFormRefactored({
                         {field.value ? (
                           format(field.value, "PPP")
                         ) : (
-                          <span>Pick a date</span>
+                          <span>Select a date</span>
                         )}
-                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                        <CalendarIcon className="ml-auto h-4 w-4" />
                       </Button>
                     </FormControl>
                   </PopoverTrigger>
@@ -508,14 +507,11 @@ export function IntegratedSessionFormRefactored({
             <FormItem>
               <FormLabel>Duration (minutes)</FormLabel>
               <FormControl>
-                <div className="flex items-center">
-                  <Input
-                    type="number"
-                    {...field}
-                    onChange={(e) => field.onChange(parseInt(e.target.value) || 60)}
-                  />
-                  <Clock className="ml-2 h-4 w-4 opacity-50" />
-                </div>
+                <Input 
+                  type="number" 
+                  {...field} 
+                  onChange={(e) => field.onChange(parseInt(e.target.value))}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -530,10 +526,7 @@ export function IntegratedSessionFormRefactored({
           <FormItem>
             <FormLabel>Location</FormLabel>
             <FormControl>
-              <div className="flex items-center">
-                <Input {...field} />
-                <MapPinIcon className="ml-2 h-4 w-4 opacity-50" />
-              </div>
+              <Input {...field} />
             </FormControl>
             <FormMessage />
           </FormItem>
@@ -545,9 +538,14 @@ export function IntegratedSessionFormRefactored({
         name="session.description"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Description (Optional)</FormLabel>
+            <FormLabel>Description</FormLabel>
             <FormControl>
-              <Textarea {...field} rows={3} />
+              <Textarea 
+                {...field} 
+                className="resize-none" 
+                rows={4}
+                placeholder="Brief description of the session goals and focus areas"
+              />
             </FormControl>
             <FormMessage />
           </FormItem>
@@ -557,702 +555,723 @@ export function IntegratedSessionFormRefactored({
   );
 
   const renderPresentSection = () => (
-    <div className="space-y-4">
-      <h3 className="text-lg font-medium mb-2">Present at Session</h3>
-      
-      {allies.length === 0 ? (
-        <div className="p-4 border rounded-md bg-muted/20 text-center">
-          <p className="text-muted-foreground">No allies found for this client</p>
-        </div>
-      ) : (
-        <div className="space-y-2">
-          {allies.map((ally) => (
-            <div key={ally.id} className="flex items-center space-x-2">
-              <Checkbox
-                id={`ally-${ally.id}`}
-                checked={form.watch("sessionNote.presentAllyIds").includes(ally.id)}
-                onCheckedChange={() => handleAllySelection(ally.id)}
-              />
-              <Label htmlFor={`ally-${ally.id}`} className="flex-1 cursor-pointer">
-                <div className="flex justify-between">
-                  <span>{ally.name}</span>
-                  <span className="text-sm text-muted-foreground">{ally.role}</span>
+    <div className="space-y-6">
+      <div className="space-y-4">
+        <h3 className="text-lg font-medium">Present at Session</h3>
+        <div className="border rounded-md p-4">
+          <div className="space-y-3">
+            {allies.length === 0 ? (
+              <p className="text-muted-foreground text-sm">No allies found for this client</p>
+            ) : (
+              allies.map((ally: any) => (
+                <div key={ally.id} className="flex items-center space-x-2">
+                  <Checkbox 
+                    id={`ally-${ally.id}`} 
+                    checked={form.watch("sessionNote.presentAllyIds")?.includes(ally.id)}
+                    onCheckedChange={() => handleAllySelection(ally.id)}
+                  />
+                  <Label htmlFor={`ally-${ally.id}`}>{ally.name} ({ally.role})</Label>
                 </div>
-              </Label>
-            </div>
-          ))}
+              ))
+            )}
+          </div>
         </div>
-      )}
+      </div>
       
-      <div className="space-y-3 mt-6">
-        <h3 className="text-lg font-medium mb-2">Session Ratings</h3>
+      <div className="space-y-4">
+        <h3 className="text-lg font-medium">Session Ratings</h3>
         
-        <Controller
-          control={form.control}
-          name="sessionNote.moodRating"
-          render={({ field }) => (
-            <RatingSlider
-              value={field.value}
-              onChange={field.onChange}
-              label="Mood"
-              description="Overall mood during the session"
-            />
-          )}
-        />
-        
-        <Controller
-          control={form.control}
-          name="sessionNote.focusRating"
-          render={({ field }) => (
-            <RatingSlider
-              value={field.value}
-              onChange={field.onChange}
-              label="Focus"
-              description="Ability to maintain attention on tasks"
-            />
-          )}
-        />
-        
-        <Controller
-          control={form.control}
-          name="sessionNote.cooperationRating"
-          render={({ field }) => (
-            <RatingSlider
-              value={field.value}
-              onChange={field.onChange}
-              label="Cooperation"
-              description="Willingness to engage in activities"
-            />
-          )}
-        />
-        
-        <Controller
-          control={form.control}
-          name="sessionNote.physicalActivityRating"
-          render={({ field }) => (
-            <RatingSlider
-              value={field.value}
-              onChange={field.onChange}
-              label="Physical Activity"
-              description="Level of physical engagement"
-            />
-          )}
-        />
+        <div className="space-y-6 py-2">
+          <FormField
+            control={form.control}
+            name="sessionNote.moodRating"
+            render={({ field }) => (
+              <FormItem>
+                <RatingSlider 
+                  label="Mood"
+                  value={field.value}
+                  onChange={field.onChange}
+                  description="Client's overall mood during the session"
+                />
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          
+          <FormField
+            control={form.control}
+            name="sessionNote.focusRating"
+            render={({ field }) => (
+              <FormItem>
+                <RatingSlider 
+                  label="Focus"
+                  value={field.value}
+                  onChange={field.onChange}
+                  description="Client's ability to maintain attention"
+                />
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          
+          <FormField
+            control={form.control}
+            name="sessionNote.cooperationRating"
+            render={({ field }) => (
+              <FormItem>
+                <RatingSlider 
+                  label="Cooperation"
+                  value={field.value}
+                  onChange={field.onChange}
+                  description="Client's willingness to engage in activities"
+                />
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          
+          <FormField
+            control={form.control}
+            name="sessionNote.physicalActivityRating"
+            render={({ field }) => (
+              <FormItem>
+                <RatingSlider 
+                  label="Physical Activity"
+                  value={field.value}
+                  onChange={field.onChange}
+                  description="Client's energy and physical engagement level"
+                />
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
       </div>
     </div>
   );
 
   const renderGoalsSection = () => (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h3 className="text-lg font-medium">Goal Assessments</h3>
         <Button 
-          type="button" 
           variant="outline" 
-          size="sm"
+          size="sm" 
           onClick={() => setGoalSelectionOpen(true)}
-          disabled={goals.length === 0 || selectedGoalIds.length >= goals.length}
+          className="flex items-center gap-1"
         >
-          <Plus className="h-4 w-4 mr-1" />
-          Add Goal
+          <Plus className="h-4 w-4" /> Add Goal
         </Button>
       </div>
       
-      {performanceAssessments.length === 0 ? (
-        <div className="p-6 border rounded-md bg-muted/20 text-center">
-          <ClipboardList className="h-10 w-10 mx-auto mb-2 text-muted-foreground opacity-50" />
-          <p className="text-muted-foreground">No goals have been added for assessment</p>
-          <Button 
-            type="button"
-            variant="outline" 
-            className="mt-4"
-            onClick={() => setGoalSelectionOpen(true)}
-            disabled={goals.length === 0}
-          >
-            <Plus className="h-4 w-4 mr-1" />
-            Add Goal
-          </Button>
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {performanceAssessments.map((assessment, goalIndex) => (
-            <Card key={`goal-${assessment.goalId}`} className="overflow-hidden">
-              <CardHeader className="bg-muted/20 px-4 py-3">
-                <div className="flex justify-between items-center">
-                  <CardTitle className="text-base">{assessment.goalTitle}</CardTitle>
-                  <Button
-                    type="button"
-                    variant="ghost"
+      <div>
+        {performanceAssessments.length === 0 ? (
+          <div className="border rounded-md p-8 text-center">
+            <div className="mx-auto mb-4 bg-muted w-12 h-12 rounded-full flex items-center justify-center">
+              <BarChart className="h-6 w-6 text-muted-foreground" />
+            </div>
+            <h3 className="text-lg font-medium mb-2">No Goals Selected</h3>
+            <p className="text-muted-foreground mb-4">Add goals to track progress during this session</p>
+            <Button onClick={() => setGoalSelectionOpen(true)}>Select Goals</Button>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {performanceAssessments.map((assessment, index) => (
+              <Card key={`goal-${index}`}>
+                <CardHeader className="pb-2 flex flex-row items-start justify-between">
+                  <div>
+                    <CardTitle className="text-base">{assessment.goalTitle}</CardTitle>
+                    <CardDescription>
+                      {assessment.milestones.length} milestone{assessment.milestones.length !== 1 ? 's' : ''} selected
+                    </CardDescription>
+                  </div>
+                  <Button 
+                    variant="ghost" 
                     size="icon"
-                    className="h-8 w-8"
-                    onClick={() => handleRemoveGoal(goalIndex)}
+                    onClick={() => handleRemoveGoal(index)}
                   >
                     <X className="h-4 w-4" />
                   </Button>
-                </div>
-              </CardHeader>
-              
-              <CardContent className="p-4">
-                {assessment.milestones.length === 0 ? (
-                  <div className="text-center py-3">
-                    <p className="text-sm text-muted-foreground">No milestones added</p>
-                  </div>
-                ) : (
+                </CardHeader>
+                <CardContent>
                   <div className="space-y-4">
-                    {assessment.milestones.map((milestone, milestoneIndex) => (
-                      <div key={`milestone-${milestone.milestoneId}`} className="border rounded-md p-3">
-                        <div className="flex justify-between items-start mb-2">
-                          <div>
-                            <h4 className="font-medium text-sm">{milestone.milestoneTitle}</h4>
-                          </div>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="h-6 w-6 -mt-1 -mr-1"
-                            onClick={() => handleRemoveMilestone(goalIndex, milestoneIndex)}
-                          >
-                            <X className="h-3 w-3" />
-                          </Button>
-                        </div>
-                        
-                        <RatingSlider
-                          value={milestone.rating || 5}
-                          onChange={(value) => handleUpdateMilestoneRating(goalIndex, milestoneIndex, value)}
-                          label="Performance"
-                        />
-                        
-                        <div className="mt-3">
-                          <div className="flex justify-between items-center mb-1.5">
-                            <Label className="text-xs font-medium">Strategies</Label>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              className="h-7 px-2 text-xs"
-                              onClick={() => {
-                                setCurrentGoalIndex(goalIndex);
-                                setCurrentMilestoneIndex(milestoneIndex);
-                                setStrategySelectionOpen(true);
-                              }}
-                            >
-                              <Plus className="h-3 w-3 mr-1" />
-                              Add
-                            </Button>
-                          </div>
-                          
-                          {milestone.strategies.length === 0 ? (
-                            <p className="text-xs text-muted-foreground italic">No strategies selected</p>
-                          ) : (
-                            <div className="flex flex-wrap gap-1.5">
-                              {milestone.strategies.map((strategy, strategyIndex) => (
-                                <Badge 
-                                  key={`strategy-${strategyIndex}`} 
-                                  variant="outline"
-                                  className="flex items-center gap-1 pl-2 pr-1 py-0.5"
-                                >
-                                  <span className="text-xs">{strategy}</span>
-                                  <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-4 w-4 ml-1"
-                                    onClick={() => handleRemoveStrategy(goalIndex, milestoneIndex, strategy)}
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => {
+                        setCurrentGoalIndex(index);
+                        setMilestoneSelectionOpen(true);
+                      }}
+                      className="flex items-center gap-1"
+                    >
+                      <Plus className="h-4 w-4" /> Add Milestone
+                    </Button>
+                    
+                    {assessment.milestones.length > 0 ? (
+                      <div className="space-y-3 mt-2">
+                        {assessment.milestones.map((milestone, mIndex) => (
+                          <div key={`milestone-${index}-${mIndex}`} className="border rounded-md p-3">
+                            <div className="flex justify-between items-start mb-2">
+                              <h4 className="text-sm font-medium">{milestone.milestoneTitle}</h4>
+                              <Button 
+                                variant="ghost" 
+                                size="icon"
+                                className="h-6 w-6"
+                                onClick={() => handleRemoveMilestone(index, mIndex)}
+                              >
+                                <X className="h-3 w-3" />
+                              </Button>
+                            </div>
+                            
+                            <div className="space-y-3">
+                              <div>
+                                <Label className="text-xs mb-1 block">Progress Rating</Label>
+                                <div className="flex items-center gap-3">
+                                  <input 
+                                    type="range" 
+                                    min="0" 
+                                    max="10" 
+                                    value={milestone.rating || 5} 
+                                    onChange={(e) => handleUpdateMilestoneRating(index, mIndex, parseInt(e.target.value))}
+                                    className="flex-1"
+                                  />
+                                  <span className="text-sm font-medium">{milestone.rating || 5}/10</span>
+                                </div>
+                              </div>
+                              
+                              <div>
+                                <div className="flex justify-between items-center mb-1">
+                                  <Label className="text-xs">Strategies</Label>
+                                  <Button 
+                                    variant="ghost" 
+                                    size="sm"
+                                    className="h-6 py-0 px-2 text-xs"
+                                    onClick={() => {
+                                      setCurrentGoalIndex(index);
+                                      setCurrentMilestoneIndex(mIndex);
+                                      setStrategySelectionOpen(true);
+                                    }}
                                   >
-                                    <X className="h-2 w-2" />
+                                    + Add
                                   </Button>
-                                </Badge>
+                                </div>
+                                
+                                <div className="flex flex-wrap gap-1">
+                                  {milestone.strategies && milestone.strategies.length > 0 ? (
+                                    milestone.strategies.map((strategy, sIndex) => (
+                                      <Badge 
+                                        key={`strategy-${index}-${mIndex}-${sIndex}`}
+                                        variant="outline" 
+                                        className="gap-1 pl-2 pr-1 py-0 h-6"
+                                      >
+                                        {strategy}
+                                        <Button 
+                                          variant="ghost" 
+                                          size="icon"
+                                          className="h-4 w-4 ml-1"
+                                          onClick={() => handleRemoveStrategy(index, mIndex, sIndex)}
+                                        >
+                                          <X className="h-2 w-2" />
+                                        </Button>
+                                      </Badge>
+                                    ))
+                                  ) : (
+                                    <span className="text-xs text-muted-foreground">No strategies added</span>
+                                  )}
+                                </div>
+                              </div>
+                              
+                              <div>
+                                <Label className="text-xs mb-1 block">Notes</Label>
+                                <Textarea 
+                                  placeholder="Add specific notes about this milestone..."
+                                  value={milestone.notes || ""}
+                                  onChange={(e) => handleUpdateMilestoneNotes(index, mIndex, e.target.value)}
+                                  className="text-sm min-h-[60px]"
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground mt-2">
+                        No milestones selected for this goal yet
+                      </p>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
+  const renderProductsSection = () => (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h3 className="text-lg font-medium">Products Used</h3>
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={() => setProductSelectionOpen(true)}
+          className="flex items-center gap-1"
+          disabled={productItems.length === 0}
+        >
+          <Plus className="h-4 w-4" /> Add Product
+        </Button>
+      </div>
+      
+      {!budgetSettings || !budgetSettings.planName ? (
+        <div className="border rounded-md p-8 text-center">
+          <div className="mx-auto mb-4 bg-muted w-12 h-12 rounded-full flex items-center justify-center">
+            <Package className="h-6 w-6 text-muted-foreground" />
+          </div>
+          <h3 className="text-lg font-medium mb-2">No Funding Plan</h3>
+          <p className="text-muted-foreground">This client doesn't have an active funding plan</p>
+        </div>
+      ) : (
+        <div>
+          <div className="mb-4">
+            <div className="bg-muted/30 border rounded-md p-3">
+              <div className="flex justify-between">
+                <div>
+                  <h4 className="text-sm font-medium">{budgetSettings.planName}</h4>
+                  <p className="text-xs text-muted-foreground">{budgetSettings.planCode}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm font-medium">
+                    Available: ${Number(budgetSettings.availableFunds).toFixed(2)}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div className="space-y-4">
+            {(() => {
+              const products = form.watch("sessionNote.products") || [];
+              
+              if (products.length === 0) {
+                return (
+                  <div className="border rounded-md p-6 text-center">
+                    <ShoppingCart className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+                    <h4 className="text-base font-medium mb-1">No Products Added</h4>
+                    <p className="text-sm text-muted-foreground mb-3">
+                      Add products that were used during this session
+                    </p>
+                    <Button 
+                      variant="outline" 
+                      onClick={() => setProductSelectionOpen(true)}
+                      disabled={productItems.length === 0}
+                    >
+                      Browse Products
+                    </Button>
+                  </div>
+                );
+              }
+              
+              return (
+                <div>
+                  <div className="border rounded-md overflow-hidden">
+                    <table className="w-full text-sm">
+                      <thead className="bg-muted">
+                        <tr>
+                          <th className="py-2 px-3 text-left">Product</th>
+                          <th className="py-2 px-3 text-center">Qty</th>
+                          <th className="py-2 px-3 text-right">Price</th>
+                          <th className="py-2 px-3 text-right">Total</th>
+                          <th className="py-2 px-3 w-10"></th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y">
+                        {products.map((product: any, index: number) => (
+                          <tr key={`product-${index}`}>
+                            <td className="py-3 px-3">
+                              <div>
+                                <div className="font-medium">{product.productDescription}</div>
+                                <div className="text-xs text-muted-foreground">{product.productCode}</div>
+                              </div>
+                            </td>
+                            <td className="py-3 px-3 text-center">{product.quantity}</td>
+                            <td className="py-3 px-3 text-right">${product.unitPrice.toFixed(2)}</td>
+                            <td className="py-3 px-3 text-right font-medium">${(product.quantity * product.unitPrice).toFixed(2)}</td>
+                            <td className="py-3 px-3">
+                              <Button 
+                                variant="ghost" 
+                                size="icon"
+                                className="h-7 w-7"
+                                onClick={() => removeProduct(index)}
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            </td>
+                          </tr>
+                        ))}
+                        
+                        <tr className="bg-muted/30">
+                          <td colSpan={3} className="py-3 px-3 text-right font-medium">Total:</td>
+                          <td className="py-3 px-3 text-right font-bold">
+                            ${products.reduce((total: number, product: any) => {
+                              return total + (product.quantity * product.unitPrice);
+                            }, 0).toFixed(2)}
+                          </td>
+                          <td></td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
+  const renderNotesSection = () => (
+    <div className="space-y-6">
+      <h3 className="text-lg font-medium">Session Notes</h3>
+      
+      <div className="space-y-4">
+        <FormField
+          control={form.control}
+          name="sessionNote.notes"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Notes</FormLabel>
+              <FormControl>
+                <RichTextEditor
+                  value={field.value}
+                  onChange={field.onChange}
+                  placeholder="Enter detailed session notes here..."
+                  minHeight="300px"
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      </div>
+    </div>
+  );
+
+  // Dialogs
+  return (
+    <div className={isFullScreen ? "fullscreen-form" : ""}>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent 
+          className={cn(
+            "p-0 overflow-hidden w-[95vw] h-[90vh] max-w-none scrollable-content",
+            isFullScreen && "fullscreen-dialog"
+          )}
+        >
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)}>
+              <ThreeColumnLayout
+                leftColumn={
+                  <div className="p-4 h-full flex flex-col">
+                    <DialogHeader className="px-1 mb-6">
+                      <DialogTitle>New Session</DialogTitle>
+                      <DialogDescription>
+                        Create a new therapy session with notes and assessments
+                      </DialogDescription>
+                    </DialogHeader>
+                    
+                    {!clientSelected && renderClientSelection()}
+                    
+                    <Tabs 
+                      value={activeTab} 
+                      onValueChange={setActiveTab}
+                      className="flex-1 flex flex-col session-form-tabs"
+                    >
+                      <TabsList className="grid grid-cols-3 md:grid-cols-5 mb-4 overflow-x-auto flex-wrap">
+                        <TabsTrigger value="details">Details</TabsTrigger>
+                        <TabsTrigger value="present">Present</TabsTrigger>
+                        <TabsTrigger value="goals">Goals</TabsTrigger>
+                        <TabsTrigger value="products">Products</TabsTrigger>
+                        <TabsTrigger value="notes">Notes</TabsTrigger>
+                      </TabsList>
+                      
+                      <div className="overflow-auto flex-1 scrollable-content session-form-content">
+                        <TabsContent value="details" className="mt-0 h-full">
+                          {renderSessionDetails()}
+                        </TabsContent>
+                        
+                        <TabsContent value="present" className="mt-0 h-full">
+                          {renderPresentSection()}
+                        </TabsContent>
+                        
+                        <TabsContent value="goals" className="mt-0 h-full">
+                          {renderGoalsSection()}
+                        </TabsContent>
+                        
+                        <TabsContent value="products" className="mt-0 h-full">
+                          {renderProductsSection()}
+                        </TabsContent>
+                        
+                        <TabsContent value="notes" className="mt-0 h-full">
+                          {renderNotesSection()}
+                        </TabsContent>
+                      </div>
+                    </Tabs>
+                    
+                    <DialogFooter className="px-1 mt-4 session-form-footer">
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        onClick={() => onOpenChange(false)}
+                      >
+                        Cancel
+                      </Button>
+                      <Button type="submit" disabled={createSession.isPending}>
+                        {createSession.isPending ? 
+                          <RefreshCw className="h-4 w-4 mr-2 animate-spin" /> : 
+                          <Check className="h-4 w-4 mr-2" />
+                        }
+                        Create Session
+                      </Button>
+                    </DialogFooter>
+                  </div>
+                }
+                middleColumn={
+                  <div className="bg-muted/20 p-6 flex flex-col items-center justify-center">
+                    <div className="text-center mb-4">
+                      <UserCheck className="h-16 w-16 mx-auto text-primary/20 mb-2" />
+                      <h2 className="text-xl font-semibold">Session Preview</h2>
+                      <p className="text-muted-foreground">
+                        {clientSelected && initialClient ? initialClient.name : "Select a client to continue"}
+                      </p>
+                    </div>
+                    
+                    {clientSelected && (
+                      <div className="w-full max-w-md space-y-4">
+                        <Card>
+                          <CardHeader className="pb-2">
+                            <CardTitle className="text-base">{form.watch("session.title")}</CardTitle>
+                            <CardDescription className="text-xs">
+                              {format(form.watch("session.sessionDate"), "PPP")} • {form.watch("session.duration")} mins
+                            </CardDescription>
+                          </CardHeader>
+                          <CardContent className="pb-3">
+                            {form.watch("session.description") ? (
+                              <p className="text-sm">{form.watch("session.description")}</p>
+                            ) : (
+                              <p className="text-sm text-muted-foreground italic">No description provided</p>
+                            )}
+                          </CardContent>
+                        </Card>
+                        
+                        <div className="border rounded-md p-3">
+                          <h3 className="text-sm font-medium mb-2">Goal Assessments</h3>
+                          {performanceAssessments.length === 0 ? (
+                            <p className="text-xs text-muted-foreground italic">No goals have been added for assessment</p>
+                          ) : (
+                            <div className="space-y-2">
+                              {performanceAssessments.map((assessment, index) => (
+                                <div key={`preview-goal-${index}`} className="text-sm">
+                                  <div className="font-medium">{assessment.goalTitle}</div>
+                                  <div className="text-xs text-muted-foreground">
+                                    {assessment.milestones.length} milestone{assessment.milestones.length !== 1 ? 's' : ''}
+                                  </div>
+                                </div>
                               ))}
                             </div>
                           )}
                         </div>
                         
-                        <div className="mt-3">
-                          <Label className="text-xs font-medium mb-1.5 block">Notes</Label>
-                          <Textarea 
-                            className="min-h-[60px] text-sm"
-                            value={milestone.notes || ''}
-                            onChange={(e) => handleUpdateMilestoneNotes(goalIndex, milestoneIndex, e.target.value)}
-                            placeholder="Add notes specific to this milestone..."
-                          />
+                        <div className="border rounded-md p-3">
+                          <h3 className="text-sm font-medium mb-2">Products Used</h3>
+                          {(() => {
+                            const products = form.watch("sessionNote.products") || [];
+                            return products.length === 0 ? (
+                              <p className="text-xs text-muted-foreground italic">No products have been added</p>
+                            ) : (
+                              <div className="space-y-1">
+                                {products.map((product: any, index: number) => (
+                                  <div key={`preview-product-${index}`} className="flex justify-between text-sm">
+                                    <span>{product.productDescription} (x{product.quantity})</span>
+                                    <span className="font-medium">${(product.quantity * product.unitPrice).toFixed(2)}</span>
+                                  </div>
+                                ))}
+                                <div className="flex justify-between text-sm pt-1 border-t">
+                                  <span className="font-medium">Total</span>
+                                  <span className="font-bold">
+                                    ${products.reduce((total: number, product: any) => total + (product.quantity * product.unitPrice), 0).toFixed(2)}
+                                  </span>
+                                </div>
+                              </div>
+                            );
+                          })()}
                         </div>
                       </div>
-                    ))}
+                    )}
                   </div>
-                )}
-                
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="mt-3 w-full"
-                  onClick={() => {
-                    setCurrentGoalIndex(goalIndex);
-                    setMilestoneSelectionOpen(true);
-                  }}
-                >
-                  <Plus className="h-4 w-4 mr-1" />
-                  Add Milestone
-                </Button>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
+                }
+                rightColumn={
+                  <div className="bg-muted/10 p-6 flex flex-col">
+                    <h2 className="text-xl font-semibold mb-4">Session Progress</h2>
+                    
+                    <div className="space-y-6 flex-1">
+                      <div>
+                        <div className="flex justify-between items-center mb-2">
+                          <h3 className="text-sm font-medium">Completion Status</h3>
+                          <span className="text-xs text-muted-foreground">
+                            {calculateProgressPercentage()}%
+                          </span>
+                        </div>
+                        <Progress value={calculateProgressPercentage()} className="h-2" />
+                      </div>
+                      
+                      <div className="space-y-3">
+                        <div className="flex items-center">
+                          <div className={`h-5 w-5 rounded-full flex items-center justify-center mr-2 ${checkStep(0) ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
+                            {checkStep(0) ? <Check className="h-3 w-3" /> : 1}
+                          </div>
+                          <div className="flex-1">
+                            <div className="flex justify-between">
+                              <span className={`text-sm ${activeTab === 'details' ? 'font-medium' : ''}`}>Session Details</span>
+                              {checkStep(0) && <Check className="h-4 w-4 text-green-600" />}
+                            </div>
+                            <Progress value={checkStep(0) ? 100 : stepProgress(0)} className="h-1 mt-1" />
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center">
+                          <div className={`h-5 w-5 rounded-full flex items-center justify-center mr-2 ${checkStep(1) ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
+                            {checkStep(1) ? <Check className="h-3 w-3" /> : 2}
+                          </div>
+                          <div className="flex-1">
+                            <div className="flex justify-between">
+                              <span className={`text-sm ${activeTab === 'present' ? 'font-medium' : ''}`}>Present & Ratings</span>
+                              {checkStep(1) && <Check className="h-4 w-4 text-green-600" />}
+                            </div>
+                            <Progress value={checkStep(1) ? 100 : stepProgress(1)} className="h-1 mt-1" />
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center">
+                          <div className={`h-5 w-5 rounded-full flex items-center justify-center mr-2 ${checkStep(2) ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
+                            {checkStep(2) ? <Check className="h-3 w-3" /> : 3}
+                          </div>
+                          <div className="flex-1">
+                            <div className="flex justify-between">
+                              <span className={`text-sm ${activeTab === 'goals' ? 'font-medium' : ''}`}>Goal Assessments</span>
+                              {checkStep(2) && <Check className="h-4 w-4 text-green-600" />}
+                            </div>
+                            <Progress value={checkStep(2) ? 100 : stepProgress(2)} className="h-1 mt-1" />
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center">
+                          <div className={`h-5 w-5 rounded-full flex items-center justify-center mr-2 ${checkStep(3) ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
+                            {checkStep(3) ? <Check className="h-3 w-3" /> : 4}
+                          </div>
+                          <div className="flex-1">
+                            <div className="flex justify-between">
+                              <span className={`text-sm ${activeTab === 'products' ? 'font-medium' : ''}`}>Products</span>
+                              {checkStep(3) && <Check className="h-4 w-4 text-green-600" />}
+                            </div>
+                            <Progress value={checkStep(3) ? 100 : stepProgress(3)} className="h-1 mt-1" />
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center">
+                          <div className={`h-5 w-5 rounded-full flex items-center justify-center mr-2 ${checkStep(4) ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
+                            {checkStep(4) ? <Check className="h-3 w-3" /> : 5}
+                          </div>
+                          <div className="flex-1">
+                            <div className="flex justify-between">
+                              <span className={`text-sm ${activeTab === 'notes' ? 'font-medium' : ''}`}>Session Notes</span>
+                              {checkStep(4) && <Check className="h-4 w-4 text-green-600" />}
+                            </div>
+                            <Progress value={checkStep(4) ? 100 : stepProgress(4)} className="h-1 mt-1" />
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-1">
+                        <h3 className="text-sm font-medium">Navigation</h3>
+                        <div className="flex justify-between">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={goToPreviousStep}
+                            disabled={!canGoPrevious()}
+                          >
+                            <ChevronLeft className="h-4 w-4 mr-1" />
+                            Previous
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={goToNextStep}
+                            disabled={!canGoNext()}
+                          >
+                            Next
+                            <ChevronRight className="h-4 w-4 ml-1" />
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="mt-auto pt-6">
+                      <h3 className="text-sm font-medium mb-2">Quick Tips</h3>
+                      <div className="text-xs text-muted-foreground space-y-1">
+                        <p>• Complete all sections for a comprehensive session record</p>
+                        <p>• Add at least one goal assessment for tracking progress</p>
+                        <p>• Use the products section to record any items used</p>
+                        <p>• The notes section supports rich text formatting</p>
+                      </div>
+                    </div>
+                  </div>
+                }
+              />
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
       
-      {/* Goal Selection Dialog */}
+      {/* Goal selection dialog */}
       <GoalSelectionDialog
         open={goalSelectionOpen}
         onOpenChange={setGoalSelectionOpen}
-        goals={goals}
+        goals={goals || []}
         selectedGoalIds={selectedGoalIds}
         onSelectGoal={handleGoalSelection}
       />
       
-      {/* Milestone Selection Dialog */}
+      {/* Milestone selection dialog */}
       <MilestoneSelectionDialog
         open={milestoneSelectionOpen}
         onOpenChange={setMilestoneSelectionOpen}
-        subgoals={[]} // This would be populated based on the selected goal
+        subgoals={goals?.find((g: any) => g.id === performanceAssessments[currentGoalIndex || 0]?.goalId)?.subgoals || []}
         selectedMilestoneIds={selectedMilestoneIds}
         onSelectMilestone={handleMilestoneSelection}
       />
       
-      {/* Strategy Selection Dialog */}
+      {/* Strategy selection dialog */}
       <StrategySelectionDialog
         open={strategySelectionOpen}
         onOpenChange={setStrategySelectionOpen}
-        selectedStrategies={
-          currentGoalIndex !== null && currentMilestoneIndex !== null && performanceAssessments[currentGoalIndex]
-            ? performanceAssessments[currentGoalIndex].milestones[currentMilestoneIndex]?.strategies || []
-            : []
-        }
-        milestoneId={
-          currentGoalIndex !== null && currentMilestoneIndex !== null && performanceAssessments[currentGoalIndex]
-            ? performanceAssessments[currentGoalIndex].milestones[currentMilestoneIndex]?.milestoneId || 0
-            : 0
-        }
+        selectedStrategies={performanceAssessments[currentGoalIndex || 0]?.milestones[currentMilestoneIndex || 0]?.strategies || []}
+        milestoneId={currentMilestoneIndex || 0}
         onSelectStrategy={handleStrategySelection}
       />
-    </div>
-  );
-
-  const renderProductsSection = () => {
-    const products = form.watch("sessionNote.products") || [];
-    
-    return (
-      <div className="space-y-4">
-        <div className="flex justify-between items-center">
-          <h3 className="text-lg font-medium">Products Used</h3>
-          <Button 
-            type="button" 
-            variant="outline" 
-            size="sm"
-            onClick={() => setProductSelectionOpen(true)}
-            disabled={productItems.length === 0}
-          >
-            <Plus className="h-4 w-4 mr-1" />
-            Add Product
-          </Button>
-        </div>
-        
-        {products.length === 0 ? (
-          <div className="p-6 border rounded-md bg-muted/20 text-center">
-            <Package className="h-10 w-10 mx-auto mb-2 text-muted-foreground opacity-50" />
-            <p className="text-muted-foreground">No products have been added to this session</p>
-            <Button 
-              type="button"
-              variant="outline" 
-              className="mt-4"
-              onClick={() => setProductSelectionOpen(true)}
-              disabled={productItems.length === 0}
-            >
-              <Plus className="h-4 w-4 mr-1" />
-              Add Product
-            </Button>
-          </div>
-        ) : (
-          <div>
-            {!budgetSettings ? (
-              <div className="mb-3 p-3 border rounded bg-amber-50 border-amber-200 text-amber-800 text-sm">
-                <p>No budget plan found for this client. Products will be added without budget tracking.</p>
-              </div>
-            ) : (
-              <div className="mb-3 p-3 border rounded bg-blue-50 border-blue-200 text-blue-800 text-sm">
-                <div className="flex justify-between">
-                  <span>Budget Plan:</span>
-                  <span className="font-medium">{budgetSettings.planName || budgetSettings.planCode || "Default Plan"}</span>
-                </div>
-                <div className="flex justify-between mt-1">
-                  <span>Available Funds:</span>
-                  <span className="font-medium">${budgetSettings.availableFunds?.toFixed(2) || '0.00'}</span>
-                </div>
-              </div>
-            )}
-            
-            <div className="border rounded-md overflow-hidden">
-              <table className="min-w-full">
-                <thead className="bg-muted/20">
-                  <tr>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Product</th>
-                    <th className="px-4 py-2 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">Qty</th>
-                    <th className="px-4 py-2 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">Price</th>
-                    <th className="px-4 py-2 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">Total</th>
-                    <th className="px-4 py-2 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider"></th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y">
-                  {products.map((product: any, index: number) => (
-                    <tr key={`product-${index}`}>
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        <div>
-                          <p className="font-medium text-sm">{product.productDescription}</p>
-                          <p className="text-xs text-muted-foreground">{product.productCode}</p>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-right">{product.quantity}</td>
-                      <td className="px-4 py-3 whitespace-nowrap text-right">${product.unitPrice.toFixed(2)}</td>
-                      <td className="px-4 py-3 whitespace-nowrap text-right font-medium">${(product.quantity * product.unitPrice).toFixed(2)}</td>
-                      <td className="px-4 py-3 whitespace-nowrap text-right">
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7"
-                          onClick={() => removeProduct(index)}
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      </td>
-                    </tr>
-                  ))}
-                  
-                  {/* Total row */}
-                  <tr className="bg-muted/10">
-                    <td className="px-4 py-3 whitespace-nowrap text-sm font-medium" colSpan={3}>Total</td>
-                    <td className="px-4 py-3 whitespace-nowrap text-right font-bold">
-                      ${products.reduce((total: number, product: any) => total + (product.quantity * product.unitPrice), 0).toFixed(2)}
-                    </td>
-                    <td></td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-        
-        {/* Product Selection Dialog */}
-        <ProductSelectionDialog
-          open={productSelectionOpen}
-          onOpenChange={setProductSelectionOpen}
-          products={productItems}
-          onSelectProduct={handleProductSelection}
-        />
-      </div>
-    );
-  };
-
-  const renderNotesSection = () => (
-    <div className="space-y-4">
-      <h3 className="text-lg font-medium">Session Notes</h3>
       
-      <Controller
-        control={form.control}
-        name="sessionNote.notes"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>General Notes</FormLabel>
-            <FormControl>
-              <RichTextEditor
-                value={field.value || ''}
-                onChange={field.onChange}
-                minHeight="200px"
-                placeholder="Add detailed notes about the session..."
-              />
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        )}
+      {/* Product selection dialog */}
+      <ProductSelectionDialog
+        open={productSelectionOpen}
+        onOpenChange={setProductSelectionOpen}
+        products={productItems}
+        onSelectProduct={handleProductSelection}
       />
     </div>
-  );
-
-  // Main render
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange} className={isFullScreen ? "fullscreen-form" : ""}>
-      <DialogContent 
-        className={cn(
-          "p-0 overflow-hidden w-[95vw] h-[90vh] max-w-none scrollable-content",
-          isFullScreen && "fullscreen-dialog"
-        )}
-      >
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)}>
-            <ThreeColumnLayout
-              leftColumn={
-                <div className="p-4 h-full flex flex-col">
-                  <DialogHeader className="px-1 mb-6">
-                    <DialogTitle>New Session</DialogTitle>
-                    <DialogDescription>
-                      Create a new therapy session with notes and assessments
-                    </DialogDescription>
-                  </DialogHeader>
-                  
-                  {!clientSelected && renderClientSelection()}
-                  
-                  <Tabs 
-                    value={activeTab} 
-                    onValueChange={setActiveTab}
-                    className="flex-1 flex flex-col"
-                  >
-                    <TabsList className="grid grid-cols-5 mb-4">
-                      <TabsTrigger value="details">Details</TabsTrigger>
-                      <TabsTrigger value="present">Present</TabsTrigger>
-                      <TabsTrigger value="goals">Goals</TabsTrigger>
-                      <TabsTrigger value="products">Products</TabsTrigger>
-                      <TabsTrigger value="notes">Notes</TabsTrigger>
-                    </TabsList>
-                    
-                    <div className="overflow-auto flex-1">
-                      <TabsContent value="details" className="mt-0 h-full">
-                        {renderSessionDetails()}
-                      </TabsContent>
-                      
-                      <TabsContent value="present" className="mt-0 h-full">
-                        {renderPresentSection()}
-                      </TabsContent>
-                      
-                      <TabsContent value="goals" className="mt-0 h-full">
-                        {renderGoalsSection()}
-                      </TabsContent>
-                      
-                      <TabsContent value="products" className="mt-0 h-full">
-                        {renderProductsSection()}
-                      </TabsContent>
-                      
-                      <TabsContent value="notes" className="mt-0 h-full">
-                        {renderNotesSection()}
-                      </TabsContent>
-                    </div>
-                  </Tabs>
-                  
-                  <DialogFooter className="px-1 mt-4">
-                    <Button 
-                      type="button" 
-                      variant="outline" 
-                      onClick={() => onOpenChange(false)}
-                    >
-                      Cancel
-                    </Button>
-                    <Button type="submit" disabled={createSession.isPending}>
-                      {createSession.isPending ? 
-                        <RefreshCw className="h-4 w-4 mr-2 animate-spin" /> : 
-                        <Check className="h-4 w-4 mr-2" />
-                      }
-                      Create Session
-                    </Button>
-                  </DialogFooter>
-                </div>
-              }
-              middleColumn={
-                <div className="bg-muted/20 p-6 flex flex-col items-center justify-center">
-                  <div className="text-center mb-4">
-                    <UserCheck className="h-16 w-16 mx-auto text-primary/20 mb-2" />
-                    <h2 className="text-xl font-semibold">Session Preview</h2>
-                    <p className="text-muted-foreground">
-                      {clientSelected && initialClient ? initialClient.name : "Select a client to continue"}
-                    </p>
-                  </div>
-                  
-                  {clientSelected && (
-                    <div className="w-full max-w-md space-y-4">
-                      <Card>
-                        <CardHeader className="pb-2">
-                          <CardTitle className="text-base">{form.watch("session.title")}</CardTitle>
-                          <CardDescription className="text-xs">
-                            {format(form.watch("session.sessionDate"), "PPP")} • {form.watch("session.duration")} mins
-                          </CardDescription>
-                        </CardHeader>
-                        <CardContent className="pb-3">
-                          {form.watch("session.description") ? (
-                            <p className="text-sm">{form.watch("session.description")}</p>
-                          ) : (
-                            <p className="text-sm text-muted-foreground italic">No description provided</p>
-                          )}
-                        </CardContent>
-                      </Card>
-                      
-                      <div className="border rounded-md p-3">
-                        <h3 className="text-sm font-medium mb-2">Goal Assessments</h3>
-                        {performanceAssessments.length === 0 ? (
-                          <p className="text-xs text-muted-foreground italic">No goals have been added for assessment</p>
-                        ) : (
-                          <div className="space-y-2">
-                            {performanceAssessments.map((assessment, index) => (
-                              <div key={`preview-goal-${index}`} className="text-sm">
-                                <div className="font-medium">{assessment.goalTitle}</div>
-                                <div className="text-xs text-muted-foreground">
-                                  {assessment.milestones.length} milestone{assessment.milestones.length !== 1 ? 's' : ''}
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                      
-                      <div className="border rounded-md p-3">
-                        <h3 className="text-sm font-medium mb-2">Products Used</h3>
-                        {(() => {
-                          const products = form.watch("sessionNote.products") || [];
-                          return products.length === 0 ? (
-                            <p className="text-xs text-muted-foreground italic">No products have been added</p>
-                          ) : (
-                            <div className="space-y-1">
-                              {products.map((product: any, index: number) => (
-                                <div key={`preview-product-${index}`} className="flex justify-between text-sm">
-                                  <span>{product.productDescription} (x{product.quantity})</span>
-                                  <span className="font-medium">${(product.quantity * product.unitPrice).toFixed(2)}</span>
-                                </div>
-                              ))}
-                              <div className="flex justify-between text-sm pt-1 border-t">
-                                <span className="font-medium">Total</span>
-                                <span className="font-bold">
-                                  ${products.reduce((total: number, product: any) => total + (product.quantity * product.unitPrice), 0).toFixed(2)}
-                                </span>
-                              </div>
-                            </div>
-                          );
-                        })()}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              }
-              rightColumn={
-                <div className="bg-muted/10 p-6 flex flex-col">
-                  <h2 className="text-xl font-semibold mb-4">Session Progress</h2>
-                  
-                  <div className="space-y-6 flex-1">
-                    <div>
-                      <div className="flex justify-between items-center mb-2">
-                        <h3 className="text-sm font-medium">Completion Status</h3>
-                        <span className="text-xs text-muted-foreground">
-                          {calculateProgressPercentage()}%
-                        </span>
-                      </div>
-                      <Progress value={calculateProgressPercentage()} className="h-2" />
-                    </div>
-                    
-                    <div className="space-y-3">
-                      <div className="flex items-center">
-                        <div className={`h-5 w-5 rounded-full flex items-center justify-center mr-2 ${checkStep(0) ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
-                          {checkStep(0) ? <Check className="h-3 w-3" /> : 1}
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex justify-between">
-                            <span className={`text-sm ${activeTab === 'details' ? 'font-medium' : ''}`}>Session Details</span>
-                            {checkStep(0) && <Check className="h-4 w-4 text-green-600" />}
-                          </div>
-                          <Progress value={checkStep(0) ? 100 : stepProgress(0)} className="h-1 mt-1" />
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-center">
-                        <div className={`h-5 w-5 rounded-full flex items-center justify-center mr-2 ${checkStep(1) ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
-                          {checkStep(1) ? <Check className="h-3 w-3" /> : 2}
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex justify-between">
-                            <span className={`text-sm ${activeTab === 'present' ? 'font-medium' : ''}`}>Present & Ratings</span>
-                            {checkStep(1) && <Check className="h-4 w-4 text-green-600" />}
-                          </div>
-                          <Progress value={checkStep(1) ? 100 : stepProgress(1)} className="h-1 mt-1" />
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-center">
-                        <div className={`h-5 w-5 rounded-full flex items-center justify-center mr-2 ${checkStep(2) ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
-                          {checkStep(2) ? <Check className="h-3 w-3" /> : 3}
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex justify-between">
-                            <span className={`text-sm ${activeTab === 'goals' ? 'font-medium' : ''}`}>Goal Assessments</span>
-                            {checkStep(2) && <Check className="h-4 w-4 text-green-600" />}
-                          </div>
-                          <Progress value={checkStep(2) ? 100 : stepProgress(2)} className="h-1 mt-1" />
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-center">
-                        <div className={`h-5 w-5 rounded-full flex items-center justify-center mr-2 ${checkStep(3) ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
-                          {checkStep(3) ? <Check className="h-3 w-3" /> : 4}
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex justify-between">
-                            <span className={`text-sm ${activeTab === 'products' ? 'font-medium' : ''}`}>Products</span>
-                            {checkStep(3) && <Check className="h-4 w-4 text-green-600" />}
-                          </div>
-                          <Progress value={checkStep(3) ? 100 : stepProgress(3)} className="h-1 mt-1" />
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-center">
-                        <div className={`h-5 w-5 rounded-full flex items-center justify-center mr-2 ${checkStep(4) ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
-                          {checkStep(4) ? <Check className="h-3 w-3" /> : 5}
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex justify-between">
-                            <span className={`text-sm ${activeTab === 'notes' ? 'font-medium' : ''}`}>Session Notes</span>
-                            {checkStep(4) && <Check className="h-4 w-4 text-green-600" />}
-                          </div>
-                          <Progress value={checkStep(4) ? 100 : stepProgress(4)} className="h-1 mt-1" />
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className="space-y-1">
-                      <h3 className="text-sm font-medium">Navigation</h3>
-                      <div className="flex justify-between">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={goToPreviousStep}
-                          disabled={!canGoPrevious()}
-                        >
-                          <ChevronLeft className="h-4 w-4 mr-1" />
-                          Previous
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={goToNextStep}
-                          disabled={!canGoNext()}
-                        >
-                          Next
-                          <ChevronRight className="h-4 w-4 ml-1" />
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="mt-auto pt-6">
-                    <h3 className="text-sm font-medium mb-2">Quick Tips</h3>
-                    <div className="text-xs text-muted-foreground space-y-1">
-                      <p>• Complete all sections for a comprehensive session record</p>
-                      <p>• Add at least one goal assessment for tracking progress</p>
-                      <p>• Use the products section to record any items used</p>
-                      <p>• The notes section supports rich text formatting</p>
-                    </div>
-                  </div>
-                </div>
-              }
-            />
-          </form>
-        </Form>
-      </DialogContent>
-    </Dialog>
   );
   
   // Helper functions for progress tracking and navigation
