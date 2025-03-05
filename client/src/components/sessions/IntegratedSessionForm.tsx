@@ -1400,6 +1400,9 @@ const ProductSelectionDialog = ({
     },
   });
 
+  // Track the purpose of the modal when not in full-screen mode
+  const [modalPurpose, setModalPurpose] = useState<"clientSelection" | "attendeeSelection">("clientSelection");
+  
   // Form submission handler
   function onSubmit(data: IntegratedSessionFormValues) {
     console.log("Form data:", data);
@@ -1415,9 +1418,40 @@ const ProductSelectionDialog = ({
       return;
     }
     
-    // Ensure we have all required data before submitting
+    // Only allow session creation in full-screen mode from the Performance Assessment tab
     if (isFullScreen) {
+      // In full-screen mode, only allow submission from the performance tab
+      if (activeTab !== "performance") {
+        toast({
+          title: "Incomplete session",
+          description: "Please complete the Performance Assessment tab before creating the session",
+          variant: "destructive"
+        });
+        
+        // Automatically switch to Performance tab
+        setActiveTab("performance");
+        return;
+      }
+      
       console.log("Submitting in full-screen mode with client ID:", data.session.clientId);
+      
+      // Additional validation for performance tab
+      if (data.performanceAssessments.length === 0) {
+        toast({
+          title: "Missing performance assessment",
+          description: "Please add at least one performance assessment before creating the session",
+          variant: "destructive"
+        });
+        return;
+      }
+    } else {
+      // In dialog mode, we should only use the form for selecting a client 
+      // not for creating sessions directly
+      if (modalPurpose === "attendeeSelection") {
+        // Just close the dialog - the handleAddAttendee function will handle the selection
+        onOpenChange(false);
+        return;
+      }
     }
     
     createSessionMutation.mutate(data);
@@ -1695,8 +1729,11 @@ const ProductSelectionDialog = ({
                               size="sm"
                               disabled={!clientId || clientId === 0}
                               onClick={() => {
+                                // Get the current client ID from the form (most up-to-date value)
+                                const currentClientId = form.getValues("session.clientId");
+                                
                                 // If no client is selected, show toast and return
-                                if (!clientId || clientId === 0) {
+                                if (!currentClientId) {
                                   toast({
                                     title: "Client not selected",
                                     description: "Please select a client before adding attendees.",
