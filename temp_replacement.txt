@@ -1,6 +1,4 @@
-                                  <RichTextEditor
-                                    value={field.value || ''}
-                                    onChange={field.onChange}
-                                    placeholder="Enter general notes about the session..."
-                                    minHeight="min-h-[300px]"
-                                  />
+                    <h3 className="flex items-center text-lg font-medium mb-2">
+                      <RefreshCw className="h-5 w-5" />
+                      Performance Assessment
+                    </h3>
