@@ -3183,7 +3183,22 @@ const ProductSelectionDialog = ({
         <AllySelectionDialog
           open={allySelectionOpen}
           onOpenChange={setAllySelectionOpen}
-          allies={allies.slice(0, 10)} // Show up to 10 allies
+          allies={allies
+            .slice(0, 10)
+            .map(ally => ({
+              id: ally.id,
+              name: ally.name,
+              relationship: ally.relationship,
+              clientId: ally.clientId,
+              preferredLanguage: ally.preferredLanguage || 'English',
+              email: ally.email || `${ally.name.toLowerCase()}@example.com`,
+              phone: ally.phone || null,
+              notes: ally.notes || null,
+              accessTherapeutics: ally.accessTherapeutics || false,
+              accessFinancials: ally.accessFinancials || false,
+              archived: ally.archived || false
+            }))
+          } // Show up to 10 allies with all required fields
           selectedAllies={form.watch("sessionNote.presentAllies") || []}
           onSelectAlly={handleAllySelection}
         />
