@@ -512,6 +512,28 @@ export function IntegratedSessionForm({
     form.setValue("performanceAssessments", updatedAssessments);
   };
   
+  // Handler for ally selection from the dialog
+  const handleAllySelection = (ally: Ally) => {
+    console.log("Ally selected:", ally);
+    
+    // Get current allies
+    const currentAllies = form.getValues("sessionNote.presentAllies") || [];
+    const currentAllyIds = form.getValues("sessionNote.presentAllyIds") || [];
+    
+    // Add the ally if not already in the list
+    if (!currentAllies.includes(ally.name)) {
+      form.setValue("sessionNote.presentAllies", [...currentAllies, ally.name]);
+      form.setValue("sessionNote.presentAllyIds", [...currentAllyIds, ally.id]);
+      
+      // Show success toast
+      toast({
+        title: "Attendee added",
+        description: `${ally.name} has been added to the session.`,
+        variant: "default"
+      });
+    }
+  };
+
   // Handler for adding attendees in full-screen mode
   const handleAddAttendeeFullScreen = () => {
     console.log("Adding attendee in full-screen mode, allies:", allies);
@@ -525,9 +547,6 @@ export function IntegratedSessionForm({
       });
       return;
     }
-    
-    // Simply open the ally selection dialog
-    setAllySelectionOpen(true);
     
     // Check if there are any allies available first
     if (allies.length === 0) {
@@ -553,6 +572,9 @@ export function IntegratedSessionForm({
       });
       return;
     }
+    
+    // Open the ally selection dialog
+    setAllySelectionOpen(true);
   };
   
   // Handler for adding attendees in dialog mode
