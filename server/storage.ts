@@ -688,29 +688,8 @@ export class DBStorage implements IStorage {
   async createSessionNote(note: InsertSessionNote): Promise<SessionNote> {
     console.log(`Creating session note for session ${note.sessionId}:`, JSON.stringify(note));
     try {
-      // Handle products field - ensure it's compatible with database schema
-      const noteData = { ...note };
-      
-      // If the products field is a string, we assume it's already serialized JSON
-      // If it's not a string, we need to stringify it for storage
-      if (noteData.products && typeof noteData.products !== 'string') {
-        try {
-          noteData.products = JSON.stringify(noteData.products);
-        } catch (e) {
-          console.error("Error stringifying products:", e);
-          noteData.products = "[]";
-        }
-      }
-      
-      // Ensure present allies is an array
-      if (!Array.isArray(noteData.presentAllies)) {
-        noteData.presentAllies = [];
-      }
-      
-      console.log(`Prepared note data for database:`, JSON.stringify(noteData));
-      
       const [newNote] = await db.insert(sessionNotes)
-        .values(noteData)
+        .values(note)
         .returning();
       
       console.log(`Successfully created session note with ID ${newNote.id}`);

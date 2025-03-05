@@ -1,15 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { 
-  Check,
-  Search,
-  Bookmark,
-  BookMarked,
-  ShieldCheck,
-  Lightbulb
-} from "lucide-react";
-
 import { Strategy } from "@shared/schema";
+import { X, Search, Info } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -19,11 +11,18 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
-import { cn } from "@/lib/utils";
+import { Input } from "@/components/ui/input";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface StrategySelectionDialogProps {
   open: boolean;
@@ -34,30 +33,6 @@ interface StrategySelectionDialogProps {
   maxStrategies?: number;
 }
 
-const STRATEGY_CATEGORIES = [
-  { id: "all", name: "All Strategies" },
-  { id: "communication", name: "Communication" },
-  { id: "social", name: "Social Skills" },
-  { id: "cognitive", name: "Cognitive" },
-  { id: "sensory", name: "Sensory" },
-  { id: "motor", name: "Motor Skills" },
-];
-
-const getCategoryIcon = (category: string) => {
-  switch (category) {
-    case "communication":
-      return <Bookmark className="h-4 w-4 mr-2" />;
-    case "social":
-      return <ShieldCheck className="h-4 w-4 mr-2" />;
-    case "cognitive":
-      return <Lightbulb className="h-4 w-4 mr-2" />;
-    case "sensory":
-      return <BookMarked className="h-4 w-4 mr-2" />;
-    default:
-      return null;
-  }
-};
-
 export function StrategySelectionDialog({
   open,
   onOpenChange,
@@ -66,110 +41,115 @@ export function StrategySelectionDialog({
   onSelectStrategy,
   maxStrategies = 5
 }: StrategySelectionDialogProps) {
-  const [activeCategory, setActiveCategory] = useState("all");
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
   
-  // Fetch strategies
-  const { data: strategies = [] } = useQuery({
+  // Fetch all strategies
+  const { data: strategies = [], isLoading } = useQuery<Strategy[]>({
     queryKey: ["/api/strategies"],
+    enabled: open
   });
-  
-  // Filter strategies based on category and search query
-  const filteredStrategies = strategies.filter((strategy) => {
-    // Filter by category
-    const categoryMatch = 
-      activeCategory === "all" || 
-      strategy.category === activeCategory;
-    
-    // Filter by search query
-    const searchMatch = 
-      !searchQuery || 
-      strategy.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      strategy.description?.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    return categoryMatch && searchMatch;
-  });
-  
+
+  // Filter strategies based on search term
+  const filteredStrategies = strategies.filter(strategy => 
+    strategy.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    strategy.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    strategy.description?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  // Group strategies by category
+  const groupedStrategies = filteredStrategies.reduce<Record<string, Strategy[]>>((acc, strategy) => {
+    if (!acc[strategy.category]) {
+      acc[strategy.category] = [];
+    }
+    acc[strategy.category].push(strategy);
+    return acc;
+  }, {});
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px] max-h-[85vh] flex flex-col overflow-hidden">
+      <DialogContent className="sm:max-w-[600px] max-h-[80vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>Select Strategies</DialogTitle>
           <DialogDescription>
-            Choose up to {maxStrategies} strategies to help achieve this milestone.
-            <Badge variant="outline" className="ml-2">
-              {selectedStrategies.length}/{maxStrategies} selected
-            </Badge>
+            Choose up to {maxStrategies} strategies to use for this milestone
           </DialogDescription>
         </DialogHeader>
         
-        <div className="mb-4 flex items-center border rounded-md">
-          <Search className="ml-2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search strategies..."
-            className="border-0 focus-visible:ring-0"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
+        <div className="my-2">
+          <div className="relative">
+            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search strategies..."
+              className="pl-8"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
         </div>
         
-        <Tabs value={activeCategory} onValueChange={setActiveCategory}>
-          <TabsList className="grid grid-cols-3 sm:grid-cols-6 mb-4">
-            {STRATEGY_CATEGORIES.map(category => (
-              <TabsTrigger key={category.id} value={category.id} className="text-xs">
-                {category.name}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-          
-          <ScrollArea className="flex-grow h-[300px] rounded-md border p-4">
-            <div className="space-y-2">
-              {filteredStrategies.length === 0 ? (
-                <div className="py-4 text-center text-muted-foreground">
-                  No strategies found matching your criteria
-                </div>
-              ) : (
-                filteredStrategies.map((strategy) => {
-                  const isSelected = selectedStrategies.includes(strategy.id.toString());
-                  const isDisabled = !isSelected && selectedStrategies.length >= maxStrategies;
-                  
-                  return (
-                    <div
-                      key={strategy.id}
-                      className={cn(
-                        "p-3 border rounded-md cursor-pointer hover:bg-muted/50 transition-colors",
-                        isSelected && "border-primary/40 bg-primary/5",
-                        isDisabled && "opacity-50 cursor-not-allowed"
-                      )}
-                      onClick={() => {
-                        if (!isDisabled || isSelected) {
-                          onSelectStrategy(strategy);
-                        }
-                      }}
-                    >
-                      <div className="flex items-center justify-between mb-1">
-                        <div className="font-medium flex items-center">
-                          {getCategoryIcon(strategy.category || "")}
-                          {strategy.name}
-                          {isSelected && (
-                            <Check className="h-4 w-4 ml-2 text-primary" />
+        <div className="mb-2">
+          <p className="text-sm text-muted-foreground">
+            Selected: {selectedStrategies.length}/{maxStrategies}
+          </p>
+        </div>
+
+        <ScrollArea className="flex-grow">
+          {isLoading ? (
+            <div className="flex justify-center items-center h-40">
+              <p>Loading strategies...</p>
+            </div>
+          ) : filteredStrategies.length === 0 ? (
+            <div className="p-4 text-center text-muted-foreground">
+              No strategies found matching "{searchTerm}"
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {Object.entries(groupedStrategies).map(([category, categoryStrategies]) => (
+                <div key={category}>
+                  <h3 className="text-sm font-medium mb-2">{category}</h3>
+                  <div className="space-y-2">
+                    {categoryStrategies.map((strategy) => {
+                      const isSelected = selectedStrategies.includes(strategy.name);
+                      const isDisabled = !isSelected && selectedStrategies.length >= maxStrategies;
+                      
+                      return (
+                        <div 
+                          key={strategy.id}
+                          className={`p-3 border rounded-md flex justify-between items-center cursor-pointer hover:bg-muted/20 ${isSelected ? 'bg-primary/10 border-primary/30' : ''} ${isDisabled ? 'opacity-50' : ''}`}
+                          onClick={() => {
+                            if (!isDisabled || isSelected) {
+                              onSelectStrategy(strategy);
+                            }
+                          }}
+                        >
+                          <div className="flex-1">
+                            <p className="font-medium">{strategy.name}</p>
+                          </div>
+                          
+                          {strategy.description && (
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <div className="text-muted-foreground">
+                                    <Info className="h-4 w-4" />
+                                  </div>
+                                </TooltipTrigger>
+                                <TooltipContent side="left" className="max-w-xs">
+                                  <p>{strategy.description}</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
                           )}
                         </div>
-                        <Badge variant="outline" className="text-xs">
-                          {strategy.category}
-                        </Badge>
-                      </div>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        {strategy.description}
-                      </p>
-                    </div>
-                  );
-                })
-              )}
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
             </div>
-          </ScrollArea>
-        </Tabs>
-        
+          )}
+        </ScrollArea>
+
         <DialogFooter className="mt-4">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Done
