@@ -1508,18 +1508,7 @@ const ProductSelectionDialog = ({
                             <Button
                               variant="outline"
                               size="sm"
-                              disabled={!clientId || clientId === 0}
                               onClick={() => {
-                                // If no client is selected, show toast and return
-                                if (!clientId || clientId === 0) {
-                                  toast({
-                                    title: "Client not selected",
-                                    description: "Please select a client before adding attendees.",
-                                    variant: "destructive"
-                                  });
-                                  return;
-                                }
-                                
                                 console.log("New Attendee button clicked, allies:", allies);
 
                                 if (allies.length > 0) {
