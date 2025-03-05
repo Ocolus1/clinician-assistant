@@ -2170,26 +2170,49 @@ const ProductSelectionDialog = ({
                                                 name={`performanceAssessments.${goalIndex}.milestones.${milestoneIndex}.strategies`}
                                                 render={({ field }) => (
                                                   <FormItem>
-                                                    <FormLabel>Strategies Used</FormLabel>
-                                                    <div className="flex flex-wrap gap-2">
-                                                      {["Visual Support", "Verbal Prompting", "Physical Guidance", "Modeling", "Reinforcement"].map((strategy) => (
-                                                        <Badge 
-                                                          key={strategy}
-                                                          variant={field.value?.includes(strategy) ? "default" : "outline"}
-                                                          className="cursor-pointer"
-                                                          onClick={() => {
-                                                            const currentStrategies = field.value || [];
-                                                            if (currentStrategies.includes(strategy)) {
-                                                              field.onChange(currentStrategies.filter(s => s !== strategy));
-                                                            } else {
-                                                              field.onChange([...currentStrategies, strategy]);
-                                                            }
-                                                          }}
-                                                        >
-                                                          {strategy}
-                                                        </Badge>
-                                                      ))}
+                                                    <div className="flex justify-between items-center">
+                                                      <FormLabel>Strategies Used</FormLabel>
+                                                      <Button 
+                                                        type="button" 
+                                                        variant="outline" 
+                                                        size="sm"
+                                                        className="h-8 px-2 text-xs"
+                                                        onClick={() => {
+                                                          setCurrentGoalIndex(goalIndex);
+                                                          setCurrentMilestoneIndex(milestoneIndex);
+                                                          setStrategySelectionOpen(true);
+                                                        }}
+                                                      >
+                                                        <Plus className="h-3.5 w-3.5 mr-1" />
+                                                        <span>Select Strategies</span>
+                                                      </Button>
                                                     </div>
+                                                    
+                                                    <div className="flex flex-wrap gap-2 mt-2">
+                                                      {field.value && field.value.length > 0 ? (
+                                                        field.value.map((strategy: string) => (
+                                                          <Badge
+                                                            key={strategy}
+                                                            variant="default"
+                                                            className="cursor-pointer"
+                                                            onClick={() => {
+                                                              field.onChange(field.value.filter((s: string) => s !== strategy));
+                                                            }}
+                                                          >
+                                                            {strategy}
+                                                            <X className="h-3 w-3 ml-1" />
+                                                          </Badge>
+                                                        ))
+                                                      ) : (
+                                                        <div className="text-sm text-muted-foreground italic">
+                                                          No strategies selected
+                                                        </div>
+                                                      )}
+                                                    </div>
+                                                    <p className="text-xs text-muted-foreground mt-1">
+                                                      Max 5 strategies per milestone 
+                                                      {field.value && field.value.length > 0 && ` (${field.value.length}/5 selected)`}
+                                                    </p>
                                                     <FormMessage />
                                                   </FormItem>
                                                 )}
@@ -2587,26 +2610,49 @@ const ProductSelectionDialog = ({
                                                 name={`performanceAssessments.${goalIndex}.milestones.${milestoneIndex}.strategies`}
                                                 render={({ field }) => (
                                                   <FormItem>
-                                                    <FormLabel>Strategies Used</FormLabel>
-                                                    <div className="flex flex-wrap gap-2">
-                                                      {["Visual Support", "Verbal Prompting", "Physical Guidance", "Modeling", "Reinforcement"].map((strategy) => (
-                                                        <Badge
-                                                          key={strategy}
-                                                          variant={field.value?.includes(strategy) ? "default" : "outline"}
-                                                          className="cursor-pointer"
-                                                          onClick={() => {
-                                                            const currentStrategies = field.value || [];
-                                                            if (currentStrategies.includes(strategy)) {
-                                                              field.onChange(currentStrategies.filter(s => s !== strategy));
-                                                            } else {
-                                                              field.onChange([...currentStrategies, strategy]);
-                                                            }
-                                                          }}
-                                                        >
-                                                          {strategy}
-                                                        </Badge>
-                                                      ))}
+                                                    <div className="flex justify-between items-center">
+                                                      <FormLabel>Strategies Used</FormLabel>
+                                                      <Button 
+                                                        type="button" 
+                                                        variant="outline" 
+                                                        size="sm"
+                                                        className="h-8 px-2 text-xs"
+                                                        onClick={() => {
+                                                          setCurrentGoalIndex(goalIndex);
+                                                          setCurrentMilestoneIndex(milestoneIndex);
+                                                          setStrategySelectionOpen(true);
+                                                        }}
+                                                      >
+                                                        <Plus className="h-3.5 w-3.5 mr-1" />
+                                                        <span>Select Strategies</span>
+                                                      </Button>
                                                     </div>
+                                                    
+                                                    <div className="flex flex-wrap gap-2 mt-2">
+                                                      {field.value && field.value.length > 0 ? (
+                                                        field.value.map((strategy: string) => (
+                                                          <Badge
+                                                            key={strategy}
+                                                            variant="default"
+                                                            className="cursor-pointer"
+                                                            onClick={() => {
+                                                              field.onChange(field.value.filter((s: string) => s !== strategy));
+                                                            }}
+                                                          >
+                                                            {strategy}
+                                                            <X className="h-3 w-3 ml-1" />
+                                                          </Badge>
+                                                        ))
+                                                      ) : (
+                                                        <div className="text-sm text-muted-foreground italic">
+                                                          No strategies selected
+                                                        </div>
+                                                      )}
+                                                    </div>
+                                                    <p className="text-xs text-muted-foreground mt-1">
+                                                      Max 5 strategies per milestone 
+                                                      {field.value && field.value.length > 0 && ` (${field.value.length}/5 selected)`}
+                                                    </p>
                                                     <FormMessage />
                                                   </FormItem>
                                                 )}
