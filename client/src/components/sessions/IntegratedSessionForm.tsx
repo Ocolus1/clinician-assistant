@@ -601,8 +601,7 @@ export function IntegratedSessionForm({
       if (availableAllies.length > 0) {
         console.log("Setting up ally selection in dialog mode");
         
-        // Immediately ensure the session note has the right client ID
-        form.setValue("sessionNote.clientId", clientId);
+        // No need to set clientId separately; it's handled in the mutation
         
         // Add the special marker to trigger the dialog
         form.setValue("sessionNote.presentAllies", [
@@ -1301,14 +1300,20 @@ const ProductSelectionDialog = ({
       try {
         console.log("Creating session with data:", data.session);
         
+        // Validate the client ID is present
+        if (!data.session.clientId) {
+          throw new Error("Client ID is required to create a session");
+        }
+        
         // Step 1: Create the session
+        console.log("Step 1: Creating new session for client:", data.session.clientId);
         const sessionResponse = await apiRequest("POST", "/api/sessions", data.session);
         if (!sessionResponse) {
           throw new Error("Failed to create session - no response received");
         }
         
         const sessionData = sessionResponse as any;
-        console.log("Session created successfully:", sessionData);
+        console.log("Session created successfully with ID:", sessionData.id);
         
         if (!sessionData.id) {
           throw new Error("Invalid session ID received from server");
@@ -1321,31 +1326,37 @@ const ProductSelectionDialog = ({
           clientId: data.session.clientId
         };
         
-        console.log(`Creating note for session ${sessionData.id}:`, noteData);
+        console.log(`Step 2: Creating note for session ${sessionData.id} with data:`, noteData);
 
+        // Use the newly created session ID for the note
         const noteResponse = await apiRequest("POST", `/api/sessions/${sessionData.id}/notes`, noteData);
         if (!noteResponse) {
           throw new Error("Failed to create session note - no response received");
         }
         
         const noteResponseData = noteResponse as any;
-        console.log("Session note created successfully:", noteResponseData);
+        console.log("Session note created successfully with ID:", noteResponseData.id);
 
-        // Step 3: Create performance assessments
+        // Step 3: Create performance assessments if any are present
         if (data.performanceAssessments && data.performanceAssessments.length > 0) {
-          console.log(`Creating ${data.performanceAssessments.length} performance assessments`);
+          console.log(`Step 3: Creating ${data.performanceAssessments.length} performance assessments for note ID:`, noteResponseData.id);
           
-          await Promise.all(
-            data.performanceAssessments.map(assessment => 
-              apiRequest("POST", `/api/session-notes/${noteResponseData.id}/performance`, {
-                goalId: assessment.goalId,
-                notes: assessment.notes,
-                milestones: assessment.milestones
-              })
-            )
-          );
-          
-          console.log("Performance assessments created successfully");
+          try {
+            await Promise.all(
+              data.performanceAssessments.map(assessment => 
+                apiRequest("POST", `/api/session-notes/${noteResponseData.id}/performance`, {
+                  goalId: assessment.goalId,
+                  notes: assessment.notes,
+                  milestones: assessment.milestones
+                })
+              )
+            );
+            
+            console.log("Performance assessments created successfully");
+          } catch (assessmentError) {
+            console.error("Error creating performance assessments:", assessmentError);
+            // Continue with the session creation even if performance assessments fail
+          }
         }
 
         return sessionData;
