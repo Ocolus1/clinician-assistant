@@ -730,12 +730,18 @@ export function IntegratedSessionForm({
   const allies = React.useMemo(() => {
     // Create the testing ally if none are found
     if (allAllies.length === 0 && clientId === 37) {
-      // Add a test ally for Gabriel
+      // Add a test ally for Gabriel with all required fields
       return [{ 
         id: 34, 
         name: "Mohamad", 
         relationship: "parent", 
         clientId: 37,
+        preferredLanguage: "English",
+        email: "mohamad@example.com",
+        phone: null,
+        notes: null,
+        accessTherapeutics: true,
+        accessFinancials: false,
         archived: false 
       }];
     }
