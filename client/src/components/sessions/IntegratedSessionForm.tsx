@@ -1392,526 +1392,530 @@ const ProductSelectionDialog = ({
                   </Card>
 
                   {/* Three-Column Layout */}
-                  <div className="session-columns-container mt-6">
-                    {/* Left Column - Present In Session Section */}
-                    <div className="session-column space-y-4">
-                      <div className="flex justify-between items-center mb-2">
-                        <h3 className="section-header">
-                          <UserCheck className="h-5 w-5" />
-                          Present
-                        </h3>
-                        
-                        {/* Add New Attendee Button moved to header */}
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            console.log("New Attendee button clicked, allies:", allies);
-                            
-                            if (allies.length > 0) {
-                              // Get current allies and filter to find available ones
-                              const currentAllies = form.getValues("sessionNote.presentAllies") || [];
-                              const availableAllies = allies.filter(ally => 
-                                !currentAllies.includes(ally.name)
-                              );
-                              
-                              if (availableAllies.length > 0) {
-                                // Add the special marker to trigger the dialog
-                                form.setValue("sessionNote.presentAllies", [
-                                  ...currentAllies, 
-                                  "__select__"
-                                ]);
-                              } else {
-                                toast({
-                                  title: "No more allies available",
-                                  description: "All available attendees have been added to the session.",
-                                  variant: "default"
-                                });
-                              }
-                            } else {
-                              toast({
-                                title: "No allies found",
-                                description: "This client doesn't have any allies added to their profile yet.",
-                                variant: "default"
-                              });
-                            }
-                          }}
-                        >
-                          <Plus className="h-4 w-4 mr-2" />
-                          New Attendee
-                        </Button>
-                      </div>
-                      <div className="bg-muted/20 rounded-lg p-4 space-y-2">
-                      {/* Selected Allies List */}
-                      {form.watch("sessionNote.presentAllies")?.map((name, index) => {
-                        // Find the ally object to get relationship
-                        const ally = allies.find(a => a.name === name);
-                        return (
-                          <div 
-                            key={index} 
-                            className="flex items-center justify-between py-2 px-1 border-b last:border-0"
-                          >
-                            <div className="flex items-center gap-3">
-                              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                                {name.charAt(0)}
-                              </div>
-                              <span className="font-medium">{name}</span>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                              <span className="text-sm text-primary">{ally?.relationship || "Attendee"}</span>
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                className="h-8 w-8 p-0 rounded-full"
-                                onClick={() => {
-                                  // Get the allied ID by looking up in our allies array
-                                  const allyToRemove = allies.find(a => a.name === name);
-                                  
-                                  // Remove from the name display array
-                                  const currentAllies = form.getValues("sessionNote.presentAllies") || [];
-                                  form.setValue(
-                                    "sessionNote.presentAllies", 
-                                    currentAllies.filter(a => a !== name)
-                                  );
-                                  
-                                  // Also remove from the ID array if we found the ally
-                                  if (allyToRemove) {
-                                    const currentAllyIds = form.getValues("sessionNote.presentAllyIds") || [];
-                                    form.setValue(
-                                      "sessionNote.presentAllyIds", 
-                                      currentAllyIds.filter(id => id !== allyToRemove.id)
-                                    );
-                                  }
-                                }}
-                              >
-                                <svg width="18" height="18" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                  <path d="M3.625 7.5C3.625 8.12 3.12 8.625 2.5 8.625C1.88 8.625 1.375 8.12 1.375 7.5C1.375 6.88 1.88 6.375 2.5 6.375C3.12 6.375 3.625 6.88 3.625 7.5ZM8.625 7.5C8.625 8.12 8.12 8.625 7.5 8.625C6.88 8.625 6.375 8.12 6.375 7.5C6.375 6.88 6.88 6.375 7.5 6.375C8.12 6.375 8.625 6.88 8.625 7.5ZM13.625 7.5C13.625 8.12 13.12 8.625 12.5 8.625C11.88 8.625 11.375 8.12 11.375 7.5C11.375 6.88 11.88 6.375 12.5 6.375C13.12 6.375 13.625 6.88 13.625 7.5Z" fill="currentColor" fillRule="evenodd" clipRule="evenodd"></path>
-                                </svg>
-                              </Button>
-                            </div>
-                          </div>
-                        );
-                      })}
-                      
-                      {/* New Attendee button has been moved to the header */}
-                      
-                      {(!form.watch("sessionNote.presentAllies") || 
-                        form.watch("sessionNote.presentAllies").length === 0) && (
-                        <div className="text-center py-4">
-                          <p className="text-sm text-muted-foreground">
-                            No one added yet. Click "New Attendee" to add people present in this session.
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                    
-                    {/* Ally Selection Dialog */}
-                    <Dialog 
-                      open={allies.length > 0 && form.getValues("sessionNote.presentAllies")?.includes("__select__")}
-                      onOpenChange={(open) => {
-                        if (!open) {
-                          // Remove the special marker if dialog is closed
-                          const currentAllies = form.getValues("sessionNote.presentAllies") || [];
-                          form.setValue(
-                            "sessionNote.presentAllies", 
-                            currentAllies.filter(a => a !== "__select__")
-                          );
-                        }
-                      }}
-                    >
-                      <DialogContent className="sm:max-w-[425px]">
-                        <DialogHeader>
-                          <DialogTitle>Add Attendee</DialogTitle>
-                          <DialogDescription>
-                            Select a person who was present in this therapy session.
-                          </DialogDescription>
-                        </DialogHeader>
-                        <div className="py-4">
-                          <Select
-                            onValueChange={(value) => {
-                              const currentAllies = form.getValues("sessionNote.presentAllies") || [];
-                              
-                              // Parse the selected value to get the ally ID and name
-                              const [allyId, allyName] = value.split('|');
-                              console.log(`Selected ally: ID=${allyId}, Name=${allyName}`);
-                              
-                              // Check if ally is already in the list
-                              const currentAllyIds = form.getValues("sessionNote.presentAllyIds") || [];
-                              const allyIdNum = parseInt(allyId);
-                              
-                              if (currentAllies.includes(allyName) || currentAllyIds.includes(allyIdNum)) {
-                                toast({
-                                  title: "Attendee already added",
-                                  description: `${allyName} is already present in this session.`,
-                                  variant: "destructive"
-                                });
-                                return;
-                              }
-                              
-                              // Remove the selection marker and add the selected ally (just using the name for display)
-                              form.setValue(
-                                "sessionNote.presentAllies", 
-                                [...currentAllies.filter(a => a !== "__select__"), allyName]
-                              );
-                              
-                              // Store the ally IDs separately for data integrity
-                              form.setValue(
-                                "sessionNote.presentAllyIds",
-                                [...currentAllyIds, allyIdNum]
-                              );
-                            }}
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select person" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {allies
-                                .filter(ally => {
-                                  const currentAllies = form.getValues("sessionNote.presentAllies") || [];
-                                  return !currentAllies.includes(ally.name);
-                                })
-                                .map((ally) => (
-                                  <SelectItem key={ally.id} value={`${ally.id}|${ally.name}`}>
-                                    {ally.name} ({ally.relationship || "Ally"})
-                                  </SelectItem>
-                                ))
-                              }
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </DialogContent>
-                    </Dialog>
-                    
-                    {/* Middle Column - Products Section */}
-                    <div className="session-column space-y-4">
-                      <div className="flex justify-between items-center">
-                        <h3 className="section-header">
-                          <ShoppingCart className="h-5 w-5" />
-                          Products Used
-                        </h3>
-                        <div className="flex gap-2">
+                  <ThreeColumnLayout
+                    className="mt-6"
+                    leftColumn={
+                      <>
+                        <div className="flex justify-between items-center mb-2">
+                          <h3 className="section-header">
+                            <UserCheck className="h-5 w-5" />
+                            Present
+                          </h3>
+                          
+                          {/* Add New Attendee Button moved to header */}
                           <Button
-                            type="button"
                             variant="outline"
                             size="sm"
                             onClick={() => {
-                              console.log('Opening product selection dialog');
-                              console.log('Available products:', availableProducts);
+                              console.log("New Attendee button clicked, allies:", allies);
                               
-                              // In dev mode, create sample products if none are available
-                              if (import.meta.env.DEV && hasClientSelected && availableProducts.length === 0) {
-                                console.log('Creating sample products for development');
+                              if (allies.length > 0) {
+                                // Get current allies and filter to find available ones
+                                const currentAllies = form.getValues("sessionNote.presentAllies") || [];
+                                const availableAllies = allies.filter(ally => 
+                                  !currentAllies.includes(ally.name)
+                                );
                                 
-                                // Create sample products for development/testing
-                                const sampleProducts = [
-                                  {
-                                    id: 9001,
-                                    budgetSettingsId: clientId || 0,
-                                    clientId: clientId || 0,
-                                    itemCode: "THERAPY-001",
-                                    description: "Speech Therapy Session",
-                                    quantity: 10,
-                                    unitPrice: 150,
-                                    availableQuantity: 10,
-                                    productCode: "THERAPY-001",
-                                    productDescription: "Speech Therapy Session",
-                                    name: "Speech Therapy Session"
-                                  },
-                                  {
-                                    id: 9002,
-                                    budgetSettingsId: clientId || 0,
-                                    clientId: clientId || 0,
-                                    itemCode: "ASSESS-001",
-                                    description: "Assessment Session",
-                                    quantity: 5,
-                                    unitPrice: 200,
-                                    availableQuantity: 5,
-                                    productCode: "ASSESS-001",
-                                    productDescription: "Assessment Session",
-                                    name: "Assessment Session"
-                                  }
-                                ];
-                                
-                                // Store in global window for use in the useMemo
-                                (window as any).__sampleProducts = sampleProducts;
-                                
-                                // Update local state to track sample products
-                                setHasSampleProducts(true);
-                                
-                                // Show a toast notification
+                                if (availableAllies.length > 0) {
+                                  // Add the special marker to trigger the dialog
+                                  form.setValue("sessionNote.presentAllies", [
+                                    ...currentAllies, 
+                                    "__select__"
+                                  ]);
+                                } else {
+                                  toast({
+                                    title: "No more allies available",
+                                    description: "All available attendees have been added to the session.",
+                                    variant: "default"
+                                  });
+                                }
+                              } else {
                                 toast({
-                                  title: "Sample Products Added",
-                                  description: "Sample products have been added for this session."
+                                  title: "No allies found",
+                                  description: "This client doesn't have any allies added to their profile yet.",
+                                  variant: "default"
                                 });
                               }
-                              
-                              // Delay slightly to avoid React state issues
-                              setTimeout(() => {
-                                setProductSelectionOpen(true);
-                                console.log('Product selection dialog should be open now');
-                              }, 50);
                             }}
-                            disabled={!availableProducts.length && !hasSampleProducts && !hasClientSelected}
                           >
-                            <ShoppingCart className="h-4 w-4 mr-2" />
-                            Add Product
+                            <Plus className="h-4 w-4 mr-2" />
+                            New Attendee
                           </Button>
                         </div>
-                      </div>
-                      
-                      {/* Product Selection Dialog */}
-                      <ProductSelectionDialog
-                        open={productSelectionOpen}
-                        onOpenChange={setProductSelectionOpen}
-                        products={availableProducts}
-                        onSelectProduct={handleAddProduct}
-                      />
-                      
-                      {/* Selected Products List */}
-                      {selectedProducts.length === 0 ? (
-                        <div className="bg-muted/20 rounded-lg p-4 text-center">
-                          <p className="text-muted-foreground">No products added to this session</p>
-                        </div>
-                      ) : (
                         <div className="bg-muted/20 rounded-lg p-4 space-y-2">
-                          {selectedProducts.map((product, index) => {
-                            const totalPrice = product.quantity * product.unitPrice;
-                            
-                            return (
-                              <div 
-                                key={index} 
-                                className="flex items-center justify-between py-2 px-1 border-b last:border-0"
-                              >
-                                <div className="flex-1">
-                                  <div className="font-medium">{product.productDescription}</div>
-                                  <div className="text-sm text-muted-foreground">
-                                    Code: {product.productCode}
-                                  </div>
-                                  
-                                  {/* Availability Visualization */}
-                                  <div className="mt-1">
-                                    <div className="flex items-center text-xs">
-                                      <span className="text-muted-foreground mr-2">Availability:</span>
-                                      <div className="w-full max-w-[100px] bg-gray-200 rounded-full h-2.5">
-                                        <div 
-                                          className="bg-primary h-2.5 rounded-full" 
-                                          style={{ 
-                                            width: `${Math.min(100, (product.availableQuantity - product.quantity) / product.availableQuantity * 100)}%` 
-                                          }}
-                                        />
-                                      </div>
-                                      <span className="ml-2 text-xs">
-                                        <span className="text-primary font-medium">{product.availableQuantity - product.quantity}</span>
-                                        <span className="text-muted-foreground"> / {product.availableQuantity}</span>
-                                      </span>
-                                    </div>
-                                  </div>
+                        {/* Selected Allies List */}
+                        {form.watch("sessionNote.presentAllies")?.map((name, index) => {
+                          // Find the ally object to get relationship
+                          const ally = allies.find(a => a.name === name);
+                          return (
+                            <div 
+                              key={index} 
+                              className="flex items-center justify-between py-2 px-1 border-b last:border-0"
+                            >
+                              <div className="flex items-center gap-3">
+                                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                                  {name.charAt(0)}
                                 </div>
+                                <span className="font-medium">{name}</span>
+                              </div>
+                              <div className="flex items-center space-x-2">
+                                <span className="text-sm text-primary">{ally?.relationship || "Attendee"}</span>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-8 w-8 p-0 rounded-full"
+                                  onClick={() => {
+                                    // Get the allied ID by looking up in our allies array
+                                    const allyToRemove = allies.find(a => a.name === name);
+                                    
+                                    // Remove from the name display array
+                                    const currentAllies = form.getValues("sessionNote.presentAllies") || [];
+                                    form.setValue(
+                                      "sessionNote.presentAllies", 
+                                      currentAllies.filter(a => a !== name)
+                                    );
+                                    
+                                    // Also remove from the ID array if we found the ally
+                                    if (allyToRemove) {
+                                      const currentAllyIds = form.getValues("sessionNote.presentAllyIds") || [];
+                                      form.setValue(
+                                        "sessionNote.presentAllyIds", 
+                                        currentAllyIds.filter(id => id !== allyToRemove.id)
+                                      );
+                                    }
+                                  }}
+                                >
+                                  <svg width="18" height="18" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M3.625 7.5C3.625 8.12 3.12 8.625 2.5 8.625C1.88 8.625 1.375 8.12 1.375 7.5C1.375 6.88 1.88 6.375 2.5 6.375C3.12 6.375 3.625 6.88 3.625 7.5ZM8.625 7.5C8.625 8.12 8.12 8.625 7.5 8.625C6.88 8.625 6.375 8.12 6.375 7.5C6.375 6.88 6.88 6.375 7.5 6.375C8.12 6.375 8.625 6.88 8.625 7.5ZM13.625 7.5C13.625 8.12 13.12 8.625 12.5 8.625C11.88 8.625 11.375 8.12 11.375 7.5C11.375 6.88 11.88 6.375 12.5 6.375C13.12 6.375 13.625 6.88 13.625 7.5Z" fill="currentColor" fillRule="evenodd" clipRule="evenodd"></path>
+                                  </svg>
+                                </Button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                        
+                        {/* New Attendee button has been moved to the header */}
+                        
+                        {(!form.watch("sessionNote.presentAllies") || 
+                          form.watch("sessionNote.presentAllies").length === 0) && (
+                          <div className="text-center py-4">
+                            <p className="text-sm text-muted-foreground">
+                              No one added yet. Click "New Attendee" to add people present in this session.
+                            </p>
+                          </div>
+                        )}
+                        </div>
+                        
+                        {/* Ally Selection Dialog */}
+                        <Dialog 
+                          open={allies.length > 0 && form.getValues("sessionNote.presentAllies")?.includes("__select__")}
+                          onOpenChange={(open) => {
+                            if (!open) {
+                              // Remove the special marker if dialog is closed
+                              const currentAllies = form.getValues("sessionNote.presentAllies") || [];
+                              form.setValue(
+                                "sessionNote.presentAllies", 
+                                currentAllies.filter(a => a !== "__select__")
+                              );
+                            }
+                          }}
+                        >
+                          <DialogContent className="sm:max-w-[425px]">
+                            <DialogHeader>
+                              <DialogTitle>Add Attendee</DialogTitle>
+                              <DialogDescription>
+                                Select a person who was present in this therapy session.
+                              </DialogDescription>
+                            </DialogHeader>
+                            <div className="py-4">
+                              <Select
+                                onValueChange={(value) => {
+                                  const currentAllies = form.getValues("sessionNote.presentAllies") || [];
+                                  
+                                  // Parse the selected value to get the ally ID and name
+                                  const [allyId, allyName] = value.split('|');
+                                  console.log(`Selected ally: ID=${allyId}, Name=${allyName}`);
+                                  
+                                  // Check if ally is already in the list
+                                  const currentAllyIds = form.getValues("sessionNote.presentAllyIds") || [];
+                                  const allyIdNum = parseInt(allyId);
+                                  
+                                  if (currentAllies.includes(allyName) || currentAllyIds.includes(allyIdNum)) {
+                                    toast({
+                                      title: "Attendee already added",
+                                      description: `${allyName} is already present in this session.`,
+                                      variant: "destructive"
+                                    });
+                                    return;
+                                  }
+                                  
+                                  // Remove the selection marker and add the selected ally (just using the name for display)
+                                  form.setValue(
+                                    "sessionNote.presentAllies", 
+                                    [...currentAllies.filter(a => a !== "__select__"), allyName]
+                                  );
+                                  
+                                  // Store the ally IDs separately for data integrity
+                                  form.setValue(
+                                    "sessionNote.presentAllyIds",
+                                    [...currentAllyIds, allyIdNum]
+                                  );
+                                }}
+                              >
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select person" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {allies
+                                    .filter(ally => {
+                                      const currentAllies = form.getValues("sessionNote.presentAllies") || [];
+                                      return !currentAllies.includes(ally.name);
+                                    })
+                                    .map((ally) => (
+                                      <SelectItem key={ally.id} value={`${ally.id}|${ally.name}`}>
+                                        {ally.name} ({ally.relationship || "Ally"})
+                                      </SelectItem>
+                                    ))
+                                  }
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </DialogContent>
+                        </Dialog>
+                      </>
+                    }
+                    
+                    middleColumn={
+                      <>
+                        <div className="flex justify-between items-center">
+                          <h3 className="section-header">
+                            <ShoppingCart className="h-5 w-5" />
+                            Products Used
+                          </h3>
+                          <div className="flex gap-2">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                console.log('Opening product selection dialog');
+                                console.log('Available products:', availableProducts);
                                 
-                                <div className="flex items-center gap-3">
-                                  {/* Quantity Controls */}
-                                  <div className="flex items-center border rounded-md mr-2">
-                                    <Button 
-                                      type="button" 
-                                      variant="ghost" 
-                                      size="icon"
-                                      className="h-7 w-7"
-                                      onClick={() => {
-                                        if (product.quantity > 1) {
-                                          const updatedProducts = [...selectedProducts];
-                                          updatedProducts[index] = {
-                                            ...updatedProducts[index],
-                                            quantity: product.quantity - 1
-                                          };
-                                          form.setValue("sessionNote.products", updatedProducts);
-                                        }
-                                      }}
-                                    >
-                                      <Minus className="h-3 w-3" />
-                                    </Button>
-                                    <div className="w-8 text-center">
-                                      <span className="text-sm font-medium">{product.quantity}</span>
+                                // In dev mode, create sample products if none are available
+                                if (import.meta.env.DEV && hasClientSelected && availableProducts.length === 0) {
+                                  console.log('Creating sample products for development');
+                                  
+                                  // Create sample products for development/testing
+                                  const sampleProducts = [
+                                    {
+                                      id: 9001,
+                                      budgetSettingsId: clientId || 0,
+                                      clientId: clientId || 0,
+                                      itemCode: "THERAPY-001",
+                                      description: "Speech Therapy Session",
+                                      quantity: 10,
+                                      unitPrice: 150,
+                                      availableQuantity: 10,
+                                      productCode: "THERAPY-001",
+                                      productDescription: "Speech Therapy Session",
+                                      name: "Speech Therapy Session"
+                                    },
+                                    {
+                                      id: 9002,
+                                      budgetSettingsId: clientId || 0,
+                                      clientId: clientId || 0,
+                                      itemCode: "ASSESS-001",
+                                      description: "Assessment Session",
+                                      quantity: 5,
+                                      unitPrice: 200,
+                                      availableQuantity: 5,
+                                      productCode: "ASSESS-001",
+                                      productDescription: "Assessment Session",
+                                      name: "Assessment Session"
+                                    }
+                                  ];
+                                  
+                                  // Store in global window for use in the useMemo
+                                  (window as any).__sampleProducts = sampleProducts;
+                                  
+                                  // Update local state to track sample products
+                                  setHasSampleProducts(true);
+                                  
+                                  // Show a toast notification
+                                  toast({
+                                    title: "Sample Products Added",
+                                    description: "Sample products have been added for this session."
+                                  });
+                                }
+                                
+                                // Delay slightly to avoid React state issues
+                                setTimeout(() => {
+                                  setProductSelectionOpen(true);
+                                  console.log('Product selection dialog should be open now');
+                                }, 50);
+                              }}
+                              disabled={!availableProducts.length && !hasSampleProducts && !hasClientSelected}
+                            >
+                              <ShoppingCart className="h-4 w-4 mr-2" />
+                              Add Product
+                            </Button>
+                          </div>
+                        </div>
+                        
+                        {/* Product Selection Dialog */}
+                        <ProductSelectionDialog
+                          open={productSelectionOpen}
+                          onOpenChange={setProductSelectionOpen}
+                          products={availableProducts}
+                          onSelectProduct={handleAddProduct}
+                        />
+                        
+                        {/* Selected Products List */}
+                        {selectedProducts.length === 0 ? (
+                          <div className="bg-muted/20 rounded-lg p-4 text-center">
+                            <p className="text-muted-foreground">No products added to this session</p>
+                          </div>
+                        ) : (
+                          <div className="bg-muted/20 rounded-lg p-4 space-y-2">
+                            {selectedProducts.map((product, index) => {
+                              const totalPrice = product.quantity * product.unitPrice;
+                              
+                              return (
+                                <div 
+                                  key={index} 
+                                  className="flex items-center justify-between py-2 px-1 border-b last:border-0"
+                                >
+                                  <div className="flex-1">
+                                    <div className="font-medium">{product.productDescription}</div>
+                                    <div className="text-sm text-muted-foreground">
+                                      Code: {product.productCode}
                                     </div>
-                                    <Button 
-                                      type="button" 
-                                      variant="ghost" 
-                                      size="icon"
-                                      className="h-7 w-7"
-                                      onClick={() => {
-                                        if (product.quantity < product.availableQuantity) {
-                                          const updatedProducts = [...selectedProducts];
-                                          updatedProducts[index] = {
-                                            ...updatedProducts[index],
-                                            quantity: product.quantity + 1
-                                          };
-                                          form.setValue("sessionNote.products", updatedProducts);
-                                        } else {
-                                          toast({
-                                            title: "Maximum quantity reached",
-                                            description: `Only ${product.availableQuantity} units available`,
-                                            variant: "destructive"
-                                          });
-                                        }
-                                      }}
-                                    >
-                                      <Plus className="h-3 w-3" />
-                                    </Button>
+                                    
+                                    {/* Availability Visualization */}
+                                    <div className="mt-1">
+                                      <div className="flex items-center text-xs">
+                                        <span className="text-muted-foreground mr-2">Availability:</span>
+                                        <div className="w-full max-w-[100px] bg-gray-200 rounded-full h-2.5">
+                                          <div 
+                                            className="bg-primary h-2.5 rounded-full" 
+                                            style={{ 
+                                              width: `${Math.min(100, (product.availableQuantity - product.quantity) / product.availableQuantity * 100)}%` 
+                                            }}
+                                          />
+                                        </div>
+                                        <span className="ml-2 text-xs">
+                                          <span className="text-primary font-medium">{product.availableQuantity - product.quantity}</span>
+                                          <span className="text-muted-foreground"> / {product.availableQuantity}</span>
+                                        </span>
+                                      </div>
+                                    </div>
                                   </div>
                                   
-                                  <div className="text-right">
-                                    <div>
-                                      <span className="text-muted-foreground text-sm">
+                                  <div className="flex items-center gap-3">
+                                    {/* Quantity Controls */}
+                                    <div className="flex items-center border rounded-md mr-2">
+                                      <Button 
+                                        type="button" 
+                                        variant="ghost" 
+                                        size="icon"
+                                        className="h-7 w-7"
+                                        onClick={() => {
+                                          if (product.quantity > 1) {
+                                            const updatedProducts = [...selectedProducts];
+                                            updatedProducts[index] = {
+                                              ...updatedProducts[index],
+                                              quantity: product.quantity - 1
+                                            };
+                                            form.setValue("sessionNote.products", updatedProducts);
+                                          }
+                                        }}
+                                      >
+                                        <Minus className="h-3 w-3" />
+                                      </Button>
+                                      <div className="w-8 text-center">
+                                        <span className="text-sm font-medium">{product.quantity}</span>
+                                      </div>
+                                      <Button 
+                                        type="button" 
+                                        variant="ghost" 
+                                        size="icon"
+                                        className="h-7 w-7"
+                                        onClick={() => {
+                                          if (product.quantity < product.availableQuantity) {
+                                            const updatedProducts = [...selectedProducts];
+                                            updatedProducts[index] = {
+                                              ...updatedProducts[index],
+                                              quantity: product.quantity + 1
+                                            };
+                                            form.setValue("sessionNote.products", updatedProducts);
+                                          } else {
+                                            toast({
+                                              title: "Maximum quantity reached",
+                                              description: `Only ${product.availableQuantity} units available`,
+                                              variant: "destructive"
+                                            });
+                                          }
+                                        }}
+                                      >
+                                        <Plus className="h-3 w-3" />
+                                      </Button>
+                                    </div>
+                                    
+                                    <div className="text-right">
+                                      <div>
+                                        <span className="text-muted-foreground text-sm">
+                                          {new Intl.NumberFormat('en-US', {
+                                            style: 'currency',
+                                            currency: 'USD'
+                                          }).format(product.unitPrice)}
+                                        </span>
+                                      </div>
+                                      <div className="text-sm font-medium">
                                         {new Intl.NumberFormat('en-US', {
                                           style: 'currency',
                                           currency: 'USD'
-                                        }).format(product.unitPrice)}
-                                      </span>
+                                        }).format(totalPrice)}
+                                      </div>
                                     </div>
-                                    <div className="text-sm font-medium">
-                                      {new Intl.NumberFormat('en-US', {
-                                        style: 'currency',
-                                        currency: 'USD'
-                                      }).format(totalPrice)}
-                                    </div>
+                                    
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-8 w-8 p-0 rounded-full ml-2"
+                                      onClick={() => handleRemoveProduct(index)}
+                                    >
+                                      <X className="h-4 w-4" />
+                                    </Button>
                                   </div>
-                                  
-                                  <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="sm"
-                                    className="h-8 w-8 p-0 rounded-full ml-2"
-                                    onClick={() => handleRemoveProduct(index)}
-                                  >
-                                    <X className="h-4 w-4" />
-                                  </Button>
                                 </div>
-                              </div>
-                            );
-                          })}
-                          
-                          {/* Total Value */}
-                          <div className="pt-3 mt-2 border-t flex justify-between items-center">
-                            <span className="font-medium">Total Value:</span>
-                            <span className="font-bold">
-                              {new Intl.NumberFormat('en-US', {
-                                style: 'currency',
-                                currency: 'USD'
-                              }).format(
-                                selectedProducts.reduce(
-                                  (total, product) => total + (product.quantity * product.unitPrice), 
-                                  0
-                                )
-                              )}
-                            </span>
+                              );
+                            })}
+                            
+                            {/* Total Value */}
+                            <div className="pt-3 mt-2 border-t flex justify-between items-center">
+                              <span className="font-medium">Total Value:</span>
+                              <span className="font-bold">
+                                {new Intl.NumberFormat('en-US', {
+                                  style: 'currency',
+                                  currency: 'USD'
+                                }).format(
+                                  selectedProducts.reduce(
+                                    (total, product) => total + (product.quantity * product.unitPrice), 
+                                    0
+                                  )
+                                )}
+                              </span>
+                            </div>
                           </div>
-                        </div>
-                      )}
-                    </div>
-                    
-                    {/* Right Column - Session Observations */}
-                    <div className="session-column space-y-4">
-                      <h3 className="section-header">
-                        <ClipboardList className="h-5 w-5" />
-                        Session Observations
-                      </h3>
-                      
-                      {/* Rating Sliders */}
-                      <div className="space-y-4">
-                        <FormField
-                          control={form.control}
-                          name="sessionNote.moodRating"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormControl>
-                                <RatingSlider
-                                  value={field.value}
-                                  onChange={field.onChange}
-                                  label="Mood"
-                                  description="Rate client's overall mood during the session"
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        
-                        <FormField
-                          control={form.control}
-                          name="sessionNote.focusRating"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormControl>
-                                <RatingSlider
-                                  value={field.value}
-                                  onChange={field.onChange}
-                                  label="Focus"
-                                  description="Rate client's ability to focus during the session"
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        
-                        <FormField
-                          control={form.control}
-                          name="sessionNote.cooperationRating"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormControl>
-                                <RatingSlider
-                                  value={field.value}
-                                  onChange={field.onChange}
-                                  label="Cooperation"
-                                  description="Rate client's overall cooperation"
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        
-                        <FormField
-                          control={form.control}
-                          name="sessionNote.physicalActivityRating"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormControl>
-                                <RatingSlider
-                                  value={field.value}
-                                  onChange={field.onChange}
-                                  label="Physical Activity"
-                                  description="Rate client's physical activity level"
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
-                      
-                      {/* Notes Textarea */}
-                      <FormField
-                        control={form.control}
-                        name="sessionNote.notes"
-                        render={({ field }) => (
-                          <FormItem className="mt-4">
-                            <FormLabel>General Notes</FormLabel>
-                            <FormControl>
-                              <Textarea 
-                                placeholder="Enter general observations about the session..."
-                                className="resize-none min-h-[220px]"
-                                {...field}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
                         )}
-                      />
-                    </div>
-                  </div>
-                  </div>
+                      </>
+                    }
+                    
+                    rightColumn={
+                      <>
+                        <h3 className="section-header">
+                          <ClipboardList className="h-5 w-5" />
+                          Session Observations
+                        </h3>
+                        
+                        {/* Rating Sliders */}
+                        <div className="space-y-4">
+                          <FormField
+                            control={form.control}
+                            name="sessionNote.moodRating"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormControl>
+                                  <RatingSlider
+                                    value={field.value}
+                                    onChange={field.onChange}
+                                    label="Mood"
+                                    description="Rate client's overall mood during the session"
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          
+                          <FormField
+                            control={form.control}
+                            name="sessionNote.focusRating"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormControl>
+                                  <RatingSlider
+                                    value={field.value}
+                                    onChange={field.onChange}
+                                    label="Focus"
+                                    description="Rate client's ability to focus during the session"
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          
+                          <FormField
+                            control={form.control}
+                            name="sessionNote.cooperationRating"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormControl>
+                                  <RatingSlider
+                                    value={field.value}
+                                    onChange={field.onChange}
+                                    label="Cooperation"
+                                    description="Rate client's overall cooperation"
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          
+                          <FormField
+                            control={form.control}
+                            name="sessionNote.physicalActivityRating"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormControl>
+                                  <RatingSlider
+                                    value={field.value}
+                                    onChange={field.onChange}
+                                    label="Physical Activity"
+                                    description="Rate client's physical activity level"
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+                        
+                        {/* Notes Textarea */}
+                        <FormField
+                          control={form.control}
+                          name="sessionNote.notes"
+                          render={({ field }) => (
+                            <FormItem className="mt-4">
+                              <FormLabel>General Notes</FormLabel>
+                              <FormControl>
+                                <Textarea 
+                                  placeholder="Enter general observations about the session..."
+                                  className="resize-none min-h-[220px]"
+                                  {...field}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </>
+                    }
+                  />
                 </TabsContent>
 
                 {/* Performance Assessment Tab */}
