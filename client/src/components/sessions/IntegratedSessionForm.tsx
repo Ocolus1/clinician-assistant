@@ -891,7 +891,7 @@ export function IntegratedSessionForm({
   };
 
   // Handle milestone selection
-  consthandleMilestoneSelection = (subgoal: Subgoal) =>{
+  const handleMilestoneSelection = (subgoal: Subgoal) => {
     if (currentGoalIndex === null) return;
 
     const updatedAssessments = [...selectedPerformanceAssessments];
@@ -2281,53 +2281,54 @@ const ProductSelectionDialog = ({
                       </div>
                     </div>
                   </div>
-                </TabsContent>
-              </div>
+                </SessionDetailsLayout>
+              </TabsContent>
+            </div>
 
-              {/* Footer with navigation and submit buttons */}
-              <div className="pt-2 border-t flex justify-between items-center">
-                <div className="flex items-center">
-                  {activeTab !== "details" && (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={handleBack}
-                      className="mr-2"
-                    >
-                      <ChevronLeft className="h-4 w-4 mr-1" />
-                      Back
-                    </Button>
-                  )}
-                  {activeTab !== "performance" && (
-                    <Button
-                      type="button"
-                      onClick={handleNext}
-                      variant="ghost"
-                    >
-                      Next
-                      <ChevronRight className="h-4 w-4 ml-1" />
-                    </Button>
-                  )}
-                </div>
-
-                <div className="flex items-center space-x-2">
+            {/* Footer with navigation and submit buttons */}
+            <div className="pt-2 border-t flex justify-between items-center">
+              <div className="flex items-center">
+                {activeTab !== "details" && (
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={() => onOpenChange(false)}
+                    onClick={handleBack}
+                    className="mr-2"
                   >
-                    Cancel
+                    <ChevronLeft className="h-4 w-4 mr-1" />
+                    Back
                   </Button>
-                  {activeTab === "performance" && (
-                    <Button 
-                      type="submit"
-                      disabled={createSessionMutation.isPending}
-                    >
-                      {createSessionMutation.isPending ? "Creating..." : "Create Session"}
-                    </Button>
-                  )}
-                </div>
+                )}
+                {activeTab !== "performance" && (
+                  <Button
+                    type="button"
+                    onClick={handleNext}
+                    variant="ghost"
+                  >
+                    Next
+                    <ChevronRight className="h-4 w-4 ml-1" />
+                  </Button>
+                )}
               </div>
+
+              <div className="flex items-center space-x-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => onOpenChange(false)}
+                >
+                  Cancel
+                </Button>
+                {activeTab === "performance" && (
+                  <Button 
+                    type="submit"
+                    disabled={createSessionMutation.isPending}
+                  >
+                    {createSessionMutation.isPending ? "Creating..." : "Create Session"}
+                  </Button>
+                )}
+              </div>
+            </div>
             </form>
           </Form>
         </Tabs>
