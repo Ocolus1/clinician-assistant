@@ -18,7 +18,8 @@ import {
   User as UserIcon,
   MapPin as MapPinIcon,
   ClipboardList,
-  UserCheck
+  UserCheck,
+  ChevronsUpDown
 } from "lucide-react";
 import "./session-form.css";
 import { ThreeColumnLayout } from "./ThreeColumnLayout";
@@ -27,6 +28,7 @@ import { Ally, BudgetItem, BudgetSettings, Client, Goal, Session, Subgoal, Strat
 import { apiRequest } from "@/lib/queryClient";
 import { useSafeForm } from "@/hooks/use-safe-hooks";
 import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
 import { StrategySelectionDialog } from "./StrategySelectionDialog";
 
 // Function to hide unwanted calendars in the UI
@@ -86,6 +88,13 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Progress } from "@/components/ui/progress";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+} from "@/components/ui/command";
 
 // Session form schema
 const sessionFormSchema = insertSessionSchema.extend({
@@ -1264,7 +1273,7 @@ const ProductSelectionDialog = ({
                     <CardContent>
                       {/* First row: Client, Location, Date & Time in a single row */}
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-2">
-                        {/* Client Selection */}
+                        {/* Client Selection - Searchable Combobox */}
                         <FormField
                           control={form.control}
                           name="session.clientId"
@@ -1274,50 +1283,80 @@ const ProductSelectionDialog = ({
                                 <UserIcon className="h-4 w-4 mr-2 text-muted-foreground" />
                                 Client
                               </FormLabel>
-                              <Select
-                                onValueChange={(value) => {
-                                  // Set the client ID
-                                  const clientId = parseInt(value);
-                                  field.onChange(clientId);
-
-                                  // Reset performance assessments when client changes
-                                  form.setValue("performanceAssessments", []);
-
-                                  // Reset products when client changes
-                                  form.setValue("sessionNote.products", []);
-
-                                  // Log when client changes to help debug
-                                  console.log('Client changed to:', clientId);
-                                  console.log('Initiating budget item fetch for client:', clientId);
-
-                                  // Manually trigger refetch of budget items and settings
-                                  if (refetchBudgetItems && refetchBudgetSettings) {
-                                    console.log('Manually refetching budget data for client:', clientId);
-                                    // Use timeout to ensure components finish rendering first
-                                    setTimeout(() => {
-                                      refetchBudgetItems();
-                                      refetchBudgetSettings();
-                                    }, 100);
-                                  }
-                                }}
-                                value={field.value?.toString() || undefined}
-                              >
-                                <FormControl>
-                                  <SelectTrigger className="h-10">
-                                    <SelectValue placeholder="Select client" />
-                                  </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                  {clients.map((client) => (
-                                    <SelectItem key={client.id} value={client.id.toString()}>
-                                      {client.name}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
+                              <Popover>
+                                <PopoverTrigger asChild>
+                                  <FormControl>
+                                    <Button
+                                      variant="outline"
+                                      role="combobox"
+                                      className={cn(
+                                        "h-10 w-full justify-between",
+                                        !field.value && "text-muted-foreground"
+                                      )}
+                                    >
+                                      {field.value
+                                        ? clients.find(
+                                            (client) => client.id === field.value
+                                          )?.name || "Select client"
+                                        : "Select client"}
+                                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                    </Button>
+                                  </FormControl>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-[300px] p-0" align="start">
+                                  <Command>
+                                    <CommandInput placeholder="Search clients..." />
+                                    <CommandEmpty>No client found.</CommandEmpty>
+                                    <CommandGroup>
+                                      <ScrollArea className="h-[300px]">
+                                        {clients.map((client) => (
+                                          <CommandItem
+                                            key={client.id}
+                                            value={client.name}
+                                            onSelect={() => {
+                                              const clientId = client.id;
+                                              field.onChange(clientId);
+                                              
+                                              // Reset performance assessments when client changes
+                                              form.setValue("performanceAssessments", []);
+                                              
+                                              // Reset products when client changes
+                                              form.setValue("sessionNote.products", []);
+                                              
+                                              // Log when client changes to help debug
+                                              console.log('Client changed to:', clientId);
+                                              console.log('Initiating budget item fetch for client:', clientId);
+                                              
+                                              // Manually trigger refetch of budget items and settings
+                                              if (refetchBudgetItems && refetchBudgetSettings) {
+                                                console.log('Manually refetching budget data for client:', clientId);
+                                                // Use timeout to ensure components finish rendering first
+                                                setTimeout(() => {
+                                                  refetchBudgetItems();
+                                                  refetchBudgetSettings();
+                                                }, 100);
+                                              }
+                                            }}
+                                          >
+                                            <Check
+                                              className={cn(
+                                                "mr-2 h-4 w-4",
+                                                client.id === field.value
+                                                  ? "opacity-100"
+                                                  : "opacity-0"
+                                              )}
+                                            />
+                                            {client.name}
+                                          </CommandItem>
+                                        ))}
+                                      </ScrollArea>
+                                    </CommandGroup>
+                                  </Command>
+                                </PopoverContent>
+                              </Popover>
                               <FormMessage />
-                        </FormItem>
-                      )}
+                            </FormItem>
+                          )}
                     />
 
                     {/* Location - with predefined list */}
