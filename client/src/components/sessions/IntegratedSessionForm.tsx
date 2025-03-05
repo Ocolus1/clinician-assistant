@@ -1496,54 +1496,56 @@ const ProductSelectionDialog = ({
                   <ThreeColumnLayout
                     className="mt-6"
                     leftColumn={
-                      <>
-                        <div className="flex justify-between items-center mb-2">
-                          <h3 className="section-header">
-                            <UserCheck className="h-5 w-5" />
-                            Present
-                          </h3>
+                      <Card className="shadow-sm hover:shadow-md transition-all duration-200">
+                        <CardHeader className="pb-2">
+                          <div className="flex justify-between items-center">
+                            <CardTitle className="text-base">
+                              <UserCheck className="h-5 w-5 inline-block mr-2" />
+                              Present
+                            </CardTitle>
 
-                          {/* Add New Attendee Button moved to header */}
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                              console.log("New Attendee button clicked, allies:", allies);
+                            {/* Add New Attendee Button moved to header */}
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                console.log("New Attendee button clicked, allies:", allies);
 
-                              if (allies.length > 0) {
-                                // Get current allies and filter to find available ones
-                                const currentAllies = form.getValues("sessionNote.presentAllies") || [];
-                                const availableAllies = allies.filter(ally => 
-                                  !currentAllies.includes(ally.name)
-                                );
+                                if (allies.length > 0) {
+                                  // Get current allies and filter to find available ones
+                                  const currentAllies = form.getValues("sessionNote.presentAllies") || [];
+                                  const availableAllies = allies.filter(ally => 
+                                    !currentAllies.includes(ally.name)
+                                  );
 
-                                if (availableAllies.length > 0) {
-                                  // Add the special marker to trigger the dialog
-                                  form.setValue("sessionNote.presentAllies", [
-                                    ...currentAllies, 
-                                    "__select__"
-                                  ]);
+                                  if (availableAllies.length > 0) {
+                                    // Add the special marker to trigger the dialog
+                                    form.setValue("sessionNote.presentAllies", [
+                                      ...currentAllies, 
+                                      "__select__"
+                                    ]);
+                                  } else {
+                                    toast({
+                                      title: "No more allies available",
+                                      description: "All available attendees have been added to the session.",
+                                      variant: "default"
+                                    });
+                                  }
                                 } else {
                                   toast({
-                                    title: "No more allies available",
-                                    description: "All available attendees have been added to the session.",
+                                    title: "No allies found",
+                                    description: "This client doesn't have any allies added to their profile yet.",
                                     variant: "default"
                                   });
                                 }
-                              } else {
-                                toast({
-                                  title: "No allies found",
-                                  description: "This client doesn't have any allies added to their profile yet.",
-                                  variant: "default"
-                                });
-                              }
-                            }}
-                          >
-                            <Plus className="h-4 w-4 mr-2" />
-                            New Attendee
-                          </Button>
-                        </div>
-                        <div className="bg-muted/20 rounded-lg p-4 space-y-2">
+                              }}
+                            >
+                              <Plus className="h-4 w-4 mr-2" />
+                              New Attendee
+                            </Button>
+                          </div>
+                        </CardHeader>
+                        <CardContent className="space-y-2">
                         {/* Selected Allies List */}
                         {form.watch("sessionNote.presentAllies")?.map((name, index) => {
                           // Find the ally object to get relationship
@@ -1606,7 +1608,6 @@ const ProductSelectionDialog = ({
                             </p>
                           </div>
                         )}
-                        </div>
 
                         {/* Ally Selection Dialog */}
                         <Dialog 
@@ -1684,242 +1685,250 @@ const ProductSelectionDialog = ({
                             </div>
                           </DialogContent>
                         </Dialog>
-                      </>
+                        </CardContent>
+                      </Card>
                     }
 
                     middleColumn={
-                      <>
-                        <div className="flex justify-between items-center">
-                          <h3 className="section-header">
-                            <ShoppingCart className="h-5 w-5" />
-                            Products Used
-                          </h3>
-                          <div className="flex gap-2">
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              onClick={() => {
-                                console.log('Opening product selection dialog');
-                                console.log('Available products:', availableProducts);
+                      <Card className="shadow-sm hover:shadow-md transition-all duration-200 h-full">
+                        <CardHeader className="pb-2">
+                          <div className="flex justify-between items-center">
+                            <CardTitle className="text-base">
+                              <ShoppingCart className="h-5 w-5 inline-block mr-2" />
+                              Products Used
+                            </CardTitle>
+                            <div className="flex gap-2">
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  console.log('Opening product selection dialog');
+                                  console.log('Available products:', availableProducts);
 
-                                // In dev mode, create sample products if none are available
-                                if (import.meta.env.DEV && hasClientSelected && availableProducts.length === 0) {
-                                  console.log('Creating sample products for development');
+                                  // In dev mode, create sample products if none are available
+                                  if (import.meta.env.DEV && hasClientSelected && availableProducts.length === 0) {
+                                    console.log('Creating sample products for development');
 
-                                  // Create sample products for development/testing
-                                  const sampleProducts = [
-                                    {
-                                      id: 9001,
-                                      budgetSettingsId: clientId || 0,
-                                      clientId: clientId || 0,
-                                      itemCode: "THERAPY-001",
-                                      description: "Speech Therapy Session",
-                                      quantity: 10,
-                                      unitPrice: 150,
-                                      availableQuantity: 10,
-                                      productCode: "THERAPY-001",
-                                      productDescription: "Speech Therapy Session",
-                                      name: "Speech Therapy Session"
-                                    },
-                                    {
-                                      id: 9002,
-                                      budgetSettingsId: clientId || 0,
-                                      clientId: clientId || 0,
-                                      itemCode: "ASSESS-001",
-                                      description: "Assessment Session",
-                                      quantity: 5,
-                                      unitPrice: 200,
-                                      availableQuantity: 5,
-                                      productCode: "ASSESS-001",
-                                      productDescription: "Assessment Session",
-                                      name: "Assessment Session"
-                                    }
-                                  ];
+                                    // Create sample products for development/testing
+                                    const sampleProducts = [
+                                      {
+                                        id: 9001,
+                                        budgetSettingsId: clientId || 0,
+                                        clientId: clientId || 0,
+                                        itemCode: "THERAPY-001",
+                                        description: "Speech Therapy Session",
+                                        quantity: 10,
+                                        unitPrice: 150,
+                                        availableQuantity: 10,
+                                        productCode: "THERAPY-001",
+                                        productDescription: "Speech Therapy Session",
+                                        name: "Speech Therapy Session"
+                                      },
+                                      {
+                                        id: 9002,
+                                        budgetSettingsId: clientId || 0,
+                                        clientId: clientId || 0,
+                                        itemCode: "ASSESS-001",
+                                        description: "Assessment Session",
+                                        quantity: 5,
+                                        unitPrice: 200,
+                                        availableQuantity: 5,
+                                        productCode: "ASSESS-001",
+                                        productDescription: "Assessment Session",
+                                        name: "Assessment Session"
+                                      }
+                                    ];
 
-                                  // Store in global window for use in the useMemo
-                                  (window as any).__sampleProducts = sampleProducts;
+                                    // Store in global window for use in the useMemo
+                                    (window as any).__sampleProducts = sampleProducts;
 
-                                  // Update local state to track sample products
-                                  setHasSampleProducts(true);
+                                    // Update local state to track sample products
+                                    setHasSampleProducts(true);
 
-                                  // Show a toast notification
-                                  toast({
-                                    title: "Sample Products Added",
-                                    description: "Sample products have been added for this session."
-                                  });
-                                }
+                                    // Show a toast notification
+                                    toast({
+                                      title: "Sample Products Added",
+                                      description: "Sample products have been added for this session."
+                                    });
+                                  }
 
-                                // Delay slightly to avoid React state issues
-                                setTimeout(() => {
-                                  setProductSelectionOpen(true);
-                                  console.log('Product selection dialog should be open now');
-                                }, 50);
-                              }}
-                              disabled={!availableProducts.length && !hasSampleProducts && !hasClientSelected}
-                            >
-                              <ShoppingCart className="h-4 w-4 mr-2" />
-                              Add Product
-                            </Button>
+                                  // Delay slightly to avoid React state issues
+                                  setTimeout(() => {
+                                    setProductSelectionOpen(true);
+                                    console.log('Product selection dialog should be open now');
+                                  }, 50);
+                                }}
+                                disabled={!availableProducts.length && !hasSampleProducts && !hasClientSelected}
+                              >
+                                <ShoppingCart className="h-4 w-4 mr-2" />
+                                Add Product
+                              </Button>
+                            </div>
                           </div>
-                        </div>
+                        </CardHeader>
 
-                        {/* Product Selection Dialog */}
-                        <ProductSelectionDialog
-                          open={productSelectionOpen}
-                          onOpenChange={setProductSelectionOpen}
-                          products={availableProducts}
-                          onSelectProduct={handleAddProduct}
-                        />
+                        <CardContent className="pb-4">
+                          {/* Product Selection Dialog */}
+                          <ProductSelectionDialog
+                            open={productSelectionOpen}
+                            onOpenChange={setProductSelectionOpen}
+                            products={availableProducts}
+                            onSelectProduct={handleAddProduct}
+                          />
 
-                        {/* Selected Products List */}
-                        {selectedProducts.length === 0 ? (
-                          <div className="bg-muted/20 rounded-lg p-4 text-center">
-                            <p className="text-muted-foreground">No products added to this session</p>
-                          </div>
-                        ) : (
-                          <div className="bg-muted/20 rounded-lg p-4 space-y-2">
-                            {selectedProducts.map((product, index) => {
-                              const totalPrice = product.quantity * product.unitPrice;
+                          {/* Selected Products List */}
+                          {selectedProducts.length === 0 ? (
+                            <div className="bg-muted/20 rounded-lg p-4 text-center">
+                              <p className="text-muted-foreground">No products added to this session</p>
+                            </div>
+                          ) : (
+                            <div className="bg-muted/20 rounded-lg p-4 space-y-2">
+                              {selectedProducts.map((product, index) => {
+                                const totalPrice = product.quantity * product.unitPrice;
 
-                              return (
-                                <div 
-                                  key={index} 
-                                  className="flex items-center justify-between py-2 px-1 border-b last:border-0"
-                                >
-                                  <div className="flex-1">
-                                    <div className="font-medium">{product.productDescription}</div>
-                                    <div className="text-sm text-muted-foreground">
-                                      Code: {product.productCode}
-                                    </div>
+                                return (
+                                  <div 
+                                    key={index} 
+                                    className="flex items-center justify-between py-2 px-1 border-b last:border-0"
+                                  >
+                                    <div className="flex-1">
+                                      <div className="font-medium">{product.productDescription}</div>
+                                      <div className="text-sm text-muted-foreground">
+                                        Code: {product.productCode}
+                                      </div>
 
-                                    {/* Availability Visualization */}
-                                    <div className="mt-1">
-                                      <div className="flex items-center text-xs">
-                                        <span className="text-muted-foreground mr-2">Availability:</span>
-                                        <div className="w-full max-w-[100px] bg-gray-200 rounded-full h-2.5">
-                                          <div 
-                                            className="bg-primary h-2.5 rounded-full" 
-                                            style={{ 
-                                              width: `${Math.min(100, (product.availableQuantity - product.quantity) / product.availableQuantity * 100)}%` 
-                                            }}
-                                          />
+                                      {/* Availability Visualization */}
+                                      <div className="mt-1">
+                                        <div className="flex items-center text-xs">
+                                          <span className="text-muted-foreground mr-2">Availability:</span>
+                                          <div className="w-full max-w-[100px] bg-gray-200 rounded-full h-2.5">
+                                            <div 
+                                              className="bg-primary h-2.5 rounded-full" 
+                                              style={{ 
+                                                width: `${Math.min(100, (product.availableQuantity - product.quantity) / product.availableQuantity * 100)}%` 
+                                              }}
+                                            />
+                                          </div>
+                                          <span className="ml-2 text-xs">
+                                            <span className="text-primary font-medium">{product.availableQuantity - product.quantity}</span>
+                                            <span className="text-muted-foreground"> / {product.availableQuantity}</span>
+                                          </span>
                                         </div>
-                                        <span className="ml-2 text-xs">
-                                          <span className="text-primary font-medium">{product.availableQuantity - product.quantity}</span>
-                                          <span className="text-muted-foreground"> / {product.availableQuantity}</span>
-                                        </span>
                                       </div>
                                     </div>
-                                  </div>
 
-                                  <div className="flex items-center gap-3">
-                                    {/* Quantity Controls */}
-                                    <div className="flex items-center border rounded-md mr-2">
-                                      <Button 
-                                        type="button" 
-                                        variant="ghost" 
-                                        size="icon"
-                                        className="h-7 w-7"
-                                        onClick={() => {
-                                          if (product.quantity > 1) {
-                                            const updatedProducts = [...selectedProducts];
-                                            updatedProducts[index] = {
-                                              ...updatedProducts[index],
-                                              quantity: product.quantity - 1
-                                            };
-                                            form.setValue("sessionNote.products", updatedProducts);
-                                          }
-                                        }}
-                                      >
-                                        <Minus className="h-3 w-3" />
-                                      </Button>
-                                      <div className="w-8 text-center">
-                                        <span className="text-sm font-medium">{product.quantity}</span>
+                                    <div className="flex items-center gap-3">
+                                      {/* Quantity Controls */}
+                                      <div className="flex items-center border rounded-md mr-2">
+                                        <Button 
+                                          type="button" 
+                                          variant="ghost" 
+                                          size="icon"
+                                          className="h-7 w-7"
+                                          onClick={() => {
+                                            if (product.quantity > 1) {
+                                              const updatedProducts = [...selectedProducts];
+                                              updatedProducts[index] = {
+                                                ...updatedProducts[index],
+                                                quantity: product.quantity - 1
+                                              };
+                                              form.setValue("sessionNote.products", updatedProducts);
+                                            }
+                                          }}
+                                        >
+                                          <Minus className="h-3 w-3" />
+                                        </Button>
+                                        <div className="w-8 text-center">
+                                          <span className="text-sm font-medium">{product.quantity}</span>
+                                        </div>
+                                        <Button 
+                                          type="button" 
+                                          variant="ghost" 
+                                          size="icon"
+                                          className="h-7 w-7"
+                                          onClick={() => {
+                                            if (product.quantity < product.availableQuantity) {
+                                              const updatedProducts = [...selectedProducts];
+                                              updatedProducts[index] = {
+                                                ...updatedProducts[index],
+                                                quantity: product.quantity + 1
+                                              };
+                                              form.setValue("sessionNote.products", updatedProducts);
+                                            } else {
+                                              toast({
+                                                title: "Maximum quantity reached",
+                                                description: `Only ${product.availableQuantity} units available`,
+                                                variant: "destructive"
+                                              });
+                                            }
+                                          }}
+                                        >
+                                          <Plus className="h-3 w-3" />
+                                        </Button>
                                       </div>
-                                      <Button 
-                                        type="button" 
-                                        variant="ghost" 
-                                        size="icon"
-                                        className="h-7 w-7"
-                                        onClick={() => {
-                                          if (product.quantity < product.availableQuantity) {
-                                            const updatedProducts = [...selectedProducts];
-                                            updatedProducts[index] = {
-                                              ...updatedProducts[index],
-                                              quantity: product.quantity + 1
-                                            };
-                                            form.setValue("sessionNote.products", updatedProducts);
-                                          } else {
-                                            toast({
-                                              title: "Maximum quantity reached",
-                                              description: `Only ${product.availableQuantity} units available`,
-                                              variant: "destructive"
-                                            });
-                                          }
-                                        }}
-                                      >
-                                        <Plus className="h-3 w-3" />
-                                      </Button>
-                                    </div>
 
-                                    <div className="text-right">
-                                      <div>
-                                        <span className="text-muted-foreground text-sm">
+                                      <div className="text-right">
+                                        <div>
+                                          <span className="text-muted-foreground text-sm">
+                                            {new Intl.NumberFormat('en-US', {
+                                              style: 'currency',
+                                              currency: 'USD'
+                                            }).format(product.unitPrice)}
+                                          </span>
+                                        </div>
+                                        <div className="text-sm font-medium">
                                           {new Intl.NumberFormat('en-US', {
                                             style: 'currency',
                                             currency: 'USD'
-                                          }).format(product.unitPrice)}
-                                        </span>
+                                          }).format(totalPrice)}
+                                        </div>
                                       </div>
-                                      <div className="text-sm font-medium">
-                                        {new Intl.NumberFormat('en-US', {
-                                          style: 'currency',
-                                          currency: 'USD'
-                                        }).format(totalPrice)}
-                                      </div>
+
+                                      <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-8 w-8 p-0 rounded-full ml-2"
+                                        onClick={() => handleRemoveProduct(index)}
+                                      >
+                                        <X className="h-4 w-4" />
+                                      </Button>
                                     </div>
-
-                                    <Button
-                                      type="button"
-                                      variant="ghost"
-                                      size="sm"
-                                      className="h-8 w-8 p-0 rounded-full ml-2"
-                                      onClick={() => handleRemoveProduct(index)}
-                                    >
-                                      <X className="h-4 w-4" />
-                                    </Button>
                                   </div>
-                                </div>
-                              );
-                            })}
+                                );
+                              })}
 
-                            {/* Total Value */}
-                            <div className="pt-3 mt-2 border-t flex justify-between items-center">
-                              <span className="font-medium">Total Value:</span>
-                              <span className="font-bold">
-                                {new Intl.NumberFormat('en-US', {
-                                  style: 'currency',
-                                  currency: 'USD'
-                                }).format(
-                                  selectedProducts.reduce(
-                                    (total, product) => total + (product.quantity * product.unitPrice), 
-                                    0
-                                  )
-                                )}
-                              </span>
+                              {/* Total Value */}
+                              <div className="pt-3 mt-2 border-t flex justify-between items-center">
+                                <span className="font-medium">Total Value:</span>
+                                <span className="font-bold">
+                                  {new Intl.NumberFormat('en-US', {
+                                    style: 'currency',
+                                    currency: 'USD'
+                                  }).format(
+                                    selectedProducts.reduce(
+                                      (total, product) => total + (product.quantity * product.unitPrice), 
+                                      0
+                                    )
+                                  )}
+                                </span>
+                              </div>
                             </div>
-                          </div>
-                        )}
-                      </>
+                          )}
+                        </CardContent>
+                      </Card>
                     }
 
                     rightColumn={
-                      <>
-                        <h3 className="section-header">
-                          <ClipboardList className="h-5 w-5" />
-                          Session Observations
-                        </h3>
+                      <Card className="shadow-sm hover:shadow-md transition-all duration-200 h-full">
+                        <CardHeader className="pb-2">
+                          <CardTitle className="text-base">
+                            <ClipboardList className="h-5 w-5 inline-block mr-2" />
+                            Session Observations
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="pb-4">
 
                         {/* Rating Sliders */}
                         <div className="space-y-4">
@@ -1997,7 +2006,8 @@ const ProductSelectionDialog = ({
                         </div>
 
                         {/* General Notes moved to Performance Assessment tab */}
-                      </>
+                        </CardContent>
+                      </Card>
                     }
                   />
                 </TabsContent>
