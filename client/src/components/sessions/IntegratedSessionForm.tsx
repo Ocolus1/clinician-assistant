@@ -2310,6 +2310,24 @@ const ProductSelectionDialog = ({
             </form>
           </Form>
         </Tabs>
+        
+        {/* Strategy selection dialog */}
+        <StrategySelectionDialog
+          open={strategySelectionOpen}
+          onOpenChange={setStrategySelectionOpen}
+          selectedStrategies={
+            currentGoalIndex !== null && currentMilestoneIndex !== null
+              ? form.getValues(`performanceAssessments.${currentGoalIndex}.milestones.${currentMilestoneIndex}.strategies`) || []
+              : []
+          }
+          milestoneId={
+            currentGoalIndex !== null && currentMilestoneIndex !== null
+              ? form.getValues(`performanceAssessments.${currentGoalIndex}.milestones.${currentMilestoneIndex}.milestoneId`)
+              : 0
+          }
+          onSelectStrategy={handleStrategySelection}
+          maxStrategies={5}
+        />
       </div>
     );
   }
@@ -2750,6 +2768,24 @@ const ProductSelectionDialog = ({
             </form>
           </Form>
         </Tabs>
+        
+        {/* Strategy selection dialog */}
+        <StrategySelectionDialog
+          open={strategySelectionOpen}
+          onOpenChange={setStrategySelectionOpen}
+          selectedStrategies={
+            currentGoalIndex !== null && currentMilestoneIndex !== null
+              ? form.getValues(`performanceAssessments.${currentGoalIndex}.milestones.${currentMilestoneIndex}.strategies`) || []
+              : []
+          }
+          milestoneId={
+            currentGoalIndex !== null && currentMilestoneIndex !== null
+              ? form.getValues(`performanceAssessments.${currentGoalIndex}.milestones.${currentMilestoneIndex}.milestoneId`)
+              : 0
+          }
+          onSelectStrategy={handleStrategySelection}
+          maxStrategies={5}
+        />
       </DialogContent>
     </Dialog>
   );
