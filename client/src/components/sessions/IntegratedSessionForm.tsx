@@ -1265,14 +1265,14 @@ const ProductSelectionDialog = ({
                 {/* Session Details Tab */}
                 <TabsContent value="details" className="space-y-6 mt-0 px-4">
                   {/* Full-width top section for basic session info */}
-                  <Card className="shadow-sm border-muted">
-                    <CardHeader className="pb-2">
+                  <Card className="shadow-sm border-2 border-primary/20 overflow-hidden flex flex-col">
+                    <CardHeader className="bg-primary/5 pb-3 border-b border-primary/10">
                       <CardTitle className="text-lg font-medium flex items-center">
                         <Calendar className="h-5 w-5 mr-2 text-primary" />
                         Session Information
                       </CardTitle>
                     </CardHeader>
-                    <CardContent>
+                    <CardContent className="flex-grow">
                       {/* First row: Client, Location, Date & Time in a single row */}
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-2">
                         {/* Client Selection - Searchable Combobox */}
@@ -1921,14 +1921,14 @@ const ProductSelectionDialog = ({
                     }
 
                     rightColumn={
-                      <Card className="shadow-sm hover:shadow-md transition-all duration-200 h-full">
-                        <CardHeader className="pb-2">
+                      <Card className="shadow-sm border-2 border-primary/20 overflow-hidden h-full flex flex-col">
+                        <CardHeader className="bg-primary/5 pb-3 border-b border-primary/10">
                           <CardTitle className="text-base">
                             <ClipboardList className="h-5 w-5 inline-block mr-2" />
                             Session Observations
                           </CardTitle>
                         </CardHeader>
-                        <CardContent className="pb-4">
+                        <CardContent className="pb-4 flex-grow">
 
                         {/* Rating Sliders */}
                         <div className="space-y-4">
