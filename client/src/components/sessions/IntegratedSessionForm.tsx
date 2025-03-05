@@ -2179,10 +2179,11 @@ const ProductSelectionDialog = ({
                               <FormItem>
                                 <FormLabel>Notes</FormLabel>
                                 <FormControl>
-                                  <Textarea 
+                                  <RichTextEditor
+                                    value={field.value || ""}
+                                    onChange={field.onChange}
                                     placeholder="Enter general notes about the session..."
-                                    className="resize-none min-h-[300px]"
-                                    {...field}
+                                    minHeight="min-h-[300px]"
                                   />
                                 </FormControl>
                                 <FormMessage />
@@ -2595,10 +2596,11 @@ const ProductSelectionDialog = ({
                               <FormItem>
                                 <FormLabel>Notes</FormLabel>
                                 <FormControl>
-                                  <Textarea 
+                                  <RichTextEditor
+                                    value={field.value || ""}
+                                    onChange={field.onChange}
                                     placeholder="Enter general notes about the session..."
-                                    className="resize-none min-h-[300px]"
-                                    {...field}
+                                    minHeight="min-h-[300px]"
                                   />
                                 </FormControl>
                                 <FormMessage />

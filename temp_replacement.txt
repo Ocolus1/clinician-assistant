@@ -1,0 +1,6 @@
+                                  <RichTextEditor
+                                    value={field.value || ''}
+                                    onChange={field.onChange}
+                                    placeholder="Enter general notes about the session..."
+                                    minHeight="min-h-[300px]"
+                                  />
