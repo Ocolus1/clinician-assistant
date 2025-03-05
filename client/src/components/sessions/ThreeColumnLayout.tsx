@@ -1,18 +1,21 @@
 import { ReactNode } from "react";
+import "./three-column-layout.css";
 
 interface ThreeColumnLayoutProps {
   leftColumn: ReactNode;
   middleColumn: ReactNode;
   rightColumn: ReactNode;
+  className?: string;
 }
 
 export function ThreeColumnLayout({ 
   leftColumn, 
   middleColumn, 
-  rightColumn 
+  rightColumn,
+  className = ""
 }: ThreeColumnLayoutProps) {
   return (
-    <div className="three-column-container">
+    <div className={`three-column-container ${className}`}>
       <div className="three-column-left">
         {leftColumn}
       </div>
