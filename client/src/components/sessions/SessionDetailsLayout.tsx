@@ -1,4 +1,5 @@
 import { ReactNode } from "react";
+import "./session-details-layout.css";
 
 interface SessionDetailsLayoutProps {
   headerSection: ReactNode;
