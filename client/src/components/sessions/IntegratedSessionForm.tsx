@@ -843,11 +843,18 @@ export function IntegratedSessionForm({
                   {/* Use the SessionDetailsLayout component for the details tab */}
                   <SessionDetailsLayout
                     headerSection={
-                      <Card className="shadow-sm border-muted">
-                        <CardHeader className="pb-2">
-                          <CardTitle className="text-lg flex items-center justify-between">
-                            <span>Session Information</span>
-                            <Badge variant={
+                      <div className="space-y-4">
+                        <div className="bg-card p-4 rounded-lg border">
+                          <h2 className="text-xl font-semibold mb-2">Session Details</h2>
+                          <p className="text-muted-foreground text-sm">
+                            Record attendance, products used, and observations for this session. Use the ratings to track mood, focus, and cooperation.
+                          </p>
+                        </div>
+                        <Card className="shadow-sm border-muted">
+                          <CardHeader className="pb-2">
+                            <CardTitle className="text-lg flex items-center justify-between">
+                              <span>Session Information</span>
+                              <Badge variant={
                               form.watch('status') === 'completed' ? 'default' :
                               form.watch('status') === 'canceled' ? 'destructive' : 'outline'
                             }>
