@@ -1163,6 +1163,8 @@ const ProductSelectionDialog = ({
 
   // Form submission handler
   function onSubmit(data: IntegratedSessionFormValues) {
+    console.log("Form data:", data);
+    console.log("Form errors:", form.formState.errors);
     createSessionMutation.mutate(data);
   }
 
@@ -2558,7 +2560,7 @@ const ProductSelectionDialog = ({
                         <CardContent>
                           <FormField
                             control={form.control}
-                            name="generalNotes"
+                            name="sessionNote.notes"
                             render={({ field }) => (
                               <FormItem>
                                 <FormLabel>Notes</FormLabel>
