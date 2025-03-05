@@ -2142,7 +2142,7 @@ const ProductSelectionDialog = ({
                         <CardContent>
                           <FormField
                             control={form.control}
-                            name="generalNotes"
+                            name="sessionNote.notes"
                             render={({ field }) => (
                               <FormItem>
                                 <FormLabel>Notes</FormLabel>
