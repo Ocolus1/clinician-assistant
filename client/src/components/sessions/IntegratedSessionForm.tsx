@@ -2009,10 +2009,11 @@ const ProductSelectionDialog = ({
                                       <FormItem className="mb-4">
                                         <FormLabel>Goal Progress Notes</FormLabel>
                                         <FormControl>
-                                          <Textarea 
+                                          <RichTextEditor 
+                                            value={field.value || ""}
+                                            onChange={field.onChange}
                                             placeholder="Enter notes about progress on this goal..."
-                                            className="resize-none min-h-20"
-                                            {...field}
+                                            minHeight="min-h-20"
                                           />
                                         </FormControl>
                                         <FormMessage />
@@ -2113,10 +2114,10 @@ const ProductSelectionDialog = ({
                                                   <FormItem>
                                                     <FormLabel>Notes</FormLabel>
                                                     <FormControl>
-                                                      <Textarea 
+                                                      <RichTextEditor 
                                                         placeholder="Notes about this milestone..."
-                                                        className="resize-none min-h-16"
-                                                        {...field}
+                                                        minHeight="min-h-16"
+                                                        value={field.value || ""} onChange={field.onChange}
                                                       />
                                                     </FormControl>
                                                     <FormMessage />
@@ -2533,10 +2534,10 @@ const ProductSelectionDialog = ({
                                                   <FormItem>
                                                     <FormLabel>Notes</FormLabel>
                                                     <FormControl>
-                                                      <Textarea 
+                                                      <RichTextEditor 
                                                         placeholder="Notes about this milestone..."
-                                                        className="resize-none min-h-16"
-                                                        {...field}
+                                                        minHeight="min-h-16"
+                                                        value={field.value || ""} onChange={field.onChange}
                                                       />
                                                     </FormControl>
                                                     <FormMessage />
