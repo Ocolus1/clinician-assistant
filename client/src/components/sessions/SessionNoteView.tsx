@@ -190,7 +190,7 @@ export function SessionNoteView({ session, onEdit, initialTabValue = "general" }
               <CardTitle>Products Used</CardTitle>
             </CardHeader>
             <CardContent>
-              {sessionNote && sessionNote.products && sessionNote.products.length > 0 ? (
+              {sessionNote && sessionNote.products && Array.isArray(sessionNote.products) && sessionNote.products.length > 0 ? (
                 <div>
                   <table className="w-full border-collapse">
                     <thead>
@@ -219,9 +219,10 @@ export function SessionNoteView({ session, onEdit, initialTabValue = "general" }
                       <tr className="bg-muted/20">
                         <td colSpan={3} className="text-right p-2 font-medium">Total:</td>
                         <td className="text-right p-2 font-bold">
-                          ${sessionNote.products.reduce((total: number, product: any) => (
-                            total + (product.quantity * product.unitPrice)
-                          ), 0).toFixed(2)}
+                          ${Array.isArray(sessionNote.products) ? 
+                            sessionNote.products.reduce((total: number, product: any) => (
+                              total + (product.quantity * product.unitPrice)
+                            ), 0).toFixed(2) : "0.00"}
                         </td>
                       </tr>
                     </tbody>
