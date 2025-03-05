@@ -2006,11 +2006,10 @@ const ProductSelectionDialog = ({
                                       <FormItem className="mb-4">
                                         <FormLabel>Goal Progress Notes</FormLabel>
                                         <FormControl>
-                                          <RichTextEditor 
-                                            value={field.value || ""}
-                                            onChange={field.onChange}
+                                          <Textarea
+                                            {...field}
                                             placeholder="Enter notes about progress on this goal..."
-                                            minHeight="min-h-20"
+                                            className="min-h-20"
                                           />
                                         </FormControl>
                                         <FormMessage />
@@ -2111,10 +2110,10 @@ const ProductSelectionDialog = ({
                                                   <FormItem>
                                                     <FormLabel>Notes</FormLabel>
                                                     <FormControl>
-                                                      <RichTextEditor 
+                                                      <Textarea
+                                                        {...field}
                                                         placeholder="Notes about this milestone..."
-                                                        minHeight="min-h-16"
-                                                        value={field.value || ""} onChange={field.onChange}
+                                                        className="min-h-16"
                                                       />
                                                     </FormControl>
                                                     <FormMessage />
@@ -2528,10 +2527,10 @@ const ProductSelectionDialog = ({
                                                   <FormItem>
                                                     <FormLabel>Notes</FormLabel>
                                                     <FormControl>
-                                                      <RichTextEditor 
+                                                      <Textarea
+                                                        {...field}
                                                         placeholder="Notes about this milestone..."
-                                                        minHeight="min-h-16"
-                                                        value={field.value || ""} onChange={field.onChange}
+                                                        className="min-h-16"
                                                       />
                                                     </FormControl>
                                                     <FormMessage />
