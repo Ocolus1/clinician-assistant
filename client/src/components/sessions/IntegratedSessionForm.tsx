@@ -2349,7 +2349,6 @@ const ProductSelectionDialog = ({
           onSelectStrategy={handleStrategySelection}
           maxStrategies={5}
         />
-      </div>
       </DialogContent>
     </Dialog>
   );
