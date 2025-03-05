@@ -2085,24 +2085,24 @@ const ProductSelectionDialog = ({
                                                 )}
                                               />
                                               
-{/* Milestone Notes section removed as requested */}
-{/* Milestone Notes section removed as requested */}
-{/* Milestone Notes section removed as requested */}
-{/* Milestone Notes section removed as requested */}
-{/* Milestone Notes section removed as requested */}
-{/* Milestone Notes section removed as requested */}
-{/* Milestone Notes section removed as requested */}
-{/* Milestone Notes section removed as requested */}
-{/* Milestone Notes section removed as requested */}
-{/* Milestone Notes section removed as requested */}
-{/* Milestone Notes section removed as requested */}
-{/* Milestone Notes section removed as requested */}
-{/* Milestone Notes section removed as requested */}
-{/* Milestone Notes section removed as requested */}
-{/* Milestone Notes section removed as requested */}
-{/* Milestone Notes section removed as requested */}
-{/* Milestone Notes section removed as requested */}
-{/* Milestone Notes section removed as requested */}
+                                              {/* Milestone Notes */}
+                                              <FormField
+                                                control={form.control}
+                                                name={`performanceAssessments.${goalIndex}.milestones.${milestoneIndex}.notes`}
+                                                render={({ field }) => (
+                                                  <FormItem>
+                                                    <FormLabel>Notes</FormLabel>
+                                                    <FormControl>
+                                                      <RichTextEditor 
+                                                        placeholder="Notes about this milestone..."
+                                                        minHeight="min-h-16"
+                                                        value={field.value || ""} onChange={field.onChange}
+                                                      />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                  </FormItem>
+                                                )}
+                                              />
                                               
                                               {/* Strategies Used */}
                                               <FormField
@@ -2502,24 +2502,24 @@ const ProductSelectionDialog = ({
                                                 )}
                                               />
                                               
-{/* Milestone Notes section removed as requested */}
-{/* Milestone Notes section removed as requested */}
-{/* Milestone Notes section removed as requested */}
-{/* Milestone Notes section removed as requested */}
-{/* Milestone Notes section removed as requested */}
-{/* Milestone Notes section removed as requested */}
-{/* Milestone Notes section removed as requested */}
-{/* Milestone Notes section removed as requested */}
-{/* Milestone Notes section removed as requested */}
-{/* Milestone Notes section removed as requested */}
-{/* Milestone Notes section removed as requested */}
-{/* Milestone Notes section removed as requested */}
-{/* Milestone Notes section removed as requested */}
-{/* Milestone Notes section removed as requested */}
-{/* Milestone Notes section removed as requested */}
-{/* Milestone Notes section removed as requested */}
-{/* Milestone Notes section removed as requested */}
-{/* Milestone Notes section removed as requested */}
+                                              {/* Milestone Notes */}
+                                              <FormField
+                                                control={form.control}
+                                                name={`performanceAssessments.${goalIndex}.milestones.${milestoneIndex}.notes`}
+                                                render={({ field }) => (
+                                                  <FormItem>
+                                                    <FormLabel>Notes</FormLabel>
+                                                    <FormControl>
+                                                      <RichTextEditor 
+                                                        placeholder="Notes about this milestone..."
+                                                        minHeight="min-h-16"
+                                                        value={field.value || ""} onChange={field.onChange}
+                                                      />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                  </FormItem>
+                                                )}
+                                              />
                                               
                                               {/* Strategies Used */}
                                               <FormField
