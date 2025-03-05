@@ -1935,28 +1935,25 @@ const ProductSelectionDialog = ({
 
                 {/* Performance Assessment Tab */}
                 <TabsContent value="performance" className="space-y-4 mt-0 px-2">
-                  {/* Container with same width as content below for proper alignment */}
-                  <div className="w-full">
-                    <div className="flex justify-between items-center w-full">
-                      <h3 className="section-header">
-                        <RefreshCw className="h-5 w-5" />
-                        Performance Assessment
-                      </h3>
-                      <Button 
-                        type="button" 
-                        onClick={() => setGoalSelectionOpen(true)}
-                        disabled={!clientId}
-                      >
-                        <Plus className="h-4 w-4 mr-2" />
-                        Add Goal
-                      </Button>
-                    </div>
-                  </div>
-                  
                   {/* Two-column layout: 2/3 goals, 1/3 general notes */}
                   <div className="flex flex-col md:flex-row gap-4">
                     {/* Left column (2/3) - Goals section */}
                     <div className="md:w-2/3">
+                      {/* Header aligned with content below */}
+                      <div className="flex justify-between items-center w-full mb-4">
+                        <h3 className="section-header">
+                          <RefreshCw className="h-5 w-5" />
+                          Performance Assessment
+                        </h3>
+                        <Button 
+                          type="button" 
+                          onClick={() => setGoalSelectionOpen(true)}
+                          disabled={!clientId}
+                        >
+                          <Plus className="h-4 w-4 mr-2" />
+                          Add Goal
+                        </Button>
+                      </div>
                       {/* Goal Selection Dialog */}
                       <GoalSelectionDialog
                         open={goalSelectionOpen}
@@ -2363,28 +2360,25 @@ const ProductSelectionDialog = ({
                 </TabsContent>
                 
                 <TabsContent value="performance" className="space-y-4 mt-0 px-2">
-                  {/* Container with same width as content below for proper alignment */}
-                  <div className="w-full">
-                    <div className="flex justify-between items-center w-full">
-                      <h3 className="section-header">
-                        <RefreshCw className="h-5 w-5" />
-                        Performance Assessment
-                      </h3>
-                      <Button 
-                        type="button" 
-                        onClick={() => setGoalSelectionOpen(true)}
-                        disabled={!clientId}
-                      >
-                        <Plus className="h-4 w-4 mr-2" />
-                        Add Goal
-                      </Button>
-                    </div>
-                  </div>
-                  
                   {/* Two-column layout: 2/3 goals, 1/3 general notes */}
                   <div className="flex flex-col md:flex-row gap-4">
                     {/* Left column (2/3) - Goals section */}
                     <div className="md:w-2/3">
+                      {/* Header aligned with content below */}
+                      <div className="flex justify-between items-center w-full mb-4">
+                        <h3 className="section-header">
+                          <RefreshCw className="h-5 w-5" />
+                          Performance Assessment
+                        </h3>
+                        <Button 
+                          type="button" 
+                          onClick={() => setGoalSelectionOpen(true)}
+                          disabled={!clientId}
+                        >
+                          <Plus className="h-4 w-4 mr-2" />
+                          Add Goal
+                        </Button>
+                      </div>
                       {/* Goal Selection Dialog */}
                       <GoalSelectionDialog
                         open={goalSelectionOpen}
