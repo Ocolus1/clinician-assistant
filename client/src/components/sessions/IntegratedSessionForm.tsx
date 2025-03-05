@@ -1569,11 +1569,11 @@ const ProductSelectionDialog = ({
             <TabsTrigger value="details">Session Details & Observations</TabsTrigger>
             <TabsTrigger value="performance">Performance Assessment</TabsTrigger>
           </TabsList>
-
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 overflow-hidden flex flex-col flex-grow">
-              <div className="flex-grow overflow-auto pr-2">
-                {/* Session Details Tab */}
+            
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 overflow-hidden flex flex-col flex-grow">
+                <div className="flex-grow overflow-auto pr-2">
+                  {/* Session Details Tab */}
                 <TabsContent value="details" className="space-y-6 mt-0 px-4">
                   {/* Full-width top section for basic session info */}
                   <Card className="shadow-sm border-2 border-primary/20 overflow-hidden flex flex-col">
@@ -3203,6 +3203,27 @@ const ProductSelectionDialog = ({
           selectedAllies={form.watch("sessionNote.presentAllies") || []}
           onSelectAlly={handleAllySelection}
         />
+        </Tabs>
+      </div>
+    );
+  }
+  
+  // Return as dialog for regular usage
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[800px] max-h-[90vh] flex flex-col overflow-hidden p-0">
+        <div className="p-6 border-b flex justify-between items-center">
+          <DialogTitle className="text-xl font-semibold">
+            {createSessionMutation.isPending ? "Creating Session..." : "Create New Session"}
+          </DialogTitle>
+          <DialogClose className="h-6 w-6 text-muted-foreground">
+            <X className="h-4 w-4" />
+            <span className="sr-only">Close</span>
+          </DialogClose>
+        </div>
+
+        {/* Dialog content goes here */}
+        
       </DialogContent>
     </Dialog>
   );
