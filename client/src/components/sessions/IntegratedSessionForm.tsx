@@ -476,7 +476,36 @@ export function IntegratedSessionForm({
   // Dialog states for goal and milestone selection
   const [goalSelectionOpen, setGoalSelectionOpen] = useState(false);
   const [milestoneSelectionOpen, setMilestoneSelectionOpen] = useState(false);
+  const [milestoneGoalId, setMilestoneGoalId] = useState<number | null>(null);
   const [currentGoalIndex, setCurrentGoalIndex] = useState<number | null>(null);
+
+  // Handlers for removing items
+  const removeProduct = (index: number) => {
+    const products = form.getValues("sessionNote.products") || [];
+    const updatedProducts = [...products];
+    updatedProducts.splice(index, 1);
+    form.setValue("sessionNote.products", updatedProducts);
+  };
+
+  const removeGoal = (goalId: number) => {
+    const assessments = form.getValues("performanceAssessments") || [];
+    const updatedAssessments = assessments.filter(a => a.goalId !== goalId);
+    form.setValue("performanceAssessments", updatedAssessments);
+  };
+
+  const removeMilestone = (goalId: number, milestoneId: number) => {
+    const assessments = form.getValues("performanceAssessments") || [];
+    const updatedAssessments = assessments.map(assessment => {
+      if (assessment.goalId === goalId) {
+        return {
+          ...assessment,
+          milestones: assessment.milestones.filter(m => m.milestoneId !== milestoneId)
+        };
+      }
+      return assessment;
+    });
+    form.setValue("performanceAssessments", updatedAssessments);
+  };
 
   // Fetch clients for client dropdown
   const { data: clients = [] } = useQuery<Client[]>({
@@ -2246,7 +2275,7 @@ const ProductSelectionDialog = ({
                         <h3 className="font-medium text-sm">Present</h3>
                         <FormField
                           control={form.control}
-                          name="attendees"
+                          name="sessionNote.presentAllies"
                           render={({ field }) => (
                             <FormItem>
                               <FormLabel>Attendees</FormLabel>
@@ -2307,7 +2336,7 @@ const ProductSelectionDialog = ({
                         <h3 className="font-medium text-sm">Session Observations</h3>
                         <FormField
                           control={form.control}
-                          name="observations"
+                          name="sessionNote.notes"
                           render={({ field }) => (
                             <FormItem>
                               <FormLabel>Notes</FormLabel>
