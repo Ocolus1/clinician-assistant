@@ -489,6 +489,7 @@ export function IntegratedSessionForm({
   // Dialog states for goal and milestone selection
   const [goalSelectionOpen, setGoalSelectionOpen] = useState(false);
   const [milestoneSelectionOpen, setMilestoneSelectionOpen] = useState(false);
+  const [allySelectionOpen, setAllySelectionOpen] = useState(false);
   const [milestoneGoalId, setMilestoneGoalId] = useState<number | null>(null);
   const [currentGoalIndex, setCurrentGoalIndex] = useState<number | null>(null);
 
