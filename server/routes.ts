@@ -585,18 +585,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Session not found" });
       }
       
-      const result = insertSessionNoteSchema.safeParse({
-        ...req.body,
+      // Log the incoming request body for debugging
+      console.log("Request body for session note:", JSON.stringify(req.body));
+      
+      // If products field is a string (JSON), parse it back to array
+      const requestBody = { ...req.body };
+      if (typeof requestBody.products === 'string') {
+        try {
+          requestBody.products = JSON.parse(requestBody.products);
+        } catch (e) {
+          console.warn("Failed to parse products JSON string, keeping as-is:", e);
+        }
+      }
+      
+      // Ensure present allies is an array
+      if (!Array.isArray(requestBody.presentAllies)) {
+        requestBody.presentAllies = [];
+      }
+      
+      // Prepare data for validation
+      const noteData = {
+        ...requestBody,
         sessionId,
         clientId: session.clientId
-      });
+      };
+      
+      console.log("Prepared note data for validation:", JSON.stringify(noteData));
+      
+      const result = insertSessionNoteSchema.safeParse(noteData);
       
       if (!result.success) {
         console.error("Session note validation error:", result.error);
         return res.status(400).json({ error: result.error });
       }
       
+      console.log("Validation successful, creating session note");
       const note = await storage.createSessionNote(result.data);
+      console.log("Session note created successfully:", note);
       res.json(note);
     } catch (error) {
       console.error(`Error creating session note for session ${req.params.sessionId}:`, error);

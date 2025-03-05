@@ -1320,10 +1320,26 @@ const ProductSelectionDialog = ({
         }
 
         // Step 2: Create the session note with the new session ID
+        // Transform products array to JSON string for API compatibility
+        const productsString = data.sessionNote.products && data.sessionNote.products.length > 0 
+          ? JSON.stringify(data.sessionNote.products) 
+          : "[]";
+        
+        // Format presentAllies as expected by the server
+        const presentAlliesArray = data.sessionNote.presentAllies || [];
+        
+        // Prepare the note data in the exact format expected by the API
         const noteData = {
-          ...data.sessionNote,
           sessionId: sessionData.id,
-          clientId: data.session.clientId
+          clientId: data.session.clientId,
+          presentAllies: presentAlliesArray,
+          moodRating: data.sessionNote.moodRating || 5,
+          physicalActivityRating: data.sessionNote.physicalActivityRating || 5,
+          focusRating: data.sessionNote.focusRating || 5,
+          cooperationRating: data.sessionNote.cooperationRating || 5,
+          notes: data.sessionNote.notes || "",
+          products: productsString,
+          status: data.sessionNote.status || "draft"
         };
         
         console.log(`Step 2: Creating note for session ${sessionData.id} with data:`, noteData);
