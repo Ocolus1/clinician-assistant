@@ -1391,7 +1391,7 @@ const ProductSelectionDialog = ({
                   </Card>
 
                   {/* Three-Column Layout */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+                  <div className="session-columns-grid mt-6">
                     {/* Left Column - Present In Session Section */}
                     <div className="space-y-4">
                       <div className="flex justify-between items-center mb-2">

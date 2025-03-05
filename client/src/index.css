@@ -164,3 +164,10 @@ body > div > div > table.rdp-table {
 div:not([data-popover-content]) > .rdp {
   display: none !important;
 }
+
+/* Three-column layout for session forms */
+.session-columns-grid {
+  display: grid !important;
+  grid-template-columns: repeat(3, 1fr) !important;
+  gap: 1.5rem !important;
+}
