@@ -509,6 +509,88 @@ export function IntegratedSessionForm({
     const updatedAssessments = assessments.filter(a => a.goalId !== goalId);
     form.setValue("performanceAssessments", updatedAssessments);
   };
+  
+  // Handler for adding attendees in full-screen mode
+  const handleAddAttendeeFullScreen = () => {
+    console.log("Adding attendee in full-screen mode, allies:", allies);
+    
+    if (allies.length > 0) {
+      // Get current allies and filter to find available ones
+      const currentAllies = form.getValues("sessionNote.presentAllies") || [];
+      const availableAllies = allies.filter(ally => 
+        !currentAllies.includes(ally.name)
+      );
+
+      if (availableAllies.length > 0) {
+        // In full-screen mode, just add the first available ally directly
+        const firstAvailableAlly = availableAllies[0];
+        
+        // Add the ally directly (simplified approach for full-screen)
+        form.setValue("sessionNote.presentAllies", [
+          ...currentAllies, 
+          firstAvailableAlly.name
+        ]);
+        
+        // Store the ally IDs separately for data integrity
+        const currentAllyIds = form.getValues("sessionNote.presentAllyIds") || [];
+        form.setValue(
+          "sessionNote.presentAllyIds",
+          [...currentAllyIds, firstAvailableAlly.id]
+        );
+        
+        toast({
+          title: "Attendee added",
+          description: `${firstAvailableAlly.name} has been added to the session.`,
+          variant: "default"
+        });
+      } else {
+        toast({
+          title: "No more allies available",
+          description: "All available attendees have been added to the session.",
+          variant: "default"
+        });
+      }
+    } else {
+      toast({
+        title: "No allies found",
+        description: "This client doesn't have any allies added to their profile yet.",
+        variant: "default"
+      });
+    }
+  };
+  
+  // Handler for adding attendees in dialog mode
+  const handleAddAttendeeDialogMode = () => {
+    console.log("Adding attendee in dialog mode, allies:", allies);
+
+    if (allies.length > 0) {
+      // Get current allies and filter to find available ones
+      const currentAllies = form.getValues("sessionNote.presentAllies") || [];
+      const availableAllies = allies.filter(ally => 
+        !currentAllies.includes(ally.name)
+      );
+
+      if (availableAllies.length > 0) {
+        // Add the special marker to trigger the dialog
+        form.setValue("sessionNote.presentAllies", [
+          ...currentAllies, 
+          "__select__"
+        ]);
+      } else {
+        toast({
+          title: "No more allies available",
+          description: "All available attendees have been added to the session.",
+          variant: "default"
+        });
+      }
+    } else {
+      toast({
+        title: "No allies found",
+        description: "This client doesn't have any allies added to their profile yet.",
+        variant: "default"
+      });
+    }
+  };
 
   const removeMilestone = (goalId: number, milestoneId: number) => {
     const assessments = form.getValues("performanceAssessments") || [];
@@ -1504,7 +1586,7 @@ const ProductSelectionDialog = ({
                               Present
                             </CardTitle>
 
-                            {/* Add New Attendee Button moved to header */}
+                            {/* Add New Attendee Button */}
                             <Button
                               variant="outline"
                               size="sm"
@@ -1520,86 +1602,11 @@ const ProductSelectionDialog = ({
                                   return;
                                 }
                                 
-                                // Special handling for full-screen mode
+                                // Special handling for full-screen mode vs dialog mode
                                 if (isFullScreen) {
-                                  // In full-screen mode, we need to be careful as the session doesn't exist yet
-                                  console.log("New Attendee button clicked in full-screen mode, allies:", allies);
-                                  
-                                  if (allies.length > 0) {
-                                    // Get current allies and filter to find available ones
-                                    const currentAllies = form.getValues("sessionNote.presentAllies") || [];
-                                    const availableAllies = allies.filter(ally => 
-                                      !currentAllies.includes(ally.name)
-                                    );
-
-                                    if (availableAllies.length > 0) {
-                                      // Instead of using "__select__" which might cause issues, directly show the selection dialog
-                                      // by setting a state variable
-                                      const firstAvailableAlly = availableAllies[0];
-                                      
-                                      // Add the ally directly (simplified approach for full-screen)
-                                      form.setValue("sessionNote.presentAllies", [
-                                        ...currentAllies, 
-                                        firstAvailableAlly.name
-                                      ]);
-                                      
-                                      // Store the ally IDs separately for data integrity
-                                      const currentAllyIds = form.getValues("sessionNote.presentAllyIds") || [];
-                                      form.setValue(
-                                        "sessionNote.presentAllyIds",
-                                        [...currentAllyIds, firstAvailableAlly.id]
-                                      );
-                                      
-                                      toast({
-                                        title: "Attendee added",
-                                        description: `${firstAvailableAlly.name} has been added to the session.`,
-                                        variant: "default"
-                                      });
-                                    } else {
-                                      toast({
-                                        title: "No more allies available",
-                                        description: "All available attendees have been added to the session.",
-                                        variant: "default"
-                                      });
-                                    }
-                                  } else {
-                                    toast({
-                                      title: "No allies found",
-                                      description: "This client doesn't have any allies added to their profile yet.",
-                                      variant: "default"
-                                    });
-                                  }
+                                  handleAddAttendeeFullScreen();
                                 } else {
-                                  // Original behavior for dialog mode
-                                  console.log("New Attendee button clicked in dialog mode, allies:", allies);
-
-                                  if (allies.length > 0) {
-                                    // Get current allies and filter to find available ones
-                                    const currentAllies = form.getValues("sessionNote.presentAllies") || [];
-                                    const availableAllies = allies.filter(ally => 
-                                      !currentAllies.includes(ally.name)
-                                    );
-
-                                    if (availableAllies.length > 0) {
-                                      // Add the special marker to trigger the dialog
-                                      form.setValue("sessionNote.presentAllies", [
-                                        ...currentAllies, 
-                                        "__select__"
-                                      ]);
-                                    } else {
-                                      toast({
-                                        title: "No more allies available",
-                                        description: "All available attendees have been added to the session.",
-                                        variant: "default"
-                                      });
-                                    }
-                                  } else {
-                                    toast({
-                                      title: "No allies found",
-                                      description: "This client doesn't have any allies added to their profile yet.",
-                                      variant: "default"
-                                    });
-                                  }
+                                  handleAddAttendeeDialogMode();
                                 }
                               }}
                             >
