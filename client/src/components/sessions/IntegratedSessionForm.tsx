@@ -2364,24 +2364,24 @@ const ProductSelectionDialog = ({
                   {/* Three-column layout implementation for Session Details */}
                   <ThreeColumnLayout
                     leftColumn={
-                      <Card className="shadow-sm border-primary/10 overflow-hidden h-full">
+                      <Card className="shadow-sm border-2 border-primary/20 overflow-hidden h-full flex flex-col">
                         <CardHeader className="bg-primary/5 pb-3 border-b border-primary/10">
                           <CardTitle className="text-md flex items-center">
                             <UserCheck className="h-4 w-4 mr-2 text-primary/70" />
                             Present in Session
                           </CardTitle>
                         </CardHeader>
-                        <CardContent className="p-4">
+                        <CardContent className="p-4 flex-grow flex flex-col">
                           <FormField
                             control={form.control}
                             name="sessionNote.presentAllies"
                             render={({ field }) => (
-                              <FormItem>
+                              <FormItem className="flex-grow flex flex-col">
                                 <FormLabel className="text-primary/70">Attendees</FormLabel>
                                 <FormControl>
                                   <Textarea 
                                     placeholder="Who was present at the session..."
-                                    className="resize-none min-h-24 border-primary/10 focus:border-primary/30"
+                                    className="resize-none flex-grow min-h-[200px] border-primary/10 focus:border-primary/30"
                                     {...field}
                                   />
                                 </FormControl>
