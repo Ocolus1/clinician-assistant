@@ -59,9 +59,9 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useToast } from "@/hooks/use-toast";
 
-// Import our new components
+// Import our components
 import { SessionDetails } from "@/components/sessions/SessionDetails";
-import { IntegratedSessionFormRefactored } from "@/components/sessions/IntegratedSessionFormRefactored";
+import { SimpleSessionForm } from "@/temp/SimpleSessionForm";
 
 export default function Sessions() {
   // State for search, filters, view type, and selected session
@@ -152,11 +152,10 @@ export default function Sessions() {
             </Button>
           </div>
           
-          {/* Open the IntegratedSessionForm directly using Dialog */}
-          <IntegratedSessionFormRefactored 
+          {/* Open the SimpleSessionForm directly using Dialog */}
+          <SimpleSessionForm 
             open={createSessionDialogOpen} 
-            onOpenChange={setCreateSessionDialogOpen} 
-            isFullScreen={true}
+            onOpenChange={setCreateSessionDialogOpen}
           />
           
           {/* Search and filters */}
