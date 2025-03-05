@@ -573,7 +573,8 @@ export function IntegratedSessionForm({
       return;
     }
     
-    // Open the ally selection dialog
+    // Stay on the current tab and open the ally selection dialog
+    console.log("Opening ally selection dialog for full-screen mode");
     setAllySelectionOpen(true);
   };
   
