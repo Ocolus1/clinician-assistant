@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, Controller } from "react-hook-form";
 import { z } from "zod";
 import { format } from "date-fns";
+import { PerformanceHeader } from "./PerformanceHeader";
 import { 
   Calendar as CalendarIcon,
   Clock,
