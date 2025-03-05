@@ -1284,75 +1284,82 @@ const ProductSelectionDialog = ({
                                 Client
                               </FormLabel>
                               <Popover>
-                                <PopoverTrigger asChild>
-                                  <FormControl>
-                                    <Button
-                                      variant="outline"
-                                      role="combobox"
-                                      className={cn(
-                                        "h-10 w-full justify-between",
-                                        !field.value && "text-muted-foreground"
-                                      )}
-                                    >
-                                      {field.value
-                                        ? clients.find(
-                                            (client) => client.id === field.value
-                                          )?.name || "Select client"
-                                        : "Select client"}
-                                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                    </Button>
-                                  </FormControl>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-[300px] p-0" align="start">
-                                  <Command>
-                                    <CommandInput placeholder="Search clients..." />
-                                    <CommandEmpty>No client found.</CommandEmpty>
-                                    <CommandGroup>
-                                      <ScrollArea className="h-[300px]">
-                                        {clients.map((client) => (
-                                          <CommandItem
-                                            key={client.id}
-                                            value={client.name}
-                                            onSelect={() => {
-                                              const clientId = client.id;
-                                              field.onChange(clientId);
-                                              
-                                              // Reset performance assessments when client changes
-                                              form.setValue("performanceAssessments", []);
-                                              
-                                              // Reset products when client changes
-                                              form.setValue("sessionNote.products", []);
-                                              
-                                              // Log when client changes to help debug
-                                              console.log('Client changed to:', clientId);
-                                              console.log('Initiating budget item fetch for client:', clientId);
-                                              
-                                              // Manually trigger refetch of budget items and settings
-                                              if (refetchBudgetItems && refetchBudgetSettings) {
-                                                console.log('Manually refetching budget data for client:', clientId);
-                                                // Use timeout to ensure components finish rendering first
-                                                setTimeout(() => {
-                                                  refetchBudgetItems();
-                                                  refetchBudgetSettings();
-                                                }, 100);
-                                              }
-                                            }}
-                                          >
-                                            <Check
-                                              className={cn(
-                                                "mr-2 h-4 w-4",
-                                                client.id === field.value
-                                                  ? "opacity-100"
-                                                  : "opacity-0"
-                                              )}
-                                            />
-                                            {client.name}
-                                          </CommandItem>
-                                        ))}
-                                      </ScrollArea>
-                                    </CommandGroup>
-                                  </Command>
-                                </PopoverContent>
+                                {({ open, setOpen }) => (
+                                  <>
+                                    <PopoverTrigger asChild>
+                                      <FormControl>
+                                        <Button
+                                          variant="outline"
+                                          role="combobox"
+                                          className={cn(
+                                            "h-10 w-full justify-between",
+                                            !field.value && "text-muted-foreground"
+                                          )}
+                                        >
+                                          {field.value
+                                            ? clients.find(
+                                                (client) => client.id === field.value
+                                              )?.name || "Select client"
+                                            : "Select client"}
+                                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                        </Button>
+                                      </FormControl>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-[300px] p-0" align="start">
+                                      <Command>
+                                        <CommandInput placeholder="Search clients..." />
+                                        <CommandEmpty>No client found.</CommandEmpty>
+                                        <CommandGroup>
+                                          <ScrollArea className="h-[300px]">
+                                            {clients.map((client) => (
+                                              <CommandItem
+                                                key={client.id}
+                                                value={client.name}
+                                                onSelect={() => {
+                                                  const clientId = client.id;
+                                                  field.onChange(clientId);
+                                                  
+                                                  // Reset performance assessments when client changes
+                                                  form.setValue("performanceAssessments", []);
+                                                  
+                                                  // Reset products when client changes
+                                                  form.setValue("sessionNote.products", []);
+                                                  
+                                                  // Log when client changes to help debug
+                                                  console.log('Client changed to:', clientId);
+                                                  console.log('Initiating budget item fetch for client:', clientId);
+                                                  
+                                                  // Manually trigger refetch of budget items and settings
+                                                  if (refetchBudgetItems && refetchBudgetSettings) {
+                                                    console.log('Manually refetching budget data for client:', clientId);
+                                                    // Use timeout to ensure components finish rendering first
+                                                    setTimeout(() => {
+                                                      refetchBudgetItems();
+                                                      refetchBudgetSettings();
+                                                    }, 100);
+                                                  }
+                                                  
+                                                  // Close the popover after selection
+                                                  setOpen(false);
+                                                }}
+                                              >
+                                                <Check
+                                                  className={cn(
+                                                    "mr-2 h-4 w-4",
+                                                    client.id === field.value
+                                                      ? "opacity-100"
+                                                      : "opacity-0"
+                                                  )}
+                                                />
+                                                {client.name}
+                                              </CommandItem>
+                                            ))}
+                                          </ScrollArea>
+                                        </CommandGroup>
+                                      </Command>
+                                    </PopoverContent>
+                                  </>
+                                )}
                               </Popover>
                               <FormMessage />
                             </FormItem>
