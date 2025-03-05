@@ -1496,8 +1496,8 @@ const ProductSelectionDialog = ({
                   <ThreeColumnLayout
                     className="mt-6"
                     leftColumn={
-                      <Card className="shadow-sm hover:shadow-md transition-all duration-200">
-                        <CardHeader className="pb-2">
+                      <Card className="shadow-sm border-2 border-primary/20 overflow-hidden h-full flex flex-col">
+                        <CardHeader className="bg-primary/5 pb-3 border-b border-primary/10">
                           <div className="flex justify-between items-center">
                             <CardTitle className="text-base">
                               <UserCheck className="h-5 w-5 inline-block mr-2" />
@@ -1545,7 +1545,7 @@ const ProductSelectionDialog = ({
                             </Button>
                           </div>
                         </CardHeader>
-                        <CardContent className="space-y-2">
+                        <CardContent className="space-y-2 flex-grow">
                         {/* Selected Allies List */}
                         {form.watch("sessionNote.presentAllies")?.map((name, index) => {
                           // Find the ally object to get relationship
@@ -1690,8 +1690,8 @@ const ProductSelectionDialog = ({
                     }
 
                     middleColumn={
-                      <Card className="shadow-sm hover:shadow-md transition-all duration-200 h-full">
-                        <CardHeader className="pb-2">
+                      <Card className="shadow-sm border-2 border-primary/20 overflow-hidden h-full flex flex-col">
+                        <CardHeader className="bg-primary/5 pb-3 border-b border-primary/10">
                           <div className="flex justify-between items-center">
                             <CardTitle className="text-base">
                               <ShoppingCart className="h-5 w-5 inline-block mr-2" />
@@ -1768,7 +1768,7 @@ const ProductSelectionDialog = ({
                           </div>
                         </CardHeader>
 
-                        <CardContent className="pb-4">
+                        <CardContent className="pb-4 flex-grow">
                           {/* Product Selection Dialog */}
                           <ProductSelectionDialog
                             open={productSelectionOpen}
