@@ -3162,6 +3162,15 @@ const ProductSelectionDialog = ({
           onSelectStrategy={handleStrategySelection}
           maxStrategies={5}
         />
+        
+        {/* Ally selection dialog for fullscreen mode */}
+        <AllySelectionDialog
+          open={allySelectionOpen}
+          onOpenChange={setAllySelectionOpen}
+          allies={allies.slice(0, 10)} // Show up to 10 allies
+          selectedAllies={form.watch("sessionNote.presentAllies") || []}
+          onSelectAlly={handleAllySelection}
+        />
       </DialogContent>
     </Dialog>
   );
