@@ -84,6 +84,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Progress } from "@/components/ui/progress";
+import { RichTextEditor } from "@/components/ui/rich-text-editor";
 
 // Session form schema
 const sessionFormSchema = insertSessionSchema.extend({
