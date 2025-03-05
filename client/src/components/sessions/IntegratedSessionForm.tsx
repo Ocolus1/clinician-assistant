@@ -2054,7 +2054,13 @@ const ProductSelectionDialog = ({
                                     console.log('Product selection dialog should be open now');
                                   }, 50);
                                 }}
-                                disabled={!availableProducts.length && !hasSampleProducts && !hasClientSelected}
+                                disabled={
+                                  // Disable if no products are available OR
+                                  // no attendees have been added yet (need someone to use the products)
+                                  (!availableProducts.length && !hasSampleProducts) || 
+                                  !hasClientSelected || 
+                                  (form.getValues("sessionNote.presentAllies")?.length === 0)
+                                }
                               >
                                 <ShoppingCart className="h-4 w-4 mr-2" />
                                 Add Product
@@ -2726,7 +2732,11 @@ const ProductSelectionDialog = ({
                             variant="outline"
                             onClick={() => setProductSelectionOpen(true)}
                             className="w-full mt-4 border-primary/20 hover:bg-primary/5"
-                            disabled={!clientId || (!availableProducts?.length)}
+                            disabled={
+                              !clientId || 
+                              (!availableProducts?.length) || 
+                              (form.getValues("sessionNote.presentAllies")?.length === 0)
+                            }
                           >
                             <Plus className="h-4 w-4 mr-2 text-primary/70" />
                             Add Product
