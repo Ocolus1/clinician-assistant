@@ -2087,25 +2087,35 @@ const ProductSelectionDialog = ({
                                               <FormField
                                                 control={form.control}
                                                 name={`performanceAssessments.${goalIndex}.milestones.${milestoneIndex}.rating`}
-                                                render={({ field }) => (
-                                                  <FormItem>
-                                                    <FormControl>
-                                                      <div className="px-1 py-2">
-                                                        <Slider
-                                                          value={[field.value !== undefined ? field.value : 5]}
-                                                          min={0}
-                                                          max={10}
-                                                          step={1}
-                                                          onValueChange={(vals) => field.onChange(vals[0])}
-                                                          className="py-2 rating-slider color-slider"
-                                                        />
-                                                      </div>
-                                                    </FormControl>
-                                                    <FormMessage />
-                                                  </FormItem>
-                                                )}
+                                                render={({ field }) => {
+                                                  // Get range class for the slider
+                                                  const getRangeClass = () => {
+                                                    const value = field.value !== undefined ? field.value : 5;
+                                                    if (value <= 3) return 'range-low';
+                                                    if (value <= 6) return 'range-mid';
+                                                    return 'range-high';
+                                                  };
+                                                  
+                                                  return (
+                                                    <FormItem>
+                                                      <FormControl>
+                                                        <div className="px-1 py-2">
+                                                          <Slider
+                                                            value={[field.value !== undefined ? field.value : 5]}
+                                                            min={0}
+                                                            max={10}
+                                                            step={1}
+                                                            onValueChange={(vals) => field.onChange(vals[0])}
+                                                            className={`py-2 rating-slider color-slider ${getRangeClass()}`}
+                                                          />
+                                                        </div>
+                                                      </FormControl>
+                                                      <FormMessage />
+                                                    </FormItem>
+                                                  );
+                                                }}
                                               />
-
+{/* Milestone Notes section removed as requested */}
 {/* Milestone Notes section removed as requested */}
 {/* Milestone Notes section removed as requested */}
 {/* Milestone Notes section removed as requested */}
