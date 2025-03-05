@@ -760,7 +760,7 @@ export function IntegratedSessionForm({
       const sessionResponse = await apiRequest('POST', '/api/sessions', data.session);
       
       // If successful, create the session note
-      if (sessionResponse && sessionResponse.id) {
+      if (sessionResponse && typeof sessionResponse === 'object' && 'id' in sessionResponse) {
         const sessionId = sessionResponse.id;
         
         // Create the session note
@@ -1213,7 +1213,7 @@ export function IntegratedSessionForm({
                                         {ally.name}
                                       </Label>
                                       <p className="text-xs text-muted-foreground">
-                                        {ally.role || "Support Role"} • {ally.relationship || "Professional"}
+                                        {(ally as any).role || "Support Role"} • {ally.relationship || "Professional"}
                                       </p>
                                     </div>
                                   </div>
