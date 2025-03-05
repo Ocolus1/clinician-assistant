@@ -166,8 +166,17 @@ div:not([data-popover-content]) > .rdp {
 }
 
 /* Three-column layout for session forms */
-.session-columns-grid {
-  display: grid !important;
-  grid-template-columns: repeat(3, 1fr) !important;
+.session-columns-container {
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  align-items: flex-start !important;
   gap: 1.5rem !important;
+  width: 100% !important;
+}
+
+.session-column {
+  flex: 1 1 0 !important;
+  min-width: 0 !important;
+  width: calc(33.333% - 1rem) !important;
 }

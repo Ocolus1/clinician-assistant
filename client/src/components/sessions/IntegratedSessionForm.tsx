@@ -1391,9 +1391,9 @@ const ProductSelectionDialog = ({
                   </Card>
 
                   {/* Three-Column Layout */}
-                  <div className="session-columns-grid mt-6">
+                  <div className="session-columns-container mt-6">
                     {/* Left Column - Present In Session Section */}
-                    <div className="space-y-4">
+                    <div className="session-column space-y-4">
                       <div className="flex justify-between items-center mb-2">
                         <h3 className="section-header">
                           <UserCheck className="h-5 w-5" />
@@ -1583,7 +1583,7 @@ const ProductSelectionDialog = ({
                     </Dialog>
                     
                     {/* Middle Column - Products Section */}
-                    <div className="space-y-4">
+                    <div className="session-column space-y-4">
                       <div className="flex justify-between items-center">
                         <h3 className="section-header">
                           <ShoppingCart className="h-5 w-5" />
@@ -1809,7 +1809,7 @@ const ProductSelectionDialog = ({
                     </div>
                     
                     {/* Right Column - Session Observations */}
-                    <div className="space-y-4">
+                    <div className="session-column space-y-4">
                       <h3 className="section-header">
                         <ClipboardList className="h-5 w-5" />
                         Session Observations
