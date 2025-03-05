@@ -1,0 +1,55 @@
+Please implement the following border styles for our practice management software:
+Card Borders
+
+Use subtle, light borders around all cards and containers
+Border color: #E2E8F0 (light gray)
+Border thickness: 1px
+Border style: solid
+Corner radius: 8px
+Add a very subtle shadow effect: 0 2px 4px rgba(0, 0, 0, 0.05)
+Example elements: Dashboard stat cards, client cards, session cards
+
+Input Field Borders
+
+Border color: #CBD5E0 (medium-light gray)
+Border thickness: 1px
+Border style: solid
+Corner radius: 6px
+When focused: Change border color to #3A86FF (primary blue) and increase thickness to 2px
+Error state: Use #F56565 (error red) for the border
+Example elements: Text inputs, dropdowns, text areas
+
+Dividers/Separators
+
+Use for separating content sections within the same card
+Border color: #EDF2F7 (very light gray)
+Border thickness: 1px
+Border style: solid
+No corner radius (straight lines)
+Add 16px margin above and below dividers
+Example usage: Between items in a list, separating card header from content
+
+Table Borders
+
+Table outer border: Same as card borders
+Table header bottom border: #CBD5E0 (medium-light gray), 1px solid
+Table row borders: #EDF2F7 (very light gray), 1px solid
+Only use horizontal borders between rows (no vertical borders)
+Example elements: Client lists, appointment tables, reports
+
+Status Indicators
+
+Use left borders with different colors to indicate status
+Active/Confirmed: #48BB78 (success green), 3-4px thickness
+Pending/Scheduled: #3A86FF (primary blue), 3-4px thickness
+Canceled/Inactive: #F56565 (error red), 3-4px thickness
+Apply to the left side of cards or rows only
+Example elements: Session cards, client status indicators
+
+Tab Borders
+
+Active tab: #3A86FF (primary blue) bottom border, 2-3px thickness
+Inactive tabs: No border or very subtle #E2E8F0 bottom border, 1px thickness
+Example elements: Dashboard tabs, session detail tabs
+
+Please maintain consistent border styling throughout the application to create a clean, professional look with clear visual hierarchy.
