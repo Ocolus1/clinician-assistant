@@ -16,7 +16,6 @@ import {
 } from "lucide-react";
 
 import { ThreeColumnLayout } from "./ThreeColumnLayout";
-import { StrategySelectionDialog } from "./StrategySelectionDialog";
 import { Ally, BudgetItem, BudgetSettings, Client, Goal, Subgoal, Strategy } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { useSafeForm } from "@/hooks/use-safe-hooks";

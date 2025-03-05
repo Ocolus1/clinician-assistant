@@ -1,5 +1,5 @@
-import { ReactNode } from "react";
-import "./three-column-layout.css";
+import React, { ReactNode } from "react";
+import { cn } from "@/lib/utils";
 
 interface ThreeColumnLayoutProps {
   leftColumn: ReactNode;
@@ -11,20 +11,14 @@ interface ThreeColumnLayoutProps {
 export function ThreeColumnLayout({ 
   leftColumn, 
   middleColumn, 
-  rightColumn,
-  className = ""
+  rightColumn, 
+  className 
 }: ThreeColumnLayoutProps) {
   return (
-    <div className={`three-column-container ${className}`}>
-      <div className="three-column-left">
-        {leftColumn}
-      </div>
-      <div className="three-column-middle">
-        {middleColumn}
-      </div>
-      <div className="three-column-right">
-        {rightColumn}
-      </div>
+    <div className={cn("grid grid-cols-1 md:grid-cols-3 gap-6", className)}>
+      <div className="col-span-1">{leftColumn}</div>
+      <div className="col-span-1">{middleColumn}</div>
+      <div className="col-span-1">{rightColumn}</div>
     </div>
   );
 }
