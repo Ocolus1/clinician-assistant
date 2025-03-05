@@ -1390,55 +1390,57 @@ const ProductSelectionDialog = ({
                     </CardContent>
                   </Card>
 
-                  {/* Present In Session Section */}
-                  <div className="mt-6">
-                    <div className="flex justify-between items-center mb-2">
-                      <h3 className="section-header">
-                        <UserCheck className="h-5 w-5" />
-                        Present
-                      </h3>
-                      
-                      {/* Add New Attendee Button moved to header */}
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          console.log("New Attendee button clicked, allies:", allies);
-                          
-                          if (allies.length > 0) {
-                            // Get current allies and filter to find available ones
-                            const currentAllies = form.getValues("sessionNote.presentAllies") || [];
-                            const availableAllies = allies.filter(ally => 
-                              !currentAllies.includes(ally.name)
-                            );
+                  {/* Three-Column Layout */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+                    {/* Left Column - Present In Session Section */}
+                    <div className="space-y-4">
+                      <div className="flex justify-between items-center mb-2">
+                        <h3 className="section-header">
+                          <UserCheck className="h-5 w-5" />
+                          Present
+                        </h3>
+                        
+                        {/* Add New Attendee Button moved to header */}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            console.log("New Attendee button clicked, allies:", allies);
                             
-                            if (availableAllies.length > 0) {
-                              // Add the special marker to trigger the dialog
-                              form.setValue("sessionNote.presentAllies", [
-                                ...currentAllies, 
-                                "__select__"
-                              ]);
+                            if (allies.length > 0) {
+                              // Get current allies and filter to find available ones
+                              const currentAllies = form.getValues("sessionNote.presentAllies") || [];
+                              const availableAllies = allies.filter(ally => 
+                                !currentAllies.includes(ally.name)
+                              );
+                              
+                              if (availableAllies.length > 0) {
+                                // Add the special marker to trigger the dialog
+                                form.setValue("sessionNote.presentAllies", [
+                                  ...currentAllies, 
+                                  "__select__"
+                                ]);
+                              } else {
+                                toast({
+                                  title: "No more allies available",
+                                  description: "All available attendees have been added to the session.",
+                                  variant: "default"
+                                });
+                              }
                             } else {
                               toast({
-                                title: "No more allies available",
-                                description: "All available attendees have been added to the session.",
+                                title: "No allies found",
+                                description: "This client doesn't have any allies added to their profile yet.",
                                 variant: "default"
                               });
                             }
-                          } else {
-                            toast({
-                              title: "No allies found",
-                              description: "This client doesn't have any allies added to their profile yet.",
-                              variant: "default"
-                            });
-                          }
-                        }}
-                      >
-                        <Plus className="h-4 w-4 mr-2" />
-                        New Attendee
-                      </Button>
-                    </div>
-                    <div className="bg-muted/20 rounded-lg p-4 space-y-2">
+                          }}
+                        >
+                          <Plus className="h-4 w-4 mr-2" />
+                          New Attendee
+                        </Button>
+                      </div>
+                      <div className="bg-muted/20 rounded-lg p-4 space-y-2">
                       {/* Selected Allies List */}
                       {form.watch("sessionNote.presentAllies")?.map((name, index) => {
                         // Find the ally object to get relationship
@@ -1806,9 +1808,11 @@ const ProductSelectionDialog = ({
                       )}
                     </div>
                   </div>
+                  {/* Close third column div */}
+                  </div>
                 </TabsContent>
 
-                {/* Observations Tab */}
+                {/* Participants Tab */}
                 <TabsContent value="participants" className="space-y-6 mt-0 px-4">
                   {/* Session Observations */}
                   <div className="space-y-4 mt-4">
