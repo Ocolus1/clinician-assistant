@@ -2443,7 +2443,7 @@ const ProductSelectionDialog = ({
                               {selectedProducts.map((product, index) => (
                                 <div key={index} className="flex items-center justify-between border border-primary/10 rounded-lg p-3 shadow-sm">
                                   <div>
-                                    <p className="font-medium">{product.productDescription}</p>
+                                    <p className="font-medium">{product.productDescription || product.productCode}</p>
                                     <p className="text-sm text-muted-foreground">{product.quantity} × ${product.unitPrice.toFixed(2)}</p>
                                   </div>
                                   <Button
@@ -2626,10 +2626,10 @@ const ProductSelectionDialog = ({
                                     ) : (
                                       <div className="space-y-5">
                                         {assessment.milestones.map((milestone, milestoneIndex) => {
-                                          const subgoal = goalSubgoals.find(sg => sg.id === milestone.subgoalId);
+                                          const subgoal = goalSubgoals.find(sg => sg.id === milestone.milestoneId);
 
                                           return (
-                                            <div key={milestone.subgoalId} className="border rounded-md p-3 bg-card">
+                                            <div key={milestone.milestoneId} className="border rounded-md p-3 bg-card">
                                               <div className="flex justify-between items-start mb-3">
                                                 <div>
                                                   <h4 className="font-medium text-sm">{subgoal?.title}</h4>
@@ -2639,7 +2639,7 @@ const ProductSelectionDialog = ({
                                                   type="button"
                                                   variant="ghost"
                                                   size="icon"
-                                                  onClick={() => removeMilestone(assessment.goalId, milestone.subgoalId)}
+                                                  onClick={() => removeMilestone(assessment.goalId, milestone.milestoneId)}
                                                 >
                                                   <X className="h-4 w-4" />
                                                 </Button>
