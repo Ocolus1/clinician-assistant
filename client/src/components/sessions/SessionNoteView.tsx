@@ -155,31 +155,88 @@ export function SessionNoteView({ session, onEdit, initialTabValue = "general" }
             <TabsTrigger value="performance">Performance Assessment</TabsTrigger>
           </TabsList>
           
-          <TabsContent value="general" className="space-y-6">
-            <Card className="shadow-sm border-primary/10 overflow-hidden">
-              <CardHeader className="bg-primary/5 pb-3">
-                <CardTitle className="text-md">Notes</CardTitle>
-              </CardHeader>
-              <CardContent className="p-4 bg-white">
-                <p className="whitespace-pre-line">
-                  {completeNote.notes || "No general notes recorded for this session."}
-                </p>
-              </CardContent>
-            </Card>
-            
-            <Card className="shadow-sm border-primary/10">
-              <CardHeader className="bg-primary/5 pb-3">
-                <CardTitle className="text-md">Ratings</CardTitle>
-              </CardHeader>
-              <CardContent className="p-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <RatingDisplay label="Mood" value={completeNote.moodRating || 0} />
-                  <RatingDisplay label="Physical Activity" value={completeNote.physicalActivityRating || 0} />
-                  <RatingDisplay label="Focus" value={completeNote.focusRating || 0} />
-                  <RatingDisplay label="Cooperation" value={completeNote.cooperationRating || 0} />
+          <TabsContent value="general">
+            {/* General Observations Tab Content with new layout */}
+            {activeTab === "general" && (
+              <div className="space-y-6">
+                {/* Session Information Section (Full Width) */}
+                <Card className="shadow-sm border-primary/10 overflow-hidden w-full">
+                  <CardHeader className="bg-primary/5 pb-3">
+                    <CardTitle className="text-md">Notes</CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-4 bg-white">
+                    <p className="whitespace-pre-line">
+                      {completeNote.notes || "No general notes recorded for this session."}
+                    </p>
+                  </CardContent>
+                </Card>
+                
+                {/* Three Column Layout */}
+                <div className="flex flex-col md:flex-row w-full gap-4">
+                  {/* Present Section (25%) */}
+                  <div className="w-full md:w-1/4">
+                    <Card className="shadow-sm border-primary/10 h-full">
+                      <CardHeader className="bg-primary/5 pb-3">
+                        <CardTitle className="text-md">Present</CardTitle>
+                      </CardHeader>
+                      <CardContent className="p-4">
+                        {completeNote.presentAllies && completeNote.presentAllies.length > 0 ? (
+                          <div className="flex flex-col gap-2">
+                            {completeNote.presentAllies.map((ally: string) => (
+                              <Badge key={ally} variant="secondary" className="shadow-sm">
+                                {ally}
+                              </Badge>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-muted-foreground">No allies were present.</p>
+                        )}
+                      </CardContent>
+                    </Card>
+                  </div>
+                  
+                  {/* Products Section (50%) */}
+                  <div className="w-full md:w-1/2">
+                    <Card className="shadow-sm border-primary/10 h-full">
+                      <CardHeader className="bg-primary/5 pb-3">
+                        <CardTitle className="text-md">Products Used</CardTitle>
+                      </CardHeader>
+                      <CardContent className="p-4">
+                        {completeNote.productsUsed && completeNote.productsUsed.length > 0 ? (
+                          <div className="space-y-3">
+                            {completeNote.productsUsed.map((product: any, index: number) => (
+                              <div key={index} className="flex justify-between items-center border-b pb-2 last:border-0 last:pb-0">
+                                <span>{product.name}</span>
+                                <Badge variant="outline">{product.quantity} used</Badge>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-muted-foreground">No products were used in this session.</p>
+                        )}
+                      </CardContent>
+                    </Card>
+                  </div>
+                  
+                  {/* Observations Section (25%) */}
+                  <div className="w-full md:w-1/4">
+                    <Card className="shadow-sm border-primary/10 h-full">
+                      <CardHeader className="bg-primary/5 pb-3">
+                        <CardTitle className="text-md">Ratings</CardTitle>
+                      </CardHeader>
+                      <CardContent className="p-4">
+                        <div className="flex flex-col gap-3">
+                          <RatingDisplay label="Mood" value={completeNote.moodRating || 0} />
+                          <RatingDisplay label="Focus" value={completeNote.focusRating || 0} />
+                          <RatingDisplay label="Activity" value={completeNote.physicalActivityRating || 0} />
+                          <RatingDisplay label="Cooperation" value={completeNote.cooperationRating || 0} />
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            )}
           </TabsContent>
           
           <TabsContent value="present">
