@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import "./session-form.css";
 import { ThreeColumnLayout } from "./ThreeColumnLayout";
+import { SessionDetailsLayout } from "./SessionDetailsLayout";
 // Debug helper has been removed in favor of a more natural implementation
 import { Ally, BudgetItem, BudgetSettings, Client, Goal, Session, Subgoal, Strategy, insertSessionSchema } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
@@ -1492,10 +1493,18 @@ const ProductSelectionDialog = ({
                     </CardContent>
                   </Card>
 
-                  {/* Three-Column Layout */}
-                  <ThreeColumnLayout
+                  {/* Use SessionDetailsLayout for consistent layout with modal version */}
+                  <SessionDetailsLayout
                     className="mt-6"
-                    leftColumn={
+                    headerSection={
+                      <div className="w-full rounded-lg p-4 bg-muted/20">
+                        <h2 className="text-xl font-semibold mb-2">Session Details</h2>
+                        <p className="text-muted-foreground">
+                          Record attendance, products used, and observations for this session. Use the ratings to track mood, focus, and cooperation.
+                        </p>
+                      </div>
+                    }
+                    presentSection={
                       <>
                         <div className="flex justify-between items-center mb-2">
                           <h3 className="section-header">
@@ -1687,7 +1696,7 @@ const ProductSelectionDialog = ({
                       </>
                     }
 
-                    middleColumn={
+                    productsSection={
                       <>
                         <div className="flex justify-between items-center">
                           <h3 className="section-header">
@@ -1914,7 +1923,7 @@ const ProductSelectionDialog = ({
                       </>
                     }
 
-                    rightColumn={
+                    observationsSection={
                       <>
                         <h3 className="section-header">
                           <ClipboardList className="h-5 w-5" />
