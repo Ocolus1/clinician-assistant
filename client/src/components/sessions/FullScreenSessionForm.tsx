@@ -1122,12 +1122,10 @@ export function FullScreenSessionForm({
                         <CardContent className="space-y-4">
                           {allies.length > 0 ? (
                             <>
-                              {/* Display selected allies */}
+                              {/* Display selected allies with improved handling */}
                               {form.watch("sessionNote.presentAllies")?.length > 0 ? (
                                 <div className="space-y-2">
                                   {form.watch("sessionNote.presentAllies").map((name, index) => {
-                                    if (name === "__select__") return null; // Skip special marker
-
                                     const ally = allies.find(a => a.name === name);
                                     return (
                                       <div key={index} className="flex items-center justify-between bg-accent rounded-md p-2">
@@ -1144,6 +1142,7 @@ export function FullScreenSessionForm({
                                           variant="ghost" 
                                           size="icon"
                                           onClick={() => removeAttendee(index)}
+                                          aria-label={`Remove ${name}`}
                                         >
                                           <X className="h-4 w-4" />
                                         </Button>
@@ -1160,7 +1159,9 @@ export function FullScreenSessionForm({
                                 variant="outline"
                                 className="w-full"
                                 onClick={() => setShowAttendeeDialog(true)}
-                                disabled={allies.length === 0 || allies.length === form.watch("sessionNote.presentAllies")?.length}
+                                disabled={!allies.some(ally => 
+                                  !form.watch("sessionNote.presentAllies")?.includes(ally.name)
+                                )}
                               >
                                 <Plus className="h-4 w-4 mr-2" />
                                 Add Attendee
@@ -1701,24 +1702,42 @@ function AttendeeSelectionDialog({
   selectedAllies,
   onSelectAttendee
 }: AttendeeSelectionDialogProps) {
-  // Filter out allies that are already selected
+  // State for search input
+  const [searchTerm, setSearchTerm] = useState('');
+  
+  // Filter out allies that are already selected and match search term
   const availableAllies = allies.filter(ally => 
-    !selectedAllies.includes(ally.name)
+    !selectedAllies.includes(ally.name) && 
+    (searchTerm === '' || ally.name.toLowerCase().includes(searchTerm.toLowerCase()))
   );
+  
+  // Handle search input change
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(e.target.value);
+  };
   
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
-        <CardHeader>
-          <CardTitle>Select Attendee</CardTitle>
-          <CardDescription>
+        <DialogHeader>
+          <DialogTitle>Select Attendee</DialogTitle>
+          <DialogDescription>
             Choose an attendee from the client's allies list to add to the session.
-          </CardDescription>
-        </CardHeader>
+          </DialogDescription>
+        </DialogHeader>
+        
+        <div className="py-2">
+          <Input
+            placeholder="Search allies..."
+            value={searchTerm}
+            onChange={handleSearchChange}
+            className="mb-2"
+          />
+        </div>
         
         <div className="max-h-[300px] overflow-y-auto">
           {availableAllies.length > 0 ? (
-            <div className="space-y-2 py-4">
+            <div className="space-y-2 py-2">
               {availableAllies.map((ally) => (
                 <div 
                   key={ally.id}
@@ -1734,11 +1753,15 @@ function AttendeeSelectionDialog({
                       <p className="text-sm text-muted-foreground">{ally.relationship || "Supporter"}</p>
                     </div>
                   </div>
-                  <Button variant="ghost" size="icon">
+                  <Button variant="ghost" size="icon" aria-label={`Add ${ally.name}`}>
                     <Plus className="h-4 w-4" />
                   </Button>
                 </div>
               ))}
+            </div>
+          ) : searchTerm ? (
+            <div className="py-8 text-center">
+              <p className="text-muted-foreground">No matching allies found</p>
             </div>
           ) : (
             <div className="py-8 text-center">
@@ -1747,11 +1770,11 @@ function AttendeeSelectionDialog({
           )}
         </div>
         
-        <CardFooter className="flex justify-end space-x-2">
+        <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-        </CardFooter>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
