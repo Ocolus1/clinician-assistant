@@ -11,6 +11,7 @@ import {
   Plus,
   X,
   ChevronLeft,
+  ChevronRight,
   Minus,
   ShoppingCart,
   RefreshCw,
