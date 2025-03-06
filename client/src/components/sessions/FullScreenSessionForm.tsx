@@ -1521,20 +1521,44 @@ export function FullScreenSessionForm({
                                           className="h-7 w-7 rounded-l-none"
                                           onClick={() => {
                                             const products = form.getValues("sessionNote.products");
+                                            
+                                            // Find the original budget item for this product
                                             const originalProduct = availableProducts.find(p => p.id === product.budgetItemId);
+                                            console.log("Original product:", originalProduct);
+                                            console.log("Selected product:", product);
                                             
-                                            // Calculate max available quantity
-                                            const maxQty = originalProduct ? 
-                                              originalProduct.quantity + product.quantity : product.quantity;
+                                            // Calculate available quantity
+                                            // This considers both the original quantity and the quantity already in use in other selected products
+                                            let availableQty = 0;
                                             
-                                            if (product.quantity < maxQty) {
+                                            if (originalProduct) {
+                                              // Start with the original budget item quantity
+                                              availableQty = originalProduct.quantity;
+                                              
+                                              // Add back this product's quantity since we're modifying it
+                                              availableQty += product.quantity;
+                                              
+                                              // Subtract quantities used by other selected products with the same budget item ID
+                                              products.forEach((p, i) => {
+                                                if (p.budgetItemId === product.budgetItemId && i !== index) {
+                                                  availableQty -= p.quantity;
+                                                }
+                                              });
+                                            } else {
+                                              // Fallback - just use the product's current quantity if we can't find the original
+                                              availableQty = product.quantity;
+                                            }
+                                            
+                                            console.log("Available quantity:", availableQty);
+                                            
+                                            if (product.quantity < availableQty) {
                                               const updatedProducts = [...products];
                                               updatedProducts[index].quantity += 1;
                                               form.setValue("sessionNote.products", updatedProducts);
                                             } else {
                                               toast({
                                                 title: "Maximum quantity reached",
-                                                description: `Only ${maxQty} units available for this product`,
+                                                description: `Only ${availableQty} units available for this product`,
                                                 variant: "destructive"
                                               });
                                             }
