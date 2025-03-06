@@ -1123,6 +1123,20 @@ export function FullScreenSessionForm({
                                   <div className="text-right">
                                     <p className="text-sm font-medium">{product.quantity} x ${product.unitPrice.toFixed(2)}</p>
                                     <div className="flex items-center mt-1">
+                                      <p className="text-xs text-muted-foreground mr-2">
+                                        ${(product.quantity * product.unitPrice).toFixed(2)}
+                                      </p>
+                                      <Button 
+                                        variant="ghost" 
+                                        size="icon" 
+                                        className="h-6 w-6" 
+                                        onClick={() => removeProduct(index)}
+                                      >
+                                        <X className="h-3 w-3" />
+                                      </Button>
+                                    </div>
+                                  </div>
+                                </div>
                               ))}
                             </div>
                           ) : (
