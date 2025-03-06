@@ -20,7 +20,8 @@ import {
   UserCheck,
   Package,
   BarChart,
-  ShoppingBag
+  ShoppingBag,
+  Users
 } from "lucide-react";
 import "./session-form.css";
 import { ThreeColumnLayout } from "./ThreeColumnLayout";
@@ -76,7 +77,15 @@ import {
   CommandInput,
   CommandItem,
 } from "@/components/ui/command";
-import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogTrigger 
+} from "@/components/ui/dialog";
 
 // Session form schema
 const sessionFormSchema = insertSessionSchema.extend({
@@ -1617,6 +1626,118 @@ export function FullScreenSessionForm({
         onSelectStrategy={handleStrategySelection}
         maxStrategies={5}
       />
+
+      {/* Attendee Selection Dialog */}
+      <AttendeeSelectionDialog
+        open={showAttendeeDialog}
+        onOpenChange={setShowAttendeeDialog}
+        allies={allies}
+        selectedAllies={form.watch("sessionNote.presentAllies") || []}
+        onSelectAttendee={(ally) => {
+          // Get current allies
+          const currentAllies = form.getValues("sessionNote.presentAllies") || [];
+          
+          // Check if ally is already selected
+          if (currentAllies.includes(ally.name)) {
+            toast({
+              title: "Attendee already added",
+              description: `${ally.name} is already in the attendees list`,
+              variant: "default"
+            });
+            return;
+          }
+          
+          // Add the selected ally
+          form.setValue("sessionNote.presentAllies", [
+            ...currentAllies.filter(name => name !== "__select__"),
+            ally.name
+          ]);
+
+          // Also track ally IDs for data integrity
+          const allyIds = form.getValues("sessionNote.presentAllyIds") || [];
+          form.setValue("sessionNote.presentAllyIds", [
+            ...allyIds,
+            ally.id
+          ]);
+
+          // Close dialog after selection
+          setShowAttendeeDialog(false);
+        }}
+      />
     </div>
+  );
+}
+
+/**
+ * Dialog component for selecting attendees from the client's allies list
+ */
+interface AttendeeSelectionDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  allies: Ally[];
+  selectedAllies: string[];
+  onSelectAttendee: (ally: Ally) => void;
+}
+
+function AttendeeSelectionDialog({
+  open,
+  onOpenChange,
+  allies,
+  selectedAllies,
+  onSelectAttendee
+}: AttendeeSelectionDialogProps) {
+  // Filter out allies that are already selected
+  const availableAllies = allies.filter(ally => 
+    !selectedAllies.includes(ally.name)
+  );
+  
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[425px]">
+        <DialogHeader>
+          <DialogTitle>Select Attendee</DialogTitle>
+          <DialogDescription>
+            Choose an attendee from the client's allies list to add to the session.
+          </DialogDescription>
+        </DialogHeader>
+        
+        <div className="max-h-[300px] overflow-y-auto">
+          {availableAllies.length > 0 ? (
+            <div className="space-y-2 py-4">
+              {availableAllies.map((ally) => (
+                <div 
+                  key={ally.id}
+                  className="flex items-center justify-between p-3 rounded-md border hover:bg-accent cursor-pointer"
+                  onClick={() => onSelectAttendee(ally)}
+                >
+                  <div className="flex items-center">
+                    <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center mr-3">
+                      <UserIcon className="h-5 w-5 text-primary" />
+                    </div>
+                    <div>
+                      <p className="font-medium">{ally.name}</p>
+                      <p className="text-sm text-muted-foreground">{ally.relationship || "Supporter"}</p>
+                    </div>
+                  </div>
+                  <Button variant="ghost" size="icon">
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="py-8 text-center">
+              <p className="text-muted-foreground">All available allies have been added to the session</p>
+            </div>
+          )}
+        </div>
+        
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
