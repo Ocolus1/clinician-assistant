@@ -22,7 +22,7 @@ export function ThreeColumnLayout({
   return (
     <div 
       className={cn(
-        "grid grid-cols-1 lg:grid-cols-[350px_1fr_320px] h-full min-h-[90vh] overflow-hidden",
+        "grid grid-cols-1 lg:grid-cols-[25%_50%_25%] h-full min-h-[90vh] overflow-hidden",
         className
       )}
     >
