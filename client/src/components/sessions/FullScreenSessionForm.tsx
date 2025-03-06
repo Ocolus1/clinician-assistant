@@ -972,7 +972,7 @@ export function FullScreenSessionForm({
                                   <FormLabel>Time From</FormLabel>
                                   <Select 
                                     onValueChange={field.onChange}
-                                    value={field.value}
+                                    value={field.value || ""}
                                   >
                                     <FormControl>
                                       <SelectTrigger>
@@ -1002,7 +1002,7 @@ export function FullScreenSessionForm({
                                   <FormLabel>Time To</FormLabel>
                                   <Select 
                                     onValueChange={field.onChange}
-                                    value={field.value}
+                                    value={field.value || ""}
                                   >
                                     <FormControl>
                                       <SelectTrigger>
@@ -1033,7 +1033,7 @@ export function FullScreenSessionForm({
                                 <FormLabel>Location</FormLabel>
                                 <Select 
                                   onValueChange={field.onChange}
-                                  value={field.value}
+                                  value={field.value || ""}
                                 >
                                   <FormControl>
                                     <SelectTrigger>
