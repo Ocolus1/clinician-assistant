@@ -26,7 +26,7 @@ import {
 } from "lucide-react";
 import "./session-form.css";
 import { ThreeColumnLayout } from "./ThreeColumnLayout";
-import { Ally, BudgetItem, Client, Goal, Subgoal, Strategy, insertSessionSchema } from "@shared/schema";
+import { Ally, BudgetItem, BudgetSettings, Client, Goal, Subgoal, Strategy, insertSessionSchema } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { useSafeForm } from "@/hooks/use-safe-hooks";
 import { useToast } from "@/hooks/use-toast";
@@ -667,7 +667,7 @@ export function FullScreenSessionForm({
   const selectedMilestoneIds = currentGoalAssessment?.milestones.map(m => m.milestoneId) || [];
 
   // Budget items for product selection
-  const { data: budgetSettings } = useQuery({
+  const { data: budgetSettings } = useQuery<BudgetSettings>({
     queryKey: ["/api/clients", clientId, "budget-settings"],
     enabled: open && !!clientId,
   });
@@ -694,7 +694,7 @@ export function FullScreenSessionForm({
     return budgetItems
       .filter((item: BudgetItem) => {
         // Only include items from the active budget plan and with quantity > 0
-        return item.budgetSettingsId === (budgetSettings as BudgetSettings).id && item.quantity > 0;
+        return item.budgetSettingsId === budgetSettings.id && item.quantity > 0;
       })
       .map((item: BudgetItem) => {
         // Find if this item is already selected in the form
@@ -884,22 +884,13 @@ export function FullScreenSessionForm({
     const existingProductIndex = currentProducts.findIndex(p => p.budgetItemId === product.id);
 
     if (existingProductIndex !== -1) {
-      // Update quantity of existing product
-      const updatedProducts = [...currentProducts];
-      const newQuantity = updatedProducts[existingProductIndex].quantity + quantity;
-
-      // Validate against available quantity
-      if (newQuantity > product.quantity) {
-        toast({
-          title: "Not enough quantity",
-          description: `Only ${product.quantity - updatedProducts[existingProductIndex].quantity} more units available`,
-          variant: "destructive"
-        });
-        return;
-      }
-
-      updatedProducts[existingProductIndex].quantity = newQuantity;
-      form.setValue("sessionNote.products", updatedProducts);
+      // Prevent adding the same product twice - this is now a requirement
+      toast({
+        title: "Product already added",
+        description: "This product is already in the session. Edit its quantity instead.",
+        variant: "destructive"
+      });
+      return;
     } else {
       // Add new product
       const newProduct = {
@@ -912,6 +903,12 @@ export function FullScreenSessionForm({
       };
 
       form.setValue("sessionNote.products", [...currentProducts, newProduct]);
+      
+      // Show success toast
+      toast({
+        title: "Product added",
+        description: `${newProduct.productDescription} added to the session`,
+      });
     }
   };
 
