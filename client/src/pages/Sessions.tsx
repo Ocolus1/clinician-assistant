@@ -63,6 +63,22 @@ import { useToast } from "@/hooks/use-toast";
 import { SessionDetails } from "@/components/sessions/SessionDetails";
 import { SimpleSessionForm } from "@/temp/SimpleSessionForm";
 
+// Session status badge helper - moved outside component for global access
+const getStatusBadge = (status: string) => {
+  switch(status) {
+    case "scheduled":
+      return <Badge className="bg-blue-100 text-blue-800 border-blue-200">Scheduled</Badge>;
+    case "completed":
+      return <Badge className="bg-green-100 text-green-800 border-green-200">Completed</Badge>;
+    case "cancelled":
+      return <Badge className="bg-red-100 text-red-800 border-red-200">Cancelled</Badge>;
+    case "rescheduled":
+      return <Badge className="bg-amber-100 text-amber-800 border-amber-200">Rescheduled</Badge>;
+    default:
+      return <Badge>{status}</Badge>;
+  }
+};
+
 export default function Sessions() {
   // State for search, filters, view type, and selected session
   const [searchQuery, setSearchQuery] = useState("");
@@ -113,21 +129,7 @@ export default function Sessions() {
     new Date(b.sessionDate).getTime() - new Date(a.sessionDate).getTime()
   );
   
-  // Session status badge colors
-  const getStatusBadge = (status: string) => {
-    switch(status) {
-      case "scheduled":
-        return <Badge className="bg-blue-100 text-blue-800 border-blue-200">Scheduled</Badge>;
-      case "completed":
-        return <Badge className="bg-green-100 text-green-800 border-green-200">Completed</Badge>;
-      case "cancelled":
-        return <Badge className="bg-red-100 text-red-800 border-red-200">Cancelled</Badge>;
-      case "rescheduled":
-        return <Badge className="bg-amber-100 text-amber-800 border-amber-200">Rescheduled</Badge>;
-      default:
-        return <Badge>{status}</Badge>;
-    }
-  };
+  // Using global getStatusBadge function defined above
   
   // Function to handle session selection
   const handleSelectSession = (session: Session & { clientName: string }) => {
