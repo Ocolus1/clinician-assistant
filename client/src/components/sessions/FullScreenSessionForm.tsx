@@ -329,94 +329,172 @@ const ProductSelectionDialog = ({
 }: ProductSelectionDialogProps) => {
   const [selectedProduct, setSelectedProduct] = useState<(BudgetItem & { availableQuantity: number }) | null>(null);
   const [quantity, setQuantity] = useState<number>(1);
+  const [searchTerm, setSearchTerm] = useState<string>("");
 
+  // Reset dialog state when closing
   useEffect(() => {
     if (!open) {
       setSelectedProduct(null);
       setQuantity(1);
+      setSearchTerm("");
     }
   }, [open]);
 
+  // Filter products based on search term
+  const filteredProducts = useMemo(() => {
+    if (!searchTerm.trim()) return products;
+    const searchTermLower = searchTerm.toLowerCase();
+    
+    return products.filter(product => 
+      product.description.toLowerCase().includes(searchTermLower) ||
+      product.itemCode.toLowerCase().includes(searchTermLower)
+    );
+  }, [products, searchTerm]);
+
+  // Format currency for display
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 2
+    }).format(amount);
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
-        <CardHeader>
-          <CardTitle className="text-xl">Add Products to Session</CardTitle>
-          <CardDescription>
-            Select products used during this therapy session.
-          </CardDescription>
-        </CardHeader>
+      <DialogContent className="sm:max-w-[550px]">
+        <DialogHeader>
+          <DialogTitle className="text-xl">Add Product to Session</DialogTitle>
+          <DialogDescription>
+            Select a product from the active budget plan to add to this session.
+          </DialogDescription>
+        </DialogHeader>
+        
         <div className="space-y-4 py-2">
           {products.length === 0 ? (
-            <div className="text-center p-4">
-              <p className="text-muted-foreground">No products available. Add products to the client's budget first.</p>
+            <div className="text-center p-6 border rounded-md bg-muted/20">
+              <ShoppingCart className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+              <p className="font-medium">No products available</p>
+              <p className="text-sm text-muted-foreground mt-1">Add products to the client's active budget plan first.</p>
             </div>
           ) : (
             <>
-              <ScrollArea className="h-[240px] pr-4">
+              {/* Search bar */}
+              <div className="relative">
+                <Input
+                  placeholder="Search products..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-9"
+                />
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground"
+                >
+                  <circle cx="11" cy="11" r="8" />
+                  <path d="m21 21-4.35-4.35" />
+                </svg>
+              </div>
+
+              {/* Product list */}
+              <ScrollArea className="h-[240px] pr-2">
                 <div className="space-y-2">
-                  {products.map(product => (
-                    <Card 
-                      key={product.id} 
-                      className={`cursor-pointer hover:bg-accent transition-colors ${selectedProduct?.id === product.id ? 'border-primary' : ''}`}
-                      onClick={() => {
-                        setSelectedProduct(product);
-                        setQuantity(1); // Reset quantity when selecting a new product
-                      }}
-                    >
-                      <CardContent className="p-3">
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <h4 className="font-medium">{product.description}</h4>
-                            <p className="text-sm text-muted-foreground">Code: {product.itemCode}</p>
+                  {filteredProducts.length === 0 ? (
+                    <div className="text-center p-4">
+                      <p className="text-muted-foreground">No products match your search</p>
+                    </div>
+                  ) : (
+                    filteredProducts.map(product => (
+                      <Card 
+                        key={product.id} 
+                        className={`cursor-pointer hover:bg-accent/50 transition-colors ${selectedProduct?.id === product.id ? 'border-primary bg-primary/10' : ''}`}
+                        onClick={() => {
+                          setSelectedProduct(product);
+                          setQuantity(1); // Reset quantity when selecting a new product
+                        }}
+                      >
+                        <CardContent className="p-3">
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <h4 className="font-medium">{product.description}</h4>
+                              <p className="text-sm text-muted-foreground">Code: {product.itemCode}</p>
+                            </div>
+                            <div className="text-right">
+                              <p className="font-medium">{formatCurrency(product.unitPrice)}</p>
+                              <p className="text-sm text-muted-foreground">
+                                Available: {product.availableQuantity}
+                              </p>
+                            </div>
                           </div>
-                          <div className="text-right">
-                            <p className="font-medium">${product.unitPrice.toFixed(2)}</p>
-                            <p className="text-sm text-muted-foreground">Available: {product.availableQuantity}</p>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
+                        </CardContent>
+                      </Card>
+                    ))
+                  )}
                 </div>
               </ScrollArea>
 
+              {/* Quantity selector */}
               {selectedProduct && (
                 <div className="space-y-4 border-t pt-4">
-                  <h4 className="font-medium">Quantity</h4>
-                  <div className="flex items-center space-x-2">
-                    <Button 
-                      variant="outline" 
-                      size="icon"
-                      onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                      disabled={quantity <= 1}
-                    >
-                      <Minus className="h-4 w-4" />
-                    </Button>
-                    <Input
-                      type="number"
-                      min={1}
-                      max={selectedProduct.availableQuantity}
-                      value={quantity}
-                      onChange={(e) => {
-                        const val = parseInt(e.target.value);
-                        if (!isNaN(val) && val >= 1 && val <= selectedProduct.availableQuantity) {
-                          setQuantity(val);
-                        }
-                      }}
-                      className="w-20 text-center"
-                    />
-                    <Button 
-                      variant="outline" 
-                      size="icon"
-                      onClick={() => setQuantity(Math.min(selectedProduct.availableQuantity, quantity + 1))}
-                      disabled={quantity >= selectedProduct.availableQuantity}
-                    >
-                      <Plus className="h-4 w-4" />
-                    </Button>
-
-                    <div className="ml-4">
-                      <p className="font-medium">Total: ${(selectedProduct.unitPrice * quantity).toFixed(2)}</p>
+                  <div className="flex justify-between items-center">
+                    <h4 className="font-medium">Selected Product:</h4>
+                    <p>{selectedProduct.description}</p>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="quantity" className="text-sm font-medium mb-1.5 block">
+                        Quantity
+                      </Label>
+                      <div className="flex items-center space-x-2">
+                        <Button 
+                          variant="outline" 
+                          size="icon"
+                          onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                          disabled={quantity <= 1}
+                        >
+                          <Minus className="h-3 w-3" />
+                        </Button>
+                        
+                        <Input
+                          id="quantity"
+                          type="number"
+                          min={1}
+                          max={selectedProduct.availableQuantity}
+                          value={quantity}
+                          onChange={(e) => {
+                            const val = parseInt(e.target.value);
+                            if (!isNaN(val) && val >= 1 && val <= selectedProduct.availableQuantity) {
+                              setQuantity(val);
+                            }
+                          }}
+                          className="w-16 text-center"
+                        />
+                        
+                        <Button 
+                          variant="outline" 
+                          size="icon"
+                          onClick={() => setQuantity(Math.min(selectedProduct.availableQuantity, quantity + 1))}
+                          disabled={quantity >= selectedProduct.availableQuantity}
+                        >
+                          <Plus className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <Label className="text-sm font-medium mb-1.5 block">Total</Label>
+                      <div className="h-9 rounded-md border px-3 flex items-center bg-muted/50">
+                        <p className="font-medium">
+                          {formatCurrency(selectedProduct.unitPrice * quantity)}
+                        </p>
+                      </div>
                     </div>
                   </div>
 
@@ -605,18 +683,18 @@ export function FullScreenSessionForm({
     enabled: open && showStrategyDialog,
   });
 
-  // Prepare products for selection dialog
+  // Prepare products for selection dialog from active budget plan
   const availableProducts = useMemo(() => {
-    if (!budgetItems || !budgetItems.length) return [];
+    if (!budgetItems || !budgetItems.length || !budgetSettings) return [];
 
     // Get currently selected products from form
     const selectedProducts = form.watch("sessionNote.products") || [];
 
-    // Calculate available quantities
+    // Filter only products from the active budget plan
     return budgetItems
       .filter((item: BudgetItem) => {
-        // Only include items that are not consumables or have quantity > 0
-        return item.quantity > 0;
+        // Only include items from the active budget plan and with quantity > 0
+        return item.budgetSettingsId === (budgetSettings as BudgetSettings).id && item.quantity > 0;
       })
       .map((item: BudgetItem) => {
         // Find if this item is already selected in the form
@@ -632,7 +710,7 @@ export function FullScreenSessionForm({
         };
       })
       .filter(item => item.availableQuantity > 0);  // Only show items with available quantity
-  }, [budgetItems, form]);
+  }, [budgetItems, budgetSettings, form]);
 
   // Form submission handler
   const createSessionMutation = useMutation({
