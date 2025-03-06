@@ -205,13 +205,13 @@ export function SessionNoteView({ session, onEdit, initialTabValue = "general" }
                       {sessionNote.products.map((product: any, index: number) => (
                         <tr key={index} className="border-b">
                           <td className="p-2">
-                            <div className="font-medium">{product.productDescription}</div>
-                            <div className="text-xs text-muted-foreground">{product.productCode}</div>
+                            <div className="font-medium">{product.productDescription || product.name || "Product"}</div>
+                            <div className="text-xs text-muted-foreground">{product.productCode || product.code || "-"}</div>
                           </td>
-                          <td className="text-center p-2">{product.quantity}</td>
-                          <td className="text-right p-2">${product.unitPrice?.toFixed(2)}</td>
+                          <td className="text-center p-2">{product.quantity || 0}</td>
+                          <td className="text-right p-2">${(product.unitPrice || 0).toFixed(2)}</td>
                           <td className="text-right p-2 font-medium">
-                            ${(product.quantity * product.unitPrice).toFixed(2)}
+                            ${((product.quantity || 0) * (product.unitPrice || 0)).toFixed(2)}
                           </td>
                         </tr>
                       ))}
@@ -219,10 +219,9 @@ export function SessionNoteView({ session, onEdit, initialTabValue = "general" }
                       <tr className="bg-muted/20">
                         <td colSpan={3} className="text-right p-2 font-medium">Total:</td>
                         <td className="text-right p-2 font-bold">
-                          ${Array.isArray(sessionNote.products) ? 
-                            sessionNote.products.reduce((total: number, product: any) => (
-                              total + (product.quantity * product.unitPrice)
-                            ), 0).toFixed(2) : "0.00"}
+                          ${sessionNote.products.reduce((total: number, product: any) => (
+                            total + ((product.quantity || 0) * (product.unitPrice || 0))
+                          ), 0).toFixed(2)}
                         </td>
                       </tr>
                     </tbody>
