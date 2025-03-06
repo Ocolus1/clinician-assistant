@@ -1143,11 +1143,7 @@ export function FullScreenSessionForm({
                                         <Button 
                                           variant="ghost" 
                                           size="icon"
-                                          onClick={() => {
-                                            const allies = form.getValues("sessionNote.presentAllies") || [];
-                                            const updatedAllies = allies.filter(a => a !== name);
-                                            form.setValue("sessionNote.presentAllies", updatedAllies);
-                                          }}
+                                          onClick={() => removeAttendee(index)}
                                         >
                                           <X className="h-4 w-4" />
                                         </Button>
@@ -1164,10 +1160,10 @@ export function FullScreenSessionForm({
                                 variant="outline"
                                 className="w-full"
                                 onClick={() => setShowAttendeeDialog(true)}
-                                disabled={allies.length === 0 || allies.length === form.watch("sessionNote.presentAllies")?.filter(name => name !== "__select__").length}
+                                disabled={allies.length === 0 || allies.length === form.watch("sessionNote.presentAllies")?.length}
                               >
                                 <Plus className="h-4 w-4 mr-2" />
-                                Select Attendee
+                                Add Attendee
                               </Button>
                             </>
                           ) : (
@@ -1388,10 +1384,9 @@ export function FullScreenSessionForm({
 
                       <div className="pt-2 border-t">
                         <p className="text-sm font-medium mb-2">Attendees</p>
-                        {form.watch("sessionNote.presentAllies")?.filter(name => name !== "__select__").length > 0 ? (
+                        {form.watch("sessionNote.presentAllies")?.length > 0 ? (
                           <div className="flex flex-wrap gap-1">
                             {form.watch("sessionNote.presentAllies")
-                              .filter(name => name !== "__select__")
                               .map((name, index) => (
                                 <Badge key={index} variant="secondary">{name}</Badge>
                               ))}
@@ -1678,31 +1673,7 @@ export function FullScreenSessionForm({
         allies={allies}
         selectedAllies={form.watch("sessionNote.presentAllies") || []}
         onSelectAttendee={(ally) => {
-          // Get current allies
-          const currentAllies = form.getValues("sessionNote.presentAllies") || [];
-          
-          // Check if ally is already selected
-          if (currentAllies.includes(ally.name)) {
-            toast({
-              title: "Attendee already added",
-              description: `${ally.name} is already in the attendees list`,
-              variant: "default"
-            });
-            return;
-          }
-          
-          // Add the selected ally
-          form.setValue("sessionNote.presentAllies", [
-            ...currentAllies.filter(name => name !== "__select__"),
-            ally.name
-          ]);
-
-          // Also track ally IDs for data integrity
-          const allyIds = form.getValues("sessionNote.presentAllyIds") || [];
-          form.setValue("sessionNote.presentAllyIds", [
-            ...allyIds,
-            ally.id
-          ]);
+          handleAddAttendee(ally);
 
           // Close dialog after selection
           setShowAttendeeDialog(false);
