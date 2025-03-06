@@ -31,6 +31,7 @@ import { useSafeForm } from "@/hooks/use-safe-hooks";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { StrategySelectionDialog } from "./StrategySelectionDialog";
+import { AttendeeSelectionDialog } from "./AttendeeSelectionDialog";
 
 // UI Components
 import { Button } from "@/components/ui/button";
@@ -1687,95 +1688,4 @@ export function FullScreenSessionForm({
 /**
  * Dialog component for selecting attendees from the client's allies list
  */
-interface AttendeeSelectionDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  allies: Ally[];
-  selectedAllies: string[];
-  onSelectAttendee: (ally: Ally) => void;
-}
-
-function AttendeeSelectionDialog({
-  open,
-  onOpenChange,
-  allies,
-  selectedAllies,
-  onSelectAttendee
-}: AttendeeSelectionDialogProps) {
-  // State for search input
-  const [searchTerm, setSearchTerm] = useState('');
-  
-  // Filter out allies that are already selected and match search term
-  const availableAllies = allies.filter(ally => 
-    !selectedAllies.includes(ally.name) && 
-    (searchTerm === '' || ally.name.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
-  
-  // Handle search input change
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchTerm(e.target.value);
-  };
-  
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
-        <DialogHeader>
-          <DialogTitle>Select Attendee</DialogTitle>
-          <DialogDescription>
-            Choose an attendee from the client's allies list to add to the session.
-          </DialogDescription>
-        </DialogHeader>
-        
-        <div className="py-2">
-          <Input
-            placeholder="Search allies..."
-            value={searchTerm}
-            onChange={handleSearchChange}
-            className="mb-2"
-          />
-        </div>
-        
-        <div className="max-h-[300px] overflow-y-auto">
-          {availableAllies.length > 0 ? (
-            <div className="space-y-2 py-2">
-              {availableAllies.map((ally) => (
-                <div 
-                  key={ally.id}
-                  className="flex items-center justify-between p-3 rounded-md border hover:bg-accent cursor-pointer"
-                  onClick={() => onSelectAttendee(ally)}
-                >
-                  <div className="flex items-center">
-                    <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center mr-3">
-                      <UserIcon className="h-5 w-5 text-primary" />
-                    </div>
-                    <div>
-                      <p className="font-medium">{ally.name}</p>
-                      <p className="text-sm text-muted-foreground">{ally.relationship || "Supporter"}</p>
-                    </div>
-                  </div>
-                  <Button variant="ghost" size="icon" aria-label={`Add ${ally.name}`}>
-                    <Plus className="h-4 w-4" />
-                  </Button>
-                </div>
-              ))}
-            </div>
-          ) : searchTerm ? (
-            <div className="py-8 text-center">
-              <p className="text-muted-foreground">No matching allies found</p>
-            </div>
-          ) : (
-            <div className="py-8 text-center">
-              <p className="text-muted-foreground">All available allies have been added to the session</p>
-            </div>
-          )}
-        </div>
-        
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-}
+// AttendeeSelectionDialog has been moved to its own component file
