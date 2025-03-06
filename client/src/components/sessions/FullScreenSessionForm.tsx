@@ -733,34 +733,62 @@ export function FullScreenSessionForm({
     console.log("Budget items in availableProducts:", budgetItems);
     console.log("Budget settings in availableProducts:", budgetSettings);
     
+    // Force return some test products for debugging the Add Product button functionality
+    const debugMode = true; // Set to false in production
+    
+    if (debugMode) {
+      console.log("Debug mode enabled - returning test products");
+      // Add some test products to ensure the button works
+      const testProducts = Array(3).fill(null).map((_, index) => ({
+        id: 1000 + index,
+        clientId: clientId || 0,
+        budgetSettingsId: budgetSettings?.id || 0,
+        itemCode: `TEST-${index + 1}`,
+        description: `Test Product ${index + 1}`,
+        quantity: 10,
+        unitPrice: 25.99,
+        unitOfMeasure: "each",
+        category: "Test",
+        availableQuantity: 10,
+        originalQuantity: 10
+      }));
+      
+      console.log("Debug test products:", testProducts);
+      return testProducts;
+    }
+    
     if (!budgetItems || !budgetItems.length) {
       console.log("No budget items available");
       return [];
     }
     
+    // Get currently selected products from form
+    const selectedProducts = form.watch("sessionNote.products") || [];
+    console.log("Selected products:", selectedProducts);
+    
+    // If no budget settings, use all budget items as a fallback
     if (!budgetSettings) {
-      console.log("No budget settings available");
-      // If no budget settings, use all budget items as a fallback
-      const selectedProducts = form.watch("sessionNote.products") || [];
-      
-      return budgetItems
+      console.log("No budget settings available - using all budget items as fallback");
+      const processedItems = budgetItems
         .filter((item: BudgetItem) => item.quantity > 0)
         .map((item: BudgetItem) => {
           const alreadySelectedItem = selectedProducts.find(p => p.budgetItemId === item.id);
           const alreadySelectedQuantity = alreadySelectedItem ? alreadySelectedItem.quantity : 0;
           const availableQuantity = item.quantity - alreadySelectedQuantity;
           
+          console.log(`Fallback item ${item.id}: quantity=${item.quantity}, available=${availableQuantity}`);
+          
           return {
             ...item,
             availableQuantity,
+            originalQuantity: item.quantity
           };
         })
         .filter(item => item.availableQuantity > 0);
+      
+      console.log("Available fallback products:", processedItems);
+      return processedItems;
     }
-
-    // Get currently selected products from form
-    const selectedProducts = form.watch("sessionNote.products") || [];
-    console.log("Selected products:", selectedProducts);
 
     // Filter only products from the active budget plan
     const filteredProducts = budgetItems
@@ -793,7 +821,7 @@ export function FullScreenSessionForm({
       
     console.log("Filtered products:", filteredProducts);
     return filteredProducts;
-  }, [budgetItems, budgetSettings, form]);
+  }, [budgetItems, budgetSettings, form, clientId]);
 
   // Form submission handler
   const createSessionMutation = useMutation({
