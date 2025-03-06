@@ -934,8 +934,7 @@ export function FullScreenSessionForm({
                                     <Input 
                                       type="number" 
                                       min={1} 
-                                      {...field} 
-                                      onChange={(e) => field.onChange(parseInt(e.target.value))}
+                                      {...field       onChange={(e) => field.onChange(parseInt(e.target.value))}
                                     />
                                   </FormControl>
                                   <FormMessage />
@@ -1104,21 +1103,26 @@ export function FullScreenSessionForm({
                         </CardContent>
                       </Card>
 
-                      
-                                      <p className="text-xs text-muted-foreground mr-2">
-                                        ${(product.quantity * product.unitPrice).toFixed(2)}
-                                      </p>
-                                      <Button 
-                                        variant="ghost" 
-                                        size="icon" 
-                                        className="h-6 w-6" 
-                                        onClick={() => removeProduct(index)}
-                                      >
-                                        <X className="h-3 w-3" />
-                                      </Button>
-                                    </div>
+
+                      <Card>
+                        <CardHeader className="pb-2">
+                          <CardTitle className="text-lg">Products Used</CardTitle>
+                          <CardDescription>
+                            List of products used during this session
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                          {form.watch("sessionNote.products")?.length > 0 ? (
+                            <div className="space-y-2">
+                              {form.watch("sessionNote.products").map((product, index) => (
+                                <div key={index} className="flex justify-between bg-accent rounded-md p-2">
+                                  <div>
+                                    <p className="font-medium text-sm">{product.productDescription}</p>
+                                    <p className="text-xs text-muted-foreground">Code: {product.productCode}</p>
                                   </div>
-                                </div>
+                                  <div className="text-right">
+                                    <p className="text-sm font-medium">{product.quantity} x ${product.unitPrice.toFixed(2)}</p>
+                                    <div className="flex items-center mt-1">
                               ))}
                             </div>
                           ) : (
@@ -1350,7 +1354,7 @@ export function FullScreenSessionForm({
                         )}
                       </div>
 
-                      
+
 
                       <div className="pt-2 border-t">
                         <p className="text-sm font-medium mb-2">Session Ratings</p>
