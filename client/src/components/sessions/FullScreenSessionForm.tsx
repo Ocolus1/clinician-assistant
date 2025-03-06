@@ -77,14 +77,14 @@ import {
   CommandInput,
   CommandItem,
 } from "@/components/ui/command";
-import { 
-  Dialog, 
-  DialogContent, 
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
-  DialogTrigger 
+  DialogTrigger
 } from "@/components/ui/dialog";
 
 // Session form schema
