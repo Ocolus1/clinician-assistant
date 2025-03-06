@@ -1694,12 +1694,12 @@ function AttendeeSelectionDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
-        <DialogHeader>
-          <DialogTitle>Select Attendee</DialogTitle>
-          <DialogDescription>
+        <CardHeader>
+          <CardTitle>Select Attendee</CardTitle>
+          <CardDescription>
             Choose an attendee from the client's allies list to add to the session.
-          </DialogDescription>
-        </DialogHeader>
+          </CardDescription>
+        </CardHeader>
         
         <div className="max-h-[300px] overflow-y-auto">
           {availableAllies.length > 0 ? (
@@ -1732,11 +1732,11 @@ function AttendeeSelectionDialog({
           )}
         </div>
         
-        <DialogFooter>
+        <CardFooter className="flex justify-end space-x-2">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-        </DialogFooter>
+        </CardFooter>
       </DialogContent>
     </Dialog>
   );
