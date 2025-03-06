@@ -86,7 +86,7 @@ const sessionFormSchema = insertSessionSchema.extend({
   clientId: z.coerce.number({
     required_error: "Client is required",
   }),
-  therapistId: z.coerce.number().optional(),
+  therapistId: z.string().optional(),
   timeFrom: z.string().optional(),
   timeTo: z.string().optional(),
   location: z.string().optional(),
@@ -589,7 +589,7 @@ export function FullScreenSessionForm({
       const sessionResponse = await apiRequest("POST", "/api/sessions", data.session);
       console.log("Session created:", sessionResponse);
 
-      if (!sessionResponse || !sessionResponse.id) {
+      if (!sessionResponse || !('id' in sessionResponse)) {
         throw new Error("Failed to create session");
       }
 
@@ -875,7 +875,7 @@ export function FullScreenSessionForm({
                                 <FormLabel>Client</FormLabel>
                                 <Select 
                                   onValueChange={(value) => field.onChange(parseInt(value))}
-                                  value={field.value?.toString()}
+                                  value={field.value?.toString() || ""}
                                   disabled={!!initialClient}
                                 >
                                   <FormControl>
@@ -905,7 +905,7 @@ export function FullScreenSessionForm({
                                 <FormLabel>Clinician</FormLabel>
                                 <Select 
                                   onValueChange={field.onChange}
-                                  value={field.value}
+                                  value={field.value || ""}
                                 >
                                   <FormControl>
                                     <SelectTrigger>
