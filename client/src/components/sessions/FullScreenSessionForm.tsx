@@ -1102,59 +1102,6 @@ export function FullScreenSessionForm({
                           )}
                         </CardContent>
                       </Card>
-
-
-                      <Card>
-                        <CardHeader className="pb-2">
-                          <CardTitle className="text-lg">Products Used</CardTitle>
-                          <CardDescription>
-                            List of products used during this session
-                          </CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                          {form.watch("sessionNote.products")?.length > 0 ? (
-                            <div className="space-y-2">
-                              {form.watch("sessionNote.products").map((product, index) => (
-                                <div key={index} className="flex justify-between bg-accent rounded-md p-2">
-                                  <div>
-                                    <p className="font-medium text-sm">{product.productDescription}</p>
-                                    <p className="text-xs text-muted-foreground">Code: {product.productCode}</p>
-                                  </div>
-                                  <div className="text-right">
-                                    <p className="text-sm font-medium">{product.quantity} x ${product.unitPrice.toFixed(2)}</p>
-                                    <div className="flex items-center mt-1">
-                                      <p className="text-xs text-muted-foreground mr-2">
-                                        ${(product.quantity * product.unitPrice).toFixed(2)}
-                                      </p>
-                                      <Button 
-                                        variant="ghost" 
-                                        size="icon" 
-                                        className="h-6 w-6" 
-                                        onClick={() => removeProduct(index)}
-                                      >
-                                        <X className="h-3 w-3" />
-                                      </Button>
-                                    </div>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          ) : (
-                            <p className="text-sm text-muted-foreground">No products added yet</p>
-                          )}
-
-                          {/* Add product button */}
-                          <Button
-                            variant="outline"
-                            className="w-full"
-                            onClick={() => setShowProductDialog(true)}
-                            disabled={availableProducts.length === 0}
-                          >
-                            <ShoppingCart className="h-4 w-4 mr-2" />
-                            Add Product
-                          </Button>
-                        </CardContent>
-                      </Card>
                     </div>
                   }
 
