@@ -496,6 +496,21 @@ export function FullScreenSessionForm({
     },
     performanceAssessments: [],
   };
+  
+  // Log the initial client ID and ensure it's set correctly
+  useEffect(() => {
+    if (open && initialClient) {
+      console.log("Form opened with initial client:", initialClient);
+      console.log("Initial client ID:", initialClient.id);
+      
+      // Give form time to initialize, then force the client ID to be set correctly
+      setTimeout(() => {
+        if (form) {
+          form.setValue("session.clientId", initialClient.id);
+        }
+      }, 100);
+    }
+  }, [open, initialClient]);
 
   // Create form
   const form = useSafeForm<IntegratedSessionFormValues>({
@@ -509,9 +524,20 @@ export function FullScreenSessionForm({
   // Store clientId in queryClient for cross-component access
   useEffect(() => {
     if (clientId) {
+      console.log("Client ID changed to:", clientId);
       queryClient.setQueryData(['formState'], { clientId });
     }
   }, [clientId, queryClient]);
+  
+  // Log when the allies query parameters change
+  useEffect(() => {
+    console.log("Allies query enabled status:", open && !!clientId);
+    console.log("Allies query parameters:", { 
+      open, 
+      clientId,
+      queryKey: ["/api/clients", clientId, "allies"]
+    });
+  }, [open, clientId]);
 
   // Fetch clients for client dropdown
   const { data: clients = [] } = useQuery<Client[]>({
@@ -1138,6 +1164,8 @@ export function FullScreenSessionForm({
                           {/* Debug info to see what's happening with allies data */}
                           <div className="text-xs text-muted-foreground mb-2">
                             Allies available: {allies ? allies.length : 0}
+                            {alliesQuery.isLoading && <span> (Loading...)</span>}
+                            {alliesQuery.error && <span> (Error loading allies)</span>}
                           </div>
 
                           {/* Display selected allies */}
@@ -1172,22 +1200,32 @@ export function FullScreenSessionForm({
                             <p className="text-sm text-muted-foreground">No attendees added yet</p>
                           )}
 
-                          {/* Add attendee button - Always show it now for debugging */}
-                          <Button
-                            variant="outline"
-                            className="w-full"
-                            onClick={() => {
-                              console.log("Opening attendee selection dialog");
-                              console.log("Current allies:", allies);
-                              setShowAttendeeDialog(true);
-                            }}
-                          >
-                            <Plus className="h-4 w-4 mr-2" />
-                            Add Attendee ({allies.length})
-                          </Button>
+                          {/* Add attendee button - Always visible, but disabled if no unselected allies */}
+                          <div className="mt-4">
+                            <Button
+                              variant="outline"
+                              className="w-full"
+                              onClick={() => {
+                                console.log("Opening attendee selection dialog");
+                                console.log("Current allies:", allies);
+                                setShowAttendeeDialog(true);
+                              }}
+                              disabled={alliesQuery.isLoading || 
+                                (allies.length > 0 && !allies.some(ally => 
+                                  !form.watch("sessionNote.presentAllies")?.includes(ally.name)
+                                ))}
+                            >
+                              {alliesQuery.isLoading ? (
+                                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                              ) : (
+                                <Plus className="h-4 w-4 mr-2" />
+                              )}
+                              {alliesQuery.isLoading ? "Loading allies..." : `Add Attendee (${allies.length})`}
+                            </Button>
+                          </div>
                           
-                          {/* Only show this message if there are truly no allies */}
-                          {allies.length === 0 && (
+                          {/* Show message based on status */}
+                          {!alliesQuery.isLoading && allies.length === 0 && (
                             <div className="text-center py-2 mt-2 border-t">
                               <p className="text-muted-foreground text-sm">No allies found for this client</p>
                             </div>
