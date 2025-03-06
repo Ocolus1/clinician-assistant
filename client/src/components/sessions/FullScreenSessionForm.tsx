@@ -1371,28 +1371,7 @@ export function FullScreenSessionForm({
                         )}
                       </div>
 
-                      {form.watch("sessionNote.products")?.length > 0 && (
-                        <div className="pt-2 border-t">
-                          <p className="text-sm font-medium mb-2">Products Used</p>
-                          <div className="space-y-1">
-                            {form.watch("sessionNote.products").map((product, index) => (
-                              <div key={index} className="flex justify-between text-sm">
-                                <span>{product.productDescription} ({product.quantity}x)</span>
-                                <span>${(product.quantity * product.unitPrice).toFixed(2)}</span>
-                              </div>
-                            ))}
-                            <div className="flex justify-between font-medium border-t pt-1 mt-2">
-                              <span>Total</span>
-                              <span>
-                                ${form.watch("sessionNote.products").reduce(
-                                  (acc, product) => acc + (product.quantity * product.unitPrice), 
-                                  0
-                                ).toFixed(2)}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      )}
+                      
 
                       <div className="pt-2 border-t">
                         <p className="text-sm font-medium mb-2">Session Ratings</p>
