@@ -448,6 +448,7 @@ export function FullScreenSessionForm({
   const [showMilestoneDialog, setShowMilestoneDialog] = useState(false);
   const [showProductDialog, setShowProductDialog] = useState(false);
   const [showStrategyDialog, setShowStrategyDialog] = useState(false);
+  const [showAttendeeDialog, setShowAttendeeDialog] = useState(false);
   const [currentGoalId, setCurrentGoalId] = useState<number | null>(null);
   const [currentMilestoneId, setCurrentMilestoneId] = useState<number | null>(null);
 
@@ -1105,42 +1106,15 @@ export function FullScreenSessionForm({
                                 <p className="text-sm text-muted-foreground">No attendees added yet</p>
                               )}
 
-                              {/* Add ally button */}
+                              {/* Add attendee button */}
                               <Button
                                 variant="outline"
                                 className="w-full"
-                                onClick={() => {
-                                  // Get current allies
-                                  const currentAllies = form.getValues("sessionNote.presentAllies") || [];
-                                  const availableAllies = allies.filter(ally => 
-                                    !currentAllies.includes(ally.name)
-                                  );
-
-                                  if (availableAllies.length > 0) {
-                                    // Add the first available ally
-                                    form.setValue("sessionNote.presentAllies", [
-                                      ...currentAllies.filter(name => name !== "__select__"),
-                                      availableAllies[0].name
-                                    ]);
-
-                                    // Also track ally IDs for data integrity
-                                    const allyIds = form.getValues("sessionNote.presentAllyIds") || [];
-                                    form.setValue("sessionNote.presentAllyIds", [
-                                      ...allyIds,
-                                      availableAllies[0].id
-                                    ]);
-                                  } else {
-                                    toast({
-                                      title: "No more allies available",
-                                      description: "All available attendees have been added to the session.",
-                                      variant: "default"
-                                    });
-                                  }
-                                }}
-                                disabled={allies.length === form.watch("sessionNote.presentAllies")?.filter(name => name !== "__select__").length}
+                                onClick={() => setShowAttendeeDialog(true)}
+                                disabled={allies.length === 0 || allies.length === form.watch("sessionNote.presentAllies")?.filter(name => name !== "__select__").length}
                               >
                                 <Plus className="h-4 w-4 mr-2" />
-                                Add Attendee
+                                Select Attendee
                               </Button>
                             </>
                           ) : (
