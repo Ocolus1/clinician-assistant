@@ -931,8 +931,7 @@ export function FullScreenSessionForm({
                                 <FormItem>
                                   <FormLabel>Duration (minutes)</FormLabel>
                                   <FormControl>
-                                    <Input 
-                                      type="number" 
+                                    <Input     type="number" 
                                       min={1} 
                                       {...field}
                                        onChange={(e) => field.onChange(parseInt(e.target.value))}
