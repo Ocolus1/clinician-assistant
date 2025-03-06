@@ -800,6 +800,50 @@ export function FullScreenSessionForm({
     updatedProducts.splice(index, 1);
     form.setValue("sessionNote.products", updatedProducts);
   };
+  
+  // Handle adding an attendee to the session
+  const handleAddAttendee = (ally: Ally) => {
+    const currentAttendees = form.getValues("sessionNote.presentAllies") || [];
+    const currentAttendeeIds = form.getValues("sessionNote.presentAllyIds") || [];
+    
+    // Check if ally is already in the list to prevent duplicates
+    if (!currentAttendees.includes(ally.name)) {
+      // Add both name for display and ID for data integrity
+      form.setValue("sessionNote.presentAllies", [...currentAttendees, ally.name]);
+      form.setValue("sessionNote.presentAllyIds", [...currentAttendeeIds, ally.id]);
+      
+      // Show success toast
+      toast({
+        title: "Attendee added",
+        description: `${ally.name} has been added to the session.`,
+      });
+    } else {
+      // Show error toast for duplicate
+      toast({
+        title: "Already added",
+        description: `${ally.name} is already in the attendee list.`,
+        variant: "destructive"
+      });
+    }
+  };
+  
+  // Handle removing an attendee from the session
+  const removeAttendee = (index: number) => {
+    const currentAttendees = form.getValues("sessionNote.presentAllies") || [];
+    const currentAttendeeIds = form.getValues("sessionNote.presentAllyIds") || [];
+    
+    // Create copies to modify
+    const updatedAttendees = [...currentAttendees];
+    const updatedAttendeeIds = [...currentAttendeeIds];
+    
+    // Remove the items at the specified index
+    updatedAttendees.splice(index, 1);
+    updatedAttendeeIds.splice(index, 1);
+    
+    // Update the form values
+    form.setValue("sessionNote.presentAllies", updatedAttendees);
+    form.setValue("sessionNote.presentAllyIds", updatedAttendeeIds);
+  };
 
   const removeGoal = (goalId: number) => {
     const assessments = form.getValues("performanceAssessments") || [];
