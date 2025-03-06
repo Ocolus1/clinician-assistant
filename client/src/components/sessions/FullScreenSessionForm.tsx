@@ -928,7 +928,7 @@ export function FullScreenSessionForm({
                               name="session.duration"
                               render={({ field }) => (
                                 <FormItem>
-                                  <FormLabel>Duration (minutes)</Form<FormLabel>Duration (minutes)</FormLabel>
+                                  <FormLabel>Duration (minutes)</FormLabel>
                                   <FormControl>
                                     <Input 
                                       type="number" 
