@@ -779,10 +779,14 @@ export function FullScreenSessionForm({
 
         // Calculate available quantity (original quantity minus what's already selected)
         const availableQuantity = item.quantity - alreadySelectedQuantity;
-
+        
+        // For debugging
+        console.log(`Item ${item.id} (${item.description}): Original quantity=${item.quantity}, Already selected=${alreadySelectedQuantity}, Available=${availableQuantity}`);
+        
         return {
           ...item,
           availableQuantity,
+          originalQuantity: item.quantity // Store the original quantity for reference
         };
       })
       .filter(item => item.availableQuantity > 0);  // Only show items with available quantity
@@ -945,19 +949,49 @@ export function FullScreenSessionForm({
     form.setValue("performanceAssessments", updatedAssessments);
   };
 
-  const handleAddProduct = (product: BudgetItem & { availableQuantity: number }, quantity: number) => {
+  const handleAddProduct = (product: BudgetItem & { availableQuantity: number; originalQuantity?: number }, quantity: number) => {
+    console.log("Adding product:", product);
+    console.log("Requested quantity:", quantity);
+    
     // Ensure valid quantity
-    if (!quantity || quantity <= 0 || quantity > product.availableQuantity) {
+    if (!quantity || quantity <= 0) {
       toast({
         title: "Invalid quantity",
-        description: `Please enter a quantity between 1 and ${product.availableQuantity}`,
+        description: "Please enter a positive quantity",
         variant: "destructive"
       });
       return;
     }
-
-    // Add the product to the form
+    
+    // Double-check the available quantity (may have changed if other products were added)
     const currentProducts = form.getValues("sessionNote.products") || [];
+    let availableQty = product.availableQuantity;
+    
+    // If we're adding a product that already exists in other selected products, recalculate available quantity
+    const otherProductsWithSameId = currentProducts.filter(p => p.budgetItemId === product.id);
+    if (otherProductsWithSameId.length > 0) {
+      // If we have access to originalQuantity (added in our enhanced availableProducts calculation)
+      if (product.originalQuantity) {
+        // Start with the original total quantity
+        availableQty = product.originalQuantity;
+        
+        // Subtract quantities already used in other selected products
+        const usedQuantity = otherProductsWithSameId.reduce((sum, p) => sum + p.quantity, 0);
+        availableQty -= usedQuantity;
+      }
+    }
+    
+    console.log("Recalculated available quantity:", availableQty);
+    
+    // Check if requested quantity is too large
+    if (quantity > availableQty) {
+      toast({
+        title: "Invalid quantity",
+        description: `Only ${availableQty} units available. Please enter a smaller quantity.`,
+        variant: "destructive"
+      });
+      return;
+    }
 
     // Check if this product is already added
     const existingProductIndex = currentProducts.findIndex(p => p.budgetItemId === product.id);
@@ -978,7 +1012,8 @@ export function FullScreenSessionForm({
         productDescription: product.description || "Unknown product",
         quantity: quantity,
         unitPrice: product.unitPrice || 0,
-        availableQuantity: product.availableQuantity
+        availableQuantity: availableQty, // Store the current available quantity for reference
+        originalQuantity: product.originalQuantity || product.quantity // Keep track of original quantity
       };
 
       form.setValue("sessionNote.products", [...currentProducts, newProduct]);
@@ -988,15 +1023,35 @@ export function FullScreenSessionForm({
         title: "Product added",
         description: `${newProduct.productDescription} added to the session`,
       });
+      
+      // Log the updated product list for debugging
+      console.log("Updated product list:", [...currentProducts, newProduct]);
     }
   };
 
   // Handle removing items from form
   const removeProduct = (index: number) => {
     const products = form.getValues("sessionNote.products") || [];
+    
+    // Get the product being removed for logging
+    const productToRemove = products[index];
+    console.log("Removing product:", productToRemove);
+    
+    // Remove the product
     const updatedProducts = [...products];
     updatedProducts.splice(index, 1);
+    
+    // Update the form
     form.setValue("sessionNote.products", updatedProducts);
+    
+    // Show success toast
+    toast({
+      title: "Product removed",
+      description: productToRemove ? `${productToRemove.productDescription} removed from the session` : "Product removed from the session",
+    });
+    
+    // Log the updated products
+    console.log("Updated products after removal:", updatedProducts);
   };
   
   // Handle adding an attendee to the session
