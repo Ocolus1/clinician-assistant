@@ -19,7 +19,8 @@ import {
   ClipboardList,
   UserCheck,
   Package,
-  BarChart
+  BarChart,
+  ShoppingBag
 } from "lucide-react";
 import "./session-form.css";
 import { ThreeColumnLayout } from "./ThreeColumnLayout";
@@ -1164,63 +1165,53 @@ export function FullScreenSessionForm({
                     <div className="p-4 space-y-6">
                       <Card>
                         <CardHeader className="pb-2">
-                          <CardTitle className="text-lg">Session Rating</CardTitle>
+                          <CardTitle className="text-lg">Products Used</CardTitle>
                           <CardDescription>
-                            Rate the client's performance during this session
+                            List of products used during this session
                           </CardDescription>
                         </CardHeader>
-                        <CardContent className="space-y-6">
-                          <FormField
-                            control={form.control}
-                            name="sessionNote.moodRating"
-                            render={({ field }) => (
-                              <RatingSlider
-                                label="Mood & Engagement"
-                                value={field.value}
-                                onChange={field.onChange}
-                                description="How positive and engaged was the client during the session?"
-                              />
-                            )}
-                          />
+                        <CardContent className="space-y-4">
+                          {form.watch("sessionNote.products")?.length > 0 ? (
+                            <div className="space-y-2">
+                              {form.watch("sessionNote.products").map((product, index) => (
+                                <div key={index} className="flex justify-between bg-accent rounded-md p-2">
+                                  <div>
+                                    <p className="font-medium text-sm">{product.productDescription}</p>
+                                    <p className="text-xs text-muted-foreground">Code: {product.productCode}</p>
+                                  </div>
+                                  <div className="text-right">
+                                    <p className="text-sm font-medium">{product.quantity} x ${product.unitPrice.toFixed(2)}</p>
+                                    <div className="flex items-center mt-1">
+                                      <p className="text-xs text-muted-foreground mr-2">
+                                        ${(product.quantity * product.unitPrice).toFixed(2)}
+                                      </p>
+                                      <Button 
+                                        variant="ghost" 
+                                        size="icon" 
+                                        className="h-6 w-6" 
+                                        onClick={() => removeProduct(index)}
+                                      >
+                                        <X className="h-3 w-3" />
+                                      </Button>
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-sm text-muted-foreground">No products added yet</p>
+                          )}
 
-                          <FormField
-                            control={form.control}
-                            name="sessionNote.focusRating"
-                            render={({ field }) => (
-                              <RatingSlider
-                                label="Focus & Attention"
-                                value={field.value}
-                                onChange={field.onChange}
-                                description="How well did the client maintain focus during activities?"
-                              />
-                            )}
-                          />
-
-                          <FormField
-                            control={form.control}
-                            name="sessionNote.cooperationRating"
-                            render={({ field }) => (
-                              <RatingSlider
-                                label="Cooperation"
-                                value={field.value}
-                                onChange={field.onChange}
-                                description="How well did the client follow instructions and cooperate?"
-                              />
-                            )}
-                          />
-
-                          <FormField
-                            control={form.control}
-                            name="sessionNote.physicalActivityRating"
-                            render={({ field }) => (
-                              <RatingSlider
-                                label="Physical Activity"
-                                value={field.value}
-                                onChange={field.onChange}
-                                description="How well did the client perform physical activities?"
-                              />
-                            )}
-                          />
+                          {/* Add product button */}
+                          <Button
+                            variant="outline"
+                            className="w-full"
+                            onClick={() => setShowProductDialog(true)}
+                            disabled={availableProducts.length === 0}
+                          >
+                            <ShoppingCart className="h-4 w-4 mr-2" />
+                            Add Product
+                          </Button>
                         </CardContent>
                       </Card>
 
