@@ -87,6 +87,8 @@ const sessionFormSchema = insertSessionSchema.extend({
     required_error: "Client is required",
   }),
   therapistId: z.coerce.number().optional(),
+  timeFrom: z.string().optional(),
+  timeTo: z.string().optional(),
   location: z.string().optional(),
   sessionId: z.string().optional(), // Added session ID field for display
 });
@@ -460,12 +462,14 @@ export function FullScreenSessionForm({
   const defaultValues: Partial<IntegratedSessionFormValues> = {
     session: {
       sessionDate: new Date(),
-      location: "Clinic - Room 101",
+      location: "Clinic",
       clientId: initialClient?.id || 0,
-      title: "Therapy Session",  // Required field in schema
-      duration: 60,              // Required field in schema
+      therapistId: undefined,    // Clinician field (newly added)
+      timeFrom: "09:00",         // Time From field (newly added)
+      timeTo: "10:00",           // Time To field (newly added)
+      title: "Therapy Session",  // Required field in schema but will be hidden
+      duration: 60,              // Required field in schema but will be hidden
       status: "scheduled",       // Required field in schema
-      description: "",           // Optional but initialize empty
       sessionId: sessionId,      // Add the generated session ID
     },
     sessionNote: {
@@ -598,7 +602,7 @@ export function FullScreenSessionForm({
       const noteResponse = await apiRequest("POST", "/api/session-notes", sessionNoteData);
       console.log("Session note created:", noteResponse);
 
-      if (!noteResponse || !noteResponse.id) {
+      if (!noteResponse || !('id' in noteResponse)) {
         throw new Error("Failed to create session note");
       }
 
@@ -635,6 +639,29 @@ export function FullScreenSessionForm({
   });
 
   function onSubmit(data: IntegratedSessionFormValues) {
+    // Calculate session duration from timeFrom and timeTo if available
+    if (data.session.timeFrom && data.session.timeTo) {
+      const [fromHours, fromMinutes] = data.session.timeFrom.split(':').map(Number);
+      const [toHours, toMinutes] = data.session.timeTo.split(':').map(Number);
+      
+      const fromTimeInMinutes = fromHours * 60 + fromMinutes;
+      const toTimeInMinutes = toHours * 60 + toMinutes;
+      
+      // Calculate duration (handling cases where the session goes past midnight)
+      let durationInMinutes = toTimeInMinutes - fromTimeInMinutes;
+      if (durationInMinutes < 0) {
+        durationInMinutes += 24 * 60; // Add 24 hours in minutes
+      }
+      
+      // Update the duration field (which is required by the backend)
+      data.session.duration = durationInMinutes;
+    }
+    
+    // Set a default title if needed
+    if (!data.session.title || data.session.title.trim() === '') {
+      data.session.title = 'Therapy Session';
+    }
+    
     createSessionMutation.mutate(data);
   }
 
@@ -1294,6 +1321,15 @@ export function FullScreenSessionForm({
                           </p>
                         </div>
                         <div className="flex justify-between">
+                          <p className="text-sm text-muted-foreground">Clinician</p>
+                          <p className="text-sm font-medium">
+                            {form.watch("session.therapistId") === "1" ? "Dr. Sarah Johnson" :
+                             form.watch("session.therapistId") === "2" ? "Dr. Michael Chen" :
+                             form.watch("session.therapistId") === "3" ? "Dr. Emily Rodriguez" :
+                             "Not selected"}
+                          </p>
+                        </div>
+                        <div className="flex justify-between">
                           <p className="text-sm text-muted-foreground">Date</p>
                           <p className="text-sm font-medium">
                             {form.watch("session.sessionDate") ? 
@@ -1302,9 +1338,11 @@ export function FullScreenSessionForm({
                           </p>
                         </div>
                         <div className="flex justify-between">
-                          <p className="text-sm text-muted-foreground">Duration</p>
+                          <p className="text-sm text-muted-foreground">Time</p>
                           <p className="text-sm font-medium">
-                            {form.watch("session.duration") || 0} minutes
+                            {form.watch("session.timeFrom") && form.watch("session.timeTo") ? 
+                              `${form.watch("session.timeFrom")} - ${form.watch("session.timeTo")}` : 
+                              "Not set"}
                           </p>
                         </div>
                         <div className="flex justify-between">

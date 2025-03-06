@@ -12,7 +12,9 @@ export const sessionFormSchema = insertSessionSchema.extend({
   clientId: z.coerce.number({
     required_error: "Client is required",
   }),
-  therapistId: z.coerce.number().optional(),
+  therapistId: z.string().optional(),
+  timeFrom: z.string().optional(),
+  timeTo: z.string().optional(),
   location: z.string().optional(),
   sessionId: z.string().optional(), // Added session ID field for display
 });
