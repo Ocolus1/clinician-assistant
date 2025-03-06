@@ -228,7 +228,7 @@ const GoalSelectionDialog = ({
               </Card>
             ))
           )}
-          
+
           {goals.length > 0 && selectedGoalIds.length === goals.length && (
             <div className="text-center p-4">
               <p className="text-muted-foreground">All goals have been selected for assessment</p>
@@ -287,7 +287,7 @@ const MilestoneSelectionDialog = ({
               </Card>
             ))
           )}
-          
+
           {subgoals.length > 0 && selectedMilestoneIds.length === subgoals.length && (
             <div className="text-center p-4">
               <p className="text-muted-foreground">All milestones have been selected for assessment</p>
@@ -366,7 +366,7 @@ const ProductSelectionDialog = ({
                   ))}
                 </div>
               </ScrollArea>
-              
+
               {selectedProduct && (
                 <div className="space-y-4 border-t pt-4">
                   <h4 className="font-medium">Quantity</h4>
@@ -400,12 +400,12 @@ const ProductSelectionDialog = ({
                     >
                       <Plus className="h-4 w-4" />
                     </Button>
-                    
+
                     <div className="ml-4">
                       <p className="font-medium">Total: ${(selectedProduct.unitPrice * quantity).toFixed(2)}</p>
                     </div>
                   </div>
-                  
+
                   <Button 
                     className="w-full mt-2"
                     onClick={() => {
@@ -439,7 +439,7 @@ export function FullScreenSessionForm({
 }: FullScreenSessionFormProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  
+
   // Dialog states
   const [showGoalDialog, setShowGoalDialog] = useState(false);
   const [showMilestoneDialog, setShowMilestoneDialog] = useState(false);
@@ -447,7 +447,7 @@ export function FullScreenSessionForm({
   const [showStrategyDialog, setShowStrategyDialog] = useState(false);
   const [currentGoalId, setCurrentGoalId] = useState<number | null>(null);
   const [currentMilestoneId, setCurrentMilestoneId] = useState<number | null>(null);
-  
+
   // Generate a unique session ID for tracking
   const sessionId = useMemo(() => {
     const now = new Date();
@@ -480,55 +480,55 @@ export function FullScreenSessionForm({
     },
     performanceAssessments: [],
   };
-  
+
   // Create form
   const form = useSafeForm<IntegratedSessionFormValues>({
     resolver: zodResolver(integratedSessionFormSchema),
     defaultValues,
   });
-  
+
   // Watch clientId to update related data
   const clientId = form.watch("session.clientId");
-  
+
   // Store clientId in queryClient for cross-component access
   useEffect(() => {
     if (clientId) {
       queryClient.setQueryData(['formState'], { clientId });
     }
   }, [clientId, queryClient]);
-  
+
   // Fetch clients for client dropdown
   const { data: clients = [] } = useQuery<Client[]>({
     queryKey: ["/api/clients"],
     enabled: open,
   });
-  
+
   // Fetch allies for therapist dropdown and participant selection
   const { data: allies = [] } = useQuery<Ally[]>({
     queryKey: ["/api/clients", clientId, "allies"],
     enabled: open && !!clientId,
   });
-  
+
   // Fetch goals for assessment
   const { data: goals = [] } = useQuery<Goal[]>({
     queryKey: ["/api/clients", clientId, "goals"],
     enabled: open && !!clientId,
   });
-  
+
   // Get selected goal IDs from form state
   const selectedPerformanceAssessments = form.watch("performanceAssessments") || [];
   const selectedGoalIds = selectedPerformanceAssessments.map(assessment => assessment.goalId);
-  
+
   // Fetch subgoals for the currently selected goal
   const { data: subgoals = [] } = useQuery<Subgoal[]>({
     queryKey: ["/api/goals", currentGoalId, "subgoals"],
     enabled: open && !!currentGoalId,
   });
-  
+
   // Get selected milestone IDs for the currently active goal
   const currentGoalAssessment = selectedPerformanceAssessments.find(a => a.goalId === currentGoalId);
   const selectedMilestoneIds = currentGoalAssessment?.milestones.map(m => m.milestoneId) || [];
-  
+
   // Budget items for product selection
   const { data: budgetSettings } = useQuery({
     queryKey: ["/api/clients", clientId, "budget-settings"],
@@ -539,20 +539,20 @@ export function FullScreenSessionForm({
     queryKey: ["/api/clients", clientId, "budget-items"],
     enabled: open && !!clientId,
   });
-  
+
   // Fetch available strategies for milestone assessment
   const { data: strategies = [] } = useQuery<Strategy[]>({
     queryKey: ["/api/strategies"],
     enabled: open && showStrategyDialog,
   });
-  
+
   // Prepare products for selection dialog
   const availableProducts = useMemo(() => {
     if (!budgetItems || !budgetItems.length) return [];
-    
+
     // Get currently selected products from form
     const selectedProducts = form.watch("sessionNote.products") || [];
-    
+
     // Calculate available quantities
     return budgetItems
       .filter((item: BudgetItem) => {
@@ -563,10 +563,10 @@ export function FullScreenSessionForm({
         // Find if this item is already selected in the form
         const alreadySelectedItem = selectedProducts.find(p => p.budgetItemId === item.id);
         const alreadySelectedQuantity = alreadySelectedItem ? alreadySelectedItem.quantity : 0;
-        
+
         // Calculate available quantity (original quantity minus what's already selected)
         const availableQuantity = item.quantity - alreadySelectedQuantity;
-        
+
         return {
           ...item,
           availableQuantity,
@@ -574,33 +574,33 @@ export function FullScreenSessionForm({
       })
       .filter(item => item.availableQuantity > 0);  // Only show items with available quantity
   }, [budgetItems, form]);
-  
+
   // Form submission handler
   const createSessionMutation = useMutation({
     mutationFn: async (data: IntegratedSessionFormValues) => {
       console.log("Form submit data:", data);
-      
+
       // First create the session
       const sessionResponse = await apiRequest("POST", "/api/sessions", data.session);
       console.log("Session created:", sessionResponse);
-      
+
       if (!sessionResponse || !sessionResponse.id) {
         throw new Error("Failed to create session");
       }
-      
+
       // Create session notes with the session ID
       const sessionNoteData = {
         ...data.sessionNote,
         sessionId: sessionResponse.id,
       };
-      
+
       const noteResponse = await apiRequest("POST", "/api/session-notes", sessionNoteData);
       console.log("Session note created:", noteResponse);
-      
+
       if (!noteResponse || !noteResponse.id) {
         throw new Error("Failed to create session note");
       }
-      
+
       // Create performance assessments linked to the session note
       if (data.performanceAssessments && data.performanceAssessments.length > 0) {
         for (const assessment of data.performanceAssessments) {
@@ -608,11 +608,11 @@ export function FullScreenSessionForm({
             ...assessment,
             sessionNoteId: noteResponse.id,
           };
-          
+
           await apiRequest("POST", "/api/performance-assessments", assessmentData);
         }
       }
-      
+
       return sessionResponse;
     },
     onSuccess: () => {
@@ -632,15 +632,15 @@ export function FullScreenSessionForm({
       console.error("Error creating session:", error);
     },
   });
-  
+
   function onSubmit(data: IntegratedSessionFormValues) {
     createSessionMutation.mutate(data);
   }
-  
+
   // Handlers for adding goals, milestones, products, etc.
   const handleGoalSelection = (goal: Goal) => {
     const currentAssessments = form.getValues("performanceAssessments") || [];
-    
+
     // Add the selected goal to assessments if not already added
     if (!currentAssessments.some(a => a.goalId === goal.id)) {
       const newAssessment = {
@@ -649,17 +649,17 @@ export function FullScreenSessionForm({
         notes: "",
         milestones: []
       };
-      
+
       form.setValue("performanceAssessments", [...currentAssessments, newAssessment]);
     }
   };
-  
+
   const handleMilestoneSelection = (subgoal: Subgoal) => {
     const assessments = form.getValues("performanceAssessments") || [];
     const goalIndex = assessments.findIndex(a => a.goalId === currentGoalId);
-    
+
     if (goalIndex === -1) return;
-    
+
     // Check if milestone already exists
     if (!assessments[goalIndex].milestones.some(m => m.milestoneId === subgoal.id)) {
       const updatedAssessments = [...assessments];
@@ -670,27 +670,27 @@ export function FullScreenSessionForm({
         strategies: [],
         notes: ""
       });
-      
+
       form.setValue("performanceAssessments", updatedAssessments);
     }
   };
-  
+
   const handleStrategySelection = (strategy: Strategy) => {
     const assessments = form.getValues("performanceAssessments") || [];
     const currentGoalIndex = assessments.findIndex(a => a.goalId === currentGoalId);
-    
+
     if (currentGoalIndex === -1) return;
-    
+
     const currentMilestoneIndex = assessments[currentGoalIndex].milestones.findIndex(
       m => m.milestoneId === currentMilestoneId
     );
-    
+
     if (currentMilestoneIndex === -1) return;
-    
+
     const updatedAssessments = [...assessments];
     const currentStrategies = updatedAssessments[currentGoalIndex].milestones[currentMilestoneIndex].strategies;
     const strategyName = strategy.name;
-    
+
     // Check if strategy already exists
     if (currentStrategies.includes(strategyName)) {
       // Remove the strategy
@@ -702,10 +702,10 @@ export function FullScreenSessionForm({
         updatedAssessments[currentGoalIndex].milestones[currentMilestoneIndex].strategies = [...currentStrategies, strategyName];
       }
     }
-    
+
     form.setValue("performanceAssessments", updatedAssessments);
   };
-  
+
   const handleAddProduct = (product: BudgetItem & { availableQuantity: number }, quantity: number) => {
     // Ensure valid quantity
     if (!quantity || quantity <= 0 || quantity > product.availableQuantity) {
@@ -716,18 +716,18 @@ export function FullScreenSessionForm({
       });
       return;
     }
-    
+
     // Add the product to the form
     const currentProducts = form.getValues("sessionNote.products") || [];
-    
+
     // Check if this product is already added
     const existingProductIndex = currentProducts.findIndex(p => p.budgetItemId === product.id);
-    
+
     if (existingProductIndex !== -1) {
       // Update quantity of existing product
       const updatedProducts = [...currentProducts];
       const newQuantity = updatedProducts[existingProductIndex].quantity + quantity;
-      
+
       // Validate against available quantity
       if (newQuantity > product.quantity) {
         toast({
@@ -737,7 +737,7 @@ export function FullScreenSessionForm({
         });
         return;
       }
-      
+
       updatedProducts[existingProductIndex].quantity = newQuantity;
       form.setValue("sessionNote.products", updatedProducts);
     } else {
@@ -750,11 +750,11 @@ export function FullScreenSessionForm({
         unitPrice: product.unitPrice || 0,
         availableQuantity: product.availableQuantity
       };
-      
+
       form.setValue("sessionNote.products", [...currentProducts, newProduct]);
     }
   };
-  
+
   // Handle removing items from form
   const removeProduct = (index: number) => {
     const products = form.getValues("sessionNote.products") || [];
@@ -762,13 +762,13 @@ export function FullScreenSessionForm({
     updatedProducts.splice(index, 1);
     form.setValue("sessionNote.products", updatedProducts);
   };
-  
+
   const removeGoal = (goalId: number) => {
     const assessments = form.getValues("performanceAssessments") || [];
     const updatedAssessments = assessments.filter(a => a.goalId !== goalId);
     form.setValue("performanceAssessments", updatedAssessments);
   };
-  
+
   const removeMilestone = (goalId: number, milestoneId: number) => {
     const assessments = form.getValues("performanceAssessments") || [];
     const updatedAssessments = assessments.map(assessment => {
@@ -782,9 +782,9 @@ export function FullScreenSessionForm({
     });
     form.setValue("performanceAssessments", updatedAssessments);
   };
-  
+
   if (!open) return null;
-  
+
   return (
     <div className="fullscreen-form">
       <div className="bg-background h-full w-full overflow-hidden flex flex-col">
@@ -815,18 +815,19 @@ export function FullScreenSessionForm({
             </Button>
           </div>
         </div>
-        
+
         {/* Main Content */}
         <Form {...form}>
           <form className="flex-1 overflow-hidden" onSubmit={form.handleSubmit(onSubmit)}>
             <Tabs defaultValue="session" className="h-full">
               <div className="border-b px-4 bg-muted/20">
-                <TabsList className="mx-auto">
+                <TabsList className="grid grid-cols-3 mb-4">
                   <TabsTrigger value="session">Session Details</TabsTrigger>
                   <TabsTrigger value="assessment">Performance Assessment</TabsTrigger>
+                  <TabsTrigger value="summary">Summary</TabsTrigger>
                 </TabsList>
               </div>
-              
+
               {/* Session Details Tab */}
               <TabsContent value="session" className="h-[calc(100%-48px)] overflow-y-auto p-4">
                 <ThreeColumnLayout
@@ -851,7 +852,7 @@ export function FullScreenSessionForm({
                               </FormItem>
                             )}
                           />
-                          
+
                           {/* Client Selection */}
                           <FormField
                             control={form.control}
@@ -881,7 +882,7 @@ export function FullScreenSessionForm({
                               </FormItem>
                             )}
                           />
-                          
+
                           {/* Session Date */}
                           <FormField
                             control={form.control}
@@ -918,7 +919,7 @@ export function FullScreenSessionForm({
                               </FormItem>
                             )}
                           />
-                          
+
                           {/* Session Time */}
                           <div className="grid grid-cols-2 gap-4">
                             {/* Duration */}
@@ -927,7 +928,7 @@ export function FullScreenSessionForm({
                               name="session.duration"
                               render={({ field }) => (
                                 <FormItem>
-                                  <FormLabel>Duration (minutes)</FormLabel>
+                                  <FormLabel>Duration (minutes)</Form<FormLabel>Duration (minutes)</FormLabel>
                                   <FormControl>
                                     <Input 
                                       type="number" 
@@ -940,7 +941,7 @@ export function FullScreenSessionForm({
                                 </FormItem>
                               )}
                             />
-                            
+
                             {/* Status */}
                             <FormField
                               control={form.control}
@@ -969,7 +970,7 @@ export function FullScreenSessionForm({
                               )}
                             />
                           </div>
-                          
+
                           {/* Location */}
                           <FormField
                             control={form.control}
@@ -984,7 +985,7 @@ export function FullScreenSessionForm({
                               </FormItem>
                             )}
                           />
-                          
+
                           {/* Description */}
                           <FormField
                             control={form.control}
@@ -1006,7 +1007,7 @@ export function FullScreenSessionForm({
                           />
                         </CardContent>
                       </Card>
-                      
+
                       <Card>
                         <CardHeader className="pb-2">
                           <div className="flex justify-between items-center">
@@ -1024,7 +1025,7 @@ export function FullScreenSessionForm({
                                 <div className="space-y-2">
                                   {form.watch("sessionNote.presentAllies").map((name, index) => {
                                     if (name === "__select__") return null; // Skip special marker
-                                    
+
                                     const ally = allies.find(a => a.name === name);
                                     return (
                                       <div key={index} className="flex items-center justify-between bg-accent rounded-md p-2">
@@ -1055,7 +1056,7 @@ export function FullScreenSessionForm({
                               ) : (
                                 <p className="text-sm text-muted-foreground">No attendees added yet</p>
                               )}
-                              
+
                               {/* Add ally button */}
                               <Button
                                 variant="outline"
@@ -1066,14 +1067,14 @@ export function FullScreenSessionForm({
                                   const availableAllies = allies.filter(ally => 
                                     !currentAllies.includes(ally.name)
                                   );
-                                  
+
                                   if (availableAllies.length > 0) {
                                     // Add the first available ally
                                     form.setValue("sessionNote.presentAllies", [
                                       ...currentAllies.filter(name => name !== "__select__"),
                                       availableAllies[0].name
                                     ]);
-                                    
+
                                     // Also track ally IDs for data integrity
                                     const allyIds = form.getValues("sessionNote.presentAllyIds") || [];
                                     form.setValue("sessionNote.presentAllyIds", [
@@ -1101,7 +1102,7 @@ export function FullScreenSessionForm({
                           )}
                         </CardContent>
                       </Card>
-                      
+
                       <Card>
                         <CardHeader className="pb-2">
                           <div className="flex justify-between items-center">
@@ -1143,7 +1144,7 @@ export function FullScreenSessionForm({
                           ) : (
                             <p className="text-sm text-muted-foreground">No products added yet</p>
                           )}
-                          
+
                           {/* Add product button */}
                           <Button
                             variant="outline"
@@ -1158,7 +1159,7 @@ export function FullScreenSessionForm({
                       </Card>
                     </div>
                   }
-                  
+
                   middleColumn={
                     <div className="p-4 space-y-6">
                       <Card>
@@ -1181,7 +1182,7 @@ export function FullScreenSessionForm({
                               />
                             )}
                           />
-                          
+
                           <FormField
                             control={form.control}
                             name="sessionNote.focusRating"
@@ -1194,7 +1195,7 @@ export function FullScreenSessionForm({
                               />
                             )}
                           />
-                          
+
                           <FormField
                             control={form.control}
                             name="sessionNote.cooperationRating"
@@ -1207,7 +1208,7 @@ export function FullScreenSessionForm({
                               />
                             )}
                           />
-                          
+
                           <FormField
                             control={form.control}
                             name="sessionNote.physicalActivityRating"
@@ -1222,7 +1223,7 @@ export function FullScreenSessionForm({
                           />
                         </CardContent>
                       </Card>
-                      
+
                       <Card>
                         <CardHeader className="pb-2">
                           <CardTitle className="text-lg">Session Notes</CardTitle>
@@ -1252,549 +1253,327 @@ export function FullScreenSessionForm({
                       </Card>
                     </div>
                   }
-                  
+
                   rightColumn={
                     <div className="p-4 space-y-6">
-                      <Card>
-                        <CardHeader className="pb-2">
-                          <CardTitle className="text-lg">Session Summary</CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                          <div className="space-y-2">
-                            <div className="flex justify-between">
-                              <p className="text-sm text-muted-foreground">Client</p>
-                              <p className="text-sm font-medium">
-                                {clients.find(c => c.id === form.watch("session.clientId"))?.name || "Not selected"}
-                              </p>
-                            </div>
-                            <div className="flex justify-between">
-                              <p className="text-sm text-muted-foreground">Date</p>
-                              <p className="text-sm font-medium">
-                                {form.watch("session.sessionDate") ? 
-                                  format(form.watch("session.sessionDate"), "PPP") : 
-                                  "Not set"}
-                              </p>
-                            </div>
-                            <div className="flex justify-between">
-                              <p className="text-sm text-muted-foreground">Duration</p>
-                              <p className="text-sm font-medium">
-                                {form.watch("session.duration") || 0} minutes
-                              </p>
-                            </div>
-                            <div className="flex justify-between">
-                              <p className="text-sm text-muted-foreground">Location</p>
-                              <p className="text-sm font-medium">
-                                {form.watch("session.location") || "Not set"}
-                              </p>
-                            </div>
-                            <div className="flex justify-between">
-                              <p className="text-sm text-muted-foreground">Status</p>
-                              <p className="text-sm font-medium">
-                                {form.watch("session.status") || "Not set"}
-                              </p>
-                            </div>
-                          </div>
-                          
-                          <div className="pt-2 border-t">
-                            <p className="text-sm font-medium mb-2">Attendees</p>
-                            {form.watch("sessionNote.presentAllies")?.filter(name => name !== "__select__").length > 0 ? (
-                              <div className="flex flex-wrap gap-1">
-                                {form.watch("sessionNote.presentAllies")
-                                  .filter(name => name !== "__select__")
-                                  .map((name, index) => (
-                                    <Badge key={index} variant="secondary">{name}</Badge>
-                                  ))}
-                              </div>
-                            ) : (
-                              <p className="text-sm text-muted-foreground">No attendees added</p>
-                            )}
-                          </div>
-                          
-                          {form.watch("sessionNote.products")?.length > 0 && (
-                            <div className="pt-2 border-t">
-                              <p className="text-sm font-medium mb-2">Products Used</p>
-                              <div className="space-y-1">
-                                {form.watch("sessionNote.products").map((product, index) => (
-                                  <div key={index} className="flex justify-between text-sm">
-                                    <span>{product.productDescription} ({product.quantity}x)</span>
-                                    <span>${(product.quantity * product.unitPrice).toFixed(2)}</span>
-                                  </div>
-                                ))}
-                                <div className="flex justify-between font-medium border-t pt-1 mt-2">
-                                  <span>Total</span>
-                                  <span>
-                                    ${form.watch("sessionNote.products").reduce(
-                                      (acc, product) => acc + (product.quantity * product.unitPrice), 
-                                      0
-                                    ).toFixed(2)}
-                                  </span>
-                                </div>
-                              </div>
-                            </div>
-                          )}
-                          
-                          <div className="pt-2 border-t">
-                            <p className="text-sm font-medium mb-2">Session Ratings</p>
-                            <div className="space-y-2">
-                              <div className="flex items-center justify-between">
-                                <span className="text-sm">Mood & Engagement</span>
-                                <Badge className={
-                                  form.watch("sessionNote.moodRating") <= 3 ? "bg-red-100 text-red-800" :
-                                  form.watch("sessionNote.moodRating") <= 6 ? "bg-amber-100 text-amber-800" :
-                                  "bg-green-100 text-green-800"
-                                }>
-                                  {form.watch("sessionNote.moodRating")}
-                                </Badge>
-                              </div>
-                              <div className="flex items-center justify-between">
-                                <span className="text-sm">Focus & Attention</span>
-                                <Badge className={
-                                  form.watch("sessionNote.focusRating") <= 3 ? "bg-red-100 text-red-800" :
-                                  form.watch("sessionNote.focusRating") <= 6 ? "bg-amber-100 text-amber-800" :
-                                  "bg-green-100 text-green-800"
-                                }>
-                                  {form.watch("sessionNote.focusRating")}
-                                </Badge>
-                              </div>
-                              <div className="flex items-center justify-between">
-                                <span className="text-sm">Cooperation</span>
-                                <Badge className={
-                                  form.watch("sessionNote.cooperationRating") <= 3 ? "bg-red-100 text-red-800" :
-                                  form.watch("sessionNote.cooperationRating") <= 6 ? "bg-amber-100 text-amber-800" :
-                                  "bg-green-100 text-green-800"
-                                }>
-                                  {form.watch("sessionNote.cooperationRating")}
-                                </Badge>
-                              </div>
-                              <div className="flex items-center justify-between">
-                                <span className="text-sm">Physical Activity</span>
-                                <Badge className={
-                                  form.watch("sessionNote.physicalActivityRating") <= 3 ? "bg-red-100 text-red-800" :
-                                  form.watch("sessionNote.physicalActivityRating") <= 6 ? "bg-amber-100 text-amber-800" :
-                                  "bg-green-100 text-green-800"
-                                }>
-                                  {form.watch("sessionNote.physicalActivityRating")}
-                                </Badge>
-                              </div>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
+                      {/* Right column is now empty as requested */}
                     </div>
                   }
                 />
               </TabsContent>
-              
+
+              {/* Summary Tab */}
+              <TabsContent value="summary" className="h-[calc(100%-48px)] overflow-y-auto p-4">
+                <div className="p-4 max-w-3xl mx-auto">
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-lg">Session Summary</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="space-y-2">
+                        <div className="flex justify-between">
+                          <p className="text-sm text-muted-foreground">Client</p>
+                          <p className="text-sm font-medium">
+                            {clients.find(c => c.id === form.watch("session.clientId"))?.name || "Not selected"}
+                          </p>
+                        </div>
+                        <div className="flex justify-between">
+                          <p className="text-sm text-muted-foreground">Date</p>
+                          <p className="text-sm font-medium">
+                            {form.watch("session.sessionDate") ? 
+                              format(form.watch("session.sessionDate"), "PPP") : 
+                              "Not set"}
+                          </p>
+                        </div>
+                        <div className="flex justify-between">
+                          <p className="text-sm text-muted-foreground">Duration</p>
+                          <p className="text-sm font-medium">
+                            {form.watch("session.duration") || 0} minutes
+                          </p>
+                        </div>
+                        <div className="flex justify-between">
+                          <p className="text-sm text-muted-foreground">Location</p>
+                          <p className="text-sm font-medium">
+                            {form.watch("session.location") || "Not set"}
+                          </p>
+                        </div>
+                        <div className="flex justify-between">
+                          <p className="text-sm text-muted-foreground">Status</p>
+                          <p className="text-sm font-medium">
+                            {form.watch("session.status") || "Not set"}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="pt-2 border-t">
+                        <p className="text-sm font-medium mb-2">Attendees</p>
+                        {form.watch("sessionNote.presentAllies")?.filter(name => name !== "__select__").length > 0 ? (
+                          <div className="flex flex-wrap gap-1">
+                            {form.watch("sessionNote.presentAllies")
+                              .filter(name => name !== "__select__")
+                              .map((name, index) => (
+                                <Badge key={index} variant="secondary">{name}</Badge>
+                              ))}
+                          </div>
+                        ) : (
+                          <p className="text-sm text-muted-foreground">No attendees added</p>
+                        )}
+                      </div>
+
+                      {form.watch("sessionNote.products")?.length > 0 && (
+                        <div className="pt-2 border-t">
+                          <p className="text-sm font-medium mb-2">Products Used</p>
+                          <div className="space-y-1">
+                            {form.watch("sessionNote.products").map((product, index) => (
+                              <div key={index} className="flex justify-between text-sm">
+                                <span>{product.productDescription} ({product.quantity}x)</span>
+                                <span>${(product.quantity * product.unitPrice).toFixed(2)}</span>
+                              </div>
+                            ))}
+                            <div className="flex justify-between font-medium border-t pt-1 mt-2">
+                              <span>Total</span>
+                              <span>
+                                ${form.watch("sessionNote.products").reduce(
+                                  (acc, product) => acc + (product.quantity * product.unitPrice), 
+                                  0
+                                ).toFixed(2)}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="pt-2 border-t">
+                        <p className="text-sm font-medium mb-2">Session Ratings</p>
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm">Mood & Engagement</span>
+                            <Badge className={
+                              form.watch("sessionNote.moodRating") <= 3 ? "bg-red-100 text-red-800" :
+                              form.watch("sessionNote.moodRating") <= 6 ? "bg-amber-100 text-amber-800" :
+                              "bg-green-100 text-green-800"
+                            }>
+                              {form.watch("sessionNote.moodRating")}
+                            </Badge>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm">Focus & Attention</span>
+                            <Badge className={
+                              form.watch("sessionNote.focusRating") <= 3 ? "bg-red-100 text-red-800" :
+                              form.watch("sessionNote.focusRating") <= 6 ? "bg-amber-100 text-amber-800" :
+                              "bg-green-100 text-green-800"
+                            }>
+                              {form.watch("sessionNote.focusRating")}
+                            </Badge>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm">Cooperation</span>
+                            <Badge className={
+                              form.watch("sessionNote.cooperationRating") <= 3 ? "bg-red-100 text-red-800" :
+                              form.watch("sessionNote.cooperationRating") <= 6 ? "bg-amber-100 text-amber-800" :
+                              "bg-green-100 text-green-800"
+                            }>
+                              {form.watch("sessionNote.cooperationRating")}
+                            </Badge>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm">Physical Activity</span>
+                            <Badge className={
+                              form.watch("sessionNote.physicalActivityRating") <= 3 ? "bg-red-100 text-red-800" :
+                              form.watch("sessionNote.physicalActivityRating") <= 6 ? "bg-amber-100 text-amber-800" :
+                              "bg-green-100 text-green-800"
+                            }>
+                              {form.watch("sessionNote.physicalActivityRating")}
+                            </Badge>
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              </TabsContent>
+
               {/* Performance Assessment Tab */}
               <TabsContent value="assessment" className="h-[calc(100%-48px)] overflow-y-auto p-4">
-                <ThreeColumnLayout
-                  leftColumn={
-                    <div className="space-y-6 p-4">
-                      <Card>
-                        <CardHeader className="pb-2">
-                          <div className="flex justify-between items-center">
-                            <CardTitle className="text-lg">Goals Assessed</CardTitle>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => {
-                                if (goals.length === 0) {
-                                  toast({
-                                    title: "No goals available",
-                                    description: "This client doesn't have any goals set up.",
-                                    variant: "default"
-                                  });
-                                  return;
-                                }
-                                
-                                const selectedGoalIds = form.getValues("performanceAssessments").map(a => a.goalId);
-                                if (selectedGoalIds.length >= goals.length) {
-                                  toast({
-                                    title: "All goals added",
-                                    description: "All available goals have been added for assessment.",
-                                    variant: "default"
-                                  });
-                                  return;
-                                }
-                                
-                                setShowGoalDialog(true);
-                              }}
-                            >
-                              <Plus className="h-4 w-4 mr-2" />
-                              Add Goal
-                            </Button>
-                          </div>
-                        </CardHeader>
-                        <CardContent>
-                          {selectedPerformanceAssessments.length === 0 ? (
-                            <div className="text-center py-6">
-                              <p className="text-muted-foreground">No goals selected for assessment</p>
-                              <Button
-                                variant="outline"
-                                className="mt-4"
-                                onClick={() => {
-                                  if (goals.length === 0) {
-                                    toast({
-                                      title: "No goals available",
-                                      description: "This client doesn't have any goals set up.",
-                                      variant: "default"
-                                    });
-                                    return;
-                                  }
-                                  setShowGoalDialog(true);
-                                }}
-                              >
-                                <Plus className="h-4 w-4 mr-2" />
-                                Select Goal
-                              </Button>
-                            </div>
-                          ) : (
-                            <div className="space-y-4">
-                              {selectedPerformanceAssessments.map((assessment, index) => (
-                                <Card key={assessment.goalId} className="overflow-hidden">
-                                  <CardHeader className="bg-primary/10 pb-2 pt-3 px-3">
-                                    <div className="flex justify-between items-start">
-                                      <CardTitle className="text-base">{assessment.goalTitle}</CardTitle>
-                                      <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="h-7 w-7"
-                                        onClick={() => removeGoal(assessment.goalId)}
-                                      >
-                                        <X className="h-4 w-4" />
-                                      </Button>
-                                    </div>
-                                  </CardHeader>
-                                  <CardContent className="p-3">
+                <div className="space-y-6 p-4 max-w-3xl mx-auto">
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <div className="flex justify-between items-center">
+                        <CardTitle className="text-lg">Goals Assessed</CardTitle>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            if (goals.length === 0) {
+                              toast({
+                                title: "No goals available",
+                                description: "This client doesn't have any goals set up.",
+                                variant: "default"
+                              });
+                              return;
+                            }
+
+                            const selectedGoalIds = form.getValues("performanceAssessments").map(a => a.goalId);
+                            if (selectedGoalIds.length >= goals.length) {
+                              toast({
+                                title: "All goals added",
+                                description: "All available goals have been added for assessment.",
+                                variant: "default"
+                              });
+                              return;
+                            }
+
+                            setShowGoalDialog(true);
+                          }}
+                        >
+                          <Plus className="h-4 w-4 mr-2" />
+                          Add Goal
+                        </Button>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      {selectedPerformanceAssessments.length === 0 ? (
+                        <div className="text-center py-6">
+                          <p className="text-muted-foreground">No goals selected for assessment</p>
+                          <Button
+                            variant="outline"
+                            className="mt-4"
+                            onClick={() => {
+                              if (goals.length === 0) {
+                                toast({
+                                  title: "No goals available",
+                                  description: "This client doesn't have any goals set up.",
+                                  variant: "default"
+                                });
+                                return;
+                              }
+                              setShowGoalDialog(true);
+                            }}
+                          >
+                            <Plus className="h-4 w-4 mr-2" />
+                            Select Goal
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="space-y-4">
+                          {selectedPerformanceAssessments.map((assessment, index) => (
+                            <Card key={assessment.goalId} className="overflow-hidden">
+                              <CardHeader className="bg-primary/10 pb-2 pt-3 px-3">
+                                <div className="flex justify-between items-start">
+                                  <CardTitle className="text-base">{assessment.goalTitle}</CardTitle>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-7 w-7"
+                                    onClick={() => removeGoal(assessment.goalId)}
+                                  >
+                                    <X className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              </CardHeader>
+                              <CardContent className="p-3">
+                                <div className="space-y-2">
+                                  <div className="flex justify-between items-center">
+                                    <h4 className="text-sm font-medium">Milestones</h4>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-7 px-2 text-xs"
+                                      onClick={() => {
+                                        setCurrentGoalId(assessment.goalId);
+                                        setShowMilestoneDialog(true);
+                                      }}
+                                    >
+                                      <Plus className="h-3 w-3 mr-1" /> Add
+                                    </Button>
+                                  </div>
+
+                                  {assessment.milestones.length === 0 ? (
+                                    <p className="text-xs text-muted-foreground">No milestones added yet</p>
+                                  ) : (
                                     <div className="space-y-2">
-                                      <div className="flex justify-between items-center">
-                                        <h4 className="text-sm font-medium">Milestones</h4>
-                                        <Button
-                                          variant="ghost"
-                                          size="sm"
-                                          className="h-7 px-2 text-xs"
-                                          onClick={() => {
-                                            setCurrentGoalId(assessment.goalId);
-                                            setShowMilestoneDialog(true);
-                                          }}
-                                        >
-                                          <Plus className="h-3 w-3 mr-1" /> Add
-                                        </Button>
-                                      </div>
-                                      
-                                      {assessment.milestones.length === 0 ? (
-                                        <p className="text-xs text-muted-foreground">No milestones added yet</p>
-                                      ) : (
-                                        <div className="space-y-2">
-                                          {assessment.milestones.map((milestone, mIndex) => (
-                                            <div key={milestone.milestoneId} className="bg-accent rounded-md p-2">
-                                              <div className="flex justify-between items-start">
-                                                <h5 className="text-sm font-medium">{milestone.milestoneTitle}</h5>
+                                      {assessment.milestones.map((milestone, mIndex) => (
+                                        <div key={milestone.milestoneId} className="bg-accent rounded-md p-2">
+                                          <div className="flex justify-between items-start">
+                                            <h5 className="text-sm font-medium">{milestone.milestoneTitle}</h5>
+                                            <Button
+                                              variant="ghost"
+                                              size="icon"
+                                              className="h-6 w-6"
+                                              onClick={() => removeMilestone(assessment.goalId, milestone.milestoneId)}
+                                            >
+                                              <X className="h-3 w-3" />
+                                            </Button>
+                                          </div>
+                                          <div className="flex items-center mt-2">
+                                            <span className="text-xs text-muted-foreground mr-2">Rating:</span>
+                                            <Badge className={
+                                              (milestone.rating || 0) <= 3 ? "bg-red-100 text-red-800" :
+                                              (milestone.rating || 0) <= 6 ? "bg-amber-100 text-amber-800" :
+                                              "bg-green-100 text-green-800"
+                                            }>
+                                              {milestone.rating || 0}/10
+                                            </Badge>
+                                          </div>
+
+                                          <div className="mt-2">
+                                            <span className="text-xs text-muted-foreground">Strategies:</span>
+                                            {milestone.strategies.length === 0 ? (
+                                              <div className="mt-1">
                                                 <Button
-                                                  variant="ghost"
-                                                  size="icon"
-                                                  className="h-6 w-6"
-                                                  onClick={() => removeMilestone(assessment.goalId, milestone.milestoneId)}
+                                                  variant="outline"
+                                                  size="sm"
+                                                  className="h-7 px-2 text-xs w-full"
+                                                  onClick={() => {
+                                                    setCurrentGoalId(assessment.goalId);
+                                                    setCurrentMilestoneId(milestone.milestoneId);
+                                                    setShowStrategyDialog(true);
+                                                  }}
                                                 >
-                                                  <X className="h-3 w-3" />
+                                                  <Plus className="h-3 w-3 mr-1" /> Add Strategies
                                                 </Button>
                                               </div>
-                                              <div className="flex items-center mt-2">
-                                                <span className="text-xs text-muted-foreground mr-2">Rating:</span>
-                                                <Badge className={
-                                                  (milestone.rating || 0) <= 3 ? "bg-red-100 text-red-800" :
-                                                  (milestone.rating || 0) <= 6 ? "bg-amber-100 text-amber-800" :
-                                                  "bg-green-100 text-green-800"
-                                                }>
-                                                  {milestone.rating || 0}/10
-                                                </Badge>
-                                              </div>
-                                              
-                                              <div className="mt-2">
-                                                <span className="text-xs text-muted-foreground">Strategies:</span>
-                                                {milestone.strategies.length === 0 ? (
-                                                  <div className="mt-1">
-                                                    <Button
-                                                      variant="outline"
-                                                      size="sm"
-                                                      className="h-7 px-2 text-xs w-full"
-                                                      onClick={() => {
-                                                        setCurrentGoalId(assessment.goalId);
-                                                        setCurrentMilestoneId(milestone.milestoneId);
-                                                        setShowStrategyDialog(true);
-                                                      }}
-                                                    >
-                                                      <Plus className="h-3 w-3 mr-1" /> Add Strategies
-                                                    </Button>
-                                                  </div>
-                                                ) : (
-                                                  <div className="flex flex-wrap gap-1 mt-1">
-                                                    {milestone.strategies.map((strategy, sIndex) => (
-                                                      <Badge key={sIndex} variant="outline" className="text-xs">
-                                                        {strategy}
-                                                      </Badge>
-                                                    ))}
-                                                    <Button
-                                                      variant="ghost"
-                                                      size="sm"
-                                                      className="h-6 px-2 text-xs"
-                                                      onClick={() => {
-                                                        setCurrentGoalId(assessment.goalId);
-                                                        setCurrentMilestoneId(milestone.milestoneId);
-                                                        setShowStrategyDialog(true);
-                                                      }}
-                                                    >
-                                                      <Plus className="h-3 w-3" />
-                                                    </Button>
-                                                  </div>
-                                                )}
-                                              </div>
-                                            </div>
-                                          ))}
-                                        </div>
-                                      )}
-                                    </div>
-                                  </CardContent>
-                                </Card>
-                              ))}
-                            </div>
-                          )}
-                        </CardContent>
-                      </Card>
-                    </div>
-                  }
-                  
-                  middleColumn={
-                    <div className="p-4 space-y-6">
-                      {selectedPerformanceAssessments.length === 0 ? (
-                        <Card>
-                          <CardHeader>
-                            <CardTitle>Performance Assessment</CardTitle>
-                            <CardDescription>
-                              Select goals to assess for this session
-                            </CardDescription>
-                          </CardHeader>
-                          <CardContent className="flex flex-col items-center justify-center py-8">
-                            <BarChart className="h-16 w-16 text-muted-foreground mb-4" />
-                            <h3 className="text-lg font-medium mb-2">No Goals Selected</h3>
-                            <p className="text-center text-muted-foreground mb-6">
-                              Add goals to assess the client's performance during this session
-                            </p>
-                            <Button
-                              onClick={() => {
-                                if (goals.length === 0) {
-                                  toast({
-                                    title: "No goals available",
-                                    description: "This client doesn't have any goals set up.",
-                                    variant: "default"
-                                  });
-                                  return;
-                                }
-                                setShowGoalDialog(true);
-                              }}
-                            >
-                              <Plus className="h-4 w-4 mr-2" />
-                              Select Goal
-                            </Button>
-                          </CardContent>
-                        </Card>
-                      ) : (
-                        <>
-                          {selectedPerformanceAssessments.map((assessment, index) => (
-                            <Card key={assessment.goalId}>
-                              <CardHeader>
-                                <CardTitle>{assessment.goalTitle}</CardTitle>
-                                <CardDescription>
-                                  Assessment for this goal
-                                </CardDescription>
-                              </CardHeader>
-                              <CardContent className="space-y-6">
-                                {/* Goal notes */}
-                                <FormField
-                                  control={form.control}
-                                  name={`performanceAssessments.${index}.notes`}
-                                  render={({ field }) => (
-                                    <FormItem>
-                                      <FormLabel>Goal Assessment Notes</FormLabel>
-                                      <FormControl>
-                                        <Textarea
-                                          placeholder="Notes about overall progress on this goal..."
-                                          className="resize-none min-h-[100px]"
-                                          {...field}
-                                        />
-                                      </FormControl>
-                                      <FormMessage />
-                                    </FormItem>
-                                  )}
-                                />
-                                
-                                {/* Milestone assessments */}
-                                {assessment.milestones.length > 0 && (
-                                  <div className="space-y-4">
-                                    <h4 className="font-medium">Milestone Assessments</h4>
-                                    
-                                    {assessment.milestones.map((milestone, mIndex) => (
-                                      <Card key={milestone.milestoneId} className="overflow-hidden">
-                                        <CardHeader className="bg-accent/50 pb-2 pt-3 px-3">
-                                          <CardTitle className="text-base">
-                                            {milestone.milestoneTitle}
-                                          </CardTitle>
-                                        </CardHeader>
-                                        <CardContent className="p-3 space-y-4">
-                                          {/* Milestone rating */}
-                                          <FormField
-                                            control={form.control}
-                                            name={`performanceAssessments.${index}.milestones.${mIndex}.rating`}
-                                            render={({ field }) => (
-                                              <RatingSlider
-                                                label="Performance Rating"
-                                                value={field.value || 0}
-                                                onChange={field.onChange}
-                                                description="Rate the client's performance on this milestone"
-                                              />
-                                            )}
-                                          />
-                                          
-                                          {/* Strategies */}
-                                          <div>
-                                            <div className="flex justify-between items-center mb-2">
-                                              <Label className="font-medium text-sm">Strategies</Label>
-                                              <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                className="h-7 px-2 text-xs"
-                                                onClick={() => {
-                                                  setCurrentGoalId(assessment.goalId);
-                                                  setCurrentMilestoneId(milestone.milestoneId);
-                                                  setShowStrategyDialog(true);
-                                                }}
-                                              >
-                                                <Plus className="h-3 w-3 mr-1" /> Edit
-                                              </Button>
-                                            </div>
-                                            
-                                            {milestone.strategies.length === 0 ? (
-                                              <p className="text-xs text-muted-foreground">No strategies selected</p>
                                             ) : (
-                                              <div className="flex flex-wrap gap-1">
+                                              <div className="flex flex-wrap gap-1 mt-1">
                                                 {milestone.strategies.map((strategy, sIndex) => (
-                                                  <Badge key={sIndex} variant="secondary" className="text-xs">
+                                                  <Badge key={sIndex} variant="outline" className="text-xs">
                                                     {strategy}
                                                   </Badge>
                                                 ))}
+                                                <Button
+                                                  variant="ghost"
+                                                  size="sm"
+                                                  className="h-6 px-2 text-xs"
+                                                  onClick={() => {
+                                                    setCurrentGoalId(assessment.goalId);
+                                                    setCurrentMilestoneId(milestone.milestoneId);
+                                                    setShowStrategyDialog(true);
+                                                  }}
+                                                >
+                                                  <Plus className="h-3 w-3" />
+                                                </Button>
                                               </div>
                                             )}
                                           </div>
-                                          
-                                          {/* Milestone notes */}
-                                          <FormField
-                                            control={form.control}
-                                            name={`performanceAssessments.${index}.milestones.${mIndex}.notes`}
-                                            render={({ field }) => (
-                                              <FormItem>
-                                                <FormLabel>Notes</FormLabel>
-                                                <FormControl>
-                                                  <Textarea
-                                                    placeholder="Notes about this milestone..."
-                                                    className="resize-none min-h-[80px]"
-                                                    {...field}
-                                                  />
-                                                </FormControl>
-                                                <FormMessage />
-                                              </FormItem>
-                                            )}
-                                          />
-                                        </CardContent>
-                                      </Card>
-                                    ))}
-                                  </div>
-                                )}
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
                               </CardContent>
                             </Card>
                           ))}
-                        </>
+                        </div>
                       )}
-                    </div>
-                  }
-                  
-                  rightColumn={
-                    <div className="p-4 space-y-6">
-                      <Card>
-                        <CardHeader>
-                          <CardTitle className="text-lg">Assessment Summary</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          {selectedPerformanceAssessments.length === 0 ? (
-                            <p className="text-muted-foreground">No goals assessed yet</p>
-                          ) : (
-                            <div className="space-y-4">
-                              <div>
-                                <h4 className="font-medium text-sm mb-2">Goals Assessed</h4>
-                                <div className="space-y-2">
-                                  {selectedPerformanceAssessments.map(assessment => (
-                                    <div key={assessment.goalId} className="flex items-center">
-                                      <Check className="h-4 w-4 text-primary mr-2" />
-                                      <p className="text-sm">{assessment.goalTitle}</p>
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                              
-                              <div>
-                                <h4 className="font-medium text-sm mb-2">Milestones</h4>
-                                <div className="space-y-2">
-                                  {selectedPerformanceAssessments.flatMap(assessment => 
-                                    assessment.milestones.map(milestone => ({
-                                      goalTitle: assessment.goalTitle,
-                                      ...milestone
-                                    }))
-                                  ).map(milestone => (
-                                    <div key={milestone.milestoneId} className="bg-accent rounded-md p-2">
-                                      <p className="text-xs text-muted-foreground">{milestone.goalTitle}</p>
-                                      <p className="text-sm font-medium">{milestone.milestoneTitle}</p>
-                                      <div className="flex items-center mt-1">
-                                        <Badge className={
-                                          (milestone.rating || 0) <= 3 ? "bg-red-100 text-red-800" :
-                                          (milestone.rating || 0) <= 6 ? "bg-amber-100 text-amber-800" :
-                                          "bg-green-100 text-green-800"
-                                        }>
-                                          Rating: {milestone.rating || 0}/10
-                                        </Badge>
-                                      </div>
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                              
-                              <div>
-                                <h4 className="font-medium text-sm mb-2">Top Strategies</h4>
-                                <div className="flex flex-wrap gap-1">
-                                  {Array.from(new Set(
-                                    selectedPerformanceAssessments.flatMap(assessment => 
-                                      assessment.milestones.flatMap(milestone => 
-                                        milestone.strategies
-                                      )
-                                    )
-                                  )).map((strategy, index) => (
-                                    <Badge key={index} variant="outline">
-                                      {strategy}
-                                    </Badge>
-                                  ))}
-                                </div>
-                              </div>
-                            </div>
-                          )}
-                        </CardContent>
-                      </Card>
-                    </div>
-                  }
-                />
+                    </CardContent>
+                  </Card>
+                </div>
               </TabsContent>
             </Tabs>
           </form>
         </Form>
       </div>
-      
+
       {/* Dialogs */}
       <GoalSelectionDialog
         open={showGoalDialog}
@@ -1803,7 +1582,7 @@ export function FullScreenSessionForm({
         selectedGoalIds={selectedGoalIds}
         onSelectGoal={handleGoalSelection}
       />
-      
+
       <MilestoneSelectionDialog
         open={showMilestoneDialog}
         onOpenChange={setShowMilestoneDialog}
@@ -1811,14 +1590,14 @@ export function FullScreenSessionForm({
         selectedMilestoneIds={selectedMilestoneIds}
         onSelectMilestone={handleMilestoneSelection}
       />
-      
+
       <ProductSelectionDialog
         open={showProductDialog}
         onOpenChange={setShowProductDialog}
         products={availableProducts}
         onSelectProduct={handleAddProduct}
       />
-      
+
       <StrategySelectionDialog
         open={showStrategyDialog}
         onOpenChange={setShowStrategyDialog}

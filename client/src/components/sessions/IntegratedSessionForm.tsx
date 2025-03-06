@@ -21,11 +21,11 @@ import {
   UserCheck,
   ChevronsUpDown,
   Package,
-  BarChart
+  BarChart,
+  Star as StarIcon
 } from "lucide-react";
 import "./session-form.css";
 import { ThreeColumnLayout } from "./ThreeColumnLayout";
-// Debug helper has been removed in favor of a more natural implementation
 import { Ally, BudgetItem, BudgetSettings, Client, Goal, Session, Subgoal, Strategy, insertSessionSchema } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { useSafeForm } from "@/hooks/use-safe-hooks";
@@ -33,9 +33,7 @@ import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { StrategySelectionDialog } from "./StrategySelectionDialog";
 
-// Function to hide unwanted calendars in the UI
 const hideUnwantedCalendars = () => {
-  // Hide any calendar not properly contained
   const unwantedCalendars = document.querySelectorAll('.rdp:not([data-calendar-container="true"] .rdp, [data-state="open"] .rdp)');
   unwantedCalendars.forEach(calendar => {
     if (calendar.parentElement) {
@@ -44,7 +42,6 @@ const hideUnwantedCalendars = () => {
   });
 };
 
-// UI Components
 import {
   Dialog,
   DialogContent,
@@ -98,7 +95,6 @@ import {
   CommandItem,
 } from "@/components/ui/command";
 
-// Session form schema
 const sessionFormSchema = insertSessionSchema.extend({
   sessionDate: z.coerce.date({
     required_error: "Session date is required",
@@ -108,10 +104,9 @@ const sessionFormSchema = insertSessionSchema.extend({
   }),
   therapistId: z.coerce.number().optional(),
   location: z.string().optional(),
-  sessionId: z.string().optional(), // Added session ID field for display
+  sessionId: z.string().optional(),
 });
 
-// Performance assessment schema
 const performanceAssessmentSchema = z.object({
   goalId: z.number(),
   goalTitle: z.string().optional(),
@@ -125,20 +120,18 @@ const performanceAssessmentSchema = z.object({
   })).default([]),
 });
 
-// Product schema for session notes
 const sessionProductSchema = z.object({
   budgetItemId: z.number(),
   productCode: z.string(),
   productDescription: z.string(),
   quantity: z.number().min(0.01),
   unitPrice: z.number(),
-  availableQuantity: z.number(), // For validation only, not sent to server
+  availableQuantity: z.number(),
 });
 
-// Session notes schema
 const sessionNoteSchema = z.object({
   presentAllies: z.array(z.string()).default([]),
-  presentAllyIds: z.array(z.number()).default([]), // Store ally IDs for data integrity
+  presentAllyIds: z.array(z.number()).default([]),
   moodRating: z.number().min(0).max(10).default(5),
   focusRating: z.number().min(0).max(10).default(5),
   cooperationRating: z.number().min(0).max(10).default(5),
@@ -148,7 +141,6 @@ const sessionNoteSchema = z.object({
   status: z.enum(["draft", "completed"]).default("draft"),
 });
 
-// Complete form schema
 const integratedSessionFormSchema = z.object({
   session: sessionFormSchema,
   sessionNote: sessionNoteSchema,
@@ -165,14 +157,12 @@ interface RatingSliderProps {
 }
 
 const RatingSlider = ({ value, onChange, label, description }: RatingSliderProps) => {
-  // Generate a badge color class based on value
   const getBadgeClass = () => {
     if (value <= 3) return 'bg-red-100 border-red-200 text-red-700';
     if (value <= 6) return 'bg-amber-100 border-amber-200 text-amber-700';
     return 'bg-green-100 border-green-200 text-green-700';
   };
 
-  // Get range class for the slider
   const getRangeClass = () => {
     if (value <= 3) return 'range-low';
     if (value <= 6) return 'range-mid';
@@ -219,49 +209,35 @@ const GoalSelectionDialog = ({
 }: GoalSelectionDialogProps) => {
   const [localGoals, setLocalGoals] = useState<Goal[]>([]);
   const queryClient = useQueryClient();
-  const clientId = queryClient.getQueryData<any>(['formState'])?.clientId || 37; // Default to Gabriel's ID
+  const clientId = queryClient.getQueryData<any>(['formState'])?.clientId || 37;
 
-  // Hard-coded goals for Gabriel if necessary
   const hardcodedGoals = [
     { id: 24, clientId: 37, title: "Improve articulation of /s/ sounds", description: "Focus on correct tongue placement and airflow for s-sound production", priority: "high" },
     { id: 25, clientId: 37, title: "Improve social skills", description: "Develop appropriate conversation skills and turn-taking", priority: "medium" }
   ];
 
-  // Fetch goals directly when dialog opens
   useEffect(() => {
     if (open) {
-      // First try to use the clientId from form state
       const formClientId = queryClient.getQueryData<any>(['formState'])?.clientId || clientId;
-      console.log("GoalSelectionDialog opening with clientId:", formClientId);
-
-      // Directly fetch goals
       fetch(`/api/clients/${formClientId}/goals`)
         .then(response => {
           if (!response.ok) throw new Error(`Failed to fetch goals: ${response.status}`);
           return response.json();
         })
         .then(data => {
-          console.log("SUCCESS - Goals fetched directly:", data);
           if (Array.isArray(data) && data.length > 0) {
             setLocalGoals(data);
           } else {
-            console.log("No goals found, using hardcoded goals");
             setLocalGoals(hardcodedGoals);
           }
         })
         .catch(error => {
-          console.error("Error fetching goals:", error);
-          // Fallback to hardcoded goals if fetch fails
           setLocalGoals(hardcodedGoals);
         });
     }
   }, [open, clientId, queryClient]);
 
-  // Filter out already selected goals
   const availableGoals = localGoals.filter(goal => !selectedGoalIds.includes(goal.id));
-
-  console.log("GoalSelectionDialog - Using goals:", availableGoals);
-  console.log("GoalSelectionDialog - Selected goal IDs:", selectedGoalIds);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -287,7 +263,6 @@ const GoalSelectionDialog = ({
                   key={goal.id} 
                   className="cursor-pointer hover:bg-muted/20"
                   onClick={() => {
-                    console.log("Selecting goal:", goal);
                     onSelectGoal(goal);
                     onOpenChange(false);
                   }}
@@ -333,59 +308,43 @@ const MilestoneSelectionDialog = ({
   const [goalId, setGoalId] = useState<number | null>(null);
   const queryClient = useQueryClient();
 
-  // Hard-coded subgoals for common goals
   const hardcodedSubgoals: Record<number, Subgoal[]> = {
-    // Goal ID 24: Improve articulation of /s/ sounds
     24: [
       { id: 38, goalId: 24, title: "Initial /s/ sounds", description: "Improve articulation of 's' sound at beginning of words", status: "in-progress" },
       { id: 39, goalId: 24, title: "Medial /s/ sounds", description: "Improve articulation of 's' sound in middle of words", status: "not-started" }
     ],
-    // Goal ID 25: Improve social skills
     25: [
       { id: 40, goalId: 25, title: "Initiating conversations", description: "Learn to appropriately start conversations with peers", status: "in-progress" }
     ]
   };
 
-  // Get the goalId from the current context
   useEffect(() => {
     if (open) {
-      // First try from subgoals passed in
       let extractedGoalId = subgoals.length > 0 ? subgoals[0]?.goalId : null;
-
-      // If not found, try from selected goal
       if (!extractedGoalId) {
         const selectedGoalId = queryClient.getQueryData<number>(['selectedGoalId']);
         if (selectedGoalId) {
           extractedGoalId = selectedGoalId;
         }
       }
-
-      // If still not found, try from currentGoalIndex
       if (!extractedGoalId) {
         const formState = queryClient.getQueryData<any>(['formState']);
         const performanceAssessments = formState?.performanceAssessments || [];
         const currentGoalIndex = formState?.currentGoalIndex;
-
         if (currentGoalIndex !== null && performanceAssessments[currentGoalIndex]) {
           extractedGoalId = performanceAssessments[currentGoalIndex].goalId;
         }
       }
-
       if (extractedGoalId) {
         setGoalId(extractedGoalId);
-        console.log("MilestoneSelectionDialog: Found goalId:", extractedGoalId);
       } else {
         console.log("WARNING: Could not determine goal ID for milestone selection");
       }
     }
   }, [open, subgoals, queryClient]);
 
-  // Fetch subgoals or fall back to hardcoded
   useEffect(() => {
     if (open && goalId) {
-      console.log("MilestoneSelectionDialog: Fetching subgoals for goal:", goalId);
-
-      // Try to fetch subgoals from API
       fetch(`/api/goals/${goalId}/subgoals`)
         .then(response => {
           if (!response.ok) {
@@ -394,30 +353,21 @@ const MilestoneSelectionDialog = ({
           return response.json();
         })
         .then(data => {
-          console.log("MilestoneSelectionDialog: Received subgoals:", data);
           if (Array.isArray(data) && data.length > 0) {
             setLocalSubgoals(data);
           } else {
-            console.log("No subgoals found, using hardcoded subgoals for goal", goalId);
             setLocalSubgoals(hardcodedSubgoals[goalId] || []);
           }
         })
         .catch(error => {
-          console.error("Error fetching subgoals:", error);
-          // Fall back to hardcoded subgoals
-          console.log("Falling back to hardcoded subgoals for goal", goalId);
           setLocalSubgoals(hardcodedSubgoals[goalId] || []);
         });
     }
   }, [open, goalId]);
 
-  // Filter out already selected subgoals
   const availableSubgoals = localSubgoals.length > 0 
     ? localSubgoals.filter(subgoal => !selectedMilestoneIds.includes(subgoal.id))
     : subgoals.filter(subgoal => !selectedMilestoneIds.includes(subgoal.id));
-
-  console.log("MilestoneSelectionDialog - Available subgoals:", availableSubgoals);
-  console.log("MilestoneSelectionDialog - Selected milestone IDs:", selectedMilestoneIds);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -486,17 +436,14 @@ export function IntegratedSessionForm({
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("details");
 
-  // Dialog states for goal and milestone selection
   const [goalSelectionOpen, setGoalSelectionOpen] = useState(false);
   const [milestoneSelectionOpen, setMilestoneSelectionOpen] = useState(false);
   const [milestoneGoalId, setMilestoneGoalId] = useState<number | null>(null);
   const [currentGoalIndex, setCurrentGoalIndex] = useState<number | null>(null);
 
-  // Dialog state for strategy selection
   const [strategySelectionOpen, setStrategySelectionOpen] = useState(false);
   const [currentMilestoneIndex, setCurrentMilestoneIndex] = useState<number | null>(null);
 
-  // Handlers for removing items
   const removeProduct = (index: number) => {
     const products = form.getValues("sessionNote.products") || [];
     const updatedProducts = [...products];
@@ -524,99 +471,80 @@ export function IntegratedSessionForm({
     form.setValue("performanceAssessments", updatedAssessments);
   };
 
-  // Fetch clients for client dropdown
   const { data: clients = [] } = useQuery<Client[]>({
     queryKey: ["/api/clients"],
     enabled: open,
   });
 
-  // Generate a unique session ID for tracking
   const sessionId = useMemo(() => {
     const now = new Date();
-    // Format: ST-YYYYMMDD-XXXX (ST = Speech Therapy, XXXX is a random number)
     return `ST-${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}-${Math.floor(1000 + Math.random() * 9000)}`;
   }, []);
 
-  // Default form values
   const defaultValues: Partial<IntegratedSessionFormValues> = {
     session: {
       sessionDate: new Date(),
       location: "Clinic - Room 101",
       clientId: initialClient?.id || 0,
-      title: "Therapy Session",  // Required field in schema
-      duration: 60,              // Required field in schema
-      status: "scheduled",       // Required field in schema
-      description: "",           // Optional but initialize empty
-      sessionId: sessionId,      // Add the generated session ID
+      title: "Therapy Session",
+      duration: 60,
+      status: "scheduled",
+      description: "",
+      sessionId: sessionId,
     },
     sessionNote: {
       presentAllies: [],
-      presentAllyIds: [], // Track ally IDs
+      presentAllyIds: [],
       moodRating: 5,
       focusRating: 5,
       cooperationRating: 5,
       physicalActivityRating: 5,
       notes: "",
-      products: [], // Products used in the session
+      products: [],
       status: "draft",
     },
     performanceAssessments: [],
   };
 
-  // Create form
   const form = useForm<IntegratedSessionFormValues>({
     resolver: zodResolver(integratedSessionFormSchema),
     defaultValues,
   });
 
-  // Watch clientId to update related data
   const clientId = form.watch("session.clientId");
 
-  // Store clientId in queryClient for cross-component access
   useEffect(() => {
     if (clientId) {
       queryClient.setQueryData(['formState'], { clientId });
-      console.log("Stored clientId in formState:", clientId);
     }
   }, [clientId, queryClient]);
 
-  // Fetch allies for therapist dropdown and participant selection
   const { data: allAllies = [] } = useQuery<Ally[]>({
     queryKey: ["/api/clients", clientId, "allies"],
     enabled: open && !!clientId,
     queryFn: async () => {
-      console.log(`Explicitly fetching allies for client ID: ${clientId}`);
       if (!clientId) return [];
-
       try {
         const response = await fetch(`/api/clients/${clientId}/allies`);
         if (!response.ok) {
-          console.error(`Error fetching allies: ${response.status}`);
           return [];
         }
-
         const data = await response.json();
-        console.log(`Successfully retrieved ${data.length} allies for client ${clientId}:`, data);
         return data;
       } catch (error) {
-        console.error("Error fetching allies:", error);
         return [];
       }
     },
   });
 
-  // Add debug logs for allies
   useEffect(() => {
     if (allAllies.length > 0) {
       console.log("Fetched allies for client:", clientId, allAllies);
     }
   }, [allAllies, clientId]);
 
-  // Only use non-archived allies and deduplicate by name
   const allies = React.useMemo(() => {
-    // Create the testing ally if none are found
     if (allAllies.length === 0 && clientId === 37) {
-      // Add a test ally for Gabriel
       return [{ 
         id: 34, 
         name: "Mohamad", 
@@ -625,60 +553,42 @@ export function IntegratedSessionForm({
         archived: false 
       }];
     }
-
-    // Filter out archived allies and deduplicate by name
     const filtered = allAllies.filter(ally => !ally.archived);
-
-    // Deduplicate allies by name (keep the first occurrence)
     const nameMap = new Map<string, typeof filtered[0]>();
     filtered.forEach(ally => {
       if (!nameMap.has(ally.name)) {
         nameMap.set(ally.name, ally);
       }
     });
-
     const uniqueAllies = Array.from(nameMap.values());
-    console.log("Deduplicated filtered allies:", uniqueAllies);
-
     return uniqueAllies;
   }, [allAllies, clientId]);
 
-  // Fetch goals for the selected client
   const { data: goals = [] } = useQuery<Goal[]>({
     queryKey: ["/api/clients", clientId, "goals"],
     enabled: open && !!clientId,
   });
 
-  // Track currently selected goal ID for fetching subgoals
   const [selectedGoalId, setSelectedGoalId] = useState<number | null>(null);
 
-  // Get subgoals for the currently selected goal instead of all goals
   const { data: subgoals = [] } = useQuery<Subgoal[]>({
     queryKey: ["/api/goals", selectedGoalId, "subgoals"],
     enabled: open && !!selectedGoalId,
   });
 
-  // Hide unwanted calendar elements that might appear out of context
   useEffect(() => {
-    // Function to find and hide unwanted calendars
     const hideUnwantedCalendarsTimer = setInterval(hideUnwantedCalendars, 100);
-
-    // Also run immediately
     hideUnwantedCalendars();
-
-    // Cleanup on unmount or when dialog closes
     return () => {
       clearInterval(hideUnwantedCalendarsTimer);
     };
   }, [open]);
 
-  // Get budget settings to identify active plan
   const { data: budgetSettings, isLoading: isLoadingBudgetSettings, error: budgetSettingsError, refetch: refetchBudgetSettings } = useQuery<BudgetSettings>({
     queryKey: ["/api/clients", clientId, "budget-settings"],
     enabled: open && !!clientId,
   });
 
-  // Log budget settings status
   useEffect(() => {
     console.log('Budget settings query:', { 
       clientId, 
@@ -688,7 +598,6 @@ export function IntegratedSessionForm({
     });
   }, [clientId, budgetSettings, isLoadingBudgetSettings, budgetSettingsError]);
 
-  // Log budget settings for debugging
   useEffect(() => {
     if (budgetSettings) {
       console.log('Budget settings loaded successfully:', budgetSettings);
@@ -696,7 +605,6 @@ export function IntegratedSessionForm({
     }
   }, [budgetSettings]);
 
-  // Get all budget items for the client
   const { 
     data: allBudgetItems = [], 
     isLoading: isLoadingBudgetItems, 
@@ -704,10 +612,9 @@ export function IntegratedSessionForm({
     refetch: refetchBudgetItems 
   } = useQuery<BudgetItem[]>({
     queryKey: ["/api/clients", clientId, "budget-items"],
-    enabled: open && !!clientId, // Only need client ID to fetch budget items
+    enabled: open && !!clientId,
   });
 
-  // Log budget items status
   useEffect(() => {
     console.log('Budget items query:', { 
       clientId, 
@@ -717,48 +624,27 @@ export function IntegratedSessionForm({
     });
   }, [clientId, allBudgetItems, isLoadingBudgetItems, budgetItemsError]);
 
-  // Log budget items for debugging
   useEffect(() => {
     if (allBudgetItems?.length > 0) {
       console.log('Budget items loaded successfully:', allBudgetItems);
     }
   }, [allBudgetItems]);
 
-  // Dialog state for product selection
   const [productSelectionOpen, setProductSelectionOpen] = useState(false);
 
-  // Get current selected products from form
   const selectedProducts = form.watch("sessionNote.products") || [];
 
-  // Simple flags to track client selection and product availability
   const hasClientSelected = clientId !== null && clientId !== undefined;
   const [hasSampleProducts, setHasSampleProducts] = useState(false);
 
-  // Filter to only show items from the active plan
   const availableProducts = useMemo(() => {
-    // Check for sample products
     if (import.meta.env.DEV && (window as any).__sampleProducts?.length > 0) {
-      console.log('Using sample products:', (window as any).__sampleProducts);
       return (window as any).__sampleProducts;
     }
-
-    // Log debug information
-    console.log('Budget items:', allBudgetItems);
-    console.log('Budget settings:', budgetSettings);
-    console.log('Client ID:', clientId);
-
-    // Make sure we have budget items
     if (!Array.isArray(allBudgetItems) || allBudgetItems.length === 0) {
-      console.log('No budget items available');
       return [];
     }
-
-    // Check if we have settings
     if (!budgetSettings) {
-      console.log('No budget settings available');
-
-      // If we don't have settings but do have budget items,
-      // allow use of all budget items for this client
       const tempProducts = allBudgetItems
         .filter(item => item.clientId === clientId && item.quantity > 0)
         .map(item => ({
@@ -768,64 +654,37 @@ export function IntegratedSessionForm({
           productDescription: item.description || item.itemCode,
           unitPrice: item.unitPrice
         }));
-
       if (tempProducts.length > 0) {
-        console.log('Using budget items without active plan:', tempProducts);
         return tempProducts;
       }
-
       return [];
     }
-
-    // Force coerce isActive to boolean - PostgreSQL treats booleans differently
-    let isActiveBool = true; // Default to true per schema default
-
-    // Log the exact type of the isActive field to help debug
-    console.log('isActive type:', typeof budgetSettings.isActive);
-
+    let isActiveBool = true;
     if (budgetSettings.isActive === false) {
       isActiveBool = false;
     } 
     else if (budgetSettings.isActive === null) {
-      isActiveBool = true; // Default value per schema
+      isActiveBool = true;
     }
     else if (typeof budgetSettings.isActive === 'string') {
-      // Handle string representations of boolean values (from some APIs/drivers)
       const isActiveStr = String(budgetSettings.isActive);
       isActiveBool = isActiveStr.toLowerCase() !== 'false';
     }
-
-    console.log('Budget plan active status (original):', budgetSettings.isActive);
-    console.log('Budget plan active status (coerced):', isActiveBool);
-    console.log('Budget settings ID:', budgetSettings.id);
-
     if (!isActiveBool) {
-      console.log('Budget settings not active');
       return [];
     }
-
-    // Since our schema doesn't track used quantity yet, we'll assume all quantity is available
-    // In a real implementation, this would be tracked in the database
     const filteredProducts = allBudgetItems
-      .filter((item: BudgetItem) => {
-        // Check if this item belongs to the active budget plan and has quantity available
-        const matches = item.budgetSettingsId === budgetSettings.id && item.quantity > 0;
-        console.log(`Product ${item.itemCode}: budgetSettingsId=${item.budgetSettingsId}, quantity=${item.quantity}, matches=${matches}`);
-        return matches;
-      })
+      .filter((item: BudgetItem) => item.budgetSettingsId === budgetSettings.id && item.quantity > 0)
       .map((item: BudgetItem) => ({
         ...item,
-        availableQuantity: item.quantity, // For now, all quantity is available
-        productCode: item.itemCode,  // Normalized naming for UI consistency
-        productDescription: item.description || item.name || item.itemCode, // Normalized naming for UI consistency
+        availableQuantity: item.quantity,
+        productCode: item.itemCode,
+        productDescription: item.description || item.name || item.itemCode,
         unitPrice: item.unitPrice
       }));
-
-    console.log('Filtered products:', filteredProducts);
     return filteredProducts;
   }, [allBudgetItems, budgetSettings, clientId, hasSampleProducts]);
 
-  // Create a simple lookup object for subgoals by goal ID
   const subgoalsByGoalId = React.useMemo(() => {
     const result: Record<number, Subgoal[]> = {};
     if (selectedGoalId) {
@@ -834,28 +693,21 @@ export function IntegratedSessionForm({
     return result;
   }, [selectedGoalId, subgoals]);
 
-  // Update form when client is changed
   useEffect(() => {
     if (initialClient?.id && initialClient.id !== clientId) {
       form.setValue("session.clientId", initialClient.id);
     }
   }, [initialClient, form, clientId]);
 
-  // Get selected goals from form values
   const selectedPerformanceAssessments = form.watch("performanceAssessments") || [];
   const selectedGoalIds = selectedPerformanceAssessments.map(pa => pa.goalId);
 
-  // Helper to get selected milestone IDs for a specific goal
   const getSelectedMilestoneIds = (goalId: number): number[] => {
     const assessment = selectedPerformanceAssessments.find(pa => pa.goalId === goalId);
     return assessment?.milestones?.map(m => m.milestoneId) || [];
   };
 
-  // Handle goal selection
   const handleGoalSelection = (goal: Goal) => {
-    console.log("Goal selected:", goal);
-
-    // Update the form with the new goal
     const updatedAssessments = [...selectedPerformanceAssessments];
     updatedAssessments.push({
       goalId: goal.id,
@@ -865,11 +717,7 @@ export function IntegratedSessionForm({
     });
 
     form.setValue("performanceAssessments", updatedAssessments);
-
-    // Set the selected goal ID to fetch its subgoals
     setSelectedGoalId(goal.id);
-
-    // Store selected goal data for cross-component access
     queryClient.setQueryData(['selectedGoalId'], goal.id);
     queryClient.setQueryData(['formState'], {
       ...queryClient.getQueryData(['formState']) || {},
@@ -877,11 +725,8 @@ export function IntegratedSessionForm({
       currentGoalIndex: updatedAssessments.length - 1,
       performanceAssessments: updatedAssessments
     });
-
-    // Add a delay to ensure UI updates
     setTimeout(() => {
       if (updatedAssessments.length > 0) {
-        // Force a refresh of subgoals data
         queryClient.invalidateQueries({
           queryKey: ['/api/goals', goal.id, 'subgoals']
         });
@@ -889,13 +734,10 @@ export function IntegratedSessionForm({
     }, 100);
   };
 
-  // Handle milestone selection
   const handleMilestoneSelection = (subgoal: Subgoal) =>{
     if (currentGoalIndex === null) return;
-
     const updatedAssessments = [...selectedPerformanceAssessments];
     const milestones = [...(updatedAssessments[currentGoalIndex].milestones || [])];
-
     milestones.push({
       milestoneId: subgoal.id,
       milestoneTitle: subgoal.title,
@@ -903,48 +745,36 @@ export function IntegratedSessionForm({
       strategies: [],
       notes: ""
     });
-
     updatedAssessments[currentGoalIndex].milestones = milestones;
     form.setValue("performanceAssessments", updatedAssessments);
-
-    // Ensure we have the goal ID to fetch subgoals
     if (selectedGoalId=== null && updatedAssessments[currentGoalIndex]) {
       setSelectedGoalId(updatedAssessments[currentGoalIndex].goalId);
     }
   };
 
-  // Handle strategy selection
   const handleStrategySelection = (strategy: Strategy) => {
     if (currentGoalIndex === null || currentMilestoneIndex === null) return;
-
     const updatedAssessments = [...selectedPerformanceAssessments];
     const milestone = updatedAssessments[currentGoalIndex].milestones[currentMilestoneIndex];
     const currentStrategies = [...(milestone.strategies || [])];
-
-    // Check if strategy is already selected
     const strategyName = strategy.name;
     if (currentStrategies.includes(strategyName)) {
-      // Remove strategy if already selected
       const updatedStrategies = currentStrategies.filter(s => s !== strategyName);
       updatedAssessments[currentGoalIndex].milestones[currentMilestoneIndex].strategies = updatedStrategies;
     } else {
-      // Only add if we haven't reached the maximum of 5 strategies
       if (currentStrategies.length < 5) {
         updatedAssessments[currentGoalIndex].milestones[currentMilestoneIndex].strategies = [...currentStrategies, strategyName];
       }
     }
-
     form.setValue("performanceAssessments", updatedAssessments);
   };
 
-  // Handle removing a goal assessment
   const handleRemoveGoal = (index: number) => {
     const updatedAssessments = [...selectedPerformanceAssessments];
     updatedAssessments.splice(index, 1);
     form.setValue("performanceAssessments", updatedAssessments);
   };
 
-  // Handle removing a milestone assessment
   const handleRemoveMilestone = (goalIndex: number, milestoneIndex: number) => {
     const updatedAssessments = [...selectedPerformanceAssessments];
     const milestones = [...updatedAssessments[goalIndex].milestones];
@@ -953,11 +783,7 @@ export function IntegratedSessionForm({
     form.setValue("performanceAssessments", updatedAssessments);
   };
 
-  // Handle adding a product
   const handleAddProduct = (budgetItem: BudgetItem & { availableQuantity: number }, quantity: number) => {
-    console.log('handleAddProduct called with:', budgetItem, quantity);
-
-    // Ensure valid quantity
     if (!quantity || quantity <= 0 || quantity > budgetItem.availableQuantity) {
       toast({
         title: "Invalid quantity",
@@ -966,12 +792,9 @@ export function IntegratedSessionForm({
       });
       return;
     }
-
-    // Check if this product is already added
     const existingProductIndex = selectedProducts.findIndex(
       p => p.budgetItemId === budgetItem.id || p.productCode === budgetItem.itemCode
     );
-
     if (existingProductIndex >= 0) {
       toast({
         title: "Product already added",
@@ -980,8 +803,6 @@ export function IntegratedSessionForm({
       });
       return;
     }
-
-    // Add product to the form
     const product = {
       budgetItemId: budgetItem.id,
       productCode: budgetItem.itemCode,
@@ -990,19 +811,16 @@ export function IntegratedSessionForm({
       unitPrice: budgetItem.unitPrice,
       availableQuantity: budgetItem.availableQuantity
     };
-
     form.setValue("sessionNote.products", [...selectedProducts, product]);
     setProductSelectionOpen(false);
   };
 
-  // Handle removing a product
   const handleRemoveProduct = (index: number) => {
     const updatedProducts = [...selectedProducts];
     updatedProducts.splice(index, 1);
     form.setValue("sessionNote.products", updatedProducts);
   };
 
-// Product selection dialog component
 interface ProductSelectionDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -1019,11 +837,8 @@ const ProductSelectionDialog = ({
   const [selectedProduct, setSelectedProduct] = useState<(BudgetItem & { availableQuantity: number }) | null>(null);
   const [quantity, setQuantity] = useState(1);
 
-  // Clear selection when dialog opens with new products
   useEffect(() => {
     if (open) {
-      console.log("ProductSelectionDialog opened with products:", products);
-      // Reset selection state when dialog opens
       setSelectedProduct(null);
       setQuantity(1);
     }
@@ -1041,17 +856,12 @@ const ProductSelectionDialog = ({
   };
 
   const handleSelectProduct = (product: BudgetItem & { availableQuantity: number }) => {
-    console.log("Product selected:", product);
     setSelectedProduct(product);
-    setQuantity(1); // Reset quantity when selecting a new product
+    setQuantity(1);
   };
 
   const handleAddProduct = (e?: React.MouseEvent) => {
-    // Prevent event bubbling which might cause dialog to close prematurely
     if (e) e.stopPropagation();
-
-    console.log("Adding product:", selectedProduct, "quantity:", quantity);
-
     if (selectedProduct) {
       onSelectProduct(selectedProduct, quantity);
       setSelectedProduct(null);
@@ -1059,7 +869,6 @@ const ProductSelectionDialog = ({
     }
   };
 
-  // Format currency for display
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -1085,10 +894,9 @@ const ProductSelectionDialog = ({
             </div>
           ) : (
             <>
-              {/* Product selection */}
               <div className="max-h-[300px] overflow-y-auto border rounded-md">
                 <ScrollArea className="h-full pr-3">
-                  <div className="space-y-1 p-1">
+                  <div className="space-y-1 p-1"><div className="space-y-1 p-1">
                     {products.map(product => (
                       <div 
                         key={product.id} 
@@ -1152,7 +960,6 @@ const ProductSelectionDialog = ({
                               type="button"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                console.log('Add to Session button clicked');
                                 handleAddProduct();
                               }}
                               data-testid="add-to-session-btn"
@@ -1180,24 +987,17 @@ const ProductSelectionDialog = ({
   );
 };
 
-  // Create session and session note mutation
   const createSessionMutation = useMutation({
     mutationFn: async (data: IntegratedSessionFormValues) => {
-      // Step 1: Create the session
       const sessionResponse = await apiRequest("POST", "/api/sessions", data.session);
       const sessionData = sessionResponse as any;
-
-      // Step 2: Create the session note with the new session ID
       const noteData = {
         ...data.sessionNote,
         sessionId: sessionData.id,
         clientId: data.session.clientId
       };
-
       const noteResponse = await apiRequest("POST", `/api/sessions/${sessionData.id}/notes`, noteData);
       const noteResponseData = noteResponse as any;
-
-      // Step 3: Create performance assessments
       if (data.performanceAssessments.length > 0) {
         await Promise.all(
           data.performanceAssessments.map(assessment => 
@@ -1209,7 +1009,6 @@ const ProductSelectionDialog = ({
           )
         );
       }
-
       return sessionData;
     },
     onSuccess: () => {
@@ -1231,14 +1030,12 @@ const ProductSelectionDialog = ({
     },
   });
 
-  // Form submission handler
   function onSubmit(data: IntegratedSessionFormValues) {
     console.log("Form data:", data);
     console.log("Form errors:", form.formState.errors);
     createSessionMutation.mutate(data);
   }
 
-  // Handle navigation between tabs
   const handleNext = () => {
     if (activeTab === "details") setActiveTab("participants");
     else if (activeTab === "participants") setActiveTab("performance");
@@ -1249,22 +1046,20 @@ const ProductSelectionDialog = ({
     else if (activeTab === "participants") setActiveTab("details");
   };
 
-  // Return just the content without dialog wrapper if in full-screen mode
   if (isFullScreen) {
     return (
       <div className="w-full h-full flex flex-col px-6 py-4">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-grow flex flex-col overflow-hidden">
-          <TabsList className="grid grid-cols-2 mb-4">
+          <TabsList className="grid grid-cols-3 mb-4">
             <TabsTrigger value="details">Session Details & Observations</TabsTrigger>
             <TabsTrigger value="performance">Performance Assessment</TabsTrigger>
+            <TabsTrigger value="summary">Summary</TabsTrigger>
           </TabsList>
 
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 overflow-hidden flex flex-col flex-grow">
               <div className="flex-grow overflow-auto pr-2">
-                {/* Session Details Tab */}
                 <TabsContent value="details" className="space-y-6 mt-0 px-4">
-                  {/* Full-width top section for basic session info */}
                   <Card className="shadow-sm border-muted">
                     <CardHeader className="pb-2">
                       <CardTitle className="text-lg font-medium flex items-center">
@@ -1273,9 +1068,7 @@ const ProductSelectionDialog = ({
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
-                      {/* First row: Client, Location, Date & Time in a single row */}
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-2">
-                        {/* Client Selection - Searchable Combobox */}
                         <FormField
                           control={form.control}
                           name="session.clientId"
@@ -1287,24 +1080,11 @@ const ProductSelectionDialog = ({
                               </FormLabel>
                               <Select
                                 onValueChange={(value) => {
-                                  // Set the client ID
                                   const clientId = parseInt(value);
                                   field.onChange(clientId);
-
-                                  // Reset performance assessments when client changes
                                   form.setValue("performanceAssessments", []);
-
-                                  // Reset products when client changes
                                   form.setValue("sessionNote.products", []);
-
-                                  // Log when client changes to help debug
-                                  console.log('Client changed to:', clientId);
-                                  console.log('Initiating budget item fetch for client:', clientId);
-
-                                  // Manually trigger refetch of budget items and settings
                                   if (refetchBudgetItems && refetchBudgetSettings) {
-                                    console.log('Manually refetching budget data for client:', clientId);
-                                    // Use timeout to ensure components finish rendering first
                                     setTimeout(() => {
                                       refetchBudgetItems();
                                       refetchBudgetSettings();
@@ -1324,12 +1104,10 @@ const ProductSelectionDialog = ({
                                       placeholder="Search clients..."
                                       className="mb-2 h-8"
                                       onChange={(e) => {
-                                        // This will filter the client list in UI as user types
                                         const searchContainer = e.target.closest(".select-content");
                                         if (searchContainer) {
                                           const items = searchContainer.querySelectorAll(".select-item");
                                           const searchValue = e.target.value.toLowerCase();
-
                                           items.forEach(item => {
                                             const text = item.textContent?.toLowerCase() || "";
                                             if (text.includes(searchValue)) {
@@ -1360,7 +1138,6 @@ const ProductSelectionDialog = ({
                           )}
                     />
 
-                    {/* Location - with predefined list */}
                     <FormField
                       control={form.control}
                       name="session.location"
@@ -1395,26 +1172,18 @@ const ProductSelectionDialog = ({
                       )}
                     />
 
-                    {/* Session Date - Enhanced implementation to prevent calendar display issues */}
                     <FormField
                       control={form.control}
                       name="session.sessionDate"
                       render={({ field }) => {
-                        // Use a ref to detect if the popover is open
                         const [isCalendarOpen, setIsCalendarOpen] = React.useState(false);
-
-                        // Check for unwanted calendars when this component renders or updates
                         React.useEffect(() => {
-                          // Immediate check
                           hideUnwantedCalendars();
-
-                          // If calendar isn't explicitly opened by user, ensure it stays hidden
                           if (!isCalendarOpen) {
                             const checkTimer = setTimeout(hideUnwantedCalendars, 50);
                             return () => clearTimeout(checkTimer);
                           }
                         }, [isCalendarOpen]);
-
                         return (
                           <FormItem className="flex flex-col flex-1">
                             <FormLabel className="text-base">Date & Time</FormLabel>
@@ -1426,7 +1195,7 @@ const ProductSelectionDialog = ({
                                     className={`w-full h-10 pl-3 text-left font-normal ${
                                       !field.value ? "text-muted-foreground" : ""
                                     }`}
-                                    onClick={() => setIsCalendarOpen(true)} // Explicitly control open state
+                                    onClick={() => setIsCalendarOpen(true)}
                                   >
                                     {field.value ? (
                                       format(field.value, "PPP p")
@@ -1447,19 +1216,16 @@ const ProductSelectionDialog = ({
                                 onInteractOutside={() => setIsCalendarOpen(false)}
                               >
                                 <div className="bg-background border rounded-md overflow-hidden">
-                                  {isCalendarOpen && ( // Only render calendar when popover is explicitly open
+                                  {isCalendarOpen && (
                                     <Calendar
                                       mode="single"
                                       selected={field.value}
                                       onSelect={(date) => {
                                         if (date) {
-                                          // Preserve time portion from existing date or use current time
                                           const existingDate = field.value || new Date();
                                           date.setHours(existingDate.getHours());
                                           date.setMinutes(existingDate.getMinutes());
                                           field.onChange(date);
-
-                                          // Don't close yet - allow time selection
                                         }
                                       }}
                                       initialFocus
@@ -1492,7 +1258,6 @@ const ProductSelectionDialog = ({
                     </CardContent>
                   </Card>
 
-                  {/* Three-Column Layout */}
                   <ThreeColumnLayout
                     className="mt-6"
                     leftColumn={
@@ -1504,22 +1269,17 @@ const ProductSelectionDialog = ({
                               Present
                             </CardTitle>
 
-                            {/* Add New Attendee Button moved to header */}
                             <Button
                               variant="outline"
                               size="sm"
                               onClick={() => {
                                 console.log("New Attendee button clicked, allies:", allies);
-
                                 if (allies.length > 0) {
-                                  // Get current allies and filter to find available ones
                                   const currentAllies = form.getValues("sessionNote.presentAllies") || [];
                                   const availableAllies = allies.filter(ally => 
                                     !currentAllies.includes(ally.name)
                                   );
-
                                   if (availableAllies.length > 0) {
-                                    // Add the special marker to trigger the dialog
                                     form.setValue("sessionNote.presentAllies", [
                                       ...currentAllies, 
                                       "__select__"
@@ -1546,9 +1306,7 @@ const ProductSelectionDialog = ({
                           </div>
                         </CardHeader>
                         <CardContent className="space-y-2">
-                        {/* Selected Allies List */}
                         {form.watch("sessionNote.presentAllies")?.map((name, index) => {
-                          // Find the ally object to get relationship
                           const ally = allies.find(a => a.name === name);
                           return (
                             <div 
@@ -1569,17 +1327,12 @@ const ProductSelectionDialog = ({
                                   size="sm"
                                   className="h-8 w-8 p-0 rounded-full"
                                   onClick={() => {
-                                    // Get the allied ID by looking up in our allies array
                                     const allyToRemove = allies.find(a => a.name === name);
-
-                                    // Remove from the name display array
                                     const currentAllies = form.getValues("sessionNote.presentAllies") || [];
                                     form.setValue(
                                       "sessionNote.presentAllies", 
                                       currentAllies.filter(a => a !== name)
                                     );
-
-                                    // Also remove from the ID array if we found the ally
                                     if (allyToRemove) {
                                       const currentAllyIds = form.getValues("sessionNote.presentAllyIds") || [];
                                       form.setValue(
@@ -1598,8 +1351,6 @@ const ProductSelectionDialog = ({
                           );
                         })}
 
-                        {/* New Attendee button has been moved to the header */}
-
                         {(!form.watch("sessionNote.presentAllies") || 
                           form.watch("sessionNote.presentAllies").length === 0) && (
                           <div className="text-center py-4">
@@ -1609,12 +1360,10 @@ const ProductSelectionDialog = ({
                           </div>
                         )}
 
-                        {/* Ally Selection Dialog */}
                         <Dialog 
                           open={allies.length > 0 && form.getValues("sessionNote.presentAllies")?.includes("__select__")}
                           onOpenChange={(open) => {
                             if (!open) {
-                              // Remove the special marker if dialog is closed
                               const currentAllies = form.getValues("sessionNote.presentAllies") || [];
                               form.setValue(
                                 "sessionNote.presentAllies", 
@@ -1634,15 +1383,9 @@ const ProductSelectionDialog = ({
                               <Select
                                 onValueChange={(value) => {
                                   const currentAllies = form.getValues("sessionNote.presentAllies") || [];
-
-                                  // Parse the selected value to get the ally ID and name
                                   const [allyId, allyName] = value.split('|');
-                                  console.log(`Selected ally: ID=${allyId}, Name=${allyName}`);
-
-                                  // Check if ally is already in the list
                                   const currentAllyIds = form.getValues("sessionNote.presentAllyIds") || [];
                                   const allyIdNum = parseInt(allyId);
-
                                   if (currentAllies.includes(allyName) || currentAllyIds.includes(allyIdNum)) {
                                     toast({
                                       title: "Attendee already added",
@@ -1651,14 +1394,10 @@ const ProductSelectionDialog = ({
                                     });
                                     return;
                                   }
-
-                                  // Remove the selection marker and add the selected ally (just using the name for display)
                                   form.setValue(
                                     "sessionNote.presentAllies", 
                                     [...currentAllies.filter(a => a !== "__select__"), allyName]
                                   );
-
-                                  // Store the ally IDs separately for data integrity
                                   form.setValue(
                                     "sessionNote.presentAllyIds",
                                     [...currentAllyIds, allyIdNum]
@@ -1705,12 +1444,8 @@ const ProductSelectionDialog = ({
                                 onClick={() => {
                                   console.log('Opening product selection dialog');
                                   console.log('Available products:', availableProducts);
-
-                                  // In dev mode, create sample products if none are available
                                   if (import.meta.env.DEV && hasClientSelected && availableProducts.length === 0) {
                                     console.log('Creating sample products for development');
-
-                                    // Create sample products for development/testing
                                     const sampleProducts = [
                                       {
                                         id: 9001,
@@ -1739,24 +1474,15 @@ const ProductSelectionDialog = ({
                                         name: "Assessment Session"
                                       }
                                     ];
-
-                                    // Store in global window for use in the useMemo
                                     (window as any).__sampleProducts = sampleProducts;
-
-                                    // Update local state to track sample products
                                     setHasSampleProducts(true);
-
-                                    // Show a toast notification
                                     toast({
                                       title: "Sample Products Added",
                                       description: "Sample products have been added for this session."
                                     });
                                   }
-
-                                  // Delay slightly to avoid React state issues
                                   setTimeout(() => {
                                     setProductSelectionOpen(true);
-                                    console.log('Product selection dialog should be open now');
                                   }, 50);
                                 }}
                                 disabled={!availableProducts.length && !hasSampleProducts && !hasClientSelected}
@@ -1769,7 +1495,6 @@ const ProductSelectionDialog = ({
                         </CardHeader>
 
                         <CardContent className="pb-4">
-                          {/* Product Selection Dialog */}
                           <ProductSelectionDialog
                             open={productSelectionOpen}
                             onOpenChange={setProductSelectionOpen}
@@ -1777,7 +1502,6 @@ const ProductSelectionDialog = ({
                             onSelectProduct={handleAddProduct}
                           />
 
-                          {/* Selected Products List */}
                           {selectedProducts.length === 0 ? (
                             <div className="bg-muted/20 rounded-lg p-4 text-center">
                               <p className="text-muted-foreground">No products added to this session</p>
@@ -1786,7 +1510,6 @@ const ProductSelectionDialog = ({
                             <div className="bg-muted/20 rounded-lg p-4 space-y-2">
                               {selectedProducts.map((product, index) => {
                                 const totalPrice = product.quantity * product.unitPrice;
-
                                 return (
                                   <div 
                                     key={index} 
@@ -1797,8 +1520,6 @@ const ProductSelectionDialog = ({
                                       <div className="text-sm text-muted-foreground">
                                         Code: {product.productCode}
                                       </div>
-
-                                      {/* Availability Visualization */}
                                       <div className="mt-1">
                                         <div className="flex items-center text-xs">
                                           <span className="text-muted-foreground mr-2">Availability:</span>
@@ -1819,7 +1540,6 @@ const ProductSelectionDialog = ({
                                     </div>
 
                                     <div className="flex items-center gap-3">
-                                      {/* Quantity Controls */}
                                       <div className="flex items-center border rounded-md mr-2">
                                         <Button 
                                           type="button" 
@@ -1899,7 +1619,6 @@ const ProductSelectionDialog = ({
                                 );
                               })}
 
-                              {/* Total Value */}
                               <div className="pt-3 mt-2 border-t flex justify-between items-center">
                                 <span className="font-medium">Total Value:</span>
                                 <span className="font-bold">
@@ -1921,618 +1640,150 @@ const ProductSelectionDialog = ({
                     }
 
                     rightColumn={
-                      <Card className="shadow-sm hover:shadow-md transition-all duration-200 h-full">
-                        <CardHeader className="pb-2">
-                          <CardTitle className="text-base">
-                            <ClipboardList className="h-5 w-5 inline-block mr-2" />
-                            Session Observations
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent className="pb-4">
-
-                        {/* Rating Sliders */}
-                        <div className="space-y-4">
-                          <FormField
-                            control={form.control}
-                            name="sessionNote.moodRating"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormControl>
-                                  <RatingSlider
-                                    value={field.value}
-                                    onChange={field.onChange}
-                                    label="Mood"
-                                    description="Rate client's overall mood during the session"
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-
-                          <FormField
-                            control={form.control}
-                            name="sessionNote.focusRating"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormControl>
-                                  <RatingSlider
-                                    value={field.value}
-                                    onChange={field.onChange}
-                                    label="Focus"
-                                    description="Rate client's ability to focus during the session"
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-
-                          <FormField
-                            control={form.control}
-                            name="sessionNote.cooperationRating"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormControl>
-                                  <RatingSlider
-                                    value={field.value}
-                                    onChange={field.onChange}
-                                    label="Cooperation"
-                                    description="Rate client's overall cooperation"
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-
-                          <FormField
-                            control={form.control}
-                            name="sessionNote.physicalActivityRating"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormControl>
-                                  <RatingSlider
-                                    value={field.value}
-                                    onChange={field.onChange}
-                                    label="Physical Activity"
-                                    description="Rate client's physical activity level"
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                        </div>
-
-                        {/* General Notes moved to Performance Assessment tab */}
-                        </CardContent>
-                      </Card>
+                      <div className="hidden lg:block space-y-6 p-2">
+                      </div>
                     }
                   />
                 </TabsContent>
 
-                {/* Performance Assessment Tab */}
-                <TabsContent value="performance" className="space-y-4 mt-0 px-2">
-                  {/* Two-column layout: 2/3 goals, 1/3 general notes */}
-                  <div className="flex flex-col md:flex-row gap-4">
-                    {/* Left column (2/3) - Goals section */}
-                    <div className="md:w-2/3">
-                      {/* Header aligned with content below */}
-                      <div className="flex justify-between items-center w-full mb-4">
-                        <h3 className="section-header">
-                          <RefreshCw className="h-5 w-5" />
-                          Performance Assessment
-                        </h3>
-                        <Button 
-                          type="button" 
-                          onClick={() => setGoalSelectionOpen(true)}
-                          disabled={!clientId}
-                        >
-                          <Plus className="h-4 w-4 mr-2" />
-                          Add Goal
-                        </Button>
-                      </div>
-                      {/* Goal Selection Dialog */}
-                      <GoalSelectionDialog
-                        open={goalSelectionOpen}
-                        onOpenChange={setGoalSelectionOpen}
-                        goals={goals}
-                        selectedGoalIds={selectedGoalIds}
-                        onSelectGoal={handleGoalSelection}
-                      />
+                <TabsContent value="summary" className="mt-0 px-4 overflow-auto">
+                  <div className="space-y-6 p-4 max-w-3xl mx-auto">
+                    <Card>
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-lg">Session Summary</CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-2 text-sm">
+                        <div className="grid grid-cols-[120px_1fr] gap-1">
+                          <div className="text-muted-foreground">Client:</div>
+                          <div>{selectedClient ? selectedClient.name : 'Not selected'}</div>
 
-                      {/* Selected Goals and Milestones */}
-                      {selectedPerformanceAssessments.length === 0 ? (
-                        <div className="border rounded-md p-6 text-center bg-muted/10">
-                          <p className="text-muted-foreground">
-                            No goals selected yet. Click "Add Goal" to start assessment.
-                          </p>
+                          <div className="text-muted-foreground">Date:</div>
+                          <div>{form.watch('session.date') ? format(form.watch('session.date'), 'MMM dd, yyyy') : 'Not set'}</div>
+
+                          <div className="text-muted-foreground">Duration:</div>
+                          <div>{form.watch('session.duration') || 60} minutes</div>
+
+                          <div className="text-muted-foreground">Location:</div>
+                          <div>{form.watch('session.location')}</div>
+
+                          <div className="text-muted-foreground">Status:</div>
+                          <div>{form.watch('session.status') || 'scheduled'}</div>
                         </div>
-                      ) : (
-                        <div className="space-y-6">
-                          {selectedPerformanceAssessments.map((assessment, goalIndex) => {
-                            const goal = goals.find(g => g.id === assessment.goalId);
-                            const goalSubgoals = subgoalsByGoalId[assessment.goalId] || [];
-                            const selectedMilestoneIds = getSelectedMilestoneIds(assessment.goalId);
+                      </CardContent>
+                    </Card>
 
-                            return (
-                              <Card key={assessment.goalId} className="overflow-hidden">
-                                <CardHeader className="bg-primary/10 pb-3">
-                                  <div className="flex justify-between items-start">
-                                    <CardTitle className="text-base">
-                                      {goal?.title || assessment.goalTitle}
-                                    </CardTitle>
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      onClick={() => handleRemoveGoal(goalIndex)}
-                                    >
-                                      <X className="h-4 w-4" />
-                                    </Button>
-                                  </div>
-                                  <CardDescription>
-                                    {goal?.description}
-                                  </CardDescription>
-                                </CardHeader>
-
-                                <CardContent className="pt-4">
-                                  {/* Goal Notes section removed as requested */}
-
-                                  {/* Milestone Section */}
-                                  <div className="mt-4">
-                                    <div className="flex justify-between items-center mb-3">
-                                      <Button
-                                        type="button"
-                                        size="sm"
-                                        variant="outline"
-                                        onClick={() => {
-                                          setCurrentGoalIndex(goalIndex);
-                                          setMilestoneSelectionOpen(true);
-                                          setSelectedGoalId(assessment.goalId);
-                                        }}
-                                      >
-                                        <Plus className="h-3 w-3 mr-1" />
-                                        Add Milestone
-                                      </Button>
-                                    </div>
-
-                                    {/* Milestone Selection Dialog */}
-                                    {currentGoalIndex === goalIndex && (
-                                      <MilestoneSelectionDialog
-                                        open={milestoneSelectionOpen}
-                                        onOpenChange={setMilestoneSelectionOpen}
-                                        subgoals={goalSubgoals}
-                                        selectedMilestoneIds={selectedMilestoneIds}
-                                        onSelectMilestone={handleMilestoneSelection}
-                                      />
-                                    )}
-
-                                    {/* Selected Milestones */}
-                                    {assessment.milestones.length === 0 ? (
-                                      <div className="border rounded-md p-3 text-center bg-muted/10">
-                                        <p className="text-sm text-muted-foreground">
-                                          No milestones selected yet. Click "Add Milestone" to assess progress.
-                                        </p>
-                                      </div>
-                                    ) : (
-                                      <div className="space-y-4">
-                                        {assessment.milestones.map((milestone, milestoneIndex) => {
-                                          const subgoal = goalSubgoals.find(s => s.id === milestone.milestoneId);
-
-                                          return (
-                                            <div 
-                                              key={milestone.milestoneId} 
-                                              className="border rounded-md p-4 space-y-3"
-                                            >
-                                              <FormField
-                                                control={form.control}
-                                                name={`performanceAssessments.${goalIndex}.milestones.${milestoneIndex}.rating`}
-                                                render={({ field }) => {
-                                                  // Generate badge color class based on rating value
-                                                  const getRatingColorClass = () => {
-                                                    const value = field.value !== undefined ? field.value : 5;
-                                                    if (value <= 3) return 'text-red-700';
-                                                    if (value <= 6) return 'text-amber-700';
-                                                    return 'text-green-700';
-                                                  };
-
-                                                  return (
-                                                    <div className="flex justify-between items-start">
-                                                      <div>
-                                                        <h5 className="font-medium">
-                                                          {subgoal?.title || milestone.milestoneTitle}
-                                                          <span className={`ml-2 ${getRatingColorClass()}`}>
-                                                            - Score {field.value !== undefined ? field.value : 5}
-                                                          </span>
-                                                        </h5>
-                                                        <p className="text-sm text-muted-foreground mt-1">
-                                                          {subgoal?.description}
-                                                        </p>
-                                                      </div>
-                                                      <Button
-                                                        variant="ghost"
-                                                        size="icon"
-                                                        onClick={() => handleRemoveMilestone(goalIndex, milestoneIndex)}
-                                                      >
-                                                        <X className="h-4 w-4" />
-                                                      </Button>
-                                                    </div>
-                                                  );
-                                                }}
-                                              />
-
-                                              {/* Milestone Rating Slider (no labels) */}
-                                              <FormField
-                                                control={form.control}
-                                                name={`performanceAssessments.${goalIndex}.milestones.${milestoneIndex}.rating`}
-                                                render={({ field }) => {
-                                                  // Get range class for the slider
-                                                  const getRangeClass = () => {
-                                                    const value = field.value !== undefined ? field.value : 5;
-                                                    if (value <= 3) return 'range-low';
-                                                    if (value <= 6) return 'range-mid';
-                                                    return 'range-high';
-                                                  };
-
-                                                  return (
-                                                    <FormItem>
-                                                      <FormControl>
-                                                        <div className="px-1 py-2">
-                                                          <Slider
-                                                            value={[field.value !== undefined ? field.value : 5]}
-                                                            min={0}
-                                                            max={10}
-                                                            step={1}
-                                                            onValueChange={(vals) => field.onChange(vals[0])}
-                                                            className={`py-2 rating-slider color-slider ${getRangeClass()}`}
-                                                          />
-                                                        </div>
-                                                      </FormControl>
-                                                      <FormMessage />
-                                                    </FormItem>
-                                                  );
-                                                }}
-                                              />
-
-                                              {/* Strategies Used */}
-                                              <FormField
-                                                control={form.control}
-                                                name={`performanceAssessments.${goalIndex}.milestones.${milestoneIndex}.strategies`}
-                                                render={({ field }) => (
-                                                  <FormItem>
-                                                    <div className="flex justify-between items-center">
-                                                      <FormLabel>Strategies Used</FormLabel>
-                                                      <Button 
-                                                        type="button" 
-                                                        variant="outline" 
-                                                        size="sm"
-                                                        className="h-8 px-2 text-xs"
-                                                        onClick={() => {
-                                                          setCurrentGoalIndex(goalIndex);
-                                                          setCurrentMilestoneIndex(milestoneIndex);
-                                                          setStrategySelectionOpen(true);
-                                                        }}
-                                                      >
-                                                        <Plus className="h-3.5 w-3.5 mr-1" />
-                                                        <span>Select Strategies</span>
-                                                      </Button>
-                                                    </div>
-
-                                                    <div className="flex flex-wrap gap-2 mt-2">
-                                                      {field.value && field.value.length > 0 ? (
-                                                        field.value.map((strategy: string) => (
-                                                          <Badge
-                                                            key={strategy}
-                                                            variant="default"
-                                                            className="cursor-pointer"
-                                                            onClick={() => {
-                                                              field.onChange(field.value.filter((s: string) => s !== strategy));
-                                                            }}
-                                                          >
-                                                            {strategy}
-                                                            <X className="h-3 w-3 ml-1" />
-                                                          </Badge>
-                                                        ))
-                                                      ) : (
-                                                        <div className="text-sm text-muted-foreground italic">
-                                                          No strategies selected
-                                                        </div>
-                                                      )}
-                                                    </div>
-                                                    <p className="text-xs text-muted-foreground mt-1">
-                                                      Max 5 strategies per milestone 
-                                                      {field.value && field.value.length > 0 && ` (${field.value.length}/5 selected)`}
-                                                    </p>
-                                                    <FormMessage />
-                                                  </FormItem>
-                                                )}
-                                              />
-                                            </div>
-                                          );
-                                        })}
-                                      </div>
-                                    )}
-                                  </div>
-                                </CardContent>
-                              </Card>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Right column (1/3) - General Notes section */}
-                    <div className="md:w-1/3">
-                      {/* Rating sliders will go here */}
-                    </div>
-                  </div>
-                </TabsContent>
-              </div>
-
-              {/* Footer with navigation and submit buttons */}
-              <div className="pt-2 border-t flex justify-between items-center">
-                <div className="flex items-center">
-                  {activeTab !== "details" && (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={handleBack}
-                      className="mr-2"
-                    >
-                      <ChevronLeft className="h-4 w-4 mr-1" />
-                      Back
-                    </Button>
-                  )}
-                  {activeTab !== "performance" && (
-                    <Button
-                      type="button"
-                      onClick={handleNext}
-                      variant="ghost"
-                    >
-                      Next
-                      <ChevronRight className="h-4 w-4 ml-1" />
-                    </Button>
-                  )}
-                </div>
-
-                <div className="flex items-center space-x-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => onOpenChange(false)}
-                  >
-                    Cancel
-                  </Button>
-                  {activeTab === "performance" && (
-                    <Button 
-                      type="submit"
-                      disabled={createSessionMutation.isPending}
-                    >
-                      {createSessionMutation.isPending ? "Creating..." : "Create Session"}
-                    </Button>
-                  )}
-                </div>
-              </div>
-            </form>
-          </Form>
-        </Tabs>
-
-        {/* Strategy selection dialog */}
-        <StrategySelectionDialog
-          open={strategySelectionOpen}
-          onOpenChange={setStrategySelectionOpen}
-          selectedStrategies={
-            currentGoalIndex !== null && currentMilestoneIndex !== null
-              ? form.getValues(`performanceAssessments.${currentGoalIndex}.milestones.${currentMilestoneIndex}.strategies`) || []
-              : []
-          }
-          milestoneId={
-            currentGoalIndex !== null && currentMilestoneIndex !== null
-              ? form.getValues(`performanceAssessments.${currentGoalIndex}.milestones.${currentMilestoneIndex}.milestoneId`)
-              : 0
-          }
-          onSelectStrategy={handleStrategySelection}
-          maxStrategies={5}
-        />
-      </div>
-    );
-  }
-
-  // Return the dialog version if not in full-screen mode
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[800px] max-h-[90vh] flex flex-col">
-        <DialogHeader>
-          <DialogTitle>Create Session</DialogTitle>
-          <DialogDescription>
-            Track a therapy session and record progress
-          </DialogDescription>
-        </DialogHeader>
-
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-grow flex flex-col overflow-hidden">
-          <TabsList className="grid grid-cols-2 mb-4">
-            <TabsTrigger value="details">Session Details & Observations</TabsTrigger>
-            <TabsTrigger value="performance">Performance Assessment</TabsTrigger>
-          </TabsList>
-
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 overflow-hidden flex flex-col flex-grow">
-              <div className="flex-grow overflow-auto pr-2">
-                {/* Reuse the same tab content from the full-screen version */}
-                <TabsContent value="details" className="space-y-6 mt-0 px-4">
-                  {/* Three-column layout implementation for Session Details */}
-                  <ThreeColumnLayout
-                    leftColumn={
-                      <Card className="shadow-sm border-primary/10 overflow-hidden h-full">
-                        <CardHeader className="bg-primary/5 pb-3 border-b border-primary/10">
-                          <CardTitle className="text-md flex items-center">
-                            <UserCheck className="h-4 w-4 mr-2 text-primary/70" />
-                            Present in Session
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent className="p-4">
-                          <FormField
-                            control={form.control}
-                            name="sessionNote.presentAllies"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel className="text-primary/70">Attendees</FormLabel>
-                                <FormControl>
-                                  <Textarea 
-                                    placeholder="Who was present at the session..."
-                                    className="resize-none min-h-24 border-primary/10 focus:border-primary/30"
-                                    {...field}
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                        </CardContent>
-                      </Card>
-                    }
-                    middleColumn={
-                      <Card className="shadow-sm border-2 border-primary/20 overflow-hidden h-full">
-                        <CardHeader className="bg-primary/5 pb-3 border-b border-primary/10">
-                          <CardTitle className="text-md flex items-center">
-                            <Package className="h-4 w-4 mr-2 text-primary/70" />
-                            Products Used
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent className="p-4">
-                          {selectedProducts.length === 0 ? (
-                            <div className="border border-primary/10 rounded-lg p-4 text-center text-muted-foreground bg-muted/5">
-                              No products selected
-                            </div>
-                          ) : (
-                            <div className="space-y-3">
-                              {selectedProducts.map((product, index) => (
-                                <div key={index} className="flex items-center justify-between border border-primary/10 rounded-lg p-3 shadow-sm">
-                                  <div>
-                                    <p className="font-medium">{product.productDescription || product.productCode}</p>
-                                    <p className="text-sm text-muted-foreground">{product.quantity} × ${product.unitPrice.toFixed(2)}</p>
-                                  </div>
-                                  <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={() => removeProduct(index)}
-                                    className="h-8 w-8"
-                                  >
-                                    <X className="h-4 w-4 text-primary/70" />
-                                  </Button>
-                                </div>
+                    <Card className="mt-6">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-lg">Session Ratings</CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-2">
+                        <div className="space-y-1">
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm text-muted-foreground">Mood & Engagement:</span>
+                            <div className="flex items-center">
+                              {Array.from({length: 5}).map((_, i) => (
+                                <StarIcon 
+                                  key={i} 
+                                  className={cn(
+                                    "h-4 w-4",
+                                    i < (form.watch('assessment.moodRating') || 0) ? "text-yellow-500 fill-yellow-500" : "text-muted-foreground"
+                                  )}
+                                />
                               ))}
                             </div>
-                          )}
-                          <Button
-                            type="button"
-                            variant="outline"
-                            onClick={() => setProductSelectionOpen(true)}
-                            className="w-full mt-4 border-primary/20 hover:bg-primary/5"
-                            disabled={!clientId || (!availableProducts?.length)}
-                          >
-                            <Plus className="h-4 w-4 mr-2 text-primary/70" />
-                            Add Product
-                          </Button>
-                        </CardContent>
-                      </Card>
-                    }
-                    rightColumn={
-                      <Card className="shadow-sm border-primary/10 overflow-hidden h-full">
-                        <CardHeader className="bg-primary/5 pb-3 border-b border-primary/10">
-                          <CardTitle className="text-md flex items-center">
-                            <BarChart className="h-4 w-4 mr-2 text-primary/70" />
-                            Session Observations
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent className="p-4">
-                          <div className="space-y-4">
-                            <FormField
-                              control={form.control}
-                              name="sessionNote.moodRating"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormControl>
-                                    <RatingSlider
-                                      value={field.value}
-                                      onChange={field.onChange}
-                                      label="Mood"
-                                      description="Rate client's overall mood during the session"
-                                    />
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-
-                            <FormField
-                              control={form.control}
-                              name="sessionNote.focusRating"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormControl>
-                                    <RatingSlider
-                                      value={field.value}
-                                      onChange={field.onChange}
-                                      label="Focus"
-                                      description="Rate client's ability to focus during the session"
-                                    />
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-
-                            <FormField
-                              control={form.control}
-                              name="sessionNote.cooperationRating"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormControl>
-                                    <RatingSlider
-                                      value={field.value}
-                                      onChange={field.onChange}
-                                      label="Cooperation"
-                                      description="Rate client's overall cooperation"
-                                    />
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-
-                            <FormField
-                              control={form.control}
-                              name="sessionNote.physicalActivityRating"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormControl>
-                                    <RatingSlider
-                                      value={field.value}
-                                      onChange={field.onChange}
-                                      label="Physical Activity"
-                                      description="Rate client's physical activity level"
-                                    />
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
                           </div>
-                        </CardContent>
-                      </Card>
-                    }
-                  />
+
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm text-muted-foreground">Focus & Attention:</span>
+                            <div className="flex items-center">
+                              {Array.from({length: 5}).map((_, i) => (
+                                <StarIcon 
+                                  key={i} 
+                                  className={cn(
+                                    "h-4 w-4",
+                                    i < (form.watch('assessment.focusRating') || 0) ? "text-yellow-500 fill-yellow-500" : "text-muted-foreground"
+                                  )}
+                                />
+                              ))}
+                            </div>
+                          </div>
+
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm text-muted-foreground">Cooperation:</span>
+                            <div className="flex items-center">
+                              {Array.from({length: 5}).map((_, i) => (
+                                <StarIcon 
+                                  key={i} 
+                                  className={cn(
+                                    "h-4 w-4",
+                                    i<i < (form.watch('assessment.cooperationRating') || 0) ? "text-yellow-500 fill-yellow-500" : "text-muted-foreground"
+                                  )}
+                                />
+                              ))}
+                            </div>
+                          </div>
+
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm text-muted-foreground">Physical Activity:</span>
+                            <div className="flex items-center">
+                              {Array.from({length: 5}).map((_, i) => (
+                                <StarIcon 
+                                  key={i} 
+                                  className={cn(
+                                    "h-4 w-4",
+                                    i < (form.watch('assessment.physicalRating') || 0) ? "text-yellow-500 fill-yellow-500" : "text-muted-foreground"
+                                  )}
+                                />
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    <Card className="mt-6">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-lg">Attendees</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        {form.watch('session.attendees')?.length > 0 ? (
+                          <div className="space-y-1">
+                            {form.watch('session.attendees')?.map((attendee: any, index: number) => (
+                              <div key={index} className="text-sm">
+                                {attendee.name} <span className="text-muted-foreground">({attendee.role})</span>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="text-sm text-muted-foreground">No attendees added</div>
+                        )}
+                      </CardContent>
+                    </Card>
+
+                    <Card className="mt-6">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-lg">Products</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        {form.watch('session.products')?.length > 0 ? (
+                          <div className="space-y-1">
+                            {form.watch('session.products')?.map((product: any, index: number) => (
+                              <div key={index} className="text-sm">
+                                {product.name} <span className="text-muted-foreground">({product.quantity})</span>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="text-sm text-muted-foreground">No products added</div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  </div>
                 </TabsContent>
 
-                <TabsContent value="performance" className="space-y-4 mt-0 px-2">
-                  {/* Two-column layout: 2/3 goals, 1/3 general notes */}
+                <TabsContent value="performance" className="mt-0 px-4 overflow-auto">
                   <div className="flex flex-col md:flex-row gap-4">
-                    {/* Left column (2/3) - Goals section */}
                     <div className="md:w-2/3">
-                      {/* Header aligned with content below */}
                       <div className="flex justify-between items-center w-full mb-4">
                         <h3 className="section-header">
                           <RefreshCw className="h-5 w-5" />
@@ -2547,7 +1798,6 @@ const ProductSelectionDialog = ({
                           Add Goal
                         </Button>
                       </div>
-                      {/* Goal Selection Dialog */}
                       <GoalSelectionDialog
                         open={goalSelectionOpen}
                         onOpenChange={setGoalSelectionOpen}
@@ -2556,7 +1806,6 @@ const ProductSelectionDialog = ({
                         onSelectGoal={handleGoalSelection}
                       />
 
-                      {/* Selected Goals and Milestones */}
                       {selectedPerformanceAssessments.length === 0 ? (
                         <div className="border rounded-md p-6 text-center bg-muted/10">
                           <p className="text-muted-foreground">
@@ -2591,9 +1840,6 @@ const ProductSelectionDialog = ({
                                 </CardHeader>
 
                                 <CardContent className="pt-4">
-                                  {/* Goal Notes section removed as requested */}
-
-                                  {/* Milestone Section */}
                                   <div className="mt-4">
                                     <div className="flex justify-between items-center mb-3">
                                       <Button
@@ -2611,7 +1857,6 @@ const ProductSelectionDialog = ({
                                       </Button>
                                     </div>
 
-                                    {/* Milestone Selection Dialog */}
                                     {currentGoalIndex === goalIndex && (
                                       <MilestoneSelectionDialog
                                         open={milestoneSelectionOpen}
@@ -2622,7 +1867,6 @@ const ProductSelectionDialog = ({
                                       />
                                     )}
 
-                                    {/* Selected Milestones */}
                                     {assessment.milestones.length === 0 ? (
                                       <div className="border rounded-md p-3 text-center bg-muted/10">
                                         <p className="text-sm text-muted-foreground">
@@ -2643,7 +1887,6 @@ const ProductSelectionDialog = ({
                                                 control={form.control}
                                                 name={`performanceAssessments.${goalIndex}.milestones.${milestoneIndex}.rating`}
                                                 render={({ field }) => {
-                                                  // Generate badge color class based on rating value
                                                   const getRatingColorClass = () => {
                                                     const value = field.value !== undefined ? field.value : 5;
                                                     if (value <= 3) return 'text-red-700';
@@ -2676,12 +1919,10 @@ const ProductSelectionDialog = ({
                                                 }}
                                               />
 
-                                              {/* Milestone Rating Slider (no labels) */}
                                               <FormField
                                                 control={form.control}
                                                 name={`performanceAssessments.${goalIndex}.milestones.${milestoneIndex}.rating`}
                                                 render={({ field }) => {
-                                                  // Get range class for the slider
                                                   const getRangeClass = () => {
                                                     const value = field.value !== undefined ? field.value : 5;
                                                     if (value <= 3) return 'range-low';
@@ -2709,7 +1950,6 @@ const ProductSelectionDialog = ({
                                                 }}
                                               />
 
-                                              {/* Strategies Used */}
                                               <FormField
                                                 control={form.control}
                                                 name={`performanceAssessments.${goalIndex}.milestones.${milestoneIndex}.strategies`}
@@ -2776,7 +2016,6 @@ const ProductSelectionDialog = ({
                       )}
                     </div>
 
-                    {/* Right column (1/3) - General Notes section */}
                     <div className="md:w-1/3">
                       <div className="space-y-4">
                         <FormField
@@ -2802,7 +2041,6 @@ const ProductSelectionDialog = ({
                 </TabsContent>
               </div>
 
-              {/* Footer with navigation and submit buttons */}
               <div className="pt-2 border-t flex justify-between items-center">
                 <div className="flex items-center">
                   {activeTab !== "details" && (
@@ -2850,7 +2088,6 @@ const ProductSelectionDialog = ({
           </Form>
         </Tabs>
 
-        {/* Strategy selection dialog */}
         <StrategySelectionDialog
           open={strategySelectionOpen}
           onOpenChange={setStrategySelectionOpen}

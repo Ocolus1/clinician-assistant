@@ -56,12 +56,13 @@ export function IntegratedSessionFormRefactored({
                   onValueChange={setActiveTab}
                   className="flex-1 flex flex-col session-form-tabs"
                 >
-                  <TabsList className="grid grid-cols-3 md:grid-cols-5 mb-4 overflow-x-auto flex-wrap">
+                  <TabsList className="grid grid-cols-3 md:grid-cols-6 mb-4 overflow-x-auto flex-wrap">
                     <TabsTrigger value="details">Details</TabsTrigger>
                     <TabsTrigger value="present">Present</TabsTrigger>
                     <TabsTrigger value="goals">Goals</TabsTrigger>
                     <TabsTrigger value="products">Products</TabsTrigger>
                     <TabsTrigger value="notes">Notes</TabsTrigger>
+                    <TabsTrigger value="summary">Summary</TabsTrigger>
                   </TabsList>
                   
                   <div className="overflow-auto flex-1 scrollable-content session-form-content">
