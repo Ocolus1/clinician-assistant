@@ -1256,7 +1256,67 @@ export function FullScreenSessionForm({
 
                   rightColumn={
                     <div className="p-4 space-y-6">
-                      {/* Right column is now empty as requested */}
+                      <Card>
+                        <CardHeader className="pb-2">
+                          <CardTitle className="text-lg">Session Rating</CardTitle>
+                          <CardDescription>
+                            Rate the client's performance during this session
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-6">
+                          <FormField
+                            control={form.control}
+                            name="sessionNote.moodRating"
+                            render={({ field }) => (
+                              <RatingSlider
+                                label="Mood & Engagement"
+                                value={field.value}
+                                onChange={field.onChange}
+                                description="How positive and engaged was the client during the session?"
+                              />
+                            )}
+                          />
+
+                          <FormField
+                            control={form.control}
+                            name="sessionNote.focusRating"
+                            render={({ field }) => (
+                              <RatingSlider
+                                label="Focus & Attention"
+                                value={field.value}
+                                onChange={field.onChange}
+                                description="How well did the client maintain focus during activities?"
+                              />
+                            )}
+                          />
+
+                          <FormField
+                            control={form.control}
+                            name="sessionNote.cooperationRating"
+                            render={({ field }) => (
+                              <RatingSlider
+                                label="Cooperation"
+                                value={field.value}
+                                onChange={field.onChange}
+                                description="How well did the client follow instructions and cooperate?"
+                              />
+                            )}
+                          />
+
+                          <FormField
+                            control={form.control}
+                            name="sessionNote.physicalActivityRating"
+                            render={({ field }) => (
+                              <RatingSlider
+                                label="Physical Activity"
+                                value={field.value}
+                                onChange={field.onChange}
+                                description="How well did the client perform physical activities?"
+                              />
+                            )}
+                          />
+                        </CardContent>
+                      </Card>
                     </div>
                   }
                 />
