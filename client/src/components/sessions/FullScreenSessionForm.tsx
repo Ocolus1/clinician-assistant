@@ -15,6 +15,7 @@ import {
   Minus,
   ShoppingCart,
   RefreshCw,
+  Trash2,
   User as UserIcon,
   MapPin as MapPinIcon,
   ClipboardList,
@@ -1397,28 +1398,85 @@ export function FullScreenSessionForm({
                           {form.watch("sessionNote.products")?.length > 0 ? (
                             <div className="space-y-2">
                               {form.watch("sessionNote.products").map((product, index) => (
-                                <div key={index} className="flex justify-between bg-accent rounded-md p-2">
-                                  <div>
-                                    <p className="font-medium text-sm">{product.productDescription}</p>
-                                    <p className="text-xs text-muted-foreground">Code: {product.productCode}</p>
-                                  </div>
-                                  <div className="text-right">
-                                    <p className="text-sm font-medium">{product.quantity} x ${product.unitPrice.toFixed(2)}</p>
-                                    <div className="flex items-center mt-1">
-                                      <p className="text-xs text-muted-foreground mr-2">
-                                        ${(product.quantity * product.unitPrice).toFixed(2)}
+                                <Card key={index} className="overflow-hidden border-accent-foreground/20">
+                                  <div className="p-3 grid grid-cols-[1fr,auto] gap-4">
+                                    <div>
+                                      <p className="font-medium text-sm">{product.productDescription}</p>
+                                      <p className="text-xs text-muted-foreground">Code: {product.productCode}</p>
+                                    </div>
+                                    <div className="text-right">
+                                      <p className="text-sm font-medium">${product.unitPrice.toFixed(2)} each</p>
+                                      <p className="text-xs text-muted-foreground">
+                                        Total: ${(product.quantity * product.unitPrice).toFixed(2)}
                                       </p>
-                                      <Button 
-                                        variant="ghost" 
-                                        size="icon" 
-                                        className="h-6 w-6" 
-                                        onClick={() => removeProduct(index)}
-                                      >
-                                        <X className="h-3 w-3" />
-                                      </Button>
                                     </div>
                                   </div>
-                                </div>
+                                  
+                                  <div className="bg-muted/30 px-3 py-2 flex items-center justify-between border-t">
+                                    <div className="flex items-center">
+                                      <span className="text-sm font-medium mr-2">Quantity:</span>
+                                      <div className="flex items-center">
+                                        <Button
+                                          type="button"
+                                          variant="outline"
+                                          size="icon"
+                                          className="h-7 w-7 rounded-r-none"
+                                          onClick={() => {
+                                            const products = form.getValues("sessionNote.products");
+                                            if (products[index].quantity > 1) {
+                                              const updatedProducts = [...products];
+                                              updatedProducts[index].quantity -= 1;
+                                              form.setValue("sessionNote.products", updatedProducts);
+                                            }
+                                          }}
+                                          disabled={product.quantity <= 1}
+                                        >
+                                          <Minus className="h-3 w-3" />
+                                        </Button>
+                                        <span className="px-3 h-7 flex items-center justify-center border-y bg-background">
+                                          {product.quantity}
+                                        </span>
+                                        <Button
+                                          type="button"
+                                          variant="outline"
+                                          size="icon"
+                                          className="h-7 w-7 rounded-l-none"
+                                          onClick={() => {
+                                            const products = form.getValues("sessionNote.products");
+                                            const originalProduct = availableProducts.find(p => p.id === product.budgetItemId);
+                                            
+                                            // Calculate max available quantity
+                                            const maxQty = originalProduct ? 
+                                              originalProduct.quantity + product.quantity : product.quantity;
+                                            
+                                            if (product.quantity < maxQty) {
+                                              const updatedProducts = [...products];
+                                              updatedProducts[index].quantity += 1;
+                                              form.setValue("sessionNote.products", updatedProducts);
+                                            } else {
+                                              toast({
+                                                title: "Maximum quantity reached",
+                                                description: `Only ${maxQty} units available for this product`,
+                                                variant: "destructive"
+                                              });
+                                            }
+                                          }}
+                                        >
+                                          <Plus className="h-3 w-3" />
+                                        </Button>
+                                      </div>
+                                    </div>
+                                    <Button 
+                                      type="button"
+                                      variant="ghost" 
+                                      size="icon" 
+                                      className="h-7 w-7" 
+                                      onClick={() => removeProduct(index)}
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  </div>
+                                </Card>
                               ))}
                             </div>
                           ) : (
