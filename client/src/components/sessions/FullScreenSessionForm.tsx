@@ -328,6 +328,7 @@ const ProductSelectionDialog = ({
   products,
   onSelectProduct
 }: ProductSelectionDialogProps) => {
+  const { toast } = useToast();
   const [selectedProduct, setSelectedProduct] = useState<(BudgetItem & { availableQuantity: number }) | null>(null);
   const [quantity, setQuantity] = useState<number>(1);
   const [searchTerm, setSearchTerm] = useState<string>("");
@@ -340,16 +341,31 @@ const ProductSelectionDialog = ({
       setSearchTerm("");
     }
   }, [open]);
+  
+  // Log products for debugging when dialog opens
+  useEffect(() => {
+    if (open) {
+      console.log("ProductSelectionDialog opened with products:", products);
+    }
+  }, [open, products]);
 
   // Filter products based on search term
   const filteredProducts = useMemo(() => {
+    if (!products || products.length === 0) {
+      console.log("No products available for filtering");
+      return [];
+    }
+    
     if (!searchTerm.trim()) return products;
     const searchTermLower = searchTerm.toLowerCase();
     
-    return products.filter(product => 
-      product.description.toLowerCase().includes(searchTermLower) ||
-      product.itemCode.toLowerCase().includes(searchTermLower)
+    const filtered = products.filter(product => 
+      (product.description?.toLowerCase() || "").includes(searchTermLower) ||
+      (product.itemCode?.toLowerCase() || "").includes(searchTermLower)
     );
+    
+    console.log("Filtered products:", filtered);
+    return filtered;
   }, [products, searchTerm]);
 
   // Format currency for display
@@ -358,7 +374,34 @@ const ProductSelectionDialog = ({
       style: 'currency',
       currency: 'USD',
       minimumFractionDigits: 2
-    }).format(amount);
+    }).format(amount || 0);
+  };
+  
+  // Handle quantity validation and changes
+  const handleQuantityChange = (value: number) => {
+    if (!selectedProduct) return;
+    
+    if (value < 1) {
+      setQuantity(1);
+      toast({
+        title: "Invalid quantity",
+        description: "Quantity cannot be less than 1",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    if (value > selectedProduct.availableQuantity) {
+      setQuantity(selectedProduct.availableQuantity);
+      toast({
+        title: "Quantity limit reached",
+        description: `Maximum available quantity is ${selectedProduct.availableQuantity}`,
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    setQuantity(value);
   };
 
   return (
@@ -686,16 +729,48 @@ export function FullScreenSessionForm({
 
   // Prepare products for selection dialog from active budget plan
   const availableProducts = useMemo(() => {
-    if (!budgetItems || !budgetItems.length || !budgetSettings) return [];
+    // Log the data we're working with for debugging
+    console.log("Budget items in availableProducts:", budgetItems);
+    console.log("Budget settings in availableProducts:", budgetSettings);
+    
+    if (!budgetItems || !budgetItems.length) {
+      console.log("No budget items available");
+      return [];
+    }
+    
+    if (!budgetSettings) {
+      console.log("No budget settings available");
+      // If no budget settings, use all budget items as a fallback
+      const selectedProducts = form.watch("sessionNote.products") || [];
+      
+      return budgetItems
+        .filter((item: BudgetItem) => item.quantity > 0)
+        .map((item: BudgetItem) => {
+          const alreadySelectedItem = selectedProducts.find(p => p.budgetItemId === item.id);
+          const alreadySelectedQuantity = alreadySelectedItem ? alreadySelectedItem.quantity : 0;
+          const availableQuantity = item.quantity - alreadySelectedQuantity;
+          
+          return {
+            ...item,
+            availableQuantity,
+          };
+        })
+        .filter(item => item.availableQuantity > 0);
+    }
 
     // Get currently selected products from form
     const selectedProducts = form.watch("sessionNote.products") || [];
+    console.log("Selected products:", selectedProducts);
 
     // Filter only products from the active budget plan
-    return budgetItems
+    const filteredProducts = budgetItems
       .filter((item: BudgetItem) => {
+        // For debugging
+        console.log(`Item ${item.id}: budgetSettingsId=${item.budgetSettingsId}, quantity=${item.quantity}`);
+        
         // Only include items from the active budget plan and with quantity > 0
-        return item.budgetSettingsId === budgetSettings.id && item.quantity > 0;
+        // If budgetSettingsId is not set, include the item anyway as a fallback
+        return (item.budgetSettingsId === budgetSettings.id || !item.budgetSettingsId) && item.quantity > 0;
       })
       .map((item: BudgetItem) => {
         // Find if this item is already selected in the form
@@ -711,6 +786,9 @@ export function FullScreenSessionForm({
         };
       })
       .filter(item => item.availableQuantity > 0);  // Only show items with available quantity
+      
+    console.log("Filtered products:", filteredProducts);
+    return filteredProducts;
   }, [budgetItems, budgetSettings, form]);
 
   // Form submission handler
@@ -1487,7 +1565,12 @@ export function FullScreenSessionForm({
                           <Button
                             variant="outline"
                             className="w-full"
-                            onClick={() => setShowProductDialog(true)}
+                            onClick={() => {
+                              console.log("Available products:", availableProducts);
+                              console.log("budgetItems:", budgetItems);
+                              console.log("budgetSettings:", budgetSettings);
+                              setShowProductDialog(true);
+                            }}
                             disabled={availableProducts.length === 0}
                           >
                             <ShoppingCart className="h-4 w-4 mr-2" />
