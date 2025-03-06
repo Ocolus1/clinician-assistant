@@ -459,8 +459,10 @@ export function FullScreenSessionForm({
   const [showProductDialog, setShowProductDialog] = useState(false);
   const [showStrategyDialog, setShowStrategyDialog] = useState(false);
   const [showAttendeeDialog, setShowAttendeeDialog] = useState(false);
+  const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [currentGoalId, setCurrentGoalId] = useState<number | null>(null);
   const [currentMilestoneId, setCurrentMilestoneId] = useState<number | null>(null);
+  const [activeTab, setActiveTab] = useState("session");
 
   // Generate a unique session ID for tracking
   const sessionId = useMemo(() => {
@@ -917,32 +919,103 @@ export function FullScreenSessionForm({
             <Button 
               variant="outline" 
               size="icon"
-              onClick={() => onOpenChange(false)}
+              onClick={() => setShowCancelDialog(true)}
             >
               <ChevronLeft className="h-4 w-4" />
             </Button>
             <h1 className="text-xl font-semibold">Create Session</h1>
           </div>
           <div className="flex gap-2">
+            {/* Cancel button - available on all tabs */}
             <Button 
               variant="outline"
-              onClick={() => onOpenChange(false)}
+              onClick={() => setShowCancelDialog(true)}
             >
               Cancel
             </Button>
-            <Button 
-              onClick={form.handleSubmit(onSubmit)}
-              disabled={createSessionMutation.isPending}
-            >
-              {createSessionMutation.isPending ? "Creating..." : "Create Session"}
-            </Button>
+            
+            {/* Navigation buttons based on active tab */}
+            {activeTab === "session" && (
+              <Button 
+                onClick={() => setActiveTab("assessment")}
+                variant="default"
+              >
+                Next <ChevronRight className="h-4 w-4 ml-1" />
+              </Button>
+            )}
+            
+            {activeTab === "assessment" && (
+              <>
+                <Button 
+                  onClick={() => setActiveTab("session")}
+                  variant="outline"
+                >
+                  <ChevronLeft className="h-4 w-4 mr-1" /> Previous
+                </Button>
+                <Button 
+                  onClick={() => setActiveTab("summary")}
+                  variant="default"
+                >
+                  Next <ChevronRight className="h-4 w-4 ml-1" />
+                </Button>
+              </>
+            )}
+            
+            {activeTab === "summary" && (
+              <>
+                <Button 
+                  onClick={() => setActiveTab("assessment")}
+                  variant="outline"
+                >
+                  <ChevronLeft className="h-4 w-4 mr-1" /> Previous
+                </Button>
+                <Button 
+                  onClick={form.handleSubmit(onSubmit)}
+                  disabled={createSessionMutation.isPending}
+                  variant="default"
+                >
+                  {createSessionMutation.isPending ? "Creating..." : "Create Session"}
+                </Button>
+              </>
+            )}
           </div>
         </div>
+        
+        {/* Cancel Confirmation Dialog */}
+        <Dialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Cancel Session Creation</DialogTitle>
+            </DialogHeader>
+            <div className="py-3">
+              <p>Are you sure you want to cancel? All unsaved changes will be lost.</p>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowCancelDialog(false)}>
+                Continue Editing
+              </Button>
+              <Button 
+                variant="destructive" 
+                onClick={() => {
+                  setShowCancelDialog(false);
+                  onOpenChange(false);
+                }}
+              >
+                Discard Changes
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         {/* Main Content */}
         <Form {...form}>
           <form className="flex-1 overflow-hidden" onSubmit={form.handleSubmit(onSubmit)}>
-            <Tabs defaultValue="session" className="h-full">
+            <Tabs 
+              defaultValue="session" 
+              className="h-full"
+              value={activeTab}
+              onValueChange={setActiveTab}
+            >
               <div className="border-b px-4 bg-muted/20">
                 <TabsList className="grid grid-cols-3 mb-4">
                   <TabsTrigger value="session">Session Details</TabsTrigger>
