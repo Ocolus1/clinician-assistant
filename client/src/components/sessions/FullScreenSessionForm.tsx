@@ -839,21 +839,6 @@ export function FullScreenSessionForm({
                           <CardTitle className="text-lg">Session Information</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
-                          {/* Session Title */}
-                          <FormField
-                            control={form.control}
-                            name="session.title"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Session Title</FormLabel>
-                                <FormControl>
-                                  <Input placeholder="e.g., Speech Therapy Session" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-
                           {/* Client Selection */}
                           <FormField
                             control={form.control}
@@ -868,7 +853,7 @@ export function FullScreenSessionForm({
                                 >
                                   <FormControl>
                                     <SelectTrigger>
-                                      <SelectValue placeholder="Select a client" />
+                                      <SelectValue placeholder="Search for a client..." />
                                     </SelectTrigger>
                                   </FormControl>
                                   <SelectContent>
@@ -884,13 +869,41 @@ export function FullScreenSessionForm({
                             )}
                           />
 
+                          {/* Therapist/Clinician Selection */}
+                          <FormField
+                            control={form.control}
+                            name="session.therapistId"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Clinician</FormLabel>
+                                <Select 
+                                  onValueChange={field.onChange}
+                                  value={field.value}
+                                >
+                                  <FormControl>
+                                    <SelectTrigger>
+                                      <SelectValue placeholder="Select a clinician" />
+                                    </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                    {/* Populate with available clinicians */}
+                                    <SelectItem value="1">Dr. Sarah Johnson</SelectItem>
+                                    <SelectItem value="2">Dr. Michael Chen</SelectItem>
+                                    <SelectItem value="3">Dr. Emily Rodriguez</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+
                           {/* Session Date */}
                           <FormField
                             control={form.control}
                             name="session.sessionDate"
                             render={({ field }) => (
                               <FormItem className="flex flex-col">
-                                <FormLabel>Session Date</FormLabel>
+                                <FormLabel>Date</FormLabel>
                                 <Popover>
                                   <PopoverTrigger asChild>
                                     <FormControl>
@@ -923,46 +936,59 @@ export function FullScreenSessionForm({
 
                           {/* Session Time */}
                           <div className="grid grid-cols-2 gap-4">
-                            {/* Duration */}
+                            {/* Time From */}
                             <FormField
                               control={form.control}
-                              name="session.duration"
+                              name="session.timeFrom"
                               render={({ field }) => (
                                 <FormItem>
-                                  <FormLabel>Duration (minutes)</FormLabel>
-                                  <FormControl>
-                                    <Input     type="number" 
-                                      min={1} 
-                                      {...field}
-                                       onChange={(e) => field.onChange(parseInt(e.target.value))}
-                                    />
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-
-                            {/* Status */}
-                            <FormField
-                              control={form.control}
-                              name="session.status"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>Status</FormLabel>
+                                  <FormLabel>Time From</FormLabel>
                                   <Select 
                                     onValueChange={field.onChange}
                                     value={field.value}
                                   >
                                     <FormControl>
                                       <SelectTrigger>
-                                        <SelectValue placeholder="Select status" />
+                                        <SelectValue placeholder="Start time" />
                                       </SelectTrigger>
                                     </FormControl>
                                     <SelectContent>
-                                      <SelectItem value="scheduled">Scheduled</SelectItem>
-                                      <SelectItem value="completed">Completed</SelectItem>
-                                      <SelectItem value="cancelled">Cancelled</SelectItem>
-                                      <SelectItem value="rescheduled">Rescheduled</SelectItem>
+                                      {[...Array(24)].map((_, hour) => (
+                                        <React.Fragment key={hour}>
+                                          <SelectItem value={`${hour.toString().padStart(2, '0')}:00`}>{hour.toString().padStart(2, '0')}:00</SelectItem>
+                                          <SelectItem value={`${hour.toString().padStart(2, '0')}:30`}>{hour.toString().padStart(2, '0')}:30</SelectItem>
+                                        </React.Fragment>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+
+                            {/* Time To */}
+                            <FormField
+                              control={form.control}
+                              name="session.timeTo"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Time To</FormLabel>
+                                  <Select 
+                                    onValueChange={field.onChange}
+                                    value={field.value}
+                                  >
+                                    <FormControl>
+                                      <SelectTrigger>
+                                        <SelectValue placeholder="End time" />
+                                      </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                      {[...Array(24)].map((_, hour) => (
+                                        <React.Fragment key={hour}>
+                                          <SelectItem value={`${hour.toString().padStart(2, '0')}:00`}>{hour.toString().padStart(2, '0')}:00</SelectItem>
+                                          <SelectItem value={`${hour.toString().padStart(2, '0')}:30`}>{hour.toString().padStart(2, '0')}:30</SelectItem>
+                                        </React.Fragment>
+                                      ))}
                                     </SelectContent>
                                   </Select>
                                   <FormMessage />
@@ -978,29 +1004,24 @@ export function FullScreenSessionForm({
                             render={({ field }) => (
                               <FormItem>
                                 <FormLabel>Location</FormLabel>
-                                <FormControl>
-                                  <Input {...field} value={field.value || ''} />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-
-                          {/* Description */}
-                          <FormField
-                            control={form.control}
-                            name="session.description"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Description</FormLabel>
-                                <FormControl>
-                                  <Textarea 
-                                    placeholder="Session details and goals..."
-                                    className="resize-none"
-                                    {...field}
-                                    value={field.value || ''}
-                                  />
-                                </FormControl>
+                                <Select 
+                                  onValueChange={field.onChange}
+                                  value={field.value}
+                                >
+                                  <FormControl>
+                                    <SelectTrigger>
+                                      <SelectValue placeholder="Select location" />
+                                    </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                    <SelectItem value="Clinic">Clinic</SelectItem>
+                                    <SelectItem value="School">School</SelectItem>
+                                    <SelectItem value="Home">Home</SelectItem>
+                                    <SelectItem value="Remote">Remote</SelectItem>
+                                    <SelectItem value="Hospital">Hospital</SelectItem>
+                                    <SelectItem value="Community Center">Community Center</SelectItem>
+                                  </SelectContent>
+                                </Select>
                                 <FormMessage />
                               </FormItem>
                             )}
