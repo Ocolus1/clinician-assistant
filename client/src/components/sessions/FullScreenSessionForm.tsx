@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -573,6 +573,8 @@ export function FullScreenSessionForm({
   onOpenChange,
   initialClient
 }: FullScreenSessionFormProps) {
+  // Create a ref to track previous clientId for handling client changes
+  const previousClientIdRef = useRef<number | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -651,8 +653,28 @@ export function FullScreenSessionForm({
     if (clientId) {
       console.log("Client ID changed to:", clientId);
       queryClient.setQueryData(['formState'], { clientId });
+      
+      // Get previous client ID stored in ref to detect actual changes
+      const prevClientId = previousClientIdRef.current;
+      
+      // Only reset attendees if this is a real change, not just initial setting
+      if (prevClientId && prevClientId !== clientId) {
+        console.log("Client changed from", prevClientId, "to", clientId, "- resetting attendees list");
+        // Reset the attendees lists
+        form.setValue("sessionNote.presentAllies", []);
+        form.setValue("sessionNote.presentAllyIds", []);
+        
+        // Show notification to the user
+        toast({
+          title: "Client changed",
+          description: "Attendee list has been reset for the new client.",
+        });
+      }
+      
+      // Store current client ID for next comparison
+      previousClientIdRef.current = clientId;
     }
-  }, [clientId, queryClient]);
+  }, [clientId, queryClient, form]);
   
   // Log when the allies query parameters change
   useEffect(() => {
