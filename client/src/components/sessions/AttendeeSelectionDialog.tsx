@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Ally } from "@shared/schema";
 import { UserIcon } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -38,6 +38,13 @@ export function AttendeeSelectionDialog({
   // State for search input
   const [searchTerm, setSearchTerm] = useState('');
   
+  // Reset search term when dialog opens
+  useEffect(() => {
+    if (open) {
+      setSearchTerm('');
+    }
+  }, [open]);
+  
   // Filter out allies that are already selected and match search term
   const availableAllies = allies.filter(ally => 
     !selectedAllies.includes(ally.name) && 
@@ -48,6 +55,15 @@ export function AttendeeSelectionDialog({
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value);
   };
+  
+  // Log for debugging
+  useEffect(() => {
+    if (open) {
+      console.log("AttendeeSelectionDialog - Available allies:", availableAllies);
+      console.log("AttendeeSelectionDialog - Selected allies:", selectedAllies);
+      console.log("AttendeeSelectionDialog - All allies:", allies);
+    }
+  }, [open, availableAllies, selectedAllies, allies]);
   
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -66,7 +82,13 @@ export function AttendeeSelectionDialog({
               value={searchTerm}
               onChange={handleSearchChange}
               className="w-full"
+              autoFocus
             />
+          </div>
+          
+          {/* Debug info */}
+          <div className="text-xs text-muted-foreground mb-2">
+            Available: {availableAllies.length} | Selected: {selectedAllies.length} | Total: {allies.length}
           </div>
           
           <ScrollArea className="h-[300px] pr-4">

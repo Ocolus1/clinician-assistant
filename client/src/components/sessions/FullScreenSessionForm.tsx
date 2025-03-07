@@ -1085,11 +1085,14 @@ export function FullScreenSessionForm({
   
   // Handle adding an attendee to the session
   const handleAddAttendee = (ally: Ally) => {
+    console.log("Adding attendee:", ally);
     const currentAttendees = form.getValues("sessionNote.presentAllies") || [];
     const currentAttendeeIds = form.getValues("sessionNote.presentAllyIds") || [];
     
-    // Check if ally is already in the list to prevent duplicates
-    if (!currentAttendees.includes(ally.name)) {
+    // Check if ally is already in the list by ID to prevent duplicates
+    const allyIdIndex = currentAttendeeIds.indexOf(ally.id);
+    
+    if (allyIdIndex === -1) {
       // Add both name for display and ID for data integrity
       form.setValue("sessionNote.presentAllies", [...currentAttendees, ally.name]);
       form.setValue("sessionNote.presentAllyIds", [...currentAttendeeIds, ally.id]);
@@ -1099,6 +1102,9 @@ export function FullScreenSessionForm({
         title: "Attendee added",
         description: `${ally.name} has been added to the session.`,
       });
+      
+      console.log("Updated attendees:", [...currentAttendees, ally.name]);
+      console.log("Updated attendee IDs:", [...currentAttendeeIds, ally.id]);
     } else {
       // Show error toast for duplicate
       toast({
