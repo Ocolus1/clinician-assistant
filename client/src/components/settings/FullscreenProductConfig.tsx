@@ -37,7 +37,7 @@ import { Switch } from "@/components/ui/switch";
 import {
   Package,
   Edit,
-  Trash,
+  Archive,
   Save,
   Plus,
   X,
@@ -224,7 +224,7 @@ export function FullscreenProductConfig({ open, onOpenChange }: FullscreenProduc
       <div className="min-h-screen flex flex-col">
         {/* Header */}
         <div className="sticky top-0 z-10 bg-background border-b">
-          <div className="container max-w-5xl mx-auto py-4 flex items-center justify-between">
+          <div className="container w-full px-4 py-4 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Button variant="outline" size="icon" onClick={() => onOpenChange(false)}>
                 <X className="h-4 w-4" />
@@ -258,7 +258,7 @@ export function FullscreenProductConfig({ open, onOpenChange }: FullscreenProduc
         </div>
 
         {/* Main Content */}
-        <div className="container max-w-5xl mx-auto py-6 flex-1">
+        <div className="container w-full px-4 py-6 flex-1">
           <Tabs 
             value={activeTab} 
             onValueChange={setActiveTab}
@@ -303,17 +303,17 @@ export function FullscreenProductConfig({ open, onOpenChange }: FullscreenProduc
                   </Button>
                 </div>
               ) : (
-                <Card>
+                <Card className="w-full">
                   <CardContent className="p-0">
-                    <Table>
+                    <Table className="w-full">
                       <TableHeader>
                         <TableRow>
-                          <TableHead className="w-[120px]">Code</TableHead>
-                          <TableHead className="w-[300px]">Description</TableHead>
-                          <TableHead className="w-[150px]">Category</TableHead>
-                          <TableHead className="w-[100px]">Price</TableHead>
-                          <TableHead className="w-[100px]">Status</TableHead>
-                          <TableHead className="text-right w-[100px]">Actions</TableHead>
+                          <TableHead className="w-[15%]">Code</TableHead>
+                          <TableHead className="w-[35%]">Description</TableHead>
+                          <TableHead className="w-[20%]">Category</TableHead>
+                          <TableHead className="w-[10%]">Price</TableHead>
+                          <TableHead className="w-[10%]">Status</TableHead>
+                          <TableHead className="text-right w-[10%]">Actions</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -332,8 +332,8 @@ export function FullscreenProductConfig({ open, onOpenChange }: FullscreenProduc
                               <Button variant="ghost" size="icon" onClick={() => handleEditProduct(product)} className="h-8 w-8" title="Edit">
                                 <Edit className="h-4 w-4" />
                               </Button>
-                              <Button variant="ghost" size="icon" onClick={() => handleDeleteProduct(product)} className="h-8 w-8 text-destructive" title="Delete">
-                                <Trash className="h-4 w-4" />
+                              <Button variant="ghost" size="icon" onClick={() => handleDeleteProduct(product)} className="h-8 w-8 text-amber-600" title="Archive">
+                                <Archive className="h-4 w-4" />
                               </Button>
                             </TableCell>
                           </TableRow>
