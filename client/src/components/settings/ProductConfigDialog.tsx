@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/form";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+import { Button } from "../../components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -53,8 +53,7 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import type { BudgetItemCatalog } from "@shared/schema";
-
+import type { BudgetItemCatalog } from "@/shared/schema";
 import { insertBudgetItemCatalogSchema } from "@/shared/schema";
 
 // Form schema for product creation/editing
