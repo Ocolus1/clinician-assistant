@@ -703,6 +703,16 @@ export function FullScreenSessionForm({
   // Fetch allies for the selected client for attendee selection
   const alliesQuery = useQuery<Ally[]>({
     queryKey: ["/api/clients", clientId, "allies"],
+    queryFn: async () => {
+      console.log("Fetching allies for client ID:", clientId);
+      const response = await fetch(`/api/clients/${clientId}/allies`);
+      if (!response.ok) {
+        throw new Error(`Error fetching allies: ${response.status}`);
+      }
+      const data = await response.json();
+      console.log("Allies data received:", JSON.stringify(data));
+      return data;
+    },
     enabled: open && !!clientId,
   });
   
