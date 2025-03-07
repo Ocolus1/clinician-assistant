@@ -1558,150 +1558,178 @@ export function FullScreenSessionForm({
                         </CardHeader>
                         <CardContent className="space-y-4">
                           {form.watch("sessionNote.products")?.length > 0 ? (
-                            <div className="space-y-2">
-                              {form.watch("sessionNote.products").map((product, index) => (
-                                <Card key={index} className="overflow-hidden border-accent-foreground/20">
-                                  <div className="p-3 grid grid-cols-[1fr,auto] gap-4">
-                                    <div>
-                                      <p className="font-medium text-sm">{product.productDescription}</p>
-                                      <p className="text-xs text-muted-foreground">Code: {product.productCode}</p>
-                                    </div>
-                                    <div className="text-right">
-                                      <p className="text-sm font-medium">${product.unitPrice.toFixed(2)} each</p>
-                                      <p className="text-xs text-muted-foreground">
-                                        Total: ${(product.quantity * product.unitPrice).toFixed(2)}
-                                      </p>
-                                    </div>
-                                  </div>
+                            <div className="space-y-4">
+                              {form.watch("sessionNote.products").map((product, index) => {
+                                // Calculate remaining units
+                                const originalProduct = availableProducts.find(p => p.id === product.budgetItemId);
+                                let totalUnits = 0;
+                                let usedUnits = 0;
+                                let remainingUnits = 0;
+                                
+                                if (originalProduct) {
+                                  totalUnits = originalProduct.quantity;
                                   
-                                  <div className="bg-muted/30 px-3 py-2 flex items-center justify-between border-t">
-                                    <div className="flex items-center">
-                                      <span className="text-sm font-medium mr-2">Quantity:</span>
-                                      <div className="flex items-center">
-                                        <Button
-                                          type="button"
-                                          variant="outline"
-                                          size="icon"
-                                          className="h-7 w-7 rounded-r-none"
-                                          onClick={() => {
-                                            const products = form.getValues("sessionNote.products");
-                                            if (products[index].quantity > 1) {
-                                              const updatedProducts = [...products];
-                                              updatedProducts[index].quantity -= 1;
-                                              form.setValue("sessionNote.products", updatedProducts);
-                                            }
-                                          }}
-                                          disabled={product.quantity <= 1}
-                                        >
-                                          <Minus className="h-3 w-3" />
-                                        </Button>
-                                        <span className="px-3 h-7 flex items-center justify-center border-y bg-background">
-                                          {product.quantity}
-                                        </span>
-                                        <Button
-                                          type="button"
-                                          variant="outline"
-                                          size="icon"
-                                          className="h-7 w-7 rounded-l-none"
-                                          onClick={() => {
-                                            const products = form.getValues("sessionNote.products");
-                                            
-                                            // Find the original budget item for this product
-                                            const originalProduct = availableProducts.find(p => p.id === product.budgetItemId);
-                                            console.log("Original product:", originalProduct);
-                                            console.log("Selected product:", product);
-                                            
-                                            // Calculate available quantity
-                                            // This considers both the original quantity and the quantity already in use in other selected products
-                                            let availableQty = 0;
-                                            
-                                            if (originalProduct) {
-                                              // Start with the original budget item quantity
-                                              availableQty = originalProduct.quantity;
+                                  // Calculate used units (including this product)
+                                  const allProducts = form.getValues("sessionNote.products");
+                                  allProducts.forEach((p) => {
+                                    if (p.budgetItemId === product.budgetItemId) {
+                                      usedUnits += p.quantity;
+                                    }
+                                  });
+                                  
+                                  // Remove this product's quantity
+                                  usedUnits -= product.quantity; 
+                                  
+                                  // Calculate remaining units
+                                  remainingUnits = totalUnits - usedUnits;
+                                }
+                                
+                                // Calculate progress bar percentage
+                                const progressPercentage = Math.min(Math.max((product.quantity / totalUnits) * 100, 0), 100);
+                                const isNearDepletion = remainingUnits <= 1;
+                                
+                                return (
+                                  <div key={index} className="border rounded-lg overflow-hidden">
+                                    <div className="p-4">
+                                      <div className="font-medium">{product.productDescription}</div>
+                                      <div className="flex justify-between text-sm text-muted-foreground mt-1">
+                                        <span>Code: {product.productCode}</span>
+                                        <span>${product.unitPrice.toFixed(2)} each</span>
+                                      </div>
+                                      
+                                      <div className="mt-4">
+                                        <div className="flex justify-between text-sm mb-1">
+                                          <span className="font-medium">Budget Usage</span>
+                                          <span>{product.quantity} of {totalUnits} units</span>
+                                        </div>
+                                        
+                                        {/* Progress bar */}
+                                        <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
+                                          <div 
+                                            className={`h-full ${isNearDepletion ? 'bg-orange-500' : 'bg-primary'}`}
+                                            style={{ width: `${progressPercentage}%` }}
+                                          ></div>
+                                        </div>
+                                        
+                                        <div className="text-xs text-muted-foreground mt-1">
+                                          {remainingUnits} units remaining in budget
+                                        </div>
+                                      </div>
+                                      
+                                      <div className="flex justify-between items-center mt-4">
+                                        <div className="flex items-center">
+                                          <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="icon"
+                                            className="h-9 w-9 rounded-r-none"
+                                            onClick={() => {
+                                              const products = form.getValues("sessionNote.products");
+                                              if (products[index].quantity > 1) {
+                                                const updatedProducts = [...products];
+                                                updatedProducts[index].quantity -= 1;
+                                                form.setValue("sessionNote.products", updatedProducts);
+                                              }
+                                            }}
+                                            disabled={product.quantity <= 1}
+                                          >
+                                            <Minus className="h-4 w-4" />
+                                          </Button>
+                                          <span className="px-4 h-9 flex items-center justify-center border-y bg-background min-w-[40px]">
+                                            {product.quantity}
+                                          </span>
+                                          <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="icon"
+                                            className="h-9 w-9 rounded-l-none"
+                                            onClick={() => {
+                                              // Calculate available quantity
+                                              let availableQty = remainingUnits + product.quantity;
                                               
-                                              // Add back this product's quantity since we're modifying it
-                                              availableQty += product.quantity;
+                                              console.log("Available quantity:", availableQty);
                                               
-                                              // Subtract quantities used by other selected products with the same budget item ID
-                                              products.forEach((p, i) => {
-                                                if (p.budgetItemId === product.budgetItemId && i !== index) {
-                                                  availableQty -= p.quantity;
-                                                }
-                                              });
-                                            } else {
-                                              // Fallback - just use the product's current quantity if we can't find the original
-                                              availableQty = product.quantity;
-                                            }
-                                            
-                                            console.log("Available quantity:", availableQty);
-                                            
-                                            if (product.quantity < availableQty) {
-                                              const updatedProducts = [...products];
-                                              updatedProducts[index].quantity += 1;
-                                              form.setValue("sessionNote.products", updatedProducts);
-                                            } else {
-                                              toast({
-                                                title: "Maximum quantity reached",
-                                                description: `Only ${availableQty} units available for this product`,
-                                                variant: "destructive"
-                                              });
-                                            }
-                                          }}
-                                        >
-                                          <Plus className="h-3 w-3" />
-                                        </Button>
+                                              if (product.quantity < availableQty) {
+                                                const products = form.getValues("sessionNote.products");
+                                                const updatedProducts = [...products];
+                                                updatedProducts[index].quantity += 1;
+                                                form.setValue("sessionNote.products", updatedProducts);
+                                              } else {
+                                                toast({
+                                                  title: "Maximum quantity reached",
+                                                  description: `Only ${availableQty} units available for this product`,
+                                                  variant: "destructive"
+                                                });
+                                              }
+                                            }}
+                                          >
+                                            <Plus className="h-4 w-4" />
+                                          </Button>
+                                        </div>
+                                        
+                                        <div className="flex items-center">
+                                          <span className="font-medium mr-2">Total: ${(product.quantity * product.unitPrice).toFixed(2)}</span>
+                                          <Button 
+                                            type="button"
+                                            variant="ghost" 
+                                            size="icon" 
+                                            className="h-8 w-8 text-gray-500 hover:text-error-500" 
+                                            onClick={() => removeProduct(index)}
+                                          >
+                                            <Trash2 className="h-4 w-4" />
+                                          </Button>
+                                        </div>
                                       </div>
                                     </div>
-                                    <Button 
-                                      type="button"
-                                      variant="ghost" 
-                                      size="icon" 
-                                      className="h-7 w-7" 
-                                      onClick={() => removeProduct(index)}
-                                    >
-                                      <Trash2 className="h-4 w-4" />
-                                    </Button>
                                   </div>
-                                </Card>
-                              ))}
+                                );
+                              })}
+                              
+                              {/* Grand Total */}
+                              <div className="flex justify-end items-center py-2 px-4 font-medium text-lg">
+                                Grand Total: ${form.watch("sessionNote.products").reduce((total, product) => 
+                                  total + (product.quantity * product.unitPrice), 0).toFixed(2)}
+                              </div>
                             </div>
                           ) : (
                             <p className="text-sm text-muted-foreground">No products added yet</p>
                           )}
 
                           {/* Add product button */}
-                          <Button
-                            variant="outline"
-                            className="w-full"
-                            onClick={() => {
-                              console.log("Available products:", availableProducts);
-                              console.log("budgetItems:", budgetItems);
-                              console.log("budgetSettings:", budgetSettings);
-                              
-                              if (!clientId) {
-                                toast({
-                                  title: "Client required",
-                                  description: "Please select a client first to see available products",
-                                  variant: "destructive"
-                                });
-                                return;
-                              }
-                              
-                              setShowProductDialog(true);
-                              
-                              // Debug message about products
-                              if (availableProducts.length === 0) {
-                                console.log("Warning: No products available but dialog will open anyway");
-                              } else {
-                                console.log(`Opening dialog with ${availableProducts.length} products`);
-                              }
-                            }}
-                            // Always enable button when in debug mode, otherwise check for products
-                            disabled={false} // Set to 'availableProducts.length === 0' in production
-                          >
-                            <ShoppingCart className="h-4 w-4 mr-2" />
-                            Add Product
-                          </Button>
+                          <div className="border rounded-lg p-4 mt-4">
+                            <Button
+                              variant="outline"
+                              className="w-full"
+                              onClick={() => {
+                                console.log("Available products:", availableProducts);
+                                console.log("budgetItems:", budgetItems);
+                                console.log("budgetSettings:", budgetSettings);
+                                
+                                if (!clientId) {
+                                  toast({
+                                    title: "Client required",
+                                    description: "Please select a client first to see available products",
+                                    variant: "destructive"
+                                  });
+                                  return;
+                                }
+                                
+                                setShowProductDialog(true);
+                                
+                                // Debug message about products
+                                if (availableProducts.length === 0) {
+                                  console.log("Warning: No products available but dialog will open anyway");
+                                } else {
+                                  console.log(`Opening dialog with ${availableProducts.length} products`);
+                                }
+                              }}
+                              // Always enable button when in debug mode, otherwise check for products
+                              disabled={false} // Set to 'availableProducts.length === 0' in production
+                            >
+                              <ShoppingCart className="h-4 w-4 mr-2" />
+                              Add Product
+                            </Button>
+                          </div>
                         </CardContent>
                       </Card>
 
