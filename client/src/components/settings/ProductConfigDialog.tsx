@@ -55,16 +55,15 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import type { BudgetItemCatalog } from "@shared/schema";
 
+import { insertBudgetItemCatalogSchema } from "@/shared/schema";
+
 // Form schema for product creation/editing
-const productSchema = z.object({
-  itemCode: z.string().min(2, "Product code must be at least 2 characters"),
-  description: z.string().min(3, "Description must be at least 3 characters"),
-  category: z.string().min(1, "Category is required"),
+const productSchema = insertBudgetItemCatalogSchema.extend({
+  // We'll use string for defaultUnitPrice in the form and convert to number on submit
   defaultUnitPrice: z.string().refine(
     (val) => !isNaN(parseFloat(val)) && parseFloat(val) >= 0,
     { message: "Unit price must be a positive number" }
   ),
-  isActive: z.boolean().default(true)
 });
 
 type ProductFormValues = z.infer<typeof productSchema>;
@@ -336,12 +335,16 @@ export function ProductConfigDialog({ open, onOpenChange }: ProductConfigDialogP
                       
                       <FormField
                         control={form.control}
-                        name="itemName"
+                        name="description"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Product Name</FormLabel>
+                            <FormLabel>Description</FormLabel>
                             <FormControl>
-                              <Input placeholder="e.g., Speech Therapy Kit" {...field} />
+                              <Textarea 
+                                placeholder="Describe the product..."
+                                className="min-h-[100px]"
+                                {...field} 
+                              />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -361,24 +364,6 @@ export function ProductConfigDialog({ open, onOpenChange }: ProductConfigDialogP
                           </FormItem>
                         )}
                       />
-                      
-                      <FormField
-                        control={form.control}
-                        name="description"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Description</FormLabel>
-                            <FormControl>
-                              <Textarea 
-                                placeholder="Describe the product..."
-                                className="min-h-[100px]"
-                                {...field} 
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
                     </CardContent>
                   </Card>
                   
@@ -390,30 +375,13 @@ export function ProductConfigDialog({ open, onOpenChange }: ProductConfigDialogP
                     <CardContent className="space-y-4">
                       <FormField
                         control={form.control}
-                        name="unitPrice"
+                        name="defaultUnitPrice"
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel>Unit Price ($)</FormLabel>
                             <FormControl>
                               <Input type="number" min="0" step="0.01" {...field} />
                             </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      
-                      <FormField
-                        control={form.control}
-                        name="maxQuantityPerSession"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Maximum Quantity per Session</FormLabel>
-                            <FormControl>
-                              <Input type="number" min="1" {...field} />
-                            </FormControl>
-                            <FormDescription>
-                              Maximum number that can be used in a single session
-                            </FormDescription>
                             <FormMessage />
                           </FormItem>
                         )}
@@ -441,28 +409,7 @@ export function ProductConfigDialog({ open, onOpenChange }: ProductConfigDialogP
                             </FormItem>
                           )}
                         />
-                        
-                        <FormField
-                          control={form.control}
-                          name="requiresApproval"
-                          render={({ field }) => (
-                            <FormItem className="flex items-center justify-between rounded-lg border p-3">
-                              <div className="space-y-0.5">
-                                <FormLabel>Requires Approval</FormLabel>
-                                <FormDescription>
-                                  Product usage requires administrative approval
-                                </FormDescription>
-                              </div>
-                              <FormControl>
-                                <Switch
-                                  checked={field.value}
-                                  onCheckedChange={field.onChange}
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
+
                       </div>
                     </CardContent>
                   </Card>
