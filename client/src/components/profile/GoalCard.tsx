@@ -82,7 +82,7 @@ const GoalCard = ({ goal, subgoals, onPreview, onEdit, onArchive }: GoalCardProp
       <CardHeader className="pt-5 pb-4 px-6 bg-white">
         <div className="flex justify-between items-start">
           <div className="space-y-1">
-            <h3 className="text-lg font-semibold line-clamp-1">{goal.title}</h3>
+            <h3 className="text-lg font-semibold line-clamp-2">{goal.title}</h3>
             <Badge className={getPriorityColor(goal.priority)}>
               {goal.priority || "No Priority"}
             </Badge>
