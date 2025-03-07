@@ -11,6 +11,7 @@ import ClientList from "@/pages/ClientList";
 import EnhancedClientList from "@/pages/EnhancedClientList";
 import ClientProfile from "@/pages/ClientProfile";
 import Sessions from "@/pages/Sessions";
+import Settings from "@/pages/Settings";
 import { AppLayout } from "@/components/layout/AppLayout";
 
 function Router() {
@@ -33,6 +34,7 @@ function Router() {
         <Route path="/clients/:id/profile" component={ClientProfile} />
         <Route path="/client/:id/print" component={PrintSummary} />
         <Route path="/sessions" component={Sessions} />
+        <Route path="/settings" component={Settings} />
         <Route component={NotFound} />
       </Switch>
     </AppLayout>
