@@ -2071,6 +2071,35 @@ export function FullScreenSessionForm({
                       )}
                     </CardContent>
                   </Card>
+                  
+                  {/* Session Notes Card moved from Session Details tab */}
+                  <Card className="mt-6">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-lg">Session Notes</CardTitle>
+                      <CardDescription>
+                        Detailed notes about the session
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <FormField
+                        control={form.control}
+                        name="sessionNote.notes"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormControl>
+                              <RichTextEditor
+                                value={field.value || ""}
+                                onChange={field.onChange}
+                                placeholder="Enter detailed session notes here..."
+                                className="min-h-[200px]"
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </CardContent>
+                  </Card>
                 </div>
               </TabsContent>
             </Tabs>
