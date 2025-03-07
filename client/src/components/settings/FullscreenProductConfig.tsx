@@ -224,7 +224,7 @@ export function FullscreenProductConfig({ open, onOpenChange }: FullscreenProduc
       <div className="min-h-screen flex flex-col">
         {/* Header */}
         <div className="sticky top-0 z-10 bg-background border-b">
-          <div className="container py-4 flex items-center justify-between">
+          <div className="container max-w-5xl mx-auto py-4 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Button variant="outline" size="icon" onClick={() => onOpenChange(false)}>
                 <X className="h-4 w-4" />
@@ -258,85 +258,118 @@ export function FullscreenProductConfig({ open, onOpenChange }: FullscreenProduc
         </div>
 
         {/* Main Content */}
-        <div className="container py-6 flex-1">
+        <div className="container max-w-5xl mx-auto py-6 flex-1">
           <Tabs 
             value={activeTab} 
             onValueChange={setActiveTab}
             className="mt-2"
           >
-            <TabsList className="grid w-full max-w-md grid-cols-2 mb-6">
-              <TabsTrigger value="all-products">All Products</TabsTrigger>
-              <TabsTrigger value="new-product">{isEditing ? "Edit Product" : "New Product"}</TabsTrigger>
-            </TabsList>
+            <div className="flex justify-center mb-6">
+              <TabsList className="grid w-full max-w-md grid-cols-2">
+                <TabsTrigger value="all-products">All Products</TabsTrigger>
+                <TabsTrigger value="new-product">{isEditing ? "Edit Product" : "New Product"}</TabsTrigger>
+              </TabsList>
+            </div>
 
             {/* All Products Tab */}
             <TabsContent value="all-products" className="space-y-4 pt-4">
-              <div className="flex justify-between items-center">
-                <h3 className="text-lg font-medium">Product Catalog</h3>
-                <Button onClick={handleAddNewProduct}>
+              <div className="flex justify-between items-center mb-6">
+                <div>
+                  <h3 className="text-xl font-medium">Product Catalog</h3>
+                  <p className="text-sm text-muted-foreground mt-1">Manage your therapy products and resources</p>
+                </div>
+                <Button onClick={handleAddNewProduct} className="h-10">
                   <Plus className="mr-2 h-4 w-4" /> Add New Product
                 </Button>
               </div>
 
               {isLoading ? (
-                <div className="text-center py-8">Loading products...</div>
+                <div className="text-center py-12">
+                  <div className="animate-pulse flex flex-col items-center">
+                    <div className="rounded-full bg-gray-200 h-12 w-12 mb-4"></div>
+                    <div className="h-4 bg-gray-200 rounded w-32 mb-3"></div>
+                    <div className="h-3 bg-gray-200 rounded w-48"></div>
+                  </div>
+                </div>
               ) : products.length === 0 ? (
-                <div className="text-center py-8">
-                  <Package className="mx-auto h-12 w-12 text-gray-300 mb-3" />
+                <div className="text-center py-12 border rounded-lg bg-gray-50">
+                  <Package className="mx-auto h-12 w-12 text-gray-300 mb-4" />
                   <h4 className="text-lg font-medium text-gray-500 mb-2">No products found</h4>
-                  <p className="text-gray-500 mb-4">Start adding products to your catalog</p>
-                  <Button onClick={handleAddNewProduct}>
-                    <Plus className="mr-2 h-4 w-4" /> Add First Product
+                  <p className="text-gray-500 mb-6 max-w-md mx-auto">
+                    Start adding products to your catalog to make them available for client sessions
+                  </p>
+                  <Button onClick={handleAddNewProduct} size="lg">
+                    <Plus className="mr-2 h-5 w-5" /> Add First Product
                   </Button>
                 </div>
               ) : (
-                <div className="border rounded-md">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Code</TableHead>
-                        <TableHead>Description</TableHead>
-                        <TableHead>Category</TableHead>
-                        <TableHead>Price</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {products.map((product) => (
-                        <TableRow key={product.id}>
-                          <TableCell className="font-medium">{product.itemCode}</TableCell>
-                          <TableCell>{product.description}</TableCell>
-                          <TableCell>{product.category}</TableCell>
-                          <TableCell>${parseFloat(product.defaultUnitPrice?.toString() || "0").toFixed(2)}</TableCell>
-                          <TableCell>
-                            <Badge variant={product.isActive ? "default" : "outline"}>
-                              {product.isActive ? "Active" : "Inactive"}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-right space-x-2">
-                            <Button variant="ghost" size="icon" onClick={() => handleEditProduct(product)}>
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button variant="ghost" size="icon" onClick={() => handleDeleteProduct(product)}>
-                              <Trash className="h-4 w-4" />
-                            </Button>
-                          </TableCell>
+                <Card>
+                  <CardContent className="p-0">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="w-[120px]">Code</TableHead>
+                          <TableHead className="w-[300px]">Description</TableHead>
+                          <TableHead className="w-[150px]">Category</TableHead>
+                          <TableHead className="w-[100px]">Price</TableHead>
+                          <TableHead className="w-[100px]">Status</TableHead>
+                          <TableHead className="text-right w-[100px]">Actions</TableHead>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
+                      </TableHeader>
+                      <TableBody>
+                        {products.map((product) => (
+                          <TableRow key={product.id} className="hover:bg-gray-50">
+                            <TableCell className="font-medium">{product.itemCode}</TableCell>
+                            <TableCell className="max-w-[300px] truncate">{product.description}</TableCell>
+                            <TableCell>{product.category || "-"}</TableCell>
+                            <TableCell>${parseFloat(product.defaultUnitPrice?.toString() || "0").toFixed(2)}</TableCell>
+                            <TableCell>
+                              <Badge variant={product.isActive ? "default" : "outline"} className="font-normal">
+                                {product.isActive ? "Active" : "Inactive"}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-right space-x-1">
+                              <Button variant="ghost" size="icon" onClick={() => handleEditProduct(product)} className="h-8 w-8" title="Edit">
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button variant="ghost" size="icon" onClick={() => handleDeleteProduct(product)} className="h-8 w-8 text-destructive" title="Delete">
+                                <Trash className="h-4 w-4" />
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </CardContent>
+                </Card>
               )}
             </TabsContent>
 
             {/* New/Edit Product Tab */}
             <TabsContent value="new-product" className="space-y-4 pt-4">
-              <div className="flex items-center mb-4">
-                <Button variant="ghost" onClick={handleCancel} className="mr-2">
-                  <ArrowLeft className="mr-2 h-4 w-4" /> Back
+              <div className="flex justify-between items-center mb-6">
+                <div className="flex items-center">
+                  <Button variant="ghost" onClick={handleCancel} className="mr-3">
+                    <ArrowLeft className="mr-2 h-4 w-4" /> Back to Products
+                  </Button>
+                  <div>
+                    <h3 className="text-xl font-medium">{isEditing ? `Edit Product: ${selectedProduct?.itemCode}` : "Add New Product"}</h3>
+                    <p className="text-sm text-muted-foreground mt-1">{isEditing ? "Update product details" : "Create a new product for your catalog"}</p>
+                  </div>
+                </div>
+                <Button 
+                  type="submit" 
+                  form="product-form" 
+                  className="hidden md:flex"
+                  disabled={mutation.isPending}
+                >
+                  {mutation.isPending ? "Saving..." : (
+                    <>
+                      <Save className="mr-2 h-4 w-4" /> 
+                      {isEditing ? "Update Product" : "Save Product"}
+                    </>
+                  )}
                 </Button>
-                <h3 className="text-lg font-medium">{isEditing ? `Edit Product: ${selectedProduct?.itemCode}` : "Add New Product"}</h3>
               </div>
               
               <Form {...form}>
@@ -448,6 +481,22 @@ export function FullscreenProductConfig({ open, onOpenChange }: FullscreenProduc
                         </div>
                       </CardContent>
                     </Card>
+                  </div>
+                  
+                  {/* Mobile-friendly submit button at the bottom */}
+                  <div className="md:hidden">
+                    <Button 
+                      type="submit" 
+                      className="w-full mt-6"
+                      disabled={mutation.isPending}
+                    >
+                      {mutation.isPending ? "Saving..." : (
+                        <>
+                          <Save className="mr-2 h-4 w-4" /> 
+                          {isEditing ? "Update Product" : "Save Product"}
+                        </>
+                      )}
+                    </Button>
                   </div>
                 </form>
               </Form>
