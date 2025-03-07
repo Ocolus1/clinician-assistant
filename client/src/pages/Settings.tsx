@@ -17,7 +17,7 @@ import {
   Server, 
   LayoutGrid 
 } from "lucide-react";
-import { ProductConfigDialog } from "../components/settings/ProductConfigDialog";
+import { ProductConfigDialog } from "../components/settings/ProductConfigDialogFixed";
 import { Button } from "@/components/ui/button";
 
 export default function Settings() {

@@ -1,17 +1,18 @@
-import React, { useState } from "react";
 import { z } from "zod";
-import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
 import { apiRequest } from "@/lib/queryClient";
 
+// UI Components
 import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
 } from "@/components/ui/dialog";
 import {
   Form,
@@ -22,17 +23,13 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
-import { Button } from "../../components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
-import { 
-  Card, 
-  CardContent, 
-  CardHeader, 
-  CardTitle 
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
 } from "@/components/ui/card";
 import {
   Table,
@@ -42,20 +39,22 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { 
-  Package, 
-  Edit, 
-  Trash, 
-  Plus, 
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
+import {
+  Package,
+  Edit,
+  Trash,
   Save,
+  Plus,
   X,
   ArrowLeft
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { z } from 'zod';
 
-// Create a simplified local schema for budget item catalog until imports are fixed
+// Create a simplified local schema for budget item catalog 
 type BudgetItemCatalog = {
   id: number;
   itemCode: string;
@@ -65,16 +64,16 @@ type BudgetItemCatalog = {
   isActive: boolean | null;
 }
 
-// Define our own product schema since we're having import issues
+// Define our own product schema
 const productSchema = z.object({
   itemCode: z.string().min(2, "Product code must be at least 2 characters"),
   description: z.string().min(3, "Description must be at least 3 characters"),
-  category: z.string().nullable(),
+  category: z.string().optional().nullable(),
   defaultUnitPrice: z.string().refine(
     (val) => !isNaN(parseFloat(val)) && parseFloat(val) >= 0,
     { message: "Unit price must be a positive number" }
   ),
-  isActive: z.boolean().default(true).nullable(),
+  isActive: z.boolean().default(true)
 });
 
 type ProductFormValues = z.infer<typeof productSchema>;
@@ -369,7 +368,11 @@ export function ProductConfigDialog({ open, onOpenChange }: ProductConfigDialogP
                           <FormItem>
                             <FormLabel>Category</FormLabel>
                             <FormControl>
-                              <Input placeholder="e.g., Therapy Resources" {...field} />
+                              <Input 
+                                placeholder="e.g., Therapy Resources" 
+                                value={field.value || ""} 
+                                onChange={(e) => field.onChange(e.target.value)}
+                              />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
