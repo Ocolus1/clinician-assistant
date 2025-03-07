@@ -1927,49 +1927,16 @@ export function FullScreenSessionForm({
 
               {/* Performance Assessment Tab */}
               <TabsContent value="assessment" className="h-[calc(100%-48px)] overflow-y-auto p-4">
-                <div className="space-y-6 p-4 max-w-3xl mx-auto">
-                  <Card>
-                    <CardHeader className="pb-2">
-                      <div className="flex justify-between items-center">
-                        <CardTitle className="text-lg">Goals Assessed</CardTitle>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            if (goals.length === 0) {
-                              toast({
-                                title: "No goals available",
-                                description: "This client doesn't have any goals set up.",
-                                variant: "default"
-                              });
-                              return;
-                            }
-
-                            const selectedGoalIds = form.getValues("performanceAssessments").map(a => a.goalId);
-                            if (selectedGoalIds.length >= goals.length) {
-                              toast({
-                                title: "All goals added",
-                                description: "All available goals have been added for assessment.",
-                                variant: "default"
-                              });
-                              return;
-                            }
-
-                            setShowGoalDialog(true);
-                          }}
-                        >
-                          <Plus className="h-4 w-4 mr-2" />
-                          Add Goal
-                        </Button>
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      {selectedPerformanceAssessments.length === 0 ? (
-                        <div className="text-center py-6">
-                          <p className="text-muted-foreground">No goals selected for assessment</p>
+                <div className="flex gap-4 p-4">
+                  {/* Left Column - 75% - Goals Assessed */}
+                  <div className="w-3/4">
+                    <Card>
+                      <CardHeader className="pb-2">
+                        <div className="flex justify-between items-center">
+                          <CardTitle className="text-lg">Goals Assessed</CardTitle>
                           <Button
                             variant="outline"
-                            className="mt-4"
+                            size="sm"
                             onClick={() => {
                               if (goals.length === 0) {
                                 toast({
@@ -1979,155 +1946,193 @@ export function FullScreenSessionForm({
                                 });
                                 return;
                               }
+
+                              const selectedGoalIds = form.getValues("performanceAssessments").map(a => a.goalId);
+                              if (selectedGoalIds.length >= goals.length) {
+                                toast({
+                                  title: "All goals added",
+                                  description: "All available goals have been added for assessment.",
+                                  variant: "default"
+                                });
+                                return;
+                              }
+
                               setShowGoalDialog(true);
                             }}
                           >
                             <Plus className="h-4 w-4 mr-2" />
-                            Select Goal
+                            Add Goal
                           </Button>
                         </div>
-                      ) : (
-                        <div className="space-y-4">
-                          {selectedPerformanceAssessments.map((assessment, index) => (
-                            <Card key={assessment.goalId} className="overflow-hidden">
-                              <CardHeader className="bg-primary/10 pb-2 pt-3 px-3">
-                                <div className="flex justify-between items-start">
-                                  <CardTitle className="text-base">{assessment.goalTitle}</CardTitle>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-7 w-7"
-                                    onClick={() => removeGoal(assessment.goalId)}
-                                  >
-                                    <X className="h-4 w-4" />
-                                  </Button>
-                                </div>
-                              </CardHeader>
-                              <CardContent className="p-3">
-                                <div className="space-y-2">
-                                  <div className="flex justify-between items-center">
-                                    <h4 className="text-sm font-medium">Milestones</h4>
+                      </CardHeader>
+                      <CardContent>
+                        {selectedPerformanceAssessments.length === 0 ? (
+                          <div className="text-center py-6">
+                            <p className="text-muted-foreground">No goals selected for assessment</p>
+                            <Button
+                              variant="outline"
+                              className="mt-4"
+                              onClick={() => {
+                                if (goals.length === 0) {
+                                  toast({
+                                    title: "No goals available",
+                                    description: "This client doesn't have any goals set up.",
+                                    variant: "default"
+                                  });
+                                  return;
+                                }
+                                setShowGoalDialog(true);
+                              }}
+                            >
+                              <Plus className="h-4 w-4 mr-2" />
+                              Select Goal
+                            </Button>
+                          </div>
+                        ) : (
+                          <div className="space-y-4">
+                            {selectedPerformanceAssessments.map((assessment, index) => (
+                              <Card key={assessment.goalId} className="overflow-hidden">
+                                <CardHeader className="bg-primary/10 pb-2 pt-3 px-3">
+                                  <div className="flex justify-between items-start">
+                                    <CardTitle className="text-base">{assessment.goalTitle}</CardTitle>
                                     <Button
                                       variant="ghost"
-                                      size="sm"
-                                      className="h-7 px-2 text-xs"
-                                      onClick={() => {
-                                        setCurrentGoalId(assessment.goalId);
-                                        setShowMilestoneDialog(true);
-                                      }}
+                                      size="icon"
+                                      className="h-7 w-7"
+                                      onClick={() => removeGoal(assessment.goalId)}
                                     >
-                                      <Plus className="h-3 w-3 mr-1" /> Add
+                                      <X className="h-4 w-4" />
                                     </Button>
                                   </div>
-
-                                  {assessment.milestones.length === 0 ? (
-                                    <p className="text-xs text-muted-foreground">No milestones added yet</p>
-                                  ) : (
-                                    <div className="space-y-2">
-                                      {assessment.milestones.map((milestone, mIndex) => (
-                                        <div key={milestone.milestoneId} className="bg-accent rounded-md p-2">
-                                          <div className="flex justify-between items-start">
-                                            <h5 className="text-sm font-medium">{milestone.milestoneTitle}</h5>
-                                            <Button
-                                              variant="ghost"
-                                              size="icon"
-                                              className="h-6 w-6"
-                                              onClick={() => removeMilestone(assessment.goalId, milestone.milestoneId)}
-                                            >
-                                              <X className="h-3 w-3" />
-                                            </Button>
-                                          </div>
-                                          <div className="flex items-center mt-2">
-                                            <span className="text-xs text-muted-foreground mr-2">Rating:</span>
-                                            <Badge className={
-                                              (milestone.rating || 0) <= 3 ? "bg-red-100 text-red-800" :
-                                              (milestone.rating || 0) <= 6 ? "bg-amber-100 text-amber-800" :
-                                              "bg-green-100 text-green-800"
-                                            }>
-                                              {milestone.rating || 0}/10
-                                            </Badge>
-                                          </div>
-
-                                          <div className="mt-2">
-                                            <span className="text-xs text-muted-foreground">Strategies:</span>
-                                            {milestone.strategies.length === 0 ? (
-                                              <div className="mt-1">
-                                                <Button
-                                                  variant="outline"
-                                                  size="sm"
-                                                  className="h-7 px-2 text-xs w-full"
-                                                  onClick={() => {
-                                                    setCurrentGoalId(assessment.goalId);
-                                                    setCurrentMilestoneId(milestone.milestoneId);
-                                                    setShowStrategyDialog(true);
-                                                  }}
-                                                >
-                                                  <Plus className="h-3 w-3 mr-1" /> Add Strategies
-                                                </Button>
-                                              </div>
-                                            ) : (
-                                              <div className="flex flex-wrap gap-1 mt-1">
-                                                {milestone.strategies.map((strategy, sIndex) => (
-                                                  <Badge key={sIndex} variant="outline" className="text-xs">
-                                                    {strategy}
-                                                  </Badge>
-                                                ))}
-                                                <Button
-                                                  variant="ghost"
-                                                  size="sm"
-                                                  className="h-6 px-2 text-xs"
-                                                  onClick={() => {
-                                                    setCurrentGoalId(assessment.goalId);
-                                                    setCurrentMilestoneId(milestone.milestoneId);
-                                                    setShowStrategyDialog(true);
-                                                  }}
-                                                >
-                                                  <Plus className="h-3 w-3" />
-                                                </Button>
-                                              </div>
-                                            )}
-                                          </div>
-                                        </div>
-                                      ))}
+                                </CardHeader>
+                                <CardContent className="p-3">
+                                  <div className="space-y-2">
+                                    <div className="flex justify-between items-center">
+                                      <h4 className="text-sm font-medium">Milestones</h4>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-7 px-2 text-xs"
+                                        onClick={() => {
+                                          setCurrentGoalId(assessment.goalId);
+                                          setShowMilestoneDialog(true);
+                                        }}
+                                      >
+                                        <Plus className="h-3 w-3 mr-1" /> Add
+                                      </Button>
                                     </div>
-                                  )}
-                                </div>
-                              </CardContent>
-                            </Card>
-                          ))}
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                  
-                  {/* Session Notes Card moved from Session Details tab */}
-                  <Card className="mt-6">
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-lg">Session Notes</CardTitle>
-                      <CardDescription>
-                        Detailed notes about the session
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <FormField
-                        control={form.control}
-                        name="sessionNote.notes"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormControl>
-                              <RichTextEditor
-                                value={field.value || ""}
-                                onChange={field.onChange}
-                                placeholder="Enter detailed session notes here..."
-                                className="min-h-[200px]"
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
+
+                                    {assessment.milestones.length === 0 ? (
+                                      <p className="text-xs text-muted-foreground">No milestones added yet</p>
+                                    ) : (
+                                      <div className="space-y-2">
+                                        {assessment.milestones.map((milestone, mIndex) => (
+                                          <div key={milestone.milestoneId} className="bg-accent rounded-md p-2">
+                                            <div className="flex justify-between items-start">
+                                              <h5 className="text-sm font-medium">{milestone.milestoneTitle}</h5>
+                                              <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-6 w-6"
+                                                onClick={() => removeMilestone(assessment.goalId, milestone.milestoneId)}
+                                              >
+                                                <X className="h-3 w-3" />
+                                              </Button>
+                                            </div>
+                                            <div className="flex items-center mt-2">
+                                              <span className="text-xs text-muted-foreground mr-2">Rating:</span>
+                                              <Badge className={
+                                                (milestone.rating || 0) <= 3 ? "bg-red-100 text-red-800" :
+                                                (milestone.rating || 0) <= 6 ? "bg-amber-100 text-amber-800" :
+                                                "bg-green-100 text-green-800"
+                                              }>
+                                                {milestone.rating || 0}/10
+                                              </Badge>
+                                            </div>
+
+                                            <div className="mt-2">
+                                              <span className="text-xs text-muted-foreground">Strategies:</span>
+                                              {milestone.strategies.length === 0 ? (
+                                                <div className="mt-1">
+                                                  <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    className="h-7 px-2 text-xs w-full"
+                                                    onClick={() => {
+                                                      setCurrentGoalId(assessment.goalId);
+                                                      setCurrentMilestoneId(milestone.milestoneId);
+                                                      setShowStrategyDialog(true);
+                                                    }}
+                                                  >
+                                                    <Plus className="h-3 w-3 mr-1" /> Add Strategies
+                                                  </Button>
+                                                </div>
+                                              ) : (
+                                                <div className="flex flex-wrap gap-1 mt-1">
+                                                  {milestone.strategies.map((strategy, sIndex) => (
+                                                    <Badge key={sIndex} variant="outline" className="text-xs">
+                                                      {strategy}
+                                                    </Badge>
+                                                  ))}
+                                                  <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className="h-6 px-2 text-xs"
+                                                    onClick={() => {
+                                                      setCurrentGoalId(assessment.goalId);
+                                                      setCurrentMilestoneId(milestone.milestoneId);
+                                                      setShowStrategyDialog(true);
+                                                    }}
+                                                  >
+                                                    <Plus className="h-3 w-3" />
+                                                  </Button>
+                                                </div>
+                                              )}
+                                            </div>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    )}
+                                  </div>
+                                </CardContent>
+                              </Card>
+                            ))}
+                          </div>
                         )}
-                      />
-                    </CardContent>
-                  </Card>
+                      </CardContent>
+                    </Card>
+                  </div>
+                  
+                  {/* Right Column - 25% - Session Notes */}
+                  <div className="w-1/4">
+                    <Card className="h-full">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-lg">Session Notes</CardTitle>
+                        <CardDescription>
+                          Detailed notes about the session
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <FormField
+                          control={form.control}
+                          name="sessionNote.notes"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormControl>
+                                <RichTextEditor
+                                  value={field.value || ""}
+                                  onChange={field.onChange}
+                                  placeholder="Enter detailed session notes here..."
+                                  className="min-h-[400px]"
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </CardContent>
+                    </Card>
+                  </div>
                 </div>
               </TabsContent>
             </Tabs>
