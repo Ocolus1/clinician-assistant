@@ -670,7 +670,7 @@ export function FullScreenSessionForm({
     enabled: open,
   });
 
-  // Fetch allies for therapist dropdown and participant selection
+  // Fetch allies for the selected client for attendee selection
   const alliesQuery = useQuery<Ally[]>({
     queryKey: ["/api/clients", clientId, "allies"],
     enabled: open && !!clientId,
@@ -679,16 +679,18 @@ export function FullScreenSessionForm({
   // Extract allies data and handle logs separately to avoid TypeScript errors
   const allies = alliesQuery.data || [];
   
-  // Log allies info when data changes
+  // Log allies info when data changes - this helps debug when client selection changes
   useEffect(() => {
     if (alliesQuery.data) {
-      console.log("Allies fetched successfully:", alliesQuery.data);
+      console.log("Allies fetched successfully for client ID:", clientId);
+      console.log("Allies data:", alliesQuery.data);
       console.log("Allies count:", alliesQuery.data.length);
     }
     if (alliesQuery.error) {
-      console.error("Error fetching allies:", alliesQuery.error);
+      console.error("Error fetching allies for client ID:", clientId);
+      console.error("Error details:", alliesQuery.error);
     }
-  }, [alliesQuery.data, alliesQuery.error]);
+  }, [alliesQuery.data, alliesQuery.error, clientId]);
 
   // Fetch goals for assessment
   const { data: goals = [] } = useQuery<Goal[]>({
