@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { format } from "date-fns";
+import { Link, useLocation } from "wouter";
 import { 
   Calendar as CalendarIcon,
   Clock,
@@ -23,7 +24,8 @@ import {
   Package,
   BarChart,
   ShoppingBag,
-  Users
+  Users,
+  AlertCircle
 } from "lucide-react";
 import "./session-form.css";
 import { ThreeColumnLayout } from "./ThreeColumnLayout";
@@ -32,6 +34,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { useSafeForm } from "@/hooks/use-safe-hooks";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { borderStyles } from "@/lib/border-styles";
 import { StrategySelectionDialog } from "./StrategySelectionDialog";
 import { AttendeeSelectionDialog } from "./AttendeeSelectionDialog";
 
@@ -89,6 +92,11 @@ import {
   DialogTitle,
   DialogTrigger
 } from "@/components/ui/dialog";
+import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+} from "@/components/ui/alert";
 
 // Session form schema
 const sessionFormSchema = insertSessionSchema.extend({
@@ -1493,7 +1501,7 @@ export function FullScreenSessionForm({
                         </CardContent>
                       </Card>
 
-                      <Card className={borderStyles.card}>
+                      <Card className={cn(borderStyles.card.border, borderStyles.card.radius, borderStyles.card.shadow)}>
                         <CardHeader className="pb-2">
                           <div className="flex justify-between items-center">
                             <CardTitle className="text-lg">
