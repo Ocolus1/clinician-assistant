@@ -81,7 +81,7 @@ export default function GoalPreviewDialog({
           <div className="space-y-3">
             <h3 className="text-lg font-semibold">Milestones</h3>
             <div className="grid gap-3">
-              {goal.milestones.map((milestone) => (
+              {goal.milestones && goal.milestones.length > 0 ? goal.milestones.map((milestone) => (
                 <Card key={milestone.id} className="overflow-hidden">
                   <CardHeader className="p-4 pb-2">
                     <CardTitle className="text-base">{milestone.title}</CardTitle>
@@ -106,7 +106,9 @@ export default function GoalPreviewDialog({
                     </div>
                   </CardContent>
                 </Card>
-              ))}
+              )) : (
+                <p className="text-gray-600 text-sm italic">No milestones added yet.</p>
+              )}
             </div>
           </div>
 
