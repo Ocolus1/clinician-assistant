@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
 import { Ally } from "@shared/schema";
-import { UserIcon } from "lucide-react";
+import { UserIcon, AlertCircle, Users } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useToast } from "@/hooks/use-toast";
 import {
   Dialog,
   DialogContent,
@@ -16,6 +17,7 @@ import {
   Card,
   CardContent,
 } from "@/components/ui/card";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 /**
  * Dialog component for selecting attendees from the client's allies list
@@ -37,13 +39,23 @@ export function AttendeeSelectionDialog({
 }: AttendeeSelectionDialogProps) {
   // State for search input
   const [searchTerm, setSearchTerm] = useState('');
+  const { toast } = useToast();
   
   // Reset search term when dialog opens
   useEffect(() => {
     if (open) {
       setSearchTerm('');
+      
+      // Show a helpful warning if no allies are available
+      if (allies.length === 0) {
+        toast({
+          title: "No allies available",
+          description: "This client doesn't have any allied health professionals or supporters added yet.",
+          variant: "destructive",
+        });
+      }
     }
-  }, [open]);
+  }, [open, allies, toast]);
   
   // Filter out allies that are already selected and match search term
   const availableAllies = allies.filter(ally => 
@@ -76,24 +88,48 @@ export function AttendeeSelectionDialog({
         </DialogHeader>
         
         <div className="py-4">
-          <div className="mb-4">
-            <Input 
-              placeholder="Search attendees..." 
-              value={searchTerm}
-              onChange={handleSearchChange}
-              className="w-full"
-              autoFocus
-            />
-          </div>
-          
-          {/* Debug info */}
-          <div className="text-xs text-muted-foreground mb-2">
-            Available: {availableAllies.length} | Selected: {selectedAllies.length} | Total: {allies.length}
-          </div>
+          {allies.length === 0 ? (
+            <Alert variant="destructive" className="mb-4">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>No allies found</AlertTitle>
+              <AlertDescription>
+                This client doesn't have any allied health professionals or supporters added.
+                You'll need to add allies to the client profile first.
+              </AlertDescription>
+            </Alert>
+          ) : (
+            <>
+              <div className="mb-4">
+                <Input 
+                  placeholder="Search attendees..." 
+                  value={searchTerm}
+                  onChange={handleSearchChange}
+                  className="w-full"
+                  autoFocus
+                />
+              </div>
+              
+              {/* Count info */}
+              <div className="text-xs text-muted-foreground mb-2 flex items-center">
+                <Users className="h-3 w-3 mr-1 inline" />
+                Available: {availableAllies.length} | Selected: {selectedAllies.length} | Total: {allies.length}
+              </div>
+            </>
+          )}
           
           <ScrollArea className="h-[300px] pr-4">
             <div className="space-y-2">
-              {availableAllies.length === 0 ? (
+              {allies.length === 0 ? (
+                <div className="text-center p-6">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => onOpenChange(false)}
+                    className="mr-2"
+                  >
+                    Close
+                  </Button>
+                </div>
+              ) : availableAllies.length === 0 ? (
                 <div className="text-center p-6">
                   <p className="text-muted-foreground">
                     {searchTerm ? 'No matching attendees found' : 'All attendees have been added'}

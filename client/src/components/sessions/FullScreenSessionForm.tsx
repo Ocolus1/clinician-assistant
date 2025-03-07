@@ -1493,83 +1493,118 @@ export function FullScreenSessionForm({
                         </CardContent>
                       </Card>
 
-                      <Card>
+                      <Card className={borderStyles.card}>
                         <CardHeader className="pb-2">
                           <div className="flex justify-between items-center">
                             <CardTitle className="text-lg">
                               <UserCheck className="h-5 w-5 inline-block mr-2" />
                               Present Attendees
                             </CardTitle>
+                            <div className="flex gap-1 items-center">
+                              {alliesQuery.isLoading ? (
+                                <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                                  <RefreshCw className="h-3 w-3 mr-1 animate-spin" />
+                                  Loading...
+                                </Badge>
+                              ) : allies.length > 0 ? (
+                                <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                                  {allies.length} {allies.length === 1 ? 'Ally' : 'Allies'} Available
+                                </Badge>
+                              ) : clientId ? (
+                                <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">
+                                  <AlertCircle className="h-3 w-3 mr-1" />
+                                  No Allies Found
+                                </Badge>
+                              ) : null}
+                            </div>
                           </div>
                         </CardHeader>
                         <CardContent className="space-y-4">
-                          {/* Debug info to see what's happening with allies data */}
-                          <div className="text-xs text-muted-foreground mb-2">
-                            Allies available: {allies ? allies.length : 0}
-                            {alliesQuery.isLoading && <span> (Loading...)</span>}
-                            {alliesQuery.error && <span> (Error loading allies)</span>}
-                          </div>
-
-                          {/* Display selected allies */}
-                          {form.watch("sessionNote.presentAllies")?.length > 0 ? (
-                            <div className="space-y-2">
-                              {form.watch("sessionNote.presentAllies").map((name, index) => {
-                                const ally = allies.find(a => a.name === name);
-                                return (
-                                  <div key={index} className="flex items-center justify-between bg-accent rounded-md p-2">
-                                    <div className="flex items-center">
-                                      <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center mr-2">
-                                        <UserIcon className="h-4 w-4 text-primary" />
+                          {clientId ? (
+                            <>
+                              {/* Display selected allies */}
+                              {form.watch("sessionNote.presentAllies")?.length > 0 ? (
+                                <div className="space-y-2">
+                                  {form.watch("sessionNote.presentAllies").map((name, index) => {
+                                    const ally = allies.find(a => a.name === name);
+                                    return (
+                                      <div key={index} className="flex items-center justify-between bg-accent/60 rounded-md p-2 border border-accent">
+                                        <div className="flex items-center">
+                                          <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center mr-2">
+                                            <UserIcon className="h-4 w-4 text-primary" />
+                                          </div>
+                                          <div>
+                                            <p className="font-medium text-sm">{name}</p>
+                                            <p className="text-xs text-muted-foreground">{ally?.relationship || "Supporter"}</p>
+                                          </div>
+                                        </div>
+                                        <Button 
+                                          variant="ghost" 
+                                          size="icon"
+                                          onClick={() => removeAttendee(index)}
+                                          aria-label={`Remove ${name}`}
+                                        >
+                                          <X className="h-4 w-4" />
+                                        </Button>
                                       </div>
-                                      <div>
-                                        <p className="font-medium text-sm">{name}</p>
-                                        <p className="text-xs text-muted-foreground">{ally?.relationship || "Supporter"}</p>
-                                      </div>
-                                    </div>
-                                    <Button 
-                                      variant="ghost" 
-                                      size="icon"
-                                      onClick={() => removeAttendee(index)}
-                                      aria-label={`Remove ${name}`}
-                                    >
-                                      <X className="h-4 w-4" />
-                                    </Button>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          ) : (
-                            <p className="text-sm text-muted-foreground">No attendees added yet</p>
-                          )}
-
-                          {/* Add attendee button - Always visible, but disabled if no unselected allies */}
-                          <div className="mt-4">
-                            <Button
-                              variant="outline"
-                              className="w-full"
-                              onClick={() => {
-                                console.log("Opening attendee selection dialog");
-                                console.log("Current allies:", allies);
-                                setShowAttendeeDialog(true);
-                              }}
-                              disabled={alliesQuery.isLoading || 
-                                (allies.length > 0 && !allies.some(ally => 
-                                  !form.watch("sessionNote.presentAllies")?.includes(ally.name)
-                                ))}
-                            >
-                              {alliesQuery.isLoading ? (
-                                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                                    );
+                                  })}
+                                </div>
                               ) : (
-                                <Plus className="h-4 w-4 mr-2" />
+                                <div className="text-center py-4 border border-dashed rounded-md border-muted">
+                                  <p className="text-muted-foreground">No attendees added yet</p>
+                                  <p className="text-xs text-muted-foreground mt-1">
+                                    Add allied health professionals, family members, or other support persons who were present
+                                  </p>
+                                </div>
                               )}
-                              {alliesQuery.isLoading ? "Loading allies..." : `Add Attendee (${allies.length})`}
-                            </Button>
-                          </div>
-                          
-                          {/* Show message based on status */}
-                          {!alliesQuery.isLoading && allies.length === 0 && (
-                            <div className="text-center py-2 mt-2 border-t">
-                              <p className="text-muted-foreground text-sm">No allies found for this client</p>
+
+                              {/* Add attendee button - Improved visuals and disabled state handling */}
+                              <div className="mt-2">
+                                <Button
+                                  variant="outline"
+                                  className="w-full"
+                                  onClick={() => {
+                                    setShowAttendeeDialog(true);
+                                  }}
+                                  disabled={alliesQuery.isLoading || 
+                                    allies.length === 0 ||
+                                    (allies.length > 0 && !allies.some(ally => 
+                                      !form.watch("sessionNote.presentAllies")?.includes(ally.name)
+                                    ))}
+                                >
+                                  {alliesQuery.isLoading ? (
+                                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                                  ) : (
+                                    <Plus className="h-4 w-4 mr-2" />
+                                  )}
+                                  {alliesQuery.isLoading ? "Loading allies..." : 
+                                    allies.length === 0 ? "No allies available" : 
+                                    !allies.some(ally => !form.watch("sessionNote.presentAllies")?.includes(ally.name)) ?
+                                    "All allies added" : "Add Attendee"}
+                                </Button>
+                              </div>
+                              
+                              {/* Show helpful message if needed */}
+                              {!alliesQuery.isLoading && allies.length === 0 && (
+                                <Alert variant="default" className="mt-2 bg-amber-50 border-amber-200">
+                                  <AlertCircle className="h-4 w-4" />
+                                  <AlertTitle>No allies found</AlertTitle>
+                                  <AlertDescription className="text-xs">
+                                    This client doesn't have any allied health professionals or supporters.
+                                    <br />
+                                    <Button variant="link" size="sm" className="h-auto p-0" asChild>
+                                      <Link href={`/client/${clientId}`}>
+                                        Add allies to client profile
+                                      </Link>
+                                    </Button>
+                                  </AlertDescription>
+                                </Alert>
+                              )}
+                            </>
+                          ) : (
+                            <div className="text-center py-4 border border-dashed rounded-md border-muted">
+                              <p className="text-muted-foreground">Please select a client first</p>
                             </div>
                           )}
                         </CardContent>
