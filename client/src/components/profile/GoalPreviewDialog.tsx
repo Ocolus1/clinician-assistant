@@ -265,8 +265,24 @@ const GoalPreviewDialog = ({
                             )}
                           </div>
 
-                          <div className="flex items-center space-x-2 ml-4">
-                            <SparkLine data={progressData} />
+                          <div className="flex flex-col items-start ml-4">
+                            <span className="text-sm text-gray-500 mb-1">Progress</span>
+                            <div className="w-20 h-10">
+                              <svg width="100%" height="100%" viewBox="0 0 80 30" className="overflow-visible">
+                                <path
+                                  d={`M0,15 L15,10 L30,20 L45,5 L60,15 L80,15`}
+                                  fill="none"
+                                  stroke="#EF4444"
+                                  strokeWidth="1.5"
+                                />
+                                <circle
+                                  cx="80"
+                                  cy="15"
+                                  r="3"
+                                  fill="#EF4444"
+                                />
+                              </svg>
+                            </div>
                           </div>
                         </div>
                       </div>
