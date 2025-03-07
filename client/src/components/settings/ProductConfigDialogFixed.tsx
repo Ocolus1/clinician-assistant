@@ -224,28 +224,58 @@ export function ProductConfigDialog({ open, onOpenChange }: ProductConfigDialogP
     setActiveTab("all-products");
   };
 
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl max-h-[90vh] overflow-auto">
-        <DialogHeader>
-          <DialogTitle className="text-2xl flex items-center">
-            <Package className="mr-2 h-5 w-5" /> 
-            Product Configuration
-          </DialogTitle>
-          <DialogDescription>
-            Manage therapy products and resources for client sessions
-          </DialogDescription>
-        </DialogHeader>
+  // If not open, don't render anything
+  if (!open) return null;
 
-        <Tabs 
-          value={activeTab} 
-          onValueChange={setActiveTab}
-          className="mt-4"
-        >
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="all-products">All Products</TabsTrigger>
-            <TabsTrigger value="new-product">{isEditing ? "Edit Product" : "New Product"}</TabsTrigger>
-          </TabsList>
+  return (
+    <div className="fixed inset-0 z-50 bg-background overflow-auto">
+      <div className="min-h-screen flex flex-col">
+        {/* Header */}
+        <div className="sticky top-0 z-10 bg-background border-b">
+          <div className="container py-4 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="icon" onClick={() => onOpenChange(false)}>
+                <X className="h-4 w-4" />
+              </Button>
+              <div>
+                <h2 className="text-xl font-semibold flex items-center">
+                  <Package className="mr-2 h-5 w-5" /> 
+                  Product Configuration
+                </h2>
+                <p className="text-sm text-muted-foreground">
+                  Manage therapy products and resources for client sessions
+                </p>
+              </div>
+            </div>
+            
+            {activeTab === "new-product" && (
+              <Button 
+                type="submit" 
+                form="product-form" 
+                disabled={mutation.isPending}
+              >
+                {mutation.isPending ? "Saving..." : (
+                  <>
+                    <Save className="mr-2 h-4 w-4" /> 
+                    {isEditing ? "Update Product" : "Save Product"}
+                  </>
+                )}
+              </Button>
+            )}
+          </div>
+        </div>
+
+        {/* Main Content */}
+        <div className="container py-6 flex-1">
+          <Tabs 
+            value={activeTab} 
+            onValueChange={setActiveTab}
+            className="mt-2"
+          >
+            <TabsList className="grid w-full max-w-md grid-cols-2 mb-6">
+              <TabsTrigger value="all-products">All Products</TabsTrigger>
+              <TabsTrigger value="new-product">{isEditing ? "Edit Product" : "New Product"}</TabsTrigger>
+            </TabsList>
 
           {/* All Products Tab */}
           <TabsContent value="all-products" className="space-y-4 pt-4">
@@ -446,7 +476,7 @@ export function ProductConfigDialog({ open, onOpenChange }: ProductConfigDialogP
             </Form>
           </TabsContent>
         </Tabs>
-      </DialogContent>
-    </Dialog>
+      </div>
+    </div>
   );
 }

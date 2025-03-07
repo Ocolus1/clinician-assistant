@@ -17,7 +17,7 @@ import {
   Server, 
   LayoutGrid 
 } from "lucide-react";
-import { ProductConfigDialog } from "../components/settings/ProductConfigDialogFixed";
+import { FullscreenProductConfig } from "../components/settings/FullscreenProductConfig";
 import { Button } from "@/components/ui/button";
 
 export default function Settings() {
@@ -191,8 +191,8 @@ export default function Settings() {
         </TabsContent>
       </Tabs>
       
-      {/* Product Configuration Dialog */}
-      <ProductConfigDialog 
+      {/* Product Configuration Fullscreen */}
+      <FullscreenProductConfig 
         open={productDialogOpen} 
         onOpenChange={setProductDialogOpen} 
       />
