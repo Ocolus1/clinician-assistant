@@ -78,7 +78,7 @@ const GoalCard = ({ goal, subgoals, onPreview, onEdit, onArchive }: GoalCardProp
   };
 
   const subgoalCount = subgoals.length;
-
+  
   return (
     <Card className="overflow-hidden shadow-sm hover:shadow-md transition-shadow">
       <CardHeader className="pt-5 pb-4 px-6 bg-white">
@@ -141,6 +141,7 @@ const GoalCard = ({ goal, subgoals, onPreview, onEdit, onArchive }: GoalCardProp
           >
             <Edit className="h-4 w-4" />
           </Button>
+
           <Button 
             variant="ghost" 
             size="sm"
