@@ -1,0 +1,65 @@
+Goal Card Redesign Implementation Plan - Client Profile Page
+Overview
+We need to redesign the Goals tab in the Client Profile page to use a card-based interface that shows high-level information with preview functionality.
+
+Current Implementation
+Currently, the Goals tab in the Client Profile page displays goals in a detailed format. We need to replace this with a streamlined card-based interface.
+
+Target Implementation
+Goal Card (Default View)
+Goal title - prominently displayed
+Priority indicator - color-coded tag (High/Medium/Low priority)
+Average score visualization - gauge graph showing overall goal progress
+Milestone count with hover functionality showing milestone titles
+Three icon buttons: Preview Goal, Edit Goal, Archive Goal
+Goal Preview Dialog (Expanded View)
+Goal title and full description
+Priority indicator (matching the card)
+Average score gauge graph
+Detailed list of all milestones with:
+Milestone title and description
+Average score visualization as sparkline charts
+Action buttons: Add, Edit, Archive milestone
+Implementation Tasks
+Create New Goal Card Component
+
+Develop a new GoalCard.tsx component in the profile components directory
+Replace the current goal display in ClientGoals.tsx with this new card component
+Ensure the card shows only high-level information
+Create Goal Preview Dialog
+
+Develop a GoalPreviewDialog.tsx component
+Implement as a modal dialog that appears when clicking the preview button
+Show detailed goal and milestone information
+Data Visualization Components
+
+Create gauge graph component for goal average scores
+Implement sparkline component for milestone progress visualization
+Ensure both are responsive and accessible
+Integration with Existing Goal Management
+
+Maintain existing edit and archive functionality
+Ensure preview functionality doesn't interfere with existing CRUD operations
+Preserve all current data flows and state management
+Technical Guidelines
+Component Structure
+
+Follow the component architecture outlined in development_guidelines.md
+Keep components focused on single responsibilities
+Use composition for complex interfaces
+State Management
+
+Use React Query for server state
+Local component state for UI interaction
+Follow the established patterns in the existing codebase
+Performance Considerations
+
+Use React.memo() for components that render frequently
+Apply proper memoization for calculations
+Implement virtualization if there are many goal cards
+Styling Guidelines
+
+Follow the application's existing design system
+Maintain accessibility standards
+Ensure responsive design for all screen sizes
+Remember to strictly make changes only to the Goals tab in the Client Profile page and follow all development guidelines as specified in development_guidelines.md.
