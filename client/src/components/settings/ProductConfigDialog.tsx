@@ -58,19 +58,13 @@ import type { BudgetItemCatalog } from "@shared/schema";
 // Form schema for product creation/editing
 const productSchema = z.object({
   itemCode: z.string().min(2, "Product code must be at least 2 characters"),
-  itemName: z.string().min(3, "Product name must be at least 3 characters"),
-  description: z.string().optional(),
+  description: z.string().min(3, "Description must be at least 3 characters"),
   category: z.string().min(1, "Category is required"),
-  unitPrice: z.string().refine(
+  defaultUnitPrice: z.string().refine(
     (val) => !isNaN(parseFloat(val)) && parseFloat(val) >= 0,
     { message: "Unit price must be a positive number" }
   ),
-  isActive: z.boolean().default(true),
-  requiresApproval: z.boolean().default(false),
-  maxQuantityPerSession: z.string().refine(
-    (val) => !isNaN(parseInt(val)) && parseInt(val) >= 0,
-    { message: "Maximum quantity must be a positive number" }
-  )
+  isActive: z.boolean().default(true)
 });
 
 type ProductFormValues = z.infer<typeof productSchema>;
@@ -104,13 +98,10 @@ export function ProductConfigDialog({ open, onOpenChange }: ProductConfigDialogP
     resolver: zodResolver(productSchema),
     defaultValues: {
       itemCode: "",
-      itemName: "",
       description: "",
       category: "",
-      unitPrice: "0",
-      isActive: true,
-      requiresApproval: false,
-      maxQuantityPerSession: "1"
+      defaultUnitPrice: "0",
+      isActive: true
     }
   });
 
@@ -119,15 +110,21 @@ export function ProductConfigDialog({ open, onOpenChange }: ProductConfigDialogP
     mutationFn: async (data: ProductFormValues) => {
       if (selectedProduct) {
         // Update existing product
-        return apiRequest('PUT', `/api/budget-item-catalog/${selectedProduct.id}`, data);
+        return apiRequest('PUT', `/api/budget-catalog/${selectedProduct.id}`, {
+          ...data,
+          defaultUnitPrice: parseFloat(data.defaultUnitPrice)
+        });
       } else {
         // Create new product
-        return apiRequest('POST', '/api/budget-item-catalog', data);
+        return apiRequest('POST', '/api/budget-catalog', {
+          ...data,
+          defaultUnitPrice: parseFloat(data.defaultUnitPrice)
+        });
       }
     },
     onSuccess: () => {
       // Invalidate and refetch
-      queryClient.invalidateQueries({ queryKey: ['/api/budget-item-catalog'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/budget-catalog'] });
       
       // Show success message
       toast({
@@ -153,13 +150,10 @@ export function ProductConfigDialog({ open, onOpenChange }: ProductConfigDialogP
   const resetForm = () => {
     form.reset({
       itemCode: "",
-      itemName: "",
       description: "",
       category: "",
-      unitPrice: "0",
-      isActive: true,
-      requiresApproval: false,
-      maxQuantityPerSession: "1"
+      defaultUnitPrice: "0",
+      isActive: true
     });
     setSelectedProduct(null);
     setIsEditing(false);
@@ -172,13 +166,10 @@ export function ProductConfigDialog({ open, onOpenChange }: ProductConfigDialogP
     // Set form values
     form.reset({
       itemCode: product.itemCode || "",
-      itemName: product.itemName || "",
       description: product.description || "",
       category: product.category || "",
-      unitPrice: product.unitPrice?.toString() || "0",
-      isActive: product.isActive === true || product.isActive === "true",
-      requiresApproval: product.requiresApproval === true || product.requiresApproval === "true",
-      maxQuantityPerSession: product.maxQuantityPerSession?.toString() || "1"
+      defaultUnitPrice: product.defaultUnitPrice?.toString() || "0",
+      isActive: product.isActive === true
     });
     
     setActiveTab("new-product");
@@ -188,10 +179,10 @@ export function ProductConfigDialog({ open, onOpenChange }: ProductConfigDialogP
   // Function to handle delete product
   const handleDeleteProduct = async (product: BudgetItemCatalog) => {
     // Implement delete confirmation and API call
-    if (confirm(`Are you sure you want to delete ${product.itemName}?`)) {
+    if (confirm(`Are you sure you want to delete ${product.itemCode}?`)) {
       try {
-        await apiRequest('DELETE', `/api/budget-item-catalog/${product.id}`);
-        queryClient.invalidateQueries({ queryKey: ['/api/budget-item-catalog'] });
+        await apiRequest('DELETE', `/api/budget-catalog/${product.id}`);
+        queryClient.invalidateQueries({ queryKey: ['/api/budget-catalog'] });
         toast({
           title: "Product Deleted",
           description: "Product has been successfully deleted.",
@@ -273,7 +264,7 @@ export function ProductConfigDialog({ open, onOpenChange }: ProductConfigDialogP
                   <TableHeader>
                     <TableRow>
                       <TableHead>Code</TableHead>
-                      <TableHead>Product Name</TableHead>
+                      <TableHead>Description</TableHead>
                       <TableHead>Category</TableHead>
                       <TableHead>Price</TableHead>
                       <TableHead>Status</TableHead>
@@ -284,12 +275,12 @@ export function ProductConfigDialog({ open, onOpenChange }: ProductConfigDialogP
                     {products.map((product) => (
                       <TableRow key={product.id}>
                         <TableCell className="font-medium">{product.itemCode}</TableCell>
-                        <TableCell>{product.itemName}</TableCell>
+                        <TableCell>{product.description}</TableCell>
                         <TableCell>{product.category}</TableCell>
-                        <TableCell>${parseFloat(product.unitPrice?.toString() || "0").toFixed(2)}</TableCell>
+                        <TableCell>${parseFloat(product.defaultUnitPrice?.toString() || "0").toFixed(2)}</TableCell>
                         <TableCell>
-                          <Badge variant={product.isActive === true || product.isActive === "true" ? "default" : "outline"}>
-                            {product.isActive === true || product.isActive === "true" ? "Active" : "Inactive"}
+                          <Badge variant={product.isActive ? "default" : "outline"}>
+                            {product.isActive ? "Active" : "Inactive"}
                           </Badge>
                         </TableCell>
                         <TableCell className="text-right space-x-2">
@@ -314,7 +305,7 @@ export function ProductConfigDialog({ open, onOpenChange }: ProductConfigDialogP
               <Button variant="ghost" onClick={handleCancel} className="mr-2">
                 <ArrowLeft className="mr-2 h-4 w-4" /> Back
               </Button>
-              <h3 className="text-lg font-medium">{isEditing ? `Edit Product: ${selectedProduct?.itemName}` : "Add New Product"}</h3>
+              <h3 className="text-lg font-medium">{isEditing ? `Edit Product: ${selectedProduct?.itemCode}` : "Add New Product"}</h3>
             </div>
             
             <Form {...form}>
