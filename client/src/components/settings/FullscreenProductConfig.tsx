@@ -126,13 +126,13 @@ export function FullscreenProductConfig({ open, onOpenChange }: FullscreenProduc
     onSuccess: () => {
       // Invalidate and refetch
       queryClient.invalidateQueries({ queryKey: ['/api/budget-catalog'] });
-      
+
       // Show success message
       toast({
         title: selectedProduct ? "Product Updated" : "Product Created",
         description: `Successfully ${selectedProduct ? "updated" : "created"} product.`,
       });
-      
+
       // Reset form and state
       resetForm();
       setActiveTab("all-products");
@@ -163,7 +163,7 @@ export function FullscreenProductConfig({ open, onOpenChange }: FullscreenProduc
   // Function to handle edit product
   const handleEditProduct = (product: BudgetItemCatalog) => {
     setSelectedProduct(product);
-    
+
     // Set form values
     form.reset({
       itemCode: product.itemCode || "",
@@ -172,7 +172,7 @@ export function FullscreenProductConfig({ open, onOpenChange }: FullscreenProduc
       defaultUnitPrice: product.defaultUnitPrice?.toString() || "0",
       isActive: product.isActive === true
     });
-    
+
     setActiveTab("new-product");
     setIsEditing(true);
   };
@@ -239,7 +239,7 @@ export function FullscreenProductConfig({ open, onOpenChange }: FullscreenProduc
                 </p>
               </div>
             </div>
-            
+
             {activeTab === "new-product" && (
               <Button 
                 type="submit" 
@@ -259,11 +259,12 @@ export function FullscreenProductConfig({ open, onOpenChange }: FullscreenProduc
 
         {/* Main Content */}
         <div className="container w-full px-4 py-6 flex-1">
-          <Tabs 
-            value={activeTab} 
-            onValueChange={setActiveTab}
-            className="mt-2"
-          >
+          <div className="container max-w-7xl mx-auto">
+            <Tabs 
+              value={activeTab} 
+              onValueChange={setActiveTab}
+              className="mt-2"
+            >
             <div className="flex justify-center mb-6">
               <TabsList className="grid w-full max-w-md grid-cols-2">
                 <TabsTrigger value="all-products">All Products</TabsTrigger>
@@ -371,7 +372,7 @@ export function FullscreenProductConfig({ open, onOpenChange }: FullscreenProduc
                   )}
                 </Button>
               </div>
-              
+
               <Form {...form}>
                 <form id="product-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -397,7 +398,7 @@ export function FullscreenProductConfig({ open, onOpenChange }: FullscreenProduc
                             </FormItem>
                           )}
                         />
-                        
+
                         <FormField
                           control={form.control}
                           name="description"
@@ -415,7 +416,7 @@ export function FullscreenProductConfig({ open, onOpenChange }: FullscreenProduc
                             </FormItem>
                           )}
                         />
-                        
+
                         <FormField
                           control={form.control}
                           name="category"
@@ -435,7 +436,7 @@ export function FullscreenProductConfig({ open, onOpenChange }: FullscreenProduc
                         />
                       </CardContent>
                     </Card>
-                    
+
                     {/* Right Column */}
                     <Card>
                       <CardHeader>
@@ -455,7 +456,7 @@ export function FullscreenProductConfig({ open, onOpenChange }: FullscreenProduc
                             </FormItem>
                           )}
                         />
-                        
+
                         <div className="space-y-4 pt-4">
                           <FormField
                             control={form.control}
@@ -482,7 +483,7 @@ export function FullscreenProductConfig({ open, onOpenChange }: FullscreenProduc
                       </CardContent>
                     </Card>
                   </div>
-                  
+
                   {/* Mobile-friendly submit button at the bottom */}
                   <div className="md:hidden">
                     <Button 
@@ -502,6 +503,7 @@ export function FullscreenProductConfig({ open, onOpenChange }: FullscreenProduc
               </Form>
             </TabsContent>
           </Tabs>
+          </div>
         </div>
       </div>
     </div>
