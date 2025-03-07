@@ -297,3 +297,212 @@ const GoalPreviewDialog = ({
 };
 
 export default GoalPreviewDialog;
+import React from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
+import { Button } from '../ui/button';
+import { Plus, Check, Circle, Target, Gauge, TrendingUp } from 'lucide-react';
+import { Goal, Subgoal } from '@/types';
+import { Badge } from '../ui/badge';
+import { Card, CardContent } from '../ui/card';
+
+interface GoalPreviewDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  goal: Goal | null;
+  subgoals: Subgoal[];
+  onAddMilestone: (goalId: number) => void;
+  onEditMilestone: (subgoal: Subgoal) => void;
+  onToggleMilestoneStatus: (subgoal: Subgoal) => void;
+}
+
+const GoalPreviewDialog = ({ 
+  open, 
+  onOpenChange, 
+  goal, 
+  subgoals, 
+  onAddMilestone,
+  onEditMilestone,
+  onToggleMilestoneStatus
+}: GoalPreviewDialogProps) => {
+  if (!goal) return null;
+  
+  // Calculate progress based on subgoals status
+  const calculateProgress = (): number => {
+    if (!subgoals || subgoals.length === 0) return 0;
+    const completedSubgoals = subgoals.filter(sg => sg.status === 'completed').length;
+    return Math.round((completedSubgoals / subgoals.length) * 100);
+  };
+
+  // Function to generate random sparkline data (for demonstration)
+  const generateSparklineData = () => {
+    return Array.from({ length: 10 }, () => Math.floor(Math.random() * 70) + 30);
+  };
+
+  // Function to render sparkline based on data
+  const renderSparkline = (data: number[]) => {
+    const max = Math.max(...data);
+    const min = Math.min(...data);
+    const range = max - min;
+    const height = 20;
+    const width = 80;
+    
+    // Calculate points for the polyline
+    const points = data.map((value, index) => {
+      const x = (index / (data.length - 1)) * width;
+      const normalizedValue = range === 0 ? 0.5 : (value - min) / range;
+      const y = height - (normalizedValue * height);
+      return `${x},${y}`;
+    }).join(' ');
+
+    return (
+      <svg width={width} height={height} className="ml-2">
+        <polyline
+          points={points}
+          fill="none"
+          stroke="#3b82f6"
+          strokeWidth="1.5"
+        />
+      </svg>
+    );
+  };
+
+  // Function to render a gauge chart
+  const renderGauge = (percentage: number) => {
+    const radius = 32;
+    const circumference = 2 * Math.PI * radius;
+    const offset = circumference - (percentage / 100) * circumference;
+    
+    return (
+      <div className="relative inline-flex items-center justify-center">
+        <svg width="70" height="70" viewBox="0 0 100 100">
+          <circle
+            cx="50"
+            cy="50"
+            r={radius}
+            fill="none"
+            stroke="#e5e7eb"
+            strokeWidth="8"
+            className="opacity-25"
+          />
+          <circle
+            cx="50"
+            cy="50"
+            r={radius}
+            fill="none"
+            stroke={percentage >= 75 ? "#22c55e" : percentage >= 50 ? "#3b82f6" : percentage >= 25 ? "#f59e0b" : "#ef4444"}
+            strokeWidth="8"
+            strokeLinecap="round"
+            strokeDasharray={circumference}
+            strokeDashoffset={offset}
+            transform="rotate(-90 50 50)"
+          />
+          <text
+            x="50"
+            y="55"
+            textAnchor="middle"
+            fontSize="18"
+            fontWeight="bold"
+            fill="currentColor"
+          >
+            {percentage}%
+          </text>
+        </svg>
+      </div>
+    );
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[700px]">
+        <DialogHeader>
+          <div className="flex justify-between items-center">
+            <DialogTitle>{goal.title}</DialogTitle>
+            <Badge variant={goal.priority === 'High' ? 'destructive' : goal.priority === 'Medium' ? 'warning' : 'outline'}>
+              {goal.priority} Priority
+            </Badge>
+          </div>
+        </DialogHeader>
+        
+        <div className="flex justify-between items-start mb-4">
+          <div className="flex-1 pr-4">
+            <p className="text-sm text-muted-foreground mb-4">
+              {goal.description}
+            </p>
+          </div>
+          <div className="flex-shrink-0">
+            {renderGauge(calculateProgress())}
+            <p className="text-xs text-center mt-1 text-muted-foreground">Progress</p>
+          </div>
+        </div>
+        
+        <div className="mt-6">
+          <div className="flex items-center justify-between mb-4">
+            <h4 className="text-sm font-medium flex items-center">
+              <Target className="h-4 w-4 mr-2" /> Milestones
+            </h4>
+            <Button size="sm" onClick={() => onAddMilestone(goal.id)}>
+              <Plus className="h-3 w-3 mr-1" /> Add Milestone
+            </Button>
+          </div>
+          
+          {subgoals.length === 0 ? (
+            <div className="border rounded-md p-4 text-center text-muted-foreground">
+              No milestones have been added yet.
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {subgoals.map((subgoal) => {
+                const sparklineData = generateSparklineData();
+                
+                return (
+                  <Card key={subgoal.id} className={`border ${subgoal.status === 'completed' ? 'border-green-200 bg-green-50' : 'border-gray-200'}`}>
+                    <CardContent className="p-3">
+                      <div className="flex justify-between items-center">
+                        <div className="flex-1">
+                          <div className="flex items-center">
+                            <button 
+                              onClick={() => onToggleMilestoneStatus(subgoal)}
+                              className={`h-5 w-5 rounded-full flex items-center justify-center mr-2 ${subgoal.status === 'completed' ? 'bg-green-500 text-white' : 'border border-gray-300'}`}
+                            >
+                              {subgoal.status === 'completed' && <Check className="h-3 w-3" />}
+                            </button>
+                            <h5 className="font-medium text-sm">{subgoal.title}</h5>
+                          </div>
+                          <p className="text-xs text-muted-foreground ml-7 mt-1">
+                            {subgoal.description}
+                          </p>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <div className="flex items-center">
+                            <span className="text-xs text-muted-foreground mr-1">Avg. Score</span>
+                            <div className="flex items-center">
+                              <TrendingUp className="h-3 w-3 text-blue-500" />
+                              {renderSparkline(sparklineData)}
+                            </div>
+                          </div>
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="h-7 w-7 p-0" 
+                            onClick={() => onEditMilestone(subgoal)}
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+                              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                            </svg>
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+export default GoalPreviewDialog;
