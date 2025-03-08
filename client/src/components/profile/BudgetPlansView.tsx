@@ -537,7 +537,17 @@ export default function BudgetPlansView({
                         <tr className="bg-gray-50">
                           <td colSpan={7} className="p-3 text-right font-medium">Total</td>
                           <td className="p-3 text-right font-bold">
-                            ${budgetPlans.find(p => p.id === selectedPlan?.id)?.totalUsed.toFixed(2) || '0.00'}
+                            ${enhancedBudgetItems.reduce((total, item) => {
+                              const unitPrice = typeof item.unitPrice === 'string'
+                                ? parseFloat(item.unitPrice) || 0
+                                : item.unitPrice || 0;
+                              
+                              const quantity = typeof item.quantity === 'string'
+                                ? parseInt(item.quantity) || 0
+                                : item.quantity || 0;
+                              
+                              return total + (unitPrice * quantity);
+                            }, 0).toFixed(2)}
                           </td>
                         </tr>
                       </tfoot>
