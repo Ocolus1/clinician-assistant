@@ -51,11 +51,12 @@ async function createTestClient() {
     console.log(`Created budget settings with ID: ${budgetSettings.id}`);
     
     // Create budget items
-    const budgetItem = await storage.createBudgetItem(client.id, {
+    const budgetItem = await storage.createBudgetItem(client.id, budgetSettings.id, {
       itemCode: "SLP-001",
       description: "Speech Therapy Sessions",
       unitPrice: 150,
-      quantity: 12
+      quantity: 12,
+      budgetSettingsId: budgetSettings.id
     });
     
     console.log(`Created budget item with ID: ${budgetItem.id}`);
