@@ -1,6 +1,6 @@
 import React, { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Client, Session, Ally, insertSessionSchema } from "@shared/schema";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Client, Session } from "@shared/schema";
 import { 
   Card, 
   CardContent,
@@ -11,14 +11,8 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
-import {
   Dialog,
+  DialogClose,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -26,16 +20,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Textarea } from "@/components/ui/textarea";
 import { 
   Calendar as CalendarIcon,
   Clock,
@@ -43,22 +27,14 @@ import {
   Plus,
   MapPin,
   User,
-  Filter,
   Grid,
   List,
-  ChevronLeft,
-  XCircle,
   Trash2
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { apiRequest } from "@/lib/queryClient";
-import { useSafeForm } from "@/hooks/use-safe-hooks";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
 import { useToast } from "@/hooks/use-toast";
 
 // Import our components
@@ -80,6 +56,82 @@ const getStatusBadge = (status: string) => {
       return <Badge>{status}</Badge>;
   }
 };
+
+// Cleanup Sessions button component
+function CleanupSessionsButton() {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [isLoading, setIsLoading] = useState(false);
+  
+  // Get sessions data from parent context
+  const { data: sessions = [] } = useQuery<Session[]>({
+    queryKey: ["/api/sessions"],
+  });
+  
+  const cleanupSessions = async () => {
+    setIsLoading(true);
+    try {
+      const response = await apiRequest('DELETE', '/api/sessions/cleanup');
+      const result = await response.json();
+      
+      if (result.success) {
+        toast({
+          title: "Sessions Cleaned Up",
+          description: `Successfully deleted ${result.deleted} sessions, keeping one reference session.`,
+          variant: "default",
+        });
+        
+        // Invalidate the sessions cache to refresh the list
+        queryClient.invalidateQueries({ queryKey: ['/api/sessions'] });
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to clean up sessions. Please try again.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Error cleaning up sessions:', error);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  return (
+    <div className="flex flex-col gap-4 mt-4">
+      <div className="text-center py-4 bg-red-50 rounded-lg">
+        <p className="text-red-800 font-medium mb-2">Warning</p>
+        <p className="text-gray-600 text-sm mb-2">
+          You're about to delete {isLoading ? '...' : (sessions.length - 1)} session records.
+        </p>
+        <p className="text-gray-600 text-sm">
+          This action cannot be undone.
+        </p>
+      </div>
+      <div className="flex justify-end gap-2">
+        <DialogClose asChild>
+          <Button variant="outline" disabled={isLoading}>
+            Cancel
+          </Button>
+        </DialogClose>
+        <Button variant="destructive" onClick={cleanupSessions} disabled={isLoading}>
+          {isLoading ? (
+            <>
+              <span className="animate-spin mr-2">⏳</span> Cleaning Up...
+            </>
+          ) : (
+            <>Confirm Cleanup</>
+          )}
+        </Button>
+      </div>
+    </div>
+  );
+}
 
 export default function Sessions() {
   // State for search, filters, view type, and selected session
@@ -130,8 +182,6 @@ export default function Sessions() {
   const sortedSessions = [...filteredSessions].sort((a, b) => 
     new Date(b.sessionDate).getTime() - new Date(a.sessionDate).getTime()
   );
-  
-  // Using global getStatusBadge function defined above
   
   // Function to handle session selection
   const handleSelectSession = (session: Session & { clientName: string }) => {
@@ -372,7 +422,7 @@ function SessionCard({ session, onClick }: SessionProps) {
       <CardContent className="p-4">
         <div className="space-y-3">
           <div className="flex items-center">
-            <Calendar className="h-4 w-4 text-gray-500 mr-2" />
+            <CalendarIcon className="h-4 w-4 text-gray-500 mr-2" />
             <span className="text-sm">
               {format(new Date(session.sessionDate), "MMM d, yyyy · h:mm a")}
             </span>
@@ -408,7 +458,7 @@ function SessionListItem({ session, onClick }: SessionProps) {
         <div className="flex items-center justify-between">
           <div className="flex items-center">
             <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center mr-3">
-              <Calendar className="h-5 w-5 text-primary" />
+              <CalendarIcon className="h-5 w-5 text-primary" />
             </div>
             <div>
               <h5 className="font-medium">{session.title}</h5>
@@ -424,10 +474,10 @@ function SessionListItem({ session, onClick }: SessionProps) {
             <span className="text-gray-500">Client:</span> {session.clientName}
           </div>
           <div className="text-sm">
-            <span className="text-gray-500">Therapist:</span> Sarah Johnson
+            <span className="text-gray-500">Therapist:</span> {session.therapistId ? "Assigned" : "Unassigned"}
           </div>
           <div className="text-sm">
-            <span className="text-gray-500">Location:</span> {session.location}
+            <span className="text-gray-500">Location:</span> {session.location || "Not specified"}
           </div>
         </div>
         <div className="flex justify-end mt-3">
@@ -437,6 +487,3 @@ function SessionListItem({ session, onClick }: SessionProps) {
     </Card>
   );
 }
-
-// Note: The session form schema and session form component 
-// have been moved to SimpleSessionForm.tsx
