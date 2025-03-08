@@ -148,7 +148,12 @@ export function EditClientInfoDialog({ open, onOpenChange, client }: EditClientI
                 <FormItem>
                   <FormLabel>Date of Birth</FormLabel>
                   <FormControl>
-                    <Input type="date" {...field} />
+                    <Input 
+                      type="date"
+                      placeholder="Date of birth" 
+                      onChange={field.onChange}
+                      value={field.value} 
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
