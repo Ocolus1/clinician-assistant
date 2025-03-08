@@ -16,7 +16,8 @@ import {
   FileArchive, 
   PlusCircle, 
   RefreshCcw, 
-  Star 
+  Star,
+  Pencil
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
@@ -102,7 +103,7 @@ export default function BudgetPlansView({
   }, [budgetItems, catalogItems.data]);
   
   // Fetch sessions for the client to calculate actual used funds
-  const { data: clientSessions = [] } = useQuery({
+  const { data: clientSessions = [] } = useQuery<any[]>({
     queryKey: ['/api/clients', budgetSettings?.clientId, 'sessions'],
     // Only fetch if we have a client ID
     enabled: !!budgetSettings?.clientId,
@@ -329,6 +330,10 @@ export default function BudgetPlansView({
                   <Button size="sm" variant="outline" onClick={() => handleViewDetails(plan)}>
                     <Eye className="h-3.5 w-3.5 mr-1" />
                     Details
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => onEditPlan(plan)}>
+                    <Pencil className="h-3.5 w-3.5 mr-1" />
+                    Edit
                   </Button>
                 </div>
                 <div className="flex gap-2">
