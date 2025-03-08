@@ -55,6 +55,10 @@ interface BudgetPlan {
 type EnhancedBudgetItem = BudgetItem & {
   usedQuantity: number;
   balanceQuantity: number;
+  // Include other properties that might be added during enhancement
+  name?: string | null;
+  description?: string;
+  category?: string | null;
 }
 
 interface BudgetPlansViewProps {
@@ -95,11 +99,18 @@ export default function BudgetPlansView({
   // Enhance budget items with catalog details and calculate used quantities
   const enhancedBudgetItems = React.useMemo(() => {
     const catalogData = catalogItems.data as BudgetItemCatalog[] | undefined;
-    if (!catalogData) return budgetItems;
+    if (!catalogData) {
+      // Initialize with default values for usedQuantity and balanceQuantity
+      return budgetItems.map(item => ({
+        ...item,
+        usedQuantity: 0,
+        balanceQuantity: typeof item.quantity === 'string'
+          ? parseInt(item.quantity) || 0
+          : item.quantity || 0
+      })) as EnhancedBudgetItem[];
+    }
     
     return budgetItems.map(item => {
-      if (!item.itemCode || item.itemCode === 'unknown') return item;
-      
       // Find matching catalog item
       const catalogItem = catalogData.find(
         (catalog) => catalog.itemCode === item.itemCode
@@ -127,21 +138,15 @@ export default function BudgetPlansView({
       
       const balanceQuantity = Math.max(0, totalQuantity - usedQuantity);
       
-      if (!catalogItem) return {
-        ...item,
-        usedQuantity,
-        balanceQuantity
-      };
-      
       // Return enhanced item with catalog details and usage data
       return {
         ...item,
-        name: item.name || catalogItem.description,
-        description: item.description || catalogItem.description, 
-        category: item.category || catalogItem.category,
+        name: item.name || (catalogItem ? catalogItem.description : null),
+        description: item.description || (catalogItem ? catalogItem.description : ''),
+        category: item.category || (catalogItem ? catalogItem.category : null),
         usedQuantity,
         balanceQuantity
-      };
+      } as EnhancedBudgetItem;
     });
   }, [budgetItems, catalogItems.data, clientSessions]);
   
@@ -523,10 +528,10 @@ export default function BudgetPlansView({
                               <td className="p-3 text-right whitespace-nowrap">${unitPrice.toFixed(2)}</td>
                               <td className="p-3 text-right">{quantity}</td>
                               <td className="p-3 text-right">
-                                {item.usedQuantity !== undefined ? item.usedQuantity : 0}
+                                {item.usedQuantity}
                               </td>
                               <td className="p-3 text-right">
-                                {item.balanceQuantity !== undefined ? item.balanceQuantity : quantity}
+                                {item.balanceQuantity}
                               </td>
                               <td className="p-3 text-right font-medium whitespace-nowrap">${total.toFixed(2)}</td>
                             </tr>
