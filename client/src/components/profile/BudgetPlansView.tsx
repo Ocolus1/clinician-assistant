@@ -24,6 +24,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { ScrollArea } from "@/components/ui/scroll-area";
 import type { BudgetSettings, BudgetItem, BudgetItemCatalog } from "@shared/schema";
 import { useQuery } from "@tanstack/react-query";
+import { EditBudgetPlanDialog } from "./EditBudgetPlanDialog";
 
 interface BudgetPlan {
   // Original BudgetSettings properties
@@ -69,6 +70,7 @@ export default function BudgetPlansView({
 }: BudgetPlansViewProps) {
   const [selectedPlan, setSelectedPlan] = React.useState<BudgetPlan | null>(null);
   const [detailsOpen, setDetailsOpen] = React.useState(false);
+  const [editDialogOpen, setEditDialogOpen] = React.useState(false);
   
   // Fetch budget item catalog for reference data 
   const catalogItems = useQuery<BudgetItemCatalog[]>({
@@ -331,7 +333,14 @@ export default function BudgetPlansView({
                     <Eye className="h-3.5 w-3.5 mr-1" />
                     Details
                   </Button>
-                  <Button size="sm" variant="outline" onClick={() => onEditPlan(plan)}>
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    onClick={() => {
+                      setSelectedPlan(plan);
+                      setEditDialogOpen(true);
+                    }}
+                  >
                     <Pencil className="h-3.5 w-3.5 mr-1" />
                     Edit
                   </Button>
@@ -356,6 +365,16 @@ export default function BudgetPlansView({
         })}
       </div>
       
+      {/* Edit Budget Plan Dialog */}
+      {selectedPlan && budgetSettings && (
+        <EditBudgetPlanDialog
+          open={editDialogOpen}
+          onOpenChange={setEditDialogOpen}
+          plan={selectedPlan}
+          clientId={budgetSettings.clientId}
+        />
+      )}
+
       {/* Plan Details Dialog */}
       <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
         <DialogContent className="max-w-6xl">
