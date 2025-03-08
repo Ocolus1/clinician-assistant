@@ -80,6 +80,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  app.put("/api/clients/:id", async (req, res) => {
+    const clientId = parseInt(req.params.id);
+    console.log(`PUT /api/clients/${clientId} - Updating client with ID: ${clientId}`);
+    
+    if (isNaN(clientId) || clientId <= 0) {
+      console.error(`Invalid client ID: ${req.params.id}`);
+      return res.status(400).json({ error: "Invalid client ID" });
+    }
+    
+    try {
+      // Check if client exists first
+      const existingClient = await storage.getClient(clientId);
+      
+      if (!existingClient) {
+        console.log(`Client with ID ${clientId} not found`);
+        return res.status(404).json({ error: "Client not found" });
+      }
+      
+      // Update the client with the new data
+      console.log(`Updating client ${clientId} with data:`, req.body);
+      const updatedClient = await storage.updateClient(clientId, req.body);
+      
+      res.json(updatedClient);
+    } catch (error) {
+      console.error(`Error updating client with ID ${clientId}:`, error);
+      res.status(500).json({ error: "Failed to update client" });
+    }
+  });
+
   app.delete("/api/clients/:id", async (req, res) => {
     const clientId = parseInt(req.params.id);
     console.log(`DELETE /api/clients/${clientId} - Deleting client with ID: ${clientId}`);

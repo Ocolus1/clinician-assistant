@@ -530,13 +530,13 @@ export default function ClientProfile() {
               {client && (
                 <>
                   {console.log("Client data from parent component:", JSON.stringify(client))}
-                  {/* Force date conversion and data passing */}
+                  {/* Pass the edit dialog handler via onEdit prop */}
                   <ClientPersonalInfo 
                     client={{
                       ...client
                       // No type casting needed - we'll handle this in the component
                     }}
-                    onEdit={() => console.log("Edit personal info clicked")} 
+                    onEdit={() => setShowEditClientDialog(true)} 
                   />
                 </>
               )}
