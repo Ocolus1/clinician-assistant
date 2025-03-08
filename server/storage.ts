@@ -23,6 +23,7 @@ export interface IStorage {
   getClient(id: number): Promise<Client | undefined>;
   getAllClients(): Promise<Client[]>; // Added method to get all clients for debugging
   deleteClient(id: number): Promise<void>; // Added deleteClient function
+  updateClient(id: number, client: Partial<InsertClient>): Promise<Client>; // Added updateClient function
 
   // Allies
   createAlly(clientId: number, ally: InsertAlly): Promise<Ally>;
@@ -175,6 +176,44 @@ export class DBStorage implements IStorage {
       console.log(`Successfully deleted client with ID ${id}`);
     } catch (error) {
       console.error(`Error deleting client with ID ${id}:`, error);
+      throw error;
+    }
+  }
+  
+  async updateClient(id: number, client: Partial<InsertClient>): Promise<Client> {
+    console.log(`Updating client with ID ${id}:`, JSON.stringify(client));
+    try {
+      // Process client data for storage - handle nullable fields properly
+      const processedClient = {
+        ...client,
+        // Convert any string numbers to actual numbers
+        availableFunds: client.availableFunds !== undefined ? Number(client.availableFunds) : undefined,
+        // Ensure null fields are properly handled
+        fundsManagement: client.fundsManagement || null,
+        gender: client.gender || null,
+        preferredLanguage: client.preferredLanguage || null,
+        contactEmail: client.contactEmail || null,
+        contactPhone: client.contactPhone || null,
+        address: client.address || null,
+        medicalHistory: client.medicalHistory || null,
+        communicationNeeds: client.communicationNeeds || null,
+        therapyPreferences: client.therapyPreferences || null
+      };
+      
+      const [updatedClient] = await db.update(clients)
+        .set(processedClient)
+        .where(eq(clients.id, id))
+        .returning();
+      
+      if (!updatedClient) {
+        console.error(`Client with ID ${id} not found`);
+        throw new Error("Client not found");
+      }
+      
+      console.log(`Successfully updated client with ID ${id}`);
+      return updatedClient;
+    } catch (error) {
+      console.error(`Error updating client with ID ${id}:`, error);
       throw error;
     }
   }
