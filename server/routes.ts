@@ -482,6 +482,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Failed to retrieve sessions" });
     }
   });
+  
+  // Delete all sessions except for the first one
+  app.delete("/api/sessions/cleanup", async (req, res) => {
+    console.log("DELETE /api/sessions/cleanup - Cleaning up sessions");
+    try {
+      const sessions = await storage.getAllSessions();
+      console.log(`Found ${sessions.length} sessions to clean up`);
+      
+      if (sessions.length <= 1) {
+        console.log("No cleanup needed - fewer than 2 sessions exist");
+        return res.json({ success: true, deleted: 0 });
+      }
+      
+      // Sort by ID and keep the first one
+      sessions.sort((a, b) => a.id - b.id);
+      const keepSessionId = sessions[0].id;
+      
+      // Delete all except for the first session
+      let deletedCount = 0;
+      for (const session of sessions) {
+        if (session.id !== keepSessionId) {
+          await storage.deleteSession(session.id);
+          deletedCount++;
+        }
+      }
+      
+      console.log(`Successfully deleted ${deletedCount} sessions, kept session with ID ${keepSessionId}`);
+      res.json({ success: true, deleted: deletedCount, keptId: keepSessionId });
+    } catch (error) {
+      console.error("Error cleaning up sessions:", error);
+      res.status(500).json({ error: "Failed to clean up sessions" });
+    }
+  });
 
   app.get("/api/clients/:clientId/sessions", async (req, res) => {
     console.log(`GET /api/clients/${req.params.clientId}/sessions - Retrieving sessions for client`);

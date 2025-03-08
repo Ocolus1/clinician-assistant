@@ -24,6 +24,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
 } from "@/components/ui/dialog";
 import {
   Form,
@@ -46,7 +47,8 @@ import {
   Grid,
   List,
   ChevronLeft,
-  XCircle
+  XCircle,
+  Trash2
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -149,9 +151,27 @@ export default function Sessions() {
         <>
           <div className="flex justify-between items-center mb-6">
             <h1 className="text-2xl font-bold text-gray-900">Sessions</h1>
-            <Button onClick={() => setCreateSessionDialogOpen(true)}>
-              <Plus className="h-4 w-4 mr-2" /> Add Session
-            </Button>
+            <div className="flex gap-2">
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button variant="destructive">
+                    <Trash2 className="h-4 w-4 mr-2" /> Clean Up Sessions
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Clean Up Sessions</DialogTitle>
+                    <DialogDescription>
+                      This will delete all sessions except for one reference session. This action cannot be undone.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <CleanupSessionsButton />
+                </DialogContent>
+              </Dialog>
+              <Button onClick={() => setCreateSessionDialogOpen(true)}>
+                <Plus className="h-4 w-4 mr-2" /> Add Session
+              </Button>
+            </div>
           </div>
           
           {/* Open the FullScreenSessionForm component */}
