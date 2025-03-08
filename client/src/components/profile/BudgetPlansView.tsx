@@ -127,12 +127,12 @@ export default function BudgetPlansView({
     }, 0);
     
     // Calculate used funds based on session usage
-    const totalUsed = clientSessions.reduce((total, session) => {
+    const totalUsed = clientSessions.reduce((total: number, session: any) => {
       // Skip sessions without products
       if (!session.products || !Array.isArray(session.products)) return total;
       
       // Sum up all products used in this session
-      return total + session.products.reduce((sessionTotal, product) => {
+      return total + session.products.reduce((sessionTotal: number, product: any) => {
         const unitPrice = typeof product.unitPrice === 'string'
           ? parseFloat(product.unitPrice) || 0
           : product.unitPrice || 0;
