@@ -101,16 +101,19 @@ export default function BudgetPlansView({
     });
   }, [budgetItems, catalogItems.data]);
   
+  // Fetch sessions for the client to calculate actual used funds
+  const { data: clientSessions = [] } = useQuery({
+    queryKey: ['/api/clients', budgetSettings?.clientId, 'sessions'],
+    // Only fetch if we have a client ID
+    enabled: !!budgetSettings?.clientId,
+  });
+  
   // Convert budget settings to budget plan with additional properties
   const budgetPlans = React.useMemo(() => {
     if (!budgetSettings) return [];
     
-    // For now, we only have one plan, but this will be extended to handle multiple plans
-    const availableFunds = typeof budgetSettings.availableFunds === 'string'
-      ? parseFloat(budgetSettings.availableFunds) || 0
-      : budgetSettings.availableFunds || 0;
-      
-    const totalUsed = budgetItems.reduce((total, item) => {
+    // Calculate total available funds from budget items (sum of all budget item rows)
+    const availableFunds = budgetItems.reduce((total, item) => {
       const unitPrice = typeof item.unitPrice === 'string'
         ? parseFloat(item.unitPrice) || 0
         : item.unitPrice || 0;
@@ -122,12 +125,33 @@ export default function BudgetPlansView({
       return total + (unitPrice * quantity);
     }, 0);
     
+    // Calculate used funds based on session usage
+    const totalUsed = clientSessions.reduce((total, session) => {
+      // Skip sessions without products
+      if (!session.products || !Array.isArray(session.products)) return total;
+      
+      // Sum up all products used in this session
+      return total + session.products.reduce((sessionTotal, product) => {
+        const unitPrice = typeof product.unitPrice === 'string'
+          ? parseFloat(product.unitPrice) || 0
+          : product.unitPrice || 0;
+          
+        const quantity = typeof product.quantity === 'string'
+          ? parseInt(product.quantity) || 0
+          : product.quantity || 0;
+          
+        return sessionTotal + (unitPrice * quantity);
+      }, 0);
+    }, 0);
+    
     const percentUsed = availableFunds > 0 ? (totalUsed / availableFunds) * 100 : 0;
     
-    // Log the budget settings to help with debugging
+    // Log the budget calculations to help with debugging
     console.log("Creating budget plan from settings:", budgetSettings);
     console.log("Budget items count:", budgetItems.length);
-    console.log("Total used:", totalUsed);
+    console.log("Available funds (sum of all budget items):", availableFunds);
+    console.log("Total used (from sessions):", totalUsed);
+    console.log("Percent used:", percentUsed.toFixed(2) + "%");
     
     // Create the budget plan with all the properties we need
     const plan: BudgetPlan = {
@@ -135,6 +159,7 @@ export default function BudgetPlansView({
       active: budgetSettings.isActive !== undefined ? !!budgetSettings.isActive : true,
       archived: false, // This will be added to the schema later
       totalUsed,
+      availableFunds, // Override with calculated value
       itemCount: budgetItems.length,
       percentUsed,
       // Map database fields to the fields used in UI with improved fallbacks
@@ -145,7 +170,7 @@ export default function BudgetPlansView({
     };
     
     return [plan];
-  }, [budgetSettings, budgetItems]);
+  }, [budgetSettings, budgetItems, clientSessions]);
   
   // Handle view details click
   const handleViewDetails = (plan: BudgetPlan) => {
