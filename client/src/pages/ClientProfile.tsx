@@ -683,10 +683,8 @@ export default function ClientProfile() {
                 }}
                 onEditPlan={(plan) => {
                   console.log("Edit budget plan clicked", plan);
-                  toast({
-                    title: "Edit plan",
-                    description: "Plan editing functionality will be implemented soon.",
-                  });
+                  // The edit functionality is now handled in the BudgetPlansView component
+                  // through EditBudgetPlanDialog that is shown when edit button is clicked
                 }}
                 onArchivePlan={(plan) => {
                   console.log("Archive budget plan clicked", plan);

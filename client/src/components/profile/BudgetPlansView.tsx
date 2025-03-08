@@ -274,7 +274,10 @@ export default function BudgetPlansView({
                     <Eye className="h-3.5 w-3.5 mr-1" />
                     Details
                   </Button>
-                  <Button size="sm" variant="outline" onClick={() => onEditPlan(plan)}>
+                  <Button size="sm" variant="outline" onClick={() => {
+                    setSelectedPlan(plan);
+                    setEditPlanOpen(true);
+                  }}>
                     <Edit className="h-3.5 w-3.5 mr-1" />
                     Edit
                   </Button>
@@ -427,7 +430,7 @@ export default function BudgetPlansView({
             </Button>
             <Button onClick={() => {
               setDetailsOpen(false);
-              if (selectedPlan) onEditPlan(selectedPlan);
+              setEditPlanOpen(true);
             }}>
               <Edit className="h-4 w-4 mr-2" />
               Edit Plan
@@ -435,6 +438,16 @@ export default function BudgetPlansView({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Edit Budget Plan Dialog */}
+      {selectedPlan && (
+        <EditBudgetPlanDialog
+          open={editPlanOpen}
+          onOpenChange={setEditPlanOpen}
+          plan={selectedPlan}
+          clientId={selectedPlan.clientId}
+        />
+      )}
     </div>
   );
 }
