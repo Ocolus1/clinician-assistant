@@ -79,7 +79,14 @@ export default function BudgetPlansView({
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
   
-  // Enhance budget items with catalog details
+  // Fetch sessions for the client to calculate actual used funds
+  const { data: clientSessions = [] } = useQuery<any[]>({
+    queryKey: ['/api/clients', budgetSettings?.clientId, 'sessions'],
+    // Only fetch if we have a client ID
+    enabled: !!budgetSettings?.clientId,
+  });
+
+  // Enhance budget items with catalog details and calculate used quantities
   const enhancedBudgetItems = React.useMemo(() => {
     const catalogData = catalogItems.data as BudgetItemCatalog[] | undefined;
     if (!catalogData) return budgetItems;
@@ -92,24 +99,45 @@ export default function BudgetPlansView({
         (catalog) => catalog.itemCode === item.itemCode
       );
       
-      if (!catalogItem) return item;
+      // Calculate used quantity from sessions
+      const usedQuantity = clientSessions.reduce((total: number, session: any) => {
+        if (!session.products || !Array.isArray(session.products)) return total;
+        
+        // Sum up used quantities for this specific item
+        return total + session.products.reduce((itemTotal: number, product: any) => {
+          if (product.productCode === item.itemCode || product.itemCode === item.itemCode) {
+            return itemTotal + (typeof product.quantity === 'string' 
+              ? parseInt(product.quantity) || 0 
+              : product.quantity || 0);
+          }
+          return itemTotal;
+        }, 0);
+      }, 0);
       
-      // Return enhanced item with catalog details if something is missing
+      // Calculate balance quantity
+      const totalQuantity = typeof item.quantity === 'string'
+        ? parseInt(item.quantity) || 0
+        : item.quantity || 0;
+      
+      const balanceQuantity = Math.max(0, totalQuantity - usedQuantity);
+      
+      if (!catalogItem) return {
+        ...item,
+        usedQuantity,
+        balanceQuantity
+      };
+      
+      // Return enhanced item with catalog details and usage data
       return {
         ...item,
         name: item.name || catalogItem.description,
         description: item.description || catalogItem.description, 
         category: item.category || catalogItem.category,
+        usedQuantity,
+        balanceQuantity
       };
     });
-  }, [budgetItems, catalogItems.data]);
-  
-  // Fetch sessions for the client to calculate actual used funds
-  const { data: clientSessions = [] } = useQuery<any[]>({
-    queryKey: ['/api/clients', budgetSettings?.clientId, 'sessions'],
-    // Only fetch if we have a client ID
-    enabled: !!budgetSettings?.clientId,
-  });
+  }, [budgetItems, catalogItems.data, clientSessions]);
   
   // Convert budget settings to budget plan with additional properties
   const budgetPlans = React.useMemo(() => {
@@ -449,6 +477,8 @@ export default function BudgetPlansView({
                           <th className="text-left p-3 border-b font-medium text-sm text-gray-500">Category</th>
                           <th className="text-right p-3 border-b font-medium text-sm text-gray-500">Unit Price</th>
                           <th className="text-right p-3 border-b font-medium text-sm text-gray-500">Quantity</th>
+                          <th className="text-right p-3 border-b font-medium text-sm text-gray-500">Items Used</th>
+                          <th className="text-right p-3 border-b font-medium text-sm text-gray-500">Balance</th>
                           <th className="text-right p-3 border-b font-medium text-sm text-gray-500">Total</th>
                         </tr>
                       </thead>
@@ -486,6 +516,12 @@ export default function BudgetPlansView({
                               </td>
                               <td className="p-3 text-right whitespace-nowrap">${unitPrice.toFixed(2)}</td>
                               <td className="p-3 text-right">{quantity}</td>
+                              <td className="p-3 text-right">
+                                {item.usedQuantity !== undefined ? item.usedQuantity : 0}
+                              </td>
+                              <td className="p-3 text-right">
+                                {item.balanceQuantity !== undefined ? item.balanceQuantity : quantity}
+                              </td>
                               <td className="p-3 text-right font-medium whitespace-nowrap">${total.toFixed(2)}</td>
                             </tr>
                           );
