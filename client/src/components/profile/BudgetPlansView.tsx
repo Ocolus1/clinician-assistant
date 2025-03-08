@@ -72,7 +72,7 @@ export default function BudgetPlansView({
   const [editPlanOpen, setEditPlanOpen] = React.useState(false);
   
   // Fetch budget item catalog for reference data 
-  const catalogItems = useQuery({
+  const catalogItems = useQuery<BudgetItemCatalog[]>({
     queryKey: ['/api/budget-catalog'],
     retry: 1,
     staleTime: 5 * 60 * 1000, // 5 minutes
@@ -80,14 +80,15 @@ export default function BudgetPlansView({
   
   // Enhance budget items with catalog details
   const enhancedBudgetItems = React.useMemo(() => {
-    if (!catalogItems.data) return budgetItems;
+    const catalogData = catalogItems.data as BudgetItemCatalog[] | undefined;
+    if (!catalogData) return budgetItems;
     
     return budgetItems.map(item => {
       if (!item.itemCode || item.itemCode === 'unknown') return item;
       
       // Find matching catalog item
-      const catalogItem = catalogItems.data.find(
-        (catalog: BudgetItemCatalog) => catalog.itemCode === item.itemCode
+      const catalogItem = catalogData.find(
+        (catalog) => catalog.itemCode === item.itemCode
       );
       
       if (!catalogItem) return item;
@@ -394,7 +395,7 @@ export default function BudgetPlansView({
               <div>
                 <h4 className="text-sm font-medium text-gray-500 mb-3">Budget Items</h4>
                 
-                {budgetItems.length === 0 ? (
+                {enhancedBudgetItems.length === 0 ? (
                   <div className="text-center py-6 bg-gray-50 rounded-lg">
                     <p className="text-gray-500">No budget items added to this plan yet.</p>
                   </div>
@@ -411,7 +412,7 @@ export default function BudgetPlansView({
                         </tr>
                       </thead>
                       <tbody>
-                        {budgetItems.map((item) => {
+                        {enhancedBudgetItems.map((item) => {
                           const unitPrice = typeof item.unitPrice === 'string'
                             ? parseFloat(item.unitPrice) || 0
                             : item.unitPrice || 0;
