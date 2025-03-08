@@ -187,7 +187,11 @@ export function EditClientInfoDialog({ open, onOpenChange, client }: EditClientI
                   <FormItem>
                     <FormLabel>Gender</FormLabel>
                     <FormControl>
-                      <Input {...field} placeholder="Gender" value={field.value || ""} />
+                      <Input 
+                        placeholder="Gender" 
+                        onChange={field.onChange}
+                        value={field.value || ""} 
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

@@ -63,6 +63,7 @@ import AddGoalDialog from "@/components/profile/AddGoalDialog";
 import AddSubgoalDialog from "@/components/profile/AddSubgoalDialog";
 import EditGoalDialog from "@/components/profile/EditGoalDialog";
 import EditSubgoalDialog from "@/components/profile/EditSubgoalDialog";
+import { EditClientInfoDialog } from "@/components/profile/EditClientInfoDialog";
 
 // Function to parse URL parameters for active tab
 function getActiveTabFromURL(): string {
@@ -93,6 +94,7 @@ export default function ClientProfile() {
   const [subgoalsByGoal, setSubgoalsByGoal] = useState<Record<number, Subgoal[]>>({});
   const [isLoadingSubgoals, setIsLoadingSubgoals] = useState(false);
   const [showAddAllyDialog, setShowAddAllyDialog] = useState(false);
+  const [showEditClientDialog, setShowEditClientDialog] = useState(false);
   
   // State for edit goal dialog
   const [showEditGoalDialog, setShowEditGoalDialog] = useState(false);
@@ -369,6 +371,15 @@ export default function ClientProfile() {
         </Button>
         <h1 className="text-2xl font-bold">Client Profile</h1>
       </div>
+      
+      {/* Edit Client Info Dialog */}
+      {client && (
+        <EditClientInfoDialog
+          open={showEditClientDialog}
+          onOpenChange={setShowEditClientDialog}
+          client={client}
+        />
+      )}
       
       {/* Add Ally Dialog - using separate component to avoid React hooks issues */}
       {client && (
