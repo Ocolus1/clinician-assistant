@@ -32,7 +32,7 @@ export default function OnboardingForm() {
   const [clientId, setClientId] = useState<number | null>(null);
   const [, setLocation] = useLocation();
   const [showExitDialog, setShowExitDialog] = useState(false);
-  
+
   const progress = ((step + 1) / steps.length) * 100;
 
   // Mutation for creating a client
@@ -60,15 +60,40 @@ export default function OnboardingForm() {
     },
   });
 
+  const completeOnboardingMutation = useMutation({
+    mutationFn: (clientId: number) => 
+      apiRequest("POST", `/api/clients/${clientId}/complete-onboarding`),
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Client onboarding completed successfully!",
+        variant: "default",
+      });
+      setLocation(`/clients/${clientId}`);
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to complete client onboarding. Client data not saved.",
+        variant: "destructive",
+      });
+      // Optionally delete the temporary client if it exists
+      if (clientId) {
+        apiRequest("DELETE", `/api/clients/${clientId}`);
+      }
+    }
+  });
+
+
   const handleNext = () => {
     if (step === steps.length - 1) {
       // After completing the budget step, go to client list page
-      setLocation('/clients');
+      completeOnboardingMutation.mutate(clientId!); // Assuming clientId is available
     } else {
       setStep(step + 1);
     }
   };
-  
+
   const handlePrevious = () => {
     if (step > 0) {
       setStep(step - 1);
@@ -87,6 +112,28 @@ export default function OnboardingForm() {
   const navigateToClientList = () => {
     setLocation('/clients');
   };
+
+  // Placeholder function - needs implementation based on your database
+  const deleteIncompleteClients = async () => {
+    try {
+      await apiRequest("DELETE", "/api/clients/incomplete"); // Replace with actual endpoint
+      toast({ title: "Success", description: "Incomplete clients deleted." });
+    } catch (error) {
+      console.error("Error deleting incomplete clients:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete incomplete clients.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Placeholder function - needs implementation to prevent saving incomplete clients
+  const preventIncompleteClientSave = () => {
+    // Add logic here to check for incomplete onboarding and prevent save
+    console.log("preventIncompleteClientSave needs implementation");
+  }
+
 
   return (
     <div className="w-full">
@@ -124,7 +171,7 @@ export default function OnboardingForm() {
           Cancel
         </Button>
       </div>
-      
+
       <div className="mb-8">
         <div className="flex justify-between mb-2">
           {steps.map((s, i) => (
