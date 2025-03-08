@@ -22,6 +22,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import type { BudgetSettings, BudgetItem } from "@shared/schema";
+import { EditBudgetPlanDialog } from "./EditBudgetPlanDialog";
 
 interface BudgetPlan {
   // Original BudgetSettings properties
@@ -67,6 +68,7 @@ export default function BudgetPlansView({
 }: BudgetPlansViewProps) {
   const [selectedPlan, setSelectedPlan] = React.useState<BudgetPlan | null>(null);
   const [detailsOpen, setDetailsOpen] = React.useState(false);
+  const [editPlanOpen, setEditPlanOpen] = React.useState(false);
   
   // Convert budget settings to budget plan with additional properties
   const budgetPlans = React.useMemo(() => {
