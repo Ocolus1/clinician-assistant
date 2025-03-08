@@ -22,7 +22,6 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import type { BudgetSettings, BudgetItem, BudgetItemCatalog } from "@shared/schema";
-import { EditBudgetPlanDialog } from "./EditBudgetPlanDialog";
 import { useQuery } from "@tanstack/react-query";
 
 interface BudgetPlan {
@@ -69,7 +68,6 @@ export default function BudgetPlansView({
 }: BudgetPlansViewProps) {
   const [selectedPlan, setSelectedPlan] = React.useState<BudgetPlan | null>(null);
   const [detailsOpen, setDetailsOpen] = React.useState(false);
-  const [editPlanOpen, setEditPlanOpen] = React.useState(false);
   
   // Fetch budget item catalog for reference data 
   const catalogItems = useQuery<BudgetItemCatalog[]>({
@@ -307,13 +305,6 @@ export default function BudgetPlansView({
                     <Eye className="h-3.5 w-3.5 mr-1" />
                     Details
                   </Button>
-                  <Button size="sm" variant="outline" onClick={() => {
-                    setSelectedPlan(plan);
-                    setEditPlanOpen(true);
-                  }}>
-                    <Edit className="h-3.5 w-3.5 mr-1" />
-                    Edit
-                  </Button>
                 </div>
                 <div className="flex gap-2">
                   {!plan.active && (
@@ -465,30 +456,15 @@ export default function BudgetPlansView({
               </div>
             </div>
           </ScrollArea>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDetailsOpen(false)}>
+          <DialogFooter className="flex justify-center">
+            <Button onClick={() => setDetailsOpen(false)}>
               Close
-            </Button>
-            <Button onClick={() => {
-              setDetailsOpen(false);
-              setEditPlanOpen(true);
-            }}>
-              <Edit className="h-4 w-4 mr-2" />
-              Edit Plan
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Edit Budget Plan Dialog */}
-      {selectedPlan && (
-        <EditBudgetPlanDialog
-          open={editPlanOpen}
-          onOpenChange={setEditPlanOpen}
-          plan={selectedPlan}
-          clientId={selectedPlan.clientId}
-        />
-      )}
+
     </div>
   );
 }
