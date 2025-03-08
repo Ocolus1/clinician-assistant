@@ -51,6 +51,12 @@ interface BudgetPlan {
   endDate: string | null;
 }
 
+// Type for enhanced budget item with usage data
+type EnhancedBudgetItem = BudgetItem & {
+  usedQuantity: number;
+  balanceQuantity: number;
+}
+
 interface BudgetPlansViewProps {
   budgetSettings: BudgetSettings | undefined;
   budgetItems: BudgetItem[];
@@ -529,7 +535,7 @@ export default function BudgetPlansView({
                       </tbody>
                       <tfoot>
                         <tr className="bg-gray-50">
-                          <td colSpan={5} className="p-3 text-right font-medium">Total</td>
+                          <td colSpan={7} className="p-3 text-right font-medium">Total</td>
                           <td className="p-3 text-right font-bold">
                             ${budgetPlans.find(p => p.id === selectedPlan?.id)?.totalUsed.toFixed(2) || '0.00'}
                           </td>
