@@ -33,11 +33,6 @@ const editClientSchema = z.object({
   name: z.string().min(1, { message: "Name is required" }),
   dateOfBirth: z.string().min(1, { message: "Date of birth is required" }),
   fundsManagement: z.string().optional(),
-  gender: z.string().optional(),
-  preferredLanguage: z.string().optional(),
-  contactEmail: z.string().email().optional().or(z.literal("")),
-  contactPhone: z.string().optional(),
-  address: z.string().optional(),
 });
 
 type EditClientFormValues = z.infer<typeof editClientSchema>;
@@ -72,11 +67,6 @@ export function EditClientInfoDialog({ open, onOpenChange, client }: EditClientI
       name: client.name,
       dateOfBirth: formatDateForInput(client.dateOfBirth),
       fundsManagement: client.fundsManagement || undefined,
-      gender: client.gender || "",
-      preferredLanguage: client.preferredLanguage || "",
-      contactEmail: client.contactEmail || "",
-      contactPhone: client.contactPhone || "",
-      address: client.address || "",
     },
   });
 
@@ -183,101 +173,6 @@ export function EditClientInfoDialog({ open, onOpenChange, client }: EditClientI
                       ))}
                     </SelectContent>
                   </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="gender"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Gender</FormLabel>
-                    <FormControl>
-                      <Input 
-                        placeholder="Gender" 
-                        onChange={field.onChange}
-                        value={field.value || ""} 
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="preferredLanguage"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Preferred Language</FormLabel>
-                    <FormControl>
-                      <Input 
-                        placeholder="Preferred language" 
-                        onChange={field.onChange}
-                        value={field.value || ""} 
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="contactEmail"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email</FormLabel>
-                    <FormControl>
-                      <Input 
-                        type="email"
-                        placeholder="Email address" 
-                        onChange={field.onChange}
-                        value={field.value || ""} 
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="contactPhone"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Phone</FormLabel>
-                    <FormControl>
-                      <Input 
-                        placeholder="Phone number" 
-                        onChange={field.onChange}
-                        value={field.value || ""} 
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            <FormField
-              control={form.control}
-              name="address"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Address</FormLabel>
-                  <FormControl>
-                    <Input 
-                      placeholder="Address" 
-                      onChange={field.onChange}
-                      value={field.value || ""} 
-                    />
-                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
