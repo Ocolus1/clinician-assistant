@@ -56,6 +56,7 @@ import ClientPersonalInfo from "@/components/profile/ClientPersonalInfo";
 import ClientAllies from "@/components/profile/ClientAllies";
 import ClientGoals from "@/components/profile/ClientGoals";
 import BudgetPlansView from "@/components/profile/BudgetPlansView";
+import ClientBudget from "@/components/profile/ClientBudget";
 import ClientSessions from "@/components/profile/ClientSessions";
 import ClientReports from "@/components/profile/ClientReports";
 import AddAllyDialog from "@/components/profile/AddAllyDialog";
@@ -628,79 +629,141 @@ export default function ClientProfile() {
                 Track and manage the client's budget, funding sources, and expenditures.
               </p>
               
-              {/* Use the ClientBudget component */}
-              {/* Use our new BudgetPlansView component */}
-              <BudgetPlansView
-                budgetSettings={budgetSettings}
-                budgetItems={budgetItems}
-                onCreatePlan={() => {
-                  // Create default budget settings if they don't exist
-                  const createDefaultSettings = async () => {
-                    try {
-                      const defaultSettings = {
-                        planCode: `PLAN-${Math.floor(Math.random() * 10000)}`,
-                        planName: "Default Plan",
-                        availableFunds: 5000,
-                        fundingSource: "NDIS",
-                        startDate: new Date().toISOString().split('T')[0],
-                        endDate: new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString().split('T')[0],
-                      };
-                      
-                      const response = await fetch(`/api/clients/${clientId}/budget-settings`, {
-                        method: 'POST',
-                        headers: {
-                          'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify(defaultSettings),
-                      });
-                      
-                      if (response.ok) {
-                        // Refresh the budget settings data
-                        queryClient.invalidateQueries({ queryKey: ['/api/clients', clientId, 'budget-settings'] });
+              {/* Use our ClientBudget component which includes the BudgetCardGrid */}
+              <div className="space-y-4">
+                <div className="flex justify-between">
+                  <h4 className="font-medium">Budget Overview</h4>
+                  <div className="flex gap-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => {
+                        // Create default budget settings if they don't exist
+                        const createDefaultSettings = async () => {
+                          try {
+                            const defaultSettings = {
+                              planCode: `PLAN-${Math.floor(Math.random() * 10000)}`,
+                              planName: "Default Plan",
+                              availableFunds: 5000,
+                              fundingSource: "NDIS",
+                              startDate: new Date().toISOString().split('T')[0],
+                              endDate: new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString().split('T')[0],
+                            };
+                            
+                            const response = await fetch(`/api/clients/${clientId}/budget-settings`, {
+                              method: 'POST',
+                              headers: {
+                                'Content-Type': 'application/json',
+                              },
+                              body: JSON.stringify(defaultSettings),
+                            });
+                            
+                            if (response.ok) {
+                              // Refresh the budget settings data
+                              queryClient.invalidateQueries({ queryKey: ['/api/clients', clientId, 'budget-settings'] });
+                              
+                              toast({
+                                title: "Budget plan created",
+                                description: "New budget plan has been created successfully.",
+                              });
+                            } else {
+                              toast({
+                                title: "Error",
+                                description: "Failed to create budget plan. Please try again.",
+                                variant: "destructive",
+                              });
+                            }
+                          } catch (error) {
+                            console.error("Error creating budget plan:", error);
+                            toast({
+                              title: "Error",
+                              description: "An unexpected error occurred. Please try again.",
+                              variant: "destructive",
+                            });
+                          }
+                        };
                         
-                        toast({
-                          title: "Budget plan created",
-                          description: "New budget plan has been created successfully.",
+                        createDefaultSettings();
+                      }}
+                    >
+                      Edit Budget
+                    </Button>
+                  </div>
+                </div>
+                
+                <ClientBudget 
+                  budgetSettings={budgetSettings}
+                  budgetItems={budgetItems}
+                  onEditSettings={() => {
+                    // Same functionality as above
+                    const createDefaultSettings = async () => {
+                      try {
+                        const defaultSettings = {
+                          planCode: `PLAN-${Math.floor(Math.random() * 10000)}`,
+                          planName: "Default Plan",
+                          availableFunds: 5000,
+                          fundingSource: "NDIS",
+                          startDate: new Date().toISOString().split('T')[0],
+                          endDate: new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString().split('T')[0],
+                        };
+                        
+                        const response = await fetch(`/api/clients/${clientId}/budget-settings`, {
+                          method: 'POST',
+                          headers: {
+                            'Content-Type': 'application/json',
+                          },
+                          body: JSON.stringify(defaultSettings),
                         });
-                      } else {
+                        
+                        if (response.ok) {
+                          // Refresh the budget settings data
+                          queryClient.invalidateQueries({ queryKey: ['/api/clients', clientId, 'budget-settings'] });
+                          
+                          toast({
+                            title: "Budget plan created",
+                            description: "New budget plan has been created successfully.",
+                          });
+                        } else {
+                          toast({
+                            title: "Error",
+                            description: "Failed to create budget plan. Please try again.",
+                            variant: "destructive",
+                          });
+                        }
+                      } catch (error) {
+                        console.error("Error creating budget plan:", error);
                         toast({
                           title: "Error",
-                          description: "Failed to create budget plan. Please try again.",
+                          description: "An unexpected error occurred. Please try again.",
                           variant: "destructive",
                         });
                       }
-                    } catch (error) {
-                      console.error("Error creating budget plan:", error);
-                      toast({
-                        title: "Error",
-                        description: "An unexpected error occurred. Please try again.",
-                        variant: "destructive",
-                      });
-                    }
-                  };
-                  
-                  createDefaultSettings();
-                }}
-                onEditPlan={(plan) => {
-                  console.log("Edit budget plan clicked", plan);
-                  // The edit functionality is now handled in the BudgetPlansView component
-                  // through EditBudgetPlanDialog that is shown when edit button is clicked
-                }}
-                onArchivePlan={(plan) => {
-                  console.log("Archive budget plan clicked", plan);
-                  toast({
-                    title: "Archive plan",
-                    description: "Plan archiving functionality will be implemented soon.",
-                  });
-                }}
-                onSetActivePlan={(plan) => {
-                  console.log("Set active budget plan clicked", plan);
-                  toast({
-                    title: "Set active plan",
-                    description: "Setting a plan as active will be implemented soon.",
-                  });
-                }}
-              />
+                    };
+                    
+                    createDefaultSettings();
+                  }}
+                  onAddItem={() => {
+                    toast({
+                      title: "Add Item",
+                      description: "Add item functionality will be implemented soon.",
+                    });
+                  }}
+                  onEditItem={(item) => {
+                    console.log("Edit item:", item);
+                    toast({
+                      title: "Edit Item",
+                      description: "Edit item functionality will be implemented soon.",
+                    });
+                  }}
+                  onDeleteItem={(item) => {
+                    console.log("Delete item:", item);
+                    toast({
+                      title: "Delete Item",
+                      description: "Delete item functionality will be implemented soon.",
+                    });
+                  }}
+                />
+              </div>
             </TabsContent>
             
             <TabsContent value="sessions" className="mt-0">
