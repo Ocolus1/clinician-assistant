@@ -337,7 +337,7 @@ export default function BudgetPlansView({
       
       {/* Plan Details Dialog */}
       <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-6xl">
           <DialogHeader>
             <DialogTitle>
               {selectedPlan?.planName || 'Budget Plan Details'}
@@ -355,7 +355,7 @@ export default function BudgetPlansView({
             </DialogDescription>
           </DialogHeader>
           
-          <ScrollArea className="max-h-[60vh]">
+          <ScrollArea className="max-h-[70vh]">
             <div className="space-y-6 p-1">
               {/* Plan Overview */}
               <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
@@ -404,7 +404,8 @@ export default function BudgetPlansView({
                     <table className="w-full border-collapse">
                       <thead>
                         <tr className="bg-gray-50">
-                          <th className="text-left p-3 border-b font-medium text-sm text-gray-500">Item</th>
+                          <th className="text-left p-3 border-b font-medium text-sm text-gray-500">Item Code</th>
+                          <th className="text-left p-3 border-b font-medium text-sm text-gray-500">Description</th>
                           <th className="text-left p-3 border-b font-medium text-sm text-gray-500">Category</th>
                           <th className="text-right p-3 border-b font-medium text-sm text-gray-500">Unit Price</th>
                           <th className="text-right p-3 border-b font-medium text-sm text-gray-500">Quantity</th>
@@ -425,14 +426,14 @@ export default function BudgetPlansView({
                           
                           return (
                             <tr key={item.id} className="border-b hover:bg-gray-50">
+                              <td className="p-3 whitespace-nowrap">
+                                <Badge variant="outline" className="font-mono">
+                                  {item.itemCode || 'unknown'}
+                                </Badge>
+                              </td>
                               <td className="p-3">
                                 <div className="font-medium">
                                   {item.name || item.description || 'Unnamed Item'}
-                                  {item.itemCode && item.itemCode !== "unknown" && (
-                                    <Badge variant="outline" className="ml-2 text-xs">
-                                      {item.itemCode}
-                                    </Badge>
-                                  )}
                                 </div>
                                 {item.description && item.name !== item.description && (
                                   <div className="text-xs text-gray-500">{item.description}</div>
@@ -443,16 +444,16 @@ export default function BudgetPlansView({
                                   {item.category || 'Uncategorized'}
                                 </Badge>
                               </td>
-                              <td className="p-3 text-right">${unitPrice.toFixed(2)}</td>
+                              <td className="p-3 text-right whitespace-nowrap">${unitPrice.toFixed(2)}</td>
                               <td className="p-3 text-right">{quantity}</td>
-                              <td className="p-3 text-right font-medium">${total.toFixed(2)}</td>
+                              <td className="p-3 text-right font-medium whitespace-nowrap">${total.toFixed(2)}</td>
                             </tr>
                           );
                         })}
                       </tbody>
                       <tfoot>
                         <tr className="bg-gray-50">
-                          <td colSpan={4} className="p-3 text-right font-medium">Total</td>
+                          <td colSpan={5} className="p-3 text-right font-medium">Total</td>
                           <td className="p-3 text-right font-bold">
                             ${budgetPlans.find(p => p.id === selectedPlan?.id)?.totalUsed.toFixed(2) || '0.00'}
                           </td>
