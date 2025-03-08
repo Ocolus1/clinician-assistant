@@ -51,6 +51,7 @@ export interface IStorage {
   createBudgetItem(clientId: number, budgetSettingsId: number, item: InsertBudgetItem): Promise<BudgetItem>;
   getBudgetItemsByClient(clientId: number): Promise<BudgetItem[]>;
   getBudgetItemsBySettings(budgetSettingsId: number): Promise<BudgetItem[]>;
+  updateBudgetItem(id: number, item: Partial<InsertBudgetItem>): Promise<BudgetItem>;
   deleteBudgetItem(id: number): Promise<void>;
   
   // Budget Item Catalog
@@ -469,6 +470,41 @@ export class DBStorage implements IStorage {
       console.log(`Successfully deleted budget item with ID ${id}`);
     } catch (error) {
       console.error(`Error deleting budget item with ID ${id}:`, error);
+      throw error;
+    }
+  }
+  
+  async updateBudgetItem(id: number, item: Partial<InsertBudgetItem>): Promise<BudgetItem> {
+    console.log(`Updating budget item with ID ${id}:`, JSON.stringify(item));
+    try {
+      // Process item data for storage
+      const processedItem: Partial<InsertBudgetItem> = {
+        ...item
+      };
+      
+      // Convert values to numbers if present
+      if (item.unitPrice !== undefined) {
+        processedItem.unitPrice = Number(item.unitPrice);
+      }
+      
+      if (item.quantity !== undefined) {
+        processedItem.quantity = Number(item.quantity);
+      }
+      
+      const [updatedBudgetItem] = await db.update(budgetItems)
+        .set(processedItem)
+        .where(eq(budgetItems.id, id))
+        .returning();
+      
+      if (!updatedBudgetItem) {
+        console.error(`Budget item with ID ${id} not found`);
+        throw new Error("Budget item not found");
+      }
+      
+      console.log(`Successfully updated budget item with ID ${id}`);
+      return updatedBudgetItem;
+    } catch (error) {
+      console.error(`Error updating budget item with ID ${id}:`, error);
       throw error;
     }
   }
