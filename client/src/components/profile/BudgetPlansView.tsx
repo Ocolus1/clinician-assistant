@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { 
   Card, 
   CardContent,
@@ -21,8 +21,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import type { BudgetSettings, BudgetItem } from "@shared/schema";
+import type { BudgetSettings, BudgetItem, BudgetItemCatalog } from "@shared/schema";
 import { EditBudgetPlanDialog } from "./EditBudgetPlanDialog";
+import { useQuery } from "@tanstack/react-query";
 
 interface BudgetPlan {
   // Original BudgetSettings properties
@@ -69,6 +70,37 @@ export default function BudgetPlansView({
   const [selectedPlan, setSelectedPlan] = React.useState<BudgetPlan | null>(null);
   const [detailsOpen, setDetailsOpen] = React.useState(false);
   const [editPlanOpen, setEditPlanOpen] = React.useState(false);
+  
+  // Fetch budget item catalog for reference data 
+  const catalogItems = useQuery({
+    queryKey: ['/api/budget-catalog'],
+    retry: 1,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+  
+  // Enhance budget items with catalog details
+  const enhancedBudgetItems = React.useMemo(() => {
+    if (!catalogItems.data) return budgetItems;
+    
+    return budgetItems.map(item => {
+      if (!item.itemCode || item.itemCode === 'unknown') return item;
+      
+      // Find matching catalog item
+      const catalogItem = catalogItems.data.find(
+        (catalog: BudgetItemCatalog) => catalog.itemCode === item.itemCode
+      );
+      
+      if (!catalogItem) return item;
+      
+      // Return enhanced item with catalog details if something is missing
+      return {
+        ...item,
+        name: item.name || catalogItem.description,
+        description: item.description || catalogItem.description, 
+        category: item.category || catalogItem.category,
+      };
+    });
+  }, [budgetItems, catalogItems.data]);
   
   // Convert budget settings to budget plan with additional properties
   const budgetPlans = React.useMemo(() => {
@@ -393,8 +425,15 @@ export default function BudgetPlansView({
                           return (
                             <tr key={item.id} className="border-b hover:bg-gray-50">
                               <td className="p-3">
-                                <div className="font-medium">{item.name || 'Unnamed Item'}</div>
-                                {item.description && (
+                                <div className="font-medium">
+                                  {item.name || item.description || 'Unnamed Item'}
+                                  {item.itemCode && item.itemCode !== "unknown" && (
+                                    <Badge variant="outline" className="ml-2 text-xs">
+                                      {item.itemCode}
+                                    </Badge>
+                                  )}
+                                </div>
+                                {item.description && item.name !== item.description && (
                                   <div className="text-xs text-gray-500">{item.description}</div>
                                 )}
                               </td>
