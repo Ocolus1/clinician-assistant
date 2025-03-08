@@ -98,7 +98,7 @@ export function EditBudgetPlanDialog({
   // Mutation for updating budget plan
   const updateBudgetPlan = useMutation({
     mutationFn: async (data: EditBudgetPlanFormValues) => {
-      return apiRequest("PUT", `/api/clients/${clientId}/budget-settings/${plan.id}`, data);
+      return apiRequest("PUT", `/api/budget-settings/${plan.id}`, data);
     },
     onSuccess: () => {
       toast({
