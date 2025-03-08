@@ -130,7 +130,11 @@ export function EditClientInfoDialog({ open, onOpenChange, client }: EditClientI
                 <FormItem>
                   <FormLabel>Name</FormLabel>
                   <FormControl>
-                    <Input {...field} placeholder="Client name" />
+                    <Input 
+                      placeholder="Client name" 
+                      onChange={field.onChange}
+                      value={field.value} 
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -205,7 +209,11 @@ export function EditClientInfoDialog({ open, onOpenChange, client }: EditClientI
                   <FormItem>
                     <FormLabel>Preferred Language</FormLabel>
                     <FormControl>
-                      <Input {...field} placeholder="Preferred language" value={field.value || ""} />
+                      <Input 
+                        placeholder="Preferred language" 
+                        onChange={field.onChange}
+                        value={field.value || ""} 
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -221,7 +229,12 @@ export function EditClientInfoDialog({ open, onOpenChange, client }: EditClientI
                   <FormItem>
                     <FormLabel>Email</FormLabel>
                     <FormControl>
-                      <Input {...field} type="email" placeholder="Email address" value={field.value || ""} />
+                      <Input 
+                        type="email"
+                        placeholder="Email address" 
+                        onChange={field.onChange}
+                        value={field.value || ""} 
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -235,7 +248,11 @@ export function EditClientInfoDialog({ open, onOpenChange, client }: EditClientI
                   <FormItem>
                     <FormLabel>Phone</FormLabel>
                     <FormControl>
-                      <Input {...field} placeholder="Phone number" value={field.value || ""} />
+                      <Input 
+                        placeholder="Phone number" 
+                        onChange={field.onChange}
+                        value={field.value || ""} 
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -250,7 +267,11 @@ export function EditClientInfoDialog({ open, onOpenChange, client }: EditClientI
                 <FormItem>
                   <FormLabel>Address</FormLabel>
                   <FormControl>
-                    <Input {...field} placeholder="Address" value={field.value || ""} />
+                    <Input 
+                      placeholder="Address" 
+                      onChange={field.onChange}
+                      value={field.value || ""} 
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
