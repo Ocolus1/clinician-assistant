@@ -40,7 +40,7 @@ interface BudgetPlanDetailsDialogProps {
 const budgetItemEditSchema = z.object({
   quantity: z.number().min(0, "Quantity must be positive"),
   unitPrice: z.number().min(0, "Unit price must be positive"),
-  description: z.string().nullable().optional(),
+  description: z.string().min(1, "Description is required"),
 });
 
 type BudgetItemFormValues = z.infer<typeof budgetItemEditSchema>;
@@ -93,7 +93,8 @@ export function BudgetPlanDetailsDialog({
     form.reset({
       quantity: item.quantity,
       unitPrice: item.unitPrice,
-      description: item.description || getItemDescription(item),
+      // Ensure the description is always a string
+      description: item.description || getItemDescription(item) || "No description provided",
     });
   };
   
@@ -109,7 +110,8 @@ export function BudgetPlanDetailsDialog({
         ...selectedItem,
         quantity: data.quantity,
         unitPrice: data.unitPrice,
-        description: data.description || selectedItem.description || null,
+        // Description is required in schema, so provide a fallback string instead of null
+        description: data.description || selectedItem.description || "No description provided",
       };
       
       // Call update handler
