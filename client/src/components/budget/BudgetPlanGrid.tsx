@@ -13,6 +13,7 @@ interface BudgetPlanGridProps {
   onViewDetails: (plan: BudgetPlanCard) => void;
   onArchivePlan: (plan: BudgetPlanCard) => void;
   onSetActivePlan?: (plan: BudgetPlanCard) => void;
+  isLoading?: boolean;
 }
 
 export function BudgetPlanGrid({
@@ -22,7 +23,8 @@ export function BudgetPlanGrid({
   onEditPlan,
   onViewDetails,
   onArchivePlan,
-  onSetActivePlan
+  onSetActivePlan,
+  isLoading = false
 }: BudgetPlanGridProps) {
   // State for budget items dialog
   const [showItemsDialog, setShowItemsDialog] = useState(false);
@@ -79,9 +81,10 @@ export function BudgetPlanGrid({
         <Button 
           size="sm" 
           onClick={onCreatePlan}
+          disabled={isLoading}
         >
           <PlusCircle className="h-4 w-4 mr-2" />
-          New Budget Plan
+          {isLoading ? "Creating..." : "New Budget Plan"}
         </Button>
       </div>
       
