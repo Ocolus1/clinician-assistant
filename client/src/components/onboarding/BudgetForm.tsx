@@ -111,7 +111,14 @@ export default function BudgetForm({ clientId, onComplete, onPrevious }: BudgetF
   useEffect(() => {
     const debouncedSave = setTimeout(() => {
       if (settingsForm.formState.isDirty) {
-        saveBudgetSettings.mutate(settingsForm.getValues());
+        // Get current form values
+        const formValues = settingsForm.getValues();
+        
+        // Debug logging
+        console.log("Auto-saving budget settings:", formValues);
+        
+        // Save to the server
+        saveBudgetSettings.mutate(formValues);
       }
     }, 1000);
     
@@ -151,8 +158,22 @@ export default function BudgetForm({ clientId, onComplete, onPrevious }: BudgetF
       }
       
       if (budgetSettings.endOfPlan) {
-        settingsForm.setValue("endOfPlan", budgetSettings.endOfPlan);
-        setDate(new Date(budgetSettings.endOfPlan));
+        // Make sure we parse dates correctly - sometimes they can come as strings
+        try {
+          // Handle both string and Date types
+          const endDate = typeof budgetSettings.endOfPlan === 'string' 
+            ? new Date(budgetSettings.endOfPlan) 
+            : budgetSettings.endOfPlan;
+            
+          // Format for consistent storage
+          const formattedDate = format(endDate, "yyyy-MM-dd");
+          settingsForm.setValue("endOfPlan", formattedDate);
+          setDate(new Date(formattedDate));
+          
+          console.log("Set end of plan date:", formattedDate);
+        } catch (error) {
+          console.error("Error parsing date:", error);
+        }
       }
     }
   }, [budgetSettings, settingsForm]);
@@ -877,7 +898,16 @@ export default function BudgetForm({ clientId, onComplete, onPrevious }: BudgetF
                                       onSelect={(newDate) => {
                                         setDate(newDate);
                                         if (newDate) {
-                                          field.onChange(format(newDate, "yyyy-MM-dd"));
+                                          // Format the date properly for the form field
+                                          const formattedDate = format(newDate, "yyyy-MM-dd");
+                                          field.onChange(formattedDate);
+                                          
+                                          // Also update the form value directly to ensure it gets saved
+                                          settingsForm.setValue("endOfPlan", formattedDate, {
+                                            shouldDirty: true,
+                                            shouldTouch: true,
+                                            shouldValidate: true
+                                          });
                                         }
                                       }}
                                       initialFocus
