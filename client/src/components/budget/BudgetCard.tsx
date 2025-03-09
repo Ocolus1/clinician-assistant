@@ -9,12 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { DollarSign, Edit, Archive, Eye, Check } from 'lucide-react';
 import type { BudgetSettings, BudgetItem } from '@shared/schema';
-
-// Helper function to format currency 
-const formatCurrency = (amount: number | string): string => {
-  const numericAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
-  return numericAmount.toFixed(2);
-};
+import { formatCurrency } from '@/lib/utils';
 
 export interface BudgetPlanCard {
   id: number;
@@ -118,7 +113,7 @@ export function BudgetPlanCard({
           <div>
             <div className="text-sm text-gray-500">Total Budget</div>
             <div className="text-xl font-bold mt-1">
-              ${formatCurrency(plan.availableFunds)}
+              {formatCurrency(plan.availableFunds)}
             </div>
             <div className="text-xs text-gray-500">({plan.itemCount} items)</div>
           </div>
@@ -126,7 +121,7 @@ export function BudgetPlanCard({
           <div>
             <div className="text-sm text-gray-500">Used in Sessions</div>
             <div className="text-xl font-bold mt-1">
-              ${formatCurrency(plan.usedFunds)}
+              {formatCurrency(plan.usedFunds)}
             </div>
             {plan.usedFunds === 0 && 
               <div className="text-xs text-gray-500">No sessions yet</div>
@@ -136,7 +131,7 @@ export function BudgetPlanCard({
           <div>
             <div className="text-sm text-gray-500">Remaining Budget</div>
             <div className="text-xl font-bold mt-1">
-              ${formatCurrency(remainingFunds)}
+              {formatCurrency(remainingFunds)}
             </div>
             {remainingFunds < 0 ? (
               <div className="text-xs text-red-500">Over budget</div>
