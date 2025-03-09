@@ -1,10 +1,7 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { Button } from '@/components/ui/button';
 import { BudgetPlanGrid } from './BudgetPlanGrid';
-import { BudgetItemGrid } from './BudgetItemGrid';
 import { BudgetPlanCard } from './BudgetCard';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { queryClient } from '@/lib/queryClient';
 import type { BudgetSettings, BudgetItem } from '@shared/schema';
 
@@ -20,7 +17,6 @@ export function ClientBudgetTab({
   budgetItems 
 }: ClientBudgetTabProps) {
   const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState<string>("plans");
   
   // Handler for creating a new budget plan
   const handleCreatePlan = async () => {
@@ -75,13 +71,10 @@ export function ClientBudgetTab({
     });
   };
   
-  // Handler for viewing budget plan details
+  // Handler for viewing budget plan details - the dialog will be shown from BudgetPlanGrid
   const handleViewPlanDetails = (plan: BudgetPlanCard) => {
-    setActiveTab("items");
-    toast({
-      title: "Viewing Budget Items",
-      description: "Switched to budget items tab.",
-    });
+    // This is now handled directly in the BudgetPlanGrid component
+    // with the BudgetItemsDialog
   };
   
   // Handler for archiving a budget plan
@@ -100,64 +93,17 @@ export function ClientBudgetTab({
     });
   };
   
-  // Handler for adding a new budget item
-  const handleAddBudgetItem = () => {
-    toast({
-      title: "Add Budget Item",
-      description: "Budget item add functionality will be implemented soon.",
-    });
-  };
-  
-  // Handler for editing a budget item
-  const handleEditBudgetItem = (item: BudgetItem) => {
-    toast({
-      title: "Edit Budget Item",
-      description: "Budget item edit functionality will be implemented soon.",
-    });
-  };
-  
-  // Handler for deleting a budget item
-  const handleDeleteBudgetItem = (item: BudgetItem) => {
-    toast({
-      title: "Delete Budget Item",
-      description: "Budget item delete functionality will be implemented soon.",
-    });
-  };
-  
   return (
     <div className="space-y-6">
-      <Tabs 
-        defaultValue="plans" 
-        value={activeTab} 
-        onValueChange={setActiveTab}
-        className="w-full"
-      >
-        <TabsList className="mb-4">
-          <TabsTrigger value="plans">Budget Plans</TabsTrigger>
-          <TabsTrigger value="items">Budget Items</TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="plans" className="space-y-4">
-          <BudgetPlanGrid
-            budgetSettings={budgetSettings}
-            budgetItems={budgetItems}
-            onCreatePlan={handleCreatePlan}
-            onEditPlan={handleEditPlan}
-            onViewDetails={handleViewPlanDetails}
-            onArchivePlan={handleArchivePlan}
-            onSetActivePlan={handleSetActivePlan}
-          />
-        </TabsContent>
-        
-        <TabsContent value="items" className="space-y-4">
-          <BudgetItemGrid
-            budgetItems={budgetItems}
-            onAddItem={handleAddBudgetItem}
-            onEditItem={handleEditBudgetItem}
-            onDeleteItem={handleDeleteBudgetItem}
-          />
-        </TabsContent>
-      </Tabs>
+      <BudgetPlanGrid
+        budgetSettings={budgetSettings}
+        budgetItems={budgetItems}
+        onCreatePlan={handleCreatePlan}
+        onEditPlan={handleEditPlan}
+        onViewDetails={handleViewPlanDetails}
+        onArchivePlan={handleArchivePlan}
+        onSetActivePlan={handleSetActivePlan}
+      />
     </div>
   );
 }
