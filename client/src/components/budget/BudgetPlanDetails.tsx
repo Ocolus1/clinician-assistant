@@ -69,7 +69,7 @@ export default function BudgetPlanDetails({
             Back to Plans
           </Button>
           <h3 className="text-lg font-medium">
-            {plan.planName || plan.planCode || 'Budget Plan Details'}
+            {plan.planCode || plan.planSerialNumber || 'Budget Plan Details'}
           </h3>
         </div>
         
@@ -88,7 +88,7 @@ export default function BudgetPlanDetails({
                 {plan.isActive ? 'Active' : 'Inactive'}
               </Badge>
               <CardTitle className="text-xl">
-                {plan.planName || plan.planCode || 'Unnamed Plan'}
+                {plan.planCode || plan.planSerialNumber || 'Unnamed Plan'}
               </CardTitle>
               {plan.planCode && (
                 <div className="text-sm text-gray-500 mt-1">
