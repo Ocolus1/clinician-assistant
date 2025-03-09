@@ -19,13 +19,31 @@ export function ClientBudgetTab({
 }: ClientBudgetTabProps) {
   const { toast } = useToast();
   const [isCreatingPlan, setIsCreatingPlan] = useState(false);
+  const [activeBudgetSettings, setActiveBudgetSettings] = useState<BudgetSettings | undefined>(initialBudgetSettings);
   
-  // Use the TanStack Query to manage budget settings state
-  const { data: refreshedBudgetSettings, refetch: refetchBudgetSettings } = useQuery<BudgetSettings>({
+  // Use the TanStack Query to get all budget settings for the client
+  const { data: allBudgetSettings, refetch: refetchAllBudgetSettings } = useQuery<BudgetSettings[]>({
+    queryKey: ['/api/clients', clientId, 'budget-settings', 'all'],
+    queryFn: async () => {
+      const response = await apiRequest('GET', `/api/clients/${clientId}/budget-settings?all=true`);
+      return response as BudgetSettings[];
+    },
+    initialData: initialBudgetSettings ? [initialBudgetSettings] : [],
+    enabled: !!clientId,
+  });
+
+  // Use the TanStack Query to manage active budget setting state
+  const { data: activeSetting, refetch: refetchBudgetSettings } = useQuery<BudgetSettings>({
     queryKey: ['/api/clients', clientId, 'budget-settings'],
     initialData: initialBudgetSettings,
     enabled: !!clientId,
   });
+
+  useEffect(() => {
+    if (activeSetting) {
+      setActiveBudgetSettings(activeSetting);
+    }
+  }, [activeSetting]);
 
   // Use the TanStack Query to manage budget items state
   const { data: refreshedBudgetItems, refetch: refetchBudgetItems } = useQuery<BudgetItem[]>({
@@ -53,11 +71,13 @@ export function ClientBudgetTab({
       if (response) {
         // Explicitly invalidate the queries and refetch
         queryClient.invalidateQueries({ queryKey: ['/api/clients', clientId, 'budget-settings'] });
+        queryClient.invalidateQueries({ queryKey: ['/api/clients', clientId, 'budget-settings', 'all'] });
         queryClient.invalidateQueries({ queryKey: ['/api/clients', clientId, 'budget-items'] });
         
         // Explicitly refetch the data
         await Promise.all([
           refetchBudgetSettings(),
+          refetchAllBudgetSettings(),
           refetchBudgetItems()
         ]);
         
@@ -99,25 +119,90 @@ export function ClientBudgetTab({
   };
   
   // Handler for archiving a budget plan
-  const handleArchivePlan = (plan: BudgetPlanCard) => {
-    toast({
-      title: "Archive Budget Plan",
-      description: "Budget plan archive functionality will be implemented soon.",
-    });
+  const handleArchivePlan = async (plan: BudgetPlanCard) => {
+    try {
+      // Update the plan to set isActive = false
+      const response = await apiRequest('PUT', `/api/budget-settings/${plan.id}`, {
+        ...plan,
+        isActive: false
+      });
+      
+      if (response) {
+        // Invalidate and refetch
+        queryClient.invalidateQueries({ queryKey: ['/api/clients', clientId, 'budget-settings'] });
+        queryClient.invalidateQueries({ queryKey: ['/api/clients', clientId, 'budget-settings', 'all'] });
+        
+        await Promise.all([
+          refetchBudgetSettings(),
+          refetchAllBudgetSettings()
+        ]);
+        
+        toast({
+          title: "Plan Archived",
+          description: "Budget plan has been archived successfully.",
+        });
+      }
+    } catch (error) {
+      console.error("Error archiving budget plan:", error);
+      toast({
+        title: "Error",
+        description: "Failed to archive plan. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
   
   // Handler for setting a budget plan as active
-  const handleSetActivePlan = (plan: BudgetPlanCard) => {
-    toast({
-      title: "Set Active Plan",
-      description: "Setting plan as active functionality will be implemented soon.",
-    });
+  const handleSetActivePlan = async (plan: BudgetPlanCard) => {
+    try {
+      // First, deactivate the currently active plan(s)
+      if (allBudgetSettings) {
+        for (const setting of allBudgetSettings) {
+          if (setting.isActive && setting.id !== plan.id) {
+            await apiRequest('PUT', `/api/budget-settings/${setting.id}`, {
+              ...setting,
+              isActive: false
+            });
+          }
+        }
+      }
+      
+      // Then activate the selected plan
+      const response = await apiRequest('PUT', `/api/budget-settings/${plan.id}`, {
+        ...plan,
+        isActive: true
+      });
+      
+      if (response) {
+        // Invalidate and refetch
+        queryClient.invalidateQueries({ queryKey: ['/api/clients', clientId, 'budget-settings'] });
+        queryClient.invalidateQueries({ queryKey: ['/api/clients', clientId, 'budget-settings', 'all'] });
+        
+        await Promise.all([
+          refetchBudgetSettings(),
+          refetchAllBudgetSettings()
+        ]);
+        
+        toast({
+          title: "Plan Activated",
+          description: "Budget plan has been set as active successfully.",
+        });
+      }
+    } catch (error) {
+      console.error("Error setting plan as active:", error);
+      toast({
+        title: "Error",
+        description: "Failed to set plan as active. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
   
   return (
     <div className="space-y-6">
       <BudgetPlanGrid
-        budgetSettings={refreshedBudgetSettings}
+        budgetSettings={allBudgetSettings?.length ? allBudgetSettings[0] : undefined}
+        allBudgetSettings={allBudgetSettings || []}
         budgetItems={refreshedBudgetItems || []}
         onCreatePlan={handleCreatePlan}
         onEditPlan={handleEditPlan}

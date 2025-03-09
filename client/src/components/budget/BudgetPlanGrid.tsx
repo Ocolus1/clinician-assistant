@@ -7,6 +7,7 @@ import type { BudgetSettings, BudgetItem } from '@shared/schema';
 
 interface BudgetPlanGridProps {
   budgetSettings?: BudgetSettings;
+  allBudgetSettings?: BudgetSettings[];
   budgetItems: BudgetItem[];
   onCreatePlan: () => void;
   onEditPlan: (plan: BudgetPlanCard) => void;
@@ -18,6 +19,7 @@ interface BudgetPlanGridProps {
 
 export function BudgetPlanGrid({
   budgetSettings,
+  allBudgetSettings = [],
   budgetItems,
   onCreatePlan,
   onEditPlan,
@@ -28,9 +30,14 @@ export function BudgetPlanGrid({
 }: BudgetPlanGridProps) {
   // State for budget items dialog
   const [showItemsDialog, setShowItemsDialog] = useState(false);
+  const [selectedPlanId, setSelectedPlanId] = useState<number | null>(null);
   
   // Convert budget settings to card format
-  const budgetPlans: BudgetPlanCard[] = budgetSettings ? [createBudgetPlanCard(budgetSettings, budgetItems)] : [];
+  const budgetPlans: BudgetPlanCard[] = allBudgetSettings.length > 0
+    ? allBudgetSettings.map(settings => createBudgetPlanCard(settings, budgetItems.filter(item => item.budgetSettingsId === settings.id)))
+    : budgetSettings 
+      ? [createBudgetPlanCard(budgetSettings, budgetItems)]
+      : [];
   
   function createBudgetPlanCard(settings: BudgetSettings, items: BudgetItem[]): BudgetPlanCard {
     // Calculate TOTAL available funds from budget items (unit price * quantity)
@@ -66,6 +73,7 @@ export function BudgetPlanGrid({
   
   // Custom handler for the View button click to show our dialog
   const handleViewDetails = (plan: BudgetPlanCard) => {
+    setSelectedPlanId(plan.id);
     setShowItemsDialog(true);
     
     // If we need to call the original handler as well
@@ -73,6 +81,16 @@ export function BudgetPlanGrid({
       onViewDetails(plan);
     }
   };
+
+  // Get the selected budget settings for the dialog
+  const selectedBudgetSettings = selectedPlanId 
+    ? allBudgetSettings.find(setting => setting.id === selectedPlanId) || budgetSettings
+    : budgetSettings;
+
+  // Get budget items for the selected plan
+  const selectedPlanItems = selectedPlanId
+    ? budgetItems.filter(item => item.budgetSettingsId === selectedPlanId)
+    : budgetItems;
 
   return (
     <div className="space-y-6">
@@ -119,12 +137,12 @@ export function BudgetPlanGrid({
       )}
       
       {/* Dialog to display budget items when viewing a plan */}
-      {budgetSettings && (
+      {selectedBudgetSettings && (
         <BudgetItemsDialog
           open={showItemsDialog}
           onOpenChange={setShowItemsDialog}
-          budgetItems={budgetItems}
-          budgetSettings={budgetSettings}
+          budgetItems={selectedPlanItems}
+          budgetSettings={selectedBudgetSettings}
         />
       )}
     </div>

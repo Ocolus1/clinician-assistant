@@ -370,11 +370,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.get("/api/clients/:clientId/budget-settings", async (req, res) => {
-    const settings = await storage.getBudgetSettingsByClient(parseInt(req.params.clientId));
-    if (!settings) {
-      return res.status(404).json({ error: "Budget settings not found" });
+    const clientId = parseInt(req.params.clientId);
+    const all = req.query.all === 'true';
+    
+    if (all) {
+      // Return all budget settings for the client
+      const allSettings = await storage.getAllBudgetSettingsByClient(clientId);
+      if (!allSettings || allSettings.length === 0) {
+        return res.status(404).json({ error: "Budget settings not found" });
+      }
+      return res.json(allSettings);
+    } else {
+      // Return active or single budget setting
+      const settings = await storage.getBudgetSettingsByClient(clientId);
+      if (!settings) {
+        return res.status(404).json({ error: "Budget settings not found" });
+      }
+      res.json(settings);
     }
-    res.json(settings);
   });
   
   // Endpoint to mark a client as complete in the onboarding process
