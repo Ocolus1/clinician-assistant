@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { DollarSign, PlusCircle } from 'lucide-react';
 import { BudgetPlanCard } from './BudgetCard';
+import { BudgetItemsDialog } from './BudgetItemsDialog';
 import type { BudgetSettings, BudgetItem } from '@shared/schema';
 
 interface BudgetPlanGridProps {
@@ -23,6 +24,9 @@ export function BudgetPlanGrid({
   onArchivePlan,
   onSetActivePlan
 }: BudgetPlanGridProps) {
+  // State for budget items dialog
+  const [showItemsDialog, setShowItemsDialog] = useState(false);
+  
   // Convert budget settings to card format
   const budgetPlans: BudgetPlanCard[] = budgetSettings ? [createBudgetPlanCard(budgetSettings, budgetItems)] : [];
   
@@ -58,6 +62,16 @@ export function BudgetPlanGrid({
     };
   }
   
+  // Custom handler for the View button click to show our dialog
+  const handleViewDetails = (plan: BudgetPlanCard) => {
+    setShowItemsDialog(true);
+    
+    // If we need to call the original handler as well
+    if (onViewDetails) {
+      onViewDetails(plan);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center mb-2">
@@ -90,12 +104,22 @@ export function BudgetPlanGrid({
               key={plan.id}
               plan={plan}
               onEdit={onEditPlan}
-              onView={onViewDetails}
+              onView={handleViewDetails}
               onArchive={onArchivePlan}
               onSetActive={onSetActivePlan}
             />
           ))}
         </div>
+      )}
+      
+      {/* Dialog to display budget items when viewing a plan */}
+      {budgetSettings && (
+        <BudgetItemsDialog
+          open={showItemsDialog}
+          onOpenChange={setShowItemsDialog}
+          budgetItems={budgetItems}
+          budgetSettings={budgetSettings}
+        />
       )}
     </div>
   );
