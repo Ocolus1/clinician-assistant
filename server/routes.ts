@@ -47,10 +47,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   // Client routes
   app.post("/api/clients", async (req, res) => {
-    // Check if the onboarding status is explicitly set to 'complete'
-    if (req.body.onboardingStatus !== 'complete') {
+    // Check if the onboarding status is valid
+    if (req.body.onboardingStatus !== 'complete' && req.body.onboardingStatus !== 'pending') {
       return res.status(400).json({ 
-        error: "Cannot create client with incomplete onboarding. Complete the onboarding process first." 
+        error: "Invalid onboarding status. Must be 'complete' or 'pending'." 
       });
     }
     

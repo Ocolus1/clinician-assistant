@@ -38,10 +38,17 @@ export default function OnboardingForm() {
   // Mutation for creating a client
   const createClient = useMutation<Client, Error, any>({
     mutationFn: async (data: any) => {
-      const response = await apiRequest("POST", "/api/clients", data);
+      // Create a temporary client with 'pending' onboarding status
+      const clientData = {
+        ...data,
+        availableFunds: 0,
+        onboardingStatus: 'pending'  // Set onboarding status to pending during initial creation
+      };
+      
+      const response = await apiRequest("POST", "/api/clients", clientData);
       // Parse the JSON response
-      const clientData = await response.json();
-      return clientData as Client;
+      const result = await response.json();
+      return result as Client;
     },
     onSuccess: (clientData) => {
       setClientId(clientData.id);
