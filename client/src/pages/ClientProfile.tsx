@@ -65,6 +65,8 @@ import AddSubgoalDialog from "@/components/profile/AddSubgoalDialog";
 import EditGoalDialog from "@/components/profile/EditGoalDialog";
 import EditSubgoalDialog from "@/components/profile/EditSubgoalDialog";
 import { EditClientInfoDialog } from "@/components/profile/EditClientInfoDialog";
+import BudgetPlans, { BudgetPlan } from "@/components/budget/BudgetPlans";
+import BudgetPlanDetails from "@/components/budget/BudgetPlanDetails";
 
 // Function to parse URL parameters for active tab
 function getActiveTabFromURL(): string {
