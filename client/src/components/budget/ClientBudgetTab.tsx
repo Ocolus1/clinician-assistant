@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { z } from 'zod';
 import { useToast } from '@/hooks/use-toast';
 import { BudgetPlanGrid } from './BudgetPlanGrid';
-
-import { BudgetPlanFormDialog, budgetPlanFormSchema } from './BudgetPlanFormDialog';
+import { BudgetPlanFormDialog } from './BudgetPlanFormDialog';
+import { budgetPlanFormSchema, type BudgetPlanFormValues } from './schemas';
 import { queryClient, apiRequest } from '@/lib/queryClient';
 import type { BudgetSettings, BudgetItem } from '@shared/schema';
 import { useQuery } from '@tanstack/react-query';
@@ -68,7 +67,7 @@ export function ClientBudgetTab({
   });
   
   // Handler for creating a new budget plan
-  const handleSubmitNewPlan = async (values: z.infer<typeof budgetPlanFormSchema>) => {
+  const handleSubmitNewPlan = async (values: BudgetPlanFormValues) => {
     try {
       setIsCreatingPlan(true);
       const formattedValues = {
