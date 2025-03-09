@@ -2,9 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { BudgetPlanGrid } from './BudgetPlanGrid';
 import { BudgetPlanFormDialog } from './BudgetPlanFormDialog';
+import { BudgetPlanDetailsDialog } from './BudgetPlanDetailsDialog';
 import { budgetPlanFormSchema, type BudgetPlanFormValues } from './schemas';
 import { queryClient, apiRequest } from '@/lib/queryClient';
-import type { BudgetSettings, BudgetItem } from '@shared/schema';
+import type { BudgetSettings, BudgetItem, BudgetItemCatalog } from '@shared/schema';
 import { useQuery } from '@tanstack/react-query';
 import { getQueryFn } from '@/lib/queryClient';
 
@@ -22,6 +23,8 @@ export function ClientBudgetTab({
   const { toast } = useToast();
   const [isCreatingPlan, setIsCreatingPlan] = useState(false);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [showDetailsDialog, setShowDetailsDialog] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState<BudgetSettings | null>(null);
   const [activeBudgetSettings, setActiveBudgetSettings] = useState<BudgetSettings | undefined>(initialBudgetSettings);
   
   // Use the TanStack Query to get all budget settings for the client
@@ -129,13 +132,8 @@ export function ClientBudgetTab({
   
   // Handler for viewing budget plan details
   const handleViewPlanDetails = (plan: BudgetSettings) => {
-    toast({
-      title: "Plan Details",
-      description: `Viewing details for plan: ${plan.planCode || 'Unnamed Plan'}`,
-    });
-    
-    // TODO: Implement detailed view dialog for budget plan
-    console.log("Budget plan details:", plan);
+    setSelectedPlan(plan);
+    setShowDetailsDialog(true);
   };
   
   // Handler for archiving a budget plan
@@ -218,6 +216,12 @@ export function ClientBudgetTab({
     }
   };
   
+  // Fetch catalog items to enrich budget items with descriptions
+  const { data: catalogItems = [] } = useQuery<BudgetItemCatalog[]>({
+    queryKey: ['/api/budget-item-catalog'],
+    enabled: !!clientId,
+  });
+
   return (
     <div className="space-y-6">
       <BudgetPlanGrid
@@ -238,6 +242,16 @@ export function ClientBudgetTab({
         onSubmit={handleSubmitNewPlan}
         isLoading={isCreatingPlan}
       />
+      
+      {selectedPlan && (
+        <BudgetPlanDetailsDialog
+          open={showDetailsDialog}
+          onOpenChange={setShowDetailsDialog}
+          settings={selectedPlan}
+          budgetItems={refreshedBudgetItems?.filter(item => item.budgetSettingsId === selectedPlan.id) || []}
+          catalogItems={catalogItems}
+        />
+      )}
     </div>
   );
 }
