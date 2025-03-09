@@ -27,18 +27,19 @@ export function BudgetPlanGrid({
   const budgetPlans: BudgetPlanCard[] = budgetSettings ? [createBudgetPlanCard(budgetSettings, budgetItems)] : [];
   
   function createBudgetPlanCard(settings: BudgetSettings, items: BudgetItem[]): BudgetPlanCard {
-    // Calculate used funds
-    const usedFunds = items.reduce((total, item) => {
+    // Calculate TOTAL available funds from budget items (unit price * quantity)
+    // This is the correct definition of "available funds" - the total budget booked during onboarding
+    const availableFunds = items.reduce((total, item) => {
       const unitPrice = typeof item.unitPrice === 'string' ? parseFloat(item.unitPrice) : item.unitPrice;
       const quantity = typeof item.quantity === 'string' ? parseInt(item.quantity) : item.quantity;
       return total + (unitPrice * quantity);
     }, 0);
     
-    // Calculate budget percentage
-    const availableFunds = typeof settings.availableFunds === 'string' 
-      ? parseFloat(settings.availableFunds) 
-      : settings.availableFunds;
+    // Used funds would be the total allocated to sessions
+    // Currently we assume 0 as sessions allocation is not yet implemented
+    const usedFunds = 0;
     
+    // Calculate budget percentage
     const percentUsed = availableFunds > 0 
       ? Math.min(100, (usedFunds / availableFunds) * 100)
       : 0;

@@ -116,29 +116,32 @@ export function BudgetPlanCard({
       <CardContent className="p-4">
         <div className="grid grid-cols-3 gap-4 mb-4">
           <div>
-            <div className="text-sm text-gray-500">Available</div>
+            <div className="text-sm text-gray-500">Total Budget</div>
             <div className="text-xl font-bold mt-1">
               ${formatCurrency(plan.availableFunds)}
-            </div>
-          </div>
-          
-          <div>
-            <div className="text-sm text-gray-500">Used</div>
-            <div className="text-xl font-bold mt-1">
-              ${formatCurrency(plan.usedFunds)}
             </div>
             <div className="text-xs text-gray-500">({plan.itemCount} items)</div>
           </div>
           
           <div>
-            <div className="text-sm text-gray-500">Remaining</div>
+            <div className="text-sm text-gray-500">Used in Sessions</div>
+            <div className="text-xl font-bold mt-1">
+              ${formatCurrency(plan.usedFunds)}
+            </div>
+            {plan.usedFunds === 0 && 
+              <div className="text-xs text-gray-500">No sessions yet</div>
+            }
+          </div>
+          
+          <div>
+            <div className="text-sm text-gray-500">Remaining Budget</div>
             <div className="text-xl font-bold mt-1">
               ${formatCurrency(remainingFunds)}
             </div>
             {remainingFunds < 0 ? (
               <div className="text-xs text-red-500">Over budget</div>
             ) : (
-              <div className="text-xs text-green-500">Under budget</div>
+              <div className="text-xs text-green-500">Available for sessions</div>
             )}
           </div>
         </div>
