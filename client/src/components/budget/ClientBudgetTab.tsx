@@ -127,10 +127,15 @@ export function ClientBudgetTab({
     });
   };
   
-  // Handler for viewing budget plan details - the dialog will be shown from BudgetPlanGrid
+  // Handler for viewing budget plan details
   const handleViewPlanDetails = (plan: BudgetSettings) => {
-    // This is now handled directly in the BudgetPlanGrid component
-    // with the BudgetItemsDialog
+    toast({
+      title: "Plan Details",
+      description: `Viewing details for plan: ${plan.planCode || 'Unnamed Plan'}`,
+    });
+    
+    // TODO: Implement detailed view dialog for budget plan
+    console.log("Budget plan details:", plan);
   };
   
   // Handler for archiving a budget plan
