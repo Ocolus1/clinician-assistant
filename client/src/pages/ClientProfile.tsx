@@ -59,6 +59,7 @@ import ClientAllies from "@/components/profile/ClientAllies";
 import ClientGoals from "@/components/profile/ClientGoals";
 import BudgetPlansView from "@/components/profile/BudgetPlansView";
 import ClientBudget from "@/components/profile/ClientBudget";
+import { ClientBudgetTab } from "@/components/budget/ClientBudgetTab";
 import ClientSessions from "@/components/profile/ClientSessions";
 import ClientReports from "@/components/profile/ClientReports";
 import AddAllyDialog from "@/components/profile/AddAllyDialog";
@@ -67,9 +68,6 @@ import AddSubgoalDialog from "@/components/profile/AddSubgoalDialog";
 import EditGoalDialog from "@/components/profile/EditGoalDialog";
 import EditSubgoalDialog from "@/components/profile/EditSubgoalDialog";
 import { EditClientInfoDialog } from "@/components/profile/EditClientInfoDialog";
-// We're using ClientBudget component directly instead of these
-// import BudgetPlans from "@/components/budget/BudgetPlans";
-// import BudgetPlanDetails from "@/components/budget/BudgetPlanDetails";
 
 // Function to parse URL parameters for active tab
 function getActiveTabFromURL(): string {
