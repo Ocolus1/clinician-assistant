@@ -28,7 +28,9 @@ import {
   Award,
   PlusCircle,
   Mail,
-  Phone
+  Phone,
+  Archive,
+  Star
 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Badge } from "@/components/ui/badge";
@@ -632,22 +634,114 @@ export default function ClientProfile() {
                 Track and manage the client's budget plans, funding sources, and expenditures.
               </p>
               
-              {/* Use our ClientBudget component which includes the BudgetCardGrid */}
-              <div className="space-y-4">
-                <div className="flex justify-between">
-                  <h4 className="font-medium">Budget Overview</h4>
-                  <div className="flex gap-2">
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={() => {
+              {/* Budget Header with Actions */}
+              <div className="flex justify-between mb-6">
+                <h4 className="font-medium">Budget Overview</h4>
+                <div className="flex gap-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => {
+                      toast({
+                        title: "Show Budget Items Table",
+                        description: "Toggling view between cards and table.",
+                      });
+                    }}
+                  >
+                    Show Budget Items Table
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => {
+                      // Create default budget settings if they don't exist
+                      const createDefaultSettings = async () => {
+                        try {
+                          const defaultSettings = {
+                            planCode: `PLAN-${Math.floor(Math.random() * 10000)}`,
+                            planSerialNumber: `SN-${Math.floor(Math.random() * 10000)}`,
+                            availableFunds: 15000,
+                            isActive: true,
+                            endOfPlan: new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString().split('T')[0],
+                          };
+                          
+                          const response = await fetch(`/api/clients/${clientId}/budget-settings`, {
+                            method: 'POST',
+                            headers: {
+                              'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify(defaultSettings),
+                          });
+                          
+                          if (response.ok) {
+                            // Refresh the budget settings data
+                            queryClient.invalidateQueries({ queryKey: ['/api/clients', clientId, 'budget-settings'] });
+                            
+                            toast({
+                              title: "Budget plan created",
+                              description: "New budget plan has been created successfully.",
+                            });
+                          } else {
+                            toast({
+                              title: "Error",
+                              description: "Failed to create budget plan. Please try again.",
+                              variant: "destructive",
+                            });
+                          }
+                        } catch (error) {
+                          console.error("Error creating budget plan:", error);
+                          toast({
+                            title: "Error",
+                            description: "An unexpected error occurred. Please try again.",
+                            variant: "destructive",
+                          });
+                        }
+                      };
+                      
+                      createDefaultSettings();
+                    }}
+                  >
+                    Edit Budget
+                  </Button>
+                </div>
+              </div>
+              
+              {/* Budget Plan Section */}
+              <div className="mb-6">
+                <div className="flex justify-between items-center mb-4">
+                  <h4 className="font-medium">Budget Plan</h4>
+                  <Button 
+                    size="sm" 
+                    className="bg-blue-600 hover:bg-blue-700"
+                    onClick={() => {
+                      toast({
+                        title: "New Budget Plan",
+                        description: "New budget plan functionality will be implemented soon.",
+                      });
+                    }}
+                  >
+                    <PlusCircle className="h-4 w-4 mr-2" />
+                    New Budget Plan
+                  </Button>
+                </div>
+                
+                {/* Budget Plan Card or Empty State */}
+                {!budgetSettings ? (
+                  <Card className="bg-gray-50 border-gray-200">
+                    <CardContent className="py-10 text-center">
+                      <DollarSign className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+                      <h3 className="text-lg font-medium text-gray-700 mb-2">No Budget Plans</h3>
+                      <p className="text-gray-500 mb-6 max-w-md mx-auto">
+                        No budget plans have been created for this client yet. You'll need to set up a budget plan to track funding and expenses.
+                      </p>
+                      <Button onClick={() => {
                         // Create default budget settings if they don't exist
                         const createDefaultSettings = async () => {
                           try {
                             const defaultSettings = {
                               planCode: `PLAN-${Math.floor(Math.random() * 10000)}`,
                               planSerialNumber: `SN-${Math.floor(Math.random() * 10000)}`,
-                              availableFunds: 5000,
+                              availableFunds: 15000,
                               isActive: true,
                               endOfPlan: new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString().split('T')[0],
                             };
@@ -686,84 +780,244 @@ export default function ClientProfile() {
                         };
                         
                         createDefaultSettings();
-                      }}
-                    >
-                      Edit Budget
-                    </Button>
-                  </div>
+                      }}>
+                        <PlusCircle className="h-4 w-4 mr-2" />
+                        Create Budget Plan
+                      </Button>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <Card className="bg-white border">
+                    <CardContent className="p-0">
+                      <div className="border-b">
+                        <div className="flex justify-between items-center p-4">
+                          <div>
+                            <Badge className="bg-blue-500 hover:bg-blue-600 mb-2">Active</Badge>
+                            <h3 className="text-lg font-medium">Unnamed Plan</h3>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="text-gray-500"
+                              onClick={() => {
+                                toast({
+                                  title: "Archive Plan",
+                                  description: "Archive functionality will be implemented soon.",
+                                });
+                              }}
+                            >
+                              <div className="flex items-center">
+                                <Archive className="h-4 w-4 mr-1" />
+                                Archive
+                              </div>
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* Budget Plan Details */}
+                      <div className="p-4">
+                        <div className="grid grid-cols-3 gap-4 mb-4">
+                          <div>
+                            <div className="text-sm text-gray-500">Available Funds</div>
+                            <div className="text-xl font-bold mt-1">
+                              ${budgetSettings ? 
+                                (typeof budgetSettings.availableFunds === 'string' ? 
+                                  parseFloat(budgetSettings.availableFunds).toFixed(2) : 
+                                  budgetSettings.availableFunds.toFixed(2)) : 
+                                '0.00'}
+                            </div>
+                          </div>
+                          
+                          <div>
+                            <div className="text-sm text-gray-500">Used</div>
+                            <div className="text-xl font-bold mt-1">
+                              ${budgetItems.reduce((sum, item) => {
+                                const unitPrice = typeof item.unitPrice === 'string' ? 
+                                  parseFloat(item.unitPrice) : item.unitPrice;
+                                const quantity = typeof item.quantity === 'string' ? 
+                                  parseInt(item.quantity) : item.quantity;
+                                return sum + (unitPrice * quantity);
+                              }, 0).toFixed(2)}
+                            </div>
+                            <div className="text-xs text-gray-500">({budgetItems.length} budget items)</div>
+                          </div>
+                          
+                          <div>
+                            <div className="text-sm text-gray-500">Remaining</div>
+                            <div className="text-xl font-bold mt-1">
+                              ${(() => {
+                                const availableFunds = budgetSettings ? 
+                                  (typeof budgetSettings.availableFunds === 'string' ? 
+                                    parseFloat(budgetSettings.availableFunds) : 
+                                    budgetSettings.availableFunds) : 
+                                  0;
+                                
+                                const usedFunds = budgetItems.reduce((sum, item) => {
+                                  const unitPrice = typeof item.unitPrice === 'string' ? 
+                                    parseFloat(item.unitPrice) : item.unitPrice;
+                                  const quantity = typeof item.quantity === 'string' ? 
+                                    parseInt(item.quantity) : item.quantity;
+                                  return sum + (unitPrice * quantity);
+                                }, 0);
+                                
+                                return (availableFunds - usedFunds).toFixed(2);
+                              })()}
+                            </div>
+                            <div className="text-xs text-gray-500">Under budget</div>
+                          </div>
+                        </div>
+                        
+                        {/* Budget Utilization Progress */}
+                        <div>
+                          <div className="flex justify-between text-sm mb-1">
+                            <span>Budget Utilization</span>
+                            <span>
+                              {(() => {
+                                const availableFunds = budgetSettings ? 
+                                  (typeof budgetSettings.availableFunds === 'string' ? 
+                                    parseFloat(budgetSettings.availableFunds) : 
+                                    budgetSettings.availableFunds) : 
+                                  0;
+                                
+                                const usedFunds = budgetItems.reduce((sum, item) => {
+                                  const unitPrice = typeof item.unitPrice === 'string' ? 
+                                    parseFloat(item.unitPrice) : item.unitPrice;
+                                  const quantity = typeof item.quantity === 'string' ? 
+                                    parseInt(item.quantity) : item.quantity;
+                                  return sum + (unitPrice * quantity);
+                                }, 0);
+                                
+                                return availableFunds > 0 ? 
+                                  Math.min(100, (usedFunds / availableFunds) * 100).toFixed(0) : 
+                                  '0';
+                              })()}%
+                            </span>
+                          </div>
+                          <Progress 
+                            value={(() => {
+                              const availableFunds = budgetSettings ? 
+                                (typeof budgetSettings.availableFunds === 'string' ? 
+                                  parseFloat(budgetSettings.availableFunds) : 
+                                  budgetSettings.availableFunds) : 
+                                0;
+                              
+                              const usedFunds = budgetItems.reduce((sum, item) => {
+                                const unitPrice = typeof item.unitPrice === 'string' ? 
+                                  parseFloat(item.unitPrice) : item.unitPrice;
+                                const quantity = typeof item.quantity === 'string' ? 
+                                  parseInt(item.quantity) : item.quantity;
+                                return sum + (unitPrice * quantity);
+                              }, 0);
+                              
+                              return availableFunds > 0 ? 
+                                Math.min(100, (usedFunds / availableFunds) * 100) : 
+                                0;
+                            })()}
+                            className="h-2"
+                          />
+                        </div>
+                      </div>
+                      
+                      {/* Budget Settings Button */}
+                      <div className="border-t p-3 flex justify-center">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          className="text-gray-600"
+                          onClick={() => {
+                            toast({
+                              title: "Edit Budget Settings",
+                              description: "Budget settings edit functionality will be implemented soon.",
+                            });
+                          }}
+                        >
+                          <Edit className="h-4 w-4 mr-2" />
+                          Edit Budget Settings
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+              
+              {/* Budget Items Section */}
+              <div>
+                <div className="flex justify-between items-center mb-4">
+                  <h4 className="font-medium">Budget Items ({budgetItems.length})</h4>
+                  <Button 
+                    size="sm" 
+                    className="bg-blue-600 hover:bg-blue-700"
+                    onClick={() => {
+                      toast({
+                        title: "Manage Budget Items",
+                        description: "Budget item management functionality will be implemented soon.",
+                      });
+                    }}
+                  >
+                    <PlusCircle className="h-4 w-4 mr-2" />
+                    Manage Budget Items
+                  </Button>
                 </div>
                 
-                <ClientBudget 
-                  budgetSettings={budgetSettings}
-                  budgetItems={budgetItems}
-                  onEditSettings={() => {
-                    // Same functionality as above
-                    const createDefaultSettings = async () => {
-                      try {
-                        const defaultSettings = {
-                          planCode: `PLAN-${Math.floor(Math.random() * 10000)}`,
-                          planSerialNumber: `SN-${Math.floor(Math.random() * 10000)}`,
-                          availableFunds: 5000,
-                          isActive: true,
-                          endOfPlan: new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString().split('T')[0],
-                        };
-                        
-                        const response = await fetch(`/api/clients/${clientId}/budget-settings`, {
-                          method: 'POST',
-                          headers: {
-                            'Content-Type': 'application/json',
-                          },
-                          body: JSON.stringify(defaultSettings),
-                        });
-                        
-                        if (response.ok) {
-                          // Refresh the budget settings data
-                          queryClient.invalidateQueries({ queryKey: ['/api/clients', clientId, 'budget-settings'] });
-                          
-                          toast({
-                            title: "Budget plan created",
-                            description: "New budget plan has been created successfully.",
-                          });
-                        } else {
-                          toast({
-                            title: "Error",
-                            description: "Failed to create budget plan. Please try again.",
-                            variant: "destructive",
-                          });
-                        }
-                      } catch (error) {
-                        console.error("Error creating budget plan:", error);
-                        toast({
-                          title: "Error",
-                          description: "An unexpected error occurred. Please try again.",
-                          variant: "destructive",
-                        });
-                      }
-                    };
-                    
-                    createDefaultSettings();
-                  }}
-                  onAddItem={() => {
-                    toast({
-                      title: "Add Item",
-                      description: "Add item functionality will be implemented soon.",
-                    });
-                  }}
-                  onEditItem={(item) => {
-                    console.log("Edit item:", item);
-                    toast({
-                      title: "Edit Item",
-                      description: "Edit item functionality will be implemented soon.",
-                    });
-                  }}
-                  onDeleteItem={(item) => {
-                    console.log("Delete item:", item);
-                    toast({
-                      title: "Delete Item",
-                      description: "Delete item functionality will be implemented soon.",
-                    });
-                  }}
-                />
+                {budgetItems.length === 0 ? (
+                  <div className="text-center py-8 bg-gray-50 rounded-lg">
+                    <DollarSign className="h-10 w-10 text-gray-300 mx-auto mb-3" />
+                    <h4 className="text-lg font-medium text-gray-500 mb-2">No budget items added</h4>
+                    <p className="text-gray-500 mb-4">Add items to track expenses related to therapy services.</p>
+                    <Button onClick={() => {
+                      toast({
+                        title: "Add Budget Item",
+                        description: "Add budget item functionality will be implemented soon.",
+                      });
+                    }}>
+                      Add First Budget Item
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                    {budgetItems.map(item => (
+                      <Card key={item.id} className="overflow-hidden">
+                        <CardHeader className="py-3 px-4 bg-gray-50">
+                          <CardTitle className="text-base">
+                            {item.name || item.itemCode || 'Unnamed Item'}
+                          </CardTitle>
+                          {item.category && (
+                            <Badge variant="outline" className="mt-1">
+                              {item.category}
+                            </Badge>
+                          )}
+                        </CardHeader>
+                        <CardContent className="py-3 px-4">
+                          <div className="space-y-1">
+                            <div className="flex justify-between text-sm">
+                              <span>Unit Price:</span>
+                              <span className="font-medium">${typeof item.unitPrice === 'string' ? 
+                                parseFloat(item.unitPrice).toFixed(2) : 
+                                item.unitPrice.toFixed(2)}</span>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                              <span>Quantity:</span>
+                              <span className="font-medium">{item.quantity}</span>
+                            </div>
+                            <div className="flex justify-between text-sm pt-1 font-medium border-t mt-1">
+                              <span>Total:</span>
+                              <span>${(
+                                (typeof item.unitPrice === 'string' ? 
+                                  parseFloat(item.unitPrice) : 
+                                  item.unitPrice) * 
+                                (typeof item.quantity === 'string' ? 
+                                  parseInt(item.quantity) : 
+                                  item.quantity)
+                              ).toFixed(2)}</span>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
               </div>
             </TabsContent>
             
