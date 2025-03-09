@@ -628,144 +628,183 @@ export default function ClientProfile() {
             <TabsContent value="budget" className="mt-0">
               <h3 className="text-lg font-medium mb-4">Budget Management</h3>
               <p className="text-gray-500 mb-6">
-                Track and manage the client's budget, funding sources, and expenditures.
+                Track and manage the client's budget plans, funding sources, and expenditures.
               </p>
               
-              {/* Use our ClientBudget component which includes the BudgetCardGrid */}
-              <div className="space-y-4">
-                <div className="flex justify-between">
-                  <h4 className="font-medium">Budget Overview</h4>
-                  <div className="flex gap-2">
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={() => {
-                        // Create default budget settings if they don't exist
-                        const createDefaultSettings = async () => {
-                          try {
-                            const defaultSettings = {
-                              planCode: `PLAN-${Math.floor(Math.random() * 10000)}`,
-                              planName: "Default Plan",
-                              availableFunds: 5000,
-                              fundingSource: "NDIS",
-                              startDate: new Date().toISOString().split('T')[0],
-                              endDate: new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString().split('T')[0],
+              {/* State for budget plan view management */}
+              {(() => {
+                // Local state for plan view management
+                const [selectedPlan, setSelectedPlan] = useState<BudgetPlan | null>(null);
+                
+                // Convert budgetSettings to an array if it's a single object
+                const budgetSettingsArray = budgetSettings ? [budgetSettings] : [];
+                
+                // If we have a selected plan, show the plan details view
+                if (selectedPlan) {
+                  return (
+                    <BudgetPlanDetails
+                      plan={selectedPlan}
+                      budgetItems={budgetItems}
+                      onBack={() => setSelectedPlan(null)}
+                      onEditPlan={(plan) => {
+                        toast({
+                          title: "Edit Budget Plan",
+                          description: "This functionality is not yet implemented.",
+                        });
+                      }}
+                      onAddItem={() => {
+                        toast({
+                          title: "Add Budget Item",
+                          description: "This functionality is not yet implemented.",
+                        });
+                      }}
+                      onEditItem={(item) => {
+                        toast({
+                          title: "Edit Budget Item",
+                          description: `Editing item "${item.description}" is not yet implemented.`,
+                        });
+                      }}
+                      onDeleteItem={(item) => {
+                        toast({
+                          title: "Delete Budget Item",
+                          description: `Deleting item "${item.description}" is not yet implemented.`,
+                        });
+                      }}
+                    />
+                  );
+                }
+                
+                // Otherwise show the budget plans overview
+                return (
+                  <div className="space-y-4">
+                    {!budgetSettings ? (
+                      <Card className="p-8 bg-gray-50">
+                        <CardContent className="flex flex-col items-center justify-center p-0">
+                          <DollarSign className="h-16 w-16 text-gray-300 mb-4" />
+                          <h3 className="text-xl font-medium mb-2">No Budget Plans</h3>
+                          <p className="text-gray-500 text-center mb-6">
+                            Create a budget plan to start tracking client funding and expenses.
+                            Click the "Create Budget Plan" button to get started.
+                          </p>
+                          <Button onClick={() => {
+                            // Create default budget settings
+                            const createDefaultSettings = async () => {
+                              try {
+                                const defaultSettings = {
+                                  planCode: `PLAN-${Math.floor(Math.random() * 10000)}`,
+                                  planSerialNumber: `SN-${Math.floor(Math.random() * 10000)}`,
+                                  availableFunds: 5000,
+                                  isActive: true,
+                                  endOfPlan: new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString().split('T')[0],
+                                };
+                                
+                                const response = await fetch(`/api/clients/${clientId}/budget-settings`, {
+                                  method: 'POST',
+                                  headers: {
+                                    'Content-Type': 'application/json',
+                                  },
+                                  body: JSON.stringify(defaultSettings),
+                                });
+                                
+                                if (response.ok) {
+                                  queryClient.invalidateQueries({ queryKey: ['/api/clients', clientId, 'budget-settings'] });
+                                  toast({
+                                    title: "Budget plan created",
+                                    description: "Default budget plan has been created successfully.",
+                                  });
+                                } else {
+                                  toast({
+                                    title: "Error",
+                                    description: "Failed to create budget plan.",
+                                    variant: "destructive",
+                                  });
+                                }
+                              } catch (error) {
+                                console.error("Error creating budget plan:", error);
+                                toast({
+                                  title: "Error",
+                                  description: "An unexpected error occurred.",
+                                  variant: "destructive",
+                                });
+                              }
                             };
                             
-                            const response = await fetch(`/api/clients/${clientId}/budget-settings`, {
-                              method: 'POST',
-                              headers: {
-                                'Content-Type': 'application/json',
-                              },
-                              body: JSON.stringify(defaultSettings),
-                            });
-                            
-                            if (response.ok) {
-                              // Refresh the budget settings data
-                              queryClient.invalidateQueries({ queryKey: ['/api/clients', clientId, 'budget-settings'] });
+                            createDefaultSettings();
+                          }}>
+                            <PlusCircle className="h-4 w-4 mr-2" />
+                            Create Budget Plan
+                          </Button>
+                        </CardContent>
+                      </Card>
+                    ) : (
+                      <BudgetPlans
+                        budgetSettings={budgetSettingsArray}
+                        budgetItems={budgetItems}
+                        onCreatePlan={() => {
+                          // Create new budget plan
+                          const createNewPlan = async () => {
+                            try {
+                              const newPlan = {
+                                planCode: `PLAN-${Math.floor(Math.random() * 10000)}`,
+                                planSerialNumber: `SN-${Math.floor(Math.random() * 10000)}`,
+                                availableFunds: 5000,
+                                isActive: false, // New plans are not active by default
+                                endOfPlan: new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString().split('T')[0],
+                              };
                               
-                              toast({
-                                title: "Budget plan created",
-                                description: "New budget plan has been created successfully.",
+                              const response = await fetch(`/api/clients/${clientId}/budget-settings`, {
+                                method: 'POST',
+                                headers: {
+                                  'Content-Type': 'application/json',
+                                },
+                                body: JSON.stringify(newPlan),
                               });
-                            } else {
+                              
+                              if (response.ok) {
+                                queryClient.invalidateQueries({ queryKey: ['/api/clients', clientId, 'budget-settings'] });
+                                toast({
+                                  title: "Budget plan created",
+                                  description: "New budget plan has been created successfully.",
+                                });
+                              } else {
+                                toast({
+                                  title: "Error",
+                                  description: "Failed to create new budget plan.",
+                                  variant: "destructive",
+                                });
+                              }
+                            } catch (error) {
+                              console.error("Error creating new budget plan:", error);
                               toast({
                                 title: "Error",
-                                description: "Failed to create budget plan. Please try again.",
+                                description: "An unexpected error occurred.",
                                 variant: "destructive",
                               });
                             }
-                          } catch (error) {
-                            console.error("Error creating budget plan:", error);
-                            toast({
-                              title: "Error",
-                              description: "An unexpected error occurred. Please try again.",
-                              variant: "destructive",
-                            });
-                          }
-                        };
-                        
-                        createDefaultSettings();
-                      }}
-                    >
-                      Edit Budget
-                    </Button>
-                  </div>
-                </div>
-                
-                <ClientBudget 
-                  budgetSettings={budgetSettings}
-                  budgetItems={budgetItems}
-                  onEditSettings={() => {
-                    // Same functionality as above
-                    const createDefaultSettings = async () => {
-                      try {
-                        const defaultSettings = {
-                          planCode: `PLAN-${Math.floor(Math.random() * 10000)}`,
-                          planName: "Default Plan",
-                          availableFunds: 5000,
-                          fundingSource: "NDIS",
-                          startDate: new Date().toISOString().split('T')[0],
-                          endDate: new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString().split('T')[0],
-                        };
-                        
-                        const response = await fetch(`/api/clients/${clientId}/budget-settings`, {
-                          method: 'POST',
-                          headers: {
-                            'Content-Type': 'application/json',
-                          },
-                          body: JSON.stringify(defaultSettings),
-                        });
-                        
-                        if (response.ok) {
-                          // Refresh the budget settings data
-                          queryClient.invalidateQueries({ queryKey: ['/api/clients', clientId, 'budget-settings'] });
+                          };
                           
+                          createNewPlan();
+                        }}
+                        onSelectPlan={(plan) => {
+                          setSelectedPlan(plan);
+                        }}
+                        onArchivePlan={(plan) => {
                           toast({
-                            title: "Budget plan created",
-                            description: "New budget plan has been created successfully.",
+                            title: "Archive Budget Plan",
+                            description: "This functionality is not yet implemented.",
                           });
-                        } else {
+                        }}
+                        onSetActivePlan={(plan) => {
                           toast({
-                            title: "Error",
-                            description: "Failed to create budget plan. Please try again.",
-                            variant: "destructive",
+                            title: "Set Active Plan",
+                            description: "This functionality is not yet implemented.",
                           });
-                        }
-                      } catch (error) {
-                        console.error("Error creating budget plan:", error);
-                        toast({
-                          title: "Error",
-                          description: "An unexpected error occurred. Please try again.",
-                          variant: "destructive",
-                        });
-                      }
-                    };
-                    
-                    createDefaultSettings();
-                  }}
-                  onAddItem={() => {
-                    toast({
-                      title: "Add Item",
-                      description: "Add item functionality will be implemented soon.",
-                    });
-                  }}
-                  onEditItem={(item) => {
-                    console.log("Edit item:", item);
-                    toast({
-                      title: "Edit Item",
-                      description: "Edit item functionality will be implemented soon.",
-                    });
-                  }}
-                  onDeleteItem={(item) => {
-                    console.log("Delete item:", item);
-                    toast({
-                      title: "Delete Item",
-                      description: "Delete item functionality will be implemented soon.",
-                    });
-                  }}
-                />
-              </div>
+                        }}
+                      />
+                    )}
+                  </div>
+                );
+              })()}
             </TabsContent>
             
             <TabsContent value="sessions" className="mt-0">
