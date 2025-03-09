@@ -250,6 +250,42 @@ export function ClientBudgetTab({
           settings={selectedPlan}
           budgetItems={refreshedBudgetItems?.filter(item => item.budgetSettingsId === selectedPlan.id) || []}
           catalogItems={catalogItems}
+          onUpdateItem={async (updatedItem) => {
+            try {
+              // Update the budget item
+              const response = await apiRequest('PUT', `/api/budget-items/${updatedItem.id}`, updatedItem);
+              
+              if (response) {
+                // Invalidate relevant queries
+                queryClient.invalidateQueries({ queryKey: ['/api/clients', clientId, 'budget-items'] });
+                
+                // Refetch budget items
+                await refetchBudgetItems();
+                
+                toast({
+                  title: "Budget Item Updated",
+                  description: "The budget item has been updated successfully."
+                });
+                
+                return Promise.resolve();
+              } else {
+                toast({
+                  title: "Error",
+                  description: "Failed to update the budget item. Please try again.",
+                  variant: "destructive"
+                });
+                return Promise.reject(new Error("Update failed"));
+              }
+            } catch (error) {
+              console.error("Error updating budget item:", error);
+              toast({
+                title: "Error",
+                description: "An unexpected error occurred. Please try again.",
+                variant: "destructive"
+              });
+              return Promise.reject(error);
+            }
+          }}
         />
       )}
     </div>
