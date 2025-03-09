@@ -75,25 +75,19 @@ function BudgetItemCard({ item }: BudgetItemCardProps) {
       <div className="p-4">
         <div className="flex items-start justify-between">
           <div className="space-y-1">
-            <h4 className="font-medium">{item.name || 'Untitled Item'}</h4>
+            <h4 className="font-medium">{item.itemCode || 'No Code'}</h4>
             <div className="flex items-center text-sm text-gray-500">
               <Tag className="h-3.5 w-3.5 mr-1" />
-              <span>Code: {item.itemCode || 'No code'}</span>
+              <span>{item.description || 'No description'}</span>
             </div>
           </div>
           <div className="text-right">
-            <div className="text-xl font-bold">${formatCurrency(totalAmount)}</div>
+            <div className="text-xl font-bold">{formatCurrency(totalAmount)}</div>
             <div className="text-sm text-gray-500">
-              ${formatCurrency(unitPrice)} × {quantity} units
+              {formatCurrency(unitPrice)} × {quantity} units
             </div>
           </div>
         </div>
-        
-        {item.description && (
-          <div className="mt-2 text-sm text-gray-600">
-            {item.description}
-          </div>
-        )}
         
         <div className="mt-3 pt-3 border-t border-gray-100 flex items-center text-sm text-gray-500">
           <DollarSign className="h-3.5 w-3.5 mr-1" />
