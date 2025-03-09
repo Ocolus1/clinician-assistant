@@ -1,6 +1,6 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, DollarSign } from 'lucide-react';
+import { DollarSign, PlusCircle } from 'lucide-react';
 import { BudgetItemCard } from './BudgetItemCard';
 import type { BudgetItem } from '@shared/schema';
 
@@ -11,35 +11,18 @@ interface BudgetItemGridProps {
   onDeleteItem: (item: BudgetItem) => void;
 }
 
-export function BudgetItemGrid({ 
-  budgetItems, 
-  onAddItem, 
-  onEditItem, 
-  onDeleteItem 
+export function BudgetItemGrid({
+  budgetItems,
+  onAddItem,
+  onEditItem,
+  onDeleteItem
 }: BudgetItemGridProps) {
-  
-  // If no budget items, show empty state
-  if (budgetItems.length === 0) {
-    return (
-      <div className="text-center py-8 bg-gray-50 rounded-lg">
-        <DollarSign className="h-10 w-10 text-gray-300 mx-auto mb-3" />
-        <h4 className="text-lg font-medium text-gray-500 mb-2">No budget items added</h4>
-        <p className="text-gray-500 mb-4">Add items to track expenses related to therapy services.</p>
-        <Button onClick={onAddItem}>
-          <PlusCircle className="h-4 w-4 mr-2" />
-          Add First Budget Item
-        </Button>
-      </div>
-    );
-  }
-  
   return (
-    <div>
-      <div className="flex justify-between items-center mb-4">
+    <div className="space-y-6">
+      <div className="flex justify-between items-center mb-2">
         <h4 className="font-medium">Budget Items ({budgetItems.length})</h4>
         <Button 
-          size="sm" 
-          className="bg-blue-600 hover:bg-blue-700"
+          size="sm"
           onClick={onAddItem}
         >
           <PlusCircle className="h-4 w-4 mr-2" />
@@ -47,16 +30,30 @@ export function BudgetItemGrid({
         </Button>
       </div>
       
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-        {budgetItems.map(item => (
-          <BudgetItemCard
-            key={item.id}
-            item={item}
-            onEdit={onEditItem}
-            onDelete={onDeleteItem}
-          />
-        ))}
-      </div>
+      {budgetItems.length === 0 ? (
+        <div className="bg-gray-50 border border-gray-200 rounded-lg py-10 text-center">
+          <DollarSign className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-gray-700 mb-2">No Budget Items</h3>
+          <p className="text-gray-500 mb-6 max-w-md mx-auto">
+            No budget items have been added yet. Add items to track expenses related to therapy services.
+          </p>
+          <Button onClick={onAddItem}>
+            <PlusCircle className="h-4 w-4 mr-2" />
+            Add First Budget Item
+          </Button>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+          {budgetItems.map(item => (
+            <BudgetItemCard
+              key={item.id}
+              item={item}
+              onEdit={onEditItem}
+              onDelete={onDeleteItem}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
