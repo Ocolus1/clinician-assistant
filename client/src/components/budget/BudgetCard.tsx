@@ -2,9 +2,11 @@ import React from 'react';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
+import { Separator } from '@/components/ui/separator';
 import { formatCurrency } from '@/lib/utils';
 import type { BudgetSettings, BudgetItem } from '@shared/schema';
-import { Eye, Archive, Star, Edit2, Play } from 'lucide-react';
+import { Eye, Archive, Edit2, Play } from 'lucide-react';
 
 interface BudgetPlanCardProps {
   settings: BudgetSettings;
@@ -59,9 +61,11 @@ export function BudgetPlanCard({
       <CardHeader>
         <div className="flex justify-between items-start">
           <div>
-            <CardTitle className="text-lg font-semibold">
-              {settings.planCode || 'Plan Code N/A'}
-            </CardTitle>
+            {settings.planCode && (
+              <CardTitle className="text-lg font-semibold">
+                {settings.planCode}
+              </CardTitle>
+            )}
             <p className="text-sm text-muted-foreground">
               {settings.planSerialNumber || 'Serial Number N/A'}
             </p>
@@ -73,23 +77,37 @@ export function BudgetPlanCard({
       </CardHeader>
       
       <CardContent>
-        <div className="space-y-4">
-          <div>
-            <p className="text-sm font-medium">Total Budget Funds</p>
-            <p className="text-2xl font-bold">{formatCurrency(totalAvailableFunds)}</p>
-          </div>
-          
-          <div>
-            <p className="text-sm font-medium">Used Funds</p>
-            <p className="text-lg">{formatCurrency(totalUsed)}</p>
-            <p className="text-sm text-muted-foreground">
-              {percentUsed.toFixed(1)}% utilized
-            </p>
-          </div>
-          
-          <div>
-            <p className="text-sm font-medium">Remaining Balance</p>
-            <p className="text-lg text-primary">{formatCurrency(totalAvailableFunds - totalUsed)}</p>
+        <div className="space-y-6">
+          {/* Visual connected budget section */}
+          <div className="rounded-md border p-3 space-y-3">
+            <div>
+              <p className="text-sm font-medium">Total Budget Funds</p>
+              <p className="text-2xl font-bold">{formatCurrency(totalAvailableFunds)}</p>
+            </div>
+            
+            <Separator />
+            
+            <div>
+              <p className="text-sm font-medium">Used Funds</p>
+              <div className="flex justify-between items-center">
+                <p className="text-lg">{formatCurrency(totalUsed)}</p>
+                <Badge variant="outline" className="ml-2">
+                  {percentUsed.toFixed(1)}% utilized
+                </Badge>
+              </div>
+              <Progress 
+                value={percentUsed} 
+                className="h-2 mt-1" 
+                indicatorClassName={percentUsed > 90 ? "bg-destructive" : ""}
+              />
+            </div>
+            
+            <Separator />
+            
+            <div>
+              <p className="text-sm font-medium">Remaining Balance</p>
+              <p className="text-lg text-primary font-semibold">{formatCurrency(totalAvailableFunds - totalUsed)}</p>
+            </div>
           </div>
           
           <div>
