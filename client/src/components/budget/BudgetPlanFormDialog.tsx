@@ -73,7 +73,9 @@ export function BudgetPlanFormDialog({
         <DialogHeader>
           <DialogTitle>Create New Budget Plan</DialogTitle>
           <DialogDescription>
-            Add a new budget plan for this client. Fill in the plan details below.
+            Add a new budget plan for this client. The budget allocation will be linked to 
+            budget items, which define how the funds can be spent. Actual spending will be tracked
+            separately through session allocations.
           </DialogDescription>
         </DialogHeader>
         
@@ -112,16 +114,19 @@ export function BudgetPlanFormDialog({
               name="availableFunds"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Available Funds</FormLabel>
+                  <FormLabel>Total Budget Allocation</FormLabel>
                   <FormControl>
                     <Input 
                       type="number" 
-                      placeholder="Enter available funds" 
+                      placeholder="Enter total budget amount" 
                       {...field}
                       onChange={e => field.onChange(parseFloat(e.target.value))}
                     />
                   </FormControl>
                   <FormMessage />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    This is the initial budget allocation (not used funds)
+                  </p>
                 </FormItem>
               )}
             />

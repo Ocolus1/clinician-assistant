@@ -25,9 +25,31 @@ export function BudgetPlanCard({
   onArchive,
   onSetActive,
 }: BudgetPlanCardProps) {
-  // Calculate total used amount
-  const totalUsed = budgetItems.reduce((acc, item) => acc + (item.quantity * item.unitPrice), 0);
-  const percentUsed = (totalUsed / settings.availableFunds) * 100;
+  /**
+   * Budget Calculation Business Logic:
+   * 
+   * 1. Total Available Funds: This is the sum of each budget item's (quantity × unit price)
+   *    - This represents the total budget allocation for this plan
+   *    - Example: If we have 10 units at $100 each, total available is $1,000
+   */
+  const totalAvailableFunds = budgetItems.reduce((acc, item) => acc + (item.quantity * item.unitPrice), 0);
+  
+  /**
+   * 2. Used Funds: This should be the sum of all units used in sessions × unit price
+   *    - This represents how much of the budget has been spent in sessions
+   *    - Would require linking to session data to know how many units of each product were used
+   *    - For now, we're using a placeholder value of 0
+   */
+  const totalUsed = 0; // In a full implementation, calculate from session allocations
+  
+  /**
+   * 3. Remaining Balance: Total Available Funds - Used Funds
+   *    - This is the amount still available to spend
+   * 
+   * 4. Percentage Used: (Used Funds / Total Available Funds) × 100
+   *    - Shows what percentage of the budget has been spent
+   */
+  const percentUsed = totalAvailableFunds > 0 ? (totalUsed / totalAvailableFunds) * 100 : 0;
   
   const endDate = settings.endOfPlan ? new Date(settings.endOfPlan) : null;
   const formattedEndDate = endDate ? endDate.toLocaleDateString() : 'No end date';
@@ -53,8 +75,8 @@ export function BudgetPlanCard({
       <CardContent>
         <div className="space-y-4">
           <div>
-            <p className="text-sm font-medium">Available Funds</p>
-            <p className="text-2xl font-bold">{formatCurrency(settings.availableFunds)}</p>
+            <p className="text-sm font-medium">Total Budget Funds</p>
+            <p className="text-2xl font-bold">{formatCurrency(totalAvailableFunds)}</p>
           </div>
           
           <div>
@@ -63,6 +85,11 @@ export function BudgetPlanCard({
             <p className="text-sm text-muted-foreground">
               {percentUsed.toFixed(1)}% utilized
             </p>
+          </div>
+          
+          <div>
+            <p className="text-sm font-medium">Remaining Balance</p>
+            <p className="text-lg text-primary">{formatCurrency(totalAvailableFunds - totalUsed)}</p>
           </div>
           
           <div>
