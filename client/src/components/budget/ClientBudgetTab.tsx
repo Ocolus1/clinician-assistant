@@ -5,6 +5,7 @@ import { BudgetPlanCard } from './BudgetCard';
 import { queryClient, apiRequest } from '@/lib/queryClient';
 import type { BudgetSettings, BudgetItem } from '@shared/schema';
 import { useQuery } from '@tanstack/react-query';
+import { getQueryFn } from '@/lib/queryClient';
 
 interface ClientBudgetTabProps {
   clientId: number;
@@ -25,8 +26,19 @@ export function ClientBudgetTab({
   const { data: allBudgetSettings, refetch: refetchAllBudgetSettings } = useQuery<BudgetSettings[]>({
     queryKey: ['/api/clients', clientId, 'budget-settings', 'all'],
     queryFn: async () => {
-      const response = await apiRequest('GET', `/api/clients/${clientId}/budget-settings?all=true`);
-      return response as BudgetSettings[];
+      try {
+        // Use the API endpoint to get all budget settings
+        const path = `/api/clients/${clientId}/budget-settings?all=true`;
+        const response = await fetch(path);
+        if (!response.ok) {
+          throw new Error(`API request failed: ${response.statusText}`);
+        }
+        const data = await response.json();
+        return Array.isArray(data) ? data : (initialBudgetSettings ? [initialBudgetSettings] : []);
+      } catch (error) {
+        console.error("Error fetching all budget settings:", error);
+        return initialBudgetSettings ? [initialBudgetSettings] : [];
+      }
     },
     initialData: initialBudgetSettings ? [initialBudgetSettings] : [],
     enabled: !!clientId,
@@ -156,7 +168,7 @@ export function ClientBudgetTab({
   const handleSetActivePlan = async (plan: BudgetPlanCard) => {
     try {
       // First, deactivate the currently active plan(s)
-      if (allBudgetSettings) {
+      if (allBudgetSettings && Array.isArray(allBudgetSettings)) {
         for (const setting of allBudgetSettings) {
           if (setting.isActive && setting.id !== plan.id) {
             await apiRequest('PUT', `/api/budget-settings/${setting.id}`, {
