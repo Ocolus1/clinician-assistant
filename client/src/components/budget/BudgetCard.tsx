@@ -1,166 +1,100 @@
 import React from 'react';
-import { 
-  Card, 
-  CardContent, 
-  CardHeader
-} from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Progress } from '@/components/ui/progress';
-import { DollarSign, Edit, Archive, Eye, Check } from 'lucide-react';
-import type { BudgetSettings, BudgetItem } from '@shared/schema';
+import { Badge } from '@/components/ui/badge';
 import { formatCurrency } from '@/lib/utils';
+import type { BudgetSettings, BudgetItem } from '@shared/schema';
+import { Eye, Archive, Star, Edit2, Play } from 'lucide-react';
 
-export interface BudgetPlanCard {
-  id: number;
-  planName: string;
-  planCode?: string;
-  planSerialNumber?: string;
-  availableFunds: number;
-  usedFunds: number;
-  itemCount: number;
-  percentUsed: number;
-  endDate?: string;
-  isActive: boolean;
+interface BudgetPlanCardProps {
+  settings: BudgetSettings;
+  budgetItems: BudgetItem[];
+  onEdit: () => void;
+  onViewDetails: () => void;
+  onArchive: () => void;
+  onSetActive: () => void;
 }
 
-interface BudgetCardProps {
-  plan: BudgetPlanCard;
-  onEdit?: (plan: BudgetPlanCard) => void;
-  onView?: (plan: BudgetPlanCard) => void;
-  onArchive?: (plan: BudgetPlanCard) => void;
-  onSetActive?: (plan: BudgetPlanCard) => void;
-}
+export type BudgetPlanCard = BudgetSettings;
 
-export function BudgetPlanCard({ 
-  plan, 
-  onEdit, 
-  onView, 
+export function BudgetPlanCard({
+  settings,
+  budgetItems,
+  onEdit,
+  onViewDetails,
   onArchive,
-  onSetActive
-}: BudgetCardProps) {
-  const remainingFunds = plan.availableFunds - plan.usedFunds;
+  onSetActive,
+}: BudgetPlanCardProps) {
+  // Calculate total used amount
+  const totalUsed = budgetItems.reduce((acc, item) => acc + (item.quantity * item.unitPrice), 0);
+  const percentUsed = (totalUsed / settings.availableFunds) * 100;
+  
+  const endDate = settings.endOfPlan ? new Date(settings.endOfPlan) : null;
+  const formattedEndDate = endDate ? endDate.toLocaleDateString() : 'No end date';
   
   return (
-    <Card className="overflow-hidden border-gray-200 hover:border-gray-300 transition-all">
-      <CardHeader className={`p-4 ${plan.isActive ? "bg-blue-50 border-b border-blue-100" : "bg-gray-50 border-b border-gray-100"}`}>
+    <Card className={`relative ${settings.isActive ? 'border-primary' : ''}`}>
+      <CardHeader>
         <div className="flex justify-between items-start">
           <div>
-            {plan.isActive && (
-              <Badge className="bg-blue-500 hover:bg-blue-600 mb-2">Active</Badge>
-            )}
-            <h3 className="text-lg font-medium">{plan.planName || "Unnamed Plan"}</h3>
-            <div className="text-sm text-gray-500 mt-1">
-              {plan.planSerialNumber && (
-                <span className="mr-2">Serial: {plan.planSerialNumber}</span>
-              )}
-              {plan.planCode && (
-                <span>Code: {plan.planCode}</span>
-              )}
-            </div>
+            <CardTitle className="text-lg font-semibold">
+              {settings.planCode || 'Plan Code N/A'}
+            </CardTitle>
+            <p className="text-sm text-muted-foreground">
+              {settings.planSerialNumber || 'Serial Number N/A'}
+            </p>
           </div>
-          <div className="flex gap-1">
-            {onView && (
-              <Button 
-                variant="ghost" 
-                size="sm"
-                className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                onClick={() => onView(plan)}
-              >
-                <Eye className="h-4 w-4 mr-1" />
-                View
-              </Button>
-            )}
-            {onEdit && (
-              <Button 
-                variant="ghost" 
-                size="sm"
-                className="text-gray-600 hover:text-gray-700 hover:bg-gray-50"
-                onClick={() => onEdit(plan)}
-              >
-                <Edit className="h-4 w-4 mr-1" />
-                Edit
-              </Button>
-            )}
-            {!plan.isActive && onSetActive && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-green-600 hover:text-green-700 hover:bg-green-50"
-                onClick={() => onSetActive(plan)}
-              >
-                <Check className="h-4 w-4 mr-1" />
-                Set Active
-              </Button>
-            )}
-            {onArchive && (
-              <Button 
-                variant="ghost" 
-                size="sm"
-                className="text-gray-500 hover:text-gray-600 hover:bg-gray-50"
-                onClick={() => onArchive(plan)}
-              >
-                <Archive className="h-4 w-4 mr-1" />
-                Archive
-              </Button>
-            )}
-          </div>
+          <Badge variant={settings.isActive ? 'default' : 'secondary'}>
+            {settings.isActive ? 'Active' : 'Inactive'}
+          </Badge>
         </div>
       </CardHeader>
       
-      <CardContent className="p-4">
-        <div className="grid grid-cols-3 gap-4 mb-4">
+      <CardContent>
+        <div className="space-y-4">
           <div>
-            <div className="text-sm text-gray-500">Total Budget</div>
-            <div className="text-xl font-bold mt-1">
-              {formatCurrency(plan.availableFunds)}
-            </div>
-            <div className="text-xs text-gray-500">({plan.itemCount} items)</div>
+            <p className="text-sm font-medium">Available Funds</p>
+            <p className="text-2xl font-bold">{formatCurrency(settings.availableFunds)}</p>
           </div>
           
           <div>
-            <div className="text-sm text-gray-500">Used in Sessions</div>
-            <div className="text-xl font-bold mt-1">
-              {formatCurrency(plan.usedFunds)}
-            </div>
-            {plan.usedFunds === 0 && 
-              <div className="text-xs text-gray-500">No sessions yet</div>
-            }
+            <p className="text-sm font-medium">Used Funds</p>
+            <p className="text-lg">{formatCurrency(totalUsed)}</p>
+            <p className="text-sm text-muted-foreground">
+              {percentUsed.toFixed(1)}% utilized
+            </p>
           </div>
           
           <div>
-            <div className="text-sm text-gray-500">Remaining Budget</div>
-            <div className="text-xl font-bold mt-1">
-              {formatCurrency(remainingFunds)}
-            </div>
-            {remainingFunds < 0 ? (
-              <div className="text-xs text-red-500">Over budget</div>
-            ) : (
-              <div className="text-xs text-green-500">Available for sessions</div>
-            )}
+            <p className="text-sm font-medium">End Date</p>
+            <p className="text-sm">{formattedEndDate}</p>
           </div>
         </div>
-        
-        {/* Utilization Progress */}
-        <div>
-          <div className="flex justify-between text-sm mb-1">
-            <span>Budget Utilization</span>
-            <span>
-              {plan.percentUsed.toFixed(0)}%
-            </span>
-          </div>
-          <Progress 
-            value={plan.percentUsed}
-            className={`h-2 ${plan.percentUsed > 90 ? 'bg-red-200' : 'bg-blue-200'}`}
-          />
-        </div>
-        
-        {plan.endDate && (
-          <div className="mt-4 text-sm text-gray-500">
-            End date: {new Date(plan.endDate).toLocaleDateString()}
-          </div>
-        )}
       </CardContent>
+      
+      <CardFooter className="flex gap-2 flex-wrap">
+        <Button variant="outline" size="sm" onClick={onViewDetails}>
+          <Eye className="h-4 w-4 mr-1" />
+          Details
+        </Button>
+        
+        <Button variant="outline" size="sm" onClick={onEdit}>
+          <Edit2 className="h-4 w-4 mr-1" />
+          Edit
+        </Button>
+        
+        {settings.isActive ? (
+          <Button variant="outline" size="sm" onClick={onArchive}>
+            <Archive className="h-4 w-4 mr-1" />
+            Archive
+          </Button>
+        ) : (
+          <Button variant="outline" size="sm" onClick={onSetActive}>
+            <Play className="h-4 w-4 mr-1" />
+            Activate
+          </Button>
+        )}
+      </CardFooter>
     </Card>
   );
 }

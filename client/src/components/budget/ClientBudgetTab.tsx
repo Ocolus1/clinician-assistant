@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { BudgetPlanGrid } from './BudgetPlanGrid';
 import { BudgetPlanCard } from './BudgetCard';
+import { BudgetPlanFormDialog } from './BudgetPlanFormDialog';
 import { queryClient, apiRequest } from '@/lib/queryClient';
 import type { BudgetSettings, BudgetItem } from '@shared/schema';
 import { useQuery } from '@tanstack/react-query';
@@ -20,6 +21,7 @@ export function ClientBudgetTab({
 }: ClientBudgetTabProps) {
   const { toast } = useToast();
   const [isCreatingPlan, setIsCreatingPlan] = useState(false);
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [activeBudgetSettings, setActiveBudgetSettings] = useState<BudgetSettings | undefined>(initialBudgetSettings);
   
   // Use the TanStack Query to get all budget settings for the client
@@ -65,20 +67,15 @@ export function ClientBudgetTab({
   });
   
   // Handler for creating a new budget plan
-  const handleCreatePlan = async () => {
+  const handleSubmitNewPlan = async (values: any) => {
     try {
       setIsCreatingPlan(true);
-      
-      // Generate random plan details for demonstration
-      const defaultSettings = {
-        planCode: `PLAN-${Math.floor(Math.random() * 10000)}`,
-        planSerialNumber: `SN-${Math.floor(Math.random() * 10000)}`,
-        availableFunds: 15000,
-        isActive: true,
-        endOfPlan: new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString().split('T')[0],
+      const formattedValues = {
+        ...values,
+        endOfPlan: values.endOfPlan ? values.endOfPlan.toISOString().split('T')[0] : null,
       };
       
-      const response = await apiRequest('POST', `/api/clients/${clientId}/budget-settings`, defaultSettings);
+      const response = await apiRequest('POST', `/api/clients/${clientId}/budget-settings`, formattedValues);
       
       if (response) {
         // Explicitly invalidate the queries and refetch
@@ -92,6 +89,8 @@ export function ClientBudgetTab({
           refetchAllBudgetSettings(),
           refetchBudgetItems()
         ]);
+        
+        setShowCreateDialog(false);
         
         toast({
           title: "Budget plan created",
@@ -114,6 +113,10 @@ export function ClientBudgetTab({
     } finally {
       setIsCreatingPlan(false);
     }
+  };
+  
+  const handleCreatePlan = () => {
+    setShowCreateDialog(true);
   };
   
   // Handler for editing a budget plan
@@ -221,6 +224,13 @@ export function ClientBudgetTab({
         onViewDetails={handleViewPlanDetails}
         onArchivePlan={handleArchivePlan}
         onSetActivePlan={handleSetActivePlan}
+        isLoading={isCreatingPlan}
+      />
+      
+      <BudgetPlanFormDialog
+        open={showCreateDialog}
+        onOpenChange={setShowCreateDialog}
+        onSubmit={handleSubmitNewPlan}
         isLoading={isCreatingPlan}
       />
     </div>
