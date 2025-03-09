@@ -95,9 +95,12 @@ export function BudgetPlanGrid({
           <p className="text-gray-500 mb-6 max-w-md mx-auto">
             No budget plans have been created yet. You'll need to set up a budget plan to track funding and expenses.
           </p>
-          <Button onClick={onCreatePlan}>
+          <Button 
+            onClick={onCreatePlan}
+            disabled={isLoading}
+          >
             <PlusCircle className="h-4 w-4 mr-2" />
-            Create Budget Plan
+            {isLoading ? "Creating..." : "Create Budget Plan"}
           </Button>
         </div>
       ) : (
