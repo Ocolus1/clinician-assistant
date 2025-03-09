@@ -45,6 +45,7 @@ export interface IStorage {
   // Budget Settings
   createBudgetSettings(clientId: number, settings: InsertBudgetSettings): Promise<BudgetSettings>;
   getBudgetSettingsByClient(clientId: number): Promise<BudgetSettings | undefined>;
+  getAllBudgetSettingsByClient(clientId: number): Promise<BudgetSettings[]>;
   updateBudgetSettings(id: number, settings: InsertBudgetSettings): Promise<BudgetSettings>;
 
   // Budget Items
@@ -546,10 +547,29 @@ export class DBStorage implements IStorage {
         return undefined;
       }
       
+      // Find and return the active budget settings
+      const activeSetting = result.find(setting => setting.isActive);
+      
       console.log(`Found budget settings for client ${clientId}`);
-      return result[0];
+      return activeSetting || result[0]; // Return active or first one if no active is found
     } catch (error) {
       console.error(`Error fetching budget settings for client ${clientId}:`, error);
+      throw error;
+    }
+  }
+  
+  // New method to get all budget settings for a client
+  async getAllBudgetSettingsByClient(clientId: number): Promise<BudgetSettings[]> {
+    console.log(`Getting all budget settings for client ${clientId}`);
+    try {
+      const result = await db.select()
+        .from(budgetSettings)
+        .where(eq(budgetSettings.clientId, clientId));
+      
+      console.log(`Found ${result.length} budget settings for client ${clientId}`);
+      return result;
+    } catch (error) {
+      console.error(`Error fetching all budget settings for client ${clientId}:`, error);
       throw error;
     }
   }
