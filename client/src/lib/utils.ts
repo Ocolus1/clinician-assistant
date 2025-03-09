@@ -6,6 +6,21 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+/**
+ * Format a number as currency
+ * @param amount The number to format
+ * @param currency The currency code (default: USD)
+ * @returns Formatted currency string
+ */
+export function formatCurrency(amount: number, currency = 'USD'): string {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(amount);
+}
+
 type HttpMethod = "GET" | "POST" | "PUT" | "DELETE";
 
 export async function apiRequest(method: HttpMethod, path: string, data?: any) {
