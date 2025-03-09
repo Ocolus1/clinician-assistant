@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
+import { z } from 'zod';
 import { useToast } from '@/hooks/use-toast';
 import { BudgetPlanGrid } from './BudgetPlanGrid';
-import { BudgetPlanCard } from './BudgetCard';
-import { BudgetPlanFormDialog } from './BudgetPlanFormDialog';
+
+import { BudgetPlanFormDialog, budgetPlanFormSchema } from './BudgetPlanFormDialog';
 import { queryClient, apiRequest } from '@/lib/queryClient';
 import type { BudgetSettings, BudgetItem } from '@shared/schema';
 import { useQuery } from '@tanstack/react-query';
@@ -67,7 +68,7 @@ export function ClientBudgetTab({
   });
   
   // Handler for creating a new budget plan
-  const handleSubmitNewPlan = async (values: any) => {
+  const handleSubmitNewPlan = async (values: z.infer<typeof budgetPlanFormSchema>) => {
     try {
       setIsCreatingPlan(true);
       const formattedValues = {
@@ -120,7 +121,7 @@ export function ClientBudgetTab({
   };
   
   // Handler for editing a budget plan
-  const handleEditPlan = (plan: BudgetPlanCard) => {
+  const handleEditPlan = (plan: BudgetSettings) => {
     toast({
       title: "Edit Budget Plan",
       description: "Budget plan edit functionality will be implemented soon.",
@@ -128,13 +129,13 @@ export function ClientBudgetTab({
   };
   
   // Handler for viewing budget plan details - the dialog will be shown from BudgetPlanGrid
-  const handleViewPlanDetails = (plan: BudgetPlanCard) => {
+  const handleViewPlanDetails = (plan: BudgetSettings) => {
     // This is now handled directly in the BudgetPlanGrid component
     // with the BudgetItemsDialog
   };
   
   // Handler for archiving a budget plan
-  const handleArchivePlan = async (plan: BudgetPlanCard) => {
+  const handleArchivePlan = async (plan: BudgetSettings) => {
     try {
       // Update the plan to set isActive = false
       const response = await apiRequest('PUT', `/api/budget-settings/${plan.id}`, {
@@ -168,7 +169,7 @@ export function ClientBudgetTab({
   };
   
   // Handler for setting a budget plan as active
-  const handleSetActivePlan = async (plan: BudgetPlanCard) => {
+  const handleSetActivePlan = async (plan: BudgetSettings) => {
     try {
       // First, deactivate the currently active plan(s)
       if (allBudgetSettings && Array.isArray(allBudgetSettings)) {

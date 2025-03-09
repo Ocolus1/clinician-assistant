@@ -1,5 +1,4 @@
 import React from 'react';
-import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { 
@@ -25,17 +24,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar as CalendarIcon } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
-
-// Define the form schema
-const budgetPlanFormSchema = z.object({
-  planCode: z.string().min(1, { message: "Plan code is required" }),
-  planSerialNumber: z.string().min(1, { message: "Serial number is required" }),
-  availableFunds: z.number().min(0, { message: "Available funds must be a positive number" }),
-  endOfPlan: z.date().optional(),
-  isActive: z.boolean().default(true),
-});
-
-type BudgetPlanFormValues = z.infer<typeof budgetPlanFormSchema>;
+import { budgetPlanFormSchema, type BudgetPlanFormValues } from './schemas';
 
 interface BudgetPlanFormDialogProps {
   open: boolean;
