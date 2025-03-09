@@ -107,8 +107,16 @@ export default function BudgetForm({ clientId, onComplete, onPrevious }: BudgetF
     return `PLAN-${timestamp}-${random}`;
   }
   
-  // Auto-save budget settings when values change
+  // Track if we're currently picking a date to prevent auto-save during date selection
+  const [isPickingDate, setIsPickingDate] = useState(false);
+
+  // Auto-save budget settings when values change - but not when picking a date
   useEffect(() => {
+    // Skip auto-save if we're currently picking a date
+    if (isPickingDate) {
+      return;
+    }
+    
     const debouncedSave = setTimeout(() => {
       if (settingsForm.formState.isDirty) {
         // Get current form values
@@ -116,6 +124,12 @@ export default function BudgetForm({ clientId, onComplete, onPrevious }: BudgetF
         
         // Debug logging
         console.log("Auto-saving budget settings:", formValues);
+        
+        // Skip auto-save if endOfPlan was just changed
+        if (settingsForm.formState.dirtyFields.endOfPlan) {
+          console.log("Skipping auto-save because endOfPlan was changed - waiting for explicit save");
+          return;
+        }
         
         // Save to the server
         saveBudgetSettings.mutate(formValues);
@@ -125,8 +139,8 @@ export default function BudgetForm({ clientId, onComplete, onPrevious }: BudgetF
     return () => clearTimeout(debouncedSave);
   }, [
     settingsForm.watch("availableFunds"), 
-    settingsForm.watch("endOfPlan"),
-    settingsForm.watch("isActive")
+    settingsForm.watch("isActive"),
+    isPickingDate
   ]);
 
   // Fetch budget settings
@@ -874,7 +888,17 @@ export default function BudgetForm({ clientId, onComplete, onPrevious }: BudgetF
                           <div className="flex flex-col md:flex-row md:items-center gap-4">
                             <div className="relative flex-1">
                               <FormControl>
-                                <Popover>
+                                <Popover onOpenChange={(open) => {
+                                  // Set the isPickingDate flag when opening the date picker
+                                  if (open) {
+                                    setIsPickingDate(true);
+                                  } else {
+                                    // Reset the flag after a delay when closing
+                                    setTimeout(() => {
+                                      setIsPickingDate(false);
+                                    }, 300);
+                                  }
+                                }}>
                                   <PopoverTrigger asChild>
                                     <Button
                                       variant={"outline"}
@@ -900,14 +924,22 @@ export default function BudgetForm({ clientId, onComplete, onPrevious }: BudgetF
                                         if (newDate) {
                                           // Format the date properly for the form field
                                           const formattedDate = format(newDate, "yyyy-MM-dd");
-                                          field.onChange(formattedDate);
                                           
-                                          // Also update the form value directly to ensure it gets saved
+                                          // Set picking date flag to prevent auto-save
+                                          setIsPickingDate(true);
+                                          
+                                          // Update form value
+                                          field.onChange(formattedDate);
                                           settingsForm.setValue("endOfPlan", formattedDate, {
                                             shouldDirty: true,
                                             shouldTouch: true,
                                             shouldValidate: true
                                           });
+                                          
+                                          // Release the picking flag after a short delay
+                                          setTimeout(() => {
+                                            setIsPickingDate(false);
+                                          }, 300);
                                         }
                                       }}
                                       initialFocus
