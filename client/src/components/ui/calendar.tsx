@@ -13,46 +13,13 @@ function Calendar({
   showOutsideDays = true,
   ...props
 }: CalendarProps) {
-  // Use client-side only rendering to prevent server-side rendering
-  // This ensures the calendar only renders when JavaScript is available
+  // Use client-side only rendering to prevent server-side rendering issues
   const [mounted, setMounted] = React.useState(false);
-  
-  // Store a ref to the closest container element for late checking
-  const calendarRef = React.useRef<HTMLDivElement>(null);
   
   // This will be false during SSR, and true after hydration
   React.useEffect(() => {
     setMounted(true);
   }, []);
-  
-  // Check if this calendar is properly contained within a popover/dialog
-  React.useEffect(() => {
-    if (mounted && calendarRef.current) {
-      // If we can't find a proper container, hide this calendar
-      const isProperlyContained = (() => {
-        // Check if any parent has data-calendar-container attribute
-        let element: HTMLElement | null = calendarRef.current;
-        while (element && element !== document.body) {
-          if (
-            element.hasAttribute('data-calendar-container') || 
-            element.getAttribute('role') === 'dialog' ||
-            element.hasAttribute('data-state')
-          ) {
-            return true;
-          }
-          element = element.parentElement;
-        }
-        return false;
-      })();
-      
-      // Apply a CSS class to hide uncontained calendars
-      if (!isProperlyContained) {
-        calendarRef.current.classList.add('uncontained-calendar');
-      } else {
-        calendarRef.current.classList.remove('uncontained-calendar');
-      }
-    }
-  }, [mounted]);
   
   // Only render calendar on the client, return nothing during SSR
   if (!mounted) {
@@ -60,7 +27,10 @@ function Calendar({
   }
   
   return (
-    <div ref={calendarRef} className="calendar-container">
+    <div 
+      className={cn("calendar-container", className)} 
+      data-calendar-container="true"
+    >
       <DayPicker
         showOutsideDays={showOutsideDays}
         className={cn("p-3", className)}
