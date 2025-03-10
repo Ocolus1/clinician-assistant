@@ -360,14 +360,20 @@ export function BudgetPlanCreateDialog({
                       />
                     </div>
                     <Select
-                      value={selectedCategory || ""}
-                      onValueChange={(value) => setSelectedCategory(value || null)}
+                      value={selectedCategory || undefined}
+                      onValueChange={(value) => {
+                        if (value === "all") {
+                          setSelectedCategory(null);
+                        } else {
+                          setSelectedCategory(value);
+                        }
+                      }}
                     >
                       <SelectTrigger className="w-full md:w-[180px] border-gray-300">
                         <SelectValue placeholder="All Categories" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">All Categories</SelectItem>
+                        <SelectItem value="all">All Categories</SelectItem>
                         {categories.map((category) => (
                           <SelectItem key={category} value={category}>
                             {category}
