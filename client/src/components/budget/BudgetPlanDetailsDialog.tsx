@@ -90,8 +90,10 @@ export function BudgetPlanDetailsDialog({
           budgetItems={enhancedItems}
           onBack={() => onOpenChange(false)}
           onEdit={onEdit}
-          onArchive={() => {}}
-          onSetActive={() => {}}
+          onToggleActive={() => {
+            // We're not implementing this action in the detail dialog,
+            // but providing the required prop
+          }}
         />
       </DialogContent>
     </Dialog>

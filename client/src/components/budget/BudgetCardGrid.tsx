@@ -306,13 +306,14 @@ export default function BudgetCardGrid({
                 setShowDetailsDialog(false);
                 handleEditPlan(selectedPlan);
               }}
-              onArchive={() => {
+              onToggleActive={() => {
                 setShowDetailsDialog(false);
-                onArchivePlan(selectedPlan);
-              }}
-              onSetActive={() => {
-                setShowDetailsDialog(false);
-                onSetActivePlan(selectedPlan);
+                // Call the appropriate function based on current active state
+                if (selectedPlan.active) {
+                  onArchivePlan(selectedPlan);
+                } else {
+                  onSetActivePlan(selectedPlan);
+                }
               }}
             />
           </DialogContent>
