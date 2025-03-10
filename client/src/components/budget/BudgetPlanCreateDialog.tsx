@@ -163,8 +163,21 @@ export function BudgetPlanCreateDialog({
       return;
     }
     
-    // Prepare the plan data
-    const planData = preparePlanData(values);
+    // Prepare the plan data with all form fields explicitly defined
+    const planData = {
+      planSerialNumber: values.planSerialNumber || generatePlanSerialNumber(),
+      planCode: values.planCode,
+      availableFunds: Number(parseFloat(values.availableFunds.toString()).toFixed(2)),
+      isActive: values.isActive,
+      endOfPlan: values.endOfPlan || null,
+      budgetItems: selectedCatalogItems.map(item => ({
+        itemCode: item.itemCode,
+        description: item.description,
+        unitPrice: item.defaultUnitPrice,
+        quantity: item.quantity,
+        category: item.category
+      }))
+    };
     
     // If the plan is to be active and there's already an active plan
     if (values.isActive && hasActivePlan) {
@@ -698,14 +711,9 @@ export function BudgetPlanCreateDialog({
             </AlertDialogCancel>
             <AlertDialogAction 
               onClick={() => {
-                // Set the form field to active
-                form.setValue("isActive", true);
-                
-                // Submit the form directly with the current values
-                if (!isSubmitting) {
-                  const currentValues = form.getValues();
-                  const planData = preparePlanData(currentValues);
-                  submitPlan(planData);
+                // Simply submit the pending data that was already prepared
+                if (pendingSubmitData && !isSubmitting) {
+                  submitPlan(pendingSubmitData);
                 }
               }}
               disabled={isSubmitting}
