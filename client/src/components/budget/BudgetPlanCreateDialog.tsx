@@ -352,11 +352,9 @@ export function BudgetPlanCreateDialog({
                               if (checked && hasActivePlan) {
                                 // Show confirmation dialog before changing
                                 setShowConfirmation(true);
-                                // Store the pending change but don't apply it yet
-                                setPendingSubmitData({
-                                  ...form.getValues(),
-                                  isActive: true
-                                });
+                                // Only store that we want to make the plan active
+                                // Don't store the entire form data (which would trigger a submission)
+                                setPendingSubmitData(null);
                               } else {
                                 // Otherwise, just apply the change
                                 field.onChange(checked);
@@ -709,13 +707,12 @@ export function BudgetPlanCreateDialog({
             </AlertDialogCancel>
             <AlertDialogAction 
               onClick={() => {
-                // Proceed with plan creation and automatic deactivation of current plan
-                if (pendingSubmitData && !isSubmitting) {
-                  // Update the form field to reflect the active status
-                  form.setValue("isActive", true);
-                  // Submit the plan with isActive=true
-                  submitPlan(pendingSubmitData);
-                }
+                // Just set the form field to active and close the dialog
+                // Don't submit the form yet - let the user continue filling out the form
+                form.setValue("isActive", true);
+                
+                // Close confirmation dialog but keep the main form open
+                setShowConfirmation(false);
               }}
               disabled={isSubmitting}
             >
