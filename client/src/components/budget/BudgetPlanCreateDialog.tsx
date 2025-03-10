@@ -42,13 +42,13 @@ import { Switch } from "../ui/switch";
 import { apiRequest } from "@/lib/queryClient";
 import type { BudgetSettings, BudgetItemCatalog } from "@shared/schema";
 
-// Form schema
+// Form schema - using string for endOfPlan to match database schema
 const createPlanSchema = z.object({
   planCode: z.string().min(1, "Plan code is required"),
   planSerialNumber: z.string().optional(),
   availableFunds: z.number().positive("Available funds must be positive"),
   isActive: z.boolean().default(false),
-  endOfPlan: z.date().optional(),
+  endOfPlan: z.string().optional(),
 });
 
 type CreatePlanValues = z.infer<typeof createPlanSchema>;
@@ -70,8 +70,10 @@ export function BudgetPlanCreateDialog({
   hasActivePlan,
   isLoading = false
 }: BudgetPlanCreateDialogProps) {
-  const [date, setDate] = useState<Date | undefined>(undefined);
-  const [isPickingDate, setIsPickingDate] = useState(false);
+  // Date handling state
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
+  
+  // Other state
   const [showItemForm, setShowItemForm] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -97,18 +99,12 @@ export function BudgetPlanCreateDialog({
   });
   
   function handleSubmit(values: CreatePlanValues) {
-    // Format the date as a string before submitting
-    const formattedValues = {
-      ...values,
-      // Always format the date as a string in yyyy-MM-dd format
-      endOfPlan: values.endOfPlan ? format(values.endOfPlan, 'yyyy-MM-dd') : undefined
-    };
-    
-    console.log("Submitting budget plan with endOfPlan:", formattedValues.endOfPlan);
+    // The date is already a string from our date picker implementation
+    console.log("Submitting budget plan with endOfPlan:", values.endOfPlan);
     
     // We don't send selected products in this initial form
     // Products will be added after the plan is created
-    onSubmit(formattedValues);
+    onSubmit(values);
     onOpenChange(false);
   }
 
@@ -301,18 +297,25 @@ export function BudgetPlanCreateDialog({
                                 variant="outline"
                                 className={cn(
                                   "w-full justify-start text-left font-normal border-gray-300",
-                                  !field.value && "text-muted-foreground"
+                                  !selectedDate && "text-muted-foreground"
                                 )}
                               >
                                 <CalendarIcon className="mr-2 h-4 w-4" />
-                                {field.value ? format(field.value, "PPP") : <span>Select end date</span>}
+                                {selectedDate ? format(selectedDate, "PPP") : <span>Select end date</span>}
                               </Button>
                             </PopoverTrigger>
                             <PopoverContent className="w-auto p-0" align="start">
                               <Calendar
                                 mode="single"
-                                selected={field.value}
-                                onSelect={field.onChange}
+                                selected={selectedDate}
+                                onSelect={(date) => {
+                                  setSelectedDate(date);
+                                  if (date) {
+                                    field.onChange(format(date, "yyyy-MM-dd"));
+                                  } else {
+                                    field.onChange(undefined);
+                                  }
+                                }}
                                 disabled={(date) => {
                                   const today = new Date();
                                   today.setHours(0, 0, 0, 0);
