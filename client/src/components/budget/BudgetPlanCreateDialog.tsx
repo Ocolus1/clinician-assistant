@@ -97,9 +97,16 @@ export function BudgetPlanCreateDialog({
   });
   
   function handleSubmit(values: CreatePlanValues) {
+    // Format the date as a string before submitting
+    const formattedValues = {
+      ...values,
+      // Convert Date object to ISO string format if it exists
+      endOfPlan: values.endOfPlan ? values.endOfPlan.toISOString().split('T')[0] : undefined
+    };
+    
     // We don't send selected products in this initial form
     // Products will be added after the plan is created
-    onSubmit(values);
+    onSubmit(formattedValues);
     onOpenChange(false);
   }
 
