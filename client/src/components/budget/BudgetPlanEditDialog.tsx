@@ -245,10 +245,20 @@ export function BudgetPlanEditDialog({
     // Create a temporary ID for new items (will be replaced on server)
     const tempId = Math.min(...items.map(item => item.id), 0) - 1;
     
+    // Create a copy without category if it's undefined
+    const itemWithoutUndefinedFields = {...newItem};
+    
+    // Make a complete item with all required fields from BudgetItemDetail
     const enhancedItem: BudgetItemDetail = {
-      ...newItem,
       id: newItem.id || tempId,
+      clientId: newItem.clientId,
+      budgetSettingsId: newItem.budgetSettingsId,
+      itemCode: newItem.itemCode,
       name: null,
+      description: newItem.description,
+      unitPrice: newItem.unitPrice,
+      quantity: newItem.quantity,
+      category: newItem.category ?? null, // Ensure category is string | null, not undefined
       usedQuantity: 0,
       remainingQuantity: newItem.quantity,
       totalPrice: newItem.unitPrice * newItem.quantity,

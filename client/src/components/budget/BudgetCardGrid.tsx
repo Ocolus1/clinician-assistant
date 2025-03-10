@@ -115,8 +115,8 @@ export default function BudgetCardGrid({
       planSerialNumber: setting.planSerialNumber,
       planName,
       active: !!setting.isActive,
-      availableFunds: typeof setting.availableFunds === 'string' ? 
-        parseFloat(setting.availableFunds) : setting.availableFunds,
+      // Use calculated total from items instead of the setting's availableFunds
+      availableFunds: totalAllocated,
       endDate,
       startDate,
       totalUsed,
@@ -398,24 +398,26 @@ function BudgetPlanCard({
         </div>
       </CardHeader>
       
-      <CardContent className="pb-2">
+      <CardContent className="py-4">
         {/* Budget amount */}
-        <div className="mb-4">
+        <div className="mb-5">
           <div className="text-2xl font-bold">{formatCurrency(plan.availableFunds)}</div>
-          <div className="text-sm text-gray-500 flex items-center gap-1">
+          <div className="text-sm text-gray-500 flex items-center gap-1 mt-1">
             <DollarSign className="h-3 w-3" />
             {plan.fundingSource} Funding
           </div>
         </div>
         
         {/* Usage information */}
-        <div className="space-y-2">
-          <div className="flex justify-between text-sm">
+        <div className="space-y-3">
+          <div className="flex justify-between text-sm font-medium">
             <span>Usage</span>
             <span>
               {formatCurrency(plan.totalUsed)} / {formatCurrency(plan.availableFunds)}
-              {' '}({plan.percentUsed.toFixed(1)}%)
             </span>
+          </div>
+          <div className="text-xs text-right text-gray-500 -mt-2">
+            {plan.percentUsed.toFixed(1)}% used
           </div>
           
           <Progress 
@@ -434,7 +436,7 @@ function BudgetPlanCard({
           />
           
           {/* Dates and details */}
-          <div className="pt-1 flex justify-between text-xs text-gray-500">
+          <div className="pt-2 flex justify-between text-xs text-gray-500">
             <div className="flex items-center gap-1">
               <Calendar className="h-3 w-3" />
               <span>End: {formatDate(plan.endDate)}</span>
@@ -450,7 +452,7 @@ function BudgetPlanCard({
         </div>
       </CardContent>
       
-      <CardFooter className="pt-2">
+      <CardFooter className="pt-3 pb-4">
         {isArchived ? (
           <Button variant="secondary" className="w-full" onClick={onView}>
             View Details
@@ -458,7 +460,7 @@ function BudgetPlanCard({
         ) : (
           <div className="flex gap-2 w-full">
             <Button variant="outline" className="flex-1" onClick={onView}>
-              View
+              View Details
             </Button>
             <div className="flex gap-1">
               {!plan.active && onSetActive && (
