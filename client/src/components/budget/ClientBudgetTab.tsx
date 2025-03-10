@@ -1,13 +1,14 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { apiRequest } from "../../lib/api";
-import { BudgetSettings, BudgetItem, BudgetItemCatalog, BudgetPlan } from "../../types";
+import { apiRequest } from "@/lib/queryClient";
+import type { BudgetSettings, BudgetItem, BudgetItemCatalog } from "@shared/schema";
+import { BudgetPlan, BudgetItemDetail } from "./BudgetPlanFullView";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card";
 import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
 import { Button } from "../ui/button";
 import { PlusCircle, AlertTriangle } from "lucide-react";
-import { toast } from "sonner";
+import { useToast } from "@/hooks/use-toast";
 import BudgetCardGrid from "./BudgetCardGrid";
 
 interface ClientBudgetTabProps {
@@ -16,6 +17,7 @@ interface ClientBudgetTabProps {
 
 export default function ClientBudgetTab({ clientId }: ClientBudgetTabProps) {
   const queryClient = useQueryClient();
+  const { toast } = useToast();
 
   // State for active tab
   const [activeTab, setActiveTab] = useState<string>("plans");
@@ -68,10 +70,18 @@ export default function ClientBudgetTab({ clientId }: ClientBudgetTabProps) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/clients', clientId, 'budget-settings'] });
-      toast.success("Budget plan created successfully");
+      toast({
+        title: "Success",
+        description: "Budget plan created successfully",
+        variant: "default",
+      });
     },
     onError: (error: any) => {
-      toast.error(`Failed to create budget plan: ${error.message}`);
+      toast({
+        title: "Error",
+        description: `Failed to create budget plan: ${error.message}`,
+        variant: "destructive",
+      });
     }
   });
 
@@ -82,10 +92,18 @@ export default function ClientBudgetTab({ clientId }: ClientBudgetTabProps) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/clients', clientId, 'budget-settings'] });
-      toast.success("Budget plan updated successfully");
+      toast({
+        title: "Success",
+        description: "Budget plan updated successfully",
+        variant: "default",
+      });
     },
     onError: (error: any) => {
-      toast.error(`Failed to update budget plan: ${error.message}`);
+      toast({
+        title: "Error",
+        description: `Failed to update budget plan: ${error.message}`,
+        variant: "destructive",
+      });
     }
   });
 
@@ -96,10 +114,18 @@ export default function ClientBudgetTab({ clientId }: ClientBudgetTabProps) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/clients', clientId, 'budget-items'] });
-      toast.success("Budget items updated successfully");
+      toast({
+        title: "Success",
+        description: "Budget items updated successfully",
+        variant: "default",
+      });
     },
     onError: (error: any) => {
-      toast.error(`Failed to update budget items: ${error.message}`);
+      toast({
+        title: "Error",
+        description: `Failed to update budget items: ${error.message}`,
+        variant: "destructive",
+      });
     }
   });
 
@@ -150,7 +176,11 @@ export default function ClientBudgetTab({ clientId }: ClientBudgetTabProps) {
         });
       })
       .catch(error => {
-        toast.error(`Failed to update plans: ${error.message}`);
+        toast({
+          title: "Error",
+          description: `Failed to update plans: ${error.message}`,
+          variant: "destructive",
+        });
       });
   };
 

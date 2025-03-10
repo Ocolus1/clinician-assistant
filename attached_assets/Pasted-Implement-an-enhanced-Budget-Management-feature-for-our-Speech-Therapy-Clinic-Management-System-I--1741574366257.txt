@@ -1,0 +1,48 @@
+Implement an enhanced Budget Management feature for our Speech Therapy Clinic Management System.
+I need to create a comprehensive budget details view that will replace the current implementation in the Budget tab of the client profile page.
+The key requirements are:
+1. Budget Plan Details View:
+   - Create a full-screen detail view (instead of current modals) that shows comprehensive budget information
+   - The header should display:
+     * Plan ID and status (active/inactive) with visual indicators
+     * Financial overview showing initial allocated budget, used funds (with percentage), and remaining balance
+     * Time information showing start date, end date, and days remaining with visual indicators
+2. Budget Items List:
+   - Display all budget items in a tabular format with:
+     * Item code and description
+     * Initial quantity and unit price
+     * Used quantity with visual progress indicator
+     * Remaining balance per item
+3. Visual Representations:
+   - Add progress bars for overall budget usage
+   - Implement color-coded indicators based on usage percentage:
+     * Green: <70% used
+     * Yellow: 70-90% used
+     * Orange: 90-99% used
+     * Red: 100% used or depleted
+   - Add charts showing distribution of budget across items
+4. Budget Adjustment Experience:
+   - When users adjust quantities, show real-time calculation of:
+     * Current total vs original budget
+     * Difference (over/under budget)
+   - Color code the difference (red for over budget, green for under)
+   - Add validation safeguards with warning dialogs when exceeding budget
+5. Plan Activation Management:
+   - Disable "Create Plan" button when an active plan exists
+   - Show explanatory message about needing to deactivate current plan first
+   - Add confirmation dialog when deactivating a plan
+Please follow these implementation guidelines:
+- Use small, focused components following single responsibility principle
+- Keep components under 150-200 lines of code
+- Use React Query for server state management
+- Implement proper loading states and error handling
+- Ensure the interface is responsive and works on mobile devices
+- Use consistent color coding for status indicators
+- Implement proper accessibility features
+- Follow the development guidelines in our project
+The code should be added to the client/src/components/budget/ directory, primarily modifying:
+- ClientBudgetTab.tsx
+- BudgetPlanDetailsDialog.tsx
+- BudgetPlanEditDialog.tsx
+- BudgetCardGrid.tsx
+The feature should integrate with our existing budget data structures and API endpoints.

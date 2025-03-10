@@ -1,55 +1,64 @@
-
-import { useState, useEffect } from "react";
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle, 
+import React, { useState, useEffect } from "react";
+import {
+  Dialog,
+  DialogContent,
   DialogDescription,
-  DialogFooter
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
 } from "../ui/dialog";
 import { Button } from "../ui/button";
 import { 
-  Card, 
-  CardContent, 
+  Table, 
+  TableBody, 
+  TableCell, 
+  TableHead, 
+  TableHeader, 
+  TableRow 
+} from "../ui/table";
+import { Input } from "../ui/input";
+import { Label } from "../ui/label";
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from "../ui/select";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "../ui/tabs";
+import type { BudgetItem, BudgetItemCatalog } from "@shared/schema";
+import { BudgetPlan } from "./BudgetPlanFullView";
+import { 
+  PlusCircle, 
+  Trash2, 
+  Package, 
+  DollarSign,
+  InfoIcon,
+  Save,
+  AlertTriangle
+} from "lucide-react";
+import { Badge } from "../ui/badge";
+import { ScrollArea } from "../ui/scroll-area";
+import { useToast } from "@/hooks/use-toast";
+import {
+  Card,
+  CardContent,
+  CardDescription,
   CardFooter,
   CardHeader,
-  CardTitle
+  CardTitle,
 } from "../ui/card";
 import {
-  Table,
-  TableBody,
-  TableCaption,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "../ui/table";
-import {
-  Input,
-  Label,
-  Alert,
-  AlertCircle,
-  Progress,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "../ui/index";
-import { Badge } from "../ui/badge";
-import { 
-  DollarSign, 
-  Save, 
-  Plus, 
-  Trash2, 
-  ArrowLeft, 
-  AlertTriangle,
-  Info,
-  CheckCircle,
-  XCircle
-} from "lucide-react";
-import { BudgetPlan, BudgetItem, BudgetItemCatalog } from "../../types";
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "../ui/tooltip";
 
 interface BudgetPlanEditDialogProps {
   open: boolean;
@@ -61,301 +70,378 @@ interface BudgetPlanEditDialogProps {
   isLoading?: boolean;
 }
 
+/**
+ * Dialog component for editing budget items within a plan
+ */
 export function BudgetPlanEditDialog({
   open,
   onOpenChange,
   plan,
-  budgetItems: initialBudgetItems,
+  budgetItems,
   catalogItems = [],
   onSave,
   isLoading = false
 }: BudgetPlanEditDialogProps) {
-  // State for edited items and budget calculations
-  const [editedItems, setEditedItems] = useState<BudgetItem[]>([]);
-  const [originalTotal, setOriginalTotal] = useState(0);
-  const [newTotal, setNewTotal] = useState(0);
-  const [budgetDifference, setBudgetDifference] = useState(0);
-  
-  // Reset data when dialog opens
+  const { toast } = useToast();
+  const [items, setItems] = useState<BudgetItem[]>([]);
+  const [selectedItemCode, setSelectedItemCode] = useState<string>("");
+  const [quantity, setQuantity] = useState<string>("1");
+  const [activeTab, setActiveTab] = useState<string>("existing");
+  const [categoryFilter, setCategoryFilter] = useState<string>("all");
+
+  // Reset form state when dialog opens/closes or plan changes
   useEffect(() => {
-    if (open && initialBudgetItems) {
-      // Deep clone budget items to avoid modifying originals
-      setEditedItems(JSON.parse(JSON.stringify(initialBudgetItems)));
-      
-      // Calculate original total
-      const total = initialBudgetItems.reduce((sum, item) => {
-        return sum + (item.unitPrice * item.quantity);
-      }, 0);
-      
-      setOriginalTotal(total);
-      setNewTotal(total);
-      setBudgetDifference(0);
+    if (open && plan) {
+      setItems([...budgetItems]);
+      setSelectedItemCode("");
+      setQuantity("1");
+      setActiveTab("existing");
+      setCategoryFilter("all");
     }
-  }, [open, initialBudgetItems]);
-  
+  }, [open, plan, budgetItems]);
+
   if (!plan) return null;
+
+  // Get the sum of all items' total costs
+  const totalCost = items.reduce((sum, item) => {
+    const quantity = typeof item.quantity === 'string' ? parseInt(item.quantity) || 0 : item.quantity || 0;
+    const unitPrice = typeof item.unitPrice === 'string' ? parseFloat(item.unitPrice) || 0 : item.unitPrice || 0;
+    return sum + (quantity * unitPrice);
+  }, 0);
+
+  // Get unique categories from catalog items
+  const uniqueCategories = Array.from(
+    new Set(catalogItems.map(item => item.category || 'Uncategorized'))
+  );
+
+  // Filter catalog items by category
+  const filteredCatalogItems = catalogItems.filter(item => 
+    categoryFilter === 'all' || (item.category || 'Uncategorized') === categoryFilter
+  );
   
-  // Update an item's quantity
-  const handleQuantityChange = (index: number, newQuantity: number) => {
-    // Create a copy of the edited items
-    const updatedItems = [...editedItems];
+  // Add an item from the catalog
+  const handleAddItemFromCatalog = () => {
+    if (!selectedItemCode || !plan) return;
     
-    // Update the quantity (ensure it's at least 0)
-    updatedItems[index].quantity = Math.max(0, newQuantity);
+    const selectedCatalogItem = catalogItems.find(item => item.itemCode === selectedItemCode);
     
-    // Update state
-    setEditedItems(updatedItems);
+    if (!selectedCatalogItem) {
+      toast({
+        title: "Error",
+        description: "Selected item not found in catalog",
+        variant: "destructive",
+      });
+      return;
+    }
     
-    // Recalculate totals
-    updateTotals(updatedItems);
-  };
-  
-  // Calculate totals and difference
-  const updateTotals = (items: BudgetItem[]) => {
-    const newTotalValue = items.reduce((sum, item) => {
-      return sum + (item.unitPrice * item.quantity);
-    }, 0);
+    const parsedQuantity = parseInt(quantity) || 0;
     
-    setNewTotal(newTotalValue);
-    setBudgetDifference(newTotalValue - originalTotal);
-  };
-  
-  // Add a new item from catalog
-  const handleAddItem = (catalogItem: BudgetItemCatalog) => {
-    // Create a new budget item from catalog
-    const newItem: BudgetItem = {
-      id: 0, // Temporary ID, will be replaced on save
-      clientId: plan.clientId,
-      budgetSettingsId: plan.id,
-      itemCode: catalogItem.itemCode,
-      name: "",
-      description: catalogItem.description,
-      unitPrice: catalogItem.defaultUnitPrice,
-      quantity: 1,
-      category: catalogItem.category || undefined
-    };
+    if (parsedQuantity <= 0) {
+      toast({
+        title: "Error",
+        description: "Quantity must be greater than zero",
+        variant: "destructive",
+      });
+      return;
+    }
     
-    // Add to edited items
-    const updatedItems = [...editedItems, newItem];
-    setEditedItems(updatedItems);
+    // Check if item already exists
+    const existingItemIndex = items.findIndex(item => item.itemCode === selectedItemCode);
     
-    // Recalculate totals
-    updateTotals(updatedItems);
+    if (existingItemIndex >= 0) {
+      // Update existing item
+      const updatedItems = [...items];
+      const existingItem = updatedItems[existingItemIndex];
+      const existingQuantity = typeof existingItem.quantity === 'string' 
+        ? parseInt(existingItem.quantity) || 0 
+        : existingItem.quantity || 0;
+      
+      updatedItems[existingItemIndex] = {
+        ...existingItem,
+        quantity: existingQuantity + parsedQuantity
+      };
+      
+      setItems(updatedItems);
+      toast({
+        title: "Success",
+        description: `Added ${parsedQuantity} more of ${selectedCatalogItem.description} to existing item`,
+        variant: "default",
+      });
+    } else {
+      // Create new item
+      const newItem: BudgetItem = {
+        id: -Date.now(), // Temporary negative ID until saved to database
+        clientId: plan.clientId,
+        budgetSettingsId: plan.id,
+        itemCode: selectedCatalogItem.itemCode,
+        name: selectedCatalogItem.description,
+        description: selectedCatalogItem.description,
+        unitPrice: selectedCatalogItem.defaultUnitPrice,
+        quantity: parsedQuantity,
+        category: selectedCatalogItem.category || null
+      };
+      
+      setItems([...items, newItem]);
+      toast({
+        title: "Success",
+        description: `Added ${parsedQuantity} ${selectedCatalogItem.description}`,
+        variant: "default",
+      });
+    }
+    
+    // Reset input fields
+    setSelectedItemCode("");
+    setQuantity("1");
   };
   
   // Remove an item
-  const handleRemoveItem = (index: number) => {
-    const updatedItems = editedItems.filter((_, i) => i !== index);
-    setEditedItems(updatedItems);
-    updateTotals(updatedItems);
+  const handleRemoveItem = (itemId: number) => {
+    setItems(items.filter(item => item.id !== itemId));
   };
   
-  // Handle save
+  // Update item quantity
+  const handleQuantityChange = (itemId: number, newQuantity: string) => {
+    setItems(items.map(item => {
+      if (item.id === itemId) {
+        return { ...item, quantity: newQuantity };
+      }
+      return item;
+    }));
+  };
+  
+  // Save changes
   const handleSave = () => {
-    onSave(editedItems);
+    onSave(items);
+    toast({
+      title: "Success",
+      description: "Budget items saved successfully",
+      variant: "default",
+    });
   };
-  
-  // Determine the color and message for budget difference
-  const getBudgetDifferenceInfo = () => {
-    if (Math.abs(budgetDifference) < 0.01) {
-      return {
-        color: 'green',
-        icon: <CheckCircle className="h-4 w-4" />,
-        message: 'No change to budget total'
-      };
-    }
-    
-    if (budgetDifference > 0) {
-      return {
-        color: 'red',
-        icon: <AlertTriangle className="h-4 w-4" />,
-        message: `Over budget by $${budgetDifference.toFixed(2)}`
-      };
-    }
-    
-    return {
-      color: 'amber',
-      icon: <Info className="h-4 w-4" />,
-      message: `Under budget by $${Math.abs(budgetDifference).toFixed(2)}`
-    };
-  };
-  
-  const differenceInfo = getBudgetDifferenceInfo();
-  
-  // Calculate percentage of budget used
-  const budgetPercentage = originalTotal > 0 
-    ? (newTotal / originalTotal) * 100 
-    : 100;
   
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl">
         <DialogHeader>
-          <DialogTitle className="text-2xl font-bold flex items-center gap-2">
-            <DollarSign className="h-5 w-5 text-primary" />
-            Edit Budget Plan
+          <DialogTitle className="flex items-center gap-2">
+            <Package className="h-5 w-5" />
+            Edit Budget Items
           </DialogTitle>
           <DialogDescription>
-            Adjust item quantities within your fixed budget of ${originalTotal.toFixed(2)}
+            Add, remove, or modify items in this budget plan. 
+            Currently editing: <span className="font-medium">{plan.planName}</span>
           </DialogDescription>
         </DialogHeader>
         
-        {/* Budget summary and warning */}
-        <Card className={`${budgetDifference > 0 ? 'border-red-200 bg-red-50' : budgetDifference < 0 ? 'border-amber-200 bg-amber-50' : 'border-green-200 bg-green-50'}`}>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-lg">Budget Allocation</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex justify-between items-center mb-2">
-              <div>
-                <div className="text-sm text-gray-500">Initial Budget</div>
-                <div className="text-lg font-bold">${originalTotal.toFixed(2)}</div>
-              </div>
-              <div className="text-center">
-                <div className="text-sm text-gray-500">New Total</div>
-                <div className={`text-lg font-bold ${budgetDifference > 0 ? 'text-red-600' : budgetDifference < 0 ? 'text-amber-600' : 'text-green-600'}`}>
-                  ${newTotal.toFixed(2)}
-                </div>
-              </div>
-              <div className="text-right">
-                <div className="text-sm text-gray-500">Difference</div>
-                <div className={`text-lg font-bold ${budgetDifference > 0 ? 'text-red-600' : budgetDifference < 0 ? 'text-amber-600' : 'text-green-600'}`}>
-                  {budgetDifference > 0 ? '+' : ''}${budgetDifference.toFixed(2)}
-                </div>
+        <div className="grid grid-cols-1 lg:grid-cols-7 gap-4">
+          {/* Budget item list (5 columns) */}
+          <div className="lg:col-span-5 space-y-4">
+            <div className="flex justify-between items-center">
+              <h3 className="text-sm font-medium">Current Budget Items</h3>
+              <div className="text-sm">
+                Total: <span className="font-medium">${totalCost.toFixed(2)}</span>
               </div>
             </div>
             
-            <Progress 
-              value={budgetPercentage} 
-              max={100} 
-              className={`h-2 ${
-                budgetDifference > 0 ? 'bg-red-200' : 
-                budgetDifference < 0 ? 'bg-amber-200' : 
-                'bg-green-200'
-              }`}
-              indicatorClassName={`${
-                budgetDifference > 0 ? 'bg-red-500' : 
-                budgetDifference < 0 ? 'bg-amber-500' : 
-                'bg-green-500'
-              }`}
-            />
-            
-            <div className={`flex items-center gap-2 mt-4 text-sm ${
-              budgetDifference > 0 ? 'text-red-600' : 
-              budgetDifference < 0 ? 'text-amber-600' : 
-              'text-green-600'
-            }`}>
-              {differenceInfo.icon}
-              <span>{differenceInfo.message}</span>
-            </div>
-          </CardContent>
-        </Card>
-        
-        {/* Budget items table */}
-        <div className="rounded-md border">
-          <Table>
-            <TableCaption>Adjust quantities to reallocate your budget</TableCaption>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Item Code</TableHead>
-                <TableHead>Description</TableHead>
-                <TableHead className="text-right">Unit Price</TableHead>
-                <TableHead className="text-right">Quantity</TableHead>
-                <TableHead className="text-right">Total</TableHead>
-                <TableHead className="text-right"></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {editedItems.map((item, index) => {
-                const itemTotal = item.unitPrice * item.quantity;
-                
-                return (
-                  <TableRow key={item.id || index}>
-                    <TableCell className="font-medium">{item.itemCode}</TableCell>
-                    <TableCell>{item.description}</TableCell>
-                    <TableCell className="text-right">${item.unitPrice.toFixed(2)}</TableCell>
-                    <TableCell className="text-right w-28">
-                      <Input
-                        type="number"
-                        min="0"
-                        className="w-20 text-right"
-                        value={item.quantity}
-                        onChange={(e) => handleQuantityChange(index, parseInt(e.target.value) || 0)}
-                      />
-                    </TableCell>
-                    <TableCell className="text-right font-medium">
-                      ${itemTotal.toFixed(2)}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button 
-                        variant="ghost" 
-                        size="sm"
-                        onClick={() => handleRemoveItem(index)}
-                      >
-                        <Trash2 className="h-4 w-4 text-red-500" />
-                      </Button>
-                    </TableCell>
+            <ScrollArea className="h-[350px] rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-[100px]">Code</TableHead>
+                    <TableHead>Description</TableHead>
+                    <TableHead className="w-[100px] text-right">Unit Price</TableHead>
+                    <TableHead className="w-[80px] text-right">Qty</TableHead>
+                    <TableHead className="w-[100px] text-right">Total</TableHead>
+                    <TableHead className="w-[50px] text-right"></TableHead>
                   </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
+                </TableHeader>
+                <TableBody>
+                  {items.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center py-4 text-gray-500">
+                        <AlertTriangle className="h-5 w-5 mx-auto mb-2 text-gray-400" />
+                        <p>No budget items in this plan yet. Add items below.</p>
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    items.map(item => {
+                      const itemQuantity = typeof item.quantity === 'string' 
+                        ? parseInt(item.quantity) || 0 
+                        : item.quantity || 0;
+                      
+                      const itemUnitPrice = typeof item.unitPrice === 'string' 
+                        ? parseFloat(item.unitPrice) || 0 
+                        : item.unitPrice || 0;
+                      
+                      const totalPrice = itemQuantity * itemUnitPrice;
+                      
+                      return (
+                        <TableRow key={item.id}>
+                          <TableCell className="font-mono text-sm">
+                            {item.itemCode}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex flex-col">
+                              <span>{item.name || item.description}</span>
+                              {item.category && (
+                                <Badge variant="outline" className="w-fit mt-1">
+                                  {item.category}
+                                </Badge>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            ${itemUnitPrice.toFixed(2)}
+                          </TableCell>
+                          <TableCell>
+                            <Input
+                              type="number"
+                              min="1"
+                              value={item.quantity}
+                              onChange={(e) => handleQuantityChange(item.id, e.target.value)}
+                              className="w-16 text-right"
+                            />
+                          </TableCell>
+                          <TableCell className="text-right font-medium">
+                            ${totalPrice.toFixed(2)}
+                          </TableCell>
+                          <TableCell>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleRemoveItem(item.id)}
+                              className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })
+                  )}
+                </TableBody>
+              </Table>
+            </ScrollArea>
+          </div>
+          
+          {/* Add item form (2 columns) */}
+          <div className="lg:col-span-2">
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium">Add Items</CardTitle>
+                <CardDescription>
+                  Select items from the catalog
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Tabs defaultValue="existing" value={activeTab} onValueChange={setActiveTab}>
+                  <TabsList className="grid w-full grid-cols-1">
+                    <TabsTrigger value="existing">Catalog Items</TabsTrigger>
+                  </TabsList>
+                  
+                  <TabsContent value="existing" className="space-y-4 mt-3">
+                    <div className="space-y-3">
+                      <div>
+                        <Label htmlFor="categoryFilter">Category</Label>
+                        <Select
+                          value={categoryFilter}
+                          onValueChange={(value) => setCategoryFilter(value)}
+                        >
+                          <SelectTrigger id="categoryFilter">
+                            <SelectValue placeholder="Select a category" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">All Categories</SelectItem>
+                            {uniqueCategories.map((category) => (
+                              <SelectItem key={category} value={category}>
+                                {category}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      <div>
+                        <Label htmlFor="itemSelect">Item</Label>
+                        <Select
+                          value={selectedItemCode}
+                          onValueChange={(value) => setSelectedItemCode(value)}
+                        >
+                          <SelectTrigger id="itemSelect">
+                            <SelectValue placeholder="Select an item" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {filteredCatalogItems.map((item) => (
+                              <SelectItem key={item.id} value={item.itemCode}>
+                                {item.description}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      <div>
+                        <Label htmlFor="quantity">Quantity</Label>
+                        <Input
+                          id="quantity"
+                          type="number"
+                          min="1"
+                          value={quantity}
+                          onChange={(e) => setQuantity(e.target.value)}
+                        />
+                      </div>
+                      
+                      {selectedItemCode && (
+                        <div className="text-sm p-2 bg-gray-50 rounded-md">
+                          <p className="text-gray-600">
+                            Unit Price: $
+                            {(catalogItems.find(item => item.itemCode === selectedItemCode)?.defaultUnitPrice || 0).toFixed(2)}
+                          </p>
+                          <p className="text-gray-600">
+                            Total: $
+                            {((catalogItems.find(item => item.itemCode === selectedItemCode)?.defaultUnitPrice || 0) * 
+                              (parseInt(quantity) || 0)).toFixed(2)}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </TabsContent>
+                </Tabs>
+              </CardContent>
+              <CardFooter>
+                <Button 
+                  className="w-full"
+                  disabled={!selectedItemCode || parseInt(quantity) <= 0 || isLoading}
+                  onClick={handleAddItemFromCatalog}
+                >
+                  <PlusCircle className="mr-2 h-4 w-4" />
+                  Add Item
+                </Button>
+              </CardFooter>
+            </Card>
+          </div>
         </div>
         
-        {/* Add item from catalog */}
-        {catalogItems.length > 0 && (
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm">Add Items</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex gap-2 items-end">
-                <div className="flex-1">
-                  <Label htmlFor="catalogItem" className="text-xs mb-1">Select from catalog</Label>
-                  <Select onValueChange={(value) => {
-                    const item = catalogItems.find(i => i.itemCode === value);
-                    if (item) handleAddItem(item);
-                  }}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select an item" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {catalogItems.map((item) => (
-                        <SelectItem key={item.itemCode} value={item.itemCode}>
-                          {item.itemCode} - {item.description}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+        <DialogFooter>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="mr-auto text-sm text-gray-500 flex items-center">
+                  <InfoIcon className="h-4 w-4 mr-1" />
+                  <span>Available Funds: ${plan.availableFunds.toFixed(2)}</span>
                 </div>
-                <Button variant="outline" className="mb-0.5" disabled>
-                  <Plus className="h-4 w-4 mr-1" />
-                  Custom Item
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-        
-        {/* Warning for over budget */}
-        {budgetDifference > 0 && (
-          <Alert variant="destructive">
-            <AlertCircle className="h-4 w-4" />
-            <span>Your changes exceed the original budget by ${budgetDifference.toFixed(2)}. Please adjust quantities to stay within budget.</span>
-          </Alert>
-        )}
-        
-        <DialogFooter className="flex justify-between">
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Total allocated budget for this plan</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+          
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            <ArrowLeft className="h-4 w-4 mr-2" />
             Cancel
           </Button>
-          
-          <Button 
-            onClick={handleSave} 
-            disabled={isLoading || budgetDifference > 0}
-          >
-            <Save className="h-4 w-4 mr-2" />
+          <Button onClick={handleSave} disabled={isLoading}>
+            <Save className="mr-2 h-4 w-4" />
             Save Changes
           </Button>
         </DialogFooter>

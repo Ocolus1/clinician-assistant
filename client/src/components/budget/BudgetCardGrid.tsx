@@ -1,6 +1,7 @@
 
 import { useState } from "react";
-import { BudgetPlan, BudgetSettings, BudgetItem, BudgetItemCatalog } from "../../types";
+import type { BudgetSettings, BudgetItem, BudgetItemCatalog } from "@shared/schema";
+import { BudgetPlan } from "./BudgetPlanFullView";
 import { 
   Card, 
   CardHeader, 
@@ -11,6 +12,7 @@ import {
 } from "../ui/card";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
+import { Progress } from "../ui/progress";
 import { 
   DollarSign, 
   PlusCircle, 
@@ -29,8 +31,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-  Progress
-} from "../ui/index";
+} from "../ui/dropdown-menu";
 import { format, differenceInDays } from "date-fns";
 import { BudgetPlanDetailsDialog } from "./BudgetPlanDetailsDialog";
 import { BudgetPlanEditDialog } from "./BudgetPlanEditDialog";
