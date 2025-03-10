@@ -94,6 +94,9 @@ export function BudgetPlanCreateDialog({
   // Confirmation dialog state
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [pendingSubmitData, setPendingSubmitData] = useState<any>(null);
+  
+  // Track submission state to prevent multiple submissions
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Generate unique plan serial number
   function generatePlanSerialNumber() {
@@ -134,6 +137,9 @@ export function BudgetPlanCreateDialog({
   
   // Function to submit the form data
   function handleSubmit(values: CreatePlanValues) {
+    // Prevent multiple submissions
+    if (isSubmitting) return;
+    
     // The date is already a string from our date picker implementation
     console.log("Processing budget plan with endOfPlan:", values.endOfPlan);
     
@@ -163,17 +169,30 @@ export function BudgetPlanCreateDialog({
   
   // Function that actually submits the plan data
   function submitPlan(planData: any) {
+    // Prevent multiple submissions
+    if (isSubmitting) return;
+    
+    // Set submitting state to true
+    setIsSubmitting(true);
+    
     // Log what we're about to submit for debugging
     console.log("Submitting new budget plan with proper formatting:", JSON.stringify(planData, null, 2));
     
-    // Submit the plan
-    onSubmit(planData);
-    
-    // Clear form state
-    setSelectedCatalogItems([]); // Clear selected items
-    setSelectedDate(undefined); // Clear selected date
-    setShowConfirmation(false); // Close confirmation dialog if open
-    onOpenChange(false); // Close dialog
+    try {
+      // Submit the plan
+      onSubmit(planData);
+      
+      // Clear form state
+      setSelectedCatalogItems([]); // Clear selected items
+      setSelectedDate(undefined); // Clear selected date
+      setShowConfirmation(false); // Close confirmation dialog if open
+      onOpenChange(false); // Close dialog
+    } catch (error) {
+      console.error("Error submitting budget plan:", error);
+    } finally {
+      // Reset submitting state
+      setIsSubmitting(false);
+    }
   }
 
   // Format currency
@@ -560,10 +579,10 @@ export function BudgetPlanCreateDialog({
                   </Button>
                   <Button 
                     type="submit" 
-                    disabled={isLoading || (selectedCatalogItems.length > 0 && isBudgetExceeded())}
+                    disabled={isLoading || isSubmitting || (selectedCatalogItems.length > 0 && isBudgetExceeded())}
                     title={isBudgetExceeded() ? "Total budget cannot exceed available funds" : ""}
                   >
-                    {isLoading ? "Creating..." : "Create Plan"}
+                    {isLoading || isSubmitting ? "Creating..." : "Create Plan"}
                   </Button>
                 </DialogFooter>
               </form>
@@ -668,12 +687,13 @@ export function BudgetPlanCreateDialog({
             <AlertDialogAction 
               onClick={() => {
                 // Proceed with plan creation and automatic deactivation of current plan
-                if (pendingSubmitData) {
+                if (pendingSubmitData && !isSubmitting) {
                   submitPlan(pendingSubmitData);
                 }
               }}
+              disabled={isSubmitting}
             >
-              Proceed
+              {isSubmitting ? "Creating..." : "Proceed"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
