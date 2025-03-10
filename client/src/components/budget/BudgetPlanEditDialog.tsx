@@ -218,7 +218,7 @@ function AddItemForm({ onAddItem, catalogItems, clientId, budgetSettingsId }: Ad
 interface BudgetPlanEditDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  plan: BudgetPlan;
+  plan: BudgetPlan | null;
   budgetItems: BudgetItemDetail[];
   catalogItems: BudgetItemCatalog[];
   onSave: (items: any[]) => void;
@@ -304,95 +304,104 @@ export function BudgetPlanEditDialog({
     }).format(amount);
   };
   
+  // If plan is null, we'll still render the dialog but with minimal content
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Edit Budget Plan: {plan.planName}</DialogTitle>
+          <DialogTitle>Edit Budget Plan: {plan?.planName || 'Unknown'}</DialogTitle>
           <DialogDescription>
             Add, edit or remove budget items for this plan.
           </DialogDescription>
         </DialogHeader>
         
-        <div className="mt-4">
-          <div className="flex justify-between mb-2">
-            <Badge variant="outline" className="text-base font-medium">
-              Available Funds: {formatCurrency(plan.availableFunds)}
-            </Badge>
-            <Badge variant={plan.active ? "default" : "outline"} className="text-base">
-              {plan.active ? "Active Plan" : "Inactive Plan"}
-            </Badge>
-          </div>
-          
-          {/* Current items table */}
-          <div className="border rounded-md">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Item Code</TableHead>
-                  <TableHead>Description</TableHead>
-                  <TableHead>Category</TableHead>
-                  <TableHead className="text-right">Unit Price</TableHead>
-                  <TableHead className="text-right">Quantity</TableHead>
-                  <TableHead className="text-right">Total</TableHead>
-                  <TableHead></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {items.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                      No budget items added yet. Add items below.
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  items.map((item) => (
-                    <TableRow key={item.id}>
-                      <TableCell className="font-medium">{item.itemCode}</TableCell>
-                      <TableCell>{item.description}</TableCell>
-                      <TableCell>{item.category || "—"}</TableCell>
-                      <TableCell className="text-right">{formatCurrency(item.unitPrice)}</TableCell>
-                      <TableCell className="text-right">{item.quantity}</TableCell>
-                      <TableCell className="text-right">{formatCurrency(item.totalPrice)}</TableCell>
-                      <TableCell>
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          onClick={() => handleRemoveItem(item.id)}
-                          className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </TableCell>
+        {plan ? (
+          <>
+            <div className="mt-4">
+              <div className="flex justify-between mb-2">
+                <Badge variant="outline" className="text-base font-medium">
+                  Available Funds: {formatCurrency(plan.availableFunds)}
+                </Badge>
+                <Badge variant={plan.active ? "default" : "outline"} className="text-base">
+                  {plan.active ? "Active Plan" : "Inactive Plan"}
+                </Badge>
+              </div>
+              
+              {/* Current items table */}
+              <div className="border rounded-md">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Item Code</TableHead>
+                      <TableHead>Description</TableHead>
+                      <TableHead>Category</TableHead>
+                      <TableHead className="text-right">Unit Price</TableHead>
+                      <TableHead className="text-right">Quantity</TableHead>
+                      <TableHead className="text-right">Total</TableHead>
+                      <TableHead></TableHead>
                     </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
-          
-          {/* Add new item form */}
-          <AddItemForm 
-            onAddItem={handleAddItem} 
-            catalogItems={catalogItems}
-            clientId={plan.clientId}
-            budgetSettingsId={plan.id}
-          />
-          
-          {/* Total calculation */}
-          <div className="mt-6 text-right">
-            <div className="text-sm text-gray-500 mb-1">Total Budget Value</div>
-            <div className="text-2xl font-bold">
-              {formatCurrency(items.reduce((sum, item) => sum + item.totalPrice, 0))}
+                  </TableHeader>
+                  <TableBody>
+                    {items.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                          No budget items added yet. Add items below.
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      items.map((item) => (
+                        <TableRow key={item.id}>
+                          <TableCell className="font-medium">{item.itemCode}</TableCell>
+                          <TableCell>{item.description}</TableCell>
+                          <TableCell>{item.category || "—"}</TableCell>
+                          <TableCell className="text-right">{formatCurrency(item.unitPrice)}</TableCell>
+                          <TableCell className="text-right">{item.quantity}</TableCell>
+                          <TableCell className="text-right">{formatCurrency(item.totalPrice)}</TableCell>
+                          <TableCell>
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              onClick={() => handleRemoveItem(item.id)}
+                              className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+              
+              {/* Add new item form */}
+              <AddItemForm 
+                onAddItem={handleAddItem} 
+                catalogItems={catalogItems}
+                clientId={plan.clientId}
+                budgetSettingsId={plan.id}
+              />
+              
+              {/* Total calculation */}
+              <div className="mt-6 text-right">
+                <div className="text-sm text-gray-500 mb-1">Total Budget Value</div>
+                <div className="text-2xl font-bold">
+                  {formatCurrency(items.reduce((sum, item) => sum + item.totalPrice, 0))}
+                </div>
+              </div>
             </div>
+          </>
+        ) : (
+          <div className="py-8 text-center text-muted-foreground">
+            Loading plan details...
           </div>
-        </div>
+        )}
         
         <DialogFooter className="mt-6">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button onClick={handleSave} disabled={isLoading}>
+          <Button onClick={handleSave} disabled={isLoading || !plan}>
             {isLoading ? "Saving..." : "Save Changes"}
           </Button>
         </DialogFooter>

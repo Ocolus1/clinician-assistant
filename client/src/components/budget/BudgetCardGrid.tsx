@@ -270,34 +270,32 @@ export default function BudgetCardGrid({
       )}
       
       {/* Dialog components for create, edit and view */}
-      {showCreateDialog && (
-        <BudgetPlanCreateDialog
-          open={showCreateDialog}
-          onOpenChange={setShowCreateDialog}
-          onSubmit={onCreatePlan}
-          existingPlans={budgetSettings}
-          hasActivePlan={hasActivePlan}
-          isLoading={isLoading}
-        />
-      )}
+      <BudgetPlanCreateDialog
+        open={showCreateDialog}
+        onOpenChange={setShowCreateDialog}
+        onSubmit={onCreatePlan}
+        existingPlans={budgetSettings}
+        hasActivePlan={hasActivePlan}
+        isLoading={isLoading}
+      />
       
-      {showEditDialog && selectedPlan && (
-        <BudgetPlanEditDialog
-          open={showEditDialog}
-          onOpenChange={setShowEditDialog}
-          plan={selectedPlan}
-          budgetItems={getEnhancedBudgetItems(selectedPlan.id)}
-          catalogItems={catalogItems}
-          onSave={(items) => {
+      <BudgetPlanEditDialog
+        open={showEditDialog && !!selectedPlan}
+        onOpenChange={setShowEditDialog}
+        plan={selectedPlan}
+        budgetItems={selectedPlan ? getEnhancedBudgetItems(selectedPlan.id) : []}
+        catalogItems={catalogItems}
+        onSave={(items) => {
+          if (selectedPlan) {
             onUpdateItems(selectedPlan.id, items);
             setShowEditDialog(false);
-          }}
-        />
-      )}
+          }
+        }}
+      />
       
-      {showDetailsDialog && selectedPlan && (
-        <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
-          <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+      <Dialog open={showDetailsDialog && !!selectedPlan} onOpenChange={setShowDetailsDialog}>
+        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+          {selectedPlan && (
             <BudgetPlanFullView
               plan={selectedPlan}
               budgetItems={getEnhancedBudgetItems(selectedPlan.id)}
@@ -314,9 +312,9 @@ export default function BudgetCardGrid({
                 }
               }}
             />
-          </DialogContent>
-        </Dialog>
-      )}
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
