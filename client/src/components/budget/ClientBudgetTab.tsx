@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import type { BudgetSettings, BudgetItem, BudgetItemCatalog } from "@shared/schema";
@@ -30,13 +30,19 @@ export default function ClientBudgetTab({
 
   // Fetch budget settings for the client
   const { 
-    data: budgetSettings = [], 
+    data: budgetSettingsData, 
     isLoading: isLoadingSettings,
     error: settingsError
-  } = useQuery<BudgetSettings[]>({
+  } = useQuery<BudgetSettings | BudgetSettings[]>({
     queryKey: ['/api/clients', clientId, 'budget-settings'],
     retry: 1,
   });
+  
+  // Convert budgetSettings to array format for consistent handling
+  const budgetSettings = useMemo(() => {
+    if (!budgetSettingsData) return [];
+    return Array.isArray(budgetSettingsData) ? budgetSettingsData : [budgetSettingsData];
+  }, [budgetSettingsData]);
 
   // Fetch budget items for the client
   const { 
@@ -166,8 +172,8 @@ export default function ClientBudgetTab({
   const handleSetActivePlan = (plan: BudgetPlan) => {
     // First, deactivate all plans
     const deactivatePromises = budgetSettings
-      .filter(s => s.isActive && s.id !== plan.id)
-      .map(s => {
+      .filter((s: BudgetSettings) => s.isActive && s.id !== plan.id)
+      .map((s: BudgetSettings) => {
         return apiRequest('PUT', `/api/budget-settings/${s.id}`, { 
           isActive: false 
         });
@@ -191,7 +197,7 @@ export default function ClientBudgetTab({
   };
 
   // Check if there's an active plan
-  const hasActivePlan = budgetSettings.some(plan => plan.isActive);
+  const hasActivePlan = budgetSettings.some((plan: BudgetSettings) => Boolean(plan.isActive));
 
   // Loading state
   const isLoading = isLoadingSettings || isLoadingItems || isLoadingCatalog || isLoadingSessions;
