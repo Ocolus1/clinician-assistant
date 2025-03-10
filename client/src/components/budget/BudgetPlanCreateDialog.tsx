@@ -178,13 +178,7 @@ export function BudgetPlanCreateDialog({
     return item.defaultUnitPrice * item.quantity;
   };
 
-  // Update available funds when selected items change
-  useEffect(() => {
-    const total = calculateTotalBudget();
-    if (total > 0) {
-      form.setValue("availableFunds", total);
-    }
-  }, [selectedCatalogItems]);
+  // We're not automatically updating available funds anymore since the user needs to enter it manually
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -236,7 +230,7 @@ export function BudgetPlanCreateDialog({
                   )}
                 />
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                   <FormField
                     control={form.control}
                     name="planCode"
@@ -280,57 +274,53 @@ export function BudgetPlanCreateDialog({
                       </FormItem>
                     )}
                   />
+                  
+                  <FormField
+                    control={form.control}
+                    name="endOfPlan"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-sm font-medium flex items-center gap-1">
+                          <CalendarIcon className="h-3.5 w-3.5" />
+                          End of Plan Date
+                        </FormLabel>
+                        <FormControl>
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                className={cn(
+                                  "w-full justify-start text-left font-normal border-gray-300",
+                                  !field.value && "text-muted-foreground"
+                                )}
+                              >
+                                <CalendarIcon className="mr-2 h-4 w-4" />
+                                {field.value ? format(field.value, "PPP") : <span>Select end date</span>}
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                              <Calendar
+                                mode="single"
+                                selected={field.value}
+                                onSelect={(date) => {
+                                  field.onChange(date);
+                                }}
+                                disabled={(date) => {
+                                  const today = new Date();
+                                  today.setHours(0, 0, 0, 0);
+                                  return date < today;
+                                }}
+                                initialFocus
+                              />
+                            </PopoverContent>
+                          </Popover>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                 </div>
-                
-                <FormField
-                  control={form.control}
-                  name="endOfPlan"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-col space-y-2">
-                      <FormLabel className="text-sm font-medium flex items-center gap-1">
-                        <CalendarIcon className="h-3.5 w-3.5" />
-                        End of Plan Date
-                      </FormLabel>
-                      <div className="flex flex-col md:flex-row md:items-center gap-4">
-                        <div className="relative flex-1">
-                          <FormControl>
-                            <Popover>
-                              <PopoverTrigger asChild>
-                                <Button
-                                  type="button"
-                                  variant="outline"
-                                  className={cn(
-                                    "w-full justify-start text-left font-normal border-gray-300",
-                                    !field.value && "text-muted-foreground"
-                                  )}
-                                >
-                                  <CalendarIcon className="mr-2 h-4 w-4" />
-                                  {field.value ? format(field.value, "PPP") : <span>Select end date</span>}
-                                </Button>
-                              </PopoverTrigger>
-                              <PopoverContent className="w-auto p-0" align="start">
-                                <Calendar
-                                  mode="single"
-                                  selected={field.value}
-                                  onSelect={(date) => {
-                                    field.onChange(date);
-                                  }}
-                                  disabled={(date) => {
-                                    const today = new Date();
-                                    today.setHours(0, 0, 0, 0);
-                                    return date < today;
-                                  }}
-                                  initialFocus
-                                />
-                              </PopoverContent>
-                            </Popover>
-                          </FormControl>
-                        </div>
-                      </div>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
 
                 {/* Budget Items Section */}
                 <div className="space-y-4 mt-4 pt-4 border-t border-gray-200">
