@@ -34,6 +34,25 @@ export default function ClientBudgetTab({
     error: settingsError
   } = useQuery<BudgetSettings | BudgetSettings[]>({
     queryKey: ['/api/clients', clientId, 'budget-settings'],
+    queryFn: async () => {
+      console.log(`Fetching budget settings for client ID: ${clientId} with ALL=true`);
+      try {
+        // Explicitly request all budget settings
+        const response = await fetch(`/api/clients/${clientId}/budget-settings?all=true`);
+        
+        if (!response.ok) {
+          console.error(`Error fetching budget settings: ${response.status} ${response.statusText}`);
+          return [];
+        }
+        
+        const data = await response.json();
+        console.log(`Retrieved ${Array.isArray(data) ? data.length : 1} budget settings:`, data);
+        return data;
+      } catch (error) {
+        console.error("Error in budget settings fetch:", error);
+        return [];
+      }
+    },
     retry: 1,
   });
   
@@ -73,13 +92,34 @@ export default function ClientBudgetTab({
 
   // Mutation to create a new budget plan
   const createPlanMutation = useMutation({
-    mutationFn: (newPlan: any) => {
-      return apiRequest('POST', `/api/clients/${clientId}/budget-settings`, {
-        ...newPlan,
-        clientId
-      });
+    mutationFn: async (newPlan: any) => {
+      console.log("Creating new budget plan with data:", JSON.stringify(newPlan, null, 2));
+      
+      try {
+        // Step 1: Create the budget plan
+        const response = await apiRequest('POST', `/api/clients/${clientId}/budget-settings`, {
+          ...newPlan,
+          clientId
+        });
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error("Error response from create budget plan:", errorText);
+          throw new Error(`Server error: ${response.status} ${response.statusText}`);
+        }
+        
+        const createdPlan = await response.json();
+        console.log("Successfully created budget plan:", createdPlan);
+        
+        // We'll handle product creation separately if needed
+        return createdPlan;
+      } catch (error) {
+        console.error("Error in createPlanMutation:", error);
+        throw error;
+      }
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log("Budget plan creation succeeded with result:", data);
       queryClient.invalidateQueries({ queryKey: ['/api/clients', clientId, 'budget-settings'] });
       toast({
         title: "Success",
@@ -88,9 +128,10 @@ export default function ClientBudgetTab({
       });
     },
     onError: (error: any) => {
+      console.error("Budget plan creation failed:", error);
       toast({
         title: "Error",
-        description: `Failed to create budget plan: ${error.message}`,
+        description: `Failed to create budget plan: ${error.message || "Unknown error"}`,
         variant: "destructive",
       });
     }
@@ -98,10 +139,56 @@ export default function ClientBudgetTab({
 
   // Mutation to update a budget plan
   const updatePlanMutation = useMutation({
-    mutationFn: ({ planId, data }: { planId: number, data: any }) => {
-      return apiRequest('PUT', `/api/budget-settings/${planId}`, data);
+    mutationFn: async ({ planId, data }: { planId: number, data: any }) => {
+      console.log(`Updating budget plan ${planId} with data:`, JSON.stringify(data, null, 2));
+      
+      try {
+        // Process data to ensure consistent format
+        const processedData = { ...data };
+        
+        // Handle numeric fields
+        if ('availableFunds' in processedData) {
+          processedData.availableFunds = Number(parseFloat(processedData.availableFunds.toString()).toFixed(2));
+        }
+        
+        // Handle boolean fields
+        if ('isActive' in processedData) {
+          processedData.isActive = Boolean(processedData.isActive);
+        }
+        
+        // Handle date fields
+        if ('endOfPlan' in processedData) {
+          processedData.endOfPlan = processedData.endOfPlan ? String(processedData.endOfPlan) : null;
+        }
+        
+        // Handle string fields
+        if ('planCode' in processedData) {
+          processedData.planCode = String(processedData.planCode).trim();
+        }
+        
+        if ('planSerialNumber' in processedData) {
+          processedData.planSerialNumber = String(processedData.planSerialNumber).trim();
+        }
+        
+        console.log(`Sending processed update data:`, JSON.stringify(processedData, null, 2));
+        const response = await apiRequest('PUT', `/api/budget-settings/${planId}`, processedData);
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error(`Error updating budget plan ${planId}:`, errorText);
+          throw new Error(`Server error: ${response.status} ${response.statusText}`);
+        }
+        
+        const updatedPlan = await response.json();
+        console.log(`Successfully updated budget plan ${planId}:`, updatedPlan);
+        return updatedPlan;
+      } catch (error) {
+        console.error(`Error in updatePlanMutation for plan ${planId}:`, error);
+        throw error;
+      }
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log("Budget plan update succeeded with result:", data);
       queryClient.invalidateQueries({ queryKey: ['/api/clients', clientId, 'budget-settings'] });
       toast({
         title: "Success",
@@ -110,9 +197,10 @@ export default function ClientBudgetTab({
       });
     },
     onError: (error: any) => {
+      console.error("Budget plan update failed:", error);
       toast({
         title: "Error",
-        description: `Failed to update budget plan: ${error.message}`,
+        description: `Failed to update budget plan: ${error.message || "Unknown error"}`,
         variant: "destructive",
       });
     }
@@ -166,42 +254,66 @@ export default function ClientBudgetTab({
     });
   };
 
-  // Handle setting a plan as active - simplified to prevent errors
-  const handleSetActivePlan = (plan: BudgetPlan) => {
-    // First, deactivate all plans including currently active ones
-    const activeSettings = budgetSettings.filter((s: BudgetSettings) => Boolean(s.isActive));
+  // Handle setting a plan as active - improved to reliably handle the activation process
+  const handleSetActivePlan = async (plan: BudgetPlan) => {
+    console.log(`Setting plan ${plan.id} as active. Current plan:`, plan);
     
-    // If there are active plans, deactivate them first
-    if (activeSettings.length > 0) {
-      const deactivatePromises = activeSettings.map((s: BudgetSettings) => {
-        return apiRequest('PUT', `/api/budget-settings/${s.id}`, { 
-          isActive: false 
-        });
-      });
+    try {
+      // First, identify any active plans that need to be deactivated
+      const activeSettings = budgetSettings.filter((s: BudgetSettings) => Boolean(s.isActive));
+      console.log(`Found ${activeSettings.length} currently active plans.`);
       
-      // After all plans are deactivated, activate the selected one
-      Promise.all(deactivatePromises)
-        .then(() => {
-          // Small delay to ensure deactivations are complete
-          setTimeout(() => {
-            updatePlanMutation.mutate({ 
-              planId: plan.id, 
-              data: { isActive: true } 
+      // If there are active plans, deactivate them first using sequential requests
+      if (activeSettings.length > 0) {
+        console.log(`Deactivating current active plans: ${activeSettings.map(s => s.id).join(', ')}`);
+        
+        // Use sequential deactivation for reliability
+        for (const activePlan of activeSettings) {
+          console.log(`Deactivating plan ${activePlan.id}...`);
+          try {
+            const result = await apiRequest('PUT', `/api/budget-settings/${activePlan.id}`, { 
+              isActive: false 
             });
-          }, 300);
-        })
-        .catch(error => {
-          toast({
-            title: "Error",
-            description: `Failed to deactivate current plans: ${error.message}`,
-            variant: "destructive",
+            
+            if (!result.ok) {
+              console.error(`Failed to deactivate plan ${activePlan.id}: ${result.status} ${result.statusText}`);
+              throw new Error(`Failed to deactivate plan ${activePlan.id}`);
+            }
+            
+            console.log(`Successfully deactivated plan ${activePlan.id}`);
+          } catch (error) {
+            console.error(`Error deactivating plan ${activePlan.id}:`, error);
+            toast({
+              title: "Error",
+              description: `Failed to deactivate plan ${activePlan.id}. Please try again.`,
+              variant: "destructive",
+            });
+            return; // Stop the process if we can't deactivate a plan
+          }
+        }
+        
+        // Small delay to ensure deactivations are processed by the server
+        console.log(`All plans deactivated. Now activating plan ${plan.id}...`);
+        setTimeout(() => {
+          updatePlanMutation.mutate({ 
+            planId: plan.id, 
+            data: { isActive: true } 
           });
+        }, 500);
+      } else {
+        // No active plans, directly activate this one
+        console.log(`No active plans found. Directly activating plan ${plan.id}`);
+        updatePlanMutation.mutate({ 
+          planId: plan.id, 
+          data: { isActive: true } 
         });
-    } else {
-      // No active plans, directly activate this one
-      updatePlanMutation.mutate({ 
-        planId: plan.id, 
-        data: { isActive: true } 
+      }
+    } catch (error) {
+      console.error("Error in handleSetActivePlan:", error);
+      toast({
+        title: "Error",
+        description: `Failed to manage plan activation: ${(error as Error).message}`,
+        variant: "destructive",
       });
     }
   };

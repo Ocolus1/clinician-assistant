@@ -116,17 +116,20 @@ export function BudgetPlanCreateDialog({
     const serialNumber = values.planSerialNumber || generatePlanSerialNumber();
     console.log("Using plan serial number for submission:", serialNumber);
     
-    // Create a new plan object with necessary fields, explicitly formatted
+    // Format available funds as a number with 2 decimal places
+    const availableFunds = Number(parseFloat(values.availableFunds.toString()).toFixed(2));
+    
+    // Create a structured plan object with proper data types
     const planData = {
-      planCode: values.planCode,
-      planSerialNumber: serialNumber,
-      isActive: values.isActive === true, // Ensure boolean type
-      availableFunds: Number(values.availableFunds), // Ensure number type
-      endOfPlan: values.endOfPlan || null // Ensure null if not provided
+      planCode: String(values.planCode).trim(), // Ensure string and remove whitespace
+      planSerialNumber: String(serialNumber).trim(), // Ensure string and remove whitespace
+      isActive: Boolean(values.isActive), // Explicit boolean conversion
+      availableFunds: availableFunds, // Properly formatted number
+      endOfPlan: values.endOfPlan ? String(values.endOfPlan) : null // Ensure string or null
     };
     
     // Log what we're about to submit for debugging
-    console.log("Submitting new budget plan:", planData);
+    console.log("Submitting new budget plan with proper formatting:", JSON.stringify(planData, null, 2));
     
     // Submit the plan
     onSubmit(planData);
