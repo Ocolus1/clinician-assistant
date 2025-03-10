@@ -119,7 +119,8 @@ export default function BudgetCardGrid({
       remainingFunds: totalAllocated - totalUsed,
       archived: false, // Add proper handling if you have an archived field
       fundingSource,
-      createdAt: setting.createdAt
+      createdAt: setting.createdAt,
+      daysRemaining: daysRemaining
     };
   });
   

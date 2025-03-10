@@ -63,6 +63,9 @@ export interface BudgetPlan {
   remainingFunds: number;
   archived: boolean;
   fundingSource: string;
+  daysRemaining?: number | null;
+  createdAt?: Date | null;
+  enhancedItems?: BudgetItemDetail[];
 }
 
 interface BudgetPlanFullViewProps {
