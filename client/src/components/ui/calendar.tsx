@@ -13,19 +13,6 @@ function Calendar({
   showOutsideDays = true,
   ...props
 }: CalendarProps) {
-  // Use client-side only rendering to prevent server-side rendering issues
-  const [mounted, setMounted] = React.useState(false);
-  
-  // This will be false during SSR, and true after hydration
-  React.useEffect(() => {
-    setMounted(true);
-  }, []);
-  
-  // Only render calendar on the client, return nothing during SSR
-  if (!mounted) {
-    return null;
-  }
-  
   return (
     <div 
       className={cn("calendar-container", className)} 

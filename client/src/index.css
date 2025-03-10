@@ -104,65 +104,27 @@
   }
 }
 
-/* Fix for unwanted calendars in the UI - ultra aggressive version */
+/* Calendar styling */
 .rdp {
-  display: none !important;
+  position: relative;
+  z-index: 50;
+  margin: 0;
 }
 
-/* Only display calendars in specific containment contexts */
-[data-calendar-container="true"] .rdp,
-[data-state="open"] .rdp {
+/* Calendar positioning in popover content */
+[data-popover-content] .rdp {
   display: block !important;
 }
 
-/* Additional calendar containment */
+/* Calendar container styling */
 .calendar-container {
   position: relative;
-  z-index: 100;
+  z-index: 50;
 }
 
-/* Hide calendars that are not properly contained */
-.uncontained-calendar,
-.uncontained-calendar * {
-  display: none !important;
-}
-
-/* Target unwanted calendars in the session creation form specifically */
-[id^="radix-"] > div > div > .rdp:not([data-calendar-container="true"] .rdp, [data-state="open"] .rdp) {
-  display: none !important;
-  visibility: hidden !important;
-}
-
-/* Session creation specific fixes */
-.uncontained-calendar .rdp,
-.uncontained-calendar .rdp * {
-  display: none !important;
-  visibility: hidden !important;
-  height: 0 !important;
-  width: 0 !important;
-  opacity: 0 !important;
-  pointer-events: none !important;
-  position: absolute !important;
-  overflow: hidden !important;
-}
-
-/* Directly target the calendar in the tabs */
-.tabs-content .rdp:not([data-calendar-container="true"] .rdp) {
-  display: none !important;
-}
-
-/* Target possible March calendar */
-body:not([data-calendar-container="true"]) table.rdp-table,
-body > div > div > table.rdp-table {
-  display: none !important;
-  visibility: hidden !important;
-  max-height: 0 !important;
-  overflow: hidden !important;
-}
-
-/* Only show calendars in React Popovers */
-div:not([data-popover-content]) > .rdp {
-  display: none !important;
+/* Fix date picker in popovers */
+[data-state="open"] .calendar-container {
+  display: block !important;
 }
 
 /* Three-column layout for session forms */
