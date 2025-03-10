@@ -351,17 +351,21 @@ export default function ClientBudgetTab({
           console.log(`Deactivating plan ${activePlan.id}...`);
           try {
             // Use the complete required schema fields to avoid validation errors
+            const deactivateData = {
+              isActive: false,
+              planSerialNumber: activePlan.planSerialNumber || "",
+              planCode: activePlan.planCode || "",
+              availableFunds: Number(activePlan.availableFunds),
+              endOfPlan: activePlan.endOfPlan || null
+              // Remove clientId as it should be omitted according to the schema
+            };
+            
+            console.log('Sending deactivate data:', JSON.stringify(deactivateData, null, 2));
+            
             const deactivateResult = await fetch(`/api/budget-settings/${activePlan.id}`, {
               method: 'PUT',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ 
-                isActive: false,
-                planSerialNumber: activePlan.planSerialNumber || "",
-                planCode: activePlan.planCode || "",
-                availableFunds: Number(activePlan.availableFunds),
-                endOfPlan: activePlan.endOfPlan || null,
-                clientId: activePlan.clientId
-              })
+              body: JSON.stringify(deactivateData)
             });
             
             if (!deactivateResult.ok) {
@@ -389,18 +393,23 @@ export default function ClientBudgetTab({
         await new Promise(resolve => setTimeout(resolve, 300));
         
         // Use the complete required schema fields for activation
+        // Prepare activation data that complies with the schema
+        const activateData = {
+          isActive: true,
+          planSerialNumber: plan.planSerialNumber || "",
+          planCode: plan.planCode || "",
+          availableFunds: Number(plan.availableFunds),
+          // Note: endOfPlan might not exist on BudgetPlan type, so we use optional chaining
+          endOfPlan: (plan as any).endOfPlan || null
+          // Remove clientId to match schema requirements
+        };
+        
+        console.log('Sending activate data:', JSON.stringify(activateData, null, 2));
+        
         const activateResult = await fetch(`/api/budget-settings/${plan.id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            isActive: true,
-            planSerialNumber: plan.planSerialNumber || "",
-            planCode: plan.planCode || "",
-            availableFunds: Number(plan.availableFunds),
-            // Note: endOfPlan might not exist on BudgetPlan type, so we use optional chaining
-            endOfPlan: (plan as any).endOfPlan || null,
-            clientId: plan.clientId
-          })
+          body: JSON.stringify(activateData)
         });
         
         if (!activateResult.ok) {
@@ -416,17 +425,23 @@ export default function ClientBudgetTab({
       } else {
         // No active plans, directly activate this one with complete fields
         console.log(`No active plans found. Directly activating plan ${plan.id}`);
+        
+        // Prepare activation data that complies with the schema (same as above)
+        const activateData = {
+          isActive: true,
+          planSerialNumber: plan.planSerialNumber || "",
+          planCode: plan.planCode || "",
+          availableFunds: Number(plan.availableFunds),
+          endOfPlan: (plan as any).endOfPlan || null
+          // Remove clientId to match schema requirements
+        };
+        
+        console.log('Sending direct activate data:', JSON.stringify(activateData, null, 2));
+        
         const activateResult = await fetch(`/api/budget-settings/${plan.id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            isActive: true,
-            planSerialNumber: plan.planSerialNumber || "",
-            planCode: plan.planCode || "",
-            availableFunds: Number(plan.availableFunds),
-            endOfPlan: (plan as any).endOfPlan || null,
-            clientId: plan.clientId
-          })
+          body: JSON.stringify(activateData)
         });
         
         if (!activateResult.ok) {
