@@ -75,7 +75,8 @@ export function BudgetPlanCreateDialog({
   const [showItemForm, setShowItemForm] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [selectedCatalogItems, setSelectedCatalogItems] = useState<BudgetItemCatalog[]>([]);
+  type SelectedItem = BudgetItemCatalog & { quantity: number };
+  const [selectedCatalogItems, setSelectedCatalogItems] = useState<SelectedItem[]>([]);
 
   // Generate unique plan serial number
   function generatePlanSerialNumber() {
@@ -146,16 +147,35 @@ export function BudgetPlanCreateDialog({
   // Helper function to select a catalog item and populate the budget item form
   const selectCatalogItem = (item: BudgetItemCatalog) => {
     if (!selectedCatalogItems.some(existingItem => existingItem.id === item.id)) {
-      setSelectedCatalogItems([...selectedCatalogItems, item]);
+      setSelectedCatalogItems([
+        ...selectedCatalogItems, 
+        { ...item, quantity: 1 }
+      ]);
     }
     setShowItemForm(false);
+  };
+  
+  // Function to update the quantity of a selected item
+  const updateItemQuantity = (itemId: number, quantity: number) => {
+    setSelectedCatalogItems(
+      selectedCatalogItems.map(item => 
+        item.id === itemId 
+          ? { ...item, quantity: Math.max(1, quantity) } 
+          : item
+      )
+    );
   };
 
   // Calculate total budget from selected items
   const calculateTotalBudget = () => {
     return selectedCatalogItems.reduce((total, item) => {
-      return total + item.defaultUnitPrice;
+      return total + (item.defaultUnitPrice * item.quantity);
     }, 0);
+  };
+  
+  // Calculate row total for an item
+  const calculateRowTotal = (item: SelectedItem) => {
+    return item.defaultUnitPrice * item.quantity;
   };
 
   // Update available funds when selected items change
@@ -168,7 +188,7 @@ export function BudgetPlanCreateDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[650px]">
+      <DialogContent className="sm:max-w-[800px]">
         <DialogHeader>
           <DialogTitle>Create New Budget Plan</DialogTitle>
           <DialogDescription>
@@ -335,25 +355,69 @@ export function BudgetPlanCreateDialog({
                     </div>
                   ) : (
                     <div className="bg-gray-50 rounded-md overflow-hidden">
-                      <div className="p-3 bg-gray-100 border-b border-gray-200 text-xs font-medium text-gray-700 grid grid-cols-12">
-                        <div className="col-span-4">Item Code</div>
-                        <div className="col-span-4">Description</div>
+                      <div className="p-3 bg-gray-100 border-b border-gray-200 text-xs font-medium text-gray-700 grid grid-cols-16">
+                        <div className="col-span-3">Item Code</div>
+                        <div className="col-span-5">Description</div>
                         <div className="col-span-2 text-right">Unit Price</div>
+                        <div className="col-span-2 text-center">Quantity</div>
+                        <div className="col-span-2 text-right">Total</div>
                         <div className="col-span-2 text-right">Actions</div>
                       </div>
                       <div className="max-h-[200px] overflow-y-auto divide-y divide-gray-200">
                         {selectedCatalogItems.map((item) => (
-                          <div key={item.id} className="p-3 text-sm grid grid-cols-12 items-center hover:bg-gray-50">
-                            <div className="col-span-4 font-medium">{item.itemCode}</div>
-                            <div className="col-span-4 text-gray-600 truncate">{item.description}</div>
+                          <div key={item.id} className="p-3 text-sm grid grid-cols-16 items-center hover:bg-gray-50">
+                            <div className="col-span-3 font-medium">{item.itemCode}</div>
+                            <div className="col-span-5 text-gray-600 truncate">{item.description}</div>
                             <div className="col-span-2 text-right font-medium">{formatCurrency(item.defaultUnitPrice)}</div>
+                            <div className="col-span-2 flex justify-center items-center">
+                              <div className="flex bg-white rounded border border-gray-300 w-20">
+                                <button 
+                                  type="button"
+                                  className="w-6 flex items-center justify-center text-gray-500 hover:text-gray-700"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    updateItemQuantity(item.id, item.quantity - 1);
+                                  }}
+                                >
+                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
+                                  </svg>
+                                </button>
+                                <input 
+                                  type="number" 
+                                  className="w-8 text-center text-sm border-0 focus:ring-0 p-0"
+                                  value={item.quantity}
+                                  min="1"
+                                  onChange={(e) => {
+                                    const newValue = parseInt(e.target.value) || 1;
+                                    updateItemQuantity(item.id, newValue);
+                                  }}
+                                />
+                                <button 
+                                  type="button"
+                                  className="w-6 flex items-center justify-center text-gray-500 hover:text-gray-700"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    updateItemQuantity(item.id, item.quantity + 1);
+                                  }}
+                                >
+                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                                  </svg>
+                                </button>
+                              </div>
+                            </div>
+                            <div className="col-span-2 text-right font-medium text-primary-600">
+                              {formatCurrency(calculateRowTotal(item))}
+                            </div>
                             <div className="col-span-2 text-right">
                               <Button
                                 type="button"
                                 variant="ghost"
                                 size="sm"
                                 className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
-                                onClick={() => {
+                                onClick={(e) => {
+                                  e.stopPropagation();
                                   setSelectedCatalogItems(selectedCatalogItems.filter(i => i.id !== item.id));
                                 }}
                               >
@@ -389,7 +453,7 @@ export function BudgetPlanCreateDialog({
 
       {/* Product Selection Dialog */}
       <Dialog open={showItemForm} onOpenChange={setShowItemForm}>
-        <DialogContent className="sm:max-w-[700px]">
+        <DialogContent className="sm:max-w-[850px]">
           <DialogHeader>
             <DialogTitle>Select Item from Catalog</DialogTitle>
             <DialogDescription>
