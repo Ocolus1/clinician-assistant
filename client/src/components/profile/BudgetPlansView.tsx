@@ -25,7 +25,6 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import type { BudgetSettings, BudgetItem, BudgetItemCatalog } from "@shared/schema";
 import { useQuery } from "@tanstack/react-query";
 import { EditBudgetPlanDialog } from "./EditBudgetPlanDialog";
-import BudgetPlanToggleCard from "../budget/BudgetPlanToggleCard";
 
 interface BudgetPlan {
   // Original BudgetSettings properties
@@ -63,12 +62,12 @@ type EnhancedBudgetItem = BudgetItem & {
 }
 
 interface BudgetPlansViewProps {
-  budgetSettings: BudgetSettings[] | undefined;
+  budgetSettings: BudgetSettings | undefined;
   budgetItems: BudgetItem[];
-  onCreatePlan: (data: any) => void;
-  onEditPlan: (plan: any) => void;
-  onArchivePlan: (plan: any) => void;
-  onSetActivePlan: (plan: any) => void;
+  onCreatePlan: () => void;
+  onEditPlan: (plan: BudgetPlan) => void;
+  onArchivePlan: (plan: BudgetPlan) => void;
+  onSetActivePlan: (plan: BudgetPlan) => void;
 }
 
 export default function BudgetPlansView({
@@ -92,9 +91,9 @@ export default function BudgetPlansView({
   
   // Fetch sessions for the client to calculate actual used funds
   const { data: clientSessions = [] } = useQuery<any[]>({
-    queryKey: ['/api/clients', budgetSettings?.[0]?.clientId, 'sessions'],
+    queryKey: ['/api/clients', budgetSettings?.clientId, 'sessions'],
     // Only fetch if we have a client ID
-    enabled: !!budgetSettings?.[0]?.clientId,
+    enabled: !!budgetSettings?.clientId,
   });
 
   // Enhance budget items with catalog details and calculate used quantities
@@ -153,70 +152,66 @@ export default function BudgetPlansView({
   
   // Convert budget settings to budget plan with additional properties
   const budgetPlans = React.useMemo(() => {
-    if (!budgetSettings || !budgetSettings.length) return [];
+    if (!budgetSettings) return [];
     
-    // Process each budget setting into a budget plan
-    return budgetSettings.map(setting => {
-      // Get budget items for this specific budget setting
-      const settingItems = budgetItems.filter(item => item.budgetSettingsId === setting.id);
-      
-      // Calculate total available funds from budget items (sum of all budget item rows)
-      const availableFunds = settingItems.reduce((total, item) => {
-        const unitPrice = typeof item.unitPrice === 'string'
-          ? parseFloat(item.unitPrice) || 0
-          : item.unitPrice || 0;
-          
-        const quantity = typeof item.quantity === 'string'
-          ? parseInt(item.quantity) || 0
-          : item.quantity || 0;
-          
-        return total + (unitPrice * quantity);
-      }, 0);
-      
-      // Calculate used funds based on session usage
-      const totalUsed = clientSessions.reduce((total: number, session: any) => {
-        // Skip sessions without products
-        if (!session.products || !Array.isArray(session.products)) return total;
+    // Calculate total available funds from budget items (sum of all budget item rows)
+    const availableFunds = budgetItems.reduce((total, item) => {
+      const unitPrice = typeof item.unitPrice === 'string'
+        ? parseFloat(item.unitPrice) || 0
+        : item.unitPrice || 0;
         
-        // Sum up all products used in this session that belong to this plan
-        return total + session.products.reduce((sessionTotal: number, product: any) => {
-          // Only count products that belong to this budget setting
-          const budgetItem = settingItems.find(item => 
-            item.itemCode === product.productCode || item.itemCode === product.itemCode
-          );
+      const quantity = typeof item.quantity === 'string'
+        ? parseInt(item.quantity) || 0
+        : item.quantity || 0;
+        
+      return total + (unitPrice * quantity);
+    }, 0);
+    
+    // Calculate used funds based on session usage
+    const totalUsed = clientSessions.reduce((total: number, session: any) => {
+      // Skip sessions without products
+      if (!session.products || !Array.isArray(session.products)) return total;
+      
+      // Sum up all products used in this session
+      return total + session.products.reduce((sessionTotal: number, product: any) => {
+        const unitPrice = typeof product.unitPrice === 'string'
+          ? parseFloat(product.unitPrice) || 0
+          : product.unitPrice || 0;
           
-          if (!budgetItem) return sessionTotal;
+        const quantity = typeof product.quantity === 'string'
+          ? parseInt(product.quantity) || 0
+          : product.quantity || 0;
           
-          const unitPrice = typeof product.unitPrice === 'string'
-            ? parseFloat(product.unitPrice) || 0
-            : product.unitPrice || 0;
-            
-          const quantity = typeof product.quantity === 'string'
-            ? parseInt(product.quantity) || 0
-            : product.quantity || 0;
-            
-          return sessionTotal + (unitPrice * quantity);
-        }, 0);
+        return sessionTotal + (unitPrice * quantity);
       }, 0);
-      
-      const percentUsed = availableFunds > 0 ? (totalUsed / availableFunds) * 100 : 0;
-      
-      // Create the budget plan with all the properties we need
-      return {
-        ...setting,
-        active: setting.isActive !== undefined ? !!setting.isActive : false,
-        archived: false, // This will be added to the schema later
-        totalUsed,
-        availableFunds: setting.availableFunds, // Use what's stored in the database
-        itemCount: settingItems.length,
-        percentUsed,
-        // Map database fields to the fields used in UI with improved fallbacks
-        planName: setting.planCode || `Plan ${setting.planSerialNumber?.substr(-6) || ''}`.trim() || 'Default Plan',
-        fundingSource: 'NDIS', // Default until we add this to schema
-        startDate: setting.createdAt?.toString() || null,
-        endDate: setting.endOfPlan || null
-      } as BudgetPlan;
-    });
+    }, 0);
+    
+    const percentUsed = availableFunds > 0 ? (totalUsed / availableFunds) * 100 : 0;
+    
+    // Log the budget calculations to help with debugging
+    console.log("Creating budget plan from settings:", budgetSettings);
+    console.log("Budget items count:", budgetItems.length);
+    console.log("Available funds (sum of all budget items):", availableFunds);
+    console.log("Total used (from sessions):", totalUsed);
+    console.log("Percent used:", percentUsed.toFixed(2) + "%");
+    
+    // Create the budget plan with all the properties we need
+    const plan: BudgetPlan = {
+      ...budgetSettings,
+      active: budgetSettings.isActive !== undefined ? !!budgetSettings.isActive : true,
+      archived: false, // This will be added to the schema later
+      totalUsed,
+      availableFunds, // Override with calculated value
+      itemCount: budgetItems.length,
+      percentUsed,
+      // Map database fields to the fields used in UI with improved fallbacks
+      planName: budgetSettings.planCode || `Plan ${budgetSettings.planSerialNumber?.substr(-6) || ''}`.trim() || 'Default Plan',
+      fundingSource: 'NDIS', // Default until we add this to schema
+      startDate: budgetSettings.createdAt?.toString() || null,
+      endDate: budgetSettings.endOfPlan || null
+    };
+    
+    return [plan];
   }, [budgetSettings, budgetItems, clientSessions]);
   
   // Handle view details click
@@ -299,38 +294,123 @@ export default function BudgetPlansView({
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {budgetPlans.map((plan) => (
-          <BudgetPlanToggleCard
-            key={plan.id}
-            plan={plan}
-            onView={() => handleViewDetails(plan)}
-            onEdit={() => {
-              setSelectedPlan(plan);
-              setEditDialogOpen(true);
-            }}
-            onArchive={() => onArchivePlan(plan)}
-            onToggleActive={(isActive) => {
-              if (isActive !== plan.active) {
-                // Create a modified plan with the updated active status for the API call
-                const updatedPlan = {
-                  ...plan,
-                  isActive: isActive // This is what the server-side API expects
-                };
-                console.log(`Toggle plan ${plan.id} active status to: ${isActive}`);
-                onSetActivePlan(updatedPlan);
-              }
-            }}
-          />
-        ))}
+        {budgetPlans.map((plan) => {
+          const status = getPlanStatus(plan);
+          const availableFunds = typeof plan.availableFunds === 'string'
+            ? parseFloat(plan.availableFunds) || 0
+            : plan.availableFunds || 0;
+          
+          return (
+            <Card key={plan.id} className={`${plan.active ? 'border-2 border-primary' : ''}`}>
+              <CardHeader className="pb-2">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <CardTitle className="text-lg flex items-center">
+                      {plan.active && <Star className="h-4 w-4 text-amber-500 mr-1" />}
+                      {plan.planName || 'Unnamed Plan'}
+                    </CardTitle>
+                    <CardDescription>
+                      {plan.planSerialNumber ? (
+                        <>
+                          {plan.planSerialNumber?.substr(-6) || ''} 
+                          {(plan.startDate || plan.endDate) && ' • '}
+                          {plan.startDate && formatDate(plan.startDate)}
+                          {plan.startDate && plan.endDate && ' - '}
+                          {plan.endDate && formatDate(plan.endDate)}
+                        </>
+                      ) : 'No plan details available'}
+                    </CardDescription>
+                  </div>
+                  <Badge 
+                    className={`
+                      ${status.color === 'green' ? 'bg-green-100 text-green-800 hover:bg-green-100' : ''}
+                      ${status.color === 'amber' ? 'bg-amber-100 text-amber-800 hover:bg-amber-100' : ''}
+                      ${status.color === 'yellow' ? 'bg-yellow-100 text-yellow-800 hover:bg-yellow-100' : ''}
+                      ${status.color === 'red' ? 'bg-red-100 text-red-800 hover:bg-red-100' : ''}
+                      ${status.color === 'gray' ? 'bg-gray-100 text-gray-800 hover:bg-gray-100' : ''}
+                    `}
+                  >
+                    {status.label}
+                  </Badge>
+                </div>
+              </CardHeader>
+              <CardContent className="pt-2 pb-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <div className="text-sm text-gray-500 mb-1">Available Funds</div>
+                    <div className="text-xl font-bold">${availableFunds.toFixed(2)}</div>
+                  </div>
+                  <div>
+                    <div className="text-sm text-gray-500 mb-1">Used</div>
+                    <div className="text-xl font-bold">${plan.totalUsed.toFixed(2)}</div>
+                  </div>
+                </div>
+                
+                <div className="mt-4">
+                  <div className="flex justify-between text-sm mb-1">
+                    <span>Budget Utilization</span>
+                    <span>{Math.min(100, plan.percentUsed).toFixed(0)}%</span>
+                  </div>
+                  <Progress 
+                    value={Math.min(100, plan.percentUsed)} 
+                    className="h-2"
+                    indicatorClassName={
+                      plan.percentUsed > 100 ? "bg-red-500" :
+                      plan.percentUsed > 90 ? "bg-amber-500" :
+                      plan.percentUsed > 70 ? "bg-yellow-500" :
+                      "bg-green-500"
+                    }
+                  />
+                  <div className="text-xs text-gray-500 mt-1">
+                    {plan.itemCount} budget items • {plan.fundingSource || 'Unknown source'}
+                  </div>
+                </div>
+              </CardContent>
+              <CardFooter className="pt-2 flex justify-between">
+                <div className="flex gap-2">
+                  <Button size="sm" variant="outline" onClick={() => handleViewDetails(plan)}>
+                    <Eye className="h-3.5 w-3.5 mr-1" />
+                    Details
+                  </Button>
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    onClick={() => {
+                      setSelectedPlan(plan);
+                      setEditDialogOpen(true);
+                    }}
+                  >
+                    <Pencil className="h-3.5 w-3.5 mr-1" />
+                    Edit
+                  </Button>
+                </div>
+                <div className="flex gap-2">
+                  {!plan.active && (
+                    <Button size="sm" variant="outline" onClick={() => onSetActivePlan(plan)}>
+                      <Star className="h-3.5 w-3.5 mr-1" />
+                      Set Active
+                    </Button>
+                  )}
+                  {!plan.archived && (
+                    <Button size="sm" variant="outline" onClick={() => onArchivePlan(plan)}>
+                      <FileArchive className="h-3.5 w-3.5 mr-1" />
+                      Archive
+                    </Button>
+                  )}
+                </div>
+              </CardFooter>
+            </Card>
+          );
+        })}
       </div>
       
       {/* Edit Budget Plan Dialog */}
-      {selectedPlan && budgetSettings && budgetSettings.length > 0 && (
+      {selectedPlan && budgetSettings && (
         <EditBudgetPlanDialog
           open={editDialogOpen}
           onOpenChange={setEditDialogOpen}
           plan={selectedPlan}
-          clientId={selectedPlan.clientId}
+          clientId={budgetSettings.clientId}
         />
       )}
 

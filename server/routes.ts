@@ -1,6 +1,5 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
-import { z } from "zod";
 import { storage } from "./storage";
 import { pool } from "./db";
 import { 
@@ -418,61 +417,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
     const settings = await storage.updateBudgetSettings(parseInt(req.params.id), result.data);
     res.json(settings);
-  });
-  
-  // Dedicated endpoint for activating/deactivating budget plans
-  app.put("/api/budget-settings/:id/status", async (req, res) => {
-    try {
-      // Validate request body
-      const statusSchema = z.object({
-        isActive: z.boolean()
-      });
-      
-      const result = statusSchema.safeParse(req.body);
-      if (!result.success) {
-        return res.status(400).json({ error: result.error });
-      }
-      
-      // Get the existing budget settings first
-      const id = parseInt(req.params.id);
-      
-      // First we need to get the specific budget setting to find its clientId
-      const allSettings = await pool.query('SELECT * FROM budget_settings WHERE id = $1', [id]);
-      if (allSettings.rows.length === 0) {
-        return res.status(404).json({ error: "Budget settings not found" });
-      }
-      
-      const existingSettings = allSettings.rows[0];
-      const clientId = existingSettings.client_id;
-      
-      console.log(`Updating budget plan ${id} status to ${result.data.isActive ? 'active' : 'inactive'}`);
-      
-      // If activating this plan, deactivate all other plans for this client first
-      if (result.data.isActive) {
-        console.log(`Deactivating all other active plans for client ${clientId}`);
-        
-        // Use direct SQL query to update the database
-        await pool.query(
-          'UPDATE budget_settings SET is_active = false WHERE client_id = $1 AND id != $2 AND is_active = true',
-          [clientId, id]
-        );
-      }
-      
-      // Update the status of this budget plan directly with SQL
-      await pool.query(
-        'UPDATE budget_settings SET is_active = $1 WHERE id = $2',
-        [result.data.isActive, id]
-      );
-      
-      // Get the updated plan
-      const updatedResult = await pool.query('SELECT * FROM budget_settings WHERE id = $1', [id]);
-      const updatedSettings = updatedResult.rows[0];
-      
-      res.json(updatedSettings);
-    } catch (error) {
-      console.error("Error updating budget plan status:", error);
-      res.status(500).json({ error: "Internal server error" });
-    }
   });
 
   // Budget Item Catalog routes

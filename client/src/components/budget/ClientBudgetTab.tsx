@@ -2,36 +2,14 @@ import { useState, useMemo } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import type { BudgetSettings, BudgetItem, BudgetItemCatalog } from "@shared/schema";
+import { BudgetPlan, BudgetItemDetail } from "./BudgetPlanFullView";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card";
 import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
 import { Button } from "../ui/button";
 import { PlusCircle, AlertTriangle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import BudgetPlansView from "../profile/BudgetPlansView";
-
-// Define a budget plan type that includes the fields we need for our component
-interface BudgetPlan {
-  id: number;
-  clientId: number;
-  planSerialNumber?: string | null;
-  planCode?: string | null;
-  isActive: boolean;
-  availableFunds: number;
-  endOfPlan?: string | null;
-  createdAt?: Date | string | null;
-  
-  // UI specific fields
-  active?: boolean;
-  archived?: boolean;
-  totalUsed?: number;
-  itemCount?: number;
-  percentUsed?: number;
-  planName?: string;
-  fundingSource?: string;
-  startDate?: string | null;
-  endDate?: string | null;
-};
+import BudgetCardGrid from "./BudgetCardGrid";
 
 interface ClientBudgetTabProps {
   clientId: number;
@@ -345,55 +323,153 @@ export default function ClientBudgetTab({
     updateItemsMutation.mutate({ planId, items });
   };
 
-  // Status change mutation - uses our new API endpoint specifically for status changes
-  const changePlanStatusMutation = useMutation({
-    mutationFn: async ({ planId, isActive }: { planId: number, isActive: boolean }) => {
-      console.log(`Changing plan ${planId} status to ${isActive ? 'active' : 'inactive'}`);
+  // Handle deactivating a budget plan - simplified to just set inactive
+  const handleArchivePlan = (plan: BudgetPlan) => {
+    updatePlanMutation.mutate({ 
+      planId: plan.id, 
+      data: { 
+        isActive: false 
+      } 
+    });
+  };
+
+  // Handle setting a plan as active - improved to reliably handle the activation process
+  const handleSetActivePlan = async (plan: BudgetPlan) => {
+    console.log(`Setting plan ${plan.id} as active. Current plan:`, plan);
+    
+    try {
+      // First, identify any active plans that need to be deactivated
+      const activeSettings = budgetSettings.filter((s: BudgetSettings) => Boolean(s.isActive));
+      console.log(`Found ${activeSettings.length} currently active plans.`);
       
-      try {
-        const response = await fetch(`/api/budget-settings/${planId}/status`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ isActive })
-        });
+      // If there are active plans, deactivate them first using sequential requests
+      if (activeSettings.length > 0) {
+        console.log(`Deactivating current active plans: ${activeSettings.map(s => s.id).join(', ')}`);
         
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error(`Error changing plan ${planId} status:`, errorText);
-          throw new Error(`Server error: ${response.status} ${response.statusText}`);
+        // Use sequential deactivation for reliability
+        for (const activePlan of activeSettings) {
+          console.log(`Deactivating plan ${activePlan.id}...`);
+          try {
+            // Use the complete required schema fields to avoid validation errors
+            const deactivateData = {
+              isActive: false,
+              planSerialNumber: activePlan.planSerialNumber || "",
+              planCode: activePlan.planCode || "",
+              availableFunds: Number(activePlan.availableFunds),
+              endOfPlan: activePlan.endOfPlan || null
+              // Remove clientId as it should be omitted according to the schema
+            };
+            
+            console.log('Sending deactivate data:', JSON.stringify(deactivateData, null, 2));
+            
+            const deactivateResult = await fetch(`/api/budget-settings/${activePlan.id}`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(deactivateData)
+            });
+            
+            if (!deactivateResult.ok) {
+              const errorText = await deactivateResult.text();
+              console.error(`Failed to deactivate plan ${activePlan.id}:`, errorText);
+              throw new Error(`Failed to deactivate plan ${activePlan.id}. Error: ${errorText}`);
+            }
+            
+            console.log(`Successfully deactivated plan ${activePlan.id}`);
+          } catch (error) {
+            console.error(`Error deactivating plan ${activePlan.id}:`, error);
+            toast({
+              title: "Error",
+              description: `Failed to deactivate plan ${activePlan.id}. Please try again.`,
+              variant: "destructive",
+            });
+            return; // Stop the process if we can't deactivate a plan
+          }
         }
         
-        return await response.json();
-      } catch (error) {
-        console.error(`Error changing plan ${planId} status:`, error);
-        throw error;
+        // Small delay to ensure deactivations are processed by the server
+        console.log(`All plans deactivated. Now activating plan ${plan.id}...`);
+        
+        // Use setTimeout with async/await for proper activation after deactivation
+        await new Promise(resolve => setTimeout(resolve, 300));
+        
+        // Use the complete required schema fields for activation
+        // Prepare activation data that complies with the schema
+        const activateData = {
+          isActive: true,
+          planSerialNumber: plan.planSerialNumber || "",
+          planCode: plan.planCode || "",
+          availableFunds: Number(plan.availableFunds),
+          // Note: endOfPlan might not exist on BudgetPlan type, so we use optional chaining
+          endOfPlan: (plan as any).endOfPlan || null
+          // Remove clientId to match schema requirements
+        };
+        
+        console.log('Sending activate data:', JSON.stringify(activateData, null, 2));
+        
+        const activateResult = await fetch(`/api/budget-settings/${plan.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(activateData)
+        });
+        
+        if (!activateResult.ok) {
+          const errorText = await activateResult.text();
+          console.error(`Failed to activate plan ${plan.id}:`, errorText);
+          throw new Error(`Failed to activate plan. Error: ${errorText}`);
+        }
+        
+        console.log(`Successfully activated plan ${plan.id}`);
+        
+        // Invalidate queries to refresh the UI
+        queryClient.invalidateQueries({ queryKey: ['/api/clients', clientId, 'budget-settings'] });
+      } else {
+        // No active plans, directly activate this one with complete fields
+        console.log(`No active plans found. Directly activating plan ${plan.id}`);
+        
+        // Prepare activation data that complies with the schema (same as above)
+        const activateData = {
+          isActive: true,
+          planSerialNumber: plan.planSerialNumber || "",
+          planCode: plan.planCode || "",
+          availableFunds: Number(plan.availableFunds),
+          endOfPlan: (plan as any).endOfPlan || null
+          // Remove clientId to match schema requirements
+        };
+        
+        console.log('Sending direct activate data:', JSON.stringify(activateData, null, 2));
+        
+        const activateResult = await fetch(`/api/budget-settings/${plan.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(activateData)
+        });
+        
+        if (!activateResult.ok) {
+          const errorText = await activateResult.text();
+          console.error(`Failed to activate plan ${plan.id}:`, errorText);
+          throw new Error(`Failed to activate plan. Error: ${errorText}`);
+        }
+        
+        console.log(`Successfully activated plan ${plan.id}`);
+        
+        // Invalidate queries to refresh the UI
+        queryClient.invalidateQueries({ queryKey: ['/api/clients', clientId, 'budget-settings'] });
       }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/clients', clientId, 'budget-settings'] });
+      
+      // Provide success feedback to the user
       toast({
         title: "Success",
-        description: "Budget plan status updated successfully",
+        description: `Plan ${plan.planCode || plan.planSerialNumber} is now active`,
         variant: "default",
       });
-    },
-    onError: (error: any) => {
+    } catch (error) {
+      console.error("Error in handleSetActivePlan:", error);
       toast({
         title: "Error",
-        description: `Failed to update plan status: ${error.message || "Unknown error"}`,
+        description: `Failed to manage plan activation: ${(error as Error).message}`,
         variant: "destructive",
       });
     }
-  });
-
-  // Handle deactivating a budget plan - uses the new dedicated endpoint
-  const handleArchivePlan = (plan: BudgetPlan) => {
-    changePlanStatusMutation.mutate({ planId: plan.id, isActive: false });
-  };
-
-  // Handle setting a plan as active - uses the new dedicated endpoint
-  const handleSetActivePlan = (plan: BudgetPlan) => {
-    changePlanStatusMutation.mutate({ planId: plan.id, isActive: true });
   };
 
   // Check if there's an active plan
@@ -418,14 +494,19 @@ export default function ClientBudgetTab({
 
   return (
     <div className="space-y-6">
-      {/* Use the BudgetPlansView which now has the toggle component */}
-      <BudgetPlansView
+      {/* Direct display of budget grid without tabs */}
+      <BudgetCardGrid
         budgetSettings={budgetSettings}
         budgetItems={budgetItems}
+        catalogItems={catalogItems}
         onCreatePlan={handleCreatePlan}
-        onEditPlan={handleUpdatePlan}
+        onUpdatePlan={handleUpdatePlan}
+        onUpdateItems={handleUpdateItems}
         onArchivePlan={handleArchivePlan}
         onSetActivePlan={handleSetActivePlan}
+        clientSessions={clientSessions}
+        isLoading={isLoading}
+        hasActivePlan={hasActivePlan}
       />
     </div>
   );
