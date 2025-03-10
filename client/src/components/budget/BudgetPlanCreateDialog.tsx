@@ -348,17 +348,8 @@ export function BudgetPlanCreateDialog({
                           <Switch
                             checked={field.value === true}
                             onCheckedChange={(checked) => {
-                              // If switching to active and there's already an active plan
-                              if (checked && hasActivePlan) {
-                                // Show confirmation dialog before changing
-                                setShowConfirmation(true);
-                                // Only store that we want to make the plan active
-                                // Don't store the entire form data (which would trigger a submission)
-                                setPendingSubmitData(null);
-                              } else {
-                                // Otherwise, just apply the change
-                                field.onChange(checked);
-                              }
+                              // Simply update the form state - confirmation will happen on submit
+                              field.onChange(checked);
                             }}
                           />
                           <FormLabel className="text-sm font-medium cursor-pointer">
