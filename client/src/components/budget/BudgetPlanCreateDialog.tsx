@@ -48,7 +48,7 @@ const createPlanSchema = z.object({
   planSerialNumber: z.string().optional(),
   availableFunds: z.number().positive("Available funds must be positive"),
   isActive: z.boolean().default(false),
-  endOfPlan: z.union([z.date(), z.string()]).optional(),
+  endOfPlan: z.date().optional(),
 });
 
 type CreatePlanValues = z.infer<typeof createPlanSchema>;
@@ -100,12 +100,8 @@ export function BudgetPlanCreateDialog({
     // Format the date as a string before submitting
     const formattedValues = {
       ...values,
-      // Ensure the date is properly formatted as a string
-      endOfPlan: values.endOfPlan 
-        ? (typeof values.endOfPlan === 'object' && values.endOfPlan instanceof Date)
-          ? format(values.endOfPlan, 'yyyy-MM-dd')
-          : String(values.endOfPlan)
-        : undefined
+      // Always format the date as a string in yyyy-MM-dd format
+      endOfPlan: values.endOfPlan ? format(values.endOfPlan, 'yyyy-MM-dd') : undefined
     };
     
     console.log("Submitting budget plan with endOfPlan:", formattedValues.endOfPlan);
@@ -309,18 +305,14 @@ export function BudgetPlanCreateDialog({
                                 )}
                               >
                                 <CalendarIcon className="mr-2 h-4 w-4" />
-                                {field.value ? 
-                                  (field.value instanceof Date ? format(field.value, "PPP") : field.value)
-                                  : <span>Select end date</span>}
+                                {field.value ? format(field.value, "PPP") : <span>Select end date</span>}
                               </Button>
                             </PopoverTrigger>
                             <PopoverContent className="w-auto p-0" align="start">
                               <Calendar
                                 mode="single"
-                                selected={field.value instanceof Date ? field.value : undefined}
-                                onSelect={(date) => {
-                                  field.onChange(date);
-                                }}
+                                selected={field.value}
+                                onSelect={field.onChange}
                                 disabled={(date) => {
                                   const today = new Date();
                                   today.setHours(0, 0, 0, 0);
