@@ -25,8 +25,7 @@ export default function ClientBudgetTab({
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  // State for active tab
-  const [activeTab, setActiveTab] = useState<string>("plans");
+  // We no longer need tab state as we're displaying plans directly
 
   // Fetch budget settings for the client
   const { 
@@ -218,44 +217,20 @@ export default function ClientBudgetTab({
 
   return (
     <div className="space-y-6">
-      {/* Tabs for different budget views */}
-      <Tabs defaultValue="plans" value={activeTab} onValueChange={setActiveTab}>
-        <TabsList>
-          <TabsTrigger value="plans">Budget Plans</TabsTrigger>
-          <TabsTrigger value="analysis">Budget Analysis</TabsTrigger>
-        </TabsList>
-
-        {/* Budget Plans Tab */}
-        <TabsContent value="plans" className="space-y-6 pt-4">
-          <BudgetCardGrid
-            budgetSettings={budgetSettings}
-            budgetItems={budgetItems}
-            catalogItems={catalogItems}
-            onCreatePlan={handleCreatePlan}
-            onUpdatePlan={handleUpdatePlan}
-            onUpdateItems={handleUpdateItems}
-            onArchivePlan={handleArchivePlan}
-            onSetActivePlan={handleSetActivePlan}
-            clientSessions={clientSessions}
-            isLoading={isLoading}
-          />
-        </TabsContent>
-
-        {/* Budget Analysis Tab */}
-        <TabsContent value="analysis" className="space-y-6 pt-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Budget Analysis</CardTitle>
-              <CardDescription>
-                View detailed analysis of budget usage and trends
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="h-[400px] flex items-center justify-center text-gray-500">
-              Budget analysis visualizations will be displayed here.
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+      {/* Direct display of budget grid without tabs */}
+      <BudgetCardGrid
+        budgetSettings={budgetSettings}
+        budgetItems={budgetItems}
+        catalogItems={catalogItems}
+        onCreatePlan={handleCreatePlan}
+        onUpdatePlan={handleUpdatePlan}
+        onUpdateItems={handleUpdateItems}
+        onArchivePlan={handleArchivePlan}
+        onSetActivePlan={handleSetActivePlan}
+        clientSessions={clientSessions}
+        isLoading={isLoading}
+        hasActivePlan={hasActivePlan}
+      />
     </div>
   );
 }

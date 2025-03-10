@@ -41,6 +41,7 @@ interface BudgetCardGridProps {
   onArchivePlan: (plan: BudgetPlan) => void;
   onSetActivePlan: (plan: BudgetPlan) => void;
   isLoading?: boolean;
+  hasActivePlan?: boolean;
 }
 
 export default function BudgetCardGrid({
@@ -53,7 +54,8 @@ export default function BudgetCardGrid({
   onUpdateItems,
   onArchivePlan,
   onSetActivePlan,
-  isLoading = false
+  isLoading = false,
+  hasActivePlan = false
 }: BudgetCardGridProps) {
   // Dialog states
   const [showCreateDialog, setShowCreateDialog] = useState(false);
