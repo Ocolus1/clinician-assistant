@@ -125,13 +125,23 @@ export function BudgetPlanCreateDialog({
     // Format available funds as a number with 2 decimal places
     const availableFunds = Number(parseFloat(values.availableFunds.toString()).toFixed(2));
     
+    // Prepare budget items from selected catalog items
+    const budgetItems = selectedCatalogItems.map(item => ({
+      itemCode: item.itemCode,
+      description: item.description,
+      unitPrice: item.defaultUnitPrice,
+      quantity: item.quantity,
+      category: item.category
+    }));
+    
     // Create a structured plan object with proper data types
     return {
       planCode: String(values.planCode).trim(), // Ensure string and remove whitespace
       planSerialNumber: String(serialNumber).trim(), // Ensure string and remove whitespace
       isActive: Boolean(values.isActive), // Explicit boolean conversion
       availableFunds: availableFunds, // Properly formatted number
-      endOfPlan: values.endOfPlan ? String(values.endOfPlan) : null // Ensure string or null
+      endOfPlan: values.endOfPlan ? String(values.endOfPlan) : null, // Ensure string or null
+      budgetItems: budgetItems // Include budget items
     };
   }
   
@@ -337,8 +347,21 @@ export function BudgetPlanCreateDialog({
                         <div className="flex items-center space-x-2">
                           <Switch
                             checked={field.value === true}
-                            onCheckedChange={field.onChange}
-                            disabled={hasActivePlan}
+                            onCheckedChange={(checked) => {
+                              // If switching to active and there's already an active plan
+                              if (checked && hasActivePlan) {
+                                // Show confirmation dialog before changing
+                                setShowConfirmation(true);
+                                // Store the pending change but don't apply it yet
+                                setPendingSubmitData({
+                                  ...form.getValues(),
+                                  isActive: true
+                                });
+                              } else {
+                                // Otherwise, just apply the change
+                                field.onChange(checked);
+                              }
+                            }}
                           />
                           <FormLabel className="text-sm font-medium cursor-pointer">
                             Plan Status: <span className={field.value ? "text-green-600" : "text-gray-500"}>
@@ -688,6 +711,9 @@ export function BudgetPlanCreateDialog({
               onClick={() => {
                 // Proceed with plan creation and automatic deactivation of current plan
                 if (pendingSubmitData && !isSubmitting) {
+                  // Update the form field to reflect the active status
+                  form.setValue("isActive", true);
+                  // Submit the plan with isActive=true
                   submitPlan(pendingSubmitData);
                 }
               }}

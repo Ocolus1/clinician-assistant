@@ -96,9 +96,12 @@ export default function ClientBudgetTab({
       console.log("Creating new budget plan with data:", JSON.stringify(newPlan, null, 2));
       
       try {
+        // Extract budget items from the plan data
+        const { budgetItems: newItems, ...planData } = newPlan;
+        
         // Step 1: Create the budget plan
         const response = await apiRequest('POST', `/api/clients/${clientId}/budget-settings`, {
-          ...newPlan,
+          ...planData,
           clientId
         });
         
@@ -111,7 +114,29 @@ export default function ClientBudgetTab({
         const createdPlan = await response.json();
         console.log("Successfully created budget plan:", createdPlan);
         
-        // We'll handle product creation separately if needed
+        // Step 2: Create budget items if they exist
+        if (newItems && newItems.length > 0) {
+          console.log(`Creating ${newItems.length} budget items for plan ${createdPlan.id}`);
+          
+          // Create budget items for the new plan
+          const itemsWithIds = newItems.map((item: any) => ({
+            ...item,
+            clientId: clientId.toString(), // Make sure clientId is a string
+            budgetSettingsId: createdPlan.id
+          }));
+          
+          // Create budget items one by one to ensure they are associated with the correct plan
+          for (const item of itemsWithIds) {
+            const itemResponse = await apiRequest('POST', `/api/clients/${clientId}/budget-items`, item);
+            if (!itemResponse.ok) {
+              console.error(`Error creating budget item for plan ${createdPlan.id}:`, await itemResponse.text());
+            }
+          }
+          
+          // Invalidate budget items query to refresh the UI
+          queryClient.invalidateQueries({ queryKey: ['/api/clients', clientId, 'budget-items'] });
+        }
+        
         return createdPlan;
       } catch (error) {
         console.error("Error in createPlanMutation:", error);
