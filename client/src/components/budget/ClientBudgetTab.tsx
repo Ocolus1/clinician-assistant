@@ -2,7 +2,6 @@ import { useState, useMemo } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import type { BudgetSettings, BudgetItem, BudgetItemCatalog } from "@shared/schema";
-import { BudgetPlan, BudgetItemDetail } from "./BudgetPlanFullView";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card";
 import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
@@ -10,6 +9,29 @@ import { Button } from "../ui/button";
 import { PlusCircle, AlertTriangle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import BudgetPlansView from "../profile/BudgetPlansView";
+
+// Define a budget plan type that includes the fields we need for our component
+interface BudgetPlan {
+  id: number;
+  clientId: number;
+  planSerialNumber?: string | null;
+  planCode?: string | null;
+  isActive: boolean;
+  availableFunds: number;
+  endOfPlan?: string | null;
+  createdAt?: Date | string | null;
+  
+  // UI specific fields
+  active?: boolean;
+  archived?: boolean;
+  totalUsed?: number;
+  itemCount?: number;
+  percentUsed?: number;
+  planName?: string;
+  fundingSource?: string;
+  startDate?: string | null;
+  endDate?: string | null;
+};
 
 interface ClientBudgetTabProps {
   clientId: number;

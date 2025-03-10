@@ -65,10 +65,10 @@ type EnhancedBudgetItem = BudgetItem & {
 interface BudgetPlansViewProps {
   budgetSettings: BudgetSettings[] | undefined;
   budgetItems: BudgetItem[];
-  onCreatePlan: () => void;
-  onEditPlan: (plan: BudgetPlan) => void;
-  onArchivePlan: (plan: BudgetPlan) => void;
-  onSetActivePlan: (plan: BudgetPlan) => void;
+  onCreatePlan: (data: any) => void;
+  onEditPlan: (plan: any) => void;
+  onArchivePlan: (plan: any) => void;
+  onSetActivePlan: (plan: any) => void;
 }
 
 export default function BudgetPlansView({
@@ -311,9 +311,13 @@ export default function BudgetPlansView({
             onArchive={() => onArchivePlan(plan)}
             onToggleActive={(isActive) => {
               if (isActive !== plan.active) {
-                // Only call the API if there's an actual status change
+                // Create a modified plan with the updated active status for the API call
+                const updatedPlan = {
+                  ...plan,
+                  isActive: isActive // This is what the server-side API expects
+                };
                 console.log(`Toggle plan ${plan.id} active status to: ${isActive}`);
-                onSetActivePlan(plan);
+                onSetActivePlan(updatedPlan);
               }
             }}
           />
