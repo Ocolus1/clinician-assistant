@@ -188,7 +188,7 @@ export function BudgetPlanCreateDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[800px]">
+      <DialogContent className="sm:max-w-[900px]">
         <DialogHeader>
           <DialogTitle>Create New Budget Plan</DialogTitle>
           <DialogDescription>
@@ -305,23 +305,21 @@ export function BudgetPlanCreateDialog({
                                   )}
                                 >
                                   <CalendarIcon className="mr-2 h-4 w-4" />
-                                  {field.value ? format(new Date(field.value), "PPP") : <span>Select end date</span>}
+                                  {field.value ? format(field.value, "PPP") : <span>Select end date</span>}
                                 </Button>
                               </PopoverTrigger>
                               <PopoverContent className="w-auto p-0" align="start">
                                 <Calendar
                                   mode="single"
-                                  selected={field.value ? new Date(field.value) : undefined}
-                                  onSelect={(newDate) => {
-                                    if (newDate) {
-                                      setDate(newDate);
-                                      field.onChange(newDate);
-                                    } else {
-                                      setDate(undefined);
-                                      field.onChange(undefined);
-                                    }
+                                  selected={field.value}
+                                  onSelect={(date) => {
+                                    field.onChange(date);
                                   }}
-                                  disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
+                                  disabled={(date) => {
+                                    const today = new Date();
+                                    today.setHours(0, 0, 0, 0);
+                                    return date < today;
+                                  }}
                                   initialFocus
                                 />
                               </PopoverContent>
@@ -356,8 +354,8 @@ export function BudgetPlanCreateDialog({
                   ) : (
                     <div className="bg-gray-50 rounded-md overflow-hidden">
                       <div className="p-3 bg-gray-100 border-b border-gray-200 text-xs font-medium text-gray-700 grid grid-cols-12">
-                        <div className="col-span-3">Item Code</div>
-                        <div className="col-span-3">Description</div>
+                        <div className="col-span-2">Item Code</div>
+                        <div className="col-span-4">Description</div>
                         <div className="col-span-2 text-right">Unit Price</div>
                         <div className="col-span-2 text-center">Quantity</div>
                         <div className="col-span-1 text-right">Total</div>
@@ -366,9 +364,9 @@ export function BudgetPlanCreateDialog({
                       <div className="max-h-[200px] overflow-y-auto divide-y divide-gray-200">
                         {selectedCatalogItems.map((item) => (
                           <div key={item.id} className="p-3 text-sm grid grid-cols-12 items-center hover:bg-gray-50">
-                            <div className="col-span-3 font-medium">{item.itemCode}</div>
-                            <div className="col-span-3 text-gray-600 truncate">{item.description}</div>
-                            <div className="col-span-2 text-right font-medium">{formatCurrency(item.defaultUnitPrice)}</div>
+                            <div className="col-span-2 font-medium">{item.itemCode}</div>
+                            <div className="col-span-4 text-gray-600 truncate">{item.description}</div>
+                            <div className="col-span-2 text-right font-medium text-gray-800">{formatCurrency(item.defaultUnitPrice)}</div>
                             <div className="col-span-2 flex justify-center items-center">
                               <div className="flex bg-white rounded border border-gray-300 w-20">
                                 <button 
@@ -407,7 +405,7 @@ export function BudgetPlanCreateDialog({
                                 </button>
                               </div>
                             </div>
-                            <div className="col-span-1 text-right font-medium text-primary">
+                            <div className="col-span-1 text-right font-medium text-gray-800">
                               {formatCurrency(calculateRowTotal(item))}
                             </div>
                             <div className="col-span-1 text-right">
@@ -431,7 +429,7 @@ export function BudgetPlanCreateDialog({
                       </div>
                       <div className="p-3 border-t border-gray-200 flex justify-between">
                         <div className="font-medium">Total Budget:</div>
-                        <div className="font-bold text-primary">{formatCurrency(calculateTotalBudget())}</div>
+                        <div className="font-bold text-gray-800">{formatCurrency(calculateTotalBudget())}</div>
                       </div>
                     </div>
                   )}
@@ -510,7 +508,7 @@ export function BudgetPlanCreateDialog({
                         )}
                       </div>
                       <div className="text-right">
-                        <div className="font-medium text-primary">{formatCurrency(item.defaultUnitPrice)}</div>
+                        <div className="font-medium text-gray-800">{formatCurrency(item.defaultUnitPrice)}</div>
                       </div>
                     </div>
                   ))}
