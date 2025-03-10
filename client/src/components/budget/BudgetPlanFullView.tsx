@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import { format, differenceInDays } from "date-fns";
 import { 
   Card, 
@@ -10,16 +10,13 @@ import {
 } from "../ui/card";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import { Progress } from "../ui/progress";
 import { 
   DollarSign, 
   Calendar, 
   PackageOpen, 
   ChevronLeft,
-  BarChart,
   CreditCard,
-  AlertCircle,
   CheckCircle,
   XCircle,
   Clock
@@ -289,7 +286,7 @@ export function BudgetPlanFullView({
   onArchive,
   onSetActive
 }: BudgetPlanFullViewProps) {
-  const [activeTab, setActiveTab] = useState<string>("overview");
+  // No longer need tabs state as we're showing only items directly
   
   // Format date with proper error handling
   const formatDate = (dateString: string | null) => {
@@ -541,88 +538,8 @@ export function BudgetPlanFullView({
         </Card>
       </div>
       
-      {/* Tabs for different views */}
-      <Tabs defaultValue="overview" onValueChange={setActiveTab} value={activeTab}>
-        <TabsList className="mb-4">
-          <TabsTrigger value="overview">
-            <BarChart className="h-4 w-4 mr-2" />
-            Overview
-          </TabsTrigger>
-          <TabsTrigger value="items">
-            <PackageOpen className="h-4 w-4 mr-2" />
-            Item Details
-          </TabsTrigger>
-        </TabsList>
-        
-        {/* Overview tab with charts and analysis */}
-        <TabsContent value="overview" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Budget Overview</CardTitle>
-              <CardDescription>
-                Summary of budget allocation and usage
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-6">
-                {/* Visual representation of budget usage */}
-                <div>
-                  <h4 className="text-sm font-medium mb-2">Budget Usage</h4>
-                  <div className="h-8 w-full bg-gray-100 rounded-full overflow-hidden">
-                    <div 
-                      className={`h-full ${
-                        usagePercentage >= 90 ? 'bg-red-500' : 
-                        usagePercentage >= 70 ? 'bg-amber-500' : 
-                        'bg-green-500'
-                      }`}
-                      style={{ width: `${Math.min(100, usagePercentage)}%` }}
-                    ></div>
-                  </div>
-                  <div className="flex justify-between text-xs mt-1">
-                    <span>$0</span>
-                    <span>${totalAllocated.toFixed(2)}</span>
-                  </div>
-                </div>
-                
-                {/* Categories breakdown */}
-                <div>
-                  <h4 className="text-sm font-medium mb-4">Category Allocation</h4>
-                  <div className="space-y-3">
-                    {Array.from(new Set(budgetItems.map(item => item.category || 'Uncategorized'))).map(category => {
-                      const categoryItems = budgetItems.filter(item => (item.category || 'Uncategorized') === category);
-                      const categoryTotal = categoryItems.reduce((sum, item) => sum + item.totalPrice, 0);
-                      const categoryPercentage = (categoryTotal / totalAllocated) * 100;
-                      
-                      return (
-                        <div key={category}>
-                          <div className="flex justify-between items-center mb-1">
-                            <span className="text-sm font-medium">{category}</span>
-                            <span className="text-xs">${categoryTotal.toFixed(2)} ({categoryPercentage.toFixed(1)}%)</span>
-                          </div>
-                          <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden">
-                            <div 
-                              className="h-full bg-primary"
-                              style={{ width: `${categoryPercentage}%` }}
-                            ></div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-                
-                {/* Usage chart */}
-                <BudgetUsageChart budgetItems={budgetItems} />
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-        
-        {/* Items tab with detailed table */}
-        <TabsContent value="items">
-          <BudgetItemsDetailTable items={budgetItems} />
-        </TabsContent>
-      </Tabs>
+      {/* Budget Items Detail Table (without tabs) */}
+      <BudgetItemsDetailTable items={budgetItems} />
     </div>
   );
 }
