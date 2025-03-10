@@ -48,7 +48,7 @@ const createPlanSchema = z.object({
   planSerialNumber: z.string().optional(),
   availableFunds: z.number().positive("Available funds must be positive"),
   isActive: z.boolean().default(false),
-  endOfPlan: z.date().optional(),
+  endOfPlan: z.union([z.date(), z.string()]).optional(),
 });
 
 type CreatePlanValues = z.infer<typeof createPlanSchema>;
@@ -100,9 +100,15 @@ export function BudgetPlanCreateDialog({
     // Format the date as a string before submitting
     const formattedValues = {
       ...values,
-      // Convert Date object to ISO string format if it exists
-      endOfPlan: values.endOfPlan ? values.endOfPlan.toISOString().split('T')[0] : undefined
+      // Ensure the date is properly formatted as a string
+      endOfPlan: values.endOfPlan 
+        ? (typeof values.endOfPlan === 'object' && values.endOfPlan instanceof Date)
+          ? format(values.endOfPlan, 'yyyy-MM-dd')
+          : String(values.endOfPlan)
+        : undefined
     };
+    
+    console.log("Submitting budget plan with endOfPlan:", formattedValues.endOfPlan);
     
     // We don't send selected products in this initial form
     // Products will be added after the plan is created
@@ -303,13 +309,15 @@ export function BudgetPlanCreateDialog({
                                 )}
                               >
                                 <CalendarIcon className="mr-2 h-4 w-4" />
-                                {field.value ? format(field.value, "PPP") : <span>Select end date</span>}
+                                {field.value ? 
+                                  (field.value instanceof Date ? format(field.value, "PPP") : field.value)
+                                  : <span>Select end date</span>}
                               </Button>
                             </PopoverTrigger>
                             <PopoverContent className="w-auto p-0" align="start">
                               <Calendar
                                 mode="single"
-                                selected={field.value}
+                                selected={field.value instanceof Date ? field.value : undefined}
                                 onSelect={(date) => {
                                   field.onChange(date);
                                 }}
