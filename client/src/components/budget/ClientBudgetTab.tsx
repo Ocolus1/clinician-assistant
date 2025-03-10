@@ -9,7 +9,7 @@ import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
 import { Button } from "../ui/button";
 import { PlusCircle, AlertTriangle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import BudgetCardGrid from "./BudgetCardGrid";
+import BudgetPlansView from "../profile/BudgetPlansView";
 
 interface ClientBudgetTabProps {
   clientId: number;
@@ -396,19 +396,14 @@ export default function ClientBudgetTab({
 
   return (
     <div className="space-y-6">
-      {/* Direct display of budget grid without tabs */}
-      <BudgetCardGrid
-        budgetSettings={budgetSettings}
+      {/* Use the BudgetPlansView which now has the toggle component */}
+      <BudgetPlansView
+        budgetSettings={budgetSettings.length > 0 ? budgetSettings[0] : undefined}
         budgetItems={budgetItems}
-        catalogItems={catalogItems}
         onCreatePlan={handleCreatePlan}
-        onUpdatePlan={handleUpdatePlan}
-        onUpdateItems={handleUpdateItems}
+        onEditPlan={handleUpdatePlan}
         onArchivePlan={handleArchivePlan}
         onSetActivePlan={handleSetActivePlan}
-        clientSessions={clientSessions}
-        isLoading={isLoading}
-        hasActivePlan={hasActivePlan}
       />
     </div>
   );
