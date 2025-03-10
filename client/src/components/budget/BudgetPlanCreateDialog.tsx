@@ -202,8 +202,23 @@ export function BudgetPlanCreateDialog({
     console.log("Submitting new budget plan with proper formatting:", JSON.stringify(planData, null, 2));
     
     try {
+      // Make sure we maintain the full data set for budget items and other fields
+      const validatedPlanData = {
+        ...planData,
+        // Ensure availableFunds is a proper number
+        availableFunds: Number(parseFloat(planData.availableFunds.toString()).toFixed(2)),
+        // Ensure budget items are preserved
+        budgetItems: planData.budgetItems || selectedCatalogItems.map(item => ({
+          itemCode: item.itemCode,
+          description: item.description,
+          unitPrice: item.defaultUnitPrice,
+          quantity: item.quantity,
+          category: item.category
+        }))
+      };
+      
       // Submit the plan
-      onSubmit(planData);
+      onSubmit(validatedPlanData);
       
       // Clear form state
       setSelectedCatalogItems([]); // Clear selected items

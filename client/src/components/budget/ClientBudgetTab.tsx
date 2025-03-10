@@ -99,7 +99,36 @@ export default function ClientBudgetTab({
         // Extract budget items from the plan data
         const { budgetItems: newItems, ...planData } = newPlan;
         
+        // First handle active plan status changes if needed
+        if (planData.isActive === true) {
+          console.log("New plan will be active, checking for existing active plans...");
+          
+          // Get all budget settings for this client
+          const settings = Array.isArray(budgetSettingsData) 
+            ? budgetSettingsData 
+            : budgetSettingsData ? [budgetSettingsData] : [];
+          
+          // Find any active plans that need to be deactivated
+          const activePlans = settings.filter(s => Boolean(s.isActive));
+          console.log(`Found ${activePlans.length} existing active plans to deactivate`);
+          
+          // Deactivate existing active plans
+          for (const activePlan of activePlans) {
+            console.log(`Deactivating existing active plan ${activePlan.id}...`);
+            const deactivateResponse = await apiRequest('PUT', `/api/budget-settings/${activePlan.id}`, { 
+              isActive: false 
+            });
+            
+            if (!deactivateResponse.ok) {
+              console.error(`Failed to deactivate plan ${activePlan.id}: ${deactivateResponse.status}`);
+            } else {
+              console.log(`Successfully deactivated plan ${activePlan.id}`);
+            }
+          }
+        }
+        
         // Step 1: Create the budget plan
+        console.log("Creating new budget plan with processed data:", JSON.stringify(planData, null, 2));
         const response = await apiRequest('POST', `/api/clients/${clientId}/budget-settings`, {
           ...planData,
           clientId
