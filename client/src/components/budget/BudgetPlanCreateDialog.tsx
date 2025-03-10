@@ -15,19 +15,11 @@ import {
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
   FormMessage,
 } from "../ui/form";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "../ui/select";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Calendar } from "../ui/calendar";
@@ -41,15 +33,12 @@ import {
   DollarSign, 
   Tag,
   CreditCard,
-  SearchIcon,
+  Search,
   Plus,
-  CheckCircle,
-  PackageOpen,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Card, CardContent } from "../ui/card";
 import { Switch } from "../ui/switch";
-import { Badge } from "../ui/badge";
 import { apiRequest } from "@/lib/queryClient";
 import type { BudgetSettings, BudgetItemCatalog } from "@shared/schema";
 
@@ -83,9 +72,10 @@ export function BudgetPlanCreateDialog({
 }: BudgetPlanCreateDialogProps) {
   const [date, setDate] = useState<Date | undefined>(undefined);
   const [isPickingDate, setIsPickingDate] = useState(false);
-  const [selectedCatalogItems, setSelectedCatalogItems] = useState<BudgetItemCatalog[]>([]);
+  const [showItemForm, setShowItemForm] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [selectedCatalogItems, setSelectedCatalogItems] = useState<BudgetItemCatalog[]>([]);
 
   // Generate unique plan serial number
   function generatePlanSerialNumber() {
@@ -153,16 +143,12 @@ export function BudgetPlanCreateDialog({
     return matchesSearch && matchesCategory && item.isActive;
   });
 
-  // Add a catalog item to the selected items
-  const addCatalogItem = (item: BudgetItemCatalog) => {
+  // Helper function to select a catalog item and populate the budget item form
+  const selectCatalogItem = (item: BudgetItemCatalog) => {
     if (!selectedCatalogItems.some(existingItem => existingItem.id === item.id)) {
       setSelectedCatalogItems([...selectedCatalogItems, item]);
     }
-  };
-
-  // Remove a catalog item from selected items
-  const removeCatalogItem = (itemId: number) => {
-    setSelectedCatalogItems(selectedCatalogItems.filter(item => item.id !== itemId));
+    setShowItemForm(false);
   };
 
   // Calculate total budget from selected items
@@ -338,141 +324,72 @@ export function BudgetPlanCreateDialog({
                   )}
                 />
 
-                {/* Product selection section */}
-                <div className="mt-4 pt-4 border-t border-gray-200">
-                  <div className="flex items-center justify-between mb-3">
-                    <h4 className="text-sm font-medium flex items-center gap-1">
-                      <PackageOpen className="h-3.5 w-3.5" />
-                      Budget Products
-                    </h4>
-                  </div>
-
-                  {/* Search and filter controls */}
-                  <div className="flex flex-col md:flex-row gap-2 mb-3">
-                    <div className="relative flex-grow">
-                      <SearchIcon className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
-                      <Input
-                        type="text"
-                        placeholder="Search products..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="pl-9 border-gray-300"
-                      />
-                    </div>
-                    <Select
-                      value={selectedCategory || undefined}
-                      onValueChange={(value) => {
-                        if (value === "all") {
-                          setSelectedCategory(null);
-                        } else {
-                          setSelectedCategory(value);
-                        }
-                      }}
+                {/* Budget Items Section */}
+                <div className="space-y-4 mt-4 pt-4 border-t border-gray-200">
+                  <div className="flex justify-between items-center">
+                    <h4 className="text-sm font-medium">Budget Products</h4>
+                    <Button 
+                      type="button"
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => setShowItemForm(true)}
+                      className="text-xs"
                     >
-                      <SelectTrigger className="w-full md:w-[180px] border-gray-300">
-                        <SelectValue placeholder="All Categories" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Categories</SelectItem>
-                        {categories.map((category) => (
-                          <SelectItem key={category} value={category}>
-                            {category}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                      <Plus className="h-3.5 w-3.5 mr-1" /> Add Products
+                    </Button>
                   </div>
-
-                  {/* Product selection grid */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-[200px] overflow-y-auto mb-3 p-2 border border-gray-200 rounded-md">
-                    {filteredCatalogItems.length === 0 ? (
-                      <div className="col-span-2 text-center text-gray-500 py-4">
-                        No products found. Try adjusting your search.
-                      </div>
-                    ) : (
-                      filteredCatalogItems.map((item) => {
-                        const isSelected = selectedCatalogItems.some(
-                          (selected) => selected.id === item.id
-                        );
-                        return (
-                          <div
-                            key={item.id}
-                            className={`flex justify-between items-center p-2 rounded border ${
-                              isSelected
-                                ? "border-primary/40 bg-primary/5"
-                                : "border-gray-200 hover:border-gray-300"
-                            } cursor-pointer transition-colors`}
-                            onClick={() => {
-                              if (isSelected) {
-                                removeCatalogItem(item.id);
-                              } else {
-                                addCatalogItem(item);
-                              }
-                            }}
-                          >
-                            <div className="flex-1 mr-2">
-                              <div className="font-medium text-sm">{item.itemCode}</div>
-                              <div className="text-xs text-gray-600 truncate">
-                                {item.description}
-                              </div>
-                              <div className="text-xs mt-1">
-                                {formatCurrency(item.defaultUnitPrice)}
-                              </div>
-                            </div>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className={`h-7 w-7 p-0 ${
-                                isSelected ? "text-primary" : "text-gray-400"
-                              }`}
-                              type="button"
-                            >
-                              {isSelected ? (
-                                <CheckCircle className="h-4 w-4" />
-                              ) : (
-                                <Plus className="h-4 w-4" />
-                              )}
-                            </Button>
-                          </div>
-                        );
-                      })
-                    )}
-                  </div>
-
-                  {/* Selected products summary */}
-                  <div className="bg-gray-50 p-3 rounded-md">
-                    <div className="flex justify-between items-center mb-2">
-                      <h5 className="text-sm font-medium">Selected Products</h5>
-                      <Badge variant="outline" className="text-xs font-normal">
-                        {selectedCatalogItems.length} items
-                      </Badge>
+                  
+                  {selectedCatalogItems.length === 0 ? (
+                    <div className="border border-dashed border-gray-200 rounded-md p-6 text-center">
+                      <div className="text-sm text-gray-500">No products added yet</div>
+                      <Button 
+                        type="button" 
+                        variant="secondary" 
+                        className="mt-2" 
+                        size="sm"
+                        onClick={() => setShowItemForm(true)}
+                      >
+                        <Plus className="h-4 w-4 mr-1" /> Add Products
+                      </Button>
                     </div>
-                    {selectedCatalogItems.length === 0 ? (
-                      <p className="text-sm text-gray-500">
-                        No products selected. Select products from the list above.
-                      </p>
-                    ) : (
-                      <div className="space-y-1 max-h-[120px] overflow-y-auto pr-1">
+                  ) : (
+                    <div className="bg-gray-50 rounded-md overflow-hidden">
+                      <div className="p-3 bg-gray-100 border-b border-gray-200 text-xs font-medium text-gray-700 grid grid-cols-12">
+                        <div className="col-span-4">Item Code</div>
+                        <div className="col-span-4">Description</div>
+                        <div className="col-span-2 text-right">Unit Price</div>
+                        <div className="col-span-2 text-right">Actions</div>
+                      </div>
+                      <div className="max-h-[200px] overflow-y-auto divide-y divide-gray-200">
                         {selectedCatalogItems.map((item) => (
-                          <div
-                            key={item.id}
-                            className="flex justify-between items-center text-sm py-1"
-                          >
-                            <div className="truncate mr-2">{item.description}</div>
-                            <div className="font-medium">
-                              {formatCurrency(item.defaultUnitPrice)}
+                          <div key={item.id} className="p-3 text-sm grid grid-cols-12 items-center hover:bg-gray-50">
+                            <div className="col-span-4 font-medium">{item.itemCode}</div>
+                            <div className="col-span-4 text-gray-600 truncate">{item.description}</div>
+                            <div className="col-span-2 text-right font-medium">{formatCurrency(item.defaultUnitPrice)}</div>
+                            <div className="col-span-2 text-right">
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
+                                onClick={() => {
+                                  setSelectedCatalogItems(selectedCatalogItems.filter(i => i.id !== item.id));
+                                }}
+                              >
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                              </Button>
                             </div>
                           </div>
                         ))}
                       </div>
-                    )}
-                    <div className="flex justify-between items-center mt-3 pt-2 border-t border-gray-200">
-                      <div className="font-medium text-sm">Total Budget</div>
-                      <div className="font-bold text-primary">
-                        {formatCurrency(calculateTotalBudget())}
+                      <div className="p-3 border-t border-gray-200 flex justify-between">
+                        <div className="font-medium">Total Budget:</div>
+                        <div className="font-bold text-primary">{formatCurrency(calculateTotalBudget())}</div>
                       </div>
                     </div>
-                  </div>
+                  )}
                 </div>
                 
                 <DialogFooter className="pt-4">
@@ -488,6 +405,76 @@ export function BudgetPlanCreateDialog({
           </CardContent>
         </Card>
       </DialogContent>
+
+      {/* Product Selection Dialog */}
+      <Dialog open={showItemForm} onOpenChange={setShowItemForm}>
+        <DialogContent className="sm:max-w-[700px]">
+          <DialogHeader>
+            <DialogTitle>Select Item from Catalog</DialogTitle>
+            <DialogDescription>
+              Choose items from the catalog to add to your budget plan.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div className="flex items-center space-x-4">
+              <div className="relative flex-1">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
+                <Input 
+                  type="search"
+                  placeholder="Search by item code or description" 
+                  className="pl-9"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+              <div className="w-[180px]">
+                <select 
+                  className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                  value={selectedCategory || ""}
+                  onChange={(e) => setSelectedCategory(e.target.value || null)}
+                >
+                  <option value="">All Categories</option>
+                  {categories.map((category) => (
+                    <option key={category} value={category}>{category}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            
+            <div className="overflow-y-auto max-h-[400px] border rounded-md">
+              {filteredCatalogItems.length === 0 ? (
+                <div className="p-8 text-center">
+                  <p className="text-sm text-gray-500">No items found. Try a different search.</p>
+                </div>
+              ) : (
+                <div className="divide-y">
+                  {filteredCatalogItems.map((item) => (
+                    <div 
+                      key={item.id} 
+                      className="p-4 hover:bg-gray-50 cursor-pointer flex justify-between items-center"
+                      onClick={() => selectCatalogItem(item)}
+                    >
+                      <div>
+                        <div className="font-medium">{item.itemCode}</div>
+                        <div className="text-sm text-gray-500">{item.description}</div>
+                        {item.category && (
+                          <div className="mt-1 text-xs inline-block bg-gray-100 text-gray-700 rounded-full px-2 py-0.5">
+                            {item.category}
+                          </div>
+                        )}
+                      </div>
+                      <div className="text-right">
+                        <div className="font-medium text-primary">{formatCurrency(item.defaultUnitPrice)}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Dialog>
   );
 }
