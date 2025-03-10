@@ -118,12 +118,12 @@ function BudgetPlanHeaderCard({
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2">
           <div>
             <CardTitle>{plan.planName}</CardTitle>
-            <CardDescription>
+            <CardDescription className="mt-2"> {/* Added mt-2 for spacing */}
               {plan.planSerialNumber && `Serial: ${plan.planSerialNumber}`}
               {plan.fundingSource && ` • ${plan.fundingSource} Funding`}
             </CardDescription>
           </div>
-          
+
           <Badge className={getBadgeColorClass(status.color)}>
             {status.label}
             {daysRemaining !== null && daysRemaining < 30 && status.label === 'Active' && 
@@ -132,24 +132,24 @@ function BudgetPlanHeaderCard({
           </Badge>
         </div>
       </CardHeader>
-      
+
       <CardContent>
         <div className="flex flex-col md:flex-row gap-6 justify-between">
           <div className="space-y-1">
             <div className="text-sm text-gray-500">Total Budget</div>
             <div className="text-2xl font-bold">${totalAllocated.toFixed(2)}</div>
           </div>
-          
+
           <div className="space-y-1">
             <div className="text-sm text-gray-500">Used</div>
             <div className="text-2xl font-bold">${totalUsed.toFixed(2)}</div>
           </div>
-          
+
           <div className="space-y-1">
             <div className="text-sm text-gray-500">Remaining</div>
             <div className="text-2xl font-bold">${remainingFunds.toFixed(2)}</div>
           </div>
-          
+
           <div className="space-y-1">
             <div className="text-sm text-gray-500">Usage</div>
             <div className="text-2xl font-bold">{usagePercentage.toFixed(1)}%</div>
@@ -322,22 +322,22 @@ export function BudgetPlanFullView({
   onSetActive
 }: BudgetPlanFullViewProps) {
   // No longer need tabs state as we're showing only items directly
-  
+
   // Format date with proper error handling
   const formatDate = (dateString: string | null) => {
     if (!dateString) return 'Not set';
-    
+
     try {
       return format(new Date(dateString), 'MMM d, yyyy');
     } catch (e) {
       return dateString;
     }
   };
-  
+
   // Calculate days remaining until plan end
   const calculateDaysRemaining = () => {
     if (!plan.endDate) return null;
-    
+
     try {
       const endDate = new Date(plan.endDate);
       const today = new Date();
@@ -347,26 +347,26 @@ export function BudgetPlanFullView({
       return null;
     }
   };
-  
+
   const daysRemaining = calculateDaysRemaining();
-  
+
   // Calculate financial summaries
   const totalAllocated = budgetItems.reduce((sum, item) => sum + item.totalPrice, 0);
   const totalUsed = budgetItems.reduce((sum, item) => sum + item.usedAmount, 0);
   const remainingFunds = Math.max(0, totalAllocated - totalUsed);
   const usagePercentage = totalAllocated > 0 ? (totalUsed / totalAllocated) * 100 : 0;
-  
+
   // Determine status based on usage and dates
   const getPlanStatus = () => {
     if (!plan.active) return { label: 'Inactive', color: 'gray' };
-    
+
     if (plan.endDate) {
       const endDate = new Date(plan.endDate);
       if (endDate < new Date()) {
         return { label: 'Expired', color: 'red' };
       }
     }
-    
+
     if (usagePercentage >= 100) {
       return { label: 'Depleted', color: 'red' };
     } else if (usagePercentage >= 90) {
@@ -374,12 +374,12 @@ export function BudgetPlanFullView({
     } else if (usagePercentage >= 70) {
       return { label: 'High Usage', color: 'yellow' };
     }
-    
+
     return { label: 'Active', color: 'green' };
   };
-  
+
   const status = getPlanStatus();
-  
+
   // Get status color class for various UI elements
   const getStatusColorClass = (percentage: number) => {
     if (percentage >= 100) return "bg-red-500";
@@ -387,7 +387,7 @@ export function BudgetPlanFullView({
     if (percentage >= 70) return "bg-yellow-500";
     return "bg-green-500";
   };
-  
+
   // Get badge color class
   const getBadgeColorClass = (color: string) => {
     switch (color) {
@@ -412,7 +412,7 @@ export function BudgetPlanFullView({
           <ChevronLeft className="h-4 w-4" />
           Back to Plans
         </Button>
-        
+
         <div className="flex items-center gap-2">
           {!plan.active && (
             <Button 
@@ -425,7 +425,7 @@ export function BudgetPlanFullView({
               Set as Active
             </Button>
           )}
-          
+
           <Button 
             variant="outline" 
             size="sm" 
@@ -435,7 +435,7 @@ export function BudgetPlanFullView({
             <CreditCard className="h-4 w-4" />
             Edit Items
           </Button>
-          
+
           <Button 
             variant="outline" 
             size="sm" 
@@ -447,7 +447,7 @@ export function BudgetPlanFullView({
           </Button>
         </div>
       </div>
-      
+
       {/* Plan header with key information */}
       <BudgetPlanHeaderCard 
         plan={plan}
@@ -461,14 +461,14 @@ export function BudgetPlanFullView({
         endDate={plan.endDate}
         formatDate={formatDate}
       />
-      
+
       {/* Summary Cards Section */}
       <div className="mb-8 space-y-4">
         <div className="border-b pb-2">
           <h3 className="text-lg font-semibold text-gray-800">Plan Summary</h3>
           <p className="text-sm text-gray-500">Overview of budget allocation and usage</p>
         </div>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
           {/* Financial summary card */}
           <Card className="shadow-sm">
@@ -514,7 +514,7 @@ export function BudgetPlanFullView({
               </div>
             </CardContent>
           </Card>
-          
+
           {/* Date information card */}
           <Card className="shadow-sm">
             <CardHeader className="pb-2 pt-4">
@@ -547,7 +547,7 @@ export function BudgetPlanFullView({
               </div>
             </CardContent>
           </Card>
-          
+
           {/* Items summary card */}
           <Card className="shadow-sm">
             <CardHeader className="pb-2 pt-4">
@@ -579,14 +579,14 @@ export function BudgetPlanFullView({
           </Card>
         </div>
       </div>
-      
+
       {/* Budget Items Detail Section */}
       <div className="space-y-4">
         <div className="border-b pb-2">
           <h3 className="text-lg font-semibold text-gray-800">Budget Item Details</h3>
           <p className="text-sm text-gray-500">Detailed information about each budget item and its usage</p>
         </div>
-        
+
         <div className="bg-white rounded-lg border shadow-sm p-5">
           <Table>
             <TableHeader>
