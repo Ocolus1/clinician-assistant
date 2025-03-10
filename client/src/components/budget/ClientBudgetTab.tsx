@@ -156,13 +156,12 @@ export default function ClientBudgetTab({
     updateItemsMutation.mutate({ planId, items });
   };
 
-  // Handle archiving a budget plan
+  // Handle deactivating a budget plan
   const handleArchivePlan = (plan: BudgetPlan) => {
     updatePlanMutation.mutate({ 
       planId: plan.id, 
       data: { 
-        isActive: false,
-        archived: true 
+        isActive: false 
       } 
     });
   };
