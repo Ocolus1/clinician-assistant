@@ -28,7 +28,18 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "../ui/popover";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "../ui/alert-dialog";
 import { 
+  AlertCircle,
   Calendar as CalendarIcon, 
   DollarSign, 
   Tag,
@@ -79,6 +90,10 @@ export function BudgetPlanCreateDialog({
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   type SelectedItem = BudgetItemCatalog & { quantity: number };
   const [selectedCatalogItems, setSelectedCatalogItems] = useState<SelectedItem[]>([]);
+  
+  // Confirmation dialog state
+  const [showConfirmation, setShowConfirmation] = useState(false);
+  const [pendingSubmitData, setPendingSubmitData] = useState<any>(null);
 
   // Generate unique plan serial number
   function generatePlanSerialNumber() {
@@ -98,9 +113,29 @@ export function BudgetPlanCreateDialog({
     },
   });
   
+  // Function to prepare plan data
+  function preparePlanData(values: CreatePlanValues) {
+    // Generate a guaranteed unique serial number if not provided
+    const serialNumber = values.planSerialNumber || generatePlanSerialNumber();
+    console.log("Using plan serial number for submission:", serialNumber);
+    
+    // Format available funds as a number with 2 decimal places
+    const availableFunds = Number(parseFloat(values.availableFunds.toString()).toFixed(2));
+    
+    // Create a structured plan object with proper data types
+    return {
+      planCode: String(values.planCode).trim(), // Ensure string and remove whitespace
+      planSerialNumber: String(serialNumber).trim(), // Ensure string and remove whitespace
+      isActive: Boolean(values.isActive), // Explicit boolean conversion
+      availableFunds: availableFunds, // Properly formatted number
+      endOfPlan: values.endOfPlan ? String(values.endOfPlan) : null // Ensure string or null
+    };
+  }
+  
+  // Function to submit the form data
   function handleSubmit(values: CreatePlanValues) {
     // The date is already a string from our date picker implementation
-    console.log("Submitting budget plan with endOfPlan:", values.endOfPlan);
+    console.log("Processing budget plan with endOfPlan:", values.endOfPlan);
     
     // Validate if budget exceeds available funds
     if (isBudgetExceeded()) {
@@ -112,22 +147,22 @@ export function BudgetPlanCreateDialog({
       return;
     }
     
-    // Generate a guaranteed unique serial number if not provided
-    const serialNumber = values.planSerialNumber || generatePlanSerialNumber();
-    console.log("Using plan serial number for submission:", serialNumber);
+    // Prepare the plan data
+    const planData = preparePlanData(values);
     
-    // Format available funds as a number with 2 decimal places
-    const availableFunds = Number(parseFloat(values.availableFunds.toString()).toFixed(2));
-    
-    // Create a structured plan object with proper data types
-    const planData = {
-      planCode: String(values.planCode).trim(), // Ensure string and remove whitespace
-      planSerialNumber: String(serialNumber).trim(), // Ensure string and remove whitespace
-      isActive: Boolean(values.isActive), // Explicit boolean conversion
-      availableFunds: availableFunds, // Properly formatted number
-      endOfPlan: values.endOfPlan ? String(values.endOfPlan) : null // Ensure string or null
-    };
-    
+    // If the plan is to be active and there's already an active plan
+    if (values.isActive && hasActivePlan) {
+      // Store the data and show confirmation dialog
+      setPendingSubmitData(planData);
+      setShowConfirmation(true);
+    } else {
+      // Submit directly if no active plan exists or new plan won't be active
+      submitPlan(planData);
+    }
+  }
+  
+  // Function that actually submits the plan data
+  function submitPlan(planData: any) {
     // Log what we're about to submit for debugging
     console.log("Submitting new budget plan with proper formatting:", JSON.stringify(planData, null, 2));
     
@@ -137,6 +172,7 @@ export function BudgetPlanCreateDialog({
     // Clear form state
     setSelectedCatalogItems([]); // Clear selected items
     setSelectedDate(undefined); // Clear selected date
+    setShowConfirmation(false); // Close confirmation dialog if open
     onOpenChange(false); // Close dialog
   }
 
@@ -605,6 +641,43 @@ export function BudgetPlanCreateDialog({
           </div>
         </DialogContent>
       </Dialog>
+      
+      {/* Confirmation Dialog for when creating a new active plan */}
+      <AlertDialog open={showConfirmation} onOpenChange={setShowConfirmation}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertCircle className="h-5 w-5 text-amber-500" />
+              Confirm Active Plan Change
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Creating this new budget plan as active will automatically deactivate 
+              the current active plan. All future sessions will use this new plan 
+              for billing and product allocation.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel 
+              onClick={() => {
+                // Keep the create dialog open but close confirmation
+                setShowConfirmation(false);
+              }}
+            >
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={() => {
+                // Proceed with plan creation and automatic deactivation of current plan
+                if (pendingSubmitData) {
+                  submitPlan(pendingSubmitData);
+                }
+              }}
+            >
+              Proceed
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   );
 }
