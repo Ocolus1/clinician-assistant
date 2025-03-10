@@ -24,6 +24,7 @@ import {
   XCircle,
   Clock
 } from "lucide-react";
+// These components are imported from local files
 import { BudgetPlanHeaderCard } from "./BudgetPlanHeaderCard";
 import { BudgetItemsDetailTable } from "./BudgetItemsDetailTable";
 import { BudgetUsageChart } from "./BudgetUsageChart";

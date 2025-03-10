@@ -203,7 +203,7 @@ export function BudgetPlanEditDialog({
   const handleQuantityChange = (itemId: number, newQuantity: string) => {
     setItems(items.map(item => {
       if (item.id === itemId) {
-        return { ...item, quantity: newQuantity };
+        return { ...item, quantity: parseInt(newQuantity) || 0 };
       }
       return item;
     }));

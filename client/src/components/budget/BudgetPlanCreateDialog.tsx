@@ -112,10 +112,10 @@ export function BudgetPlanCreateDialog({
         <Form {...form}>
           <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
             {hasActivePlan && (
-              <Alert variant="warning">
-                <AlertTriangle className="h-4 w-4" />
-                <AlertTitle>Warning</AlertTitle>
-                <AlertDescription>
+              <Alert variant="default" className="bg-amber-50 border-amber-200">
+                <AlertTriangle className="h-4 w-4 text-amber-600" />
+                <AlertTitle className="text-amber-800">Warning</AlertTitle>
+                <AlertDescription className="text-amber-700">
                   This client already has an active budget plan. New plan will be created as inactive.
                 </AlertDescription>
               </Alert>
