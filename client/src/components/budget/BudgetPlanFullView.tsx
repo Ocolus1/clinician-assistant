@@ -413,24 +413,28 @@ export function BudgetPlanFullView({
         </Button>
 
         <div className="flex items-center gap-2">
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={onToggleActive}
-            className={`gap-1 ${plan.active ? 'text-amber-600 hover:text-amber-700' : 'text-green-600 hover:text-green-700'}`}
-          >
-            {plan.active ? (
-              <>
-                <PowerIcon className="h-4 w-4" />
-                Deactivate Plan
-              </>
-            ) : (
-              <>
-                <CheckCircle className="h-4 w-4" />
-                Activate Plan
-              </>
-            )}
-          </Button>
+          {/* Only show the activate button if plan is not already active */}
+          {!plan.active ? (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={onToggleActive}
+              className="gap-1 text-green-600 hover:text-green-700"
+            >
+              <CheckCircle className="h-4 w-4" />
+              Activate Plan
+            </Button>
+          ) : (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="gap-1 text-gray-400 hover:text-gray-500 cursor-not-allowed"
+              disabled
+            >
+              <CheckCircle className="h-4 w-4" />
+              Active
+            </Button>
+          )}
           
           <Button 
             variant="outline" 

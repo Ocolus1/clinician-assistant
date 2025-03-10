@@ -308,10 +308,8 @@ export default function BudgetCardGrid({
               }}
               onToggleActive={() => {
                 setShowDetailsDialog(false);
-                // Call the appropriate function based on current active state
-                if (selectedPlan.active) {
-                  onArchivePlan(selectedPlan);
-                } else {
+                // Only call to activate plan, never deactivate from details view
+                if (!selectedPlan.active) {
                   onSetActivePlan(selectedPlan);
                 }
               }}
@@ -492,19 +490,7 @@ function BudgetPlanCard({
                 </Button>
               )}
               
-              {onArchive && (
-                <Button 
-                  variant="outline" 
-                  size="icon" 
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (onArchive) onArchive();
-                  }}
-                  title="Archive plan"
-                >
-                  <XCircle className="h-4 w-4 text-red-600" />
-                </Button>
-              )}
+              {/* Removed archive button */}
             </div>
           </div>
         )}

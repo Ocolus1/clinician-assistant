@@ -156,7 +156,7 @@ export default function ClientBudgetTab({
     updateItemsMutation.mutate({ planId, items });
   };
 
-  // Handle deactivating a budget plan
+  // Handle deactivating a budget plan - simplified to just set inactive
   const handleArchivePlan = (plan: BudgetPlan) => {
     updatePlanMutation.mutate({ 
       planId: plan.id, 
@@ -166,32 +166,44 @@ export default function ClientBudgetTab({
     });
   };
 
-  // Handle setting a plan as active
+  // Handle setting a plan as active - simplified to prevent errors
   const handleSetActivePlan = (plan: BudgetPlan) => {
-    // First, deactivate all plans
-    const deactivatePromises = budgetSettings
-      .filter((s: BudgetSettings) => s.isActive && s.id !== plan.id)
-      .map((s: BudgetSettings) => {
+    // First, deactivate all plans including currently active ones
+    const activeSettings = budgetSettings.filter((s: BudgetSettings) => Boolean(s.isActive));
+    
+    // If there are active plans, deactivate them first
+    if (activeSettings.length > 0) {
+      const deactivatePromises = activeSettings.map((s: BudgetSettings) => {
         return apiRequest('PUT', `/api/budget-settings/${s.id}`, { 
           isActive: false 
         });
       });
-
-    // After all plans are deactivated, activate the selected one
-    Promise.all(deactivatePromises)
-      .then(() => {
-        return updatePlanMutation.mutate({ 
-          planId: plan.id, 
-          data: { isActive: true } 
+      
+      // After all plans are deactivated, activate the selected one
+      Promise.all(deactivatePromises)
+        .then(() => {
+          // Small delay to ensure deactivations are complete
+          setTimeout(() => {
+            updatePlanMutation.mutate({ 
+              planId: plan.id, 
+              data: { isActive: true } 
+            });
+          }, 300);
+        })
+        .catch(error => {
+          toast({
+            title: "Error",
+            description: `Failed to deactivate current plans: ${error.message}`,
+            variant: "destructive",
+          });
         });
-      })
-      .catch(error => {
-        toast({
-          title: "Error",
-          description: `Failed to update plans: ${error.message}`,
-          variant: "destructive",
-        });
+    } else {
+      // No active plans, directly activate this one
+      updatePlanMutation.mutate({ 
+        planId: plan.id, 
+        data: { isActive: true } 
       });
+    }
   };
 
   // Check if there's an active plan
