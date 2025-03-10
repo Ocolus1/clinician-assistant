@@ -1,448 +1,389 @@
 import React, { useState, useEffect } from "react";
+import { z } from "zod";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
 } from "../ui/dialog";
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "../ui/form";
 import { Button } from "../ui/button";
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
-} from "../ui/table";
 import { Input } from "../ui/input";
-import { Label } from "../ui/label";
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from "../ui/select";
+import { BudgetPlan, BudgetItemDetail } from "./BudgetPlanFullView";
 import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "../ui/tabs";
-import type { BudgetItem, BudgetItemCatalog } from "@shared/schema";
-import { BudgetPlan } from "./BudgetPlanFullView";
-import { 
-  PlusCircle, 
-  Trash2, 
-  Package, 
-  DollarSign,
-  InfoIcon,
-  Save,
-  AlertTriangle
-} from "lucide-react";
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "../ui/table";
+import { Trash2, Plus } from "lucide-react";
+import type { BudgetItemCatalog } from "@shared/schema";
 import { Badge } from "../ui/badge";
-import { ScrollArea } from "../ui/scroll-area";
-import { useToast } from "@/hooks/use-toast";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "../ui/card";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "../ui/tooltip";
+
+// Form schema for budget items
+const budgetItemSchema = z.object({
+  id: z.number().optional(),
+  clientId: z.number(),
+  budgetSettingsId: z.number(),
+  itemCode: z.string().min(1, "Item code is required"),
+  description: z.string().min(1, "Description is required"),
+  category: z.string().nullable().optional(),
+  unitPrice: z.number().min(0, "Unit price must be positive"),
+  quantity: z.number().int().min(1, "Quantity must be at least 1"),
+});
+
+type BudgetItemFormValues = z.infer<typeof budgetItemSchema>;
+
+// Form for adding a new budget item
+interface AddItemFormProps {
+  onAddItem: (item: BudgetItemFormValues) => void;
+  catalogItems: BudgetItemCatalog[];
+  clientId: number;
+  budgetSettingsId: number;
+}
+
+function AddItemForm({ onAddItem, catalogItems, clientId, budgetSettingsId }: AddItemFormProps) {
+  const [selectedCatalogItem, setSelectedCatalogItem] = useState<BudgetItemCatalog | null>(null);
+  
+  const defaultValues: BudgetItemFormValues = {
+    clientId,
+    budgetSettingsId,
+    itemCode: "",
+    description: "",
+    category: null,
+    unitPrice: 0,
+    quantity: 1,
+  };
+  
+  const form = useForm<BudgetItemFormValues>({
+    resolver: zodResolver(budgetItemSchema),
+    defaultValues,
+  });
+  
+  // Auto-populate fields when a catalog item is selected
+  const handleCatalogItemSelect = (itemCode: string) => {
+    const item = catalogItems.find(item => item.itemCode === itemCode) || null;
+    setSelectedCatalogItem(item);
+    
+    if (item) {
+      form.setValue("itemCode", item.itemCode);
+      form.setValue("description", item.description);
+      form.setValue("category", item.category);
+      form.setValue("unitPrice", typeof item.defaultUnitPrice === 'string' 
+        ? parseFloat(item.defaultUnitPrice) 
+        : item.defaultUnitPrice);
+    }
+  };
+  
+  const onSubmit = (data: BudgetItemFormValues) => {
+    onAddItem(data);
+    form.reset(defaultValues);
+    setSelectedCatalogItem(null);
+  };
+  
+  return (
+    <div className="border rounded-md p-4 mt-6">
+      <h3 className="text-lg font-medium mb-4">Add Budget Item</h3>
+      
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <FormField
+              control={form.control}
+              name="itemCode"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Item Code</FormLabel>
+                  <FormControl>
+                    <select
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                      onChange={(e) => {
+                        field.onChange(e.target.value);
+                        handleCatalogItemSelect(e.target.value);
+                      }}
+                      value={field.value}
+                    >
+                      <option value="">Select an item</option>
+                      {catalogItems.map((item) => (
+                        <option key={item.id} value={item.itemCode}>
+                          {item.itemCode} - {item.description}
+                        </option>
+                      ))}
+                    </select>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="category"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Category</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="Category"
+                      {...field}
+                      value={field.value || ""}
+                      onChange={(e) => field.onChange(e.target.value || null)}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="description"
+              render={({ field }) => (
+                <FormItem className="md:col-span-2">
+                  <FormLabel>Description</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Item description" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="unitPrice"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Unit Price</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      placeholder="0.00"
+                      {...field}
+                      onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="quantity"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Quantity</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      placeholder="1"
+                      {...field}
+                      onChange={(e) => field.onChange(parseInt(e.target.value))}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+          
+          <div className="flex justify-end">
+            <Button type="submit" className="gap-2">
+              <Plus className="h-4 w-4" />
+              Add Item
+            </Button>
+          </div>
+        </form>
+      </Form>
+    </div>
+  );
+}
 
 interface BudgetPlanEditDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  plan: BudgetPlan | null;
-  budgetItems: BudgetItem[];
-  catalogItems?: BudgetItemCatalog[];
-  onSave: (items: BudgetItem[]) => void;
-  isLoading?: boolean;
+  plan: BudgetPlan;
+  budgetItems: BudgetItemDetail[];
+  catalogItems: BudgetItemCatalog[];
+  onSave: (items: any[]) => void;
 }
 
-/**
- * Dialog component for editing budget items within a plan
- */
 export function BudgetPlanEditDialog({
   open,
   onOpenChange,
   plan,
   budgetItems,
-  catalogItems = [],
+  catalogItems,
   onSave,
-  isLoading = false
 }: BudgetPlanEditDialogProps) {
-  const { toast } = useToast();
-  const [items, setItems] = useState<BudgetItem[]>([]);
-  const [selectedItemCode, setSelectedItemCode] = useState<string>("");
-  const [quantity, setQuantity] = useState<string>("1");
-  const [activeTab, setActiveTab] = useState<string>("existing");
-  const [categoryFilter, setCategoryFilter] = useState<string>("all");
-
-  // Reset form state when dialog opens/closes or plan changes
+  const [items, setItems] = useState<BudgetItemDetail[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  
+  // Initialize items from props
   useEffect(() => {
-    if (open && plan) {
-      setItems([...budgetItems]);
-      setSelectedItemCode("");
-      setQuantity("1");
-      setActiveTab("existing");
-      setCategoryFilter("all");
-    }
-  }, [open, plan, budgetItems]);
-
-  if (!plan) return null;
-
-  // Get the sum of all items' total costs
-  const totalCost = items.reduce((sum, item) => {
-    const quantity = typeof item.quantity === 'string' ? parseInt(item.quantity) || 0 : item.quantity || 0;
-    const unitPrice = typeof item.unitPrice === 'string' ? parseFloat(item.unitPrice) || 0 : item.unitPrice || 0;
-    return sum + (quantity * unitPrice);
-  }, 0);
-
-  // Get unique categories from catalog items
-  const uniqueCategories = Array.from(
-    new Set(catalogItems.map(item => item.category || 'Uncategorized'))
-  );
-
-  // Filter catalog items by category
-  const filteredCatalogItems = catalogItems.filter(item => 
-    categoryFilter === 'all' || (item.category || 'Uncategorized') === categoryFilter
-  );
+    setItems(budgetItems);
+  }, [budgetItems]);
   
-  // Add an item from the catalog
-  const handleAddItemFromCatalog = () => {
-    if (!selectedItemCode || !plan) return;
+  // Handle adding a new item
+  const handleAddItem = (newItem: BudgetItemFormValues) => {
+    // Create a temporary ID for new items (will be replaced on server)
+    const tempId = Math.min(...items.map(item => item.id), 0) - 1;
     
-    const selectedCatalogItem = catalogItems.find(item => item.itemCode === selectedItemCode);
+    const enhancedItem: BudgetItemDetail = {
+      ...newItem,
+      id: newItem.id || tempId,
+      name: null,
+      usedQuantity: 0,
+      remainingQuantity: newItem.quantity,
+      totalPrice: newItem.unitPrice * newItem.quantity,
+      usedAmount: 0,
+      remainingAmount: newItem.unitPrice * newItem.quantity,
+      usagePercentage: 0
+    };
     
-    if (!selectedCatalogItem) {
-      toast({
-        title: "Error",
-        description: "Selected item not found in catalog",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    const parsedQuantity = parseInt(quantity) || 0;
-    
-    if (parsedQuantity <= 0) {
-      toast({
-        title: "Error",
-        description: "Quantity must be greater than zero",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    // Check if item already exists
-    const existingItemIndex = items.findIndex(item => item.itemCode === selectedItemCode);
-    
-    if (existingItemIndex >= 0) {
-      // Update existing item
-      const updatedItems = [...items];
-      const existingItem = updatedItems[existingItemIndex];
-      const existingQuantity = typeof existingItem.quantity === 'string' 
-        ? parseInt(existingItem.quantity) || 0 
-        : existingItem.quantity || 0;
-      
-      updatedItems[existingItemIndex] = {
-        ...existingItem,
-        quantity: existingQuantity + parsedQuantity
-      };
-      
-      setItems(updatedItems);
-      toast({
-        title: "Success",
-        description: `Added ${parsedQuantity} more of ${selectedCatalogItem.description} to existing item`,
-        variant: "default",
-      });
-    } else {
-      // Create new item
-      const newItem: BudgetItem = {
-        id: -Date.now(), // Temporary negative ID until saved to database
-        clientId: plan.clientId,
-        budgetSettingsId: plan.id,
-        itemCode: selectedCatalogItem.itemCode,
-        name: selectedCatalogItem.description,
-        description: selectedCatalogItem.description,
-        unitPrice: selectedCatalogItem.defaultUnitPrice,
-        quantity: parsedQuantity,
-        category: selectedCatalogItem.category || null
-      };
-      
-      setItems([...items, newItem]);
-      toast({
-        title: "Success",
-        description: `Added ${parsedQuantity} ${selectedCatalogItem.description}`,
-        variant: "default",
-      });
-    }
-    
-    // Reset input fields
-    setSelectedItemCode("");
-    setQuantity("1");
+    setItems(prev => [...prev, enhancedItem]);
   };
   
-  // Remove an item
+  // Handle removing an item
   const handleRemoveItem = (itemId: number) => {
-    setItems(items.filter(item => item.id !== itemId));
+    setItems(prev => prev.filter(item => item.id !== itemId));
   };
   
-  // Update item quantity
-  const handleQuantityChange = (itemId: number, newQuantity: string) => {
-    setItems(items.map(item => {
-      if (item.id === itemId) {
-        return { ...item, quantity: parseInt(newQuantity) || 0 };
-      }
-      return item;
-    }));
-  };
-  
-  // Save changes
+  // Handle saving changes
   const handleSave = () => {
-    onSave(items);
-    toast({
-      title: "Success",
-      description: "Budget items saved successfully",
-      variant: "default",
-    });
+    setIsLoading(true);
+    
+    // Convert items to the format expected by the server
+    const itemsForServer = items.map(item => ({
+      id: item.id > 0 ? item.id : undefined, // Don't send temporary IDs
+      clientId: item.clientId,
+      budgetSettingsId: item.budgetSettingsId,
+      itemCode: item.itemCode,
+      description: item.description,
+      category: item.category,
+      unitPrice: item.unitPrice,
+      quantity: item.quantity
+    }));
+    
+    onSave(itemsForServer);
+    setIsLoading(false);
+  };
+  
+  // Format currency
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-AU', {
+      style: 'currency',
+      currency: 'AUD',
+      minimumFractionDigits: 2
+    }).format(amount);
   };
   
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Package className="h-5 w-5" />
-            Edit Budget Items
-          </DialogTitle>
+          <DialogTitle>Edit Budget Plan: {plan.planName}</DialogTitle>
           <DialogDescription>
-            Add, remove, or modify items in this budget plan. 
-            Currently editing: <span className="font-medium">{plan.planName}</span>
+            Add, edit or remove budget items for this plan.
           </DialogDescription>
         </DialogHeader>
         
-        <div className="grid grid-cols-1 lg:grid-cols-7 gap-4">
-          {/* Budget item list (5 columns) */}
-          <div className="lg:col-span-5 space-y-4">
-            <div className="flex justify-between items-center">
-              <h3 className="text-sm font-medium">Current Budget Items</h3>
-              <div className="text-sm">
-                Total: <span className="font-medium">${totalCost.toFixed(2)}</span>
-              </div>
-            </div>
-            
-            <ScrollArea className="h-[350px] rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-[100px]">Code</TableHead>
-                    <TableHead>Description</TableHead>
-                    <TableHead className="w-[100px] text-right">Unit Price</TableHead>
-                    <TableHead className="w-[80px] text-right">Qty</TableHead>
-                    <TableHead className="w-[100px] text-right">Total</TableHead>
-                    <TableHead className="w-[50px] text-right"></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {items.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={6} className="text-center py-4 text-gray-500">
-                        <AlertTriangle className="h-5 w-5 mx-auto mb-2 text-gray-400" />
-                        <p>No budget items in this plan yet. Add items below.</p>
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    items.map(item => {
-                      const itemQuantity = typeof item.quantity === 'string' 
-                        ? parseInt(item.quantity) || 0 
-                        : item.quantity || 0;
-                      
-                      const itemUnitPrice = typeof item.unitPrice === 'string' 
-                        ? parseFloat(item.unitPrice) || 0 
-                        : item.unitPrice || 0;
-                      
-                      const totalPrice = itemQuantity * itemUnitPrice;
-                      
-                      return (
-                        <TableRow key={item.id}>
-                          <TableCell className="font-mono text-sm">
-                            {item.itemCode}
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex flex-col">
-                              <span>{item.name || item.description}</span>
-                              {item.category && (
-                                <Badge variant="outline" className="w-fit mt-1">
-                                  {item.category}
-                                </Badge>
-                              )}
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-right">
-                            ${itemUnitPrice.toFixed(2)}
-                          </TableCell>
-                          <TableCell>
-                            <Input
-                              type="number"
-                              min="1"
-                              value={item.quantity}
-                              onChange={(e) => handleQuantityChange(item.id, e.target.value)}
-                              className="w-16 text-right"
-                            />
-                          </TableCell>
-                          <TableCell className="text-right font-medium">
-                            ${totalPrice.toFixed(2)}
-                          </TableCell>
-                          <TableCell>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleRemoveItem(item.id)}
-                              className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })
-                  )}
-                </TableBody>
-              </Table>
-            </ScrollArea>
+        <div className="mt-4">
+          <div className="flex justify-between mb-2">
+            <Badge variant="outline" className="text-base font-medium">
+              Available Funds: {formatCurrency(plan.availableFunds)}
+            </Badge>
+            <Badge variant={plan.active ? "default" : "outline"} className="text-base">
+              {plan.active ? "Active Plan" : "Inactive Plan"}
+            </Badge>
           </div>
           
-          {/* Add item form (2 columns) */}
-          <div className="lg:col-span-2">
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium">Add Items</CardTitle>
-                <CardDescription>
-                  Select items from the catalog
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Tabs defaultValue="existing" value={activeTab} onValueChange={setActiveTab}>
-                  <TabsList className="grid w-full grid-cols-1">
-                    <TabsTrigger value="existing">Catalog Items</TabsTrigger>
-                  </TabsList>
-                  
-                  <TabsContent value="existing" className="space-y-4 mt-3">
-                    <div className="space-y-3">
-                      <div>
-                        <Label htmlFor="categoryFilter">Category</Label>
-                        <Select
-                          value={categoryFilter}
-                          onValueChange={(value) => setCategoryFilter(value)}
+          {/* Current items table */}
+          <div className="border rounded-md">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Item Code</TableHead>
+                  <TableHead>Description</TableHead>
+                  <TableHead>Category</TableHead>
+                  <TableHead className="text-right">Unit Price</TableHead>
+                  <TableHead className="text-right">Quantity</TableHead>
+                  <TableHead className="text-right">Total</TableHead>
+                  <TableHead></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {items.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                      No budget items added yet. Add items below.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  items.map((item) => (
+                    <TableRow key={item.id}>
+                      <TableCell className="font-medium">{item.itemCode}</TableCell>
+                      <TableCell>{item.description}</TableCell>
+                      <TableCell>{item.category || "—"}</TableCell>
+                      <TableCell className="text-right">{formatCurrency(item.unitPrice)}</TableCell>
+                      <TableCell className="text-right">{item.quantity}</TableCell>
+                      <TableCell className="text-right">{formatCurrency(item.totalPrice)}</TableCell>
+                      <TableCell>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          onClick={() => handleRemoveItem(item.id)}
+                          className="text-red-500 hover:text-red-700 hover:bg-red-50"
                         >
-                          <SelectTrigger id="categoryFilter">
-                            <SelectValue placeholder="Select a category" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="all">All Categories</SelectItem>
-                            {uniqueCategories.map((category) => (
-                              <SelectItem key={category} value={category}>
-                                {category}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      
-                      <div>
-                        <Label htmlFor="itemSelect">Item</Label>
-                        <Select
-                          value={selectedItemCode}
-                          onValueChange={(value) => setSelectedItemCode(value)}
-                        >
-                          <SelectTrigger id="itemSelect">
-                            <SelectValue placeholder="Select an item" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {filteredCatalogItems.map((item) => (
-                              <SelectItem key={item.id} value={item.itemCode}>
-                                {item.description}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      
-                      <div>
-                        <Label htmlFor="quantity">Quantity</Label>
-                        <Input
-                          id="quantity"
-                          type="number"
-                          min="1"
-                          value={quantity}
-                          onChange={(e) => setQuantity(e.target.value)}
-                        />
-                      </div>
-                      
-                      {selectedItemCode && (
-                        <div className="text-sm p-2 bg-gray-50 rounded-md">
-                          <p className="text-gray-600">
-                            Unit Price: $
-                            {(catalogItems.find(item => item.itemCode === selectedItemCode)?.defaultUnitPrice || 0).toFixed(2)}
-                          </p>
-                          <p className="text-gray-600">
-                            Total: $
-                            {((catalogItems.find(item => item.itemCode === selectedItemCode)?.defaultUnitPrice || 0) * 
-                              (parseInt(quantity) || 0)).toFixed(2)}
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  </TabsContent>
-                </Tabs>
-              </CardContent>
-              <CardFooter>
-                <Button 
-                  className="w-full"
-                  disabled={!selectedItemCode || parseInt(quantity) <= 0 || isLoading}
-                  onClick={handleAddItemFromCatalog}
-                >
-                  <PlusCircle className="mr-2 h-4 w-4" />
-                  Add Item
-                </Button>
-              </CardFooter>
-            </Card>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+          
+          {/* Add new item form */}
+          <AddItemForm 
+            onAddItem={handleAddItem} 
+            catalogItems={catalogItems}
+            clientId={plan.clientId}
+            budgetSettingsId={plan.id}
+          />
+          
+          {/* Total calculation */}
+          <div className="mt-6 text-right">
+            <div className="text-sm text-gray-500 mb-1">Total Budget Value</div>
+            <div className="text-2xl font-bold">
+              {formatCurrency(items.reduce((sum, item) => sum + item.totalPrice, 0))}
+            </div>
           </div>
         </div>
         
-        <DialogFooter>
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div className="mr-auto text-sm text-gray-500 flex items-center">
-                  <InfoIcon className="h-4 w-4 mr-1" />
-                  <span>Available Funds: ${plan.availableFunds.toFixed(2)}</span>
-                </div>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Total allocated budget for this plan</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-          
+        <DialogFooter className="mt-6">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
           <Button onClick={handleSave} disabled={isLoading}>
-            <Save className="mr-2 h-4 w-4" />
-            Save Changes
+            {isLoading ? "Saving..." : "Save Changes"}
           </Button>
         </DialogFooter>
       </DialogContent>
