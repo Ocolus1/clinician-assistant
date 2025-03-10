@@ -19,7 +19,8 @@ import {
   CreditCard,
   CheckCircle,
   XCircle,
-  Clock
+  Clock,
+  Power as PowerIcon
 } from "lucide-react";
 import {
   Table, 
@@ -309,8 +310,7 @@ interface BudgetPlanFullViewProps {
   budgetItems: BudgetItemDetail[];
   onBack: () => void;
   onEdit: () => void;
-  onArchive: () => void;
-  onSetActive: () => void;
+  onToggleActive: () => void;
 }
 
 export function BudgetPlanFullView({
@@ -318,8 +318,7 @@ export function BudgetPlanFullView({
   budgetItems,
   onBack,
   onEdit,
-  onArchive,
-  onSetActive
+  onToggleActive
 }: BudgetPlanFullViewProps) {
   // No longer need tabs state as we're showing only items directly
 
@@ -414,18 +413,25 @@ export function BudgetPlanFullView({
         </Button>
 
         <div className="flex items-center gap-2">
-          {!plan.active && (
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={onSetActive}
-              className="gap-1"
-            >
-              <CheckCircle className="h-4 w-4" />
-              Set as Active
-            </Button>
-          )}
-
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={onToggleActive}
+            className={`gap-1 ${plan.active ? 'text-amber-600 hover:text-amber-700' : 'text-green-600 hover:text-green-700'}`}
+          >
+            {plan.active ? (
+              <>
+                <PowerIcon className="h-4 w-4" />
+                Deactivate Plan
+              </>
+            ) : (
+              <>
+                <CheckCircle className="h-4 w-4" />
+                Activate Plan
+              </>
+            )}
+          </Button>
+          
           <Button 
             variant="outline" 
             size="sm" 
@@ -434,16 +440,6 @@ export function BudgetPlanFullView({
           >
             <CreditCard className="h-4 w-4" />
             Edit Items
-          </Button>
-
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={onArchive}
-            className="gap-1 text-red-600 hover:text-red-700"
-          >
-            <XCircle className="h-4 w-4" />
-            Archive Plan
           </Button>
         </div>
       </div>
