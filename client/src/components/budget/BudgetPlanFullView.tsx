@@ -166,6 +166,26 @@ interface BudgetItemsDetailTableProps {
 
 // Implement BudgetItemsDetailTable component inline
 function BudgetItemsDetailTable({ items }: BudgetItemsDetailTableProps) {
+  // Function to format tooltip content
+  const getTooltipContent = (item: BudgetItemDetail) => {
+    return (
+      <div className="space-y-1 p-1">
+        <div className="flex justify-between gap-4">
+          <span className="font-medium">Total:</span>
+          <span>{item.quantity}</span>
+        </div>
+        <div className="flex justify-between gap-4">
+          <span className="font-medium">Used:</span>
+          <span>{item.usedQuantity}</span>
+        </div>
+        <div className="flex justify-between gap-4">
+          <span className="font-medium">Remaining:</span>
+          <span>{item.remainingQuantity}</span>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -178,34 +198,49 @@ function BudgetItemsDetailTable({ items }: BudgetItemsDetailTableProps) {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Item Code</TableHead>
-              <TableHead>Description</TableHead>
-              <TableHead>Category</TableHead>
+              <TableHead className="w-[140px]">Item Code</TableHead>
+              <TableHead className="w-[280px]">Description</TableHead>
               <TableHead className="text-right">Unit Price</TableHead>
-              <TableHead className="text-right">Quantity</TableHead>
-              <TableHead className="text-right">Used</TableHead>
-              <TableHead className="text-right">Remaining</TableHead>
+              <TableHead>Usage</TableHead>
               <TableHead className="text-right">Total</TableHead>
-              <TableHead className="text-right">Usage %</TableHead>
+              <TableHead className="text-right w-[80px]">Usage %</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {items.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={9} className="text-center text-muted-foreground">
+                <TableCell colSpan={6} className="text-center text-muted-foreground">
                   No budget items found
                 </TableCell>
               </TableRow>
             ) : (
               items.map((item) => (
                 <TableRow key={item.id}>
-                  <TableCell className="font-medium">{item.itemCode}</TableCell>
-                  <TableCell>{item.description}</TableCell>
-                  <TableCell>{item.category || 'Uncategorized'}</TableCell>
+                  <TableCell className="font-medium whitespace-nowrap">{item.itemCode}</TableCell>
+                  <TableCell>
+                    <div className="line-clamp-2" title={item.description}>
+                      {item.description}
+                    </div>
+                  </TableCell>
                   <TableCell className="text-right">${item.unitPrice.toFixed(2)}</TableCell>
-                  <TableCell className="text-right">{item.quantity}</TableCell>
-                  <TableCell className="text-right">{item.usedQuantity}</TableCell>
-                  <TableCell className="text-right">{item.remainingQuantity}</TableCell>
+                  <TableCell>
+                    <div className="relative group">
+                      <div className="h-4 w-full bg-gray-100 rounded-full overflow-hidden">
+                        <div 
+                          className={`h-full ${
+                            item.usagePercentage >= 90 ? 'bg-red-500' : 
+                            item.usagePercentage >= 70 ? 'bg-amber-500' : 
+                            'bg-green-500'
+                          }`}
+                          style={{ width: `${Math.min(100, item.usagePercentage)}%` }}
+                        ></div>
+                      </div>
+                      <div className="absolute opacity-0 group-hover:opacity-100 transition-opacity bg-gray-800 text-white text-xs rounded p-2 z-10 bottom-full left-1/2 transform -translate-x-1/2 mb-1 min-w-[120px]">
+                        {getTooltipContent(item)}
+                        <div className="border-t-gray-800 border-t-8 border-l-transparent border-l-4 border-r-transparent border-r-4 absolute top-full left-1/2 transform -translate-x-1/2"></div>
+                      </div>
+                    </div>
+                  </TableCell>
                   <TableCell className="text-right">${item.totalPrice.toFixed(2)}</TableCell>
                   <TableCell className="text-right">{item.usagePercentage.toFixed(1)}%</TableCell>
                 </TableRow>
