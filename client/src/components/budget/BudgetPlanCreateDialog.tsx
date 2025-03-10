@@ -102,6 +102,16 @@ export function BudgetPlanCreateDialog({
     // The date is already a string from our date picker implementation
     console.log("Submitting budget plan with endOfPlan:", values.endOfPlan);
     
+    // Validate if budget exceeds available funds
+    if (isBudgetExceeded()) {
+      // If budget exceeds, don't submit and show an error via form state
+      form.setError("availableFunds", { 
+        type: "manual", 
+        message: "Total budget cannot exceed available funds" 
+      });
+      return;
+    }
+    
     // We don't send selected products in this initial form
     // Products will be added after the plan is created
     onSubmit(values);
@@ -181,6 +191,18 @@ export function BudgetPlanCreateDialog({
   // Calculate row total for an item
   const calculateRowTotal = (item: SelectedItem) => {
     return item.defaultUnitPrice * item.quantity;
+  };
+  
+  // Calculate remaining funds after allocated budget
+  const calculateRemainingFunds = () => {
+    const availableFunds = form.watch("availableFunds") || 0;
+    const totalBudget = calculateTotalBudget();
+    return availableFunds - totalBudget;
+  };
+  
+  // Check if budget exceeds available funds
+  const isBudgetExceeded = () => {
+    return calculateRemainingFunds() < 0;
   };
 
   // We're not automatically updating available funds anymore since the user needs to enter it manually
@@ -427,9 +449,29 @@ export function BudgetPlanCreateDialog({
                           </div>
                         ))}
                       </div>
-                      <div className="p-3 border-t border-gray-200 flex justify-between">
-                        <div className="font-medium">Total Budget:</div>
-                        <div className="font-bold text-gray-800">{formatCurrency(calculateTotalBudget())}</div>
+                      <div className="p-3 border-t border-gray-200 flex flex-col space-y-2">
+                        <div className="flex justify-between">
+                          <div className="font-medium">Total Budget:</div>
+                          <div className="font-bold text-gray-800">{formatCurrency(calculateTotalBudget())}</div>
+                        </div>
+                        
+                        <div className="flex justify-between">
+                          <div className="font-medium">Available Funds:</div>
+                          <div className="font-medium text-gray-800">{formatCurrency(form.watch("availableFunds") || 0)}</div>
+                        </div>
+                        
+                        <div className="flex justify-between border-t border-gray-200 pt-2">
+                          <div className="font-medium">Remaining Funds:</div>
+                          <div className={cn(
+                            "font-bold",
+                            isBudgetExceeded() ? "text-red-600" : "text-green-600"
+                          )}>
+                            {formatCurrency(calculateRemainingFunds())}
+                            {isBudgetExceeded() && 
+                              <span className="ml-2 text-xs italic text-red-500">Exceeds available funds</span>
+                            }
+                          </div>
+                        </div>
                       </div>
                     </div>
                   )}
@@ -439,7 +481,11 @@ export function BudgetPlanCreateDialog({
                   <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                     Cancel
                   </Button>
-                  <Button type="submit" disabled={isLoading}>
+                  <Button 
+                    type="submit" 
+                    disabled={isLoading || (selectedCatalogItems.length > 0 && isBudgetExceeded())}
+                    title={isBudgetExceeded() ? "Total budget cannot exceed available funds" : ""}
+                  >
                     {isLoading ? "Creating..." : "Create Plan"}
                   </Button>
                 </DialogFooter>
