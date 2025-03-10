@@ -63,7 +63,7 @@ type EnhancedBudgetItem = BudgetItem & {
 }
 
 interface BudgetPlansViewProps {
-  budgetSettings: BudgetSettings | undefined;
+  budgetSettings: BudgetSettings[] | undefined;
   budgetItems: BudgetItem[];
   onCreatePlan: () => void;
   onEditPlan: (plan: BudgetPlan) => void;
@@ -92,9 +92,9 @@ export default function BudgetPlansView({
   
   // Fetch sessions for the client to calculate actual used funds
   const { data: clientSessions = [] } = useQuery<any[]>({
-    queryKey: ['/api/clients', budgetSettings?.clientId, 'sessions'],
+    queryKey: ['/api/clients', budgetSettings?.[0]?.clientId, 'sessions'],
     // Only fetch if we have a client ID
-    enabled: !!budgetSettings?.clientId,
+    enabled: !!budgetSettings?.[0]?.clientId,
   });
 
   // Enhance budget items with catalog details and calculate used quantities
@@ -153,66 +153,70 @@ export default function BudgetPlansView({
   
   // Convert budget settings to budget plan with additional properties
   const budgetPlans = React.useMemo(() => {
-    if (!budgetSettings) return [];
+    if (!budgetSettings || !budgetSettings.length) return [];
     
-    // Calculate total available funds from budget items (sum of all budget item rows)
-    const availableFunds = budgetItems.reduce((total, item) => {
-      const unitPrice = typeof item.unitPrice === 'string'
-        ? parseFloat(item.unitPrice) || 0
-        : item.unitPrice || 0;
-        
-      const quantity = typeof item.quantity === 'string'
-        ? parseInt(item.quantity) || 0
-        : item.quantity || 0;
-        
-      return total + (unitPrice * quantity);
-    }, 0);
-    
-    // Calculate used funds based on session usage
-    const totalUsed = clientSessions.reduce((total: number, session: any) => {
-      // Skip sessions without products
-      if (!session.products || !Array.isArray(session.products)) return total;
+    // Process each budget setting into a budget plan
+    return budgetSettings.map(setting => {
+      // Get budget items for this specific budget setting
+      const settingItems = budgetItems.filter(item => item.budgetSettingsId === setting.id);
       
-      // Sum up all products used in this session
-      return total + session.products.reduce((sessionTotal: number, product: any) => {
-        const unitPrice = typeof product.unitPrice === 'string'
-          ? parseFloat(product.unitPrice) || 0
-          : product.unitPrice || 0;
+      // Calculate total available funds from budget items (sum of all budget item rows)
+      const availableFunds = settingItems.reduce((total, item) => {
+        const unitPrice = typeof item.unitPrice === 'string'
+          ? parseFloat(item.unitPrice) || 0
+          : item.unitPrice || 0;
           
-        const quantity = typeof product.quantity === 'string'
-          ? parseInt(product.quantity) || 0
-          : product.quantity || 0;
+        const quantity = typeof item.quantity === 'string'
+          ? parseInt(item.quantity) || 0
+          : item.quantity || 0;
           
-        return sessionTotal + (unitPrice * quantity);
+        return total + (unitPrice * quantity);
       }, 0);
-    }, 0);
-    
-    const percentUsed = availableFunds > 0 ? (totalUsed / availableFunds) * 100 : 0;
-    
-    // Log the budget calculations to help with debugging
-    console.log("Creating budget plan from settings:", budgetSettings);
-    console.log("Budget items count:", budgetItems.length);
-    console.log("Available funds (sum of all budget items):", availableFunds);
-    console.log("Total used (from sessions):", totalUsed);
-    console.log("Percent used:", percentUsed.toFixed(2) + "%");
-    
-    // Create the budget plan with all the properties we need
-    const plan: BudgetPlan = {
-      ...budgetSettings,
-      active: budgetSettings.isActive !== undefined ? !!budgetSettings.isActive : true,
-      archived: false, // This will be added to the schema later
-      totalUsed,
-      availableFunds, // Override with calculated value
-      itemCount: budgetItems.length,
-      percentUsed,
-      // Map database fields to the fields used in UI with improved fallbacks
-      planName: budgetSettings.planCode || `Plan ${budgetSettings.planSerialNumber?.substr(-6) || ''}`.trim() || 'Default Plan',
-      fundingSource: 'NDIS', // Default until we add this to schema
-      startDate: budgetSettings.createdAt?.toString() || null,
-      endDate: budgetSettings.endOfPlan || null
-    };
-    
-    return [plan];
+      
+      // Calculate used funds based on session usage
+      const totalUsed = clientSessions.reduce((total: number, session: any) => {
+        // Skip sessions without products
+        if (!session.products || !Array.isArray(session.products)) return total;
+        
+        // Sum up all products used in this session that belong to this plan
+        return total + session.products.reduce((sessionTotal: number, product: any) => {
+          // Only count products that belong to this budget setting
+          const budgetItem = settingItems.find(item => 
+            item.itemCode === product.productCode || item.itemCode === product.itemCode
+          );
+          
+          if (!budgetItem) return sessionTotal;
+          
+          const unitPrice = typeof product.unitPrice === 'string'
+            ? parseFloat(product.unitPrice) || 0
+            : product.unitPrice || 0;
+            
+          const quantity = typeof product.quantity === 'string'
+            ? parseInt(product.quantity) || 0
+            : product.quantity || 0;
+            
+          return sessionTotal + (unitPrice * quantity);
+        }, 0);
+      }, 0);
+      
+      const percentUsed = availableFunds > 0 ? (totalUsed / availableFunds) * 100 : 0;
+      
+      // Create the budget plan with all the properties we need
+      return {
+        ...setting,
+        active: setting.isActive !== undefined ? !!setting.isActive : false,
+        archived: false, // This will be added to the schema later
+        totalUsed,
+        availableFunds: setting.availableFunds, // Use what's stored in the database
+        itemCount: settingItems.length,
+        percentUsed,
+        // Map database fields to the fields used in UI with improved fallbacks
+        planName: setting.planCode || `Plan ${setting.planSerialNumber?.substr(-6) || ''}`.trim() || 'Default Plan',
+        fundingSource: 'NDIS', // Default until we add this to schema
+        startDate: setting.createdAt?.toString() || null,
+        endDate: setting.endOfPlan || null
+      } as BudgetPlan;
+    });
   }, [budgetSettings, budgetItems, clientSessions]);
   
   // Handle view details click
@@ -317,12 +321,12 @@ export default function BudgetPlansView({
       </div>
       
       {/* Edit Budget Plan Dialog */}
-      {selectedPlan && budgetSettings && (
+      {selectedPlan && budgetSettings && budgetSettings.length > 0 && (
         <EditBudgetPlanDialog
           open={editDialogOpen}
           onOpenChange={setEditDialogOpen}
           plan={selectedPlan}
-          clientId={budgetSettings.clientId}
+          clientId={selectedPlan.clientId}
         />
       )}
 

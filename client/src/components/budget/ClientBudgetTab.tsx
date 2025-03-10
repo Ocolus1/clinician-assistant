@@ -398,7 +398,7 @@ export default function ClientBudgetTab({
     <div className="space-y-6">
       {/* Use the BudgetPlansView which now has the toggle component */}
       <BudgetPlansView
-        budgetSettings={budgetSettings.length > 0 ? budgetSettings[0] : undefined}
+        budgetSettings={budgetSettings}
         budgetItems={budgetItems}
         onCreatePlan={handleCreatePlan}
         onEditPlan={handleUpdatePlan}
