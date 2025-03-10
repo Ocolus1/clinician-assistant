@@ -355,19 +355,19 @@ export function BudgetPlanCreateDialog({
                     </div>
                   ) : (
                     <div className="bg-gray-50 rounded-md overflow-hidden">
-                      <div className="p-3 bg-gray-100 border-b border-gray-200 text-xs font-medium text-gray-700 grid grid-cols-16">
+                      <div className="p-3 bg-gray-100 border-b border-gray-200 text-xs font-medium text-gray-700 grid grid-cols-12">
                         <div className="col-span-3">Item Code</div>
-                        <div className="col-span-5">Description</div>
+                        <div className="col-span-3">Description</div>
                         <div className="col-span-2 text-right">Unit Price</div>
                         <div className="col-span-2 text-center">Quantity</div>
-                        <div className="col-span-2 text-right">Total</div>
-                        <div className="col-span-2 text-right">Actions</div>
+                        <div className="col-span-1 text-right">Total</div>
+                        <div className="col-span-1 text-right">Actions</div>
                       </div>
                       <div className="max-h-[200px] overflow-y-auto divide-y divide-gray-200">
                         {selectedCatalogItems.map((item) => (
-                          <div key={item.id} className="p-3 text-sm grid grid-cols-16 items-center hover:bg-gray-50">
+                          <div key={item.id} className="p-3 text-sm grid grid-cols-12 items-center hover:bg-gray-50">
                             <div className="col-span-3 font-medium">{item.itemCode}</div>
-                            <div className="col-span-5 text-gray-600 truncate">{item.description}</div>
+                            <div className="col-span-3 text-gray-600 truncate">{item.description}</div>
                             <div className="col-span-2 text-right font-medium">{formatCurrency(item.defaultUnitPrice)}</div>
                             <div className="col-span-2 flex justify-center items-center">
                               <div className="flex bg-white rounded border border-gray-300 w-20">
@@ -407,10 +407,10 @@ export function BudgetPlanCreateDialog({
                                 </button>
                               </div>
                             </div>
-                            <div className="col-span-2 text-right font-medium text-primary-600">
+                            <div className="col-span-1 text-right font-medium text-primary">
                               {formatCurrency(calculateRowTotal(item))}
                             </div>
-                            <div className="col-span-2 text-right">
+                            <div className="col-span-1 text-right">
                               <Button
                                 type="button"
                                 variant="ghost"
