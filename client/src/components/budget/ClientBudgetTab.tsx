@@ -13,9 +13,15 @@ import BudgetCardGrid from "./BudgetCardGrid";
 
 interface ClientBudgetTabProps {
   clientId: number;
+  budgetSettings?: BudgetSettings;
+  budgetItems?: BudgetItem[];
 }
 
-export default function ClientBudgetTab({ clientId }: ClientBudgetTabProps) {
+export default function ClientBudgetTab({ 
+  clientId,
+  budgetSettings: initialBudgetSettings,
+  budgetItems: initialBudgetItems 
+}: ClientBudgetTabProps) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 

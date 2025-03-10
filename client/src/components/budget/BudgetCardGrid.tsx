@@ -1,152 +1,350 @@
-
-import { useState } from "react";
-import type { BudgetSettings, BudgetItem, BudgetItemCatalog } from "@shared/schema";
-import { BudgetPlan } from "./BudgetPlanFullView";
+import React, { useState } from "react";
 import { 
   Card, 
-  CardHeader, 
-  CardTitle, 
-  CardDescription, 
   CardContent, 
-  CardFooter 
+  CardDescription, 
+  CardFooter, 
+  CardHeader, 
+  CardTitle 
 } from "../ui/card";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
 import { Progress } from "../ui/progress";
+import { Skeleton } from "../ui/skeleton";
 import { 
-  DollarSign, 
   PlusCircle, 
-  Info, 
-  Edit, 
-  Archive, 
-  Check, 
-  MoreHorizontal,
-  Star,
-  Calendar
+  DollarSign, 
+  Calendar, 
+  CheckCircle, 
+  AlertTriangle,
+  Clock,
+  XCircle,
+  Edit
 } from "lucide-react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "../ui/dropdown-menu";
-import { format, differenceInDays } from "date-fns";
-import { BudgetPlanDetailsDialog } from "./BudgetPlanDetailsDialog";
-import { BudgetPlanEditDialog } from "./BudgetPlanEditDialog";
-import { BudgetPlanCreateDialog } from "./BudgetPlanCreateDialog";
+import { BudgetPlan, BudgetItemDetail } from "./BudgetPlanFullView";
+import { format, differenceInDays, isAfter } from "date-fns";
+import type { BudgetSettings, BudgetItem, BudgetItemCatalog } from "@shared/schema";
+
+// Import your dialogs components here
+// import { BudgetPlanCreateDialog } from "./BudgetPlanCreateDialog";
+// import { BudgetPlanEditDialog } from "./BudgetPlanEditDialog";
+// import { BudgetPlanDetailsDialog } from "./BudgetPlanDetailsDialog";
 
 interface BudgetCardGridProps {
   budgetSettings: BudgetSettings[];
   budgetItems: BudgetItem[];
-  catalogItems?: BudgetItemCatalog[];
+  catalogItems: BudgetItemCatalog[];
+  clientSessions: any[];
   onCreatePlan: (data: any) => void;
   onUpdatePlan: (data: any) => void;
   onUpdateItems: (planId: number, items: BudgetItem[]) => void;
   onArchivePlan: (plan: BudgetPlan) => void;
   onSetActivePlan: (plan: BudgetPlan) => void;
-  clientSessions?: any[];
   isLoading?: boolean;
-}
-
-export function createBudgetPlan(settings: BudgetSettings, items: BudgetItem[] = []): BudgetPlan {
-  // Calculate total used
-  const totalUsed = items.reduce((sum, item) => {
-    const unitPrice = typeof item.unitPrice === 'string' 
-      ? parseFloat(item.unitPrice) || 0 
-      : item.unitPrice || 0;
-      
-    const quantity = typeof item.quantity === 'string' 
-      ? parseInt(item.quantity) || 0 
-      : item.quantity || 0;
-      
-    return sum + (unitPrice * quantity);
-  }, 0);
-  
-  // Parse available funds
-  const availableFunds = typeof settings.availableFunds === 'string' 
-    ? parseFloat(settings.availableFunds) || 0
-    : settings.availableFunds || 0;
-  
-  // Calculate percentage used
-  const percentUsed = availableFunds > 0 
-    ? (totalUsed / availableFunds) * 100
-    : 0;
-    
-  // Calculate remaining funds
-  const remainingFunds = Math.max(0, availableFunds - totalUsed);
-  
-  return {
-    id: settings.id,
-    clientId: settings.clientId,
-    planCode: settings.planCode || "",
-    planName: settings.planCode || `Plan ${settings.planSerialNumber?.substr(-6) || ''}`.trim() || 'Default Plan',
-    planSerialNumber: settings.planSerialNumber || "",
-    active: settings.isActive || false,
-    availableFunds,
-    endDate: settings.endOfPlan || null,
-    startDate: settings.createdAt?.toString() || null,
-    totalUsed,
-    percentUsed,
-    itemCount: items.length,
-    remainingFunds,
-    archived: false,
-    fundingSource: 'NDIS', // Default until we add this to schema
-  };
 }
 
 export default function BudgetCardGrid({
   budgetSettings,
   budgetItems,
-  catalogItems = [],
+  catalogItems,
+  clientSessions,
   onCreatePlan,
   onUpdatePlan,
   onUpdateItems,
   onArchivePlan,
   onSetActivePlan,
-  clientSessions = [],
   isLoading = false
 }: BudgetCardGridProps) {
-  // Dialog state
+  // Dialog states
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [showDetailsDialog, setShowDetailsDialog] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<BudgetPlan | null>(null);
-  const [detailsOpen, setDetailsOpen] = useState(false);
-  const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const [createDialogOpen, setCreateDialogOpen] = useState(false);
   
-  // Convert budget settings to plans with calculated properties
-  const budgetPlans: BudgetPlan[] = budgetSettings.map(settings => {
-    const itemsForSettings = budgetItems.filter(
-      item => item.budgetSettingsId === settings.id
-    );
+  // Calculate usage and enhance budget settings with additional information
+  const enhancedBudgetSettings = budgetSettings.map(setting => {
+    // Get budget items for this plan
+    const planItems = budgetItems.filter(item => item.budgetSettingsId === setting.id);
     
-    return createBudgetPlan(settings, itemsForSettings);
+    // Calculate total allocated funds
+    const totalAllocated = planItems.reduce((sum, item) => {
+      const unitPrice = typeof item.unitPrice === 'string' ? parseFloat(item.unitPrice) : item.unitPrice;
+      const quantity = typeof item.quantity === 'string' ? parseInt(item.quantity) : item.quantity;
+      return sum + (unitPrice * quantity);
+    }, 0);
+    
+    // Calculate used funds based on sessions
+    // This is a simplified version - in a real app you might need more complex logic
+    const totalUsed = 0; // Placeholder until we implement session-based calculations
+    
+    // Calculate percent used
+    const percentUsed = totalAllocated > 0 ? (totalUsed / totalAllocated) * 100 : 0;
+    
+    // Calculate days remaining
+    let daysRemaining = null;
+    if (setting.endOfPlan) {
+      const endDate = new Date(setting.endOfPlan);
+      const today = new Date();
+      if (isAfter(endDate, today)) {
+        daysRemaining = differenceInDays(endDate, today);
+      } else {
+        daysRemaining = 0;
+      }
+    }
+    
+    // Create plan name for display
+    const planName = setting.planCode || `Budget Plan ${setting.id}`;
+    
+    // Get funding source
+    const fundingSource = "NDIS"; // Placeholder - replace with actual data if available
+    
+    // Format dates for display
+    const startDate = null; // Placeholder - could be created_at in a real app
+    const endDate = setting.endOfPlan;
+    
+    return {
+      id: setting.id,
+      clientId: setting.clientId,
+      planCode: setting.planCode,
+      planSerialNumber: setting.planSerialNumber,
+      planName,
+      active: !!setting.isActive,
+      availableFunds: typeof setting.availableFunds === 'string' ? 
+        parseFloat(setting.availableFunds) : setting.availableFunds,
+      endDate,
+      startDate,
+      totalUsed,
+      percentUsed,
+      itemCount: planItems.length,
+      remainingFunds: totalAllocated - totalUsed,
+      archived: false, // Add proper handling if you have an archived field
+      fundingSource,
+      createdAt: setting.createdAt
+    };
   });
   
-  // Check if there is an active plan
-  const hasActivePlan = budgetPlans.some(plan => plan.active);
+  // Filter active plans and archived plans
+  const activePlans = enhancedBudgetSettings.filter(plan => !plan.archived);
+  const archivedPlans = enhancedBudgetSettings.filter(plan => plan.archived);
   
-  // Handle view details click
-  const handleViewDetails = (plan: BudgetPlan) => {
-    setSelectedPlan(plan);
-    setDetailsOpen(true);
+  // Prepare enhanced budget items for selected plan
+  const getEnhancedBudgetItems = (planId: number): BudgetItemDetail[] => {
+    return budgetItems
+      .filter(item => item.budgetSettingsId === planId)
+      .map(item => {
+        // Here you would calculate actual usage based on sessions
+        // This is a simplified version
+        const usedQuantity = 0; // Placeholder
+        const quantity = typeof item.quantity === 'string' ? parseInt(item.quantity) : item.quantity;
+        const unitPrice = typeof item.unitPrice === 'string' ? parseFloat(item.unitPrice) : item.unitPrice;
+        
+        return {
+          ...item,
+          quantity,
+          unitPrice,
+          usedQuantity,
+          remainingQuantity: quantity - usedQuantity,
+          totalPrice: unitPrice * quantity,
+          usedAmount: unitPrice * usedQuantity,
+          remainingAmount: unitPrice * (quantity - usedQuantity),
+          usagePercentage: quantity > 0 ? (usedQuantity / quantity) * 100 : 0
+        };
+      });
   };
   
-  // Handle edit click
+  // Handle clicking on a budget plan
+  const handlePlanClick = (plan: BudgetPlan) => {
+    const enhancedItems = getEnhancedBudgetItems(plan.id);
+    setSelectedPlan({
+      ...plan,
+      enhancedItems
+    } as BudgetPlan);
+    setShowDetailsDialog(true);
+  };
+  
+  // Handle editing a budget plan
   const handleEditPlan = (plan: BudgetPlan) => {
     setSelectedPlan(plan);
-    setEditDialogOpen(true);
+    setShowEditDialog(true);
   };
   
-  // Handle save edited items
-  const handleSaveItems = (items: BudgetItem[]) => {
-    if (selectedPlan) {
-      onUpdateItems(selectedPlan.id, items);
-      setEditDialogOpen(false);
-    }
+  // Render loading skeletons
+  if (isLoading) {
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {[1, 2, 3].map(i => (
+          <Card key={i} className="overflow-hidden">
+            <CardHeader className="pb-2">
+              <Skeleton className="h-6 w-2/3 mb-2" />
+              <Skeleton className="h-4 w-1/2" />
+            </CardHeader>
+            <CardContent className="pb-2">
+              <Skeleton className="h-8 w-full mb-2" />
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-5/6" />
+                <Skeleton className="h-4 w-4/6" />
+              </div>
+            </CardContent>
+            <CardFooter>
+              <Skeleton className="h-9 w-full" />
+            </CardFooter>
+          </Card>
+        ))}
+      </div>
+    );
+  }
+  
+  return (
+    <div className="space-y-8">
+      {/* Action buttons */}
+      <div className="flex justify-end">
+        <Button 
+          onClick={() => setShowCreateDialog(true)}
+          className="gap-2"
+        >
+          <PlusCircle className="h-4 w-4" />
+          Create New Budget Plan
+        </Button>
+      </div>
+      
+      {/* Active plans section */}
+      <div className="space-y-4">
+        <h3 className="text-lg font-medium">Active Budget Plans</h3>
+        
+        {activePlans.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {activePlans.map(plan => (
+              <BudgetPlanCard 
+                key={plan.id}
+                plan={plan}
+                onView={() => handlePlanClick(plan)}
+                onEdit={() => handleEditPlan(plan)}
+                onArchive={() => onArchivePlan(plan)}
+                onSetActive={() => onSetActivePlan(plan)}
+              />
+            ))}
+          </div>
+        ) : (
+          <Card className="bg-gray-50 border-dashed">
+            <CardContent className="flex flex-col items-center justify-center py-10">
+              <AlertTriangle className="h-12 w-12 text-yellow-500 mb-4" />
+              <h3 className="text-lg font-medium mb-2">No Active Budget Plans</h3>
+              <p className="text-gray-500 text-center mb-4 max-w-md">
+                Create a budget plan to start tracking funding and expenses for this client.
+              </p>
+              <Button 
+                onClick={() => setShowCreateDialog(true)}
+                className="gap-2"
+              >
+                <PlusCircle className="h-4 w-4" />
+                Create New Budget Plan
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+      </div>
+      
+      {/* Archived plans section - only show if there are archived plans */}
+      {archivedPlans.length > 0 && (
+        <div className="space-y-4">
+          <h3 className="text-lg font-medium">Archived Budget Plans</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {archivedPlans.map(plan => (
+              <BudgetPlanCard 
+                key={plan.id}
+                plan={plan}
+                isArchived
+                onView={() => handlePlanClick(plan)}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+      
+      {/* Dialogs will go here - uncomment once implemented */}
+      {/*
+      {showCreateDialog && (
+        <BudgetPlanCreateDialog
+          open={showCreateDialog}
+          onOpenChange={setShowCreateDialog}
+          onSubmit={onCreatePlan}
+          catalogItems={catalogItems}
+        />
+      )}
+      
+      {showEditDialog && selectedPlan && (
+        <BudgetPlanEditDialog
+          open={showEditDialog}
+          onOpenChange={setShowEditDialog}
+          plan={selectedPlan}
+          budgetItems={getEnhancedBudgetItems(selectedPlan.id)}
+          onSubmit={(data) => {
+            // Handle both plan updates and item updates
+            if (data.plan) {
+              onUpdatePlan(data.plan);
+            }
+            if (data.items) {
+              onUpdateItems(selectedPlan.id, data.items);
+            }
+          }}
+          catalogItems={catalogItems}
+        />
+      )}
+      
+      {showDetailsDialog && selectedPlan && (
+        <BudgetPlanDetailsDialog
+          open={showDetailsDialog}
+          onOpenChange={setShowDetailsDialog}
+          plan={selectedPlan}
+          budgetItems={getEnhancedBudgetItems(selectedPlan.id)}
+          onEdit={() => {
+            setShowDetailsDialog(false);
+            handleEditPlan(selectedPlan);
+          }}
+          onArchive={() => {
+            setShowDetailsDialog(false);
+            onArchivePlan(selectedPlan);
+          }}
+          onSetActive={() => {
+            setShowDetailsDialog(false);
+            onSetActivePlan(selectedPlan);
+          }}
+        />
+      )}
+      */}
+    </div>
+  );
+}
+
+// Budget Plan Card component
+interface BudgetPlanCardProps {
+  plan: BudgetPlan;
+  isArchived?: boolean;
+  onView: () => void;
+  onEdit?: () => void;
+  onArchive?: () => void;
+  onSetActive?: () => void;
+}
+
+function BudgetPlanCard({
+  plan,
+  isArchived = false,
+  onView,
+  onEdit,
+  onArchive,
+  onSetActive
+}: BudgetPlanCardProps) {
+  // Format currency
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-AU', {
+      style: 'currency',
+      currency: 'AUD',
+      minimumFractionDigits: 2
+    }).format(amount);
   };
   
-  // Format date to display in a more user-friendly way
+  // Format date with error handling
   const formatDate = (dateString: string | null) => {
     if (!dateString) return 'Not set';
     
@@ -157,307 +355,152 @@ export default function BudgetCardGrid({
     }
   };
   
-  // Calculate days remaining until plan end
-  const calculateDaysRemaining = (endDate: string | null) => {
-    if (!endDate) return null;
+  // Determine card border style based on status
+  const getBorderStyle = () => {
+    if (isArchived) return "border-gray-200";
+    if (!plan.active) return "border-gray-200";
     
-    try {
-      const end = new Date(endDate);
-      const today = new Date();
-      const days = differenceInDays(end, today);
-      return days > 0 ? days : 0;
-    } catch (e) {
-      return null;
-    }
+    if (plan.percentUsed >= 90) return "border-red-400";
+    if (plan.percentUsed >= 70) return "border-amber-400";
+    
+    return "border-primary/70";
   };
-  
-  // Determine status color based on percentage used
-  const getStatusColor = (percentUsed: number) => {
-    if (percentUsed >= 100) return "bg-red-500";
-    if (percentUsed >= 90) return "bg-amber-500";
-    if (percentUsed >= 70) return "bg-yellow-500";
-    return "bg-green-500";
-  };
-  
-  // Get more detailed plan status
-  const getPlanStatus = (plan: BudgetPlan) => {
-    if (plan.archived) return { label: 'Archived', color: 'gray' };
-    
-    if (!plan.active) return { label: 'Inactive', color: 'gray' };
-    
-    // Check if plan is expired
-    if (plan.endDate) {
-      const endDate = new Date(plan.endDate);
-      if (endDate < new Date()) {
-        return { label: 'Expired', color: 'red' };
-      }
-    }
-    
-    // Check usage level
-    if (plan.percentUsed >= 100) {
-      return { label: 'Depleted', color: 'red' };
-    } else if (plan.percentUsed >= 90) {
-      return { label: 'Critical', color: 'amber' };
-    } else if (plan.percentUsed >= 70) {
-      return { label: 'High Usage', color: 'yellow' };
-    }
-    
-    return { label: 'Active', color: 'green' };
-  };
-  
-  // Create the appropriate badge color class
-  const getBadgeColorClass = (color: string) => {
-    switch (color) {
-      case 'green':
-        return 'bg-green-100 text-green-800 hover:bg-green-100';
-      case 'yellow':
-        return 'bg-yellow-100 text-yellow-800 hover:bg-yellow-100';
-      case 'amber':
-        return 'bg-amber-100 text-amber-800 hover:bg-amber-100';
-      case 'red':
-        return 'bg-red-100 text-red-800 hover:bg-red-100';
-      default:
-        return 'bg-gray-100 text-gray-800 hover:bg-gray-100';
-    }
-  };
-  
-  // If no budget plans exist, show empty state
-  if (budgetPlans.length === 0) {
-    return (
-      <div className="space-y-6">
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-medium">Budget Plans</h3>
-          <Button size="sm" onClick={() => setCreateDialogOpen(true)} disabled={isLoading}>
-            <PlusCircle className="h-4 w-4 mr-2" />
-            New Budget Plan
-          </Button>
-        </div>
-        
-        <Card className="bg-gray-50 border-gray-200">
-          <CardContent className="py-10 text-center">
-            <DollarSign className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-700 mb-2">No Budget Plans</h3>
-            <p className="text-gray-500 mb-6 max-w-md mx-auto">
-              No budget plans have been created for this client yet. You'll need to set up a budget plan to track funding and expenses.
-            </p>
-            <Button onClick={() => setCreateDialogOpen(true)} disabled={isLoading}>
-              <PlusCircle className="h-4 w-4 mr-2" />
-              Create Budget Plan
-            </Button>
-          </CardContent>
-        </Card>
-        
-        {/* Create Dialog */}
-        <BudgetPlanCreateDialog
-          open={createDialogOpen}
-          onOpenChange={setCreateDialogOpen}
-          onSubmit={onCreatePlan}
-          isLoading={isLoading}
-          existingPlans={budgetSettings}
-          hasActivePlan={hasActivePlan}
-        />
-      </div>
-    );
-  }
   
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h3 className="text-lg font-medium">Budget Plans ({budgetPlans.length})</h3>
-        <Button 
-          size="sm" 
-          onClick={() => setCreateDialogOpen(true)}
-          disabled={isLoading}
-        >
-          <PlusCircle className="h-4 w-4 mr-2" />
-          New Budget Plan
-        </Button>
-      </div>
-      
-      {/* Grid of budget plan cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {budgetPlans.map(plan => {
-          const status = getPlanStatus(plan);
-          const daysRemaining = calculateDaysRemaining(plan.endDate);
+    <Card 
+      className={`overflow-hidden transition-all duration-200 hover:shadow-md ${getBorderStyle()} ${
+        plan.active ? "border-l-4" : ""
+      } ${isArchived ? "opacity-70" : ""}`}
+    >
+      <CardHeader className="pb-2">
+        <div className="flex justify-between items-start">
+          <div>
+            <CardTitle className="text-lg">{plan.planName}</CardTitle>
+            <CardDescription>
+              {plan.planSerialNumber && `Serial: ${plan.planSerialNumber}`}
+            </CardDescription>
+          </div>
           
-          return (
-            <Card 
-              key={plan.id} 
-              className={`hover:shadow-md transition-shadow duration-200 ${
-                plan.active ? 'border-primary border-2' : ''
-              }`}
-            >
-              <CardHeader className="pb-2">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <CardTitle className="text-lg flex items-center">
-                      {plan.active && <Star className="h-4 w-4 text-amber-500 mr-1" />}
-                      {plan.planName}
-                    </CardTitle>
-                    <CardDescription>
-                      {plan.planSerialNumber ? (
-                        <>
-                          {plan.planSerialNumber} 
-                          {(plan.startDate || plan.endDate) && ' • '}
-                          {plan.startDate && formatDate(plan.startDate)}
-                          {plan.startDate && plan.endDate && ' - '}
-                          {plan.endDate && formatDate(plan.endDate)}
-                        </>
-                      ) : 'No plan details available'}
-                    </CardDescription>
-                  </div>
-                  <Badge className={getBadgeColorClass(status.color)}>
-                    {status.label}
-                  </Badge>
-                </div>
-              </CardHeader>
-              
-              <CardContent className="py-4">
-                {/* Budget usage progress bar */}
-                <div className="mb-4">
-                  <div className="flex justify-between text-sm mb-1">
-                    <span>Budget Usage</span>
-                    <span>{plan.percentUsed.toFixed(1)}%</span>
-                  </div>
-                  <Progress 
-                    value={plan.percentUsed} 
-                    max={100} 
-                    className={`h-2 ${
-                      plan.percentUsed >= 90 ? 'bg-red-200' : 
-                      plan.percentUsed >= 70 ? 'bg-amber-200' : 
-                      'bg-green-200'
-                    }`}
-                    indicatorClassName={`${
-                      plan.percentUsed >= 90 ? 'bg-red-500' : 
-                      plan.percentUsed >= 70 ? 'bg-amber-500' : 
-                      'bg-green-500'
-                    }`}
-                  />
-                </div>
-                
-                {/* Financial summary */}
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <span className="text-gray-500 block">Total Budget</span>
-                    <span className="font-medium">${plan.availableFunds.toFixed(2)}</span>
-                  </div>
-                  <div>
-                    <span className="text-gray-500 block">Remaining</span>
-                    <span className="font-medium">${plan.remainingFunds.toFixed(2)}</span>
-                  </div>
-                  <div>
-                    <span className="text-gray-500 block">Items</span>
-                    <span className="font-medium">{plan.itemCount}</span>
-                  </div>
-                  <div>
-                    {daysRemaining !== null ? (
-                      <>
-                        <span className="text-gray-500 block">Days Remaining</span>
-                        <span className={`font-medium ${daysRemaining < 30 ? 'text-amber-600' : ''}`}>
-                          {daysRemaining}
-                        </span>
-                      </>
-                    ) : plan.endDate ? (
-                      <>
-                        <span className="text-gray-500 block">End Date</span>
-                        <span className="font-medium">{formatDate(plan.endDate)}</span>
-                      </>
-                    ) : (
-                      <>
-                        <span className="text-gray-500 block">End Date</span>
-                        <span className="font-medium text-gray-400">Not set</span>
-                      </>
-                    )}
-                  </div>
-                </div>
-              </CardContent>
-              
-              <CardFooter className="flex justify-between">
+          <div>
+            {isArchived ? (
+              <Badge variant="outline" className="bg-gray-100 text-gray-800">Archived</Badge>
+            ) : plan.active ? (
+              <Badge className="bg-green-100 text-green-800">Active</Badge>
+            ) : (
+              <Badge variant="outline" className="text-gray-500">Inactive</Badge>
+            )}
+          </div>
+        </div>
+      </CardHeader>
+      
+      <CardContent className="pb-2">
+        {/* Budget amount */}
+        <div className="mb-4">
+          <div className="text-2xl font-bold">{formatCurrency(plan.availableFunds)}</div>
+          <div className="text-sm text-gray-500 flex items-center gap-1">
+            <DollarSign className="h-3 w-3" />
+            {plan.fundingSource} Funding
+          </div>
+        </div>
+        
+        {/* Usage information */}
+        <div className="space-y-2">
+          <div className="flex justify-between text-sm">
+            <span>Usage</span>
+            <span>
+              {formatCurrency(plan.totalUsed)} / {formatCurrency(plan.availableFunds)}
+              {' '}({plan.percentUsed.toFixed(1)}%)
+            </span>
+          </div>
+          
+          <Progress 
+            value={plan.percentUsed} 
+            max={100} 
+            className={`h-2 ${
+              plan.percentUsed >= 90 ? 'bg-red-200' : 
+              plan.percentUsed >= 70 ? 'bg-amber-200' : 
+              'bg-green-200'
+            }`}
+            indicatorClassName={`${
+              plan.percentUsed >= 90 ? 'bg-red-500' : 
+              plan.percentUsed >= 70 ? 'bg-amber-500' : 
+              'bg-green-500'
+            }`}
+          />
+          
+          {/* Dates and details */}
+          <div className="pt-1 flex justify-between text-xs text-gray-500">
+            <div className="flex items-center gap-1">
+              <Calendar className="h-3 w-3" />
+              <span>End: {formatDate(plan.endDate)}</span>
+            </div>
+            
+            {plan.endDate && (
+              <div className="flex items-center gap-1">
+                <Clock className="h-3 w-3" />
+                <span>{typeof plan.daysRemaining === 'number' ? `${plan.daysRemaining} days left` : 'No end date'}</span>
+              </div>
+            )}
+          </div>
+        </div>
+      </CardContent>
+      
+      <CardFooter className="pt-2">
+        {isArchived ? (
+          <Button variant="secondary" className="w-full" onClick={onView}>
+            View Details
+          </Button>
+        ) : (
+          <div className="flex gap-2 w-full">
+            <Button variant="outline" className="flex-1" onClick={onView}>
+              View
+            </Button>
+            <div className="flex gap-1">
+              {!plan.active && onSetActive && (
                 <Button 
                   variant="outline" 
-                  size="sm" 
-                  onClick={() => handleViewDetails(plan)}
+                  size="icon" 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (onSetActive) onSetActive();
+                  }}
+                  title="Set as active plan"
                 >
-                  <Info className="h-4 w-4 mr-1" />
-                  Details
+                  <CheckCircle className="h-4 w-4 text-green-600" />
                 </Button>
-                
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="sm">
-                      <MoreHorizontal className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => handleEditPlan(plan)}>
-                      <Edit className="h-4 w-4 mr-2" />
-                      Edit Items
-                    </DropdownMenuItem>
-                    
-                    {!plan.active && (
-                      <DropdownMenuItem 
-                        onClick={() => onSetActivePlan(plan)}
-                        disabled={hasActivePlan && !plan.active}
-                      >
-                        <Check className="h-4 w-4 mr-2" />
-                        Set as Active
-                      </DropdownMenuItem>
-                    )}
-                    
-                    <DropdownMenuItem 
-                      onClick={() => onArchivePlan(plan)}
-                      className="text-red-500 focus:text-red-500"
-                    >
-                      <Archive className="h-4 w-4 mr-2" />
-                      Archive Plan
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </CardFooter>
-            </Card>
-          );
-        })}
-      </div>
-      
-      {/* Details Dialog */}
-      <BudgetPlanDetailsDialog
-        open={detailsOpen}
-        onOpenChange={setDetailsOpen}
-        plan={selectedPlan}
-        budgetItems={budgetItems.filter(item => 
-          selectedPlan && item.budgetSettingsId === selectedPlan.id
+              )}
+              
+              {onEdit && (
+                <Button 
+                  variant="outline" 
+                  size="icon" 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (onEdit) onEdit();
+                  }}
+                  title="Edit plan"
+                >
+                  <Edit className="h-4 w-4" />
+                </Button>
+              )}
+              
+              {onArchive && (
+                <Button 
+                  variant="outline" 
+                  size="icon" 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (onArchive) onArchive();
+                  }}
+                  title="Archive plan"
+                >
+                  <XCircle className="h-4 w-4 text-red-600" />
+                </Button>
+              )}
+            </div>
+          </div>
         )}
-        sessions={clientSessions}
-        onEdit={() => {
-          setDetailsOpen(false);
-          setEditDialogOpen(true);
-        }}
-      />
-      
-      {/* Edit Dialog */}
-      <BudgetPlanEditDialog
-        open={editDialogOpen}
-        onOpenChange={setEditDialogOpen}
-        plan={selectedPlan}
-        budgetItems={budgetItems.filter(item => 
-          selectedPlan && item.budgetSettingsId === selectedPlan.id
-        )}
-        catalogItems={catalogItems}
-        onSave={handleSaveItems}
-        isLoading={isLoading}
-      />
-      
-      {/* Create Dialog */}
-      <BudgetPlanCreateDialog
-        open={createDialogOpen}
-        onOpenChange={setCreateDialogOpen}
-        onSubmit={onCreatePlan}
-        isLoading={isLoading}
-        existingPlans={budgetSettings}
-        hasActivePlan={hasActivePlan}
-      />
-    </div>
+      </CardFooter>
+    </Card>
   );
 }
