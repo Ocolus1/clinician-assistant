@@ -114,7 +114,18 @@ export function BudgetPlanCreateDialog({
     
     // We don't send selected products in this initial form
     // Products will be added after the plan is created
-    onSubmit(values);
+    
+    // Create a new plan object with necessary fields
+    const planData = {
+      planCode: values.planCode,
+      planSerialNumber: values.planSerialNumber || generatePlanSerialNumber(),
+      isActive: values.isActive,
+      availableFunds: values.availableFunds,
+      endOfPlan: values.endOfPlan
+    };
+    
+    onSubmit(planData);
+    setSelectedCatalogItems([]); // Clear selected items
     onOpenChange(false);
   }
 
@@ -206,6 +217,21 @@ export function BudgetPlanCreateDialog({
   };
 
   // We're not automatically updating available funds anymore since the user needs to enter it manually
+  
+  // Reset form when dialog is opened
+  useEffect(() => {
+    if (open) {
+      form.reset({
+        planCode: "",
+        planSerialNumber: generatePlanSerialNumber(),
+        availableFunds: 0,
+        isActive: !hasActivePlan,
+        endOfPlan: undefined,
+      });
+      setSelectedCatalogItems([]);
+      setSelectedDate(undefined);
+    }
+  }, [open, form, hasActivePlan]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
