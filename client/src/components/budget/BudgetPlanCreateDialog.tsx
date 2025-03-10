@@ -274,34 +274,24 @@ export function BudgetPlanCreateDialog({
                       <div className="flex flex-col md:flex-row md:items-center gap-4">
                         <div className="relative flex-1">
                           <FormControl>
-                            <Popover onOpenChange={(open) => {
-                              // Set the isPickingDate flag when opening the date picker
-                              if (open) {
-                                setIsPickingDate(true);
-                              } else {
-                                // Reset the flag after a delay when closing
-                                setTimeout(() => {
-                                  setIsPickingDate(false);
-                                }, 300);
-                              }
-                            }}>
+                            <Popover>
                               <PopoverTrigger asChild>
                                 <Button
                                   type="button"
                                   variant="outline"
                                   className={cn(
                                     "w-full justify-start text-left font-normal border-gray-300",
-                                    !date && "text-muted-foreground"
+                                    !field.value && "text-muted-foreground"
                                   )}
                                 >
                                   <CalendarIcon className="mr-2 h-4 w-4" />
-                                  {field.value ? format(field.value, "PPP") : <span>Select end date</span>}
+                                  {field.value ? format(new Date(field.value), "PPP") : <span>Select end date</span>}
                                 </Button>
                               </PopoverTrigger>
                               <PopoverContent className="w-auto p-0" align="start">
                                 <Calendar
                                   mode="single"
-                                  selected={field.value}
+                                  selected={field.value ? new Date(field.value) : undefined}
                                   onSelect={(newDate) => {
                                     if (newDate) {
                                       setDate(newDate);
@@ -342,15 +332,6 @@ export function BudgetPlanCreateDialog({
                   {selectedCatalogItems.length === 0 ? (
                     <div className="border border-dashed border-gray-200 rounded-md p-6 text-center">
                       <div className="text-sm text-gray-500">No products added yet</div>
-                      <Button 
-                        type="button" 
-                        variant="secondary" 
-                        className="mt-2" 
-                        size="sm"
-                        onClick={() => setShowItemForm(true)}
-                      >
-                        <Plus className="h-4 w-4 mr-1" /> Add Products
-                      </Button>
                     </div>
                   ) : (
                     <div className="bg-gray-50 rounded-md overflow-hidden">
