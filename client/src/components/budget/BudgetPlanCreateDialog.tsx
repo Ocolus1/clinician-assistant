@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { format } from "date-fns";
 import { useQuery } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
 import {
   Dialog,
   DialogContent,
@@ -81,6 +82,9 @@ export function BudgetPlanCreateDialog({
   hasActivePlan,
   isLoading = false
 }: BudgetPlanCreateDialogProps) {
+  // Initialize toast hook
+  const { toast } = useToast();
+  
   // Date handling state
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   
@@ -204,18 +208,24 @@ export function BudgetPlanCreateDialog({
     try {
       // Make sure we maintain the full data set for budget items and other fields
       const validatedPlanData = {
-        ...planData,
-        // Ensure availableFunds is a proper number
+        // Include only essential fields with proper types
+        planSerialNumber: planData.planSerialNumber || "",
+        planCode: planData.planCode || "",
         availableFunds: Number(parseFloat(planData.availableFunds.toString()).toFixed(2)),
-        // Ensure budget items are preserved
-        budgetItems: planData.budgetItems || selectedCatalogItems.map(item => ({
+        isActive: Boolean(planData.isActive),
+        endOfPlan: planData.endOfPlan || null,
+        
+        // Ensure budget items are preserved with proper formatting
+        budgetItems: selectedCatalogItems.map(item => ({
           itemCode: item.itemCode,
           description: item.description,
-          unitPrice: item.defaultUnitPrice,
-          quantity: item.quantity,
-          category: item.category
+          unitPrice: Number(item.defaultUnitPrice),
+          quantity: Number(item.quantity),
+          category: item.category || null
         }))
       };
+      
+      console.log("Prepared validated plan data:", JSON.stringify(validatedPlanData, null, 2));
       
       // Submit the plan
       onSubmit(validatedPlanData);
@@ -227,6 +237,11 @@ export function BudgetPlanCreateDialog({
       onOpenChange(false); // Close dialog
     } catch (error) {
       console.error("Error submitting budget plan:", error);
+      toast({
+        title: "Error",
+        description: `Failed to create budget plan: ${(error as Error).message}`,
+        variant: "destructive",
+      });
     } finally {
       // Reset submitting state
       setIsSubmitting(false);

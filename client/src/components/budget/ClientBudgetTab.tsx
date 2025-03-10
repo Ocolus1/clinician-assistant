@@ -99,40 +99,58 @@ export default function ClientBudgetTab({
         // Extract budget items from the plan data
         const { budgetItems: newItems, ...planData } = newPlan;
         
+        // Critical: Include only required and valid fields for the budget settings schema
+        const validPlanData = {
+          planSerialNumber: planData.planSerialNumber || "",
+          planCode: planData.planCode || "",
+          availableFunds: Number(planData.availableFunds),
+          isActive: Boolean(planData.isActive),
+          endOfPlan: planData.endOfPlan || null,
+          clientId
+        };
+        
         // First handle active plan status changes if needed
-        if (planData.isActive === true) {
+        if (validPlanData.isActive === true) {
           console.log("New plan will be active, checking for existing active plans...");
           
-          // Get all budget settings for this client
-          const settings = Array.isArray(budgetSettingsData) 
-            ? budgetSettingsData 
-            : budgetSettingsData ? [budgetSettingsData] : [];
+          // Get all budget settings for this client that are active
+          const activeSettings = budgetSettings.filter((s: BudgetSettings) => Boolean(s.isActive));
+          console.log(`Found ${activeSettings.length} existing active plans to deactivate`);
           
-          // Find any active plans that need to be deactivated
-          const activePlans = settings.filter(s => Boolean(s.isActive));
-          console.log(`Found ${activePlans.length} existing active plans to deactivate`);
-          
-          // Deactivate existing active plans
-          for (const activePlan of activePlans) {
+          // Deactivate existing active plans BEFORE creating the new plan
+          for (const activePlan of activeSettings) {
             console.log(`Deactivating existing active plan ${activePlan.id}...`);
-            const deactivateResponse = await apiRequest('PUT', `/api/budget-settings/${activePlan.id}`, { 
-              isActive: false 
+            
+            // Use only the required field for update to avoid validation errors
+            const deactivateResult = await fetch(`/api/budget-settings/${activePlan.id}`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ 
+                isActive: false,
+                planSerialNumber: activePlan.planSerialNumber || "",
+                planCode: activePlan.planCode || "",
+                availableFunds: Number(activePlan.availableFunds),
+                endOfPlan: activePlan.endOfPlan || null,
+                clientId: activePlan.clientId
+              })
             });
             
-            if (!deactivateResponse.ok) {
-              console.error(`Failed to deactivate plan ${activePlan.id}: ${deactivateResponse.status}`);
+            if (!deactivateResult.ok) {
+              const errorText = await deactivateResult.text();
+              console.error(`Failed to deactivate plan ${activePlan.id}:`, errorText);
+              throw new Error(`Failed to deactivate existing active plan. Error: ${errorText}`);
             } else {
               console.log(`Successfully deactivated plan ${activePlan.id}`);
             }
           }
+          
+          // Allow a small delay to ensure deactivation is complete before creating new plan
+          await new Promise(resolve => setTimeout(resolve, 100));
         }
         
         // Step 1: Create the budget plan
-        console.log("Creating new budget plan with processed data:", JSON.stringify(planData, null, 2));
-        const response = await apiRequest('POST', `/api/clients/${clientId}/budget-settings`, {
-          ...planData,
-          clientId
-        });
+        console.log("Creating new budget plan with processed data:", JSON.stringify(validPlanData, null, 2));
+        const response = await apiRequest('POST', `/api/clients/${clientId}/budget-settings`, validPlanData);
         
         if (!response.ok) {
           const errorText = await response.text();
@@ -149,8 +167,12 @@ export default function ClientBudgetTab({
           
           // Create budget items for the new plan
           const itemsWithIds = newItems.map((item: any) => ({
-            ...item,
-            clientId: clientId.toString(), // Make sure clientId is a string
+            itemCode: item.itemCode,
+            description: item.description,
+            unitPrice: Number(item.unitPrice || item.defaultUnitPrice),
+            quantity: Number(item.quantity || 1),
+            category: item.category || null,
+            clientId,
             budgetSettingsId: createdPlan.id
           }));
           
@@ -158,7 +180,10 @@ export default function ClientBudgetTab({
           for (const item of itemsWithIds) {
             const itemResponse = await apiRequest('POST', `/api/clients/${clientId}/budget-items`, item);
             if (!itemResponse.ok) {
-              console.error(`Error creating budget item for plan ${createdPlan.id}:`, await itemResponse.text());
+              const errorText = await itemResponse.text();
+              console.error(`Error creating budget item for plan ${createdPlan.id}:`, errorText);
+            } else {
+              console.log(`Successfully created budget item for plan ${createdPlan.id}`);
             }
           }
           
@@ -325,13 +350,24 @@ export default function ClientBudgetTab({
         for (const activePlan of activeSettings) {
           console.log(`Deactivating plan ${activePlan.id}...`);
           try {
-            const result = await apiRequest('PUT', `/api/budget-settings/${activePlan.id}`, { 
-              isActive: false 
+            // Use the complete required schema fields to avoid validation errors
+            const deactivateResult = await fetch(`/api/budget-settings/${activePlan.id}`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ 
+                isActive: false,
+                planSerialNumber: activePlan.planSerialNumber || "",
+                planCode: activePlan.planCode || "",
+                availableFunds: Number(activePlan.availableFunds),
+                endOfPlan: activePlan.endOfPlan || null,
+                clientId: activePlan.clientId
+              })
             });
             
-            if (!result.ok) {
-              console.error(`Failed to deactivate plan ${activePlan.id}: ${result.status} ${result.statusText}`);
-              throw new Error(`Failed to deactivate plan ${activePlan.id}`);
+            if (!deactivateResult.ok) {
+              const errorText = await deactivateResult.text();
+              console.error(`Failed to deactivate plan ${activePlan.id}:`, errorText);
+              throw new Error(`Failed to deactivate plan ${activePlan.id}. Error: ${errorText}`);
             }
             
             console.log(`Successfully deactivated plan ${activePlan.id}`);
@@ -348,20 +384,69 @@ export default function ClientBudgetTab({
         
         // Small delay to ensure deactivations are processed by the server
         console.log(`All plans deactivated. Now activating plan ${plan.id}...`);
-        setTimeout(() => {
-          updatePlanMutation.mutate({ 
-            planId: plan.id, 
-            data: { isActive: true } 
-          });
-        }, 500);
-      } else {
-        // No active plans, directly activate this one
-        console.log(`No active plans found. Directly activating plan ${plan.id}`);
-        updatePlanMutation.mutate({ 
-          planId: plan.id, 
-          data: { isActive: true } 
+        
+        // Use setTimeout with async/await for proper activation after deactivation
+        await new Promise(resolve => setTimeout(resolve, 300));
+        
+        // Use the complete required schema fields for activation
+        const activateResult = await fetch(`/api/budget-settings/${plan.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            isActive: true,
+            planSerialNumber: plan.planSerialNumber || "",
+            planCode: plan.planCode || "",
+            availableFunds: Number(plan.availableFunds),
+            // Note: endOfPlan might not exist on BudgetPlan type, so we use optional chaining
+            endOfPlan: (plan as any).endOfPlan || null,
+            clientId: plan.clientId
+          })
         });
+        
+        if (!activateResult.ok) {
+          const errorText = await activateResult.text();
+          console.error(`Failed to activate plan ${plan.id}:`, errorText);
+          throw new Error(`Failed to activate plan. Error: ${errorText}`);
+        }
+        
+        console.log(`Successfully activated plan ${plan.id}`);
+        
+        // Invalidate queries to refresh the UI
+        queryClient.invalidateQueries({ queryKey: ['/api/clients', clientId, 'budget-settings'] });
+      } else {
+        // No active plans, directly activate this one with complete fields
+        console.log(`No active plans found. Directly activating plan ${plan.id}`);
+        const activateResult = await fetch(`/api/budget-settings/${plan.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            isActive: true,
+            planSerialNumber: plan.planSerialNumber || "",
+            planCode: plan.planCode || "",
+            availableFunds: Number(plan.availableFunds),
+            endOfPlan: (plan as any).endOfPlan || null,
+            clientId: plan.clientId
+          })
+        });
+        
+        if (!activateResult.ok) {
+          const errorText = await activateResult.text();
+          console.error(`Failed to activate plan ${plan.id}:`, errorText);
+          throw new Error(`Failed to activate plan. Error: ${errorText}`);
+        }
+        
+        console.log(`Successfully activated plan ${plan.id}`);
+        
+        // Invalidate queries to refresh the UI
+        queryClient.invalidateQueries({ queryKey: ['/api/clients', clientId, 'budget-settings'] });
       }
+      
+      // Provide success feedback to the user
+      toast({
+        title: "Success",
+        description: `Plan ${plan.planCode || plan.planSerialNumber} is now active`,
+        variant: "default",
+      });
     } catch (error) {
       console.error("Error in handleSetActivePlan:", error);
       toast({
