@@ -112,21 +112,29 @@ export function BudgetPlanCreateDialog({
       return;
     }
     
-    // We don't send selected products in this initial form
-    // Products will be added after the plan is created
+    // Generate a guaranteed unique serial number if not provided
+    const serialNumber = values.planSerialNumber || generatePlanSerialNumber();
+    console.log("Using plan serial number for submission:", serialNumber);
     
-    // Create a new plan object with necessary fields
+    // Create a new plan object with necessary fields, explicitly formatted
     const planData = {
       planCode: values.planCode,
-      planSerialNumber: values.planSerialNumber || generatePlanSerialNumber(),
-      isActive: values.isActive,
-      availableFunds: values.availableFunds,
-      endOfPlan: values.endOfPlan
+      planSerialNumber: serialNumber,
+      isActive: values.isActive === true, // Ensure boolean type
+      availableFunds: Number(values.availableFunds), // Ensure number type
+      endOfPlan: values.endOfPlan || null // Ensure null if not provided
     };
     
+    // Log what we're about to submit for debugging
+    console.log("Submitting new budget plan:", planData);
+    
+    // Submit the plan
     onSubmit(planData);
+    
+    // Clear form state
     setSelectedCatalogItems([]); // Clear selected items
-    onOpenChange(false);
+    setSelectedDate(undefined); // Clear selected date
+    onOpenChange(false); // Close dialog
   }
 
   // Format currency
@@ -221,9 +229,13 @@ export function BudgetPlanCreateDialog({
   // Reset form when dialog is opened
   useEffect(() => {
     if (open) {
+      // Generate a new unique serial number for each new plan
+      const newSerialNumber = generatePlanSerialNumber();
+      console.log("Generated new plan serial number:", newSerialNumber);
+      
       form.reset({
         planCode: "",
-        planSerialNumber: generatePlanSerialNumber(),
+        planSerialNumber: newSerialNumber,
         availableFunds: 0,
         isActive: !hasActivePlan,
         endOfPlan: undefined,
