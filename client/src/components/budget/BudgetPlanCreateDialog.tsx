@@ -707,12 +707,15 @@ export function BudgetPlanCreateDialog({
             </AlertDialogCancel>
             <AlertDialogAction 
               onClick={() => {
-                // Just set the form field to active and close the dialog
-                // Don't submit the form yet - let the user continue filling out the form
+                // Set the form field to active
                 form.setValue("isActive", true);
                 
-                // Close confirmation dialog but keep the main form open
-                setShowConfirmation(false);
+                // Submit the form directly with the current values
+                if (!isSubmitting) {
+                  const currentValues = form.getValues();
+                  const planData = preparePlanData(currentValues);
+                  submitPlan(planData);
+                }
               }}
               disabled={isSubmitting}
             >
