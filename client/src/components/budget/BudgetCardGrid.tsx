@@ -7,6 +7,10 @@ import {
   CardHeader, 
   CardTitle 
 } from "../ui/card";
+import {
+  Dialog,
+  DialogContent
+} from "../ui/dialog";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
 import { Progress } from "../ui/progress";
@@ -25,10 +29,10 @@ import { BudgetPlan, BudgetItemDetail } from "./BudgetPlanFullView";
 import { format, differenceInDays, isAfter } from "date-fns";
 import type { BudgetSettings, BudgetItem, BudgetItemCatalog } from "@shared/schema";
 
-// Import your dialogs components here
-// import { BudgetPlanCreateDialog } from "./BudgetPlanCreateDialog";
-// import { BudgetPlanEditDialog } from "./BudgetPlanEditDialog";
-// import { BudgetPlanDetailsDialog } from "./BudgetPlanDetailsDialog";
+// Import dialog components
+import { BudgetPlanCreateDialog } from "./BudgetPlanCreateDialog";
+import { BudgetPlanEditDialog } from "./BudgetPlanEditDialog";
+import { BudgetPlanFullView } from "./BudgetPlanFullView";
 
 interface BudgetCardGridProps {
   budgetSettings: BudgetSettings[];
@@ -265,14 +269,15 @@ export default function BudgetCardGrid({
         </div>
       )}
       
-      {/* Dialogs will go here - uncomment once implemented */}
-      {/*
+      {/* Dialog components for create, edit and view */}
       {showCreateDialog && (
         <BudgetPlanCreateDialog
           open={showCreateDialog}
           onOpenChange={setShowCreateDialog}
           onSubmit={onCreatePlan}
-          catalogItems={catalogItems}
+          existingPlans={budgetSettings}
+          hasActivePlan={hasActivePlan}
+          isLoading={isLoading}
         />
       )}
       
@@ -282,40 +287,37 @@ export default function BudgetCardGrid({
           onOpenChange={setShowEditDialog}
           plan={selectedPlan}
           budgetItems={getEnhancedBudgetItems(selectedPlan.id)}
-          onSubmit={(data) => {
-            // Handle both plan updates and item updates
-            if (data.plan) {
-              onUpdatePlan(data.plan);
-            }
-            if (data.items) {
-              onUpdateItems(selectedPlan.id, data.items);
-            }
-          }}
           catalogItems={catalogItems}
+          onSave={(items) => {
+            onUpdateItems(selectedPlan.id, items);
+            setShowEditDialog(false);
+          }}
         />
       )}
       
       {showDetailsDialog && selectedPlan && (
-        <BudgetPlanDetailsDialog
-          open={showDetailsDialog}
-          onOpenChange={setShowDetailsDialog}
-          plan={selectedPlan}
-          budgetItems={getEnhancedBudgetItems(selectedPlan.id)}
-          onEdit={() => {
-            setShowDetailsDialog(false);
-            handleEditPlan(selectedPlan);
-          }}
-          onArchive={() => {
-            setShowDetailsDialog(false);
-            onArchivePlan(selectedPlan);
-          }}
-          onSetActive={() => {
-            setShowDetailsDialog(false);
-            onSetActivePlan(selectedPlan);
-          }}
-        />
+        <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
+          <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+            <BudgetPlanFullView
+              plan={selectedPlan}
+              budgetItems={getEnhancedBudgetItems(selectedPlan.id)}
+              onBack={() => setShowDetailsDialog(false)}
+              onEdit={() => {
+                setShowDetailsDialog(false);
+                handleEditPlan(selectedPlan);
+              }}
+              onArchive={() => {
+                setShowDetailsDialog(false);
+                onArchivePlan(selectedPlan);
+              }}
+              onSetActive={() => {
+                setShowDetailsDialog(false);
+                onSetActivePlan(selectedPlan);
+              }}
+            />
+          </DialogContent>
+        </Dialog>
       )}
-      */}
     </div>
   );
 }

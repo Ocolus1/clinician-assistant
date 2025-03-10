@@ -1,15 +1,16 @@
-import React, { useState } from "react";
+import { useState } from "react";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import { format } from "date-fns";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
 } from "../ui/dialog";
-import { Button } from "../ui/button";
-import { Input } from "../ui/input";
-import { Label } from "../ui/label";
 import {
   Form,
   FormControl,
@@ -26,40 +27,28 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../ui/select";
+import { Button } from "../ui/button";
+import { Input } from "../ui/input";
+import { Calendar } from "../ui/calendar";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "../ui/popover";
-import { Calendar } from "../ui/calendar";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import { format } from "date-fns";
-import { Calendar as CalendarIcon, AlertTriangle } from "lucide-react";
-import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
+import { Calendar as CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { BudgetSettings } from "@shared/schema";
 
-const fundingSourceOptions = [
-  { label: "NDIS", value: "NDIS" },
-  { label: "Private", value: "Private" },
-  { label: "Insurance", value: "Insurance" },
-  { label: "Medicare", value: "Medicare" },
-  { label: "Other", value: "Other" },
-];
-
-const createBudgetFormSchema = z.object({
-  planCode: z.string().optional(),
+// Form schema
+const createPlanSchema = z.object({
+  planCode: z.string().min(1, "Plan code is required"),
   planSerialNumber: z.string().optional(),
-  planName: z.string().min(1, "Plan name is required"),
-  availableFunds: z.number().min(0, "Available funds must be a positive number"),
-  fundingSource: z.string().min(1, "Funding source is required"),
-  endOfPlan: z.date().optional(),
+  availableFunds: z.number().positive("Available funds must be positive"),
   isActive: z.boolean().default(false),
+  endOfPlan: z.date().optional(),
 });
 
-type CreateBudgetFormValues = z.infer<typeof createBudgetFormSchema>;
+type CreatePlanValues = z.infer<typeof createPlanSchema>;
 
 interface BudgetPlanCreateDialogProps {
   open: boolean;
@@ -70,9 +59,6 @@ interface BudgetPlanCreateDialogProps {
   isLoading?: boolean;
 }
 
-/**
- * Dialog component for creating a new budget plan
- */
 export function BudgetPlanCreateDialog({
   open,
   onOpenChange,
@@ -81,23 +67,21 @@ export function BudgetPlanCreateDialog({
   hasActivePlan,
   isLoading = false
 }: BudgetPlanCreateDialogProps) {
-  const form = useForm<CreateBudgetFormValues>({
-    resolver: zodResolver(createBudgetFormSchema),
+  const form = useForm<CreatePlanValues>({
+    resolver: zodResolver(createPlanSchema),
     defaultValues: {
-      planName: "",
       planCode: "",
       planSerialNumber: "",
       availableFunds: 0,
-      fundingSource: "NDIS",
-      isActive: !hasActivePlan,
-    }
+      isActive: !hasActivePlan, // Default to active if no active plan exists
+      endOfPlan: undefined,
+    },
   });
   
-  const handleSubmit = (values: CreateBudgetFormValues) => {
+  function handleSubmit(values: CreatePlanValues) {
     onSubmit(values);
     onOpenChange(false);
-    form.reset();
-  };
+  }
   
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -105,119 +89,67 @@ export function BudgetPlanCreateDialog({
         <DialogHeader>
           <DialogTitle>Create New Budget Plan</DialogTitle>
           <DialogDescription>
-            Set up a new budget plan with funding information for this client.
+            Add a new budget plan to track funding and expenses.
           </DialogDescription>
         </DialogHeader>
         
         <Form {...form}>
           <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
-            {hasActivePlan && (
-              <Alert variant="default" className="bg-amber-50 border-amber-200">
-                <AlertTriangle className="h-4 w-4 text-amber-600" />
-                <AlertTitle className="text-amber-800">Warning</AlertTitle>
-                <AlertDescription className="text-amber-700">
-                  This client already has an active budget plan. New plan will be created as inactive.
-                </AlertDescription>
-              </Alert>
-            )}
-            
             <FormField
               control={form.control}
-              name="planName"
+              name="planCode"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Plan Name*</FormLabel>
+                  <FormLabel>Plan Code/Name</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g. NDIS Core Support" {...field} />
+                    <Input placeholder="E.g., NDIS 2025" {...field} />
                   </FormControl>
                   <FormDescription>
-                    A descriptive name for this budget plan
+                    A short code or name to identify this budget plan
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
             />
             
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="planCode"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Plan Code</FormLabel>
-                    <FormControl>
-                      <Input placeholder="e.g. NDIS-123" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="planSerialNumber"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Serial Number</FormLabel>
-                    <FormControl>
-                      <Input placeholder="e.g. SN12345678" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
+            <FormField
+              control={form.control}
+              name="planSerialNumber"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Serial Number</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Optional serial or reference number" {...field} />
+                  </FormControl>
+                  <FormDescription>
+                    Optional reference number for this plan
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
             
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="availableFunds"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Available Funds*</FormLabel>
-                    <FormControl>
-                      <Input 
-                        type="number" 
-                        min={0} 
-                        step={0.01}
-                        placeholder="0.00" 
-                        onChange={e => field.onChange(parseFloat(e.target.value))}
-                        value={field.value}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="fundingSource"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Funding Source*</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select funding source" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {fundingSourceOptions.map(option => (
-                          <SelectItem key={option.value} value={option.value}>
-                            {option.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
+            <FormField
+              control={form.control}
+              name="availableFunds"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Total Available Funds</FormLabel>
+                  <FormControl>
+                    <Input 
+                      type="number" 
+                      placeholder="0.00" 
+                      {...field}
+                      onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    The total budget amount available in this plan
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
             
             <FormField
               control={form.control}
@@ -231,7 +163,7 @@ export function BudgetPlanCreateDialog({
                         <Button
                           variant={"outline"}
                           className={cn(
-                            "w-full pl-3 text-left font-normal",
+                            "pl-3 text-left font-normal",
                             !field.value && "text-muted-foreground"
                           )}
                         >
@@ -240,7 +172,7 @@ export function BudgetPlanCreateDialog({
                           ) : (
                             <span>Pick a date</span>
                           )}
-                          <CalendarIcon className="ml-auto h-4 w-4" />
+                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                         </Button>
                       </FormControl>
                     </PopoverTrigger>
@@ -249,7 +181,9 @@ export function BudgetPlanCreateDialog({
                         mode="single"
                         selected={field.value}
                         onSelect={field.onChange}
-                        disabled={(date) => date < new Date()}
+                        disabled={(date) =>
+                          date < new Date(new Date().setHours(0, 0, 0, 0))
+                        }
                         initialFocus
                       />
                     </PopoverContent>
@@ -262,37 +196,39 @@ export function BudgetPlanCreateDialog({
               )}
             />
             
-            {!hasActivePlan && (
-              <FormField
-                control={form.control}
-                name="isActive"
-                render={({ field }) => (
-                  <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-                    <FormControl>
-                      <input
-                        type="checkbox"
-                        checked={field.value}
-                        onChange={field.onChange}
-                        className="h-4 w-4 mt-1"
-                      />
-                    </FormControl>
-                    <div className="space-y-1 leading-none">
-                      <FormLabel>Set as Active Plan</FormLabel>
-                      <FormDescription>
-                        Make this the active budget plan for the client
-                      </FormDescription>
-                    </div>
-                  </FormItem>
-                )}
-              />
-            )}
+            <FormField
+              control={form.control}
+              name="isActive"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                  <FormControl>
+                    <input
+                      type="checkbox"
+                      checked={field.value}
+                      onChange={field.onChange}
+                      className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                      disabled={hasActivePlan}
+                    />
+                  </FormControl>
+                  <div className="space-y-1 leading-none">
+                    <FormLabel>
+                      Set as Active Plan
+                      {hasActivePlan && " (Another plan is currently active)"}
+                    </FormLabel>
+                    <FormDescription>
+                      The active plan is the primary budget used for new items and sessions
+                    </FormDescription>
+                  </div>
+                </FormItem>
+              )}
+            />
             
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                 Cancel
               </Button>
               <Button type="submit" disabled={isLoading}>
-                Create Plan
+                {isLoading ? "Creating..." : "Create Plan"}
               </Button>
             </DialogFooter>
           </form>
