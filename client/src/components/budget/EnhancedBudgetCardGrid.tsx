@@ -11,10 +11,16 @@ import {
 import { Button } from "../ui/button";
 import { Skeleton } from "../ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogDescription, 
+  DialogHeader, 
+  DialogTitle 
+} from "../ui/dialog";
 import { PlusCircle, AlertTriangle } from "lucide-react";
 import { useBudgetFeature } from "./BudgetFeatureContext";
 import { BudgetPlanCard } from "./BudgetPlanCard";
-import { BudgetPlanCreateWizard } from "./BudgetPlanCreateWizard";
 
 interface BudgetPlan {
   id: number;
@@ -123,12 +129,25 @@ export function EnhancedBudgetCardGrid({ clientId }: EnhancedBudgetCardGridProps
           </CardContent>
         </Card>
         
-        {/* Budget Plan Create Wizard */}
-        <BudgetPlanCreateWizard
+        {/* Budget Plan Create Wizard - Temporarily commented until we implement it */}
+        {/*<BudgetPlanCreateWizard
           open={showCreateWizard}
           onOpenChange={setShowCreateWizard}
           clientId={clientId}
-        />
+        />*/}
+        
+        {/* Placeholder wizard dialog until we implement the full component */}
+        <Dialog open={showCreateWizard} onOpenChange={setShowCreateWizard}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Create Budget Plan</DialogTitle>
+              <DialogDescription>
+                This is a placeholder for the budget plan creation wizard.
+              </DialogDescription>
+            </DialogHeader>
+            <Button onClick={() => setShowCreateWizard(false)}>Close</Button>
+          </DialogContent>
+        </Dialog>
       </div>
     );
   }
@@ -159,12 +178,18 @@ export function EnhancedBudgetCardGrid({ clientId }: EnhancedBudgetCardGridProps
         ))}
       </div>
       
-      {/* Budget Plan Create Wizard */}
-      <BudgetPlanCreateWizard
-        open={showCreateWizard}
-        onOpenChange={setShowCreateWizard}
-        clientId={clientId}
-      />
+      {/* Placeholder wizard dialog until we implement the full component */}
+      <Dialog open={showCreateWizard} onOpenChange={setShowCreateWizard}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create Budget Plan</DialogTitle>
+            <DialogDescription>
+              This is a placeholder for the budget plan creation wizard.
+            </DialogDescription>
+          </DialogHeader>
+          <Button onClick={() => setShowCreateWizard(false)}>Close</Button>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
