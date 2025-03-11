@@ -31,7 +31,7 @@ import {
   SelectTrigger, 
   SelectValue 
 } from "@/components/ui/select";
-import { insertBudgetItemSchema, BudgetItemCatalog, InsertBudgetItem } from "@shared/schema";
+import { insertBudgetItemSchema, BudgetItemCatalog, InsertBudgetItem } from "../../../../shared/schema";
 import { Search, Plus, Loader2 } from "lucide-react";
 
 interface BudgetItemFormProps {

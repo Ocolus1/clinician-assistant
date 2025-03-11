@@ -24,7 +24,7 @@ import { format } from "date-fns";
 import { formatCurrency } from "@/lib/utils";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { BudgetSettings, BudgetItem } from "@shared/schema";
+import { BudgetSettings, BudgetItem } from "../../../../shared/schema";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
