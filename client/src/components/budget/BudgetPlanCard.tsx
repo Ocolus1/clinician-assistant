@@ -17,12 +17,12 @@ import {
   CardFooter, 
   CardHeader, 
   CardTitle 
-} from "../ui/card";
-import { Button } from "../ui/button";
-import { Badge } from "../ui/badge";
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/lib/utils";
-import { Progress } from "../ui/progress";
+import { Progress } from "@/components/ui/progress";
 
 // Import BudgetPlan interface from BudgetFeatureContext
 import { BudgetPlan } from "./BudgetFeatureContext";
