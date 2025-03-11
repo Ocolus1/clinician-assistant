@@ -45,7 +45,11 @@ import { BudgetPlanEditDialog } from "./BudgetPlanEditDialog";
 /**
  * A full-screen detailed view of a budget plan with its items and usage statistics
  */
-export function BudgetPlanFullView() {
+interface BudgetPlanFullViewProps {
+  onBackToPlansList: () => void;
+}
+
+export function BudgetPlanFullView({ onBackToPlansList }: BudgetPlanFullViewProps) {
   const [showEditDialog, setShowEditDialog] = useState(false);
   const { 
     selectedPlanId, 
@@ -53,11 +57,23 @@ export function BudgetPlanFullView() {
     selectedPlanItems, 
     updatePlan,
     createBudgetItem,
-    deleteBudgetItem 
+    deleteBudgetItem,
+    viewPlanDetails
   } = useBudgetFeature();
   
   // Get the selected plan details
   const plan = selectedPlanId ? getBudgetPlanById(selectedPlanId) : null;
+  
+  // Handle back button click to return to plans view
+  const handleBackToPlansList = () => {
+    // Set selected plan to null to return to grid view
+    if (selectedPlanId) {
+      // Reset the selected plan in context
+      viewPlanDetails(null);
+      // Call the parent component's handler to switch tabs
+      onBackToPlansList();
+    }
+  };
   
   if (!plan) {
     return (
@@ -94,7 +110,11 @@ export function BudgetPlanFullView() {
     <div className="space-y-6">
       {/* Header with back button and actions */}
       <div className="flex justify-between items-center">
-        <Button variant="ghost" className="gap-1">
+        <Button 
+          variant="ghost" 
+          className="gap-1"
+          onClick={handleBackToPlansList}
+        >
           <ArrowLeft className="h-4 w-4" />
           <span>Back to Plans</span>
         </Button>

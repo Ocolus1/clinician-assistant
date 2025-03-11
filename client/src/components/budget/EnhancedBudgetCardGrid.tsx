@@ -20,11 +20,23 @@ import { BudgetPlanCreateWizard } from "./BudgetPlanCreateWizard";
 
 interface EnhancedBudgetCardGridProps {
   clientId: number;
+  onPlanSelected?: (planId: number) => void;
 }
 
-export function EnhancedBudgetCardGrid({ clientId }: EnhancedBudgetCardGridProps) {
+export function EnhancedBudgetCardGrid({ clientId, onPlanSelected }: EnhancedBudgetCardGridProps) {
   const [showCreateWizard, setShowCreateWizard] = useState(false);
   const { budgetPlans, isLoading, error, viewPlanDetails } = useBudgetFeature();
+  
+  // Enhanced view plan details function that also triggers tab switching
+  const handleViewPlanDetails = (planId: number) => {
+    // Update the context state
+    viewPlanDetails(planId);
+    
+    // Notify parent component about plan selection if callback exists
+    if (onPlanSelected) {
+      onPlanSelected(planId);
+    }
+  };
 
   // Handle wizard open/close
   const handleOpenCreateWizard = () => setShowCreateWizard(true);
@@ -158,7 +170,7 @@ export function EnhancedBudgetCardGrid({ clientId }: EnhancedBudgetCardGridProps
           <BudgetPlanCard 
             key={plan.id} 
             plan={plan} 
-            onView={(planId) => viewPlanDetails(planId)}
+            onView={(planId) => handleViewPlanDetails(planId)}
           />
         ))}
       </div>
