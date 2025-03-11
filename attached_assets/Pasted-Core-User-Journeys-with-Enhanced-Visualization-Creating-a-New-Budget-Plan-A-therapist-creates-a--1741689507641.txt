@@ -1,0 +1,71 @@
+Core User Journeys with Enhanced Visualization
+Creating a New Budget Plan
+
+A therapist creates a new budget plan with a visual step-by-step wizard
+Plan details are entered in clearly segmented input groups with visual validation cues
+Color-coded fields indicate required vs. optional information (end date highlighted as required)
+Dynamic visual calculator shows available funds allocation as items are added
+Animated bar chart updates in real-time showing budget distribution across services
+Visual confirmation dialog with before/after comparison when deactivating existing plans
+Success is confirmed with animated checkmark transition and visual highlighting of the new active plan
+Managing Multiple Budget Plans
+
+Color-coded plan cards instantly distinguish active vs. inactive plans
+Each card features a circular progress indicator showing overall utilization percentage
+Timeline visualization directly on each card shows days remaining with color coding (green/yellow/red)
+Miniature charts display product usage distribution within each plan
+Visual badges highlight key metrics (most used service, days remaining)
+Heat map indicators show usage intensity across different services
+Pulsing indicator draws attention to the currently active plan
+Budget Plan Status Management
+
+Traffic light indicators clearly show active/inactive status
+Visual explanation of the activation process shown during new plan creation
+When creating a plan, an animated flow diagram illustrates how the active status transfers
+Modifying Budget Plan Details
+
+Edit interface features a prominently visual dashboard at the top with:
+Large circular gauge showing overall budget utilization
+Stacked bar chart comparing utilized vs. remaining funds
+Animated countdown timer showing days until expiration
+Sparkline trends showing usage patterns over time
+The budget items table includes:
+Colorful progress bars for utilization with exact numbers in tooltips
+Visual quantity selectors with +/- buttons and immediate visual feedback
+Color-coding to highlight items nearing depletion
+Icons representing different service types
+Animated calculations when adjusting quantities
+Real-time visual summary panel with:
+Animated counter for remaining budget
+Dynamic pie chart showing allocation percentages
+Color-coded warnings when approaching budget limits
+Visual diff indicators showing changes from original plan
+Adding/Removing Budget Items
+
+Visual catalog with item cards grouped by category
+Drag-and-drop interface for adding items to the plan
+Quantity selector with visual feedback (red when exceeding available funds)
+Animated addition/removal of items from the budget list
+Interactive visual calculator showing real-time impact on available funds
+Tracking Budget Utilization
+
+Comprehensive visual dashboard with multiple visualization types:
+Heat maps showing utilization patterns
+Multi-level progress bars comparing different services
+Timeline visualization of usage across the plan duration
+Color-coded alerts for items nearing depletion
+Animated trend lines showing consumption rates over time
+Visual forecasting showing projected usage based on current rates
+Session-Budget Integration
+
+Visual product selector showing availability directly in quantity indicators
+Real-time visual feedback when selecting products for a session
+Color-coded availability indicators (green for available, yellow for low, red for depleted)
+Animated deduction visualization when using products in a session
+Plan Transition Management
+
+Visual timeline showing approaching plan expiration
+Animated notifications with countdown timers for expiring plans
+Guided visual workflow for creating a replacement plan
+Side-by-side visualization of old vs. new plan during transition
+These enhanced visualizations significantly reduce cognitive load by allowing therapists to instantly understand complex budget information through visual cues rather than having to process numerical data. The use of color, animation, and intuitive visual representations makes the entire budget management process more intuitive and less mentally taxing.
