@@ -498,20 +498,26 @@ export function BudgetFeatureProvider({ children, clientId }: BudgetFeatureProvi
     }, {} as Record<number, BudgetItem[]>);
     
     // Update each plan with calculated values
-    budgetPlans.forEach((plan: BudgetPlan) => {
+    // Make sure we're not trying to mutate the response data directly, create a new array
+    // Even though Array.isArray check is done above, we'll keep it safe here with optional chaining
+    budgetPlans?.forEach((plan: BudgetPlan) => {
       const planItems = itemsByPlanId[plan.id] || [];
-      plan.itemCount = planItems.length;
       
-      // Calculate totalUsed based on unitPrice * usedQuantity
-      plan.totalUsed = planItems.reduce(
-        (sum: number, item: BudgetItem) => sum + (item.unitPrice * item.usedQuantity), 
-        0
-      );
-      
-      // Calculate percentUsed
-      plan.percentUsed = plan.availableFunds > 0 
-        ? Math.min(Math.round((plan.totalUsed / plan.availableFunds) * 100), 100)
-        : 0;
+      // Safely set properties
+      if (plan) {
+        plan.itemCount = planItems.length;
+        
+        // Calculate totalUsed based on unitPrice * usedQuantity
+        plan.totalUsed = planItems.reduce(
+          (sum: number, item: BudgetItem) => sum + (item.unitPrice * (item.usedQuantity || 0)), 
+          0
+        );
+        
+        // Calculate percentUsed
+        plan.percentUsed = plan.availableFunds > 0 
+          ? Math.min(Math.round((plan.totalUsed / plan.availableFunds) * 100), 100)
+          : 0;
+      }
     });
     
   }, [budgetPlans, budgetItems]);

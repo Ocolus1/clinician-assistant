@@ -108,7 +108,7 @@ export function EnhancedBudgetCardGrid({ clientId, onPlanSelected }: EnhancedBud
   }
 
   // Empty state with create button
-  if (!budgetPlans || budgetPlans.length === 0) {
+  if (!budgetPlans || !Array.isArray(budgetPlans) || budgetPlans.length === 0) {
     return (
       <div className="space-y-4">
         <div className="flex justify-between items-center mb-4">
@@ -156,7 +156,7 @@ export function EnhancedBudgetCardGrid({ clientId, onPlanSelected }: EnhancedBud
         <div>
           <h3 className="text-lg font-medium">Budget Plans</h3>
           <p className="text-sm text-muted-foreground">
-            {budgetPlans.length} {budgetPlans.length === 1 ? 'plan' : 'plans'} available
+            {Array.isArray(budgetPlans) ? budgetPlans.length : 0} {Array.isArray(budgetPlans) && budgetPlans.length === 1 ? 'plan' : 'plans'} available
           </p>
         </div>
         <Button onClick={handleOpenCreateWizard}>
@@ -166,7 +166,7 @@ export function EnhancedBudgetCardGrid({ clientId, onPlanSelected }: EnhancedBud
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {budgetPlans.map((plan) => (
+        {Array.isArray(budgetPlans) && budgetPlans.map((plan) => (
           <BudgetPlanCard 
             key={plan.id} 
             plan={plan} 
