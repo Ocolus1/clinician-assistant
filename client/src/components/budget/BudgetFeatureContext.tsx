@@ -362,12 +362,15 @@ export function BudgetFeatureProvider({ children, clientId }: BudgetFeatureProvi
   });
   
   // Find the active budget plan
-  const activeBudgetPlan = budgetPlans ? budgetPlans.find((plan: BudgetPlan) => plan.isActive) : null;
+  let activeBudgetPlan: BudgetPlan | null = null;
+  if (budgetPlans && Array.isArray(budgetPlans)) {
+    activeBudgetPlan = budgetPlans.find((plan: BudgetPlan) => plan.isActive) || null;
+  }
   
   // Calculate selected plan items
-  const selectedPlanItems = budgetItems.filter(
-    (item: BudgetItem) => item.budgetSettingsId === selectedPlanId
-  );
+  const selectedPlanItems = Array.isArray(budgetItems) 
+    ? budgetItems.filter((item: BudgetItem) => item.budgetSettingsId === selectedPlanId) 
+    : [];
   
   // Handle view plan details action
   const viewPlanDetails = useCallback((planId: number) => {
@@ -451,7 +454,7 @@ export function BudgetFeatureProvider({ children, clientId }: BudgetFeatureProvi
   
   // Get budget plan by ID
   const getBudgetPlanById = useCallback((planId: number) => {
-    if (!budgetPlans) return null;
+    if (!budgetPlans || !Array.isArray(budgetPlans)) return null;
     return budgetPlans.find((plan: BudgetPlan) => plan.id === planId) || null;
   }, [budgetPlans]);
   
@@ -479,7 +482,8 @@ export function BudgetFeatureProvider({ children, clientId }: BudgetFeatureProvi
   
   // Calculate totals and usage for each plan once budget items are loaded
   useEffect(() => {
-    if (!budgetPlans || budgetPlans.length === 0 || !budgetItems || budgetItems.length === 0) {
+    if (!budgetPlans || !Array.isArray(budgetPlans) || budgetPlans.length === 0 || 
+        !budgetItems || !Array.isArray(budgetItems) || budgetItems.length === 0) {
       return;
     }
     
