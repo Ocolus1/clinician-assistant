@@ -95,13 +95,18 @@ export function BudgetPlanFullView({ onBackToPlansList }: BudgetPlanFullViewProp
   
   // Group budget items by category
   const itemsByCategory: Record<string, typeof selectedPlanItems> = {};
-  selectedPlanItems.forEach(item => {
-    const category = item.category || "Uncategorized";
-    if (!itemsByCategory[category]) {
-      itemsByCategory[category] = [];
-    }
-    itemsByCategory[category].push(item);
-  });
+  // Safely iterate through selectedPlanItems only if it's an array
+  if (Array.isArray(selectedPlanItems)) {
+    selectedPlanItems.forEach(item => {
+      if (item) { // Ensure item exists
+        const category = item.category || "Uncategorized";
+        if (!itemsByCategory[category]) {
+          itemsByCategory[category] = [];
+        }
+        itemsByCategory[category].push(item);
+      }
+    });
+  }
   
   // Handle edit button click
   const handleEditPlan = () => {
@@ -318,7 +323,7 @@ export function BudgetPlanFullView({ onBackToPlansList }: BudgetPlanFullViewProp
               </Button>
             </div>
             
-            {selectedPlanItems.length === 0 ? (
+            {!Array.isArray(selectedPlanItems) || selectedPlanItems.length === 0 ? (
               <Card className="bg-muted/50">
                 <CardContent className="flex flex-col items-center justify-center py-12">
                   <div className="rounded-full bg-background p-3 mb-4">
