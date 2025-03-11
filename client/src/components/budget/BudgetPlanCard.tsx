@@ -25,7 +25,7 @@ import { formatCurrency } from "@/lib/utils";
 import { Progress } from "@/components/ui/progress";
 
 // Import BudgetPlan interface from BudgetFeatureContext
-import { BudgetPlan } from "@/components/budget/BudgetFeatureContext";
+import { BudgetPlan } from "@/components/budget/BudgetPlanContext";
 
 interface BudgetPlanCardProps {
   plan: BudgetPlan;
@@ -42,7 +42,7 @@ export function BudgetPlanCard({ plan, onView }: BudgetPlanCardProps) {
     new Date(plan.endDate) < new Date(today.setDate(today.getDate() + 30)) : 
     false;
   const isLowFunds = plan.percentUsed > 80;
-  
+
   // Calculate display values
   const balanceAmount = plan.availableFunds - plan.totalUsed;
   const formattedBalance = formatCurrency(balanceAmount);
@@ -51,11 +51,11 @@ export function BudgetPlanCard({ plan, onView }: BudgetPlanCardProps) {
     plan.percentUsed >= 90 ? "bg-red-500" :
     plan.percentUsed >= 75 ? "bg-amber-500" :
     "bg-emerald-500";
-  
+
   // Format dates if available
   const formattedStartDate = plan.startDate ? format(new Date(plan.startDate), "MMM d, yyyy") : null;
   const formattedEndDate = plan.endDate ? format(new Date(plan.endDate), "MMM d, yyyy") : null;
-  
+
   return (
     <Card className={cn(
       "overflow-hidden transition-all duration-200",
@@ -71,21 +71,21 @@ export function BudgetPlanCard({ plan, onView }: BudgetPlanCardProps) {
             <CardTitle className="text-lg line-clamp-1">{plan.planName}</CardTitle>
             <CardDescription>{plan.planCode}</CardDescription>
           </div>
-          
+
           {plan.isActive && (
             <Badge variant="outline" className="border-primary text-primary flex items-center gap-1">
               <Check className="h-3 w-3" />
               Active
             </Badge>
           )}
-          
+
           {isExpired && (
             <Badge variant="outline" className="border-red-500 text-red-600 flex items-center gap-1">
               <ShieldAlert className="h-3 w-3" />
               Expired
             </Badge>
           )}
-          
+
           {!plan.isActive && !isExpired && (
             <Badge variant="outline" className="border-gray-500 text-gray-600">
               Inactive
@@ -93,7 +93,7 @@ export function BudgetPlanCard({ plan, onView }: BudgetPlanCardProps) {
           )}
         </div>
       </CardHeader>
-      
+
       <CardContent className="pt-4 pb-2">
         <div className="space-y-4">
           {/* Budget Progress */}
@@ -113,7 +113,7 @@ export function BudgetPlanCard({ plan, onView }: BudgetPlanCardProps) {
               <span className="text-muted-foreground">of {formattedTotal}</span>
             </div>
           </div>
-          
+
           {/* Warning Indicators */}
           {(isExpiringSoon || isLowFunds) && (
             <div className={cn(
@@ -133,7 +133,7 @@ export function BudgetPlanCard({ plan, onView }: BudgetPlanCardProps) {
               </div>
             </div>
           )}
-          
+
           {/* Plan Details */}
           <div className="grid grid-cols-2 gap-2 text-sm py-1">
             <div className="flex items-center gap-1.5">
@@ -149,7 +149,7 @@ export function BudgetPlanCard({ plan, onView }: BudgetPlanCardProps) {
           </div>
         </div>
       </CardContent>
-      
+
       <CardFooter className="pt-2">
         <Button 
           variant="default" 
