@@ -30,25 +30,13 @@ import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { BudgetItemForm } from "@/components/budget/BudgetItemForm";
 import { BudgetPlanCard } from "@/components/budget/BudgetPlanCard";
+import { BudgetPlan } from "@/components/budget/BudgetFeatureContext";
 
 interface DirectBudgetPlanProps {
   clientId: number;
 }
 
-// Enhanced types for UI representation
-interface BudgetPlan {
-  id: number;
-  clientId: number;
-  planName: string;
-  planCode: string | null;
-  isActive: boolean;
-  availableFunds: number;
-  endDate: string | null;
-  startDate: string | null;
-  totalUsed: number;
-  itemCount: number;
-  percentUsed: number;
-}
+
 
 // Budget Item with usage tracking
 interface EnhancedBudgetItem extends Omit<BudgetItem, 'name' | 'category'> {
@@ -284,7 +272,7 @@ export function DirectBudgetPlanList({ clientId }: DirectBudgetPlanProps) {
           <BudgetPlanCard 
             key={plan.id} 
             plan={plan} 
-            onView={() => handleViewDetails(plan)}
+            onView={planId => handleViewDetails(plans.find(p => p.id === planId) as BudgetPlan)}
           />
         ))}
       </div>
@@ -409,17 +397,3 @@ export function DirectBudgetPlanList({ clientId }: DirectBudgetPlanProps) {
   );
 }
 
-// Define a plan type to avoid type errors
-interface BudgetPlan {
-  id: number;
-  clientId: number;
-  planName: string;
-  planCode: string | null;
-  isActive: boolean;
-  availableFunds: number;
-  endDate: string | null;
-  startDate: string | null;
-  totalUsed: number;
-  itemCount: number;
-  percentUsed: number;
-}
