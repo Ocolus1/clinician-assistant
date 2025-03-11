@@ -76,7 +76,7 @@ export default function OnboardingForm() {
         description: "Client onboarding completed successfully!",
         variant: "default",
       });
-      setLocation(`/clients/${clientId}`);
+      setLocation(`/clients/${clientId}/profile`);
     },
     onError: (error) => {
       toast({

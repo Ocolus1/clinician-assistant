@@ -59,7 +59,7 @@ export function DirectBudgetPlanList({ clientId }: DirectBudgetPlanProps) {
         console.log(`[DirectBudgetPlanList] Received ${data.length} budget plans:`, data);
         
         // Transform the data to include UI-specific properties
-        const transformedPlans = data.map((plan) => ({
+        const transformedPlans = data.map((plan: any) => ({
           id: plan.id,
           clientId: plan.clientId,
           planName: plan.planSerialNumber || `Plan ${plan.id}`,
@@ -119,7 +119,7 @@ export function DirectBudgetPlanList({ clientId }: DirectBudgetPlanProps) {
         }, {} as Record<number, any[]>);
         
         // Calculate usage for each plan
-        const plansWithUsage = budgetPlans.map(plan => {
+        const plansWithUsage = budgetPlans.map((plan: BudgetPlan) => {
           const planItems = itemsByPlanId[plan.id] || [];
           
           // Calculate item count
@@ -216,7 +216,7 @@ export function DirectBudgetPlanList({ clientId }: DirectBudgetPlanProps) {
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {plans.map((plan) => (
+        {plans.map((plan: BudgetPlan) => (
           <BudgetPlanCard key={plan.id} plan={plan} />
         ))}
       </div>
@@ -224,8 +224,23 @@ export function DirectBudgetPlanList({ clientId }: DirectBudgetPlanProps) {
   );
 }
 
+// Define a plan type to avoid type errors
+interface BudgetPlan {
+  id: number;
+  clientId: number;
+  planName: string;
+  planCode: string | null;
+  isActive: boolean;
+  availableFunds: number;
+  endDate: string | null;
+  startDate: string | null;
+  totalUsed: number;
+  itemCount: number;
+  percentUsed: number;
+}
+
 // Budget Plan Card component
-function BudgetPlanCard({ plan }: { plan: any }) {
+function BudgetPlanCard({ plan }: { plan: BudgetPlan }) {
   const today = new Date();
   const isExpired = plan.endDate ? new Date(plan.endDate) < today : false;
   const isExpiringSoon = plan.endDate && !isExpired ? 
