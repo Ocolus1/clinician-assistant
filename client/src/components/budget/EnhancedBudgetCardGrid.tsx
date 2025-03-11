@@ -1,238 +1,170 @@
 import React, { useState } from "react";
-import { motion } from "framer-motion";
+import { useQuery } from "@tanstack/react-query";
 import { 
-  Dialog,
-  DialogContent
-} from "../ui/dialog";
+  Card, 
+  CardContent, 
+  CardDescription, 
+  CardFooter, 
+  CardHeader, 
+  CardTitle 
+} from "../ui/card";
 import { Button } from "../ui/button";
-import { PlusCircle, AlertTriangle } from "lucide-react";
+import { Skeleton } from "../ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
-import { useBudgetFeature, BudgetPlan } from "./BudgetFeatureContext";
+import { PlusCircle, AlertTriangle } from "lucide-react";
+import { useBudgetFeature } from "./BudgetFeatureContext";
 import { BudgetPlanCard } from "./BudgetPlanCard";
-import { BudgetPlanFullView } from "./BudgetPlanFullView";
 import { BudgetPlanCreateWizard } from "./BudgetPlanCreateWizard";
-import { BudgetPlanEditDialog } from "./BudgetPlanEditDialog";
+
+interface BudgetPlan {
+  id: number;
+  clientId: number;
+  planName: string;
+  planCode: string;
+  isActive: boolean;
+  availableFunds: number;
+  endDate: string;
+  startDate: string;
+  totalUsed: number;
+  itemCount: number;
+  percentUsed: number;
+}
 
 interface EnhancedBudgetCardGridProps {
   clientId: number;
-  showArchivedByDefault?: boolean;
 }
 
-export function EnhancedBudgetCardGrid({ 
-  clientId, 
-  showArchivedByDefault = false 
-}: EnhancedBudgetCardGridProps) {
-  // State for tab selection
-  const [activeTab, setActiveTab] = useState<string>(showArchivedByDefault ? "archived" : "active");
-  
-  // State for dialogs
+export function EnhancedBudgetCardGrid({ clientId }: EnhancedBudgetCardGridProps) {
   const [showCreateWizard, setShowCreateWizard] = useState(false);
-  const [showDetailsDialog, setShowDetailsDialog] = useState(false);
-  const [showEditDialog, setShowEditDialog] = useState(false);
-  const [selectedPlan, setSelectedPlan] = useState<BudgetPlan | null>(null);
-  
-  // Get budget data from context
-  const { 
-    budgetPlans, 
-    isLoading, 
-    activePlan, 
-    createPlan, 
-    updatePlan, 
-    archivePlan, 
-    setActivePlan,
-    updateBudgetItems,
-    getBudgetItemsByPlan,
-    catalogItems
-  } = useBudgetFeature();
-  
-  // Filter plans by active/archived status
-  const activePlans = budgetPlans.filter(plan => !plan.archived);
-  const archivedPlans = budgetPlans.filter(plan => plan.archived);
-  
-  // Handle clicking on a budget plan
-  const handlePlanClick = (plan: BudgetPlan) => {
-    setSelectedPlan(plan);
-    setShowDetailsDialog(true);
-  };
-  
-  // Handle opening edit dialog
-  const handleEditPlan = (plan: BudgetPlan) => {
-    setSelectedPlan(plan);
-    setShowEditDialog(true);
-  };
-  
-  // Handle creating a new plan
-  const handleCreatePlan = (data: any) => {
-    createPlan(data);
-    setShowCreateWizard(false);
-  };
-  
-  // Handle setting a plan as active
-  const handleSetActive = (plan: BudgetPlan) => {
-    setActivePlan(plan.id);
-  };
-  
-  // Handle archiving a plan
-  const handleArchive = (plan: BudgetPlan) => {
-    archivePlan(plan.id);
-  };
-  
-  // Variants for container animations
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    show: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.1
-      }
-    }
-  };
-  
-  // Variants for item animations
-  const itemVariants = {
-    hidden: { opacity: 0, y: 20 },
-    show: { opacity: 1, y: 0 }
-  };
-  
+  const { budgetPlans, isLoading, error, viewPlanDetails } = useBudgetFeature();
+
+  // Handle wizard open/close
+  const handleOpenCreateWizard = () => setShowCreateWizard(true);
+  const handleCloseCreateWizard = () => setShowCreateWizard(false);
+
+  // Display loading state
+  if (isLoading) {
+    return (
+      <div className="space-y-4">
+        <div className="flex justify-between items-center mb-4">
+          <div>
+            <Skeleton className="h-8 w-64 mb-2" />
+            <Skeleton className="h-4 w-48" />
+          </div>
+          <Skeleton className="h-10 w-32" />
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {[1, 2, 3].map((i) => (
+            <Card key={i} className="overflow-hidden">
+              <CardHeader className="pb-2">
+                <Skeleton className="h-5 w-3/4 mb-1" />
+                <Skeleton className="h-4 w-1/2" />
+              </CardHeader>
+              <CardContent className="pb-2">
+                <Skeleton className="h-16 w-full mb-2" />
+                <div className="space-y-2">
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-3/4" />
+                </div>
+              </CardContent>
+              <CardFooter>
+                <Skeleton className="h-9 w-full" />
+              </CardFooter>
+            </Card>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // Display error state
+  if (error) {
+    return (
+      <Alert variant="destructive">
+        <AlertTriangle className="h-4 w-4" />
+        <AlertTitle>Error Loading Budget Plans</AlertTitle>
+        <AlertDescription>
+          There was a problem loading the budget plans. Please try again later.
+        </AlertDescription>
+      </Alert>
+    );
+  }
+
+  // Empty state with create button
+  if (!budgetPlans || budgetPlans.length === 0) {
+    return (
+      <div className="space-y-4">
+        <div className="flex justify-between items-center mb-4">
+          <div>
+            <h3 className="text-lg font-medium">Budget Plans</h3>
+            <p className="text-sm text-muted-foreground">
+              No budget plans have been created yet.
+            </p>
+          </div>
+          <Button onClick={handleOpenCreateWizard}>
+            <PlusCircle className="h-4 w-4 mr-2" />
+            Create Budget Plan
+          </Button>
+        </div>
+        
+        <Card className="bg-muted/50">
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <div className="rounded-full bg-background p-3 mb-4">
+              <PlusCircle className="h-6 w-6 text-muted-foreground" />
+            </div>
+            <h3 className="text-lg font-medium mb-2">No Budget Plans</h3>
+            <p className="text-center text-muted-foreground mb-4 max-w-md">
+              Create your first budget plan to start tracking therapy expenses and funding allocations.
+            </p>
+            <Button onClick={handleOpenCreateWizard}>
+              Create New Budget Plan
+            </Button>
+          </CardContent>
+        </Card>
+        
+        {/* Budget Plan Create Wizard */}
+        <BudgetPlanCreateWizard
+          open={showCreateWizard}
+          onOpenChange={setShowCreateWizard}
+          clientId={clientId}
+        />
+      </div>
+    );
+  }
+
+  // Display grid of budget plans
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold tracking-tight">Budget Plans</h2>
-        <Button
-          onClick={() => setShowCreateWizard(true)}
-          disabled={isLoading}
-        >
+    <div className="space-y-4">
+      <div className="flex justify-between items-center mb-4">
+        <div>
+          <h3 className="text-lg font-medium">Budget Plans</h3>
+          <p className="text-sm text-muted-foreground">
+            {budgetPlans.length} {budgetPlans.length === 1 ? 'plan' : 'plans'} available
+          </p>
+        </div>
+        <Button onClick={handleOpenCreateWizard}>
           <PlusCircle className="h-4 w-4 mr-2" />
-          Create New Plan
+          Create Budget Plan
         </Button>
       </div>
       
-      {/* Display alert if no plans exist */}
-      {budgetPlans.length === 0 && !isLoading && (
-        <Alert>
-          <AlertTriangle className="h-4 w-4" />
-          <AlertTitle>No Budget Plans</AlertTitle>
-          <AlertDescription>
-            No budget plans have been created for this client yet. Click "Create New Plan" to get started.
-          </AlertDescription>
-        </Alert>
-      )}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {budgetPlans.map((plan) => (
+          <BudgetPlanCard 
+            key={plan.id} 
+            plan={plan} 
+            onView={(planId) => viewPlanDetails(planId)}
+          />
+        ))}
+      </div>
       
-      {/* Tabs for active/archived plans */}
-      {budgetPlans.length > 0 && (
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full max-w-md grid-cols-2">
-            <TabsTrigger value="active">
-              Active Plans ({activePlans.length})
-            </TabsTrigger>
-            <TabsTrigger value="archived">
-              Archived Plans ({archivedPlans.length})
-            </TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="active" className="mt-4">
-            {activePlans.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                No active plans. Create a new plan or activate an archived plan.
-              </div>
-            ) : (
-              <motion.div 
-                className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
-                variants={containerVariants}
-                initial="hidden"
-                animate="show"
-              >
-                {activePlans.map(plan => (
-                  <motion.div key={plan.id} variants={itemVariants}>
-                    <BudgetPlanCard 
-                      plan={plan}
-                      isActive={plan.active}
-                      onView={() => handlePlanClick(plan)}
-                      onEdit={() => handleEditPlan(plan)}
-                      onArchive={() => handleArchive(plan)}
-                      onSetActive={!plan.active ? () => handleSetActive(plan) : undefined}
-                    />
-                  </motion.div>
-                ))}
-              </motion.div>
-            )}
-          </TabsContent>
-          
-          <TabsContent value="archived" className="mt-4">
-            {archivedPlans.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                No archived plans.
-              </div>
-            ) : (
-              <motion.div 
-                className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
-                variants={containerVariants}
-                initial="hidden"
-                animate="show"
-              >
-                {archivedPlans.map(plan => (
-                  <motion.div key={plan.id} variants={itemVariants}>
-                    <BudgetPlanCard 
-                      plan={plan}
-                      isArchived={true}
-                      onView={() => handlePlanClick(plan)}
-                    />
-                  </motion.div>
-                ))}
-              </motion.div>
-            )}
-          </TabsContent>
-        </Tabs>
-      )}
-      
-      {/* Create Plan Wizard */}
+      {/* Budget Plan Create Wizard */}
       <BudgetPlanCreateWizard
         open={showCreateWizard}
         onOpenChange={setShowCreateWizard}
-        onSubmit={handleCreatePlan}
         clientId={clientId}
-        catalogItems={catalogItems}
-        hasActivePlan={!!activePlan}
       />
-      
-      {/* Edit Plan Dialog */}
-      {selectedPlan && (
-        <BudgetPlanEditDialog
-          open={showEditDialog}
-          onOpenChange={setShowEditDialog}
-          plan={selectedPlan}
-          budgetItems={getBudgetItemsByPlan(selectedPlan.id)}
-          catalogItems={catalogItems}
-          onSave={(items) => {
-            if (selectedPlan) {
-              updateBudgetItems(selectedPlan.id, items);
-              setShowEditDialog(false);
-            }
-          }}
-        />
-      )}
-      
-      {/* View Plan Details Dialog */}
-      <Dialog open={showDetailsDialog && !!selectedPlan} onOpenChange={setShowDetailsDialog}>
-        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
-          {selectedPlan && (
-            <BudgetPlanFullView
-              plan={selectedPlan}
-              budgetItems={getBudgetItemsByPlan(selectedPlan.id)}
-              onBack={() => setShowDetailsDialog(false)}
-              onEdit={() => {
-                setShowDetailsDialog(false);
-                setShowEditDialog(true);
-              }}
-              onSetActive={!selectedPlan.active && !selectedPlan.archived ? 
-                () => handleSetActive(selectedPlan) : undefined}
-              onArchive={!selectedPlan.archived ? 
-                () => handleArchive(selectedPlan) : undefined}
-            />
-          )}
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

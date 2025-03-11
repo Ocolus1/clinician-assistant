@@ -633,8 +633,8 @@ export default function ClientProfile() {
                 Track and manage the client's budget plans, funding sources, and expenditures.
               </p>
               
-              {/* Use our new ClientBudgetTab component */}
-              <ClientBudgetTab 
+              {/* Use our enhanced budget management feature */}
+              <EnhancedClientBudgetTab 
                 clientId={clientId}
                 budgetSettings={budgetSettings}
                 budgetItems={budgetItems}
