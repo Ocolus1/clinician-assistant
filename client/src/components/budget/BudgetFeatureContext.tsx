@@ -99,6 +99,13 @@ export function BudgetFeatureProvider({ children, clientId, initialBudgetPlans }
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
+  // Log if initial budget plans were provided
+  useEffect(() => {
+    if (initialBudgetPlans && Array.isArray(initialBudgetPlans) && initialBudgetPlans.length > 0) {
+      console.log(`[BudgetFeature] Received ${initialBudgetPlans.length} initial budget plans`);
+    }
+  }, [initialBudgetPlans]);
+
   // Query to fetch all budget plans for a client
   const { 
     data: budgetPlans, 
@@ -108,7 +115,13 @@ export function BudgetFeatureProvider({ children, clientId, initialBudgetPlans }
     queryKey: ['/api/clients', clientId, 'budget-settings'],
     queryFn: async () => {
       try {
-        console.log(`[BudgetFeature] Fetching budget settings for client ${clientId}`);
+        // If we were provided initial budget plans, use those instead of making an API call
+        if (initialBudgetPlans && Array.isArray(initialBudgetPlans) && initialBudgetPlans.length > 0) {
+          console.log(`[BudgetFeature] Using ${initialBudgetPlans.length} provided initial budget plans instead of API call`);
+          return initialBudgetPlans;
+        }
+
+        console.log(`[BudgetFeature] No initial plans provided, fetching budget settings for client ${clientId}`);
         
         // First try to get all budget settings for this client with a direct fetch to ensure
         // we get all parameters correctly passed
@@ -165,10 +178,20 @@ export function BudgetFeatureProvider({ children, clientId, initialBudgetPlans }
         return transformedSettings;
       } catch (error) {
         console.error("Error fetching budget plans:", error);
+        // If API call fails but we have initial plans, use those as a fallback
+        if (initialBudgetPlans && Array.isArray(initialBudgetPlans) && initialBudgetPlans.length > 0) {
+          console.log(`[BudgetFeature] API call failed, using ${initialBudgetPlans.length} provided initial budget plans as fallback`);
+          return initialBudgetPlans;
+        }
         throw error;
       }
     },
     enabled: !!clientId,
+    // This ensures that if initialBudgetPlans changes, the query will refetch
+    ...(initialBudgetPlans && Array.isArray(initialBudgetPlans) ? 
+      { initialData: initialBudgetPlans } : 
+      {}
+    )
   });
   
   // Query to fetch budget items for the client

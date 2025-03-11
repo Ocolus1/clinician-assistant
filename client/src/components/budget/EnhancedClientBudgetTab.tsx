@@ -111,7 +111,10 @@ export function EnhancedClientBudgetTab({ clientId, budgetSettings, budgetItems 
   // Our primary fix is to ensure we properly wrap all budget-related components
   // in the BudgetFeatureProvider context which handles the data flow
   return (
-    <BudgetFeatureProvider clientId={clientId}>
+    <BudgetFeatureProvider 
+      clientId={clientId} 
+      initialBudgetPlans={initialBudgetPlans}
+    >
       <BudgetTabContents clientId={clientId} />
     </BudgetFeatureProvider>
   );
