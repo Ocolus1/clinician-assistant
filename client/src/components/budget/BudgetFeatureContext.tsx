@@ -135,10 +135,10 @@ export function BudgetFeatureProvider({ children, clientId }: BudgetFeatureProvi
           budgetSettings = [budgetSettings];
         }
         
-        console.log(`[BudgetFeature] Processing ${budgetSettings.length} budget settings`)
+        console.log(`[BudgetFeature] Processing ${budgetSettings.length} budget settings`);
         
         // Transform budget settings into budget plans with additional UI properties
-        return budgetSettings.map((setting: any) => {
+        const transformedSettings = budgetSettings.map((setting: any) => {
           // Create a meaningful plan name if one is not provided
           const planName = setting.planSerialNumber || `Plan ${setting.id}`;
           
@@ -157,6 +157,9 @@ export function BudgetFeatureProvider({ children, clientId }: BudgetFeatureProvi
             percentUsed: 0,
           };
         });
+        
+        console.log(`[BudgetFeature] Transformed ${transformedSettings.length} budget settings to plans:`, transformedSettings);
+        return transformedSettings;
       } catch (error) {
         console.error("Error fetching budget plans:", error);
         throw error;
