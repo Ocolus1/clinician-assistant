@@ -114,6 +114,7 @@ export function BudgetPlanFullView({ onBackToPlansList }: BudgetPlanFullViewProp
     
     try {
       await setActivePlan(plan.id);
+      // Success feedback is handled by the toast in the context
     } catch (error) {
       console.error("Failed to set plan as active:", error);
     }
@@ -290,7 +291,11 @@ export function BudgetPlanFullView({ onBackToPlansList }: BudgetPlanFullViewProp
                   Add Budget Item
                 </Button>
                 {!plan.isActive && (
-                  <Button variant="outline" className="w-full">
+                  <Button 
+                    variant="outline" 
+                    className="w-full"
+                    onClick={handleSetActive}
+                  >
                     <Star className="h-4 w-4 mr-2" />
                     Set as Active Plan
                   </Button>
