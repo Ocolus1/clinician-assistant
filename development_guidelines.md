@@ -5,15 +5,20 @@ This document outlines the development standards and best practices for our Spee
 ## Table of Contents
 
 1. [Component Architecture](#component-architecture)
-2. [State Management](#state-management)
-3. [Performance Optimization](#performance-optimization)
-4. [Page Structure Organization](#page-structure-organization)
-5. [File Naming and Organization](#file-naming-and-organization)
-6. [Form Implementation](#form-implementation)
-7. [Data Fetching](#data-fetching)
-8. [Code Style](#code-style)
-9. [Troubleshooting Common Issues](#troubleshooting-common-issues)
-10. [Examples](#examples)
+2. [State Management](#state-management) 
+3. [Complex State Management](#complex-state-management) *(New)*
+4. [Concurrency Handling](#concurrency-handling) *(New)*
+5. [Data Integrity](#data-integrity) *(New)*
+6. [Performance Optimization](#performance-optimization)
+7. [Page Structure Organization](#page-structure-organization)
+8. [File Naming and Organization](#file-naming-and-organization)
+9. [Form Implementation](#form-implementation)
+10. [Data Fetching](#data-fetching)
+11. [Code Style](#code-style)
+12. [Testing](#testing) *(New)*
+13. [User Experience Considerations](#user-experience-considerations) *(New)*
+14. [Troubleshooting Common Issues](#troubleshooting-common-issues)
+15. [Examples](#examples)
 
 ## Component Architecture
 
@@ -73,6 +78,91 @@ function ClientHeaderWithActionsAndStatusAndMetrics({ client, metrics }) {
 2. Avoid prop drilling beyond 2 levels (use context or state management)
 3. Use controlled components for form inputs
 4. Memoize expensive calculations with `useMemo` and `useCallback`
+
+## Complex State Management
+
+### Centralized State for Complex Features
+- **Use Dedicated Feature Context**: Create a context provider for complex features with interdependent components
+- **Single Source of Truth**: Define a clear owner for each piece of state
+- **State Normalization**: Structure state objects to avoid duplication and simplify updates
+- **Immutable Updates**: Use immutable patterns for all state updates
+
+### State Synchronization
+- **Predictable Data Flow**: Design unidirectional data flows with clear entry/exit points
+- **Staged Operations**: Break multi-entity operations into distinct stages with clear progress tracking
+- **Optimistic Updates**: Update UI optimistically but maintain revert capability
+- **State Machine Patterns**: Consider using finite state machines for complex workflows
+- **Tracking In-Flight Operations**: Maintain flags for operations in progress to prevent duplicate submissions
+
+### ✅ Good Example
+```tsx
+// Feature context with dedicated state management
+export const BudgetFeatureProvider = ({ children, clientId }) => {
+  // Central state management
+  const [state, dispatch] = useReducer(budgetReducer, initialBudgetState);
+  const [operationStatus, setOperationStatus] = useState({
+    creatingPlan: false,
+    updatingPlan: false,
+    activatingPlan: false
+  });
+  
+  // Create a complete transaction-like operation
+  const createBudgetPlan = async (planData) => {
+    // Prevent duplicate operations
+    if (operationStatus.creatingPlan) return;
+    
+    try {
+      // Set operation in progress
+      setOperationStatus(prev => ({ ...prev, creatingPlan: true }));
+      
+      // Dispatch intent
+      dispatch({ type: 'CREATE_PLAN_STARTED', payload: planData });
+      
+      // API call
+      const newPlan = await apiRequest('POST', '/api/budget-settings', {
+        ...planData,
+        clientId
+      });
+      
+      // Create items in sequence if needed
+      if (planData.items?.length) {
+        const itemPromises = planData.items.map(item => 
+          apiRequest('POST', '/api/budget-items', {
+            ...item,
+            budgetSettingsId: newPlan.id,
+            clientId
+          })
+        );
+        await Promise.all(itemPromises);
+      }
+      
+      // Update local state with complete result
+      dispatch({ type: 'CREATE_PLAN_SUCCEEDED', payload: newPlan });
+      
+      return newPlan;
+    } catch (error) {
+      // Handle error and update state accordingly
+      dispatch({ type: 'CREATE_PLAN_FAILED', payload: error });
+      throw error;
+    } finally {
+      // Always clear operation status
+      setOperationStatus(prev => ({ ...prev, creatingPlan: false }));
+    }
+  };
+  
+  // Provide all operations and state via context
+  return (
+    <BudgetFeatureContext.Provider value={{
+      ...state,
+      operationStatus,
+      createBudgetPlan,
+      // Other operations...
+    }}>
+      {children}
+    </BudgetFeatureContext.Provider>
+  );
+};
+```
 
 ### ✅ Good Example
 ```tsx
