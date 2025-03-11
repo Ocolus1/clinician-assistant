@@ -642,14 +642,9 @@ export default function ClientProfile() {
             </TabsContent>
             
             <TabsContent value="budget" className="mt-0">
-              <h3 className="text-lg font-medium mb-4">Budget Management</h3>
-              <p className="text-gray-500 mb-6">
-                Track and manage the client's budget plans, funding sources, and expenditures.
-              </p>
-              
-              {/* Budget Plan List - displays budget plans with usage metrics */}
+              {/* Use the new comprehensive BudgetManagerView for budget management */}
               <div className="space-y-8">
-                <DirectBudgetPlanList clientId={clientId} />
+                <BudgetManagerView clientId={clientId} />
               </div>
             </TabsContent>
             

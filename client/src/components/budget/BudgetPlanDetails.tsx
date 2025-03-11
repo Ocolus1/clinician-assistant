@@ -1,234 +1,374 @@
-import React from 'react';
+import React, { useState, useEffect } from "react";
+import { format } from "date-fns";
 import { 
-  Card, 
+  Card,
   CardContent,
-  CardFooter,
-  CardHeader, 
-  CardTitle 
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardFooter
 } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
+  ArrowLeft, 
+  Calendar, 
   DollarSign, 
   Edit, 
-  ArrowLeft,
-  Plus,
-  Trash2
+  FileText, 
+  Plus, 
+  Trash2,
+  AlertCircle,
+  Check,
+  X
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import type { BudgetItem } from "@shared/schema";
-import { BudgetPlan } from './BudgetPlans';
+import { formatCurrency } from "@/lib/utils";
+import { BudgetPlan, BudgetItem, useBudgetFeature } from "./BudgetFeatureContext";
+import { BudgetItemTable } from "./BudgetItemTable";
+import { BudgetItemForm } from "./BudgetItemForm";
+import { useToast } from "@/hooks/use-toast";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 interface BudgetPlanDetailsProps {
   plan: BudgetPlan;
-  budgetItems: BudgetItem[];
+  items: BudgetItem[];
   onBack: () => void;
-  onEditPlan: (plan: BudgetPlan) => void;
-  onAddItem: () => void;
-  onEditItem: (item: BudgetItem) => void;
-  onDeleteItem: (item: BudgetItem) => void;
+  onAddItem?: () => void;
+  onEditItem?: (item: BudgetItem) => void;
+  onDeleteItem?: (item: BudgetItem) => void;
+  onMakeActive?: (plan: BudgetPlan) => void;
 }
 
-export default function BudgetPlanDetails({
-  plan,
-  budgetItems = [],
+/**
+ * Detailed view of a budget plan including items, usage stats and actions
+ */
+export function BudgetPlanDetails({ 
+  plan, 
+  items, 
   onBack,
-  onEditPlan,
   onAddItem,
   onEditItem,
-  onDeleteItem
+  onDeleteItem,
+  onMakeActive
 }: BudgetPlanDetailsProps) {
-  // Items for this specific plan
-  const planItems = budgetItems.filter(item => item.budgetSettingsId === plan.id);
+  const [selectedTabValue, setSelectedTabValue] = useState("items");
+  const [isAddItemDialogOpen, setIsAddItemDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [confirmationText, setConfirmationText] = useState("");
+  const [itemToDelete, setItemToDelete] = useState<BudgetItem | null>(null);
+  const { toast } = useToast();
+  const { deleteBudgetItem } = useBudgetFeature();
   
-  // Calculate progress colors
-  const getStatusColor = (percentUsed: number) => {
-    if (percentUsed >= 100) return "bg-red-500";
-    if (percentUsed >= 90) return "bg-amber-500";
-    if (percentUsed >= 70) return "bg-yellow-500";
-    return "bg-green-500";
+  // Format dates for display
+  const formattedStartDate = plan.startDate 
+    ? format(new Date(plan.startDate), "MMM d, yyyy") 
+    : "Not specified";
+    
+  const formattedEndDate = plan.endDate 
+    ? format(new Date(plan.endDate), "MMM d, yyyy") 
+    : "Not specified";
+  
+  // Calculate totals for summary information
+  const totalBudgeted = items.reduce(
+    (sum, item) => sum + (item.unitPrice * item.quantity), 
+    0
+  );
+  
+  const totalUsed = items.reduce(
+    (sum, item) => sum + (item.unitPrice * (item.usedQuantity || 0)), 
+    0
+  );
+  
+  const percentageUsed = plan.availableFunds > 0 
+    ? Math.min(Math.round((totalUsed / plan.availableFunds) * 100), 100) 
+    : 0;
+  
+  const availableBalance = plan.availableFunds - totalBudgeted;
+  
+  // Handle item deletion with confirmation
+  const handleDeleteClick = (item: BudgetItem) => {
+    setItemToDelete(item);
+    setIsDeleteDialogOpen(true);
+    setConfirmationText("");
   };
   
-  // Format date string
-  const formatDate = (dateString: string | null) => {
-    if (!dateString) return 'Not set';
+  const handleConfirmDelete = async () => {
+    if (!itemToDelete) return;
     
     try {
-      return new Date(dateString).toLocaleDateString();
-    } catch (e) {
-      return dateString;
+      await deleteBudgetItem(itemToDelete.id);
+      toast({
+        title: "Item Deleted",
+        description: `${itemToDelete.description} has been deleted.`,
+      });
+      setIsDeleteDialogOpen(false);
+      setItemToDelete(null);
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to delete item. Please try again.",
+      });
     }
   };
-
+  
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div className="flex items-center">
-          <Button variant="ghost" onClick={onBack} className="mr-2">
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Plans
+      {/* Header with back button */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" size="icon" onClick={onBack}>
+            <ArrowLeft className="h-5 w-5" />
           </Button>
-          <h3 className="text-lg font-medium">
-            {plan.planCode || plan.planSerialNumber || 'Budget Plan Details'}
-          </h3>
+          <h2 className="text-2xl font-semibold">Plan Details</h2>
         </div>
         
-        <Button size="sm" onClick={() => onEditPlan(plan)}>
-          <Edit className="h-4 w-4 mr-2" />
-          Edit Plan
-        </Button>
+        <div className="flex gap-2">
+          {!plan.isActive && onMakeActive && (
+            <Button 
+              variant="outline" 
+              className="space-x-2" 
+              onClick={() => onMakeActive(plan)}
+            >
+              <Check className="h-4 w-4" />
+              <span>Make Active</span>
+            </Button>
+          )}
+          <Button className="space-x-2">
+            <Edit className="h-4 w-4" />
+            <span>Edit Plan</span>
+          </Button>
+        </div>
       </div>
       
-      {/* Plan Overview Card */}
+      {/* Plan Summary Card */}
       <Card>
-        <CardHeader className="pb-2">
-          <div className="flex justify-between items-center">
+        <CardHeader>
+          <div className="flex justify-between items-start">
             <div>
-              <Badge variant={plan.isActive ? "default" : "secondary"} className="mb-2">
-                {plan.isActive ? 'Active' : 'Inactive'}
-              </Badge>
-              <CardTitle className="text-xl">
-                {plan.planCode || plan.planSerialNumber || 'Unnamed Plan'}
-              </CardTitle>
-              {plan.planCode && (
-                <div className="text-sm text-gray-500 mt-1">
-                  Plan Code: {plan.planCode}
-                </div>
-              )}
+              <CardTitle className="text-xl mb-1">{plan.planName}</CardTitle>
+              <CardDescription>
+                {plan.planCode && (
+                  <span className="font-medium text-foreground">{plan.planCode}</span>
+                )}
+                {plan.planCode && " - "}
+                {plan.isActive 
+                  ? <Badge variant="default">Active</Badge>
+                  : <Badge variant="outline">Inactive</Badge>
+                }
+              </CardDescription>
             </div>
-            {plan.endOfPlan && (
-              <div className="text-right">
-                <div className="text-sm text-gray-500">End Date</div>
-                <div className="font-medium">{formatDate(plan.endOfPlan)}</div>
-              </div>
-            )}
+            <div className="text-right">
+              <div className="text-sm text-muted-foreground mb-1">Total Funds</div>
+              <div className="text-2xl font-semibold">{formatCurrency(plan.availableFunds)}</div>
+            </div>
           </div>
         </CardHeader>
         
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-4">
-            <div>
-              <h4 className="text-sm font-medium text-gray-500 mb-1">Available Funds</h4>
-              <p className="text-2xl font-bold">${plan.availableFunds.toFixed(2)}</p>
-            </div>
-            <div>
-              <h4 className="text-sm font-medium text-gray-500 mb-1">Used</h4>
-              <p className="text-2xl font-bold">${plan.totalUsed.toFixed(2)}</p>
-              <div className="text-xs text-gray-500 mt-1">
-                ({plan.itemCount} budget items)
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Date Information */}
+            <div className="space-y-3">
+              <div className="text-sm font-medium flex items-center">
+                <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
+                Date Information
+              </div>
+              <div className="grid grid-cols-2 gap-2 text-sm">
+                <div className="text-muted-foreground">Start Date:</div>
+                <div>{formattedStartDate}</div>
+                <div className="text-muted-foreground">End Date:</div>
+                <div>{formattedEndDate}</div>
               </div>
             </div>
-            <div>
-              <h4 className="text-sm font-medium text-gray-500 mb-1">Remaining</h4>
-              <p className={`text-2xl font-bold ${plan.remainingFunds < 0 ? 'text-red-600' : ''}`}>
-                ${plan.remainingFunds.toFixed(2)}
-              </p>
-              <div className="text-xs text-gray-500 mt-1">
-                {plan.remainingFunds < 0 ? 'Over budget' : 'Under budget'}
+            
+            {/* Usage Information */}
+            <div className="space-y-3">
+              <div className="text-sm font-medium flex items-center">
+                <DollarSign className="h-4 w-4 mr-2 text-muted-foreground" />
+                Budget Usage
+              </div>
+              <div className="grid grid-cols-2 gap-2 text-sm">
+                <div className="text-muted-foreground">Budgeted:</div>
+                <div>{formatCurrency(totalBudgeted)}</div>
+                <div className="text-muted-foreground">Used:</div>
+                <div>{formatCurrency(totalUsed)}</div>
+                <div className="text-muted-foreground">Available:</div>
+                <div className={`font-medium ${availableBalance < 0 ? 'text-red-500' : ''}`}>
+                  {formatCurrency(availableBalance)}
+                </div>
               </div>
             </div>
-          </div>
-          
-          <div>
-            <div className="flex justify-between text-sm mb-1">
-              <span>Budget Utilization</span>
-              <span>{Math.min(100, plan.percentUsed).toFixed(0)}%</span>
-            </div>
-            <Progress 
-              value={Math.min(100, plan.percentUsed)} 
-              className="h-2"
-              indicatorClassName={getStatusColor(plan.percentUsed)}
-            />
-            {plan.percentUsed > 100 && (
-              <div className="text-xs text-red-600 mt-1">
-                Budget exceeded by ${Math.abs(plan.remainingFunds).toFixed(2)}
+            
+            {/* Usage Progress */}
+            <div className="space-y-3">
+              <div className="text-sm font-medium flex items-center">
+                <FileText className="h-4 w-4 mr-2 text-muted-foreground" />
+                Funding Progress
               </div>
-            )}
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span>Usage</span>
+                    <span>{percentageUsed}%</span>
+                  </div>
+                  <Progress value={percentageUsed} className="h-2" />
+                </div>
+                <div className="text-sm flex justify-between">
+                  <span>{items.length} items</span>
+                  <span className={availableBalance < 0 ? 'text-red-500' : 'text-green-600'}>
+                    {availableBalance < 0 ? 'Over budget' : 'Within budget'}
+                  </span>
+                </div>
+              </div>
+            </div>
           </div>
         </CardContent>
       </Card>
       
-      {/* Budget Items Section */}
-      <div className="space-y-4">
-        <div className="flex justify-between items-center">
-          <h4 className="font-medium">Budget Items ({planItems.length})</h4>
-          <Button size="sm" onClick={onAddItem}>
-            <Plus className="h-4 w-4 mr-2" />
-            Add Budget Item
-          </Button>
-        </div>
+      {/* Tabs for different views */}
+      <Tabs value={selectedTabValue} onValueChange={setSelectedTabValue}>
+        <TabsList className="mb-4">
+          <TabsTrigger value="items">Budget Items</TabsTrigger>
+          <TabsTrigger value="transactions">Usage History</TabsTrigger>
+          <TabsTrigger value="notes">Notes</TabsTrigger>
+        </TabsList>
         
-        {planItems.length === 0 ? (
-          <div className="text-center py-8 bg-gray-50 rounded-lg">
-            <DollarSign className="h-10 w-10 text-gray-300 mx-auto mb-3" />
-            <h4 className="text-lg font-medium text-gray-500 mb-2">No budget items added</h4>
-            <p className="text-gray-500 mb-4">Add items to track expenses related to therapy services.</p>
-            <Button onClick={onAddItem}>Add First Budget Item</Button>
+        <TabsContent value="items" className="space-y-4">
+          <div className="flex justify-between items-center">
+            <h3 className="text-lg font-medium">Budget Items</h3>
+            <Button onClick={() => setIsAddItemDialogOpen(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Add Item
+            </Button>
           </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-            {planItems.map(item => {
-              // Handle null/undefined values
-              const unitPrice = typeof item.unitPrice === 'string' 
-                ? parseFloat(item.unitPrice) || 0 
-                : (item.unitPrice || 0);
-                
-              const quantity = typeof item.quantity === 'string' 
-                ? parseInt(item.quantity) || 0 
-                : (item.quantity || 0);
-                
-              const total = unitPrice * quantity;
-              
-              return (
-                <Card key={item.id} className="hover:shadow-md transition-shadow duration-200">
-                  <CardHeader className="py-3 px-4">
-                    <CardTitle className="text-base">
-                      {item.name || item.itemCode || 'Unnamed Item'}
-                    </CardTitle>
-                    {item.category && (
-                      <Badge variant="outline" className="mt-1">
-                        {item.category}
-                      </Badge>
-                    )}
-                  </CardHeader>
-                  <CardContent className="py-2 px-4">
-                    <div className="flex justify-between text-sm">
-                      <span>Unit Price:</span>
-                      <span className="font-medium">${unitPrice.toFixed(2)}</span>
-                    </div>
-                    <div className="flex justify-between text-sm mt-1">
-                      <span>Quantity:</span>
-                      <span className="font-medium">{quantity}</span>
-                    </div>
-                    <div className="flex justify-between text-sm mt-1 font-medium">
-                      <span>Total:</span>
-                      <span>${total.toFixed(2)}</span>
-                    </div>
-                  </CardContent>
-                  <CardFooter className="py-2 px-4 flex justify-end gap-2">
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      onClick={() => onEditItem(item)}
-                      className="h-8 w-8 p-0"
-                    >
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      onClick={() => onDeleteItem(item)}
-                      className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </CardFooter>
-                </Card>
-              );
-            })}
+          
+          <BudgetItemTable 
+            items={items} 
+            onEdit={onEditItem} 
+            onDelete={handleDeleteClick} 
+          />
+        </TabsContent>
+        
+        <TabsContent value="transactions">
+          <Card>
+            <CardHeader>
+              <CardTitle>Usage History</CardTitle>
+              <CardDescription>
+                Track when and how budget items were used
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="py-8 text-center text-muted-foreground">
+                <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-muted">
+                  <FileText className="h-6 w-6" />
+                </div>
+                <h3 className="mb-1 text-lg font-medium">No usage records</h3>
+                <p className="mb-4 max-w-md mx-auto">
+                  Usage records will appear here when sessions are recorded against this budget plan.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="notes">
+          <Card>
+            <CardHeader>
+              <CardTitle>Plan Notes</CardTitle>
+              <CardDescription>
+                Add notes and comments about this budget plan
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="py-8 text-center text-muted-foreground">
+                <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-muted">
+                  <FileText className="h-6 w-6" />
+                </div>
+                <h3 className="mb-1 text-lg font-medium">No notes added</h3>
+                <p className="mb-4 max-w-md mx-auto">
+                  Add notes to keep track of important information about this budget plan.
+                </p>
+                <Button variant="outline">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Note
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+      
+      {/* Add Item Dialog */}
+      {isAddItemDialogOpen && (
+        <BudgetItemForm
+          open={isAddItemDialogOpen}
+          onOpenChange={setIsAddItemDialogOpen}
+          clientId={plan.clientId}
+          budgetSettingsId={plan.id}
+        />
+      )}
+      
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirm Deletion</DialogTitle>
+            <DialogDescription>
+              This action cannot be undone. The budget item will be permanently deleted.
+            </DialogDescription>
+          </DialogHeader>
+          
+          {itemToDelete && (
+            <div className="border rounded-md p-4 my-4">
+              <div className="font-medium">{itemToDelete.description}</div>
+              <div className="text-sm text-muted-foreground mt-1">
+                {itemToDelete.itemCode} - {formatCurrency(itemToDelete.unitPrice)} × {itemToDelete.quantity}
+              </div>
+              <div className="text-sm font-medium mt-2">
+                Total: {formatCurrency(itemToDelete.unitPrice * itemToDelete.quantity)}
+              </div>
+            </div>
+          )}
+          
+          <div className="space-y-2">
+            <label className="text-sm font-medium">
+              Type "delete" to confirm
+            </label>
+            <input
+              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              value={confirmationText}
+              onChange={(e) => setConfirmationText(e.target.value)}
+              placeholder="delete"
+            />
           </div>
-        )}
-      </div>
+          
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => setIsDeleteDialogOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button 
+              variant="destructive"
+              disabled={confirmationText !== "delete"}
+              onClick={handleConfirmDelete}
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Delete Item
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
