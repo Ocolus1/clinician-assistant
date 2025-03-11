@@ -102,37 +102,53 @@ export function BudgetFeatureProvider({ children, clientId }: BudgetFeatureProvi
     isLoading, 
     error 
   } = useQuery({
-    queryKey: ['/api/clients', clientId, 'budget_plans'],
+    queryKey: ['/api/clients', clientId, 'budget-settings'],
     queryFn: async () => {
-      // Add all=true to ensure we get all budget settings for this client
-      const response = await apiRequest("GET", `/api/clients/${clientId}/budget_settings?all=true`);
-      
-      if (!response.ok) {
-        throw new Error("Failed to fetch budget plans");
+      try {
+        // Add all=true to ensure we get all budget settings for this client
+        const response = await apiRequest("GET", `/api/clients/${clientId}/budget-settings?all=true`);
+        
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({ error: "Unknown error" }));
+          throw new Error(errorData.error || "Failed to fetch budget plans");
+        }
+        
+        let budgetSettings = await response.json();
+        
+        // Handle empty response
+        if (!budgetSettings) {
+          return [];
+        }
+        
+        // Ensure budgetSettings is always an array
+        if (!Array.isArray(budgetSettings)) {
+          budgetSettings = [budgetSettings];
+        }
+        
+        // Transform budget settings into budget plans with additional UI properties
+        return budgetSettings.map((setting: any) => {
+          // Create a meaningful plan name if one is not provided
+          const planName = setting.planSerialNumber || `Plan ${setting.id}`;
+          
+          return {
+            id: setting.id,
+            clientId: setting.clientId,
+            planName: planName,
+            planCode: setting.planCode || null,
+            isActive: setting.isActive === true, // Ensure boolean
+            availableFunds: parseFloat(setting.availableFunds) || 0,
+            endDate: setting.endOfPlan, // Field name in API is endOfPlan
+            startDate: setting.createdAt,
+            // These will be calculated from budget items later
+            totalUsed: 0,
+            itemCount: 0,
+            percentUsed: 0,
+          };
+        });
+      } catch (error) {
+        console.error("Error fetching budget plans:", error);
+        throw error;
       }
-      
-      let budgetSettings = await response.json();
-      
-      // Ensure budgetSettings is always an array
-      if (!Array.isArray(budgetSettings)) {
-        budgetSettings = [budgetSettings];
-      }
-      
-      // Transform budget settings into budget plans with additional UI properties
-      return budgetSettings.map((setting: any) => ({
-        id: setting.id,
-        clientId: setting.clientId,
-        planName: setting.planName || `Plan ${setting.id}`,
-        planCode: setting.planCode || `BP-${setting.id}`,
-        isActive: setting.isActive || false,
-        availableFunds: setting.availableFunds || 0,
-        endDate: setting.endOfPlan, // Fix property name (endOfPlan instead of endDate)
-        startDate: setting.createdAt,
-        // These would be calculated from actual budget items in a real implementation
-        totalUsed: 0,
-        itemCount: 0,
-        percentUsed: 0,
-      }));
     },
     enabled: !!clientId,
   });
@@ -140,23 +156,39 @@ export function BudgetFeatureProvider({ children, clientId }: BudgetFeatureProvi
   // Query to fetch budget items for the client
   const {
     data: budgetItems = [],
+    error: budgetItemsError
   } = useQuery({
-    queryKey: ['/api/clients', clientId, 'budget_items'],
+    queryKey: ['/api/clients', clientId, 'budget-items'],
     queryFn: async () => {
-      const response = await apiRequest("GET", `/api/clients/${clientId}/budget_items`);
-      
-      if (!response.ok) {
-        throw new Error("Failed to fetch budget items");
+      try {
+        const response = await apiRequest("GET", `/api/clients/${clientId}/budget-items`);
+        
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({ error: "Unknown error" }));
+          throw new Error(errorData.error || "Failed to fetch budget items");
+        }
+        
+        const items = await response.json();
+        
+        // Handle empty response or non-array response
+        if (!items) {
+          return [];
+        }
+        
+        // Ensure items is always an array
+        const itemsArray = Array.isArray(items) ? items : [items];
+        
+        // Transform to add UI-specific properties
+        return itemsArray.map((item: any) => ({
+          ...item,
+          usedQuantity: item.usedQuantity ?? 0, // Default to 0 if undefined
+          balanceQuantity: item.balanceQuantity ?? item.quantity ?? 0, // Calculate balance if missing
+        }));
+      } catch (error) {
+        console.error("Error fetching budget items:", error);
+        // Return empty array on error to avoid breaking UI
+        return [];
       }
-      
-      const items = await response.json();
-      
-      // Transform to add UI-specific properties
-      return items.map((item: any) => ({
-        ...item,
-        usedQuantity: 0, // Would be calculated from actual session data
-        balanceQuantity: item.quantity,
-      }));
     },
     enabled: !!clientId,
   });
@@ -179,7 +211,7 @@ export function BudgetFeatureProvider({ children, clientId }: BudgetFeatureProvi
     onSuccess: () => {
       // Invalidate queries to refetch data
       queryClient.invalidateQueries({ 
-        queryKey: ['/api/clients', clientId, 'budget_plans'] 
+        queryKey: ['/api/clients', clientId, 'budget-settings'] 
       });
       
       toast({
@@ -211,7 +243,7 @@ export function BudgetFeatureProvider({ children, clientId }: BudgetFeatureProvi
     onSuccess: () => {
       // Invalidate queries to refetch data
       queryClient.invalidateQueries({ 
-        queryKey: ['/api/clients', clientId, 'budget_plans'] 
+        queryKey: ['/api/clients', clientId, 'budget-settings'] 
       });
       
       toast({
@@ -246,7 +278,7 @@ export function BudgetFeatureProvider({ children, clientId }: BudgetFeatureProvi
     onSuccess: () => {
       // Invalidate queries to refetch data
       queryClient.invalidateQueries({ 
-        queryKey: ['/api/clients', clientId, 'budget_items'] 
+        queryKey: ['/api/clients', clientId, 'budget-items'] 
       });
       
       toast({
@@ -278,7 +310,7 @@ export function BudgetFeatureProvider({ children, clientId }: BudgetFeatureProvi
     onSuccess: () => {
       // Invalidate queries to refetch data
       queryClient.invalidateQueries({ 
-        queryKey: ['/api/clients', clientId, 'budget_items'] 
+        queryKey: ['/api/clients', clientId, 'budget-items'] 
       });
       
       toast({
@@ -310,7 +342,7 @@ export function BudgetFeatureProvider({ children, clientId }: BudgetFeatureProvi
     onSuccess: () => {
       // Invalidate queries to refetch data
       queryClient.invalidateQueries({ 
-        queryKey: ['/api/clients', clientId, 'budget_items'] 
+        queryKey: ['/api/clients', clientId, 'budget-items'] 
       });
       
       toast({
