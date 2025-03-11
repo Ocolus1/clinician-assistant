@@ -107,6 +107,8 @@ export function BudgetFeatureProvider({ children, clientId }: BudgetFeatureProvi
     queryKey: ['/api/clients', clientId, 'budget-settings'],
     queryFn: async () => {
       try {
+        console.log(`[BudgetFeature] Fetching budget settings for client ${clientId}`);
+        
         // First try to get all budget settings for this client
         const response = await apiRequest("GET", `/api/clients/${clientId}/budget-settings?all=true`);
         
@@ -119,16 +121,21 @@ export function BudgetFeatureProvider({ children, clientId }: BudgetFeatureProvi
         }
         
         let budgetSettings = await response.json();
+        console.log(`[BudgetFeature] Received budget settings:`, budgetSettings);
         
         // Handle empty response
         if (!budgetSettings) {
+          console.log(`[BudgetFeature] No budget settings returned, using empty array`);
           return [];
         }
         
         // Ensure budgetSettings is always an array
         if (!Array.isArray(budgetSettings)) {
+          console.log(`[BudgetFeature] Converting single budget setting to array`);
           budgetSettings = [budgetSettings];
         }
+        
+        console.log(`[BudgetFeature] Processing ${budgetSettings.length} budget settings`)
         
         // Transform budget settings into budget plans with additional UI properties
         return budgetSettings.map((setting: any) => {

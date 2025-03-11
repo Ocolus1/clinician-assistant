@@ -109,6 +109,8 @@ export function EnhancedBudgetCardGrid({ clientId, onPlanSelected }: EnhancedBud
 
   // Empty state with create button
   if (!budgetPlans || !Array.isArray(budgetPlans) || budgetPlans.length === 0) {
+    console.log("[EnhancedBudgetCardGrid] No budget plans to display, showing empty state");
+    
     return (
       <div className="space-y-4">
         <div className="flex justify-between items-center mb-4">
