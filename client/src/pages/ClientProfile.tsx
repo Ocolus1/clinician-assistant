@@ -651,33 +651,9 @@ export default function ClientProfile() {
                 Track and manage the client's budget plans, funding sources, and expenditures.
               </p>
               
-              {/* Direct Budget Plan List - reliable display of budget plans without context provider */}
+              {/* Budget Plan List - displays budget plans with usage metrics */}
               <div className="space-y-8">
                 <DirectBudgetPlanList clientId={clientId} />
-              
-                {/* We keep the original component for comparison */}
-                <div className="mt-10 border-t pt-8">
-                  <h4 className="text-base font-medium mb-4">Original Budget Implementation</h4>
-                  <EnhancedClientBudgetTab 
-                    clientId={clientId}
-                    budgetSettings={allBudgetSettings}
-                    budgetItems={budgetItems}
-                  />
-                </div>
-                
-                {/* Debug info for budget settings - will be removed in production */}
-                {allBudgetSettings && Array.isArray(allBudgetSettings) && allBudgetSettings.length > 0 && (
-                  <div className="mt-6 p-4 border border-dashed rounded-md bg-muted/30 text-xs">
-                    <div className="font-semibold mb-1">Debug: Found {allBudgetSettings.length} budget plans in API response</div>
-                    {allBudgetSettings.map((plan, i) => (
-                      <div key={i} className="mb-1">
-                        Plan {i+1}: ID {plan.id} - {plan.planSerialNumber || 'Unnamed'} - 
-                        {plan.isActive ? ' (Active)' : ' (Inactive)'} - 
-                        ${typeof plan.availableFunds === 'string' ? plan.availableFunds : JSON.stringify(plan.availableFunds)}
-                      </div>
-                    ))}
-                  </div>
-                )}
               </div>
             </TabsContent>
             
