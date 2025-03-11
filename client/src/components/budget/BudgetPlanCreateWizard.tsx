@@ -477,7 +477,7 @@ export function BudgetPlanCreateWizard({
                   />
                   
                   {hasActivePlan && form.watch('isActive') && (
-                    <Alert variant="warning">
+                    <Alert>
                       <AlertTriangle className="h-4 w-4" />
                       <AlertTitle>Active Plan Will Change</AlertTitle>
                       <AlertDescription>

@@ -1,409 +1,532 @@
 import React, { useState, useEffect } from "react";
-import { z } from "zod";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
+import { motion } from "framer-motion";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
 } from "../ui/dialog";
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "../ui/form";
-import { Button } from "../ui/button";
+import { Card, CardContent } from "../ui/card";
 import { Input } from "../ui/input";
-import { BudgetPlan, BudgetItemDetail } from "./BudgetPlanFullView";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "../ui/table";
-import { Trash2, Plus } from "lucide-react";
-import type { BudgetItemCatalog } from "@shared/schema";
+import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
-
-// Form schema for budget items
-const budgetItemSchema = z.object({
-  id: z.number().optional(),
-  clientId: z.number(),
-  budgetSettingsId: z.number(),
-  itemCode: z.string().min(1, "Item code is required"),
-  description: z.string().min(1, "Description is required"),
-  category: z.string().nullable().optional(),
-  unitPrice: z.number().min(0, "Unit price must be positive"),
-  quantity: z.number().int().min(1, "Quantity must be at least 1"),
-});
-
-type BudgetItemFormValues = z.infer<typeof budgetItemSchema>;
-
-// Form for adding a new budget item
-interface AddItemFormProps {
-  onAddItem: (item: BudgetItemFormValues) => void;
-  catalogItems: BudgetItemCatalog[];
-  clientId: number;
-  budgetSettingsId: number;
-}
-
-function AddItemForm({ onAddItem, catalogItems, clientId, budgetSettingsId }: AddItemFormProps) {
-  const [selectedCatalogItem, setSelectedCatalogItem] = useState<BudgetItemCatalog | null>(null);
-  
-  const defaultValues: BudgetItemFormValues = {
-    clientId,
-    budgetSettingsId,
-    itemCode: "",
-    description: "",
-    category: null,
-    unitPrice: 0,
-    quantity: 1,
-  };
-  
-  const form = useForm<BudgetItemFormValues>({
-    resolver: zodResolver(budgetItemSchema),
-    defaultValues,
-  });
-  
-  // Auto-populate fields when a catalog item is selected
-  const handleCatalogItemSelect = (itemCode: string) => {
-    const item = catalogItems.find(item => item.itemCode === itemCode) || null;
-    setSelectedCatalogItem(item);
-    
-    if (item) {
-      form.setValue("itemCode", item.itemCode);
-      form.setValue("description", item.description);
-      form.setValue("category", item.category);
-      form.setValue("unitPrice", typeof item.defaultUnitPrice === 'string' 
-        ? parseFloat(item.defaultUnitPrice) 
-        : item.defaultUnitPrice);
-    }
-  };
-  
-  const onSubmit = (data: BudgetItemFormValues) => {
-    onAddItem(data);
-    form.reset(defaultValues);
-    setSelectedCatalogItem(null);
-  };
-  
-  return (
-    <div className="border rounded-md p-4 mt-6">
-      <h3 className="text-lg font-medium mb-4">Add Budget Item</h3>
-      
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <FormField
-              control={form.control}
-              name="itemCode"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Item Code</FormLabel>
-                  <FormControl>
-                    <select
-                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                      onChange={(e) => {
-                        field.onChange(e.target.value);
-                        handleCatalogItemSelect(e.target.value);
-                      }}
-                      value={field.value}
-                    >
-                      <option value="">Select an item</option>
-                      {catalogItems.map((item) => (
-                        <option key={item.id} value={item.itemCode}>
-                          {item.itemCode} - {item.description}
-                        </option>
-                      ))}
-                    </select>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            <FormField
-              control={form.control}
-              name="category"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Category</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="Category"
-                      {...field}
-                      value={field.value || ""}
-                      onChange={(e) => field.onChange(e.target.value || null)}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            <FormField
-              control={form.control}
-              name="description"
-              render={({ field }) => (
-                <FormItem className="md:col-span-2">
-                  <FormLabel>Description</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Item description" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            <FormField
-              control={form.control}
-              name="unitPrice"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Unit Price</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      placeholder="0.00"
-                      {...field}
-                      onChange={(e) => field.onChange(parseFloat(e.target.value))}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            <FormField
-              control={form.control}
-              name="quantity"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Quantity</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="number"
-                      placeholder="1"
-                      {...field}
-                      onChange={(e) => field.onChange(parseInt(e.target.value))}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
-          
-          <div className="flex justify-end">
-            <Button type="submit" className="gap-2">
-              <Plus className="h-4 w-4" />
-              Add Item
-            </Button>
-          </div>
-        </form>
-      </Form>
-    </div>
-  );
-}
+import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
+import {
+  Save,
+  AlertTriangle,
+  Plus,
+  Trash2,
+  DollarSign,
+  Calendar,
+  Clock,
+  Search,
+  PlusCircle,
+  MinusCircle,
+} from "lucide-react";
+import { format, parseISO, isValid } from "date-fns";
+import { formatCurrency } from "@/lib/utils";
+import { BudgetPlan, EnhancedBudgetItem } from "./BudgetFeatureContext";
+import type { BudgetItemCatalog } from "@shared/schema";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../ui/select";
+import { Progress } from "../ui/progress";
 
 interface BudgetPlanEditDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   plan: BudgetPlan | null;
-  budgetItems: BudgetItemDetail[];
+  budgetItems: EnhancedBudgetItem[];
   catalogItems: BudgetItemCatalog[];
-  onSave: (items: any[]) => void;
+  onSave: (items: EnhancedBudgetItem[]) => void;
 }
 
 export function BudgetPlanEditDialog({
   open,
   onOpenChange,
   plan,
-  budgetItems,
+  budgetItems: initialBudgetItems,
   catalogItems,
   onSave,
 }: BudgetPlanEditDialogProps) {
-  const [items, setItems] = useState<BudgetItemDetail[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState("items");
+  const [budgetItems, setBudgetItems] = useState<EnhancedBudgetItem[]>([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedCatalogItem, setSelectedCatalogItem] = useState<BudgetItemCatalog | null>(null);
+  const [hasChanges, setHasChanges] = useState(false);
   
-  // Initialize items from props
+  // Reset state when dialog opens/closes or plan changes
   useEffect(() => {
-    setItems(budgetItems);
+    if (open && plan) {
+      setBudgetItems(initialBudgetItems);
+      setSearchTerm("");
+      setSelectedCatalogItem(null);
+      setHasChanges(false);
+    }
+  }, [open, plan, initialBudgetItems]);
+  
+  // Group catalog items by category
+  const catalogByCategory = React.useMemo(() => {
+    return catalogItems.reduce((acc, item) => {
+      const category = item.category || 'Uncategorized';
+      if (!acc[category]) {
+        acc[category] = [];
+      }
+      acc[category].push(item);
+      return acc;
+    }, {} as Record<string, BudgetItemCatalog[]>);
+  }, [catalogItems]);
+  
+  // Filter budget items based on search term
+  const filteredItems = React.useMemo(() => {
+    if (!searchTerm) return budgetItems;
+    
+    const searchLower = searchTerm.toLowerCase();
+    return budgetItems.filter(item => 
+      item.itemCode.toLowerCase().includes(searchLower) ||
+      item.description.toLowerCase().includes(searchLower) ||
+      (item.category && item.category.toLowerCase().includes(searchLower))
+    );
+  }, [budgetItems, searchTerm]);
+  
+  // Calculate total allocated funds
+  const totalAllocated = React.useMemo(() => {
+    return budgetItems.reduce((sum, item) => sum + (item.unitPrice * item.quantity), 0);
   }, [budgetItems]);
   
-  // Handle adding a new item
-  const handleAddItem = (newItem: BudgetItemFormValues) => {
-    // Create a temporary ID for new items (will be replaced on server)
-    const tempId = Math.min(...items.map(item => item.id), 0) - 1;
+  const remainingFunds = plan ? plan.availableFunds - totalAllocated : 0;
+  const percentAllocated = plan && plan.availableFunds > 0 
+    ? (totalAllocated / plan.availableFunds) * 100 
+    : 0;
+  
+  // Check if we've allocated too much
+  const isOverAllocated = plan ? totalAllocated > plan.availableFunds : false;
+  
+  // Handle adding a budget item
+  const handleAddBudgetItem = (catalogItem: BudgetItemCatalog, quantity: number = 1) => {
+    if (!plan) return;
     
-    // Create a copy without category if it's undefined
-    const itemWithoutUndefinedFields = {...newItem};
+    // Check if item already exists
+    const existingItemIndex = budgetItems.findIndex(item => item.itemCode === catalogItem.itemCode);
     
-    // Make a complete item with all required fields from BudgetItemDetail
-    const enhancedItem: BudgetItemDetail = {
-      id: newItem.id || tempId,
-      clientId: newItem.clientId,
-      budgetSettingsId: newItem.budgetSettingsId,
-      itemCode: newItem.itemCode,
-      name: null,
-      description: newItem.description,
-      unitPrice: newItem.unitPrice,
-      quantity: newItem.quantity,
-      category: newItem.category ?? null, // Ensure category is string | null, not undefined
-      usedQuantity: 0,
-      remainingQuantity: newItem.quantity,
-      totalPrice: newItem.unitPrice * newItem.quantity,
-      usedAmount: 0,
-      remainingAmount: newItem.unitPrice * newItem.quantity,
-      usagePercentage: 0
-    };
+    if (existingItemIndex >= 0) {
+      // Update existing item
+      const updatedItems = [...budgetItems];
+      updatedItems[existingItemIndex].quantity += quantity;
+      setBudgetItems(updatedItems);
+    } else {
+      // Add new item
+      const newItem: EnhancedBudgetItem = {
+        id: -Date.now(), // Temporary negative ID that will be replaced on save
+        clientId: plan.clientId,
+        budgetSettingsId: plan.id,
+        itemCode: catalogItem.itemCode,
+        name: catalogItem.description,
+        description: catalogItem.description,
+        unitPrice: catalogItem.defaultUnitPrice,
+        quantity,
+        category: catalogItem.category || null,
+        
+        // Additional fields for EnhancedBudgetItem
+        usedQuantity: 0,
+        remainingQuantity: quantity,
+        totalPrice: catalogItem.defaultUnitPrice * quantity,
+        usedAmount: 0,
+        remainingAmount: catalogItem.defaultUnitPrice * quantity,
+        usagePercentage: 0,
+        itemName: catalogItem.description,
+        catalogItem,
+      };
+      
+      setBudgetItems([...budgetItems, newItem]);
+    }
     
-    setItems(prev => [...prev, enhancedItem]);
+    setSelectedCatalogItem(null);
+    setHasChanges(true);
   };
   
-  // Handle removing an item
-  const handleRemoveItem = (itemId: number) => {
-    setItems(prev => prev.filter(item => item.id !== itemId));
+  // Handle removing a budget item
+  const handleRemoveBudgetItem = (index: number) => {
+    const updatedItems = budgetItems.filter((_, i) => i !== index);
+    setBudgetItems(updatedItems);
+    setHasChanges(true);
   };
   
-  // Handle saving changes
+  // Handle updating quantity for a budget item
+  const handleUpdateQuantity = (index: number, newQuantity: number) => {
+    if (newQuantity < 0) return;
+    
+    const updatedItems = [...budgetItems];
+    const item = updatedItems[index];
+    
+    // Update quantity and derived values
+    item.quantity = newQuantity;
+    item.remainingQuantity = newQuantity - item.usedQuantity;
+    item.totalPrice = item.unitPrice * newQuantity;
+    item.remainingAmount = item.unitPrice * (newQuantity - item.usedQuantity);
+    item.usagePercentage = newQuantity > 0 ? (item.usedQuantity / newQuantity) * 100 : 0;
+    
+    setBudgetItems(updatedItems);
+    setHasChanges(true);
+  };
+  
+  // Handle updating unit price for a budget item
+  const handleUpdateUnitPrice = (index: number, newPrice: number) => {
+    if (newPrice < 0) return;
+    
+    const updatedItems = [...budgetItems];
+    const item = updatedItems[index];
+    
+    // Update unit price and derived values
+    item.unitPrice = newPrice;
+    item.totalPrice = newPrice * item.quantity;
+    item.usedAmount = newPrice * item.usedQuantity;
+    item.remainingAmount = newPrice * (item.quantity - item.usedQuantity);
+    
+    setBudgetItems(updatedItems);
+    setHasChanges(true);
+  };
+  
+  // Handle save changes
   const handleSave = () => {
-    setIsLoading(true);
-    
-    // Convert items to the format expected by the server
-    const itemsForServer = items.map(item => ({
-      id: item.id > 0 ? item.id : undefined, // Don't send temporary IDs
-      clientId: item.clientId,
-      budgetSettingsId: item.budgetSettingsId,
-      itemCode: item.itemCode,
-      description: item.description,
-      category: item.category,
-      unitPrice: item.unitPrice,
-      quantity: item.quantity
-    }));
-    
-    onSave(itemsForServer);
-    setIsLoading(false);
+    onSave(budgetItems);
   };
   
-  // Format currency
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-AU', {
-      style: 'currency',
-      currency: 'AUD',
-      minimumFractionDigits: 2
-    }).format(amount);
-  };
+  // Determine if active item
+  const isItemActive = (item: EnhancedBudgetItem) => item.quantity > 0;
   
-  // If plan is null, we'll still render the dialog but with minimal content
+  if (!plan) {
+    return null;
+  }
+  
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Edit Budget Plan: {plan?.planName || 'Unknown'}</DialogTitle>
+          <DialogTitle>Edit Budget Plan</DialogTitle>
           <DialogDescription>
-            Add, edit or remove budget items for this plan.
+            Modify budget items for <strong>{plan.planName}</strong>
           </DialogDescription>
         </DialogHeader>
         
-        {plan ? (
-          <>
-            <div className="mt-4">
-              <div className="flex justify-between mb-2">
-                <Badge variant="outline" className="text-base font-medium">
-                  Available Funds: {formatCurrency(plan.availableFunds)}
-                </Badge>
-                <Badge variant={plan.active ? "default" : "outline"} className="text-base">
-                  {plan.active ? "Active Plan" : "Inactive Plan"}
-                </Badge>
+        {/* Budget Status Panel */}
+        <div className="mb-6">
+          <Card>
+            <CardContent className="p-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-1">
+                  <div className="text-sm text-muted-foreground">Available Funds</div>
+                  <div className="text-2xl font-bold">{formatCurrency(plan.availableFunds)}</div>
+                </div>
+                
+                <div className="space-y-1">
+                  <div className="text-sm text-muted-foreground">Allocated</div>
+                  <div className="text-2xl font-bold">{formatCurrency(totalAllocated)}</div>
+                </div>
+                
+                <div className="space-y-1">
+                  <div className="text-sm text-muted-foreground">Remaining</div>
+                  <div className={`text-2xl font-bold ${remainingFunds < 0 ? "text-destructive" : ""}`}>
+                    {formatCurrency(remainingFunds)}
+                  </div>
+                </div>
               </div>
               
-              {/* Current items table */}
-              <div className="border rounded-md">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Item Code</TableHead>
-                      <TableHead>Description</TableHead>
-                      <TableHead>Category</TableHead>
-                      <TableHead className="text-right">Unit Price</TableHead>
-                      <TableHead className="text-right">Quantity</TableHead>
-                      <TableHead className="text-right">Total</TableHead>
-                      <TableHead></TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {items.length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                          No budget items added yet. Add items below.
-                        </TableCell>
-                      </TableRow>
-                    ) : (
-                      items.map((item) => (
-                        <TableRow key={item.id}>
-                          <TableCell className="font-medium">{item.itemCode}</TableCell>
-                          <TableCell>{item.description}</TableCell>
-                          <TableCell>{item.category || "—"}</TableCell>
-                          <TableCell className="text-right">{formatCurrency(item.unitPrice)}</TableCell>
-                          <TableCell className="text-right">{item.quantity}</TableCell>
-                          <TableCell className="text-right">{formatCurrency(item.totalPrice)}</TableCell>
-                          <TableCell>
-                            <Button 
-                              variant="ghost" 
-                              size="icon" 
-                              onClick={() => handleRemoveItem(item.id)}
-                              className="text-red-500 hover:text-red-700 hover:bg-red-50"
+              <div className="mt-4">
+                <div className="flex justify-between mb-1">
+                  <span className="text-sm text-muted-foreground">Budget Allocation</span>
+                  <span className="text-sm font-medium">{Math.round(percentAllocated)}%</span>
+                </div>
+                <Progress 
+                  value={percentAllocated} 
+                  className="h-2"
+                  indicatorClassName={
+                    isOverAllocated ? "bg-destructive" : 
+                    percentAllocated > 90 ? "bg-amber-500" : 
+                    "bg-green-500"
+                  }
+                />
+              </div>
+              
+              {isOverAllocated && (
+                <Alert variant="destructive" className="mt-4">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertTitle>Budget Over-allocated</AlertTitle>
+                  <AlertDescription>
+                    The total allocation ({formatCurrency(totalAllocated)}) exceeds the available funds ({formatCurrency(plan.availableFunds)}).
+                    Please adjust the quantities or unit prices.
+                  </AlertDescription>
+                </Alert>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+        
+        <Tabs defaultValue={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="items">Budget Items ({budgetItems.length})</TabsTrigger>
+            <TabsTrigger value="add">Add Items</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="items" className="mt-4 space-y-4">
+            {/* Search and filter */}
+            <div className="flex items-center">
+              <div className="relative flex-1">
+                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search budget items..."
+                  className="pl-8"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+            </div>
+            
+            {/* Budget items list */}
+            <div className="space-y-3">
+              {filteredItems.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  {searchTerm 
+                    ? "No items match your search criteria"
+                    : "No budget items in this plan"
+                  }
+                </div>
+              ) : (
+                <div>
+                  <div className="grid grid-cols-12 gap-4 py-2 px-4 text-sm font-medium text-muted-foreground border-b">
+                    <div className="col-span-5">Item</div>
+                    <div className="col-span-2 text-right">Unit Price</div>
+                    <div className="col-span-2 text-right">Quantity</div>
+                    <div className="col-span-2 text-right">Total</div>
+                    <div className="col-span-1"></div>
+                  </div>
+                  {filteredItems.map((item, index) => (
+                    <motion.div
+                      key={index}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <Card className={`overflow-hidden ${!isItemActive(item) ? 'bg-muted/20 border-dashed' : ''}`}>
+                        <div className="grid grid-cols-12 gap-4 p-4 items-center">
+                          <div className="col-span-5">
+                            <div className="font-medium">{item.description}</div>
+                            <div className="flex items-center text-sm text-muted-foreground">
+                              <Badge variant="outline" className="mr-2">
+                                {item.itemCode}
+                              </Badge>
+                              {item.category && (
+                                <span>{item.category}</span>
+                              )}
+                            </div>
+                          </div>
+                          
+                          <div className="col-span-2">
+                            <div className="flex items-center justify-end">
+                              <span className="text-muted-foreground mr-1">$</span>
+                              <Input
+                                type="number"
+                                min="0.01"
+                                step="0.01"
+                                value={item.unitPrice}
+                                onChange={(e) => handleUpdateUnitPrice(index, parseFloat(e.target.value) || 0)}
+                                className="w-20 text-right"
+                              />
+                            </div>
+                          </div>
+                          
+                          <div className="col-span-2">
+                            <div className="flex items-center justify-end">
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="icon"
+                                className="h-8 w-8"
+                                onClick={() => handleUpdateQuantity(index, item.quantity - 1)}
+                                disabled={item.quantity <= 0}
+                              >
+                                <MinusCircle className="h-3 w-3" />
+                              </Button>
+                              <Input
+                                type="number"
+                                min="0"
+                                value={item.quantity}
+                                onChange={(e) => handleUpdateQuantity(index, parseInt(e.target.value) || 0)}
+                                className="w-14 mx-1 text-center"
+                              />
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="icon"
+                                className="h-8 w-8"
+                                onClick={() => handleUpdateQuantity(index, item.quantity + 1)}
+                              >
+                                <PlusCircle className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          </div>
+                          
+                          <div className="col-span-2 text-right font-medium">
+                            {formatCurrency(item.unitPrice * item.quantity)}
+                          </div>
+                          
+                          <div className="col-span-1 text-right">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleRemoveBudgetItem(index)}
+                              className="h-8 w-8 text-muted-foreground hover:text-destructive"
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
+                          </div>
+                        </div>
+                      </Card>
+                    </motion.div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="add" className="mt-4 space-y-4">
+            <div className="mb-6">
+              <div className="flex justify-between items-center mb-4">
+                <h4 className="text-base font-medium">Add Budget Items</h4>
+                <Select
+                  onValueChange={(value) => {
+                    const item = catalogItems.find(i => i.itemCode === value);
+                    if (item) setSelectedCatalogItem(item);
+                  }}
+                  value={selectedCatalogItem?.itemCode || ""}
+                >
+                  <SelectTrigger className="w-[280px]">
+                    <SelectValue placeholder="Select an item to add" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(catalogByCategory).map(([category, items]) => (
+                      <React.Fragment key={category}>
+                        <div className="px-2 py-1.5 text-sm font-medium text-muted-foreground">
+                          {category}
+                        </div>
+                        {items.map(item => (
+                          <SelectItem key={item.itemCode} value={item.itemCode}>
+                            {item.description} - {formatCurrency(item.defaultUnitPrice)}
+                          </SelectItem>
+                        ))}
+                      </React.Fragment>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               
-              {/* Add new item form */}
-              <AddItemForm 
-                onAddItem={handleAddItem} 
-                catalogItems={catalogItems}
-                clientId={plan.clientId}
-                budgetSettingsId={plan.id}
-              />
+              {selectedCatalogItem && (
+                <Card className="mb-4 border border-primary border-dashed">
+                  <CardContent className="p-4">
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <div className="font-medium">{selectedCatalogItem.description}</div>
+                        <div className="text-sm text-muted-foreground">
+                          <Badge variant="outline" className="mr-2">
+                            {selectedCatalogItem.itemCode}
+                          </Badge>
+                          Unit Price: {formatCurrency(selectedCatalogItem.defaultUnitPrice)}
+                          {selectedCatalogItem.category && (
+                            <span className="ml-2">Category: {selectedCatalogItem.category}</span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Button
+                          type="button"
+                          variant="default"
+                          size="sm"
+                          onClick={() => handleAddBudgetItem(selectedCatalogItem)}
+                        >
+                          <Plus className="h-4 w-4 mr-1" />
+                          Add to Plan
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
               
-              {/* Total calculation */}
-              <div className="mt-6 text-right">
-                <div className="text-sm text-gray-500 mb-1">Total Budget Value</div>
-                <div className="text-2xl font-bold">
-                  {formatCurrency(items.reduce((sum, item) => sum + item.totalPrice, 0))}
-                </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                {Object.entries(catalogByCategory).map(([category, items]) => (
+                  <Card key={category} className="overflow-hidden">
+                    <div className="bg-primary/10 px-4 py-2 font-medium">
+                      {category}
+                    </div>
+                    <CardContent className="p-3">
+                      <div className="space-y-2">
+                        {items.map(item => (
+                          <div 
+                            key={item.itemCode} 
+                            className="p-2 border rounded-md flex justify-between items-center hover:bg-accent cursor-pointer"
+                            onClick={() => setSelectedCatalogItem(item)}
+                          >
+                            <div>
+                              <div className="font-medium text-sm">{item.description}</div>
+                              <div className="text-xs text-muted-foreground">
+                                {formatCurrency(item.defaultUnitPrice)}
+                              </div>
+                            </div>
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-7 w-7"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleAddBudgetItem(item);
+                              }}
+                            >
+                              <Plus className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
               </div>
             </div>
-          </>
-        ) : (
-          <div className="py-8 text-center text-muted-foreground">
-            Loading plan details...
-          </div>
-        )}
+          </TabsContent>
+        </Tabs>
         
-        <DialogFooter className="mt-6">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
-          </Button>
-          <Button onClick={handleSave} disabled={isLoading || !plan}>
-            {isLoading ? "Saving..." : "Save Changes"}
-          </Button>
+        <DialogFooter className="flex items-center justify-between">
+          <div>
+            {hasChanges && (
+              <span className="text-sm text-muted-foreground">
+                You have unsaved changes.
+              </span>
+            )}
+          </div>
+          <div className="flex space-x-2">
+            <Button
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="default"
+              onClick={handleSave}
+              disabled={isOverAllocated}
+            >
+              <Save className="h-4 w-4 mr-2" />
+              Save Changes
+            </Button>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>
