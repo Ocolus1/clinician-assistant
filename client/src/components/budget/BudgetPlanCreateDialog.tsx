@@ -196,14 +196,18 @@ export function BudgetPlanCreateDialog({
   
   // Function that actually submits the plan data
   function submitPlan(planData: any) {
-    // Prevent multiple submissions
+    // Prevent multiple submissions with a more robust check
     if (isSubmitting) {
       console.log("Submission already in progress, ignoring duplicate submission attempt");
       return;
     }
     
-    // Set submitting state to true
+    // Set submitting state to true immediately to block concurrent submissions
     setIsSubmitting(true);
+    
+    // Create a strongly typed submission ID to ensure we only submit once
+    const submissionId = planData.planSerialNumber || generatePlanSerialNumber();
+    console.log(`Starting budget plan submission with ID: ${submissionId}`);
     
     // Log what we're about to submit for debugging
     console.log("Submitting new budget plan with proper formatting:", JSON.stringify(planData, null, 2));
@@ -212,7 +216,7 @@ export function BudgetPlanCreateDialog({
       // Make sure we maintain the full data set for budget items and other fields
       const validatedPlanData = {
         // Include only essential fields with proper types
-        planSerialNumber: planData.planSerialNumber || "",
+        planSerialNumber: submissionId, // Use consistent ID for tracking
         planCode: planData.planCode || "",
         availableFunds: Number(parseFloat(planData.availableFunds.toString()).toFixed(2)),
         isActive: Boolean(planData.isActive),
@@ -230,20 +234,23 @@ export function BudgetPlanCreateDialog({
       
       console.log("Prepared validated plan data:", JSON.stringify(validatedPlanData, null, 2));
       
-      // Submit the plan only once
-      // Use a local variable to track if we've submitted within this function execution
-      let hasSubmitted = false;
+      // Submit the validated plan data
+      onSubmit(validatedPlanData);
       
-      if (!hasSubmitted) {
-        hasSubmitted = true;
-        onSubmit(validatedPlanData);
-        
-        // Clear form state
-        setSelectedCatalogItems([]); // Clear selected items
-        setSelectedDate(undefined); // Clear selected date
-        setShowConfirmation(false); // Close confirmation dialog if open
-        onOpenChange(false); // Close dialog
-      }
+      // Immediately disable submission UI to prevent double-clicks
+      // These operations must be synchronous to block further interactions
+      toast({
+        title: "Creating Plan",
+        description: "Budget plan is being created. Please wait...",
+      });
+      
+      // Close dialog first to prevent further interactions
+      onOpenChange(false);
+      
+      // Then clear form state
+      setSelectedCatalogItems([]); 
+      setSelectedDate(undefined);
+      setShowConfirmation(false);
     } catch (error) {
       console.error("Error submitting budget plan:", error);
       toast({
@@ -251,10 +258,14 @@ export function BudgetPlanCreateDialog({
         description: `Failed to create budget plan: ${(error as Error).message}`,
         variant: "destructive",
       });
-    } finally {
-      // Reset submitting state
+      
+      // Allow the user to fix the error and try again
       setIsSubmitting(false);
     }
+    
+    // Note: We intentionally don't reset isSubmitting to false on success
+    // This ensures that this particular instance of the dialog cannot submit again
+    // A new dialog will be created with fresh state when reopened
   }
 
   // Format currency

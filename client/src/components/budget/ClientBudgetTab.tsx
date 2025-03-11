@@ -91,9 +91,21 @@ export default function ClientBudgetTab({
   });
 
   // Mutation to create a new budget plan
+  // Track in-flight budget plan creation to prevent duplicates
+  const [creatingPlanId, setCreatingPlanId] = useState<string | null>(null);
+  
   const createPlanMutation = useMutation({
     mutationFn: async (newPlan: any) => {
       console.log("Creating new budget plan with data:", JSON.stringify(newPlan, null, 2));
+      
+      // Check if we're already creating a plan with this ID to prevent duplicates
+      if (creatingPlanId === newPlan.planSerialNumber) {
+        console.warn(`Duplicate budget plan creation attempt with ID ${newPlan.planSerialNumber} - ignoring`);
+        throw new Error("A budget plan is already being created. Please wait for it to complete.");
+      }
+      
+      // Set the current plan ID we're creating to prevent duplicates
+      setCreatingPlanId(newPlan.planSerialNumber);
       
       try {
         // Extract budget items from the plan data
@@ -145,7 +157,7 @@ export default function ClientBudgetTab({
           }
           
           // Allow a small delay to ensure deactivation is complete before creating new plan
-          await new Promise(resolve => setTimeout(resolve, 100));
+          await new Promise(resolve => setTimeout(resolve, 500));
         }
         
         // Step 1: Create the budget plan
@@ -176,6 +188,9 @@ export default function ClientBudgetTab({
             budgetSettingsId: createdPlan.id
           }));
           
+          // Add a slight delay before creating budget items to ensure DB consistency
+          await new Promise(resolve => setTimeout(resolve, 300));
+          
           // Create budget items one by one to ensure they are associated with the correct plan
           for (const item of itemsWithIds) {
             const itemResponse = await apiRequest('POST', `/api/clients/${clientId}/budget-items`, item);
@@ -199,6 +214,8 @@ export default function ClientBudgetTab({
     },
     onSuccess: (data) => {
       console.log("Budget plan creation succeeded with result:", data);
+      // Reset the creating plan ID to allow new plan creation
+      setCreatingPlanId(null);
       queryClient.invalidateQueries({ queryKey: ['/api/clients', clientId, 'budget-settings'] });
       toast({
         title: "Success",
@@ -208,6 +225,8 @@ export default function ClientBudgetTab({
     },
     onError: (error: any) => {
       console.error("Budget plan creation failed:", error);
+      // Reset the creating plan ID to allow retrying plan creation
+      setCreatingPlanId(null);
       toast({
         title: "Error",
         description: `Failed to create budget plan: ${error.message || "Unknown error"}`,
