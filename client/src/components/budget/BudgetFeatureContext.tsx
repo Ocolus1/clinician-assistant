@@ -1,448 +1,432 @@
-import React, { createContext, useContext, useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
-import type { BudgetSettings, BudgetItem } from "@shared/schema";
+import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
+import { useParams } from "wouter";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
-// Define the budget plan type (enhanced from BudgetSettings)
+// Define the budget plan interface
 export interface BudgetPlan {
   id: number;
   clientId: number;
   planName: string;
   planCode: string | null;
-  isActive: boolean | null;
+  isActive: boolean;
   availableFunds: number;
   endDate: string | null;
   startDate: string | null;
-  
-  // Calculated/derived properties
   totalUsed: number;
   itemCount: number;
   percentUsed: number;
 }
 
-// Define the context state type
-interface BudgetFeatureContextType {
+// Define budget item interface
+export interface BudgetItem {
+  id: number;
+  budgetSettingsId: number;
   clientId: number;
-  budgetPlans: BudgetPlan[];
-  activeBudgetPlan: BudgetPlan | null;
-  budgetItems: Record<number, BudgetItem[]>; // Grouped by budgetSettingsId
-  isLoading: boolean;
-  error: Error | null;
-  refreshData: () => void;
-  viewPlanDetails: (planId: number) => void;
-  createPlan: (plan: Partial<BudgetPlan>) => Promise<BudgetPlan>;
-  updatePlan: (planId: number, updates: Partial<BudgetPlan>) => Promise<BudgetPlan>;
-  activatePlan: (planId: number) => Promise<void>;
-  archivePlan: (planId: number) => Promise<void>;
-  addBudgetItem: (planId: number, item: Partial<BudgetItem>) => Promise<BudgetItem>;
-  updateBudgetItem: (itemId: number, updates: Partial<BudgetItem>) => Promise<BudgetItem>;
-  removeBudgetItem: (itemId: number) => Promise<void>;
+  itemCode: string;
+  description: string;
+  unitPrice: number;
+  quantity: number;
+  category: string | null;
+  usedQuantity: number;
+  balanceQuantity: number;
 }
 
-// Create the context with a default value
-const BudgetFeatureContext = createContext<BudgetFeatureContextType | undefined>(undefined);
+// Define the context type
+export interface BudgetFeatureContextType {
+  // Budget Plans
+  budgetPlans: BudgetPlan[] | null;
+  activeBudgetPlan: BudgetPlan | null;
+  selectedPlanId: number | null;
+  isLoading: boolean;
+  error: Error | null;
+  
+  // Budget Items
+  budgetItems: BudgetItem[];
+  selectedPlanItems: BudgetItem[];
+  
+  // Action handlers
+  viewPlanDetails: (planId: number) => void;
+  createPlan: (planData: any) => Promise<void>;
+  updatePlan: (planData: any) => Promise<void>;
+  getBudgetPlanById: (planId: number) => BudgetPlan | null;
+  
+  // Budget Item actions
+  createBudgetItem: (itemData: any) => Promise<void>;
+  updateBudgetItem: (itemData: any) => Promise<void>;
+  deleteBudgetItem: (itemId: number) => Promise<void>;
+}
 
-// Provider component
-export function BudgetProvider({ 
-  children, 
-  clientId 
-}: { 
+// Create the context with default values
+const BudgetFeatureContext = createContext<BudgetFeatureContextType>({
+  budgetPlans: null,
+  activeBudgetPlan: null,
+  selectedPlanId: null,
+  isLoading: false,
+  error: null,
+  budgetItems: [],
+  selectedPlanItems: [],
+  viewPlanDetails: () => {},
+  createPlan: async () => {},
+  updatePlan: async () => {},
+  getBudgetPlanById: () => null,
+  createBudgetItem: async () => {},
+  updateBudgetItem: async () => {},
+  deleteBudgetItem: async () => {},
+});
+
+// Custom hook to use the budget feature context
+export const useBudgetFeature = () => useContext(BudgetFeatureContext);
+
+// Props for the provider component
+interface BudgetFeatureProviderProps {
   children: React.ReactNode;
   clientId: number;
-}) {
-  const [activePlanId, setActivePlanId] = useState<number | null>(null);
+}
+
+/**
+ * Budget Feature Provider Component
+ * Manages the state and data flow for the budget management feature
+ */
+export function BudgetFeatureProvider({ children, clientId }: BudgetFeatureProviderProps) {
+  const [selectedPlanId, setSelectedPlanId] = useState<number | null>(null);
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
   
-  // Fetch budget settings (plans)
+  // Query to fetch all budget plans for a client
   const { 
-    data: budgetSettings = [], 
-    isLoading: isLoadingSettings,
-    error: settingsError,
-    refetch: refetchSettings
-  } = useQuery<BudgetSettings[]>({
-    queryKey: ['/api/clients', clientId, 'budget-settings', 'all'],
+    data: budgetPlans, 
+    isLoading, 
+    error 
+  } = useQuery({
+    queryKey: ['/api/clients', clientId, 'budget_plans'],
     queryFn: async () => {
-      console.log(`Fetching all budget settings for client ${clientId}`);
-      const response = await fetch(`/api/clients/${clientId}/budget-settings/all`);
+      // In a real implementation, this would fetch from the API
+      // For now, let's return sample data
+      const response = await apiRequest("GET", `/api/clients/${clientId}/budget_settings`);
+      
       if (!response.ok) {
-        throw new Error(`Failed to fetch budget settings: ${response.status}`);
+        throw new Error("Failed to fetch budget plans");
       }
-      return response.json();
+      
+      const budgetSettings = await response.json();
+      
+      // Transform budget settings into budget plans with additional UI properties
+      return budgetSettings.map((setting: any) => ({
+        id: setting.id,
+        clientId: setting.clientId,
+        planName: setting.planName || `Plan ${setting.id}`,
+        planCode: setting.planCode || `BP-${setting.id}`,
+        isActive: setting.isActive || false,
+        availableFunds: setting.availableFunds || 0,
+        endDate: setting.endDate,
+        startDate: setting.createdAt,
+        // These would be calculated from actual budget items in a real implementation
+        totalUsed: 0,
+        itemCount: 0,
+        percentUsed: 0,
+      }));
     },
     enabled: !!clientId,
   });
-
-  // Fetch budget items
+  
+  // Query to fetch budget items for the client
   const {
     data: budgetItems = [],
-    isLoading: isLoadingItems,
-    error: itemsError,
-    refetch: refetchItems
-  } = useQuery<BudgetItem[]>({
-    queryKey: ['/api/clients', clientId, 'budget-items'],
+  } = useQuery({
+    queryKey: ['/api/clients', clientId, 'budget_items'],
     queryFn: async () => {
-      console.log(`Fetching budget items for client ${clientId}`);
-      const response = await fetch(`/api/clients/${clientId}/budget-items`);
+      const response = await apiRequest("GET", `/api/clients/${clientId}/budget_items`);
+      
       if (!response.ok) {
-        throw new Error(`Failed to fetch budget items: ${response.status}`);
+        throw new Error("Failed to fetch budget items");
       }
-      return response.json();
+      
+      const items = await response.json();
+      
+      // Transform to add UI-specific properties
+      return items.map((item: any) => ({
+        ...item,
+        usedQuantity: 0, // Would be calculated from actual session data
+        balanceQuantity: item.quantity,
+      }));
     },
     enabled: !!clientId,
   });
-
-  // Group budget items by budgetSettingsId
-  const groupedBudgetItems = budgetItems.reduce((acc, item) => {
-    const settingsId = item.budgetSettingsId;
-    if (!acc[settingsId]) {
-      acc[settingsId] = [];
-    }
-    acc[settingsId].push(item);
-    return acc;
-  }, {} as Record<number, BudgetItem[]>);
-
-  // Transform budget settings into budget plans with additional calculated properties
-  const budgetPlans: BudgetPlan[] = budgetSettings.map(settings => {
-    const items = groupedBudgetItems[settings.id] || [];
-    const totalUsed = items.reduce((sum, item) => {
-      const unitPrice = typeof item.unitPrice === 'string' ? parseFloat(item.unitPrice) : item.unitPrice;
-      const quantity = typeof item.quantity === 'string' ? parseInt(item.quantity) : item.quantity;
-      return sum + (unitPrice * quantity);
-    }, 0);
-    
-    const availableFunds = typeof settings.availableFunds === 'string' 
-      ? parseFloat(settings.availableFunds) 
-      : settings.availableFunds;
-    
-    return {
-      id: settings.id,
-      clientId: settings.clientId,
-      planName: settings.planCode || `Plan #${settings.id}`,
-      planCode: settings.planCode,
-      isActive: settings.isActive,
-      availableFunds,
-      startDate: settings.createdAt ? new Date(settings.createdAt).toISOString() : null,
-      endDate: settings.endOfPlan,
-      totalUsed,
-      itemCount: items.length,
-      percentUsed: availableFunds > 0 ? (totalUsed / availableFunds) * 100 : 0
-    };
-  });
-
-  // Find the active budget plan
-  const activeBudgetPlan = budgetPlans.find(plan => plan.isActive) || null;
   
-  // Set the active plan ID when it changes
+  // Mutation to create a new budget plan
+  const createPlanMutation = useMutation({
+    mutationFn: async (planData: any) => {
+      const response = await apiRequest("POST", `/api/clients/${clientId}/budget_settings`, {
+        ...planData,
+        clientId,
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to create budget plan");
+      }
+      
+      return await response.json();
+    },
+    onSuccess: () => {
+      // Invalidate queries to refetch data
+      queryClient.invalidateQueries({ 
+        queryKey: ['/api/clients', clientId, 'budget_plans'] 
+      });
+      
+      toast({
+        title: "Budget Plan Created",
+        description: "New budget plan has been created successfully.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        variant: "destructive",
+        title: "Creation Failed",
+        description: error.message || "Failed to create budget plan.",
+      });
+    },
+  });
+  
+  // Mutation to update an existing budget plan
+  const updatePlanMutation = useMutation({
+    mutationFn: async (planData: any) => {
+      const response = await apiRequest("PUT", `/api/clients/${clientId}/budget_settings/${planData.id}`, planData);
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to update budget plan");
+      }
+      
+      return await response.json();
+    },
+    onSuccess: () => {
+      // Invalidate queries to refetch data
+      queryClient.invalidateQueries({ 
+        queryKey: ['/api/clients', clientId, 'budget_plans'] 
+      });
+      
+      toast({
+        title: "Budget Plan Updated",
+        description: "Budget plan has been updated successfully.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        variant: "destructive",
+        title: "Update Failed",
+        description: error.message || "Failed to update budget plan.",
+      });
+    },
+  });
+  
+  // Mutation to create a new budget item
+  const createBudgetItemMutation = useMutation({
+    mutationFn: async (itemData: any) => {
+      const response = await apiRequest("POST", `/api/clients/${clientId}/budget_items`, {
+        ...itemData,
+        clientId,
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to create budget item");
+      }
+      
+      return await response.json();
+    },
+    onSuccess: () => {
+      // Invalidate queries to refetch data
+      queryClient.invalidateQueries({ 
+        queryKey: ['/api/clients', clientId, 'budget_items'] 
+      });
+      
+      toast({
+        title: "Budget Item Added",
+        description: "New budget item has been added successfully.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        variant: "destructive",
+        title: "Creation Failed",
+        description: error.message || "Failed to add budget item.",
+      });
+    },
+  });
+  
+  // Mutation to update an existing budget item
+  const updateBudgetItemMutation = useMutation({
+    mutationFn: async (itemData: any) => {
+      const response = await apiRequest("PUT", `/api/clients/${clientId}/budget_items/${itemData.id}`, itemData);
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to update budget item");
+      }
+      
+      return await response.json();
+    },
+    onSuccess: () => {
+      // Invalidate queries to refetch data
+      queryClient.invalidateQueries({ 
+        queryKey: ['/api/clients', clientId, 'budget_items'] 
+      });
+      
+      toast({
+        title: "Budget Item Updated",
+        description: "Budget item has been updated successfully.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        variant: "destructive",
+        title: "Update Failed",
+        description: error.message || "Failed to update budget item.",
+      });
+    },
+  });
+  
+  // Mutation to delete a budget item
+  const deleteBudgetItemMutation = useMutation({
+    mutationFn: async (itemId: number) => {
+      const response = await apiRequest("DELETE", `/api/clients/${clientId}/budget_items/${itemId}`);
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to delete budget item");
+      }
+      
+      return true;
+    },
+    onSuccess: () => {
+      // Invalidate queries to refetch data
+      queryClient.invalidateQueries({ 
+        queryKey: ['/api/clients', clientId, 'budget_items'] 
+      });
+      
+      toast({
+        title: "Budget Item Deleted",
+        description: "Budget item has been removed successfully.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        variant: "destructive",
+        title: "Deletion Failed",
+        description: error.message || "Failed to delete budget item.",
+      });
+    },
+  });
+  
+  // Find the active budget plan
+  const activeBudgetPlan = budgetPlans?.find((plan: BudgetPlan) => plan.isActive) || null;
+  
+  // Calculate selected plan items
+  const selectedPlanItems = budgetItems.filter(
+    (item: BudgetItem) => item.budgetSettingsId === selectedPlanId
+  );
+  
+  // Handle view plan details action
+  const viewPlanDetails = useCallback((planId: number) => {
+    setSelectedPlanId(planId);
+  }, []);
+  
+  // Handle create plan action
+  const createPlan = useCallback(async (planData: any) => {
+    await createPlanMutation.mutateAsync(planData);
+  }, [createPlanMutation, clientId]);
+  
+  // Handle update plan action
+  const updatePlan = useCallback(async (planData: any) => {
+    await updatePlanMutation.mutateAsync(planData);
+  }, [updatePlanMutation, clientId]);
+  
+  // Get budget plan by ID
+  const getBudgetPlanById = useCallback((planId: number) => {
+    if (!budgetPlans) return null;
+    return budgetPlans.find(plan => plan.id === planId) || null;
+  }, [budgetPlans]);
+  
+  // Handle create budget item action
+  const createBudgetItem = useCallback(async (itemData: any) => {
+    await createBudgetItemMutation.mutateAsync(itemData);
+  }, [createBudgetItemMutation, clientId]);
+  
+  // Handle update budget item action
+  const updateBudgetItem = useCallback(async (itemData: any) => {
+    await updateBudgetItemMutation.mutateAsync(itemData);
+  }, [updateBudgetItemMutation, clientId]);
+  
+  // Handle delete budget item action
+  const deleteBudgetItem = useCallback(async (itemId: number) => {
+    await deleteBudgetItemMutation.mutateAsync(itemId);
+  }, [deleteBudgetItemMutation, clientId]);
+  
+  // Set initial selected plan to active plan if available
   useEffect(() => {
-    if (activeBudgetPlan) {
-      setActivePlanId(activeBudgetPlan.id);
+    if (activeBudgetPlan && !selectedPlanId) {
+      setSelectedPlanId(activeBudgetPlan.id);
     }
-  }, [activeBudgetPlan]);
-
-  // Combine loading states and errors
-  const isLoading = isLoadingSettings || isLoadingItems;
-  const error = settingsError || itemsError;
-
-  // Refresh all data
-  const refreshData = () => {
-    refetchSettings();
-    refetchItems();
-  };
-
-  // View plan details (placeholder for navigation or UI state change)
-  const viewPlanDetails = (planId: number) => {
-    console.log(`Viewing details for plan ${planId}`);
-    // This could set some state, navigate, or show a modal
-  };
-
-  // Create a new budget plan
-  const createPlan = async (plan: Partial<BudgetPlan>): Promise<BudgetPlan> => {
-    console.log(`Creating new budget plan for client ${clientId}`, plan);
+  }, [activeBudgetPlan, selectedPlanId]);
+  
+  // Calculate totals and usage for each plan once budget items are loaded
+  useEffect(() => {
+    if (!budgetPlans || budgetPlans.length === 0 || !budgetItems || budgetItems.length === 0) {
+      return;
+    }
     
-    // If this is going to be an active plan, deactivate the current active plan
-    let needToDeactivateCurrentActive = plan.isActive;
+    // Group budget items by budgetSettingsId
+    const itemsByPlanId = budgetItems.reduce<Record<number, any[]>>((acc, item) => {
+      const planId = item.budgetSettingsId;
+      if (!acc[planId]) {
+        acc[planId] = [];
+      }
+      acc[planId].push(item);
+      return acc;
+    }, {});
     
-    // Convert to the format expected by the API
-    const newBudgetSettings: Partial<BudgetSettings> = {
-      clientId,
-      planCode: plan.planCode,
-      isActive: plan.isActive,
-      availableFunds: plan.availableFunds,
-      endOfPlan: plan.endDate
-    };
-    
-    // Make API call to create the plan
-    const response = await fetch(`/api/clients/${clientId}/budget-settings`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(newBudgetSettings),
+    // Update each plan with calculated values
+    budgetPlans.forEach(plan => {
+      const planItems = itemsByPlanId[plan.id] || [];
+      plan.itemCount = planItems.length;
+      
+      // Calculate totalUsed based on unitPrice * usedQuantity
+      plan.totalUsed = planItems.reduce(
+        (sum, item) => sum + (item.unitPrice * item.usedQuantity), 
+        0
+      );
+      
+      // Calculate percentUsed
+      plan.percentUsed = plan.availableFunds > 0 
+        ? Math.min(Math.round((plan.totalUsed / plan.availableFunds) * 100), 100)
+        : 0;
     });
     
-    if (!response.ok) {
-      throw new Error(`Failed to create budget plan: ${response.status}`);
-    }
-    
-    const createdSettings = await response.json();
-    
-    // If this is an active plan, we need to deactivate the current active plan
-    if (needToDeactivateCurrentActive && activeBudgetPlan) {
-      await deactivatePlan(activeBudgetPlan.id);
-    }
-    
-    // Refresh data
-    refreshData();
-    
-    // Return the created plan (with additional calculated properties)
-    return {
-      id: createdSettings.id,
-      clientId: createdSettings.clientId,
-      planName: createdSettings.planCode || `Plan #${createdSettings.id}`,
-      planCode: createdSettings.planCode,
-      isActive: createdSettings.isActive,
-      availableFunds: typeof createdSettings.availableFunds === 'string' 
-        ? parseFloat(createdSettings.availableFunds) 
-        : createdSettings.availableFunds,
-      startDate: createdSettings.createdAt ? new Date(createdSettings.createdAt).toISOString() : null,
-      endDate: createdSettings.endOfPlan,
-      totalUsed: 0,
-      itemCount: 0,
-      percentUsed: 0
-    };
-  };
-
-  // Update an existing budget plan
-  const updatePlan = async (planId: number, updates: Partial<BudgetPlan>): Promise<BudgetPlan> => {
-    console.log(`Updating budget plan ${planId}`, updates);
-    
-    // If this plan is being activated, deactivate the current active plan
-    if (updates.isActive && activeBudgetPlan && activeBudgetPlan.id !== planId) {
-      await deactivatePlan(activeBudgetPlan.id);
-    }
-    
-    // Convert to the format expected by the API
-    const updatedSettings: Partial<BudgetSettings> = {
-      planCode: updates.planCode,
-      isActive: updates.isActive,
-      availableFunds: updates.availableFunds,
-      endOfPlan: updates.endDate
-    };
-    
-    // Make API call to update the plan
-    const response = await fetch(`/api/budget-settings/${planId}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(updatedSettings),
-    });
-    
-    if (!response.ok) {
-      throw new Error(`Failed to update budget plan: ${response.status}`);
-    }
-    
-    const updatedPlan = await response.json();
-    
-    // Refresh data
-    refreshData();
-    
-    // Find the items for this plan to calculate the derived properties
-    const items = groupedBudgetItems[planId] || [];
-    const totalUsed = items.reduce((sum, item) => {
-      const unitPrice = typeof item.unitPrice === 'string' ? parseFloat(item.unitPrice) : item.unitPrice;
-      const quantity = typeof item.quantity === 'string' ? parseInt(item.quantity) : item.quantity;
-      return sum + (unitPrice * quantity);
-    }, 0);
-    
-    const availableFunds = typeof updatedPlan.availableFunds === 'string' 
-      ? parseFloat(updatedPlan.availableFunds) 
-      : updatedPlan.availableFunds;
-    
-    // Return the updated plan (with additional calculated properties)
-    return {
-      id: updatedPlan.id,
-      clientId: updatedPlan.clientId,
-      planName: updatedPlan.planCode || `Plan #${updatedPlan.id}`,
-      planCode: updatedPlan.planCode,
-      isActive: updatedPlan.isActive,
-      availableFunds,
-      startDate: updatedPlan.createdAt ? new Date(updatedPlan.createdAt).toISOString() : null,
-      endDate: updatedPlan.endOfPlan,
-      totalUsed,
-      itemCount: items.length,
-      percentUsed: availableFunds > 0 ? (totalUsed / availableFunds) * 100 : 0
-    };
-  };
-
-  // Helper function to deactivate a plan
-  const deactivatePlan = async (planId: number): Promise<void> => {
-    console.log(`Deactivating budget plan ${planId}`);
-    
-    // Make API call to deactivate the plan
-    const response = await fetch(`/api/budget-settings/${planId}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ isActive: false }),
-    });
-    
-    if (!response.ok) {
-      throw new Error(`Failed to deactivate budget plan: ${response.status}`);
-    }
-  };
-
-  // Activate a plan (and deactivate the current active plan)
-  const activatePlan = async (planId: number): Promise<void> => {
-    console.log(`Activating budget plan ${planId}`);
-    
-    // If there's already an active plan, deactivate it first
-    if (activeBudgetPlan && activeBudgetPlan.id !== planId) {
-      await deactivatePlan(activeBudgetPlan.id);
-    }
-    
-    // Make API call to activate the plan
-    const response = await fetch(`/api/budget-settings/${planId}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ isActive: true }),
-    });
-    
-    if (!response.ok) {
-      throw new Error(`Failed to activate budget plan: ${response.status}`);
-    }
-    
-    // Refresh data
-    refreshData();
-  };
-
-  // Archive a plan (currently just deactivates it)
-  const archivePlan = async (planId: number): Promise<void> => {
-    console.log(`Archiving budget plan ${planId}`);
-    
-    // Make API call to archive (deactivate) the plan
-    const response = await fetch(`/api/budget-settings/${planId}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ isActive: false }),
-    });
-    
-    if (!response.ok) {
-      throw new Error(`Failed to archive budget plan: ${response.status}`);
-    }
-    
-    // Refresh data
-    refreshData();
-  };
-
-  // Add a budget item to a plan
-  const addBudgetItem = async (planId: number, item: Partial<BudgetItem>): Promise<BudgetItem> => {
-    console.log(`Adding budget item to plan ${planId}`, item);
-    
-    // Convert to the format expected by the API
-    const newBudgetItem: Partial<BudgetItem> = {
-      clientId,
-      budgetSettingsId: planId,
-      ...item
-    };
-    
-    // Make API call to create the item
-    const response = await fetch(`/api/clients/${clientId}/budget-settings/${planId}/budget-items`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(newBudgetItem),
-    });
-    
-    if (!response.ok) {
-      throw new Error(`Failed to add budget item: ${response.status}`);
-    }
-    
-    const createdItem = await response.json();
-    
-    // Refresh data
-    refreshData();
-    
-    return createdItem;
-  };
-
-  // Update a budget item
-  const updateBudgetItem = async (itemId: number, updates: Partial<BudgetItem>): Promise<BudgetItem> => {
-    console.log(`Updating budget item ${itemId}`, updates);
-    
-    // Make API call to update the item
-    const response = await fetch(`/api/budget-items/${itemId}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(updates),
-    });
-    
-    if (!response.ok) {
-      throw new Error(`Failed to update budget item: ${response.status}`);
-    }
-    
-    const updatedItem = await response.json();
-    
-    // Refresh data
-    refreshData();
-    
-    return updatedItem;
-  };
-
-  // Remove a budget item
-  const removeBudgetItem = async (itemId: number): Promise<void> => {
-    console.log(`Removing budget item ${itemId}`);
-    
-    // Make API call to delete the item
-    const response = await fetch(`/api/budget-items/${itemId}`, {
-      method: 'DELETE',
-    });
-    
-    if (!response.ok) {
-      throw new Error(`Failed to remove budget item: ${response.status}`);
-    }
-    
-    // Refresh data
-    refreshData();
-  };
-
-  // Provide the context value
+  }, [budgetPlans, budgetItems]);
+  
   const contextValue: BudgetFeatureContextType = {
-    clientId,
     budgetPlans,
     activeBudgetPlan,
-    budgetItems: groupedBudgetItems,
+    selectedPlanId,
     isLoading,
     error,
-    refreshData,
+    budgetItems,
+    selectedPlanItems,
     viewPlanDetails,
     createPlan,
     updatePlan,
-    activatePlan,
-    archivePlan,
-    addBudgetItem,
+    getBudgetPlanById,
+    createBudgetItem,
     updateBudgetItem,
-    removeBudgetItem
+    deleteBudgetItem,
   };
-
+  
   return (
     <BudgetFeatureContext.Provider value={contextValue}>
       {children}
     </BudgetFeatureContext.Provider>
   );
-}
-
-// Custom hook to use the budget feature context
-export function useBudgetFeature() {
-  const context = useContext(BudgetFeatureContext);
-  if (context === undefined) {
-    throw new Error('useBudgetFeature must be used within a BudgetProvider');
-  }
-  return context;
 }

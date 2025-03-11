@@ -1,7 +1,9 @@
-import React, { useState } from "react";
-import { z } from "zod";
+import React, { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { format } from "date-fns";
+import { CalendarIcon } from "lucide-react";
 import { 
   Dialog, 
   DialogContent, 
@@ -19,129 +21,171 @@ import {
   FormLabel, 
   FormMessage 
 } from "../ui/form";
-import { Button } from "../ui/button";
 import { Input } from "../ui/input";
-import { Switch } from "../ui/switch";
-import { CalendarIcon, Loader2 } from "lucide-react";
+import { Button } from "../ui/button";
 import { Calendar } from "../ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
-import { format } from "date-fns";
+import { 
+  Popover, 
+  PopoverContent, 
+  PopoverTrigger 
+} from "../ui/popover";
 import { cn } from "@/lib/utils";
-import { useToast } from "@/hooks/use-toast";
+import { Switch } from "../ui/switch";
 import { useBudgetFeature } from "./BudgetFeatureContext";
-import type { BudgetPlan } from "./BudgetFeatureContext";
+import { useToast } from "@/hooks/use-toast";
 
-// Define the form schema
-const editPlanSchema = z.object({
-  planName: z.string().min(1, "Plan name is required").max(100),
-  planCode: z.string().min(1, "Plan code is required").max(50),
-  availableFunds: z.coerce
-    .number()
-    .min(0, "Available funds must be greater than 0")
-    .refine((val) => !isNaN(val), {
-      message: "Available funds must be a valid number",
+// Define the form schema for budget plan editing
+const budgetPlanEditSchema = z.object({
+  planCode: z
+    .string()
+    .min(3, { message: "Plan code must be at least 3 characters" })
+    .max(50, { message: "Plan code must be at most 50 characters" }),
+  planName: z
+    .string()
+    .min(3, { message: "Plan name must be at least 3 characters" })
+    .max(100, { message: "Plan name must be at most 100 characters" }),
+  availableFunds: z
+    .string()
+    .refine((val) => !isNaN(parseFloat(val)) && parseFloat(val) >= 0, {
+      message: "Available funds must be a positive number",
     }),
-  endDate: z.date().optional(),
-  isActive: z.boolean(),
+  endDate: z.date().nullable().optional(),
+  setAsActive: z.boolean().default(false), // Flag to set this as the active plan (UI only)
 });
 
-type EditPlanFormValues = z.infer<typeof editPlanSchema>;
+// Define the type for our form values
+type BudgetPlanEditValues = z.infer<typeof budgetPlanEditSchema>;
 
-// Props for the edit dialog
+// Props for the BudgetPlanEditDialog component
 interface BudgetPlanEditDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  plan: BudgetPlan;
+  planId: number | null;
 }
 
+/**
+ * A dialog component for editing an existing budget plan
+ */
 export function BudgetPlanEditDialog({ 
   open, 
   onOpenChange, 
-  plan 
+  planId 
 }: BudgetPlanEditDialogProps) {
-  const { toast } = useToast();
-  const { updatePlan, activeBudgetPlan } = useBudgetFeature();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { updatePlan, getBudgetPlanById, activeBudgetPlan } = useBudgetFeature();
+  const { toast } = useToast();
   
-  // Initialize form with current plan values
-  const form = useForm<EditPlanFormValues>({
-    resolver: zodResolver(editPlanSchema),
+  // Create form with validation
+  const form = useForm<BudgetPlanEditValues>({
+    resolver: zodResolver(budgetPlanEditSchema),
     defaultValues: {
-      planName: plan.planName,
-      planCode: plan.planCode || "",
-      availableFunds: plan.availableFunds,
-      endDate: plan.endDate ? new Date(plan.endDate) : undefined,
-      isActive: plan.isActive === true,
+      planCode: "",
+      planName: "",
+      availableFunds: "0",
+      endDate: null,
+      setAsActive: false,
     },
   });
   
+  // Load plan data when the dialog opens and planId changes
+  useEffect(() => {
+    if (open && planId) {
+      const plan = getBudgetPlanById(planId);
+      
+      if (plan) {
+        // Convert date string to Date object if it exists
+        const endDate = plan.endDate ? new Date(plan.endDate) : null;
+        
+        // Set form values
+        form.reset({
+          planCode: plan.planCode || "",
+          planName: plan.planName || "",
+          availableFunds: String(plan.availableFunds || 0),
+          endDate,
+          setAsActive: plan.isActive || false,
+        });
+      }
+    }
+  }, [open, planId, getBudgetPlanById, form]);
+  
+  // Handle dialog open/close
+  const handleOpenChange = (open: boolean) => {
+    if (!open) {
+      // Reset form when closing
+      form.reset();
+    }
+    onOpenChange(open);
+  };
+  
   // Handle form submission
-  const onSubmit = async (values: EditPlanFormValues) => {
+  const onSubmit = async (data: BudgetPlanEditValues) => {
+    if (!planId) return;
+    
     setIsSubmitting(true);
     
     try {
-      // Map form values to the budget plan structure
-      const updatedPlan = {
-        planName: values.planName,
-        planCode: values.planCode,
-        availableFunds: values.availableFunds,
-        endDate: values.endDate ? values.endDate.toISOString() : null,
-        isActive: values.isActive,
+      // Prepare the data for API call
+      const planData = {
+        id: planId,
+        planCode: data.planCode,
+        planName: data.planName,
+        availableFunds: parseFloat(data.availableFunds),
+        endDate: data.endDate ? format(data.endDate, "yyyy-MM-dd") : null,
+        isActive: data.setAsActive,
       };
       
-      // Update the plan
-      await updatePlan(plan.id, updatedPlan);
+      // Call the updatePlan function from the context
+      await updatePlan(planData);
       
       // Show success toast
       toast({
         title: "Budget Plan Updated",
-        description: `Successfully updated ${values.planName}`,
+        description: "Your changes have been saved successfully.",
       });
       
       // Close the dialog
-      onOpenChange(false);
-    } catch (error: any) {
+      handleOpenChange(false);
+    } catch (err) {
+      console.error("Error updating budget plan:", err);
+      
       // Show error toast
       toast({
-        title: "Error Updating Budget Plan",
-        description: error.message || "An unexpected error occurred",
         variant: "destructive",
+        title: "Update Failed",
+        description: err instanceof Error ? err.message : "Failed to update budget plan",
       });
     } finally {
       setIsSubmitting(false);
     }
   };
   
-  // Check if there's an active plan that would be deactivated
-  const willDeactivateActive = form.watch("isActive") && !!activeBudgetPlan && activeBudgetPlan.id !== plan.id;
+  const showActiveWarning = activeBudgetPlan && 
+                          activeBudgetPlan.id !== planId && 
+                          form.watch("setAsActive");
   
-  // Current active status for warning message
-  const isCurrentlyActive = plan.isActive === true;
-  const willDeactivate = isCurrentlyActive && !form.watch("isActive");
-
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>Edit Budget Plan</DialogTitle>
           <DialogDescription>
-            Update the details for {plan.planName}
+            Update the details of this budget plan.
           </DialogDescription>
         </DialogHeader>
         
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
               control={form.control}
-              name="planName"
+              name="planCode"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Plan Name</FormLabel>
+                  <FormLabel>Plan Code</FormLabel>
                   <FormControl>
-                    <Input {...field} />
+                    <Input placeholder="e.g., NDIS-2024" {...field} />
                   </FormControl>
                   <FormDescription>
-                    A descriptive name for this budget plan
+                    A unique code to identify this budget plan
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -150,15 +194,15 @@ export function BudgetPlanEditDialog({
             
             <FormField
               control={form.control}
-              name="planCode"
+              name="planName"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Plan Code</FormLabel>
+                  <FormLabel>Plan Name</FormLabel>
                   <FormControl>
-                    <Input {...field} />
+                    <Input placeholder="e.g., NDIS Funding 2024-2025" {...field} />
                   </FormControl>
                   <FormDescription>
-                    A unique code for identifying this plan
+                    A descriptive name for this budget plan
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -173,17 +217,17 @@ export function BudgetPlanEditDialog({
                   <FormLabel>Available Funds</FormLabel>
                   <FormControl>
                     <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2">$</span>
-                      <Input 
-                        type="number" 
-                        placeholder="0.00" 
-                        className="pl-7" 
-                        {...field} 
+                      <span className="absolute left-3 top-2.5 text-muted-foreground">$</span>
+                      <Input
+                        type="text"
+                        placeholder="0.00"
+                        className="pl-8"
+                        {...field}
                       />
                     </div>
                   </FormControl>
                   <FormDescription>
-                    The total amount of funds available for this plan
+                    The total amount of funding available for this plan
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -195,14 +239,14 @@ export function BudgetPlanEditDialog({
               name="endDate"
               render={({ field }) => (
                 <FormItem className="flex flex-col">
-                  <FormLabel>End Date</FormLabel>
+                  <FormLabel>Plan End Date</FormLabel>
                   <Popover>
                     <PopoverTrigger asChild>
                       <FormControl>
                         <Button
                           variant={"outline"}
                           className={cn(
-                            "pl-3 text-left font-normal",
+                            "w-full pl-3 text-left font-normal",
                             !field.value && "text-muted-foreground"
                           )}
                         >
@@ -218,17 +262,15 @@ export function BudgetPlanEditDialog({
                     <PopoverContent className="w-auto p-0" align="start">
                       <Calendar
                         mode="single"
-                        selected={field.value}
+                        selected={field.value || undefined}
                         onSelect={field.onChange}
-                        disabled={(date) =>
-                          date < new Date(new Date().setHours(0, 0, 0, 0))
-                        }
+                        disabled={(date) => date < new Date()}
                         initialFocus
                       />
                     </PopoverContent>
                   </Popover>
                   <FormDescription>
-                    When this budget plan expires (optional)
+                    When this funding plan expires
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -237,17 +279,13 @@ export function BudgetPlanEditDialog({
             
             <FormField
               control={form.control}
-              name="isActive"
+              name="setAsActive"
               render={({ field }) => (
                 <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
                   <div className="space-y-0.5">
-                    <FormLabel className="text-base">Active Status</FormLabel>
+                    <FormLabel className="text-base">Set as Active Plan</FormLabel>
                     <FormDescription>
-                      {willDeactivateActive
-                        ? "This will deactivate the current active plan"
-                        : willDeactivate
-                        ? "Deactivating will prevent using this plan for sessions"
-                        : "Active plans can be used for session notes and billing"}
+                      Make this the active plan for sessions and reporting
                     </FormDescription>
                   </div>
                   <FormControl>
@@ -260,19 +298,32 @@ export function BudgetPlanEditDialog({
               )}
             />
             
+            {showActiveWarning && (
+              <div className="rounded-md bg-yellow-50 p-4">
+                <div className="flex">
+                  <div className="flex-shrink-0">
+                    <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M8.485 2.495c.873-1.037 2.157-1.037 3.03 0l6.28 7.45c.873 1.037.95 2.688.177 3.726l-6.28 7.45c-.873 1.037-2.157 1.037-3.03 0l-6.28-7.45c-.873-1.037-.95-2.688-.177-3.726l6.28-7.45z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <div className="ml-3">
+                    <h3 className="text-sm font-medium text-yellow-800">Note</h3>
+                    <div className="mt-2 text-sm text-yellow-700">
+                      <p>
+                        This will deactivate the current active plan: <strong>{activeBudgetPlan.planName}</strong>
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+            
             <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => onOpenChange(false)}
-                disabled={isSubmitting}
-              >
+              <Button variant="outline" onClick={() => handleOpenChange(false)}>
                 Cancel
               </Button>
-              
               <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Save Changes
+                {isSubmitting ? "Saving..." : "Save Changes"}
               </Button>
             </DialogFooter>
           </form>

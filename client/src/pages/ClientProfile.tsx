@@ -60,7 +60,7 @@ import ClientGoals from "@/components/profile/ClientGoals";
 import BudgetPlansView from "@/components/profile/BudgetPlansView";
 import ClientBudget from "@/components/profile/ClientBudget";
 import ClientBudgetTab from "@/components/budget/ClientBudgetTab";
-import EnhancedClientBudgetTab from "@/components/budget/EnhancedClientBudgetTab";
+import { EnhancedClientBudgetTab } from "@/components/budget/EnhancedClientBudgetTab";
 import ClientSessions from "@/components/profile/ClientSessions";
 import ClientReports from "@/components/profile/ClientReports";
 import AddAllyDialog from "@/components/profile/AddAllyDialog";
