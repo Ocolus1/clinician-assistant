@@ -191,6 +191,23 @@ export default function ClientProfile() {
     enabled: !!clientId,
   });
   
+  // Fetch ALL budget settings to pass to the enhanced budget tab
+  const { data: allBudgetSettings = [], isLoading: isLoadingAllBudgetSettings } = useQuery<BudgetSettings[]>({
+    queryKey: ['/api/clients', clientId, 'budget-settings', 'all'],
+    queryFn: async () => {
+      console.log(`Explicitly fetching ALL budget settings for client ${clientId}`);
+      const response = await fetch(`/api/clients/${clientId}/budget-settings?all=true`);
+      if (!response.ok) {
+        console.error("Error fetching all budget settings:", response.status, response.statusText);
+        throw new Error(`Error fetching all budget settings: ${response.status} ${response.statusText}`);
+      }
+      const data = await response.json();
+      console.log(`Received ${Array.isArray(data) ? data.length : 0} budget settings:`, data);
+      return data;
+    },
+    enabled: !!clientId,
+  });
+  
   // Use useEffect to fetch subgoals when goals are loaded
   useEffect(() => {
     // Only run if goals are valid
@@ -278,7 +295,7 @@ export default function ClientProfile() {
 
   // Loading state
   const isLoading = isLoadingClient || isLoadingAllies || isLoadingGoals || 
-    isLoadingBudgetItems || isLoadingBudgetSettings || isLoadingSubgoals;
+    isLoadingBudgetItems || isLoadingBudgetSettings || isLoadingAllBudgetSettings || isLoadingSubgoals;
 
   // Calculate age from date of birth - Define this BEFORE any conditional returns
   const calculateAge = (dateOfBirth: string): number => {
@@ -633,12 +650,25 @@ export default function ClientProfile() {
                 Track and manage the client's budget plans, funding sources, and expenditures.
               </p>
               
-              {/* Use our enhanced budget management feature */}
+              {/* Use our enhanced budget management feature with ALL budget settings */}
               <EnhancedClientBudgetTab 
                 clientId={clientId}
-                budgetSettings={budgetSettings}
+                budgetSettings={allBudgetSettings}
                 budgetItems={budgetItems}
               />
+              {/* Debug info for budget settings - will be removed in production */}
+              {allBudgetSettings && Array.isArray(allBudgetSettings) && allBudgetSettings.length > 0 && (
+                <div className="mt-6 p-4 border border-dashed rounded-md bg-muted/30 text-xs">
+                  <div className="font-semibold mb-1">Debug: Found {allBudgetSettings.length} budget plans</div>
+                  {allBudgetSettings.map((plan, i) => (
+                    <div key={i} className="mb-1">
+                      Plan {i+1}: ID {plan.id} - {plan.planSerialNumber || 'Unnamed'} - 
+                      {plan.isActive ? ' (Active)' : ' (Inactive)'} - 
+                      ${typeof plan.availableFunds === 'string' ? plan.availableFunds : JSON.stringify(plan.availableFunds)}
+                    </div>
+                  ))}
+                </div>
+              )}
             </TabsContent>
             
             <TabsContent value="sessions" className="mt-0">
