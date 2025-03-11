@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { 
   Card, 
@@ -12,11 +12,9 @@ import { Button } from "../ui/button";
 import { Skeleton } from "../ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
 import { PlusCircle, AlertTriangle } from "lucide-react";
-import { useBudgetFeature } from "./BudgetFeatureContext";
+import { useBudgetFeature, BudgetPlan } from "./BudgetFeatureContext";
 import { BudgetPlanCard } from "./BudgetPlanCard";
 import { BudgetPlanCreateWizard } from "./BudgetPlanCreateWizard";
-
-// Using the BudgetPlan interface from BudgetFeatureContext
 
 interface EnhancedBudgetCardGridProps {
   clientId: number;
@@ -26,6 +24,16 @@ interface EnhancedBudgetCardGridProps {
 export function EnhancedBudgetCardGrid({ clientId, onPlanSelected }: EnhancedBudgetCardGridProps) {
   const [showCreateWizard, setShowCreateWizard] = useState(false);
   const { budgetPlans, isLoading, error, viewPlanDetails } = useBudgetFeature();
+  
+  // Add effect to log budget plans data for debugging
+  useEffect(() => {
+    console.log(`[EnhancedBudgetCardGrid] Budget plans data updated for client ${clientId}:`, 
+      budgetPlans ? (Array.isArray(budgetPlans) ? budgetPlans.length : "non-array") : "null"
+    );
+    if (budgetPlans && Array.isArray(budgetPlans)) {
+      console.log(`[EnhancedBudgetCardGrid] First plan:`, budgetPlans[0]);
+    }
+  }, [budgetPlans, clientId]);
   
   // Enhanced view plan details function that also triggers tab switching
   const handleViewPlanDetails = (planId: number) => {

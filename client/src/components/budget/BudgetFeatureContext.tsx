@@ -109,15 +109,17 @@ export function BudgetFeatureProvider({ children, clientId }: BudgetFeatureProvi
       try {
         console.log(`[BudgetFeature] Fetching budget settings for client ${clientId}`);
         
-        // First try to get all budget settings for this client
-        const response = await apiRequest("GET", `/api/clients/${clientId}/budget-settings?all=true`);
+        // First try to get all budget settings for this client with a direct fetch to ensure
+        // we get all parameters correctly passed
+        const url = `/api/clients/${clientId}/budget-settings?all=true`;
+        console.log(`[BudgetFeature] Making request to: ${url}`);
         
-        // If the all=true parameter doesn't work or isn't supported, we'll still get the active budget
-        // which is better than nothing
+        const response = await fetch(url);
         
         if (!response.ok) {
-          const errorData = await response.json().catch(() => ({ error: "Unknown error" }));
-          throw new Error(errorData.error || "Failed to fetch budget plans");
+          const errorText = await response.text();
+          console.error(`[BudgetFeature] Error response:`, errorText);
+          throw new Error(`Failed to fetch budget plans: ${response.status} ${response.statusText}`);
         }
         
         let budgetSettings = await response.json();
