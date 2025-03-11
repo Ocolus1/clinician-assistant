@@ -25,7 +25,7 @@ import { formatCurrency } from "@/lib/utils";
 import { Progress } from "@/components/ui/progress";
 
 // Import BudgetPlan interface from BudgetFeatureContext
-import { BudgetPlan } from "./BudgetFeatureContext";
+import { BudgetPlan } from "@/components/budget/BudgetFeatureContext";
 
 interface BudgetPlanCardProps {
   plan: BudgetPlan;
