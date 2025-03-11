@@ -373,22 +373,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const clientId = parseInt(req.params.clientId);
     const all = req.query.all === 'true';
     
+    console.log(`Getting budget settings for client ${clientId}, all=${all}`);
+    
     try {
       if (all) {
         // Return all budget settings for the client
+        console.log(`Getting all budget settings for client ${clientId}`);
         const allSettings = await storage.getAllBudgetSettingsByClient(clientId);
+        
         if (!allSettings || allSettings.length === 0) {
+          console.log(`No budget settings found for client ${clientId}`);
           // If no settings exist, return an empty array instead of 404 error
           return res.json([]);
         }
+        
+        console.log(`Found ${allSettings.length} budget settings for client ${clientId}`);
         return res.json(allSettings);
       } else {
         // Return active or single budget setting
+        console.log(`Getting active budget setting for client ${clientId}`);
         const settings = await storage.getBudgetSettingsByClient(clientId);
+        
         if (!settings) {
+          console.log(`No active budget setting found for client ${clientId}`);
           // Return 404 when specifically looking for a single active budget
           return res.status(404).json({ error: "Budget settings not found" });
         }
+        
+        console.log(`Found budget settings for client ${clientId}`);
         res.json(settings);
       }
     } catch (error) {

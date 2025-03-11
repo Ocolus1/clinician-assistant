@@ -107,8 +107,11 @@ export function BudgetFeatureProvider({ children, clientId }: BudgetFeatureProvi
     queryKey: ['/api/clients', clientId, 'budget-settings'],
     queryFn: async () => {
       try {
-        // Add all=true to ensure we get all budget settings for this client
+        // First try to get all budget settings for this client
         const response = await apiRequest("GET", `/api/clients/${clientId}/budget-settings?all=true`);
+        
+        // If the all=true parameter doesn't work or isn't supported, we'll still get the active budget
+        // which is better than nothing
         
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({ error: "Unknown error" }));
