@@ -87,13 +87,14 @@ export function useBudgetFeature() {
 interface BudgetFeatureProviderProps {
   children: React.ReactNode;
   clientId: number;
+  initialBudgetPlans?: BudgetPlan[];
 }
 
 /**
  * Budget Feature Provider Component
  * Manages the state and data flow for the budget management feature
  */
-export function BudgetFeatureProvider({ children, clientId }: BudgetFeatureProviderProps) {
+export function BudgetFeatureProvider({ children, clientId, initialBudgetPlans }: BudgetFeatureProviderProps) {
   const [selectedPlanId, setSelectedPlanId] = useState<number | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
