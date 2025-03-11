@@ -16,25 +16,56 @@ import {
   CalendarRange,
   Check,
   Clock,
-  ExternalLink 
+  ExternalLink,
+  Filter
 } from "lucide-react";
 import { format } from "date-fns";
 import { formatCurrency } from "@/lib/utils";
 import { Progress } from "../ui/progress";
 import { Badge } from "../ui/badge";
+import { BudgetSettings, BudgetItem } from "@shared/schema";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import { BudgetItemForm } from "./BudgetItemForm";
 
 interface DirectBudgetPlanProps {
   clientId: number;
 }
 
+// Enhanced types for UI representation
+interface BudgetPlan {
+  id: number;
+  clientId: number;
+  planName: string;
+  planCode: string | null;
+  isActive: boolean;
+  availableFunds: number;
+  endDate: string | null;
+  startDate: string | null;
+  totalUsed: number;
+  itemCount: number;
+  percentUsed: number;
+}
+
+// Budget Item with usage tracking
+interface EnhancedBudgetItem extends BudgetItem {
+  usedQuantity?: number;
+  balanceQuantity?: number;
+  name?: string;
+  category?: string;
+}
+
 /**
  * A component that directly fetches and displays budget plans
- * This is a fallback solution for when the context provider approach fails
+ * Provides a clean, consistent interface for budget management
  */
 export function DirectBudgetPlanList({ clientId }: DirectBudgetPlanProps) {
-  const [plans, setPlans] = useState<any[]>([]);
+  const [plans, setPlans] = useState<BudgetPlan[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
   
   // Direct fetch from the API
   useEffect(() => {
@@ -49,7 +80,7 @@ export function DirectBudgetPlanList({ clientId }: DirectBudgetPlanProps) {
           throw new Error(`Error fetching budget plans: ${response.status} ${response.statusText}`);
         }
         
-        let data = await response.json();
+        let data: BudgetSettings[] = await response.json();
         
         // Ensure data is an array
         if (!Array.isArray(data)) {
@@ -59,16 +90,17 @@ export function DirectBudgetPlanList({ clientId }: DirectBudgetPlanProps) {
         console.log(`[DirectBudgetPlanList] Received ${data.length} budget plans:`, data);
         
         // Transform the data to include UI-specific properties
-        const transformedPlans = data.map((plan: any) => ({
+        const transformedPlans = data.map((plan: BudgetSettings): BudgetPlan => ({
           id: plan.id,
           clientId: plan.clientId,
           planName: plan.planSerialNumber || `Plan ${plan.id}`,
           planCode: plan.planCode || null,
           isActive: plan.isActive === true, // Ensure boolean
-          availableFunds: parseFloat(plan.availableFunds) || 0,
+          availableFunds: typeof plan.availableFunds === 'string' ? 
+            parseFloat(plan.availableFunds) : plan.availableFunds || 0,
           endDate: plan.endOfPlan, // Field name in API is endOfPlan
-          startDate: plan.createdAt,
-          // These will be calculated from budget items later, but for now we'll use placeholder values
+          startDate: plan.createdAt ? plan.createdAt.toString() : null,
+          // These will be calculated from budget items later
           totalUsed: 0,
           itemCount: 0,
           percentUsed: 0,
@@ -91,7 +123,7 @@ export function DirectBudgetPlanList({ clientId }: DirectBudgetPlanProps) {
     };
     
     // Fetch budget items and calculate plan usage
-    const fetchBudgetItems = async (budgetPlans: any[]) => {
+    const fetchBudgetItems = async (budgetPlans: BudgetPlan[]) => {
       try {
         const response = await fetch(`/api/clients/${clientId}/budget-items`);
         
@@ -99,7 +131,7 @@ export function DirectBudgetPlanList({ clientId }: DirectBudgetPlanProps) {
           throw new Error(`Error fetching budget items: ${response.status} ${response.statusText}`);
         }
         
-        let items = await response.json();
+        let items: BudgetItem[] = await response.json();
         
         // Ensure items is an array
         if (!Array.isArray(items)) {
@@ -109,14 +141,14 @@ export function DirectBudgetPlanList({ clientId }: DirectBudgetPlanProps) {
         console.log(`[DirectBudgetPlanList] Received ${items.length} budget items`);
         
         // Group items by budget settings ID
-        const itemsByPlanId = items.reduce((acc: Record<number, any[]>, item: any) => {
+        const itemsByPlanId = items.reduce((acc: Record<number, BudgetItem[]>, item: BudgetItem) => {
           const planId = item.budgetSettingsId;
           if (!acc[planId]) {
             acc[planId] = [];
           }
           acc[planId].push(item);
           return acc;
-        }, {} as Record<number, any[]>);
+        }, {} as Record<number, BudgetItem[]>);
         
         // Calculate usage for each plan
         const plansWithUsage = budgetPlans.map((plan: BudgetPlan) => {
@@ -125,9 +157,16 @@ export function DirectBudgetPlanList({ clientId }: DirectBudgetPlanProps) {
           // Calculate item count
           const itemCount = planItems.length;
           
-          // Calculate total used based on unit price * used quantity
+          // Calculate total used based on unit price * quantity
+          // In a real system with usage tracking, this would use the tracked usage instead
           const totalUsed = planItems.reduce(
-            (sum: number, item: any) => sum + (item.unitPrice * (item.usedQuantity || 0)), 0
+            (sum: number, item: BudgetItem) => {
+              const unitPrice = typeof item.unitPrice === 'string' ? 
+                parseFloat(item.unitPrice) : item.unitPrice;
+              const quantity = typeof item.quantity === 'string' ? 
+                parseInt(item.quantity.toString()) : item.quantity;
+              return sum + (unitPrice * quantity);
+            }, 0
           );
           
           // Calculate percent used
@@ -200,6 +239,23 @@ export function DirectBudgetPlanList({ clientId }: DirectBudgetPlanProps) {
     );
   }
   
+  const [activePlan, setActivePlan] = useState<BudgetPlan | null>(null);
+  const [showAddItemDialog, setShowAddItemDialog] = useState(false);
+  const [showPlanDetailsView, setShowPlanDetailsView] = useState(false);
+  const [selectedPlanId, setSelectedPlanId] = useState<number | null>(null);
+  
+  // Budget Plan Detailed View
+  const handleViewDetails = (plan: BudgetPlan) => {
+    setSelectedPlanId(plan.id);
+    setShowPlanDetailsView(true);
+  };
+  
+  // Handle adding a budget item to a plan
+  const handleAddItem = (plan: BudgetPlan) => {
+    setActivePlan(plan);
+    setShowAddItemDialog(true);
+  };
+  
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -209,17 +265,145 @@ export function DirectBudgetPlanList({ clientId }: DirectBudgetPlanProps) {
             {plans.length} {plans.length === 1 ? 'plan' : 'plans'} available
           </p>
         </div>
-        <Button>
-          <PlusCircle className="h-4 w-4 mr-2" />
-          Create Budget Plan
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline">
+            <Filter className="h-4 w-4 mr-2" />
+            Filter
+          </Button>
+          <Button>
+            <PlusCircle className="h-4 w-4 mr-2" />
+            Create Budget Plan
+          </Button>
+        </div>
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {plans.map((plan: BudgetPlan) => (
-          <BudgetPlanCard key={plan.id} plan={plan} />
+          <BudgetPlanCard 
+            key={plan.id} 
+            plan={plan} 
+            onViewDetails={() => handleViewDetails(plan)}
+            onAddItem={() => handleAddItem(plan)}
+          />
         ))}
       </div>
+      
+      {/* Budget Item Form Dialog */}
+      {activePlan && (
+        <BudgetItemForm
+          open={showAddItemDialog}
+          onOpenChange={setShowAddItemDialog}
+          clientId={clientId}
+          budgetSettingsId={activePlan.id}
+          onSuccess={() => {
+            // Refresh plans data
+            const fetchBudgetPlans = async () => {
+              try {
+                const response = await fetch(`/api/clients/${clientId}/budget-settings?all=true`);
+                
+                if (!response.ok) {
+                  throw new Error(`Error fetching budget plans: ${response.status} ${response.statusText}`);
+                }
+                
+                let data: BudgetSettings[] = await response.json();
+                
+                // Ensure data is an array
+                if (!Array.isArray(data)) {
+                  data = [data];
+                }
+                
+                const transformedPlans = data.map((plan: BudgetSettings): BudgetPlan => ({
+                  id: plan.id,
+                  clientId: plan.clientId,
+                  planName: plan.planSerialNumber || `Plan ${plan.id}`,
+                  planCode: plan.planCode || null,
+                  isActive: plan.isActive === true,
+                  availableFunds: typeof plan.availableFunds === 'string' ? 
+                    parseFloat(plan.availableFunds) : plan.availableFunds || 0,
+                  endDate: plan.endOfPlan,
+                  startDate: plan.createdAt ? plan.createdAt.toString() : null,
+                  totalUsed: 0,
+                  itemCount: 0,
+                  percentUsed: 0,
+                }));
+                
+                setPlans(transformedPlans);
+                
+                if (transformedPlans.length > 0) {
+                  const fetchBudgetItems = async () => {
+                    try {
+                      const response = await fetch(`/api/clients/${clientId}/budget-items`);
+                      
+                      if (!response.ok) {
+                        throw new Error(`Error fetching budget items: ${response.status} ${response.statusText}`);
+                      }
+                      
+                      let items: BudgetItem[] = await response.json();
+                      
+                      // Ensure items is an array
+                      if (!Array.isArray(items)) {
+                        items = items ? [items] : [];
+                      }
+                      
+                      // Calculate usage for each plan
+                      // Group items by budget settings ID
+                      const itemsByPlanId = items.reduce((acc: Record<number, BudgetItem[]>, item: BudgetItem) => {
+                        const planId = item.budgetSettingsId;
+                        if (!acc[planId]) {
+                          acc[planId] = [];
+                        }
+                        acc[planId].push(item);
+                        return acc;
+                      }, {} as Record<number, BudgetItem[]>);
+                      
+                      // Calculate usage for each plan
+                      const plansWithUsage = transformedPlans.map((plan: BudgetPlan) => {
+                        const planItems = itemsByPlanId[plan.id] || [];
+                        
+                        // Calculate item count
+                        const itemCount = planItems.length;
+                        
+                        // Calculate total used based on unit price * quantity
+                        const totalUsed = planItems.reduce(
+                          (sum: number, item: BudgetItem) => {
+                            const unitPrice = typeof item.unitPrice === 'string' ? 
+                              parseFloat(item.unitPrice) : item.unitPrice;
+                            const quantity = typeof item.quantity === 'string' ? 
+                              parseInt(item.quantity.toString()) : item.quantity;
+                            return sum + (unitPrice * quantity);
+                          }, 0
+                        );
+                        
+                        // Calculate percent used
+                        const percentUsed = plan.availableFunds > 0
+                          ? Math.min(Math.round((totalUsed / plan.availableFunds) * 100), 100)
+                          : 0;
+                        
+                        return {
+                          ...plan,
+                          itemCount,
+                          totalUsed,
+                          percentUsed
+                        };
+                      });
+                      
+                      setPlans(plansWithUsage);
+                    } catch (error) {
+                      console.error("[DirectBudgetPlanList] Error fetching budget items:", error);
+                    }
+                  };
+                  
+                  fetchBudgetItems();
+                }
+              } catch (error) {
+                console.error("[DirectBudgetPlanList] Error fetching budget plans:", error);
+              }
+            };
+            
+            fetchBudgetPlans();
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -240,7 +424,13 @@ interface BudgetPlan {
 }
 
 // Budget Plan Card component
-function BudgetPlanCard({ plan }: { plan: BudgetPlan }) {
+interface BudgetPlanCardProps {
+  plan: BudgetPlan;
+  onViewDetails: () => void;
+  onAddItem: () => void;
+}
+
+function BudgetPlanCard({ plan, onViewDetails, onAddItem }: BudgetPlanCardProps) {
   const today = new Date();
   const isExpired = plan.endDate ? new Date(plan.endDate) < today : false;
   const isExpiringSoon = plan.endDate && !isExpired ? 
@@ -349,13 +539,23 @@ function BudgetPlanCard({ plan }: { plan: BudgetPlan }) {
         </div>
       </CardContent>
       
-      <CardFooter className="pt-2">
+      <CardFooter className="pt-2 flex flex-col gap-2">
         <Button 
           variant="default" 
           className="w-full"
+          onClick={onViewDetails}
         >
           View Details
           <ExternalLink className="h-4 w-4 ml-2" />
+        </Button>
+        
+        <Button 
+          variant="outline" 
+          className="w-full"
+          onClick={onAddItem}
+        >
+          Add Products
+          <PlusCircle className="h-4 w-4 ml-2" />
         </Button>
       </CardFooter>
     </Card>
