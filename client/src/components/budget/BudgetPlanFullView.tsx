@@ -58,7 +58,8 @@ export function BudgetPlanFullView({ onBackToPlansList }: BudgetPlanFullViewProp
     updatePlan,
     createBudgetItem,
     deleteBudgetItem,
-    viewPlanDetails
+    viewPlanDetails,
+    setActivePlan
   } = useBudgetFeature();
   
   // Get the selected plan details
@@ -68,8 +69,9 @@ export function BudgetPlanFullView({ onBackToPlansList }: BudgetPlanFullViewProp
   const handleBackToPlansList = () => {
     // Set selected plan to null to return to grid view
     if (selectedPlanId) {
-      // Reset the selected plan in context
-      viewPlanDetails(null);
+      // Reset the selected plan in context - using 0 as a signal value
+      // The context will handle this as "no plan selected"
+      viewPlanDetails(0);
       // Call the parent component's handler to switch tabs
       onBackToPlansList();
     }
@@ -106,6 +108,17 @@ export function BudgetPlanFullView({ onBackToPlansList }: BudgetPlanFullViewProp
     setShowEditDialog(true);
   };
   
+  // Handle activating this plan
+  const handleSetActive = async () => {
+    if (!plan || plan.isActive) return;
+    
+    try {
+      await setActivePlan(plan.id);
+    } catch (error) {
+      console.error("Failed to set plan as active:", error);
+    }
+  };
+  
   return (
     <div className="space-y-6">
       {/* Header with back button and actions */}
@@ -135,7 +148,10 @@ export function BudgetPlanFullView({ onBackToPlansList }: BudgetPlanFullViewProp
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               {!plan.isActive && (
-                <DropdownMenuItem className="text-primary">
+                <DropdownMenuItem 
+                  className="text-primary"
+                  onClick={handleSetActive}
+                >
                   <Star className="h-4 w-4 mr-2" />
                   Set as Active Plan
                 </DropdownMenuItem>

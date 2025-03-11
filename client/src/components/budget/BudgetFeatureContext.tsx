@@ -50,6 +50,7 @@ export interface BudgetFeatureContextType {
   viewPlanDetails: (planId: number) => void;
   createPlan: (planData: any) => Promise<void>;
   updatePlan: (planData: any) => Promise<void>;
+  setActivePlan: (planId: number) => Promise<void>;
   getBudgetPlanById: (planId: number) => BudgetPlan | null;
   
   // Budget Item actions
@@ -70,6 +71,7 @@ const BudgetFeatureContext = createContext<BudgetFeatureContextType>({
   viewPlanDetails: () => {},
   createPlan: async () => {},
   updatePlan: async () => {},
+  setActivePlan: async () => {},
   getBudgetPlanById: () => null,
   createBudgetItem: async () => {},
   updateBudgetItem: async () => {},
@@ -369,7 +371,8 @@ export function BudgetFeatureProvider({ children, clientId }: BudgetFeatureProvi
   
   // Handle view plan details action
   const viewPlanDetails = useCallback((planId: number) => {
-    setSelectedPlanId(planId);
+    // Use 0 as a signal value to clear the selection
+    setSelectedPlanId(planId === 0 ? null : planId);
   }, []);
   
   // Handle create plan action
@@ -381,6 +384,70 @@ export function BudgetFeatureProvider({ children, clientId }: BudgetFeatureProvi
   const updatePlan = useCallback(async (planData: any) => {
     await updatePlanMutation.mutateAsync(planData);
   }, [updatePlanMutation, clientId]);
+  
+  // Mutation to set a plan as active
+  const setActivePlanMutation = useMutation({
+    mutationFn: async (planId: number) => {
+      // First, get the current plan
+      const plan = getBudgetPlanById(planId);
+      if (!plan) {
+        throw new Error("Budget plan not found");
+      }
+      
+      // Update the plan to set isActive to true
+      const response = await apiRequest("PUT", `/api/clients/${clientId}/budget_settings/${planId}`, {
+        ...plan,
+        isActive: true,
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to set plan as active");
+      }
+      
+      // If there's another currently active plan, deactivate it
+      if (activeBudgetPlan && activeBudgetPlan.id !== planId) {
+        const deactivateResponse = await apiRequest(
+          "PUT", 
+          `/api/clients/${clientId}/budget_settings/${activeBudgetPlan.id}`,
+          {
+            ...activeBudgetPlan,
+            isActive: false,
+          }
+        );
+        
+        if (!deactivateResponse.ok) {
+          // Log error but don't throw, as the primary action succeeded
+          console.error("Failed to deactivate previous active plan");
+        }
+      }
+      
+      return await response.json();
+    },
+    onSuccess: () => {
+      // Invalidate queries to refetch data
+      queryClient.invalidateQueries({ 
+        queryKey: ['/api/clients', clientId, 'budget-settings'] 
+      });
+      
+      toast({
+        title: "Active Plan Changed",
+        description: "Budget plan has been set as active successfully.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        variant: "destructive",
+        title: "Update Failed",
+        description: error.message || "Failed to set plan as active.",
+      });
+    },
+  });
+  
+  // Handle set active plan action
+  const setActivePlan = useCallback(async (planId: number) => {
+    await setActivePlanMutation.mutateAsync(planId);
+  }, [setActivePlanMutation, clientId]);
   
   // Get budget plan by ID
   const getBudgetPlanById = useCallback((planId: number) => {
@@ -456,6 +523,7 @@ export function BudgetFeatureProvider({ children, clientId }: BudgetFeatureProvi
     viewPlanDetails,
     createPlan,
     updatePlan,
+    setActivePlan,
     getBudgetPlanById,
     createBudgetItem,
     updateBudgetItem,
