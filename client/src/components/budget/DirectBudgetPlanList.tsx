@@ -17,7 +17,8 @@ import {
   Check,
   Clock,
   ExternalLink,
-  Filter
+  Filter,
+  Plus
 } from "lucide-react";
 import { format } from "date-fns";
 import { formatCurrency } from "@/lib/utils";
@@ -49,11 +50,11 @@ interface BudgetPlan {
 }
 
 // Budget Item with usage tracking
-interface EnhancedBudgetItem extends BudgetItem {
+interface EnhancedBudgetItem extends Omit<BudgetItem, 'name' | 'category'> {
   usedQuantity?: number;
   balanceQuantity?: number;
-  name?: string;
-  category?: string;
+  name?: string | null;
+  category?: string | null;
 }
 
 /**
@@ -164,7 +165,7 @@ export function DirectBudgetPlanList({ clientId }: DirectBudgetPlanProps) {
               const unitPrice = typeof item.unitPrice === 'string' ? 
                 parseFloat(item.unitPrice) : item.unitPrice;
               const quantity = typeof item.quantity === 'string' ? 
-                parseInt(item.quantity.toString()) : item.quantity;
+                parseInt(String(item.quantity)) : item.quantity;
               return sum + (unitPrice * quantity);
             }, 0
           );
@@ -369,7 +370,7 @@ export function DirectBudgetPlanList({ clientId }: DirectBudgetPlanProps) {
                             const unitPrice = typeof item.unitPrice === 'string' ? 
                               parseFloat(item.unitPrice) : item.unitPrice;
                             const quantity = typeof item.quantity === 'string' ? 
-                              parseInt(item.quantity.toString()) : item.quantity;
+                              parseInt(String(item.quantity)) : item.quantity;
                             return sum + (unitPrice * quantity);
                           }, 0
                         );
