@@ -69,13 +69,29 @@ export function EnhancedBudgetCardGrid({ clientId }: EnhancedBudgetCardGridProps
   // Display error state
   if (error) {
     return (
-      <Alert variant="destructive">
-        <AlertTriangle className="h-4 w-4" />
-        <AlertTitle>Error Loading Budget Plans</AlertTitle>
-        <AlertDescription>
-          There was a problem loading the budget plans. Please try again later.
-        </AlertDescription>
-      </Alert>
+      <div className="space-y-4">
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Error Loading Budget Plans</AlertTitle>
+          <AlertDescription>
+            There was a problem loading the budget plans. You can try creating a new budget plan.
+          </AlertDescription>
+        </Alert>
+        
+        <div className="flex justify-end">
+          <Button onClick={handleOpenCreateWizard}>
+            <PlusCircle className="h-4 w-4 mr-2" />
+            Create Budget Plan
+          </Button>
+        </div>
+        
+        {/* Budget Plan Create Wizard */}
+        <BudgetPlanCreateWizard
+          open={showCreateWizard}
+          onOpenChange={setShowCreateWizard}
+          clientId={clientId}
+        />
+      </div>
     );
   }
 

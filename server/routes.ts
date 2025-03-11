@@ -373,20 +373,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const clientId = parseInt(req.params.clientId);
     const all = req.query.all === 'true';
     
-    if (all) {
-      // Return all budget settings for the client
-      const allSettings = await storage.getAllBudgetSettingsByClient(clientId);
-      if (!allSettings || allSettings.length === 0) {
-        return res.status(404).json({ error: "Budget settings not found" });
+    try {
+      if (all) {
+        // Return all budget settings for the client
+        const allSettings = await storage.getAllBudgetSettingsByClient(clientId);
+        if (!allSettings || allSettings.length === 0) {
+          // If no settings exist, return an empty array instead of 404 error
+          return res.json([]);
+        }
+        return res.json(allSettings);
+      } else {
+        // Return active or single budget setting
+        const settings = await storage.getBudgetSettingsByClient(clientId);
+        if (!settings) {
+          // Return 404 when specifically looking for a single active budget
+          return res.status(404).json({ error: "Budget settings not found" });
+        }
+        res.json(settings);
       }
-      return res.json(allSettings);
-    } else {
-      // Return active or single budget setting
-      const settings = await storage.getBudgetSettingsByClient(clientId);
-      if (!settings) {
-        return res.status(404).json({ error: "Budget settings not found" });
-      }
-      res.json(settings);
+    } catch (error) {
+      console.error(`Error fetching budget settings for client ${clientId}:`, error);
+      res.status(500).json({ error: "Failed to retrieve budget settings" });
     }
   });
   

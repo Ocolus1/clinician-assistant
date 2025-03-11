@@ -104,15 +104,19 @@ export function BudgetFeatureProvider({ children, clientId }: BudgetFeatureProvi
   } = useQuery({
     queryKey: ['/api/clients', clientId, 'budget_plans'],
     queryFn: async () => {
-      // In a real implementation, this would fetch from the API
-      // For now, let's return sample data
-      const response = await apiRequest("GET", `/api/clients/${clientId}/budget_settings`);
+      // Add all=true to ensure we get all budget settings for this client
+      const response = await apiRequest("GET", `/api/clients/${clientId}/budget_settings?all=true`);
       
       if (!response.ok) {
         throw new Error("Failed to fetch budget plans");
       }
       
-      const budgetSettings = await response.json();
+      let budgetSettings = await response.json();
+      
+      // Ensure budgetSettings is always an array
+      if (!Array.isArray(budgetSettings)) {
+        budgetSettings = [budgetSettings];
+      }
       
       // Transform budget settings into budget plans with additional UI properties
       return budgetSettings.map((setting: any) => ({
@@ -122,7 +126,7 @@ export function BudgetFeatureProvider({ children, clientId }: BudgetFeatureProvi
         planCode: setting.planCode || `BP-${setting.id}`,
         isActive: setting.isActive || false,
         availableFunds: setting.availableFunds || 0,
-        endDate: setting.endDate,
+        endDate: setting.endOfPlan, // Fix property name (endOfPlan instead of endDate)
         startDate: setting.createdAt,
         // These would be calculated from actual budget items in a real implementation
         totalUsed: 0,
