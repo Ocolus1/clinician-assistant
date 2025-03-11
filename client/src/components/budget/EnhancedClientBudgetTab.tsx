@@ -6,13 +6,15 @@ import { BudgetPlanFullView } from "./BudgetPlanFullView";
 
 interface EnhancedClientBudgetTabProps {
   clientId: number;
+  budgetSettings?: any;
+  budgetItems?: any[];
 }
 
 /**
  * The main budget tab component for the client profile
  * Provides tab navigation between budget plans and plan details views
  */
-export function EnhancedClientBudgetTab({ clientId }: EnhancedClientBudgetTabProps) {
+export function EnhancedClientBudgetTab({ clientId, budgetSettings, budgetItems }: EnhancedClientBudgetTabProps) {
   const [activeTab, setActiveTab] = useState("plans");
   
   return (

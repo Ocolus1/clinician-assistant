@@ -77,7 +77,9 @@ const BudgetFeatureContext = createContext<BudgetFeatureContextType>({
 });
 
 // Custom hook to use the budget feature context
-export const useBudgetFeature = () => useContext(BudgetFeatureContext);
+export function useBudgetFeature() {
+  return useContext(BudgetFeatureContext);
+}
 
 // Props for the provider component
 interface BudgetFeatureProviderProps {
@@ -347,7 +349,7 @@ export function BudgetFeatureProvider({ children, clientId }: BudgetFeatureProvi
   // Get budget plan by ID
   const getBudgetPlanById = useCallback((planId: number) => {
     if (!budgetPlans) return null;
-    return budgetPlans.find(plan => plan.id === planId) || null;
+    return budgetPlans.find((plan: BudgetPlan) => plan.id === planId) || null;
   }, [budgetPlans]);
   
   // Handle create budget item action
@@ -379,23 +381,23 @@ export function BudgetFeatureProvider({ children, clientId }: BudgetFeatureProvi
     }
     
     // Group budget items by budgetSettingsId
-    const itemsByPlanId = budgetItems.reduce<Record<number, any[]>>((acc, item) => {
+    const itemsByPlanId = budgetItems.reduce((acc: Record<number, BudgetItem[]>, item: BudgetItem) => {
       const planId = item.budgetSettingsId;
       if (!acc[planId]) {
         acc[planId] = [];
       }
       acc[planId].push(item);
       return acc;
-    }, {});
+    }, {} as Record<number, BudgetItem[]>);
     
     // Update each plan with calculated values
-    budgetPlans.forEach(plan => {
+    budgetPlans.forEach((plan: BudgetPlan) => {
       const planItems = itemsByPlanId[plan.id] || [];
       plan.itemCount = planItems.length;
       
       // Calculate totalUsed based on unitPrice * usedQuantity
       plan.totalUsed = planItems.reduce(
-        (sum, item) => sum + (item.unitPrice * item.usedQuantity), 
+        (sum: number, item: BudgetItem) => sum + (item.unitPrice * item.usedQuantity), 
         0
       );
       
