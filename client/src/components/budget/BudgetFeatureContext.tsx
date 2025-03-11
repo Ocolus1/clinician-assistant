@@ -95,6 +95,13 @@ interface BudgetFeatureProviderProps {
  * Manages the state and data flow for the budget management feature
  */
 export function BudgetFeatureProvider({ children, clientId, initialBudgetPlans }: BudgetFeatureProviderProps) {
+  // Debug log at component render time
+  console.log('[BudgetFeatureProvider] Rendering with:', { 
+    clientId, 
+    initialBudgetPlans: initialBudgetPlans ? 
+      (Array.isArray(initialBudgetPlans) ? `Array[${initialBudgetPlans.length}]` : 'not array') : 
+      'undefined' 
+  });
   const [selectedPlanId, setSelectedPlanId] = useState<number | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
