@@ -362,7 +362,7 @@ export function BudgetFeatureProvider({ children, clientId }: BudgetFeatureProvi
   });
   
   // Find the active budget plan
-  const activeBudgetPlan = budgetPlans?.find((plan: BudgetPlan) => plan.isActive) || null;
+  const activeBudgetPlan = budgetPlans ? budgetPlans.find((plan: BudgetPlan) => plan.isActive) : null;
   
   // Calculate selected plan items
   const selectedPlanItems = budgetItems.filter(
