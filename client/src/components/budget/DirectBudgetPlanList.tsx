@@ -6,8 +6,8 @@ import {
   CardTitle, 
   CardDescription,
   CardFooter
-} from "../ui/card";
-import { Button } from "../ui/button";
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { 
   Loader2, 
   AlertCircle, 
@@ -22,8 +22,8 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import { formatCurrency } from "@/lib/utils";
-import { Progress } from "../ui/progress";
-import { Badge } from "../ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { Badge } from "@/components/ui/badge";
 import { BudgetSettings, BudgetItem } from "@shared/schema";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
