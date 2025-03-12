@@ -47,21 +47,12 @@ import {
   DialogTitle,
   DialogClose,
 } from "@/components/ui/dialog";
-import { useForm, FormProvider } from "react-hook-form";
+// We don't need form context imports
 import { z } from "zod";
 
-// Define our form schema
-const budgetAllocationSchema = z.object({
-  items: z.array(z.object({
-    id: z.number(),
-    quantity: z.number().min(0),
-    unitPrice: z.number(),
-    description: z.string().optional(),
-    itemCode: z.string().optional()
-  }))
-});
-
-type BudgetAllocationFormValues = z.infer<typeof budgetAllocationSchema>;
+// We don't need a complex form schema for this component
+// We'll manage the state directly without form context
+// This fixes the FormContext errors
 
 interface BudgetPlanDetailsProps {
   plan: BudgetPlan;
@@ -114,18 +105,7 @@ export function BudgetPlanDetails({
   const { toast } = useToast();
   const { deleteBudgetItem, updateBudgetItem } = useBudgetFeature();
   
-  // Create our own form instead of using parent's context
-  const formMethods = useForm<BudgetAllocationFormValues>({
-    defaultValues: {
-      items: items.map(item => ({
-        id: item.id,
-        quantity: item.quantity,
-        unitPrice: item.unitPrice,
-        description: item.description,
-        itemCode: item.itemCode
-      }))
-    }
-  });
+  // We don't need form context anymore, we handle state directly with React state
   
   // Function to save the edited items
   const saveChanges = async () => {
@@ -249,8 +229,7 @@ export function BudgetPlanDetails({
   };
   
   return (
-    <FormProvider {...formMethods}>
-      <div className="space-y-6">
+    <div className="space-y-6">
       {/* Header with back button */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
@@ -752,6 +731,5 @@ export function BudgetPlanDetails({
         </DialogContent>
       </Dialog>
     </div>
-    </FormProvider>
   );
 }
