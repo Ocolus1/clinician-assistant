@@ -149,14 +149,14 @@ export function BudgetItemTable({ items, onEdit, onDelete }: BudgetItemTableProp
           
           <div className="w-full sm:w-[200px]">
             <Select 
-              value={selectedCategory || ""} 
-              onValueChange={(value) => setSelectedCategory(value || null)}
+              value={selectedCategory || "all"} 
+              onValueChange={(value) => setSelectedCategory(value === "all" ? null : value)}
             >
               <SelectTrigger>
                 <SelectValue placeholder="All Categories" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Categories</SelectItem>
+                <SelectItem value="all">All Categories</SelectItem>
                 {categories.map((category) => (
                   <SelectItem key={category} value={category}>
                     {category}
