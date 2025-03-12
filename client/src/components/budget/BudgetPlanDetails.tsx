@@ -75,6 +75,7 @@ export function BudgetPlanDetails({
   const [editedItems, setEditedItems] = useState<Record<number, BudgetItem>>({});
   const [isEditing, setIsEditing] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [budgetError, setBudgetError] = useState<string | null>(null);
   const { toast } = useToast();
   const { deleteBudgetItem, updateBudgetItem } = useBudgetFeature();
   
@@ -278,12 +279,10 @@ export function BudgetPlanDetails({
                     
                     // Check if the new budget exceeds the available funds
                     if (newTotalBudget > plan.availableFunds) {
-                      toast({
-                        variant: "destructive",
-                        title: "Budget Exceeded",
-                        description: "Your adjustments would result in a total that exceeds the available budget. Please reduce allocated quantities.",
-                      });
+                      setBudgetError("Your adjustments would result in a total that exceeds the available budget. Please reduce allocated quantities.");
                       return;
+                    } else {
+                      setBudgetError(null);
                     }
                     
                     // Save all edited items
@@ -332,6 +331,23 @@ export function BudgetPlanDetails({
             )}
           </div>
         </div>
+        
+        {/* Error message for budget allocation issues */}
+        {budgetError && (
+          <div className="rounded-md bg-red-50 p-4 mb-4 border border-red-200">
+            <div className="flex">
+              <div className="flex-shrink-0">
+                <AlertCircle className="h-5 w-5 text-red-400" />
+              </div>
+              <div className="ml-3">
+                <h3 className="text-sm font-medium text-red-800">Budget Allocation Error</h3>
+                <div className="mt-2 text-sm text-red-700">
+                  <p>{budgetError}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
         
         {/* Custom Budget Item Table with Allocation Controls */}
         <Card>
@@ -388,6 +404,23 @@ export function BudgetPlanDetails({
                                     ...editedItems,
                                     [item.id]: updatedItem
                                   });
+                                  
+                                  // Calculate the new total budget in real-time
+                                  const newTotalBudget = items.reduce((total, currentItem) => {
+                                    if (currentItem.id === item.id) {
+                                      return total + (currentItem.unitPrice * newQuantity);
+                                    }
+                                    const edited = editedItems[currentItem.id];
+                                    const qty = edited ? edited.quantity : currentItem.quantity;
+                                    return total + (currentItem.unitPrice * qty);
+                                  }, 0);
+                                  
+                                  // Check if the new budget exceeds the available funds
+                                  if (newTotalBudget > plan.availableFunds) {
+                                    setBudgetError("Your adjustments would result in a total that exceeds the available budget. Please reduce allocated quantities.");
+                                  } else {
+                                    setBudgetError(null);
+                                  }
                                   
                                   setHasUnsavedChanges(true);
                                 }}
