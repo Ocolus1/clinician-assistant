@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -52,8 +52,7 @@ interface AddItemDialogProps {
 }
 
 /**
- * A completely isolated dialog component using React Portal for adding budget items
- * This ensures the form context is completely separate from any parent form contexts
+ * Dialog component for adding budget items with validation for budget constraints
  */
 export function AddItemDialog({
   open,
@@ -65,46 +64,15 @@ export function AddItemDialog({
   onSuccess,
   onValidationFailure
 }: AddItemDialogProps) {
-  // Create a portal container for complete DOM isolation
-  const [portalContainer, setPortalContainer] = useState<HTMLDivElement | null>(null);
-  
-  // Create the portal container on mount and remove on unmount
-  useEffect(() => {
-    // Only create the portal element if the dialog is open
-    if (open) {
-      const div = document.createElement('div');
-      div.id = `add-item-portal-${Math.random().toString(36).substr(2, 9)}`;
-      document.body.appendChild(div);
-      setPortalContainer(div);
-      
-      return () => {
-        document.body.removeChild(div);
-        setPortalContainer(null);
-      };
-    }
-  }, [open]);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCatalogItem, setSelectedCatalogItem] = useState<BudgetItemCatalog | null>(null);
   const [validationError, setValidationError] = useState<string | null>(null);
-  const [confirmationDialogOpen, setConfirmationDialogOpen] = useState(false);
-  const [confirmationProps, setConfirmationProps] = useState<{
-    title: string;
-    message: string;
-    confirmLabel: string;
-    confirmAction: () => void;
-    cancelLabel?: string;
-    cancelAction?: () => void;
-    cancelHidden?: boolean;
-  }>({
-    title: "",
-    message: "",
-    confirmLabel: "Confirm",
-    confirmAction: () => {},
-  });
-  
-  // Create a completely isolated form instance
+  const [confirmationMode, setConfirmationMode] = useState<"over" | "under" | null>(null);
+  const [formValues, setFormValues] = useState<BudgetItemFormValues | null>(null);
+
+  // Create a form instance
   const form = useForm<BudgetItemFormValues>({
     resolver: zodResolver(budgetItemFormSchema),
     defaultValues: {
@@ -116,7 +84,19 @@ export function AddItemDialog({
       name: "",
     },
   });
-  
+
+  // Reset form when dialog opens/closes
+  React.useEffect(() => {
+    if (open) {
+      form.reset();
+      setSelectedCatalogItem(null);
+      setSearchTerm("");
+      setValidationError(null);
+      setConfirmationMode(null);
+      setFormValues(null);
+    }
+  }, [open, form]);
+
   // Fetch budget item catalog
   const { data: catalogItems = [], isLoading: isLoadingCatalog } = useQuery<BudgetItemCatalog[]>({
     queryKey: ['/api/budget-catalog'],
@@ -128,7 +108,7 @@ export function AddItemDialog({
       return response.json();
     },
   });
-  
+
   // Create budget item mutation
   const createBudgetItem = useMutation({
     mutationFn: async (data: BudgetItemFormValues) => {
@@ -173,7 +153,7 @@ export function AddItemDialog({
       });
     },
   });
-  
+
   // Filter catalog items based on search term
   const filteredCatalogItems = searchTerm.trim() ? 
     catalogItems.filter(item => 
@@ -182,7 +162,7 @@ export function AddItemDialog({
       (item.category && item.category.toLowerCase().includes(searchTerm.toLowerCase()))
     ) : 
     catalogItems;
-  
+
   // Update form when catalog item is selected
   React.useEffect(() => {
     if (selectedCatalogItem) {
@@ -192,9 +172,9 @@ export function AddItemDialog({
       form.setValue("category", selectedCatalogItem.category || "");
     }
   }, [selectedCatalogItem, form]);
-  
-  // This function handles validation when adding items
-  const validateBudget = async (data: BudgetItemFormValues) => {
+
+  // Validate budget constraints
+  const validateBudget = (data: BudgetItemFormValues) => {
     // Calculate the total for this new item
     const newItemTotal = data.unitPrice * data.quantity;
     
@@ -204,65 +184,34 @@ export function AddItemDialog({
     // Check if this would exceed the total budgeted amount
     const difference = newTotalBudget - totalBudgeted;
     
-    // If over budget, show warning dialog
+    // If over budget, show warning
     if (difference > 0) {
-      return new Promise<boolean>((resolve) => {
-        setConfirmationProps({
-          title: "Budget Allocation Exceeds Available Funds",
-          message: `Adding this item would exceed the available budget by ${formatCurrency(difference)}. Please adjust your allocations accordingly.`,
-          confirmLabel: "Adjust Allocations",
-          confirmAction: () => {
-            // Close the confirmation dialog
-            setConfirmationDialogOpen(false);
-            // Don't proceed with item creation
-            if (onValidationFailure) {
-              onValidationFailure();
-            }
-            resolve(false);
-          },
-          cancelHidden: true,
-        });
-        setConfirmationDialogOpen(true);
-      });
+      setValidationError(`This item would exceed the budget by ${formatCurrency(difference)}.`);
+      setConfirmationMode("over");
+      setFormValues(data);
+      return false;
     } 
     
-    // If under budget, show confirmation dialog
-    if (difference < 0) {
-      return new Promise<boolean>((resolve) => {
-        setConfirmationProps({
-          title: "Budget Allocation Below Available Funds",
-          message: `Adding this item would leave ${formatCurrency(Math.abs(difference))} unallocated in the budget. Do you want to proceed?`,
-          confirmLabel: "Yes, Add Item",
-          confirmAction: () => {
-            // Close the confirmation dialog
-            setConfirmationDialogOpen(false);
-            // Proceed with item creation
-            resolve(true);
-          },
-          cancelLabel: "No, Adjust Allocations",
-          cancelAction: () => {
-            // Close the confirmation dialog
-            setConfirmationDialogOpen(false);
-            // Don't proceed with item creation
-            resolve(false);
-          },
-        });
-        setConfirmationDialogOpen(true);
-      });
+    // If under budget by more than 5%, show confirmation
+    if (difference < -20) {
+      setConfirmationMode("under");
+      setFormValues(data);
+      return false;
     }
     
-    // If exactly on budget, proceed without confirmation
+    // If exactly on budget or within acceptable range, proceed
     return true;
   };
-  
-  // Handle form submission with budget validation
-  const onSubmit = async (data: BudgetItemFormValues) => {
+
+  // Submit handler
+  const onSubmit = (data: BudgetItemFormValues) => {
     // Clear any previous validation errors
     setValidationError(null);
     
     // Validate budget constraints
-    const shouldProceed = await validateBudget(data);
-    if (!shouldProceed) {
+    const isValid = validateBudget(data);
+    if (!isValid) {
+      // Don't proceed with submission yet - wait for user confirmation
       return;
     }
     
@@ -270,39 +219,106 @@ export function AddItemDialog({
     createBudgetItem.mutate(data);
   };
 
-  // If the dialog is not open or the portal container isn't ready, don't render anything
-  if (!open || !portalContainer) {
-    return null;
-  }
-  
-  // Use React Portal to completely isolate the DOM structure and form context
-  return createPortal(
-    // Render elements in an isolated DOM container
-    <div className="isolated-form-container" style={{ isolation: 'isolate' }}>
-      {/* Main Add Item Dialog - Completely isolated via React Portal */}
-      <Dialog 
-        open={open} 
-        onOpenChange={(openState) => {
-          // When closing, reset form state to prevent stale context
-          if (!openState) {
-            // Reset form if dialog is closing
-            form.reset();
-            setSelectedCatalogItem(null);
-            setSearchTerm("");
-            setValidationError(null);
-          }
-          onOpenChange(openState);
-        }}
-      >
-        <DialogContent className="sm:max-w-[550px]">
-          <DialogHeader>
-            <DialogTitle>Add Budget Item</DialogTitle>
-            <DialogDescription>
-              Add a new item to the budget plan. You can select from the catalog or create a custom item.
-            </DialogDescription>
-          </DialogHeader>
-          
-          {/* Fully self-contained form without using BudgetItemForm component */}
+  // Handle confirmation action
+  const handleConfirmation = () => {
+    if (formValues) {
+      if (confirmationMode === "under") {
+        // User confirmed to proceed with under-budget allocation
+        createBudgetItem.mutate(formValues);
+      } else if (confirmationMode === "over") {
+        // User wants to adjust allocations
+        if (onValidationFailure) {
+          onValidationFailure();
+        }
+        onOpenChange(false);
+      }
+      setConfirmationMode(null);
+      setFormValues(null);
+    }
+  };
+
+  // Handle cancel action
+  const handleCancel = () => {
+    setConfirmationMode(null);
+    setFormValues(null);
+    setValidationError(null);
+  };
+
+  return (
+    <Dialog 
+      open={open} 
+      onOpenChange={(openState) => {
+        if (!openState) {
+          // Reset form when dialog is closing
+          form.reset();
+          setSelectedCatalogItem(null);
+          setSearchTerm("");
+          setValidationError(null);
+          setConfirmationMode(null);
+          setFormValues(null);
+        }
+        onOpenChange(openState);
+      }}
+    >
+      <DialogContent className="sm:max-w-[550px]">
+        <DialogHeader>
+          <DialogTitle>Add Budget Item</DialogTitle>
+          <DialogDescription>
+            Add a new item to the budget plan. You can select from the catalog or create a custom item.
+          </DialogDescription>
+        </DialogHeader>
+        
+        {confirmationMode ? (
+          <div className="py-4">
+            {confirmationMode === "over" ? (
+              <div className="rounded-md bg-red-50 p-4 mb-4 border-2 border-red-300">
+                <div className="flex">
+                  <div className="flex-shrink-0">
+                    <AlertCircle className="h-5 w-5 text-red-500" />
+                  </div>
+                  <div className="ml-3 flex-1">
+                    <h3 className="text-sm font-medium text-red-800">Budget Allocation Exceeds Available Funds</h3>
+                    <div className="mt-2 text-sm text-red-700">
+                      <p>{validationError}</p>
+                      <p className="mt-1">Please adjust your allocations accordingly.</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="rounded-md bg-yellow-50 p-4 mb-4 border-2 border-yellow-300">
+                <div className="flex">
+                  <div className="flex-shrink-0">
+                    <AlertCircle className="h-5 w-5 text-yellow-500" />
+                  </div>
+                  <div className="ml-3 flex-1">
+                    <h3 className="text-sm font-medium text-yellow-800">Budget Allocation Below Available Funds</h3>
+                    <div className="mt-2 text-sm text-yellow-700">
+                      <p>This item would leave a significant amount unallocated in your budget.</p>
+                      <p className="mt-1">Do you want to proceed anyway?</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            <div className="flex justify-end gap-2 mt-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleCancel}
+              >
+                {confirmationMode === "over" ? "Close" : "Cancel"}
+              </Button>
+              <Button
+                type="button"
+                onClick={handleConfirmation}
+              >
+                {confirmationMode === "over" ? "Adjust Allocations" : "Yes, Add Item"}
+              </Button>
+            </div>
+          </div>
+        ) : (
           <div className="mt-4">
             {/* Catalog item selection */}
             <div className="mb-4">
@@ -376,7 +392,7 @@ export function AddItemDialog({
               </div>
             )}
             
-            {/* Regular form implementation */}
+            {/* Form */}
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                 <FormField
@@ -487,41 +503,8 @@ export function AddItemDialog({
               </form>
             </Form>
           </div>
-        </DialogContent>
-      </Dialog>
-      
-      {/* Separate Confirmation Dialog */}
-      <Dialog 
-        open={confirmationDialogOpen} 
-        onOpenChange={setConfirmationDialogOpen}
-      >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{confirmationProps.title}</DialogTitle>
-            <DialogDescription>
-              {confirmationProps.message}
-            </DialogDescription>
-          </DialogHeader>
-          
-          <DialogFooter className="flex justify-between gap-2">
-            {!confirmationProps.cancelHidden && confirmationProps.cancelAction && (
-              <Button 
-                variant="outline" 
-                onClick={confirmationProps.cancelAction}
-              >
-                {confirmationProps.cancelLabel || "Cancel"}
-              </Button>
-            )}
-            <Button 
-              onClick={confirmationProps.confirmAction}
-              className={confirmationProps.cancelHidden ? "w-full" : ""}
-            >
-              {confirmationProps.confirmLabel}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>,
-    portalContainer // Target DOM node for the portal
+        )}
+      </DialogContent>
+    </Dialog>
   );
 }
