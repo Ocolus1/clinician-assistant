@@ -1,6 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { z } from "zod";
-import { useForm } from "react-hook-form";
+import { useForm, FormProvider } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
@@ -52,8 +53,8 @@ interface AddItemDialogProps {
 }
 
 /**
- * A completely self-contained dialog component for adding budget items
- * with its own form context and validation to prevent conflicts with parent forms
+ * A completely isolated dialog component using React Portal for adding budget items
+ * This ensures the form context is completely separate from any parent form contexts
  */
 export function AddItemDialog({
   open,
@@ -65,6 +66,24 @@ export function AddItemDialog({
   onSuccess,
   onValidationFailure
 }: AddItemDialogProps) {
+  // Create a portal container for complete DOM isolation
+  const [portalContainer, setPortalContainer] = useState<HTMLDivElement | null>(null);
+  
+  // Create the portal container on mount and remove on unmount
+  useEffect(() => {
+    // Only create the portal element if the dialog is open
+    if (open) {
+      const div = document.createElement('div');
+      div.id = `add-item-portal-${Math.random().toString(36).substr(2, 9)}`;
+      document.body.appendChild(div);
+      setPortalContainer(div);
+      
+      return () => {
+        document.body.removeChild(div);
+        setPortalContainer(null);
+      };
+    }
+  }, [open]);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState("");
@@ -252,9 +271,16 @@ export function AddItemDialog({
     createBudgetItem.mutate(data);
   };
 
-  return (
-    <>
-      {/* Main Add Item Dialog - Completely isolated from any parent form contexts */}
+  // If the dialog is not open or the portal container isn't ready, don't render anything
+  if (!open || !portalContainer) {
+    return null;
+  }
+  
+  // Use React Portal to completely isolate the DOM structure and form context
+  return createPortal(
+    // Render elements in an isolated DOM container
+    <div className="isolated-form-container" style={{ isolation: 'isolate' }}>
+      {/* Main Add Item Dialog - Completely isolated via React Portal */}
       <Dialog 
         open={open} 
         onOpenChange={(openState) => {
@@ -496,6 +522,7 @@ export function AddItemDialog({
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </>
+    </div>,
+    portalContainer // Target DOM node for the portal
   );
 }
