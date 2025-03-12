@@ -35,7 +35,7 @@ import {
 } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { BudgetPlan, BudgetItem, useBudgetFeature } from "./BudgetFeatureContext";
-import { BudgetItemForm } from "./BudgetItemForm";
+import { AddItemDialog } from "./AddItemDialog";
 import { useToast } from "@/hooks/use-toast";
 import {
   Dialog,
@@ -609,74 +609,24 @@ export function BudgetPlanDetails({
         </Card>
       </div>
       
-      {/* Add Item Dialog */}
-      {isAddItemDialogOpen && (
-        <BudgetItemForm
-          open={isAddItemDialogOpen}
-          onOpenChange={setIsAddItemDialogOpen}
-          clientId={plan.clientId}
-          budgetSettingsId={plan.id}
-          totalBudgeted={375} // Fixed budget constraint
-          currentTotal={totalBudgeted}
-          onSuccess={() => {
-            // Make sure we stay in edit mode after adding an item
-            setIsEditing(true);
-            setHasUnsavedChanges(true);
-          }}
-          onValidationRequired={async (data, difference) => {
-            // Store the pending item data temporarily
-            setPendingItemData(data);
-            
-            // If over budget, show warning dialog
-            if (difference > 0) {
-              setConfirmationDialogProps({
-                open: true,
-                title: "Budget Allocation Exceeds Available Funds",
-                message: `Adding this item would exceed the available budget by ${formatCurrency(difference)}. Please adjust your allocations accordingly.`,
-                confirmLabel: "Adjust Allocations",
-                confirmAction: () => {
-                  // Close the confirmation dialog
-                  setConfirmationDialogProps(prev => ({...prev, open: false}));
-                  // Don't proceed with item creation
-                  setPendingItemData(null);
-                  return false;
-                },
-                cancelHidden: true,
-              });
-              return false;
-            } 
-            
-            // If under budget, show confirmation dialog
-            if (difference < 0) {
-              return new Promise<boolean>((resolve) => {
-                setConfirmationDialogProps({
-                  open: true,
-                  title: "Budget Allocation Below Available Funds",
-                  message: `Adding this item would leave ${formatCurrency(Math.abs(difference))} unallocated in the budget. Do you want to proceed?`,
-                  confirmLabel: "Yes, Add Item",
-                  confirmAction: () => {
-                    // Close the confirmation dialog
-                    setConfirmationDialogProps(prev => ({...prev, open: false}));
-                    // Proceed with item creation
-                    resolve(true);
-                  },
-                  cancelLabel: "No, Adjust Allocations",
-                  cancelAction: () => {
-                    // Close the confirmation dialog
-                    setConfirmationDialogProps(prev => ({...prev, open: false}));
-                    // Don't proceed with item creation
-                    setPendingItemData(null);
-                    resolve(false);
-                  },
-                });
-              });
-            }
-            
-            // If exactly on budget, proceed without confirmation
-            return true;
-          }}
-        />
-      )}
+      {/* Add Item Dialog - Using our standalone AddItemDialog component */}
+      <AddItemDialog
+        open={isAddItemDialogOpen}
+        onOpenChange={setIsAddItemDialogOpen}
+        clientId={plan.clientId}
+        budgetSettingsId={plan.id}
+        totalBudgeted={375} // Fixed budget constraint
+        currentTotal={totalAllocation}
+        onSuccess={() => {
+          // Make sure we stay in edit mode after adding an item
+          setIsEditing(true);
+          setHasUnsavedChanges(true);
+        }}
+        onValidationFailure={() => {
+          // Optional callback to handle validation failure
+          console.log("Validation failed, staying in edit mode");
+        }}
+      />
       
       {/* Delete Confirmation Dialog */}
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
