@@ -98,7 +98,7 @@ export function BudgetPlanDetails({
   });
   const { toast } = useToast();
   const { deleteBudgetItem, updateBudgetItem } = useBudgetFeature();
-  
+
   // Create a form schema for the allocations
   const allocationsFormSchema = z.object({
     items: z.array(z.object({
@@ -195,6 +195,47 @@ export function BudgetPlanDetails({
         description: "Failed to delete item. Please try again.",
       });
     }
+  };
+  
+  // Function to handle quantity changes
+  const handleQuantityChange = (item: BudgetItem, newQuantity: number) => {
+    const safeQuantity = Math.max(
+      newQuantity, 
+      item.usedQuantity
+    );
+    
+    // Create a new edited item with updated quantity
+    const updatedItem = {
+      ...item,
+      quantity: safeQuantity,
+      balanceQuantity: safeQuantity - item.usedQuantity
+    };
+    
+    // Update the edited items record
+    setEditedItems({
+      ...editedItems,
+      [item.id]: updatedItem
+    });
+    
+    // Calculate the new total budget in real-time
+    const newTotalBudget = items.reduce((total, currentItem) => {
+      if (currentItem.id === item.id) {
+        return total + (currentItem.unitPrice * safeQuantity);
+      }
+      const edited = editedItems[currentItem.id];
+      const qty = edited ? edited.quantity : currentItem.quantity;
+      return total + (currentItem.unitPrice * qty);
+    }, 0);
+    
+    // Clear any previous error
+    setBudgetError(null);
+    
+    // Add validation rule as needed
+    if (safeQuantity < item.usedQuantity) {
+      setBudgetError(`You cannot allocate less than the already used quantity (${item.usedQuantity}) for ${item.description}.`);
+    }
+    
+    setHasUnsavedChanges(true);
   };
   
   return (
@@ -351,9 +392,6 @@ export function BudgetPlanDetails({
                     
                     // If over budget, show warning dialog
                     if (difference > 0) {
-                      // Store original values before showing dialog
-                      const originalItems = { ...editedItems };
-                      
                       setConfirmationDialogProps({
                         open: true,
                         title: "Budget Allocation Exceeds Available Funds",
@@ -371,9 +409,6 @@ export function BudgetPlanDetails({
                     
                     // If under budget, show confirmation dialog
                     if (difference < 0) {
-                      // Store original values before showing dialog
-                      const originalItems = { ...editedItems };
-                      
                       setConfirmationDialogProps({
                         open: true,
                         title: "Budget Allocation Below Available Funds",
@@ -444,156 +479,121 @@ export function BudgetPlanDetails({
         <Card>
           <CardContent className="p-0">
             <div className="rounded-md overflow-hidden">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-[100px]">Code</TableHead>
-                    <TableHead>Description</TableHead>
-                    <TableHead className="text-right">Unit Price</TableHead>
-                    <TableHead className="text-right">Allocated</TableHead>
-                    <TableHead className="text-right">Used</TableHead>
-                    <TableHead className="text-right">Balance</TableHead>
-                    <TableHead className="text-right">Total</TableHead>
-                    {!isEditing && <TableHead className="w-[100px]">Actions</TableHead>}
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {items.length > 0 ? (
-                    items.map((item) => {
-                      // Get edited version if it exists
-                      const editedItem = editedItems[item.id] || item;
-                      
-                      return (
-                        <TableRow key={item.id}>
-                          <TableCell className="font-medium">{item.itemCode}</TableCell>
-                          <TableCell>{item.description}</TableCell>
-                          <TableCell className="text-right">
-                            {formatCurrency(item.unitPrice)}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            {isEditing ? (
-                              <Input
-                                type="number"
-                                min={item.usedQuantity}
-                                value={editedItem.quantity}
-                                className="w-20 text-right inline-block"
-                                onChange={(e) => {
-                                  const newQuantity = Math.max(
-                                    parseInt(e.target.value) || 0, 
-                                    item.usedQuantity
-                                  );
-                                  
-                                  // Create a new edited item with updated quantity
-                                  const updatedItem = {
-                                    ...item,
-                                    quantity: newQuantity,
-                                    balanceQuantity: newQuantity - item.usedQuantity
-                                  };
-                                  
-                                  // Update the edited items record
-                                  setEditedItems({
-                                    ...editedItems,
-                                    [item.id]: updatedItem
-                                  });
-                                  
-                                  // Calculate the new total budget in real-time
-                                  const newTotalBudget = items.reduce((total, currentItem) => {
-                                    if (currentItem.id === item.id) {
-                                      return total + (currentItem.unitPrice * newQuantity);
-                                    }
-                                    const edited = editedItems[currentItem.id];
-                                    const qty = edited ? edited.quantity : currentItem.quantity;
-                                    return total + (currentItem.unitPrice * qty);
-                                  }, 0);
-                                  
-                                  // Clear any previous error
-                                  setBudgetError(null);
-                                  
-                                  // Add validation rule as needed (removed the plan.availableFunds check since 
-                                  // we're using the sum of all items as our available funds)
-                                  if (newQuantity < item.usedQuantity) {
-                                    setBudgetError(`You cannot allocate less than the already used quantity (${item.usedQuantity}) for ${item.description}.`);
-                                  }
-                                  
-                                  setHasUnsavedChanges(true);
-                                }}
-                              />
-                            ) : (
-                              item.quantity
-                            )}
-                          </TableCell>
-                          <TableCell className="text-right">{item.usedQuantity}</TableCell>
-                          <TableCell className="text-right">{editedItem.balanceQuantity}</TableCell>
-                          <TableCell className="text-right font-medium">
-                            {formatCurrency(item.unitPrice * editedItem.quantity)}
-                          </TableCell>
-                          {!isEditing && (
-                            <TableCell>
-                              <div className="flex justify-end gap-2">
-                                {onEditItem && (
-                                  <Button 
-                                    variant="ghost" 
-                                    size="icon" 
-                                    className="h-8 w-8" 
-                                    onClick={() => onEditItem(item)}
-                                    title="Edit item"
-                                  >
-                                    <svg
-                                      xmlns="http://www.w3.org/2000/svg"
-                                      viewBox="0 0 24 24"
-                                      fill="none"
-                                      stroke="currentColor"
-                                      strokeWidth="2"
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                      className="h-4 w-4"
-                                    >
-                                      <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
-                                      <path d="m15 5 4 4" />
-                                    </svg>
-                                  </Button>
+              <FormProvider {...allocationsForm}>
+                <form onSubmit={(e) => e.preventDefault()}>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-[100px]">Code</TableHead>
+                        <TableHead>Description</TableHead>
+                        <TableHead className="text-right">Unit Price</TableHead>
+                        <TableHead className="text-right">Allocated</TableHead>
+                        <TableHead className="text-right">Used</TableHead>
+                        <TableHead className="text-right">Balance</TableHead>
+                        <TableHead className="text-right">Total</TableHead>
+                        {!isEditing && <TableHead className="w-[100px]">Actions</TableHead>}
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {items.length > 0 ? (
+                        items.map((item) => {
+                          // Get edited version if it exists
+                          const editedItem = editedItems[item.id] || item;
+                          
+                          return (
+                            <TableRow key={item.id}>
+                              <TableCell className="font-medium">{item.itemCode}</TableCell>
+                              <TableCell>{item.description}</TableCell>
+                              <TableCell className="text-right">
+                                {formatCurrency(item.unitPrice)}
+                              </TableCell>
+                              <TableCell className="text-right">
+                                {isEditing ? (
+                                  <Input
+                                    type="number"
+                                    min={item.usedQuantity}
+                                    value={editedItem.quantity}
+                                    className="w-20 text-right inline-block"
+                                    onChange={(e) => handleQuantityChange(item, parseInt(e.target.value) || 0)}
+                                  />
+                                ) : (
+                                  item.quantity
                                 )}
-                                {onDeleteItem && (
-                                  <Button 
-                                    variant="ghost" 
-                                    size="icon" 
-                                    className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50" 
-                                    onClick={() => handleDeleteClick(item)}
-                                    title="Delete item"
-                                  >
-                                    <svg
-                                      xmlns="http://www.w3.org/2000/svg"
-                                      viewBox="0 0 24 24"
-                                      fill="none"
-                                      stroke="currentColor"
-                                      strokeWidth="2"
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                      className="h-4 w-4"
-                                    >
-                                      <path d="M3 6h18" />
-                                      <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
-                                      <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
-                                      <line x1="10" x2="10" y1="11" y2="17" />
-                                      <line x1="14" x2="14" y1="11" y2="17" />
-                                    </svg>
-                                  </Button>
-                                )}
-                              </div>
-                            </TableCell>
-                          )}
+                              </TableCell>
+                              <TableCell className="text-right">{item.usedQuantity}</TableCell>
+                              <TableCell className="text-right">{editedItem.balanceQuantity}</TableCell>
+                              <TableCell className="text-right font-medium">
+                                {formatCurrency(item.unitPrice * editedItem.quantity)}
+                              </TableCell>
+                              {!isEditing && (
+                                <TableCell>
+                                  <div className="flex justify-end gap-2">
+                                    {onEditItem && (
+                                      <Button 
+                                        variant="ghost" 
+                                        size="icon" 
+                                        className="h-8 w-8" 
+                                        onClick={() => onEditItem(item)}
+                                        title="Edit item"
+                                      >
+                                        <svg
+                                          xmlns="http://www.w3.org/2000/svg"
+                                          viewBox="0 0 24 24"
+                                          fill="none"
+                                          stroke="currentColor"
+                                          strokeWidth="2"
+                                          strokeLinecap="round"
+                                          strokeLinejoin="round"
+                                          className="h-4 w-4"
+                                        >
+                                          <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+                                          <path d="m15 5 4 4" />
+                                        </svg>
+                                      </Button>
+                                    )}
+                                    {onDeleteItem && (
+                                      <Button 
+                                        variant="ghost" 
+                                        size="icon" 
+                                        className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50" 
+                                        onClick={() => handleDeleteClick(item)}
+                                        title="Delete item"
+                                      >
+                                        <svg
+                                          xmlns="http://www.w3.org/2000/svg"
+                                          viewBox="0 0 24 24"
+                                          fill="none"
+                                          stroke="currentColor"
+                                          strokeWidth="2"
+                                          strokeLinecap="round"
+                                          strokeLinejoin="round"
+                                          className="h-4 w-4"
+                                        >
+                                          <path d="M3 6h18" />
+                                          <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+                                          <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+                                          <line x1="10" x2="10" y1="11" y2="17" />
+                                          <line x1="14" x2="14" y1="11" y2="17" />
+                                        </svg>
+                                      </Button>
+                                    )}
+                                  </div>
+                                </TableCell>
+                              )}
+                            </TableRow>
+                          );
+                        })
+                      ) : (
+                        <TableRow>
+                          <TableCell colSpan={isEditing ? 7 : 8} className="text-center py-6 text-muted-foreground">
+                            No budget items available
+                          </TableCell>
                         </TableRow>
-                      );
-                    })
-                  ) : (
-                    <TableRow>
-                      <TableCell colSpan={isEditing ? 7 : 8} className="text-center py-6 text-muted-foreground">
-                        No budget items available
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
+                      )}
+                    </TableBody>
+                  </Table>
+                </form>
+              </FormProvider>
             </div>
           </CardContent>
         </Card>
