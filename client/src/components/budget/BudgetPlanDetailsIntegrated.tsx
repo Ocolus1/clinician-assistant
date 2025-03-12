@@ -8,6 +8,7 @@ import {
 import { formatCurrency } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { BudgetItemForm } from "./BudgetItemForm";
+import { AddItemDialog } from "./AddItemDialog";
 
 // UI Components
 import { Button } from "@/components/ui/button";
@@ -582,44 +583,31 @@ export function BudgetPlanDetails({
         </div>
       </div>
       
-      {/* Add item dialog */}
-      <BudgetItemForm
+      {/* Add item dialog - using the AddItemDialog component to prevent form context conflicts */}
+      <AddItemDialog
         open={isAddItemDialogOpen}
         onOpenChange={setIsAddItemDialogOpen}
         clientId={plan.clientId}
         budgetSettingsId={plan.id}
         totalBudgeted={375} // Fixed budget amount for validation
         currentTotal={totalBudgeted}
-        onValidationRequired={async (data, excessAmount) => {
-          // Handle over-budget condition
-          if (excessAmount > 0) {
-            // Show a warning dialog for over-budget
-            return new Promise((resolve) => {
-              setConfirmationDialogProps({
-                open: true,
-                title: "Budget Limit Exceeded",
-                message: `Adding this item will exceed your budget by ${formatCurrency(excessAmount)}. The total budget will be ${formatCurrency(totalBudgeted + (data.unitPrice * data.quantity))}. Do you want to proceed anyway?`,
-                confirmLabel: "Yes, Add Item",
-                confirmAction: () => {
-                  setConfirmationDialogProps((prev) => ({ ...prev, open: false }));
-                  resolve(true);
-                },
-                cancelLabel: "No, Cancel",
-                cancelAction: () => {
-                  setConfirmationDialogProps((prev) => ({ ...prev, open: false }));
-                  resolve(false);
-                },
-              });
-            });
-          }
-          
-          // For under-budget, we don't need to show a confirmation
-          return true;
-        }}
         onSuccess={() => {
+          // Refresh or update UI as needed
+          toast({
+            title: "Item Added",
+            description: "The budget item was successfully added"
+          });
           // After adding an item, ensure we're still in edit mode
           setIsEditing(true);
           setHasUnsavedChanges(true);
+        }}
+        onValidationFailure={() => {
+          // Handle any validation failures
+          toast({
+            variant: "destructive",
+            title: "Validation Failed",
+            description: "Unable to add item due to budget constraints"
+          });
         }}
       />
       
