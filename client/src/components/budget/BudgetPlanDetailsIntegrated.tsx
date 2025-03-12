@@ -1,158 +1,223 @@
-import { useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { UnifiedBudgetManager } from "./UnifiedBudgetManager";
-import { BudgetFeatureProvider, useBudgetFeature } from "./BudgetFeatureContext";
-
-interface BudgetPlan {
-  id: number;
-  clientId: number;
-  planCode: string | null;
-  isActive: boolean | null;
-  availableFunds: number;
-  endOfPlan: string | null;
-  createdAt: Date | null;
-}
-
-interface BudgetItem {
-  id: number;
-  clientId: number;
-  budgetSettingsId: number;
-  itemCode: string;
-  description: string;
-  quantity: number;
-  unitPrice: number;
-  name: string | null;
-  category: string | null;
-}
+import React, { useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { useBudgetFeature, BudgetItem } from './BudgetFeatureContext';
+import { BudgetItemRow } from './BudgetItemRow';
+import { BudgetValidation } from './BudgetValidation';
+import { BudgetCatalogSelector } from './BudgetCatalogSelector';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Separator } from '@/components/ui/separator';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { formatCurrency } from '@/lib/utils';
 
 interface BudgetPlanDetailsProps {
   clientId: number;
-  initialPlan?: BudgetPlan;
 }
 
 /**
- * Component that displays budget plan details with the unified budget management system
+ * Component to display and manage budget plan details 
+ * with integrated budget items management
  */
-export function BudgetPlanDetails({ clientId, initialPlan }: BudgetPlanDetailsProps) {
-  // This wrapper component handles data fetching and provides context to children
-  return (
-    <BudgetFeatureProvider
-      initialPlan={initialPlan || null}
-      initialItems={[]}
-    >
-      <BudgetPlanContent clientId={clientId} />
-    </BudgetFeatureProvider>
-  );
-}
-
-/**
- * Inner component that uses budget feature context
- */
-function BudgetPlanContent({ clientId }: { clientId: number }) {
+export function BudgetPlanDetails({ clientId }: BudgetPlanDetailsProps) {
   const { 
     setActivePlan, 
-    setBudgetItems, 
     activePlan,
-    refreshData 
+    setBudgetItems,
+    budgetItems,
+    refreshData: contextRefreshData
   } = useBudgetFeature();
-  
-  // Query for active budget plan if not provided
-  const {
-    data: budgetPlan,
-    isLoading: isLoadingPlan,
-    error: planError
-  } = useQuery({
-    queryKey: [`/api/clients/${clientId}/budget-settings`],
+
+  // Get active budget plan
+  const plansQuery = useQuery({
+    queryKey: [`/api/clients/${clientId}/budget/plans`],
     queryFn: async () => {
-      const response = await fetch(`/api/clients/${clientId}/budget-settings`);
-      if (!response.ok) throw new Error("Failed to fetch budget plan");
+      const response = await fetch(`/api/clients/${clientId}/budget/plans`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch budget plans');
+      }
+      return response.json();
+    }
+  });
+
+  // Get budget items for the active plan
+  const itemsQuery = useQuery({
+    queryKey: [`/api/clients/${clientId}/budget-items`, activePlan?.id],
+    queryFn: async () => {
+      if (!activePlan) {
+        return [];
+      }
+      const response = await fetch(`/api/clients/${clientId}/budget-items?budgetSettingsId=${activePlan.id}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch budget items');
+      }
       return response.json();
     },
-    // Skip if we already have a plan
-    enabled: !activePlan
+    enabled: !!activePlan
   });
-  
-  // Query for budget items
-  const {
-    data: budgetItems = [],
-    isLoading: isLoadingItems,
-    error: itemsError
-  } = useQuery({
-    queryKey: [`/api/clients/${clientId}/budget-items`],
-    queryFn: async () => {
-      const response = await fetch(`/api/clients/${clientId}/budget-items`);
-      if (!response.ok) throw new Error("Failed to fetch budget items");
-      return response.json();
-    }
-  });
-  
-  // Set plan and items in context when data is loaded
+
+  // Set active plan from data (first active plan by default)
   useEffect(() => {
-    if (budgetPlan && !activePlan) {
-      setActivePlan(budgetPlan);
+    if (plansQuery.data && plansQuery.data.length > 0 && !activePlan) {
+      const activePlans = plansQuery.data.filter((plan: any) => plan.isActive);
+      if (activePlans.length > 0) {
+        setActivePlan(activePlans[0]);
+      } else {
+        setActivePlan(plansQuery.data[0]);
+      }
     }
-  }, [budgetPlan, activePlan, setActivePlan]);
-  
+  }, [plansQuery.data, activePlan, setActivePlan]);
+
+  // Set budget items from data
   useEffect(() => {
-    if (budgetItems && budgetItems.length > 0) {
-      setBudgetItems(budgetItems);
+    if (itemsQuery.data) {
+      setBudgetItems(itemsQuery.data);
     }
-  }, [budgetItems, setBudgetItems]);
+  }, [itemsQuery.data, setBudgetItems]);
+
+  // Handle refresh data (reload queries)
+  const refreshData = () => {
+    itemsQuery.refetch();
+    contextRefreshData(); // Call context refreshData as well
+  };
   
-  // Handle loading state
-  if (isLoadingPlan || (isLoadingItems && !budgetItems.length)) {
+  // Set refresh function in context
+  useEffect(() => {
+    // Update the context's refresh function to use our local one
+    if (contextRefreshData) {
+      contextRefreshData();
+    }
+  }, [activePlan, contextRefreshData]);
+
+  // Loading state
+  if (plansQuery.isPending) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle className="text-xl">Budget Plan</CardTitle>
+          <CardTitle>Budget Management</CardTitle>
+          <CardDescription>Loading budget information...</CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <Skeleton className="h-12 w-full" />
-            <Skeleton className="h-40 w-full" />
-          </div>
-        </CardContent>
       </Card>
     );
   }
-  
-  // Handle error state
-  if (planError) {
-    return (
-      <Alert variant="destructive">
-        <AlertDescription>
-          Failed to load budget plan. Please try again later.
-        </AlertDescription>
-      </Alert>
-    );
-  }
-  
-  // If no active plan exists yet
-  if (!activePlan) {
+
+  // Error state
+  if (plansQuery.isError) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle className="text-xl">Budget Plan</CardTitle>
+          <CardTitle>Budget Management</CardTitle>
+          <CardDescription>Error loading budget data</CardDescription>
         </CardHeader>
         <CardContent>
-          <Alert>
+          <Alert variant="destructive">
             <AlertDescription>
-              No active budget plan found. Please create a budget plan first.
+              An error occurred while loading budget data. Please try again.
             </AlertDescription>
           </Alert>
         </CardContent>
       </Card>
     );
   }
+
+  // No plans state
+  if (plansQuery.data.length === 0) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Budget Management</CardTitle>
+          <CardDescription>No budget plans available</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Alert>
+            <AlertDescription>
+              There are no budget plans created for this client. 
+              Please create a new budget plan to manage budget items.
+            </AlertDescription>
+          </Alert>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Sort items by category for better organization
+  const sortedItems = [...budgetItems].sort((a, b) => {
+    // Sort by category first
+    if (a.category && b.category) {
+      return a.category.localeCompare(b.category);
+    }
+    if (a.category) return -1;
+    if (b.category) return 1;
+    
+    // Then by name/description
+    const aName = a.name || a.description;
+    const bName = b.name || b.description;
+    return aName.localeCompare(bName);
+  });
+
+  // Group items by category
+  const groupedItems: Record<string, BudgetItem[]> = {};
+  sortedItems.forEach(item => {
+    const category = item.category || 'Uncategorized';
+    if (!groupedItems[category]) {
+      groupedItems[category] = [];
+    }
+    groupedItems[category].push(item);
+  });
   
   return (
-    <UnifiedBudgetManager
-      plan={activePlan}
-      budgetItems={budgetItems}
-      onBudgetChange={refreshData}
-    />
+    <Card>
+      <CardHeader>
+        <CardTitle>
+          Budget Plan: {activePlan?.planCode || 'Default Plan'}
+        </CardTitle>
+        <CardDescription>
+          Available Funds: {formatCurrency(activePlan?.availableFunds || 0)}
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Tabs defaultValue="items" className="space-y-4">
+          <TabsList>
+            <TabsTrigger value="items">Budget Items</TabsTrigger>
+            <TabsTrigger value="add">Add New Item</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="items" className="space-y-6">
+            {/* Budget Validation */}
+            <BudgetValidation />
+            
+            {/* Budget Items List */}
+            {Object.keys(groupedItems).length === 0 ? (
+              <div className="text-center py-8 text-gray-500">
+                No budget items added yet. Use the "Add New Item" tab to add items.
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {Object.entries(groupedItems).map(([category, items]) => (
+                  <div key={category} className="space-y-3">
+                    <h3 className="font-medium text-lg">{category}</h3>
+                    <div className="space-y-2">
+                      {items.map(item => (
+                        <BudgetItemRow 
+                          key={item.id} 
+                          item={item} 
+                        />
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+          
+          <TabsContent value="add">
+            <div className="space-y-4">
+              <BudgetValidation />
+              <Separator />
+              <BudgetCatalogSelector />
+            </div>
+          </TabsContent>
+        </Tabs>
+      </CardContent>
+    </Card>
   );
 }

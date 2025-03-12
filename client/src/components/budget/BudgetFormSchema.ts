@@ -1,33 +1,54 @@
-import * as z from "zod";
+import { z } from 'zod';
 
 /**
- * Schema for individual budget items in the form
+ * Fixed budget amount constant used for the validation
  */
-export const budgetItemSchema = z.object({
-  id: z.number().optional(), // Optional for new items being added
-  itemCode: z.string().min(1, "Item code is required"),
-  description: z.string().min(1, "Description is required"),
-  quantity: z.number().min(0, "Quantity must be at least 0"),
-  unitPrice: z.number().min(0, "Unit price must be at least 0"),
-  // These are form-specific fields
-  isNew: z.boolean().optional(), // Flag to track newly added items
-  name: z.string().nullable(), // Required by the database schema but can be null
-  category: z.string().nullable(), // Required by the database schema but can be null
-});
-
-/**
- * Schema for the unified budget form
- */
-export const unifiedBudgetFormSchema = z.object({
-  items: z.array(budgetItemSchema),
-  // Meta fields for validation - not persisted to database
-  totalBudget: z.number(),
-  totalAllocated: z.number(),
-  remainingBudget: z.number(),
-});
-
-export type BudgetItemFormValues = z.infer<typeof budgetItemSchema>;
-export type UnifiedBudgetFormValues = z.infer<typeof unifiedBudgetFormSchema>;
-
-// Constants
 export const FIXED_BUDGET_AMOUNT = 375;
+
+/**
+ * Schema for budget item form
+ */
+export const budgetItemFormSchema = z.object({
+  itemCode: z.string().min(1, 'Item code is required'),
+  description: z.string().min(1, 'Description is required'),
+  quantity: z.coerce.number().min(1, 'Quantity must be at least 1'),
+  unitPrice: z.coerce.number().min(0.01, 'Unit price must be greater than 0'),
+  name: z.string().optional(),
+  category: z.string().optional(),
+});
+
+export type BudgetItemFormValues = z.infer<typeof budgetItemFormSchema>;
+
+/**
+ * Schema for budget catalog selection
+ */
+export const budgetCatalogSelectionSchema = z.object({
+  catalogItemId: z.string().min(1, 'Please select a catalog item'),
+  quantity: z.coerce.number().min(1, 'Quantity must be at least 1'),
+});
+
+export type BudgetCatalogSelectionValues = z.infer<typeof budgetCatalogSelectionSchema>;
+
+/**
+ * Validates if adding a new budget item would exceed the maximum budget
+ * @param currentTotal Current total allocated funds
+ * @param itemPrice Price of new item to add
+ * @param itemQuantity Quantity of new item
+ * @returns Boolean indicating if adding this item exceeds the budget
+ */
+export function exceedsBudget(currentTotal: number, itemPrice: number, itemQuantity: number): boolean {
+  const newTotal = currentTotal + (itemPrice * itemQuantity);
+  return newTotal > FIXED_BUDGET_AMOUNT;
+}
+
+/**
+ * Calculates the maximum quantity that can be added without exceeding budget
+ * @param currentTotal Current total allocated funds
+ * @param itemPrice Price of item
+ * @returns Maximum quantity that can be added
+ */
+export function calculateMaxQuantity(currentTotal: number, itemPrice: number): number {
+  if (itemPrice <= 0) return 0;
+  const remainingBudget = FIXED_BUDGET_AMOUNT - currentTotal;
+  return Math.floor(remainingBudget / itemPrice);
+}

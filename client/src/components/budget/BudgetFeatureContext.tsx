@@ -1,7 +1,7 @@
 import { createContext, useContext, ReactNode, useState } from "react";
 import { FIXED_BUDGET_AMOUNT } from "./BudgetFormSchema";
 
-interface BudgetPlan {
+export interface BudgetPlan {
   id: number;
   clientId: number;
   planCode: string | null;
@@ -9,7 +9,7 @@ interface BudgetPlan {
   availableFunds: number;
 }
 
-interface BudgetItem {
+export interface BudgetItem {
   id: number;
   clientId: number;
   budgetSettingsId: number;
@@ -38,6 +38,7 @@ const BudgetFeatureContext = createContext<BudgetFeatureContextType | undefined>
 
 interface BudgetFeatureProviderProps {
   children: ReactNode;
+  clientId?: number;
   initialPlan?: BudgetPlan | null;
   initialItems?: BudgetItem[];
   onRefresh?: () => void;
@@ -48,6 +49,7 @@ interface BudgetFeatureProviderProps {
  */
 export function BudgetFeatureProvider({
   children,
+  clientId,
   initialPlan = null,
   initialItems = [],
   onRefresh

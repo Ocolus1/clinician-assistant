@@ -1,14 +1,22 @@
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { Check, ChevronsUpDown, PlusCircle } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { cn } from "@/lib/utils";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import React from 'react';
+import { z } from 'zod';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useBudgetFeature } from './BudgetFeatureContext';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useMutation, useQuery } from '@tanstack/react-query';
+import { apiRequest } from '@/lib/queryClient';
+import { queryClient } from '@/lib/queryClient';
+import { useToast } from '@/hooks/use-toast';
+import { calculateMaxQuantity, budgetCatalogSelectionSchema, BudgetCatalogSelectionValues } from './BudgetFormSchema';
+import { formatCurrency } from '@/lib/utils';
+import { Loader2 } from 'lucide-react';
 
-interface BudgetItemCatalog {
+// Catalog item type
+interface CatalogItem {
   id: number;
   itemCode: string;
   description: string;
@@ -17,157 +25,215 @@ interface BudgetItemCatalog {
   isActive: boolean | null;
 }
 
-interface BudgetCatalogSelectorProps {
-  onSelectItem: (item: {
-    itemCode: string;
-    description: string;
-    unitPrice: number;
-    quantity: number;
-    name: string | null;
-    category: string | null;
-  }) => void;
-  clientId: number;
-  budgetSettingsId: number;
-  disabled?: boolean;
-}
-
 /**
  * Component for selecting items from the budget catalog
  */
-export function BudgetCatalogSelector({
-  onSelectItem,
-  clientId,
-  budgetSettingsId,
-  disabled = false
-}: BudgetCatalogSelectorProps) {
-  const [open, setOpen] = useState(false);
-  const [selectedItem, setSelectedItem] = useState<BudgetItemCatalog | null>(null);
-  const [quantity, setQuantity] = useState(1);
+export function BudgetCatalogSelector() {
+  const { toast } = useToast();
+  const { 
+    activePlan, 
+    totalAllocated, 
+    totalBudget, 
+    budgetItems, 
+    setBudgetItems,
+    refreshData
+  } = useBudgetFeature();
   
-  // Fetch catalog items
-  const { data: catalogItems = [], isLoading } = useQuery({
-    queryKey: ["/api/budget-catalog"],
+  // Get catalog items
+  const catalogQuery = useQuery({
+    queryKey: ['/api/budget-item-catalog'],
     queryFn: async () => {
-      const response = await fetch("/api/budget-catalog");
-      if (!response.ok) throw new Error("Failed to fetch budget catalog");
-      return response.json();
+      const response = await fetch('/api/budget-item-catalog');
+      if (!response.ok) {
+        throw new Error('Failed to fetch catalog items');
+      }
+      return response.json() as Promise<CatalogItem[]>;
     }
   });
   
-  // Handle selecting an item from the dropdown
-  const handleSelectItem = (item: BudgetItemCatalog) => {
-    setSelectedItem(item);
-    setOpen(false);
+  // Form
+  const form = useForm<BudgetCatalogSelectionValues>({
+    resolver: zodResolver(budgetCatalogSelectionSchema),
+    defaultValues: {
+      catalogItemId: '',
+      quantity: 1
+    }
+  });
+  
+  // Get selected catalog item details
+  const selectedItemId = form.watch('catalogItemId');
+  const selectedItem = selectedItemId 
+    ? catalogQuery.data?.find(item => item.id.toString() === selectedItemId) 
+    : undefined;
+  
+  // Calculate max quantity based on remaining budget
+  const maxQuantity = selectedItem 
+    ? calculateMaxQuantity(totalAllocated, selectedItem.defaultUnitPrice) 
+    : 0;
+  
+  // Add budget item mutation
+  const addItemMutation = useMutation({
+    mutationFn: async (data: BudgetCatalogSelectionValues) => {
+      if (!activePlan) {
+        throw new Error('No active budget plan selected');
+      }
+      
+      const selectedCatalogItem = catalogQuery.data?.find(
+        item => item.id.toString() === data.catalogItemId
+      );
+      
+      if (!selectedCatalogItem) {
+        throw new Error('Selected catalog item not found');
+      }
+      
+      // Create new budget item
+      return apiRequest('POST', `/api/clients/${activePlan.clientId}/budget/${activePlan.id}/items`, {
+        clientId: activePlan.clientId,
+        budgetSettingsId: activePlan.id,
+        itemCode: selectedCatalogItem.itemCode,
+        description: selectedCatalogItem.description,
+        quantity: data.quantity,
+        unitPrice: selectedCatalogItem.defaultUnitPrice,
+        name: selectedCatalogItem.description,
+        category: selectedCatalogItem.category
+      });
+    },
+    onSuccess: (newItem) => {
+      toast({
+        title: 'Success',
+        description: 'Budget item added successfully'
+      });
+      
+      // Refresh data to get the new item from the server
+      refreshData();
+      
+      // Reset form
+      form.reset();
+      
+      // Invalidate related queries
+      if (activePlan) {
+        queryClient.invalidateQueries({ 
+          queryKey: ['/api/clients', activePlan.clientId, 'budget-items'] 
+        });
+      }
+    },
+    onError: (error) => {
+      toast({
+        title: 'Error',
+        description: 'Failed to add budget item',
+        variant: 'destructive'
+      });
+      console.error('Failed to add budget item:', error);
+    }
+  });
+  
+  // Submit handler
+  const onSubmit = (data: BudgetCatalogSelectionValues) => {
+    addItemMutation.mutate(data);
   };
   
-  // Handle adding the selected item to the budget
-  const handleAddItem = () => {
-    if (!selectedItem) return;
-    
-    onSelectItem({
-      itemCode: selectedItem.itemCode,
-      description: selectedItem.description,
-      unitPrice: selectedItem.defaultUnitPrice,
-      quantity: quantity,
-      name: null, // These are required by the schema but can be null
-      category: selectedItem.category
-    });
-    
-    // Reset the form
-    setSelectedItem(null);
-    setQuantity(1);
-  };
+  // Disable if no active plan
+  const isDisabled = !activePlan;
   
   return (
     <div className="space-y-4">
-      <div className="text-sm font-medium mb-2">Add Budget Item</div>
+      <h3 className="text-lg font-medium">Add Budget Item</h3>
       
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
-        {/* Item selector */}
-        <div className="md:col-span-7">
-          <Label htmlFor="item-selector" className="mb-2 block">
-            Select Item
-          </Label>
-          <Popover open={open} onOpenChange={setOpen}>
-            <PopoverTrigger asChild>
-              <Button
-                id="item-selector"
-                variant="outline"
-                role="combobox"
-                aria-expanded={open}
-                disabled={disabled || isLoading}
-                className="w-full justify-between"
-              >
-                {selectedItem ? selectedItem.description : "Select an item..."}
-                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-full p-0" align="start">
-              <Command>
-                <CommandInput placeholder="Search catalog items..." />
-                <CommandEmpty>No items found.</CommandEmpty>
-                <CommandGroup>
-                  {catalogItems.map((item: BudgetItemCatalog) => (
-                    <CommandItem
-                      key={item.id}
-                      value={item.itemCode}
-                      onSelect={() => handleSelectItem(item)}
-                    >
-                      <Check
-                        className={cn(
-                          "mr-2 h-4 w-4",
-                          selectedItem?.id === item.id ? "opacity-100" : "opacity-0"
-                        )}
-                      />
-                      <div className="flex flex-col">
-                        <span>{item.description}</span>
-                        <span className="text-xs text-muted-foreground">
-                          {item.itemCode} - ${item.defaultUnitPrice.toFixed(2)}
-                        </span>
-                      </div>
-                    </CommandItem>
-                  ))}
-                </CommandGroup>
-              </Command>
-            </PopoverContent>
-          </Popover>
+      {catalogQuery.isPending ? (
+        <div className="flex items-center justify-center py-4">
+          <Loader2 className="h-6 w-6 animate-spin text-gray-500" />
         </div>
-        
-        {/* Quantity input */}
-        <div className="md:col-span-3">
-          <Label htmlFor="quantity-input" className="mb-2 block">
-            Quantity
-          </Label>
-          <Input
-            id="quantity-input"
-            type="number"
-            value={quantity}
-            onChange={(e) => setQuantity(Number(e.target.value))}
-            min={1}
-            className="w-full"
-            disabled={!selectedItem || disabled}
-          />
+      ) : catalogQuery.isError ? (
+        <div className="p-4 border border-red-300 bg-red-50 rounded-md text-red-700">
+          Failed to load catalog items. Please try again.
         </div>
-        
-        {/* Add button */}
-        <div className="md:col-span-2">
-          <Button
-            onClick={handleAddItem}
-            disabled={!selectedItem || disabled}
-            className="w-full"
-          >
-            <PlusCircle className="mr-2 h-4 w-4" />
-            Add
-          </Button>
-        </div>
-      </div>
-      
-      {/* Price preview */}
-      {selectedItem && (
-        <div className="text-sm text-muted-foreground mt-2">
-          Item Total: ${(selectedItem.defaultUnitPrice * quantity).toFixed(2)}
-          {' '}(${selectedItem.defaultUnitPrice.toFixed(2)} × {quantity})
-        </div>
+      ) : (
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <FormField
+              control={form.control}
+              name="catalogItemId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Catalog Item</FormLabel>
+                  <Select 
+                    onValueChange={field.onChange} 
+                    defaultValue={field.value} 
+                    disabled={isDisabled}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select an item from the catalog" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {catalogQuery.data
+                        ?.filter(item => item.isActive !== false)
+                        .map(item => (
+                        <SelectItem key={item.id} value={item.id.toString()}>
+                          {item.description} ({formatCurrency(item.defaultUnitPrice)})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            {selectedItem && (
+              <>
+                <div className="text-sm text-gray-500">
+                  Unit Price: {formatCurrency(selectedItem.defaultUnitPrice)}
+                </div>
+                
+                <div className="text-sm text-gray-500">
+                  Maximum Quantity: {maxQuantity} {maxQuantity === 0 && '(Budget limit reached)'}
+                </div>
+              </>
+            )}
+            
+            <FormField
+              control={form.control}
+              name="quantity"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Quantity</FormLabel>
+                  <FormControl>
+                    <Input 
+                      {...field} 
+                      type="number"
+                      min={1}
+                      max={selectedItem ? maxQuantity : undefined}
+                      disabled={isDisabled || !selectedItem || maxQuantity === 0}
+                      onChange={e => field.onChange(parseInt(e.target.value))}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            {selectedItem && (
+              <div className="text-sm font-medium">
+                Total: {formatCurrency(selectedItem.defaultUnitPrice * form.watch('quantity'))}
+              </div>
+            )}
+            
+            <Button 
+              type="submit" 
+              disabled={
+                isDisabled || 
+                addItemMutation.isPending || 
+                !selectedItem || 
+                maxQuantity === 0 ||
+                form.watch('quantity') > maxQuantity
+              }
+            >
+              {addItemMutation.isPending ? 'Adding...' : 'Add to Budget'}
+            </Button>
+          </form>
+        </Form>
       )}
     </div>
   );
