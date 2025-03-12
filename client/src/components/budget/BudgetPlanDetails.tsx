@@ -329,12 +329,17 @@ export function BudgetPlanDetails({
                     
                     // If over budget, show warning dialog
                     if (difference > 0) {
+                      // Store original values before showing dialog
+                      const originalItems = { ...editedItems };
+                      
                       setConfirmationDialogProps({
                         open: true,
                         title: "Budget Allocation Exceeds Available Funds",
                         message: `Your new allocation is above the available budget by ${formatCurrency(difference)}. Please adjust your reallocations accordingly.`,
                         confirmLabel: "Adjust Allocations",
                         confirmAction: () => {
+                          // Reset to original values
+                          setEditedItems({});
                           setConfirmationDialogProps((prev) => ({ ...prev, open: false }));
                         },
                         cancelHidden: true,
@@ -344,6 +349,9 @@ export function BudgetPlanDetails({
                     
                     // If under budget, show confirmation dialog
                     if (difference < 0) {
+                      // Store original values before showing dialog
+                      const originalItems = { ...editedItems };
+                      
                       setConfirmationDialogProps({
                         open: true,
                         title: "Budget Allocation Below Available Funds",
@@ -355,6 +363,8 @@ export function BudgetPlanDetails({
                         },
                         cancelLabel: "No, Adjust Allocations",
                         cancelAction: () => {
+                          // Reset to original values
+                          setEditedItems({});
                           setConfirmationDialogProps((prev) => ({ ...prev, open: false }));
                         },
                       });
