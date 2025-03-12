@@ -170,8 +170,8 @@ export function BudgetPlanDetails({
               </CardDescription>
             </div>
             <div className="text-right">
-              <div className="text-sm text-muted-foreground mb-1">Total Funds</div>
-              <div className="text-2xl font-semibold">{formatCurrency(plan.availableFunds)}</div>
+              <div className="text-sm text-muted-foreground mb-1">Total Budget</div>
+              <div className="text-2xl font-semibold">{formatCurrency(totalBudgeted)}</div>
             </div>
           </div>
         </CardHeader>

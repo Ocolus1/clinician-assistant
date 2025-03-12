@@ -249,7 +249,8 @@ export function BudgetItemTable({ items, onEdit, onDelete }: BudgetItemTableProp
                     </TableCell>
                     <TableCell className="text-right">{item.quantity}</TableCell>
                     <TableCell className="text-right">
-                      {item.balanceQuantity !== undefined ? item.balanceQuantity : (item.quantity - (item.usedQuantity || 0))}
+                      {/* Since no session usage is currently tracked, balance is equal to quantity */}
+                      {item.quantity}
                     </TableCell>
                     <TableCell className="text-right font-medium">
                       {formatCurrency(item.unitPrice * item.quantity)}

@@ -137,8 +137,8 @@ export function DirectBudgetPlanList({ clientId }: DirectBudgetPlanProps) {
           // Calculate item count
           const itemCount = planItems.length;
           
-          // Calculate total used based on unit price * quantity
-          // In a real system with usage tracking, this would use the tracked usage instead
+          // Calculate total budgeted amount (sum of all allocated items)
+          // This is what we previously called "totalUsed" but it's actually the total allocated budget
           const totalUsed = planItems.reduce(
             (sum: number, item: BudgetItem) => {
               const unitPrice = typeof item.unitPrice === 'string' ? 
@@ -149,9 +149,13 @@ export function DirectBudgetPlanList({ clientId }: DirectBudgetPlanProps) {
             }, 0
           );
           
-          // Calculate percent used
-          const percentUsed = plan.availableFunds > 0
-            ? Math.min(Math.round((totalUsed / plan.availableFunds) * 100), 100)
+          // In a real system with session usage tracking, we would calculate how much of this 
+          // budget has been consumed. For now, usage is 0 and will be implemented later.
+          const sessionUsage = 0;
+          
+          // Calculate percent used (consumed) from allocated budget
+          const percentUsed = totalUsed > 0
+            ? Math.min(Math.round((sessionUsage / totalUsed) * 100), 100)
             : 0;
           
           return {
@@ -402,7 +406,7 @@ export function DirectBudgetPlanList({ clientId }: DirectBudgetPlanProps) {
                         // Calculate item count
                         const itemCount = planItems.length;
                         
-                        // Calculate total used based on unit price * quantity
+                        // Calculate total budgeted amount (sum of all allocated items)
                         const totalUsed = planItems.reduce(
                           (sum: number, item: BudgetItem) => {
                             const unitPrice = typeof item.unitPrice === 'string' ? 
@@ -413,9 +417,12 @@ export function DirectBudgetPlanList({ clientId }: DirectBudgetPlanProps) {
                           }, 0
                         );
                         
-                        // Calculate percent used
-                        const percentUsed = plan.availableFunds > 0
-                          ? Math.min(Math.round((totalUsed / plan.availableFunds) * 100), 100)
+                        // In a real system with session usage tracking, we would calculate usage here
+                        const sessionUsage = 0;
+                        
+                        // Calculate percent used (consumed) from allocated budget
+                        const percentUsed = totalUsed > 0
+                          ? Math.min(Math.round((sessionUsage / totalUsed) * 100), 100)
                           : 0;
                         
                         return {
