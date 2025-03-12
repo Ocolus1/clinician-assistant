@@ -9,6 +9,7 @@ import { formatCurrency } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { BudgetItemForm } from "./BudgetItemForm";
 import { AddItemDialog } from "./AddItemDialog";
+import { UnifiedBudgetManager } from "./UnifiedBudgetManager";
 
 // UI Components
 import { Button } from "@/components/ui/button";
@@ -344,281 +345,3295 @@ export function BudgetPlanDetails({
           </div>
         </CardContent>
       </Card>
-      
-      {/* Budget Items Section */}
-      <div className="space-y-4">
-        <div className="flex justify-between items-center">
-          <h3 className="text-lg font-medium">Budget Items and Usage</h3>
-          <div className="flex gap-2">
-            {isEditing ? (
-              <>
-                <Button 
-                  variant="outline" 
-                  className="space-x-2"
-                  onClick={() => {
-                    setIsEditing(false);
-                    setEditedItems({});
-                    setHasUnsavedChanges(false);
-                  }}
-                >
-                  <X className="h-4 w-4" />
-                  <span>Cancel</span>
-                </Button>
-
-                <Button 
-                  onClick={() => setIsAddItemDialogOpen(true)}
-                  variant="secondary"
-                  className="space-x-2"
-                  // Add item button is only active if we have editing mode on
-                  disabled={!isEditing}
-                >
-                  <Plus className="h-4 w-4" />
-                  <span>Add Item</span>
-                </Button>
-
-                <Button 
-                  className="space-x-2"
-                  disabled={!hasUnsavedChanges}
-                  onClick={() => {
-                    // Calculate the new total budget based on edited items
-                    const newTotalBudget = items.reduce((total, item) => {
-                      const editedItem = editedItems[item.id];
-                      const quantity = editedItem ? editedItem.quantity : item.quantity;
-                      return total + (item.unitPrice * quantity);
-                    }, 0);
-                    
-                    // Check for any validation errors from real-time validation
-                    if (budgetError) {
-                      return;
-                    }
-                    
-                    // Calculate difference from total budget (the allocated amount shown in the header)
-                    const fixedTotalBudget = 375; // Fixed value for now
-                    const difference = newTotalBudget - fixedTotalBudget;
-                    
-                    // If over budget, show warning dialog
-                    if (difference > 0) {
-                      setConfirmationDialogProps({
-                        open: true,
-                        title: "Budget Allocation Exceeds Available Funds",
-                        message: `Your new allocation is above the available budget by ${formatCurrency(difference)}. Please adjust your reallocations accordingly.`,
-                        confirmLabel: "Adjust Allocations",
-                        confirmAction: () => {
-                          // Reset to original values
-                          setEditedItems({});
-                          setConfirmationDialogProps((prev) => ({ ...prev, open: false }));
-                        },
-                        cancelHidden: true,
-                      });
-                      return;
-                    }
-                    
-                    // If under budget, show confirmation dialog
-                    if (difference < 0) {
-                      setConfirmationDialogProps({
-                        open: true,
-                        title: "Budget Allocation Below Available Funds",
-                        message: `Your new allocation is below the available budget by ${formatCurrency(Math.abs(difference))}. Do you want to proceed?`,
-                        confirmLabel: "Yes, Save Changes",
-                        confirmAction: async () => {
-                          setConfirmationDialogProps((prev) => ({ ...prev, open: false }));
-                          await saveChanges();
-                        },
-                        cancelLabel: "No, Adjust Allocations",
-                        cancelAction: () => {
-                          setConfirmationDialogProps((prev) => ({ ...prev, open: false }));
-                        },
-                      });
-                      return;
-                    }
-                    
-                    // If exactly matching budget, proceed with save
-                    saveChanges();
-                  }}
-                >
-                  <Save className="h-4 w-4" />
-                  <span>Save Changes</span>
-                </Button>
-              </>
-            ) : (
-              <>
-                {/* Only show Edit Allocations in non-edit mode */}
-                <Button 
-                  variant="outline" 
-                  className="space-x-2"
-                  onClick={() => setIsEditing(true)}
-                >
-                  <Edit className="h-4 w-4" />
-                  <span>Edit Allocations</span>
-                </Button>
-              </>
-            )}
-          </div>
-        </div>
-        
-        {/* Workflow guide card when in edit mode */}
-        {isEditing && (
-          <div className="rounded-md bg-blue-50 p-4 border border-blue-200 mb-4">
-            <div className="flex">
-              <div className="flex-shrink-0">
-                <InfoIcon className="h-5 w-5 text-blue-400" />
-              </div>
-              <div className="ml-3">
-                <h3 className="text-sm font-medium text-blue-800">Edit Mode Active</h3>
-                <div className="mt-2 text-sm text-blue-700">
-                  <p>You're now in edit mode. The workflow is:</p>
-                  <ol className="list-decimal ml-5 mt-1 space-y-1">
-                    <li>Adjust quantities of existing items</li>
-                    <li>Click "Add Item" to include new products from the catalog</li>
-                    <li>Click "Save Changes" when ready - budget will be validated</li>
-                  </ol>
-                  <p className="mt-2">Total budget is fixed at $375. Changes will be validated against this amount before saving.</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-        
-        {/* Enhanced error message for budget allocation issues */}
-        {budgetError && (
-          <div className="rounded-md bg-red-50 p-4 border border-red-200">
-            <div className="flex">
-              <div className="flex-shrink-0">
-                <AlertCircle className="h-5 w-5 text-red-400" />
-              </div>
-              <div className="ml-3">
-                <h3 className="text-sm font-medium text-red-800">Allocation Error</h3>
-                <div className="mt-2 text-sm text-red-700">
-                  <p>{budgetError}</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-        
-        {/* Budget items table */}
-        <div className="border rounded-md overflow-hidden">
-          <Table>
-            <TableHeader>
-              <TableRow className="bg-muted/50">
-                <TableHead className="w-[40%]">Description</TableHead>
-                <TableHead>Unit Price</TableHead>
-                <TableHead>Quantity</TableHead>
-                <TableHead>Total</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {items.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={5} className="h-24 text-center">
-                    No budget items have been added yet.
-                  </TableCell>
-                </TableRow>
-              ) : (
-                items.map((item) => {
-                  // Get edited item if it exists
-                  const editedItem = editedItems[item.id];
-                  const currentQuantity = editedItem ? editedItem.quantity : item.quantity;
-                  
-                  return (
-                    <TableRow key={item.id}>
-                      <TableCell className="font-medium">
-                        {item.description}
-                        <div className="text-xs text-muted-foreground mt-1">
-                          {item.itemCode}
-                          {item.category && (
-                            <span className="ml-2 inline-flex bg-muted px-1.5 py-0.5 rounded-sm">
-                              {item.category}
-                            </span>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell>${item.unitPrice.toFixed(2)}</TableCell>
-                      <TableCell>
-                        {isEditing ? (
-                          <Input
-                            type="number"
-                            min={item.usedQuantity || 0}
-                            value={currentQuantity}
-                            onChange={(e) => handleQuantityChange(item, parseInt(e.target.value, 10) || 0)}
-                            className="w-20"
-                          />
-                        ) : (
-                          currentQuantity
-                        )}
-                      </TableCell>
-                      <TableCell>${(item.unitPrice * currentQuantity).toFixed(2)}</TableCell>
-                      <TableCell className="text-right">
-                        {!isEditing && (
-                          <Button 
-                            variant="ghost" 
-                            size="icon"
-                            onClick={() => handleDeleteClick(item)}
-                          >
-                            <Trash2 className="h-4 w-4 text-muted-foreground" />
-                          </Button>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  );
-                })
-              )}
-              {/* Total row */}
-              <TableRow className="border-t-2">
-                <TableCell className="font-medium">Total</TableCell>
-                <TableCell></TableCell>
-                <TableCell></TableCell>
-                <TableCell className="font-semibold">
-                  ${items.reduce((total, item) => {
-                    const editedItem = editedItems[item.id];
-                    const quantity = editedItem ? editedItem.quantity : item.quantity;
-                    return total + (item.unitPrice * quantity);
-                  }, 0).toFixed(2)}
-                </TableCell>
-                <TableCell></TableCell>
-              </TableRow>
-            </TableBody>
-          </Table>
-        </div>
-      </div>
-      
-      {/* Add item dialog - simplified implementation */}
-      <AddItemDialog
-        open={isAddItemDialogOpen}
-        onOpenChange={(open) => {
-          setIsAddItemDialogOpen(open);
-          // If dialog is closing and we're no longer in editing mode,
-          // make sure any pending form contexts are cleaned up
-          if (!open && !isEditing) {
-            setEditedItems({});
-            setHasUnsavedChanges(false);
-          }
-        }}
-        clientId={plan.clientId}
-        budgetSettingsId={plan.id}
-        totalBudgeted={375} // Fixed budget amount for validation
-        currentTotal={totalBudgeted}
-        onSuccess={() => {
-          // Refresh or update UI as needed
-          toast({
-            title: "Item Added",
-            description: "The budget item was successfully added"
-          });
-          // After adding an item, ensure we're still in edit mode
-          setIsEditing(true);
-          setHasUnsavedChanges(true);
-        }}
-        onValidationFailure={() => {
-          // Handle any validation failures
-          toast({
-            variant: "destructive",
-            title: "Validation Failed",
-            description: "Unable to add item due to budget constraints"
-          });
-        }}
-      />
-      
+      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      {/* Budget Items Section - Unified Budget Manager Implementation */}
+      <UnifiedBudgetManager 
+        plan={plan} 
+        budgetItems={items} 
+        onBudgetChange={() => {
+          // Trigger a refresh by setting state values
+          setIsEditing(false);
+          setEditedItems({});
+          setHasUnsavedChanges(false);
+          // No need to worry about explicit refetching since parent component 
+          // will handle refreshing data when needed
+        }} 
+      />      
       {/* Delete confirmation dialog */}
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <DialogContent>
