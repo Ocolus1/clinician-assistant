@@ -44,6 +44,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogClose,
 } from "@/components/ui/dialog";
 
 interface BudgetPlanDetailsProps {
@@ -76,8 +77,49 @@ export function BudgetPlanDetails({
   const [isEditing, setIsEditing] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [budgetError, setBudgetError] = useState<string | null>(null);
+  const [confirmationDialogProps, setConfirmationDialogProps] = useState<{
+    open: boolean;
+    title: string;
+    message: string;
+    confirmLabel: string;
+    confirmAction: () => void;
+    cancelLabel?: string;
+    cancelAction?: () => void;
+    cancelHidden?: boolean;
+  }>({
+    open: false,
+    title: "",
+    message: "",
+    confirmLabel: "Confirm",
+    confirmAction: () => {},
+  });
   const { toast } = useToast();
   const { deleteBudgetItem, updateBudgetItem } = useBudgetFeature();
+  
+  // Function to save the edited items
+  const saveChanges = async () => {
+    try {
+      const promises = Object.values(editedItems).map(item => 
+        updateBudgetItem(item)
+      );
+      await Promise.all(promises);
+      
+      toast({
+        title: "Changes Saved",
+        description: "Budget item allocations have been updated.",
+      });
+      
+      setIsEditing(false);
+      setEditedItems({});
+      setHasUnsavedChanges(false);
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Save Failed",
+        description: "Failed to save changes. Please try again.",
+      });
+    }
+  };
   
   // Format dates for display
   const formattedStartDate = plan.startDate 
@@ -269,7 +311,7 @@ export function BudgetPlanDetails({
                 <Button 
                   className="space-x-2"
                   disabled={!hasUnsavedChanges}
-                  onClick={async () => {
+                  onClick={() => {
                     // Calculate the new total budget based on edited items
                     const newTotalBudget = items.reduce((total, item) => {
                       const editedItem = editedItems[item.id];
@@ -277,37 +319,50 @@ export function BudgetPlanDetails({
                       return total + (item.unitPrice * quantity);
                     }, 0);
                     
-                    // Check for any validation errors - we don't need to check against plan.availableFunds
-                    // since we're using the sum of all items as the available funds
+                    // Check for any validation errors from real-time validation
                     if (budgetError) {
-                      // If there's still an error from real-time validation, don't save
                       return;
-                    } else {
-                      setBudgetError(null);
                     }
                     
-                    // Save all edited items
-                    try {
-                      const promises = Object.values(editedItems).map(item => 
-                        updateBudgetItem(item)
-                      );
-                      await Promise.all(promises);
-                      
-                      toast({
-                        title: "Changes Saved",
-                        description: "Budget item allocations have been updated.",
+                    // Calculate difference from available funds
+                    const difference = newTotalBudget - plan.availableFunds;
+                    
+                    // If over budget, show warning dialog
+                    if (difference > 0) {
+                      setConfirmationDialogProps({
+                        open: true,
+                        title: "Budget Allocation Exceeds Available Funds",
+                        message: `Your new allocation is above the available budget by ${formatCurrency(difference)}. Please adjust your reallocations accordingly.`,
+                        confirmLabel: "Adjust Allocations",
+                        confirmAction: () => {
+                          setConfirmationDialogProps((prev) => ({ ...prev, open: false }));
+                        },
+                        cancelHidden: true,
                       });
-                      
-                      setIsEditing(false);
-                      setEditedItems({});
-                      setHasUnsavedChanges(false);
-                    } catch (error) {
-                      toast({
-                        variant: "destructive",
-                        title: "Save Failed",
-                        description: "Failed to save changes. Please try again.",
-                      });
+                      return;
                     }
+                    
+                    // If under budget, show confirmation dialog
+                    if (difference < 0) {
+                      setConfirmationDialogProps({
+                        open: true,
+                        title: "Budget Allocation Below Available Funds",
+                        message: `Your new allocation is below the available budget by ${formatCurrency(Math.abs(difference))}. Do you want to proceed?`,
+                        confirmLabel: "Yes, Save Changes",
+                        confirmAction: async () => {
+                          setConfirmationDialogProps((prev) => ({ ...prev, open: false }));
+                          await saveChanges();
+                        },
+                        cancelLabel: "No, Adjust Allocations",
+                        cancelAction: () => {
+                          setConfirmationDialogProps((prev) => ({ ...prev, open: false }));
+                        },
+                      });
+                      return;
+                    }
+                    
+                    // If exactly matching budget, proceed with save
+                    saveChanges();
                   }}
                 >
                   <Save className="h-4 w-4" />
@@ -570,6 +625,42 @@ export function BudgetPlanDetails({
             >
               <Trash2 className="h-4 w-4 mr-2" />
               Delete Item
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Budget Allocation Confirmation Dialog */}
+      <Dialog 
+        open={confirmationDialogProps.open} 
+        onOpenChange={(open) => {
+          if (!open) {
+            setConfirmationDialogProps(prev => ({...prev, open}));
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{confirmationDialogProps.title}</DialogTitle>
+            <DialogDescription>
+              {confirmationDialogProps.message}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <DialogFooter className="flex justify-between gap-2">
+            {!confirmationDialogProps.cancelHidden && (
+              <Button 
+                variant="outline" 
+                onClick={confirmationDialogProps.cancelAction}
+              >
+                {confirmationDialogProps.cancelLabel || "Cancel"}
+              </Button>
+            )}
+            <Button 
+              onClick={confirmationDialogProps.confirmAction}
+              className={confirmationDialogProps.cancelHidden ? "w-full" : ""}
+            >
+              {confirmationDialogProps.confirmLabel}
             </Button>
           </DialogFooter>
         </DialogContent>
