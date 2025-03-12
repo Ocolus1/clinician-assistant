@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { 
   Card, 
   CardContent, 
@@ -30,6 +30,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { BudgetItemForm } from "@/components/budget/BudgetItemForm";
 import { BudgetPlanCard } from "@/components/budget/BudgetPlanCard";
+import { BudgetPlanDetails } from "@/components/budget/BudgetPlanDetails";
 import { BudgetPlan } from "@/components/budget/BudgetFeatureContext";
 
 interface DirectBudgetPlanProps {
@@ -237,6 +238,21 @@ export function DirectBudgetPlanList({ clientId }: DirectBudgetPlanProps) {
   const handleViewDetails = (plan: BudgetPlan) => {
     setSelectedPlanId(plan.id);
     setShowPlanDetailsView(true);
+    
+    // Fetch the budget items for this plan
+    const fetchBudgetItems = async () => {
+      try {
+        const response = await fetch(`/api/clients/${clientId}/budget-items`);
+        if (!response.ok) {
+          throw new Error(`Error fetching budget items: ${response.status}`);
+        }
+        const items = await response.json();
+        return Array.isArray(items) ? items : [items];
+      } catch (error) {
+        console.error("[DirectBudgetPlanList] Error fetching items for plan details:", error);
+        return [];
+      }
+    };
   };
   
   // Handle adding a budget item to a plan
@@ -245,36 +261,89 @@ export function DirectBudgetPlanList({ clientId }: DirectBudgetPlanProps) {
     setShowAddItemDialog(true);
   };
   
+  // Filter budget items for the current plan if in details view
+  const filteredItems = useMemo(() => {
+    if (showPlanDetailsView && selectedPlanId) {
+      return plans.length > 0 
+        ? plans.filter(p => p.id === selectedPlanId)
+        : [];
+    }
+    return [];
+  }, [showPlanDetailsView, selectedPlanId, plans]);
+
+  const selectedPlan = filteredItems.length > 0 ? filteredItems[0] : null;
+  
+  const handleBackFromDetails = () => {
+    setShowPlanDetailsView(false);
+    setSelectedPlanId(null);
+  };
+
+  // State for budget items specific to the selected plan
+  const [selectedPlanItems, setSelectedPlanItems] = useState<BudgetItem[]>([]);
+  
+  // Fetch budget items for the selected plan
+  useEffect(() => {
+    if (selectedPlanId) {
+      const fetchItemsForSelectedPlan = async () => {
+        try {
+          const response = await fetch(`/api/clients/${clientId}/budget-items`);
+          if (!response.ok) {
+            throw new Error(`Error fetching budget items: ${response.status}`);
+          }
+          const allItems = await response.json();
+          const items = Array.isArray(allItems) ? allItems : [allItems];
+          // Filter items for the selected plan
+          const planItems = items.filter((item: BudgetItem) => item.budgetSettingsId === selectedPlanId);
+          setSelectedPlanItems(planItems);
+        } catch (error) {
+          console.error("[DirectBudgetPlanList] Error fetching items for plan details:", error);
+          setSelectedPlanItems([]);
+        }
+      };
+      
+      fetchItemsForSelectedPlan();
+    }
+  }, [selectedPlanId, clientId]);
+
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h3 className="text-lg font-medium">Budget Plans</h3>
-          <p className="text-sm text-muted-foreground">
-            {plans.length} {plans.length === 1 ? 'plan' : 'plans'} available
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline">
-            <Filter className="h-4 w-4 mr-2" />
-            Filter
-          </Button>
-          <Button>
-            <PlusCircle className="h-4 w-4 mr-2" />
-            Create Budget Plan
-          </Button>
-        </div>
-      </div>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {plans.map((plan: BudgetPlan) => (
-          <BudgetPlanCard 
-            key={plan.id} 
-            plan={plan} 
-            onView={planId => handleViewDetails(plans.find(p => p.id === planId) as BudgetPlan)}
-          />
-        ))}
-      </div>
+      {showPlanDetailsView && selectedPlan ? (
+        // Render the plan details view when a plan is selected
+        <BudgetPlanDetails
+          plan={selectedPlan}
+          items={selectedPlanItems}
+          onBack={handleBackFromDetails}
+          onMakeActive={() => console.log("Make active")}
+        />
+      ) : (
+        // Otherwise show the list view
+        <>
+          <div className="flex justify-between items-center">
+            <div>
+              <h3 className="text-lg font-medium">Budget Plans</h3>
+              <p className="text-sm text-muted-foreground">
+                {plans.length} {plans.length === 1 ? 'plan' : 'plans'} available
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline">
+                <Filter className="h-4 w-4 mr-2" />
+                Filter
+              </Button>
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {plans.map((plan: BudgetPlan) => (
+              <BudgetPlanCard 
+                key={plan.id} 
+                plan={plan} 
+                onView={planId => handleViewDetails(plans.find(p => p.id === planId) as BudgetPlan)}
+              />
+            ))}
+          </div>
+        </>
+      )}
       
       {/* Budget Item Form Dialog */}
       {activePlan && (
