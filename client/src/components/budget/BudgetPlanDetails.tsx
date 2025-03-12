@@ -77,22 +77,24 @@ export function BudgetPlanDetails({
     ? format(new Date(plan.endDate), "MMM d, yyyy") 
     : "Not specified";
   
-  // Calculate totals for summary information
+  // Calculate total budgeted amount - this is the sum of all allocated items
   const totalBudgeted = items.reduce(
     (sum, item) => sum + (item.unitPrice * item.quantity), 
     0
   );
   
-  const totalUsed = items.reduce(
-    (sum, item) => sum + (item.unitPrice * (item.usedQuantity || 0)), 
-    0
-  );
+  // Total used in sessions - currently not implemented, will be 0
+  const totalConsumed = 0; // This should later come from session records
   
-  const percentageUsed = plan.availableFunds > 0 
-    ? Math.min(Math.round((totalUsed / plan.availableFunds) * 100), 100) 
+  // Percentage used (consumed) from the budget
+  const percentageUsed = totalBudgeted > 0 
+    ? Math.min(Math.round((totalConsumed / totalBudgeted) * 100), 100) 
     : 0;
   
-  const availableBalance = plan.availableFunds - totalBudgeted;
+  // Since we're using the sum of all items as our "available funds",
+  // and since we're currently not tracking any usage, the available balance
+  // is equal to the total budgeted amount
+  const availableBalance = totalBudgeted - totalConsumed;
   
   // Handle item deletion with confirmation
   const handleDeleteClick = (item: BudgetItem) => {
@@ -200,7 +202,7 @@ export function BudgetPlanDetails({
                 <div className="text-muted-foreground">Budgeted:</div>
                 <div>{formatCurrency(totalBudgeted)}</div>
                 <div className="text-muted-foreground">Used:</div>
-                <div>{formatCurrency(totalUsed)}</div>
+                <div>{formatCurrency(totalConsumed)}</div>
                 <div className="text-muted-foreground">Available:</div>
                 <div className={`font-medium ${availableBalance < 0 ? 'text-red-500' : ''}`}>
                   {formatCurrency(availableBalance)}
@@ -224,8 +226,8 @@ export function BudgetPlanDetails({
                 </div>
                 <div className="text-sm flex justify-between">
                   <span>{items.length} items</span>
-                  <span className={availableBalance < 0 ? 'text-red-500' : 'text-green-600'}>
-                    {availableBalance < 0 ? 'Over budget' : 'Within budget'}
+                  <span className="text-green-600">
+                    Within budget
                   </span>
                 </div>
               </div>

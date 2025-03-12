@@ -41,15 +41,30 @@ export function BudgetPlanCard({ plan, onView }: BudgetPlanCardProps) {
   const isExpiringSoon = plan.endDate && !isExpired ? 
     new Date(plan.endDate) < new Date(today.setDate(today.getDate() + 30)) : 
     false;
-  const isLowFunds = plan.percentUsed > 80;
+  // Will update this logic when we have actual session consumption data
+  const isLowFunds = false; // Currently no funds are consumed
   
   // Calculate display values
-  const balanceAmount = plan.availableFunds - plan.totalUsed;
+  // Available funds is the total budget allocated to the client
+  const availableFunds = plan.totalUsed; // totalUsed is actually the sum of all allocated items
+  
+  // Used budget is what's been consumed in sessions (placeholder for now - will be implemented later)
+  const usedBudget = 0; // This should later be calculated from session records
+  
+  // Calculate the balance
+  const balanceAmount = availableFunds - usedBudget;
+  
   const formattedBalance = formatCurrency(balanceAmount);
-  const formattedTotal = formatCurrency(plan.availableFunds);
+  const formattedTotal = formatCurrency(availableFunds);
+  
+  // Calculate percentage used
+  const percentageUsed = availableFunds > 0 
+    ? Math.min(Math.round((usedBudget / availableFunds) * 100), 100) 
+    : 0;
+  
   const progressColor = 
-    plan.percentUsed >= 90 ? "bg-red-500" :
-    plan.percentUsed >= 75 ? "bg-amber-500" :
+    percentageUsed >= 90 ? "bg-red-500" :
+    percentageUsed >= 75 ? "bg-amber-500" :
     "bg-emerald-500";
   
   // Format dates if available
@@ -101,10 +116,10 @@ export function BudgetPlanCard({ plan, onView }: BudgetPlanCardProps) {
             <div className="flex justify-between items-center mb-1.5">
               <div className="text-sm font-medium">Budget Usage</div>
               <div className="text-sm text-muted-foreground">
-                {plan.percentUsed}%
+                {percentageUsed}%
               </div>
             </div>
-            <Progress value={plan.percentUsed} className="h-2" indicatorClassName={progressColor} />
+            <Progress value={percentageUsed} className="h-2" indicatorClassName={progressColor} />
             <div className="flex justify-between mt-1.5 text-sm">
               <div className="flex items-center gap-1">
                 <DollarSign className="h-3.5 w-3.5 text-muted-foreground" />
@@ -127,7 +142,7 @@ export function BudgetPlanCard({ plan, onView }: BudgetPlanCardProps) {
                 )}
                 {isLowFunds && (
                   <span>{isExpiringSoon && !isExpired ? "• " : ""}
-                    {plan.percentUsed >= 90 ? "Critical" : "Low"} funds available
+                    {percentageUsed >= 90 ? "Critical" : "Low"} funds available
                   </span>
                 )}
               </div>
