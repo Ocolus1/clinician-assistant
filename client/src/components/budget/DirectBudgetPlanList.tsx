@@ -54,6 +54,10 @@ export function DirectBudgetPlanList({ clientId }: DirectBudgetPlanProps) {
   const [plans, setPlans] = useState<BudgetPlan[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [activePlan, setActivePlan] = useState<BudgetPlan | null>(null);
+  const [showAddItemDialog, setShowAddItemDialog] = useState(false);
+  const [showPlanDetailsView, setShowPlanDetailsView] = useState(false);
+  const [selectedPlanId, setSelectedPlanId] = useState<number | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
@@ -228,11 +232,6 @@ export function DirectBudgetPlanList({ clientId }: DirectBudgetPlanProps) {
       </Card>
     );
   }
-  
-  const [activePlan, setActivePlan] = useState<BudgetPlan | null>(null);
-  const [showAddItemDialog, setShowAddItemDialog] = useState(false);
-  const [showPlanDetailsView, setShowPlanDetailsView] = useState(false);
-  const [selectedPlanId, setSelectedPlanId] = useState<number | null>(null);
   
   // Budget Plan Detailed View
   const handleViewDetails = (plan: BudgetPlan) => {
