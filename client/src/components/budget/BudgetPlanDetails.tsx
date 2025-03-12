@@ -324,8 +324,9 @@ export function BudgetPlanDetails({
                       return;
                     }
                     
-                    // Calculate difference from available funds
-                    const difference = newTotalBudget - plan.availableFunds;
+                    // Calculate difference from total budget (the allocated amount shown in the header)
+                    // This should be $375 in the screenshot
+                    const difference = newTotalBudget - totalBudgeted;
                     
                     // If over budget, show warning dialog
                     if (difference > 0) {
