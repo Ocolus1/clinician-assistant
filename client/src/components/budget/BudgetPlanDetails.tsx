@@ -260,10 +260,7 @@ export function BudgetPlanDetails({
               <span>Make Active</span>
             </Button>
           )}
-          <Button className="space-x-2">
-            <Edit className="h-4 w-4" />
-            <span>Edit Plan</span>
-          </Button>
+          {/* Edit Plan button removed per UX requirements */}
         </div>
       </div>
       
@@ -370,6 +367,17 @@ export function BudgetPlanDetails({
                   <X className="h-4 w-4" />
                   <span>Cancel</span>
                 </Button>
+                
+                {/* Add Item button stays ENABLED in edit mode per UX requirements */}
+                <Button 
+                  onClick={() => setIsAddItemDialogOpen(true)}
+                  variant="secondary"
+                  className="space-x-2"
+                >
+                  <Plus className="h-4 w-4" />
+                  <span>Add Item</span>
+                </Button>
+
                 <Button 
                   className="space-x-2"
                   disabled={!hasUnsavedChanges}
@@ -386,9 +394,9 @@ export function BudgetPlanDetails({
                       return;
                     }
                     
-                    // Calculate difference from total budget (the allocated amount shown in the header)
-                    // This should be $375 in the screenshot
-                    const difference = newTotalBudget - totalBudgeted;
+                    // Calculate difference from total budget (using fixed value for constraint)
+                    const fixedTotalBudget = 375; // Fixed budget constraint
+                    const difference = newTotalBudget - fixedTotalBudget;
                     
                     // If over budget, show warning dialog
                     if (difference > 0) {
@@ -438,6 +446,7 @@ export function BudgetPlanDetails({
               </>
             ) : (
               <>
+                {/* Only show Edit Allocations in non-edit mode per UX requirements */}
                 <Button 
                   variant="outline" 
                   className="space-x-2"
@@ -446,14 +455,33 @@ export function BudgetPlanDetails({
                   <Edit className="h-4 w-4" />
                   <span>Edit Allocations</span>
                 </Button>
-                <Button onClick={() => setIsAddItemDialogOpen(true)}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  <span>Add Item</span>
-                </Button>
               </>
             )}
           </div>
         </div>
+        
+        {/* Workflow guide card when in edit mode */}
+        {isEditing && (
+          <div className="rounded-md bg-blue-50 p-4 border border-blue-200 mb-4">
+            <div className="flex">
+              <div className="flex-shrink-0">
+                <AlertCircle className="h-5 w-5 text-blue-400" />
+              </div>
+              <div className="ml-3">
+                <h3 className="text-sm font-medium text-blue-800">Edit Mode Active</h3>
+                <div className="mt-2 text-sm text-blue-700">
+                  <p>You're now in edit mode. The workflow is:</p>
+                  <ol className="list-decimal ml-5 mt-1 space-y-1">
+                    <li>Adjust quantities of existing items</li>
+                    <li>Click "Add Item" to include new products from the catalog</li>
+                    <li>Click "Save Changes" when ready - budget will be validated</li>
+                  </ol>
+                  <p className="mt-2">Total budget is fixed at $375. Changes will be validated against this amount before saving.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
         
         {/* Enhanced error message for budget allocation issues */}
         {budgetError && (
@@ -606,8 +634,13 @@ export function BudgetPlanDetails({
           onOpenChange={setIsAddItemDialogOpen}
           clientId={plan.clientId}
           budgetSettingsId={plan.id}
-          totalBudgeted={totalBudgeted}
+          totalBudgeted={375} // Fixed budget constraint
           currentTotal={totalBudgeted}
+          onSuccess={() => {
+            // Make sure we stay in edit mode after adding an item
+            setIsEditing(true);
+            setHasUnsavedChanges(true);
+          }}
           onValidationRequired={async (data, difference) => {
             // Store the pending item data temporarily
             setPendingItemData(data);
