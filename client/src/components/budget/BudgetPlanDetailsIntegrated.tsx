@@ -1,43 +1,34 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { format } from "date-fns";
 import { 
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardFooter
-} from "@/components/ui/card";
+  BudgetPlan,
+  BudgetItem, 
+  useBudgetFeature 
+} from "./BudgetFeatureContext";
+import { formatCurrency } from "@/lib/utils";
+import { useToast } from "@/hooks/use-toast";
+import { BudgetItemForm } from "./BudgetItemForm";
+
+// UI Components
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Progress } from "@/components/ui/progress";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import {
   Table,
   TableBody,
   TableCell,
   TableHead,
   TableHeader,
-  TableRow
+  TableRow,
 } from "@/components/ui/table";
-import { 
-  ArrowLeft, 
-  Calendar, 
-  DollarSign, 
-  Edit, 
-  FileText, 
-  Plus, 
-  Trash2,
-  AlertCircle,
-  Check,
-  X,
-  Save,
-  Info as InfoIcon
-} from "lucide-react";
-import { formatCurrency } from "@/lib/utils";
-import { BudgetPlan, BudgetItem, useBudgetFeature } from "./BudgetFeatureContext";
-import { BudgetItemForm } from "./BudgetItemForm";
-import { useToast } from "@/hooks/use-toast";
 import {
   Dialog,
   DialogContent,
@@ -47,12 +38,22 @@ import {
   DialogTitle,
   DialogClose,
 } from "@/components/ui/dialog";
-// We don't need form context imports
-import { z } from "zod";
 
-// We don't need a complex form schema for this component
-// We'll manage the state directly without form context
-// This fixes the FormContext errors
+// Icons
+import { 
+  ArrowLeft, 
+  Edit, 
+  Save, 
+  X, 
+  Plus, 
+  Trash2,
+  Check,
+  Calendar,
+  DollarSign,
+  FileText,
+  AlertCircle,
+  Info as InfoIcon
+} from "lucide-react";
 
 interface BudgetPlanDetailsProps {
   plan: BudgetPlan;
@@ -66,7 +67,10 @@ interface BudgetPlanDetailsProps {
 
 /**
  * Detailed view of a budget plan including items, usage stats and actions
- * This version creates and manages its own form context
+ * Implements controlled workflow for budget allocation editing:
+ * 1. User clicks "Edit Allocations"
+ * 2. User can freely edit values AND/OR add items
+ * 3. Save triggers budget validation
  */
 export function BudgetPlanDetails({ 
   plan, 
@@ -77,8 +81,8 @@ export function BudgetPlanDetails({
   onDeleteItem,
   onMakeActive
 }: BudgetPlanDetailsProps) {
+  // State for managing the UI flow
   const [isAddItemDialogOpen, setIsAddItemDialogOpen] = useState(false);
-  const [pendingItemData, setPendingItemData] = useState<any>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [confirmationText, setConfirmationText] = useState("");
   const [itemToDelete, setItemToDelete] = useState<BudgetItem | null>(null);
@@ -86,6 +90,8 @@ export function BudgetPlanDetails({
   const [isEditing, setIsEditing] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [budgetError, setBudgetError] = useState<string | null>(null);
+  
+  // State for confirmation dialogs
   const [confirmationDialogProps, setConfirmationDialogProps] = useState<{
     open: boolean;
     title: string;
@@ -102,10 +108,10 @@ export function BudgetPlanDetails({
     confirmLabel: "Confirm",
     confirmAction: () => {},
   });
+  
+  // Hooks
   const { toast } = useToast();
   const { deleteBudgetItem, updateBudgetItem } = useBudgetFeature();
-  
-  // We don't need form context anymore, we handle state directly with React state
   
   // Function to save the edited items
   const saveChanges = async () => {
@@ -191,14 +197,14 @@ export function BudgetPlanDetails({
   const handleQuantityChange = (item: BudgetItem, newQuantity: number) => {
     const safeQuantity = Math.max(
       newQuantity, 
-      item.usedQuantity
+      item.usedQuantity || 0
     );
     
     // Create a new edited item with updated quantity
     const updatedItem = {
       ...item,
       quantity: safeQuantity,
-      balanceQuantity: safeQuantity - item.usedQuantity
+      balanceQuantity: safeQuantity - (item.usedQuantity || 0)
     };
     
     // Update the edited items record
@@ -221,7 +227,7 @@ export function BudgetPlanDetails({
     setBudgetError(null);
     
     // Add validation rule as needed
-    if (safeQuantity < item.usedQuantity) {
+    if (safeQuantity < (item.usedQuantity || 0)) {
       setBudgetError(`You cannot allocate less than the already used quantity (${item.usedQuantity}) for ${item.description}.`);
     }
     
@@ -605,29 +611,7 @@ export function BudgetPlanDetails({
               setConfirmationDialogProps({
                 open: true,
                 title: "Budget Limit Exceeded",
-                message: `Adding this item will exceed your budget by ${formatCurrency(excessAmount)}. The total budget will be ${formatCurrency(totalBudgeted + (data.unitPrice * data.quantity))}.`,
-                confirmLabel: "Continue Anyway",
-                confirmAction: () => {
-                  setConfirmationDialogProps((prev) => ({ ...prev, open: false }));
-                  resolve(true);
-                },
-                cancelLabel: "Cancel",
-                cancelAction: () => {
-                  setConfirmationDialogProps((prev) => ({ ...prev, open: false }));
-                  resolve(false);
-                }
-              });
-            });
-          }
-          
-          // Handle under-budget condition
-          if (excessAmount < 0) {
-            // Show a confirmation dialog for under-budget allocation
-            return new Promise((resolve) => {
-              setConfirmationDialogProps({
-                open: true,
-                title: "Budget Allocation",
-                message: `After adding this item, you will still have ${formatCurrency(Math.abs(excessAmount))} available in your budget. Do you want to proceed?`,
+                message: `Adding this item will exceed your budget by ${formatCurrency(excessAmount)}. The total budget will be ${formatCurrency(totalBudgeted + (data.unitPrice * data.quantity))}. Do you want to proceed anyway?`,
                 confirmLabel: "Yes, Add Item",
                 confirmAction: () => {
                   setConfirmationDialogProps((prev) => ({ ...prev, open: false }));
@@ -637,55 +621,49 @@ export function BudgetPlanDetails({
                 cancelAction: () => {
                   setConfirmationDialogProps((prev) => ({ ...prev, open: false }));
                   resolve(false);
-                }
+                },
               });
             });
           }
           
-          // For exactly on budget, no confirmation needed
-          return Promise.resolve(true);
+          // For under-budget, we don't need to show a confirmation
+          return true;
+        }}
+        onSuccess={() => {
+          // After adding an item, ensure we're still in edit mode
+          setIsEditing(true);
+          setHasUnsavedChanges(true);
         }}
       />
       
       {/* Delete confirmation dialog */}
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent>
           <DialogHeader>
             <DialogTitle>Delete Budget Item</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete this budget item? This action cannot be undone.
+              This will permanently remove the item from the budget plan.
+              Type <span className="font-semibold">delete</span> to confirm.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-2">
-            {itemToDelete && (
-              <div className="border rounded-md p-3 bg-muted/20">
-                <div className="font-medium">{itemToDelete.description}</div>
-                <div className="text-sm text-muted-foreground mt-1">{itemToDelete.itemCode}</div>
-                <div className="text-sm mt-2">
-                  <span className="text-muted-foreground">Quantity:</span> {itemToDelete.quantity} × ${itemToDelete.unitPrice.toFixed(2)} = ${(itemToDelete.quantity * itemToDelete.unitPrice).toFixed(2)}
-                </div>
-              </div>
-            )}
-            <div>
-              <label htmlFor="confirm" className="text-sm font-medium">
-                Type "delete" to confirm
-              </label>
-              <Input
-                id="confirm"
-                value={confirmationText}
-                onChange={(e) => setConfirmationText(e.target.value)}
-                className="mt-1"
-              />
-            </div>
+          <div className="py-4">
+            <Input
+              placeholder="Type 'delete' to confirm"
+              value={confirmationText}
+              onChange={(e) => setConfirmationText(e.target.value)}
+            />
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
+            <Button
+              variant="ghost"
+              onClick={() => setIsDeleteDialogOpen(false)}
+            >
               Cancel
             </Button>
-            <Button 
-              variant="destructive" 
-              onClick={handleConfirmDelete}
+            <Button
+              variant="destructive"
               disabled={confirmationText !== "delete"}
+              onClick={handleConfirmDelete}
             >
               Delete Item
             </Button>
@@ -693,38 +671,28 @@ export function BudgetPlanDetails({
         </DialogContent>
       </Dialog>
       
-      {/* Confirmation dialog for budget validation */}
+      {/* Confirmation dialog for budget validations */}
       <Dialog 
         open={confirmationDialogProps.open} 
-        onOpenChange={(open) => setConfirmationDialogProps((prev) => ({ ...prev, open }))}
+        onOpenChange={(open) => setConfirmationDialogProps(prev => ({ ...prev, open }))}
       >
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent>
           <DialogHeader>
             <DialogTitle>{confirmationDialogProps.title}</DialogTitle>
             <DialogDescription>
               {confirmationDialogProps.message}
             </DialogDescription>
           </DialogHeader>
-          <DialogFooter className="gap-2 sm:gap-0">
+          <DialogFooter className="flex gap-2 justify-end">
             {!confirmationDialogProps.cancelHidden && (
               <Button
                 variant="outline"
-                onClick={() => {
-                  if (confirmationDialogProps.cancelAction) {
-                    confirmationDialogProps.cancelAction();
-                  } else {
-                    setConfirmationDialogProps((prev) => ({ ...prev, open: false }));
-                  }
-                }}
+                onClick={confirmationDialogProps.cancelAction}
               >
                 {confirmationDialogProps.cancelLabel || "Cancel"}
               </Button>
             )}
-            <Button
-              onClick={() => {
-                confirmationDialogProps.confirmAction();
-              }}
-            >
+            <Button onClick={confirmationDialogProps.confirmAction}>
               {confirmationDialogProps.confirmLabel}
             </Button>
           </DialogFooter>
