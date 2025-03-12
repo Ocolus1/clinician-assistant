@@ -1,91 +1,86 @@
-import { AlertCircle, CheckCircle2, InfoIcon } from "lucide-react";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { AlertCircle, CheckCircle, AlertTriangle } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { formatCurrency } from "@/lib/utils";
 
 interface BudgetValidationProps {
   totalBudget: number;
   totalAllocated: number;
   remainingBudget: number;
+  hasItems: boolean;
 }
 
-export function BudgetValidation({ 
-  totalBudget, 
-  totalAllocated, 
-  remainingBudget 
+/**
+ * Component that displays budget validation information and progress
+ */
+export function BudgetValidation({
+  totalBudget,
+  totalAllocated,
+  remainingBudget,
+  hasItems
 }: BudgetValidationProps) {
-  // Calculate percentage for progress bar
-  const percentAllocated = Math.min(Math.round((totalAllocated / totalBudget) * 100), 100);
+  // Calculate percentage of budget used
+  const percentageUsed = (totalAllocated / totalBudget) * 100;
+  const percentageCapped = Math.min(percentageUsed, 100);
   
-  // Determine the budget status
-  const isOverBudget = remainingBudget < 0;
-  const isFullyAllocated = remainingBudget === 0;
-  const isUnderBudget = remainingBudget > 0;
+  // Determine alert variant based on budget status
+  let alertVariant: "default" | "destructive" | "success" = "default";
+  let alertIcon = <AlertCircle className="h-4 w-4" />;
+  let alertTitle = "Budget Allocation";
+  let alertDescription = `You have allocated ${formatCurrency(totalAllocated)} of your ${formatCurrency(totalBudget)} budget.`;
+  
+  if (remainingBudget < 0) {
+    // Over budget
+    alertVariant = "destructive";
+    alertIcon = <AlertCircle className="h-4 w-4" />;
+    alertTitle = "Budget Exceeded";
+    alertDescription = `You have exceeded your budget by ${formatCurrency(Math.abs(remainingBudget))}.`;
+  } else if (remainingBudget === 0) {
+    // Budget fully allocated
+    alertVariant = "success";
+    alertIcon = <CheckCircle className="h-4 w-4" />;
+    alertTitle = "Budget Fully Allocated";
+    alertDescription = `You have allocated all ${formatCurrency(totalBudget)} of your available budget.`;
+  } else if (hasItems && remainingBudget > 0) {
+    // Budget partially allocated
+    alertVariant = "default";
+    alertIcon = <AlertTriangle className="h-4 w-4" />;
+    alertTitle = "Budget Partially Allocated";
+    alertDescription = `You have ${formatCurrency(remainingBudget)} remaining from your ${formatCurrency(totalBudget)} budget.`;
+  }
+  
+  // Determine progress color based on status
+  let progressColor = "bg-primary";
+  if (remainingBudget < 0) {
+    progressColor = "bg-destructive";
+  } else if (remainingBudget === 0) {
+    progressColor = "bg-success";
+  } else if (percentageUsed > 90) {
+    progressColor = "bg-warning";
+  }
   
   return (
-    <div className="space-y-4">
-      <div className="flex flex-col gap-2">
-        <div className="flex justify-between items-center">
-          <span className="text-sm font-medium">Budget Allocation</span>
-          <span className="text-sm font-medium">{percentAllocated}%</span>
-        </div>
-        <Progress 
-          value={percentAllocated} 
-          className={`h-2 ${isOverBudget ? "bg-destructive/20" : ""}`}
-          // Apply color based on status
-          indicatorClassName={
-            isOverBudget 
-              ? "bg-destructive" 
-              : isFullyAllocated 
-                ? "bg-green-500" 
-                : undefined
-          }
-        />
+    <div className="space-y-2">
+      <div className="flex justify-between text-sm">
+        <span>Budget Used: {formatCurrency(totalAllocated)}</span>
+        <span>Total Budget: {formatCurrency(totalBudget)}</span>
       </div>
       
-      <div className="grid grid-cols-2 gap-4">
-        <div className="flex flex-col">
-          <span className="text-sm text-muted-foreground">Total Budget</span>
-          <span className="text-lg font-semibold">${totalBudget.toFixed(2)}</span>
+      <Progress 
+        value={percentageCapped} 
+        className={`h-2 ${progressColor}`} 
+        aria-label="Budget progress"
+      />
+      
+      <Alert variant={alertVariant}>
+        <div className="flex items-center gap-2">
+          {alertIcon}
+          <AlertTitle>{alertTitle}</AlertTitle>
         </div>
-        <div className="flex flex-col">
-          <span className="text-sm text-muted-foreground">Total Allocated</span>
-          <span className={`text-lg font-semibold ${isOverBudget ? "text-destructive" : ""}`}>
-            ${totalAllocated.toFixed(2)}
-          </span>
-        </div>
-      </div>
-      
-      {/* Status message based on budget state */}
-      {isOverBudget && (
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Over Budget</AlertTitle>
-          <AlertDescription>
-            You've exceeded the budget by ${Math.abs(remainingBudget).toFixed(2)}.
-            Please adjust quantities or remove items.
-          </AlertDescription>
-        </Alert>
-      )}
-      
-      {isFullyAllocated && (
-        <Alert variant="default" className="border-green-500 bg-green-50 text-green-900">
-          <CheckCircle2 className="h-4 w-4 text-green-500" />
-          <AlertTitle>Perfect Allocation</AlertTitle>
-          <AlertDescription>
-            You've allocated exactly ${totalBudget.toFixed(2)}.
-          </AlertDescription>
-        </Alert>
-      )}
-      
-      {isUnderBudget && (
-        <Alert variant="default" className="border-blue-500 bg-blue-50 text-blue-900">
-          <InfoIcon className="h-4 w-4 text-blue-500" />
-          <AlertTitle>Available Budget</AlertTitle>
-          <AlertDescription>
-            You have ${remainingBudget.toFixed(2)} remaining to allocate.
-          </AlertDescription>
-        </Alert>
-      )}
+        <AlertDescription className="mt-1">
+          {alertDescription}
+        </AlertDescription>
+      </Alert>
     </div>
   );
 }

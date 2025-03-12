@@ -1,13 +1,9 @@
-import { useState, useEffect } from "react";
-import { Control, useWatch } from "react-hook-form";
-import { Trash2 } from "lucide-react";
+import { Control, useController } from "react-hook-form";
+import { TableCell, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { TableCell, TableRow } from "@/components/ui/table";
-import { 
-  UnifiedBudgetFormValues,
-  BudgetItemFormValues
-} from "./BudgetFormSchema";
+import { Trash2 } from "lucide-react";
+import type { UnifiedBudgetFormValues } from "./BudgetFormSchema";
 
 interface BudgetItemRowProps {
   index: number;
@@ -16,74 +12,83 @@ interface BudgetItemRowProps {
   disabled?: boolean;
 }
 
-export function BudgetItemRow({ 
-  index, 
-  control, 
+/**
+ * Component for displaying and editing a budget item row
+ */
+export function BudgetItemRow({
+  index,
+  control,
   onRemove,
   disabled = false
 }: BudgetItemRowProps) {
-  // Watch this specific item's values
-  const item = useWatch({
-    control,
-    name: `items.${index}`
-  }) as BudgetItemFormValues;
-
-  // Local state for quantity to handle intermediate invalid values
-  const [quantityInput, setQuantityInput] = useState<string>(item?.quantity?.toString() || "0");
+  // Use controllers to manage form fields
+  const { field: itemCodeField } = useController({
+    name: `items.${index}.itemCode`,
+    control
+  });
   
-  // Update local state when item changes from parent
-  useEffect(() => {
-    if (item?.quantity !== undefined) {
-      setQuantityInput(item.quantity.toString());
+  const { field: descriptionField } = useController({
+    name: `items.${index}.description`,
+    control
+  });
+  
+  const { field: quantityField, fieldState: quantityFieldState } = useController({
+    name: `items.${index}.quantity`,
+    control,
+    rules: {
+      min: { value: 0, message: "Quantity must be at least 0" }
     }
-  }, [item?.quantity]);
-
-  // Calculate item total (derived from quantity and unit price)
-  const itemTotal = item?.quantity && item?.unitPrice 
-    ? (item.quantity * item.unitPrice)
-    : 0;
-
+  });
+  
+  const { field: unitPriceField } = useController({
+    name: `items.${index}.unitPrice`,
+    control
+  });
+  
+  const total = Number(quantityField.value) * Number(unitPriceField.value);
+  
   return (
-    <TableRow className={item?.isNew ? "bg-accent/20" : ""}>
-      <TableCell className="font-medium">{item?.itemCode || "Unknown"}</TableCell>
-      <TableCell>{item?.description || "No description"}</TableCell>
-      <TableCell className="w-24">
-        <Input
-          type="number"
-          min="0"
-          value={quantityInput}
-          onChange={(e) => {
-            const rawValue = e.target.value;
-            setQuantityInput(rawValue);
-            
-            // Only update form value if it's a valid number
-            const parsedValue = parseInt(rawValue, 10);
-            if (!isNaN(parsedValue) && parsedValue >= 0) {
-              // This will be handled by parent component through the field array
-            }
-          }}
-          onBlur={(e) => {
-            const parsedValue = parseInt(e.target.value, 10);
-            if (isNaN(parsedValue) || parsedValue < 0) {
-              setQuantityInput("0");
-              // This will be handled by parent component
-            }
-          }}
-          disabled={disabled}
-          className="w-full"
-        />
+    <TableRow className={quantityFieldState.invalid ? "bg-red-50" : ""}>
+      <TableCell className="font-medium">
+        {itemCodeField.value}
       </TableCell>
-      <TableCell>${item?.unitPrice?.toFixed(2) || "0.00"}</TableCell>
-      <TableCell>${itemTotal.toFixed(2)}</TableCell>
+      <TableCell>
+        {descriptionField.value}
+      </TableCell>
+      <TableCell className="w-[100px]">
+        {disabled ? (
+          quantityField.value
+        ) : (
+          <Input
+            type="number"
+            className="h-8 w-20"
+            value={quantityField.value}
+            onChange={(e) => {
+              const value = e.target.value === "" ? 0 : parseInt(e.target.value);
+              quantityField.onChange(value);
+            }}
+            min={0}
+            disabled={disabled}
+            aria-invalid={!!quantityFieldState.error}
+          />
+        )}
+      </TableCell>
+      <TableCell>
+        ${Number(unitPriceField.value).toFixed(2)}
+      </TableCell>
+      <TableCell className="font-medium">
+        ${total.toFixed(2)}
+      </TableCell>
       <TableCell>
         <Button
           variant="ghost"
           size="icon"
+          className="h-8 w-8 text-destructive hover:text-destructive-foreground"
           onClick={() => onRemove(index)}
           disabled={disabled}
+          aria-label="Remove item"
         >
           <Trash2 className="h-4 w-4" />
-          <span className="sr-only">Remove item</span>
         </Button>
       </TableCell>
     </TableRow>

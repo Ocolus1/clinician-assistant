@@ -1,52 +1,33 @@
 import * as z from "zod";
-import { BudgetItem } from "@shared/schema";
 
-// Schema for individual budget items in the form
-export const budgetItemFormSchema = z.object({
+/**
+ * Schema for individual budget items in the form
+ */
+export const budgetItemSchema = z.object({
   id: z.number().optional(), // Optional for new items being added
-  itemCode: z.string(),
-  description: z.string(),
-  quantity: z.number().min(0),
-  unitPrice: z.number().min(0),
-  total: z.number(), // Calculated field
-  budgetSettingsId: z.number(),
-  clientId: z.number(),
-  isNew: z.boolean().default(false) // Flag to track newly added items
+  itemCode: z.string().min(1, "Item code is required"),
+  description: z.string().min(1, "Description is required"),
+  quantity: z.number().min(0, "Quantity must be at least 0"),
+  unitPrice: z.number().min(0, "Unit price must be at least 0"),
+  // These are form-specific fields
+  isNew: z.boolean().optional(), // Flag to track newly added items
+  name: z.string().nullable(), // Required by the database schema but can be null
+  category: z.string().nullable(), // Required by the database schema but can be null
 });
 
-// Schema for the unified budget form
+/**
+ * Schema for the unified budget form
+ */
 export const unifiedBudgetFormSchema = z.object({
-  items: z.array(budgetItemFormSchema),
-  // Meta fields for validation and calculation
+  items: z.array(budgetItemSchema),
+  // Meta fields for validation - not persisted to database
   totalBudget: z.number(),
-  totalAllocated: z.number().default(0),
-  remainingBudget: z.number().default(0)
+  totalAllocated: z.number(),
+  remainingBudget: z.number(),
 });
 
-// Helper function to convert database items to form items
-export function mapBudgetItemsToFormItems(
-  budgetItems: BudgetItem[],
-  clientId: number,
-  budgetSettingsId: number
-) {
-  return budgetItems.map(item => ({
-    id: item.id,
-    itemCode: item.itemCode,
-    description: item.description || "",
-    quantity: item.quantity,
-    unitPrice: item.unitPrice,
-    total: item.quantity * item.unitPrice,
-    budgetSettingsId: budgetSettingsId,
-    clientId: clientId,
-    isNew: false
-  }));
-}
-
-// Helper function to calculate total budget allocation
-export function calculateTotalAllocation(items: Array<{ quantity: number, unitPrice: number }>) {
-  return items.reduce((sum, item) => sum + (item.quantity * item.unitPrice), 0);
-}
-
-// Type definitions
-export type BudgetItemFormValues = z.infer<typeof budgetItemFormSchema>;
+export type BudgetItemFormValues = z.infer<typeof budgetItemSchema>;
 export type UnifiedBudgetFormValues = z.infer<typeof unifiedBudgetFormSchema>;
+
+// Constants
+export const FIXED_BUDGET_AMOUNT = 375;

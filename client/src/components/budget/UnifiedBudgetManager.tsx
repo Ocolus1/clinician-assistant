@@ -1,225 +1,228 @@
 import { useState, useEffect, useMemo } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Save, Edit, X, AlertCircle } from "lucide-react";
-import { BudgetItem, BudgetItemCatalog, BudgetSettings } from "@shared/schema";
-import { apiRequest } from "@/lib/queryClient";
+import { unifiedBudgetFormSchema, FIXED_BUDGET_AMOUNT, type UnifiedBudgetFormValues } from "./BudgetFormSchema";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCaption,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import { useToast } from "@/hooks/use-toast";
+import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Edit, Save, X } from "lucide-react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "@/hooks/use-toast";
+
+import { BudgetValidation } from "./BudgetValidation";
 import { BudgetItemRow } from "./BudgetItemRow";
 import { BudgetCatalogSelector } from "./BudgetCatalogSelector";
-import { BudgetValidation } from "./BudgetValidation";
-import {
-  UnifiedBudgetFormValues,
-  BudgetItemFormValues,
-  unifiedBudgetFormSchema,
-  mapBudgetItemsToFormItems,
-  calculateTotalAllocation,
-} from "./BudgetFormSchema";
+
+interface BudgetPlan {
+  id: number;
+  clientId: number;
+  planCode: string | null;
+  isActive: boolean | null;
+  availableFunds: number;
+}
+
+interface BudgetItem {
+  id: number;
+  clientId: number;
+  budgetSettingsId: number;
+  itemCode: string;
+  description: string;
+  quantity: number;
+  unitPrice: number;
+  name: string | null;
+  category: string | null;
+}
 
 interface UnifiedBudgetManagerProps {
-  plan: BudgetSettings;
+  plan: BudgetPlan;
   budgetItems: BudgetItem[];
   onBudgetChange?: () => void;
 }
 
+/**
+ * A unified component for managing budget items with a single form context
+ * to eliminate form conflicts while maintaining validation.
+ */
 export function UnifiedBudgetManager({
   plan,
-  budgetItems: initialBudgetItems,
-  onBudgetChange,
+  budgetItems,
+  onBudgetChange
 }: UnifiedBudgetManagerProps) {
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
-  
-  // State for UI controls
   const [isEditing, setIsEditing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
-  const [pendingItemToRemove, setPendingItemToRemove] = useState<number | null>(null);
+  const [itemToRemoveIndex, setItemToRemoveIndex] = useState<number | null>(null);
   
-  // Fixed budget amount for validation
-  const FIXED_BUDGET_AMOUNT = 375;
+  const queryClient = useQueryClient();
   
-  // Setup the form with useForm and useFieldArray
+  // Create form with Zod validation
   const form = useForm<UnifiedBudgetFormValues>({
     resolver: zodResolver(unifiedBudgetFormSchema),
     defaultValues: {
-      items: mapBudgetItemsToFormItems(initialBudgetItems, plan.clientId, plan.id),
+      items: [],
       totalBudget: FIXED_BUDGET_AMOUNT,
-      totalAllocated: calculateTotalAllocation(initialBudgetItems),
-      remainingBudget: FIXED_BUDGET_AMOUNT - calculateTotalAllocation(initialBudgetItems),
-    },
+      totalAllocated: 0,
+      remainingBudget: FIXED_BUDGET_AMOUNT
+    }
   });
   
-  // Setup field array for dynamic items management
+  // Setup field array for items
   const { fields, append, remove, update } = useFieldArray({
     name: "items",
-    control: form.control,
+    control: form.control
   });
   
-  // Watch all items to calculate totals
+  // Watch items to calculate totals
   const watchedItems = form.watch("items");
   
   // Calculate budget totals
-  const { totalAllocated, remainingBudget } = useMemo(() => {
-    const total = calculateTotalAllocation(watchedItems);
-    return {
-      totalAllocated: total,
-      remainingBudget: FIXED_BUDGET_AMOUNT - total,
-    };
-  }, [watchedItems, FIXED_BUDGET_AMOUNT]);
+  const totalAllocated = useMemo(() => {
+    return watchedItems.reduce((total, item) => {
+      return total + (Number(item.quantity) * Number(item.unitPrice));
+    }, 0);
+  }, [watchedItems]);
   
-  // Update form values when watchedItems change
-  useEffect(() => {
-    form.setValue("totalAllocated", totalAllocated);
-    form.setValue("remainingBudget", remainingBudget);
-  }, [totalAllocated, remainingBudget, form]);
+  const remainingBudget = FIXED_BUDGET_AMOUNT - totalAllocated;
   
-  // Reset form to initial state when not editing
+  // Initialize form when budget items change or edit mode is toggled
   useEffect(() => {
-    if (!isEditing) {
+    if (isEditing) {
+      // When entering edit mode, reset the form with current items
       form.reset({
-        items: mapBudgetItemsToFormItems(initialBudgetItems, plan.clientId, plan.id),
+        items: budgetItems.map(item => ({
+          id: item.id,
+          itemCode: item.itemCode,
+          description: item.description,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+          name: item.name,
+          category: item.category
+        })),
         totalBudget: FIXED_BUDGET_AMOUNT,
-        totalAllocated: calculateTotalAllocation(initialBudgetItems),
-        remainingBudget: FIXED_BUDGET_AMOUNT - calculateTotalAllocation(initialBudgetItems),
+        totalAllocated,
+        remainingBudget
       });
     }
-  }, [isEditing, initialBudgetItems, plan.clientId, plan.id, form, FIXED_BUDGET_AMOUNT]);
+  }, [budgetItems, isEditing, form, totalAllocated, remainingBudget]);
   
-  // Mutation for updating budget items
-  const updateItemMutation = useMutation({
-    mutationFn: async (item: BudgetItem) => {
-      return apiRequest("PUT", `/api/budget-items/${item.id}`, item);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/clients/${plan.clientId}/budget-items`] });
-      queryClient.invalidateQueries({ queryKey: [`/api/clients/${plan.clientId}/budget-settings`] });
-    },
-  });
-  
-  // Mutation for adding new budget items
+  // API Mutations for add/update/delete
   const addItemMutation = useMutation({
-    mutationFn: async (item: Omit<BudgetItem, "id">) => {
-      return apiRequest("POST", `/api/clients/${plan.clientId}/budget-items/${plan.id}`, item);
+    mutationFn: async (newItem: Omit<BudgetItem, "id">) => {
+      const response = await fetch(`/api/clients/${plan.clientId}/budget-items`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newItem)
+      });
+      
+      if (!response.ok) {
+        throw new Error("Failed to add budget item");
+      }
+      
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/clients/${plan.clientId}/budget-items`] });
-      queryClient.invalidateQueries({ queryKey: [`/api/clients/${plan.clientId}/budget-settings`] });
-    },
+    }
   });
   
-  // Mutation for deleting budget items
+  const updateItemMutation = useMutation({
+    mutationFn: async (updatedItem: BudgetItem) => {
+      const response = await fetch(`/api/budget-items/${updatedItem.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updatedItem)
+      });
+      
+      if (!response.ok) {
+        throw new Error("Failed to update budget item");
+      }
+      
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/clients/${plan.clientId}/budget-items`] });
+    }
+  });
+  
   const deleteItemMutation = useMutation({
     mutationFn: async (itemId: number) => {
-      return apiRequest("DELETE", `/api/budget-items/${itemId}`);
+      const response = await fetch(`/api/budget-items/${itemId}`, {
+        method: "DELETE"
+      });
+      
+      if (!response.ok) {
+        throw new Error("Failed to delete budget item");
+      }
+      
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/clients/${plan.clientId}/budget-items`] });
-      queryClient.invalidateQueries({ queryKey: [`/api/clients/${plan.clientId}/budget-settings`] });
-    },
+    }
   });
   
-  // Handler for updating an item's quantity
-  const handleQuantityChange = (index: number, newQuantity: number) => {
-    const item = form.getValues(`items.${index}`);
-    if (item) {
-      // Calculate new total
-      const newTotal = newQuantity * item.unitPrice;
-      
-      // Update the item in the form
-      update(index, {
-        ...item,
-        quantity: newQuantity,
-        total: newTotal,
-      });
-    }
-  };
-  
-  // Handler for adding a new item from catalog
-  const handleAddItem = (newItem: BudgetItemFormValues) => {
-    // Add the new item to the form
+  // Handler for adding items
+  const handleAddItem = (item: { 
+    itemCode: string; 
+    description: string; 
+    unitPrice: number; 
+    quantity: number;
+    name: string | null;
+    category: string | null;
+  }) => {
     append({
-      ...newItem,
-      // Calculate initial total
-      total: newItem.quantity * newItem.unitPrice,
+      ...item,
+      isNew: true
     });
-    
-    // Set to editing mode if not already
-    if (!isEditing) {
-      setIsEditing(true);
-    }
   };
   
-  // Handler for removing an item
+  // Handler for removing items
   const handleRemoveItem = (index: number) => {
-    const item = form.getValues(`items.${index}`);
+    const item = fields[index];
     
-    // If it's a new item (not saved to database yet), remove immediately
-    if (item.isNew) {
+    if (item.id) {
+      // Existing item - show confirmation dialog
+      setItemToRemoveIndex(index);
+      setIsConfirmDialogOpen(true);
+    } else {
+      // New item - remove directly
       remove(index);
-      return;
     }
-    
-    // Otherwise confirm before removing existing items
-    setPendingItemToRemove(index);
-    setIsConfirmDialogOpen(true);
   };
   
   // Confirm item removal
-  const confirmRemoveItem = () => {
-    if (pendingItemToRemove !== null) {
-      const item = form.getValues(`items.${pendingItemToRemove}`);
+  const confirmRemoveItem = async () => {
+    if (itemToRemoveIndex !== null) {
+      const item = fields[itemToRemoveIndex];
       
-      // If it has an ID, it's an existing item that needs to be deleted from DB
-      if (item.id !== undefined) {
-        deleteItemMutation.mutate(item.id);
+      if (item.id) {
+        try {
+          await deleteItemMutation.mutateAsync(item.id);
+        } catch (error) {
+          console.error("Error deleting item:", error);
+          toast({
+            variant: "destructive",
+            title: "Error",
+            description: "Failed to delete budget item."
+          });
+        }
       }
       
-      // Remove from form state
-      remove(pendingItemToRemove);
-      setPendingItemToRemove(null);
+      remove(itemToRemoveIndex);
       setIsConfirmDialogOpen(false);
+      setItemToRemoveIndex(null);
     }
   };
   
   // Cancel item removal
   const cancelRemoveItem = () => {
-    setPendingItemToRemove(null);
     setIsConfirmDialogOpen(false);
+    setItemToRemoveIndex(null);
   };
   
-  // Form submission handler
+  // Form submission
   const onSubmit = async (data: UnifiedBudgetFormValues) => {
-    // Validate if we're over budget
-    if (data.remainingBudget < 0) {
-      toast({
-        variant: "destructive",
-        title: "Budget Exceeded",
-        description: "Please adjust quantities to stay within budget before saving.",
-      });
-      return;
-    }
-    
     setIsSubmitting(true);
     
     try {
@@ -234,8 +237,8 @@ export function UnifiedBudgetManager({
             description: item.description,
             quantity: item.quantity,
             unitPrice: item.unitPrice,
-            name: null,       // Required by the schema but can be null
-            category: null    // Required by the schema but can be null
+            name: item.name,
+            category: item.category
           };
           await addItemMutation.mutateAsync(newItem);
         } else if (item.id) {
@@ -248,8 +251,8 @@ export function UnifiedBudgetManager({
             description: item.description,
             quantity: item.quantity,
             unitPrice: item.unitPrice,
-            name: null,       // Required by the schema but can be null
-            category: null    // Required by the schema but can be null
+            name: item.name,
+            category: item.category
           };
           await updateItemMutation.mutateAsync(updatedItem);
         }
@@ -331,6 +334,7 @@ export function UnifiedBudgetManager({
             totalBudget={FIXED_BUDGET_AMOUNT}
             totalAllocated={totalAllocated}
             remainingBudget={remainingBudget}
+            hasItems={fields.length > 0}
           />
           
           {/* Budget items table */}
