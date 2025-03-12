@@ -11,7 +11,15 @@ import {
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
+} from "@/components/ui/table";
 import { 
   ArrowLeft, 
   Calendar, 
@@ -22,11 +30,11 @@ import {
   Trash2,
   AlertCircle,
   Check,
-  X
+  X,
+  Save
 } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { BudgetPlan, BudgetItem, useBudgetFeature } from "./BudgetFeatureContext";
-import { BudgetItemTable } from "./BudgetItemTable";
 import { BudgetItemForm } from "./BudgetItemForm";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -60,13 +68,15 @@ export function BudgetPlanDetails({
   onDeleteItem,
   onMakeActive
 }: BudgetPlanDetailsProps) {
-  const [selectedTabValue, setSelectedTabValue] = useState("items");
   const [isAddItemDialogOpen, setIsAddItemDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [confirmationText, setConfirmationText] = useState("");
   const [itemToDelete, setItemToDelete] = useState<BudgetItem | null>(null);
+  const [editedItems, setEditedItems] = useState<Record<number, BudgetItem>>({});
+  const [isEditing, setIsEditing] = useState(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const { toast } = useToast();
-  const { deleteBudgetItem } = useBudgetFeature();
+  const { deleteBudgetItem, updateBudgetItem } = useBudgetFeature();
   
   // Format dates for display
   const formattedStartDate = plan.startDate 
@@ -236,78 +246,223 @@ export function BudgetPlanDetails({
         </CardContent>
       </Card>
       
-      {/* Tabs for different views */}
-      <Tabs value={selectedTabValue} onValueChange={setSelectedTabValue}>
-        <TabsList className="mb-4">
-          <TabsTrigger value="items">Budget Items</TabsTrigger>
-          <TabsTrigger value="transactions">Usage History</TabsTrigger>
-          <TabsTrigger value="notes">Notes</TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="items" className="space-y-4">
-          <div className="flex justify-between items-center">
-            <h3 className="text-lg font-medium">Budget Items</h3>
-            <Button onClick={() => setIsAddItemDialogOpen(true)}>
-              <Plus className="h-4 w-4 mr-2" />
-              Add Item
-            </Button>
-          </div>
-          
-          <BudgetItemTable 
-            items={items} 
-            onEdit={onEditItem} 
-            onDelete={handleDeleteClick} 
-          />
-        </TabsContent>
-        
-        <TabsContent value="transactions">
-          <Card>
-            <CardHeader>
-              <CardTitle>Usage History</CardTitle>
-              <CardDescription>
-                Track when and how budget items were used
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="py-8 text-center text-muted-foreground">
-                <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-muted">
-                  <FileText className="h-6 w-6" />
-                </div>
-                <h3 className="mb-1 text-lg font-medium">No usage records</h3>
-                <p className="mb-4 max-w-md mx-auto">
-                  Usage records will appear here when sessions are recorded against this budget plan.
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-        
-        <TabsContent value="notes">
-          <Card>
-            <CardHeader>
-              <CardTitle>Plan Notes</CardTitle>
-              <CardDescription>
-                Add notes and comments about this budget plan
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="py-8 text-center text-muted-foreground">
-                <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-muted">
-                  <FileText className="h-6 w-6" />
-                </div>
-                <h3 className="mb-1 text-lg font-medium">No notes added</h3>
-                <p className="mb-4 max-w-md mx-auto">
-                  Add notes to keep track of important information about this budget plan.
-                </p>
-                <Button variant="outline">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Note
+      {/* Budget Items Section */}
+      <div className="space-y-4">
+        <div className="flex justify-between items-center">
+          <h3 className="text-lg font-medium">Budget Items and Usage</h3>
+          <div className="flex gap-2">
+            {isEditing ? (
+              <>
+                <Button 
+                  variant="outline" 
+                  className="space-x-2"
+                  onClick={() => {
+                    setIsEditing(false);
+                    setEditedItems({});
+                    setHasUnsavedChanges(false);
+                  }}
+                >
+                  <X className="h-4 w-4" />
+                  <span>Cancel</span>
                 </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+                <Button 
+                  className="space-x-2"
+                  disabled={!hasUnsavedChanges}
+                  onClick={async () => {
+                    // Save all edited items
+                    try {
+                      const promises = Object.values(editedItems).map(item => 
+                        updateBudgetItem(item)
+                      );
+                      await Promise.all(promises);
+                      
+                      toast({
+                        title: "Changes Saved",
+                        description: "Budget item allocations have been updated.",
+                      });
+                      
+                      setIsEditing(false);
+                      setEditedItems({});
+                      setHasUnsavedChanges(false);
+                    } catch (error) {
+                      toast({
+                        variant: "destructive",
+                        title: "Save Failed",
+                        description: "Failed to save changes. Please try again.",
+                      });
+                    }
+                  }}
+                >
+                  <Save className="h-4 w-4" />
+                  <span>Save Changes</span>
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button 
+                  variant="outline" 
+                  className="space-x-2"
+                  onClick={() => setIsEditing(true)}
+                >
+                  <Edit className="h-4 w-4" />
+                  <span>Edit Allocations</span>
+                </Button>
+                <Button onClick={() => setIsAddItemDialogOpen(true)}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  <span>Add Item</span>
+                </Button>
+              </>
+            )}
+          </div>
+        </div>
+        
+        {/* Custom Budget Item Table with Allocation Controls */}
+        <Card>
+          <CardContent className="p-0">
+            <div className="rounded-md overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-[100px]">Code</TableHead>
+                    <TableHead>Description</TableHead>
+                    <TableHead>Category</TableHead>
+                    <TableHead className="text-right">Unit Price</TableHead>
+                    <TableHead className="text-right">Allocated</TableHead>
+                    <TableHead className="text-right">Used</TableHead>
+                    <TableHead className="text-right">Balance</TableHead>
+                    <TableHead className="text-right">Total</TableHead>
+                    {!isEditing && <TableHead className="w-[100px]">Actions</TableHead>}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {items.length > 0 ? (
+                    items.map((item) => {
+                      // Get edited version if it exists
+                      const editedItem = editedItems[item.id] || item;
+                      
+                      return (
+                        <TableRow key={item.id}>
+                          <TableCell className="font-medium">{item.itemCode}</TableCell>
+                          <TableCell>{item.description}</TableCell>
+                          <TableCell>
+                            {item.category && (
+                              <Badge variant="outline" className="font-normal">
+                                {item.category}
+                              </Badge>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {formatCurrency(item.unitPrice)}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {isEditing ? (
+                              <Input
+                                type="number"
+                                min={item.usedQuantity}
+                                value={editedItem.quantity}
+                                className="w-20 text-right inline-block"
+                                onChange={(e) => {
+                                  const newQuantity = Math.max(
+                                    parseInt(e.target.value) || 0, 
+                                    item.usedQuantity
+                                  );
+                                  
+                                  // Create a new edited item with updated quantity
+                                  const updatedItem = {
+                                    ...item,
+                                    quantity: newQuantity,
+                                    balanceQuantity: newQuantity - item.usedQuantity
+                                  };
+                                  
+                                  // Update the edited items record
+                                  setEditedItems({
+                                    ...editedItems,
+                                    [item.id]: updatedItem
+                                  });
+                                  
+                                  setHasUnsavedChanges(true);
+                                }}
+                              />
+                            ) : (
+                              item.quantity
+                            )}
+                          </TableCell>
+                          <TableCell className="text-right">{item.usedQuantity}</TableCell>
+                          <TableCell className="text-right">{editedItem.balanceQuantity}</TableCell>
+                          <TableCell className="text-right font-medium">
+                            {formatCurrency(item.unitPrice * editedItem.quantity)}
+                          </TableCell>
+                          {!isEditing && (
+                            <TableCell>
+                              <div className="flex justify-end gap-2">
+                                {onEditItem && (
+                                  <Button 
+                                    variant="ghost" 
+                                    size="icon" 
+                                    className="h-8 w-8" 
+                                    onClick={() => onEditItem(item)}
+                                    title="Edit item"
+                                  >
+                                    <svg
+                                      xmlns="http://www.w3.org/2000/svg"
+                                      viewBox="0 0 24 24"
+                                      fill="none"
+                                      stroke="currentColor"
+                                      strokeWidth="2"
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      className="h-4 w-4"
+                                    >
+                                      <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+                                      <path d="m15 5 4 4" />
+                                    </svg>
+                                  </Button>
+                                )}
+                                {onDeleteItem && (
+                                  <Button 
+                                    variant="ghost" 
+                                    size="icon" 
+                                    className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50" 
+                                    onClick={() => handleDeleteClick(item)}
+                                    title="Delete item"
+                                  >
+                                    <svg
+                                      xmlns="http://www.w3.org/2000/svg"
+                                      viewBox="0 0 24 24"
+                                      fill="none"
+                                      stroke="currentColor"
+                                      strokeWidth="2"
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      className="h-4 w-4"
+                                    >
+                                      <path d="M3 6h18" />
+                                      <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+                                      <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+                                      <line x1="10" x2="10" y1="11" y2="17" />
+                                      <line x1="14" x2="14" y1="11" y2="17" />
+                                    </svg>
+                                  </Button>
+                                )}
+                              </div>
+                            </TableCell>
+                          )}
+                        </TableRow>
+                      );
+                    })
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={isEditing ? 8 : 9} className="text-center py-6 text-muted-foreground">
+                        No budget items available
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
       
       {/* Add Item Dialog */}
       {isAddItemDialogOpen && (
