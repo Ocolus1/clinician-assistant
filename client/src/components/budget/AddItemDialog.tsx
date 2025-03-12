@@ -254,8 +254,21 @@ export function AddItemDialog({
 
   return (
     <>
-      {/* Main Add Item Dialog */}
-      <Dialog open={open} onOpenChange={onOpenChange}>
+      {/* Main Add Item Dialog - Completely isolated from any parent form contexts */}
+      <Dialog 
+        open={open} 
+        onOpenChange={(openState) => {
+          // When closing, reset form state to prevent stale context
+          if (!openState) {
+            // Reset form if dialog is closing
+            form.reset();
+            setSelectedCatalogItem(null);
+            setSearchTerm("");
+            setValidationError(null);
+          }
+          onOpenChange(openState);
+        }}
+      >
         <DialogContent className="sm:max-w-[550px]">
           <DialogHeader>
             <DialogTitle>Add Budget Item</DialogTitle>
@@ -338,7 +351,7 @@ export function AddItemDialog({
               </div>
             )}
             
-            {/* Form with its own context */}
+            {/* Complete isolation with explicit FormProvider wrapping the form */}
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                 <FormField

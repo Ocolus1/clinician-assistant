@@ -583,33 +583,43 @@ export function BudgetPlanDetails({
         </div>
       </div>
       
-      {/* Add item dialog - using the AddItemDialog component to prevent form context conflicts */}
-      <AddItemDialog
-        open={isAddItemDialogOpen}
-        onOpenChange={setIsAddItemDialogOpen}
-        clientId={plan.clientId}
-        budgetSettingsId={plan.id}
-        totalBudgeted={375} // Fixed budget amount for validation
-        currentTotal={totalBudgeted}
-        onSuccess={() => {
-          // Refresh or update UI as needed
-          toast({
-            title: "Item Added",
-            description: "The budget item was successfully added"
-          });
-          // After adding an item, ensure we're still in edit mode
-          setIsEditing(true);
-          setHasUnsavedChanges(true);
-        }}
-        onValidationFailure={() => {
-          // Handle any validation failures
-          toast({
-            variant: "destructive",
-            title: "Validation Failed",
-            description: "Unable to add item due to budget constraints"
-          });
-        }}
-      />
+      {/* Add item dialog - completely isolated from any parent form context */}
+      {isAddItemDialogOpen && (
+        <AddItemDialog
+          open={isAddItemDialogOpen}
+          onOpenChange={(open) => {
+            setIsAddItemDialogOpen(open);
+            // If dialog is closing and we're no longer in editing mode,
+            // make sure any pending form contexts are cleaned up
+            if (!open && !isEditing) {
+              setEditedItems({});
+              setHasUnsavedChanges(false);
+            }
+          }}
+          clientId={plan.clientId}
+          budgetSettingsId={plan.id}
+          totalBudgeted={375} // Fixed budget amount for validation
+          currentTotal={totalBudgeted}
+          onSuccess={() => {
+            // Refresh or update UI as needed
+            toast({
+              title: "Item Added",
+              description: "The budget item was successfully added"
+            });
+            // After adding an item, ensure we're still in edit mode
+            setIsEditing(true);
+            setHasUnsavedChanges(true);
+          }}
+          onValidationFailure={() => {
+            // Handle any validation failures
+            toast({
+              variant: "destructive",
+              title: "Validation Failed",
+              description: "Unable to add item due to budget constraints"
+            });
+          }}
+        />
+      )}
       
       {/* Delete confirmation dialog */}
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
