@@ -48,14 +48,16 @@ const budgetItemFormSchema = insertBudgetItemSchema.extend({
 type BudgetItemFormValues = z.infer<typeof budgetItemFormSchema>;
 
 interface BudgetItemFormProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
   clientId: number;
   budgetSettingsId: number;
   onSuccess?: () => void;
   totalBudgeted?: number; // Total budgeted amount for validation
   currentTotal?: number;  // Current total of all existing items
   onValidationRequired?: (data: BudgetItemFormValues, excessAmount: number) => Promise<boolean>;
+  // Optional props
+  open?: boolean; // For backwards compatibility
+  onOpenChange?: (open: boolean) => void; // For backwards compatibility
+  standalone?: boolean; // If true, doesn't wrap in a Dialog
 }
 
 /**
@@ -70,7 +72,8 @@ export function BudgetItemForm({
   onSuccess,
   totalBudgeted,
   currentTotal,
-  onValidationRequired
+  onValidationRequired,
+  standalone = false
 }: BudgetItemFormProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -127,9 +130,13 @@ export function BudgetItemForm({
         description: "The budget item was successfully added to the plan.",
       });
       
-      // Reset form and close dialog
+      // Reset form
       form.reset();
-      onOpenChange(false);
+      
+      // Close dialog if in dialog mode
+      if (onOpenChange) {
+        onOpenChange(false);
+      }
       
       // Call onSuccess callback if provided
       if (onSuccess) {
@@ -203,6 +210,204 @@ export function BudgetItemForm({
     createBudgetItem.mutate(data);
   };
   
+  // Form content that will be used in both standalone and dialog modes
+  const formContent = (
+    <>
+      {/* Catalog item selection */}
+      <div className="mb-4">
+        <FormLabel className="text-sm font-medium">Select from catalog</FormLabel>
+        <div className="flex items-center mt-1.5 mb-3 relative">
+          <Input
+            placeholder="Search by name, code or category..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-9"
+          />
+          <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+        </div>
+        
+        <div className="border rounded-md overflow-hidden max-h-48 overflow-y-auto">
+          {isLoadingCatalog ? (
+            <div className="flex items-center justify-center p-4">
+              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              <span className="text-sm text-muted-foreground">Loading catalog items...</span>
+            </div>
+          ) : filteredCatalogItems.length > 0 ? (
+            <div className="divide-y">
+              {filteredCatalogItems.map((item) => (
+                <button
+                  key={item.id}
+                  type="button" 
+                  className={`w-full px-3 py-2 text-left hover:bg-muted transition-colors ${
+                    selectedCatalogItem?.id === item.id ? 'bg-primary/10' : ''
+                  }`}
+                  onClick={() => setSelectedCatalogItem(item)}
+                >
+                  <div className="flex justify-between">
+                    <div>
+                      <div className="font-medium text-sm">{item.description}</div>
+                      <div className="text-xs text-muted-foreground">{item.itemCode}</div>
+                    </div>
+                    <div className="text-sm font-medium">${item.defaultUnitPrice.toFixed(2)}</div>
+                  </div>
+                  {item.category && (
+                    <div className="mt-1">
+                      <span className="inline-flex text-xs bg-muted px-1.5 py-0.5 rounded-sm">
+                        {item.category}
+                      </span>
+                    </div>
+                  )}
+                </button>
+              ))}
+            </div>
+          ) : (
+            <div className="p-4 text-center text-sm text-muted-foreground">
+              {searchTerm ? 'No matching items found' : 'No catalog items available'}
+            </div>
+          )}
+        </div>
+      </div>
+      
+      {/* Show validation error if exists */}
+      {validationError && (
+        <div className="rounded-md bg-red-50 p-4 mb-4 border-2 border-red-300">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <AlertCircle className="h-5 w-5 text-red-500" />
+            </div>
+            <div className="ml-3 flex-1">
+              <h3 className="text-sm font-medium text-red-800">Budget Validation Error</h3>
+              <div className="mt-2 text-sm text-red-700">
+                <p>{validationError}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Form */}
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <FormField
+            control={form.control}
+            name="itemCode"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Item Code <span className="text-red-500">*</span></FormLabel>
+                <FormControl>
+                  <Input {...field} placeholder="Enter item code" />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          
+          <FormField
+            control={form.control}
+            name="description"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Description <span className="text-red-500">*</span></FormLabel>
+                <FormControl>
+                  <Input {...field} placeholder="Enter item description" />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          
+          <div className="grid grid-cols-2 gap-4">
+            <FormField
+              control={form.control}
+              name="unitPrice"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Unit Price <span className="text-red-500">*</span></FormLabel>
+                  <FormControl>
+                    <Input 
+                      {...field} 
+                      type="number" 
+                      step="0.01" 
+                      min="0"
+                      placeholder="0.00" 
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="quantity"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Quantity <span className="text-red-500">*</span></FormLabel>
+                  <FormControl>
+                    <Input 
+                      {...field} 
+                      type="number" 
+                      min="1" 
+                      step="1"
+                      placeholder="1" 
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+          
+          <FormField
+            control={form.control}
+            name="category"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Category</FormLabel>
+                <FormControl>
+                  <Input {...field} placeholder="Optional category" />
+                </FormControl>
+                <FormDescription>
+                  Categorize the item for better organization (optional)
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          
+          <div className="flex justify-end gap-2 mt-4">
+            {onOpenChange && (
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={() => {
+                  if (onOpenChange) onOpenChange(false);
+                }}
+              >
+                Cancel
+              </Button>
+            )}
+            <Button 
+              type="submit"
+              disabled={createBudgetItem.isPending}
+            >
+              {createBudgetItem.isPending && (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              )}
+              Add Budget Item
+            </Button>
+          </div>
+        </form>
+      </Form>
+    </>
+  );
+
+  // If standalone, just render the form content directly
+  if (standalone) {
+    return formContent;
+  }
+  
+  // Otherwise, wrap in a dialog
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[550px]">
@@ -212,189 +417,7 @@ export function BudgetItemForm({
             Add a new item to the budget plan. You can select from the catalog or create a custom item.
           </DialogDescription>
         </DialogHeader>
-        
-        {/* Catalog item selection */}
-        <div className="mb-4">
-          <FormLabel className="text-sm font-medium">Select from catalog</FormLabel>
-          <div className="flex items-center mt-1.5 mb-3 relative">
-            <Input
-              placeholder="Search by name, code or category..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-9"
-            />
-            <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-          </div>
-          
-          <div className="border rounded-md overflow-hidden max-h-48 overflow-y-auto">
-            {isLoadingCatalog ? (
-              <div className="flex items-center justify-center p-4">
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                <span className="text-sm text-muted-foreground">Loading catalog items...</span>
-              </div>
-            ) : filteredCatalogItems.length > 0 ? (
-              <div className="divide-y">
-                {filteredCatalogItems.map((item) => (
-                  <button
-                    key={item.id}
-                    type="button" 
-                    className={`w-full px-3 py-2 text-left hover:bg-muted transition-colors ${
-                      selectedCatalogItem?.id === item.id ? 'bg-primary/10' : ''
-                    }`}
-                    onClick={() => setSelectedCatalogItem(item)}
-                  >
-                    <div className="flex justify-between">
-                      <div>
-                        <div className="font-medium text-sm">{item.description}</div>
-                        <div className="text-xs text-muted-foreground">{item.itemCode}</div>
-                      </div>
-                      <div className="text-sm font-medium">${item.defaultUnitPrice.toFixed(2)}</div>
-                    </div>
-                    {item.category && (
-                      <div className="mt-1">
-                        <span className="inline-flex text-xs bg-muted px-1.5 py-0.5 rounded-sm">
-                          {item.category}
-                        </span>
-                      </div>
-                    )}
-                  </button>
-                ))}
-              </div>
-            ) : (
-              <div className="p-4 text-center text-sm text-muted-foreground">
-                {searchTerm ? 'No matching items found' : 'No catalog items available'}
-              </div>
-            )}
-          </div>
-        </div>
-        
-        {/* Show validation error if exists */}
-        {validationError && (
-          <div className="rounded-md bg-red-50 p-4 mb-4 border-2 border-red-300">
-            <div className="flex">
-              <div className="flex-shrink-0">
-                <AlertCircle className="h-5 w-5 text-red-500" />
-              </div>
-              <div className="ml-3 flex-1">
-                <h3 className="text-sm font-medium text-red-800">Budget Validation Error</h3>
-                <div className="mt-2 text-sm text-red-700">
-                  <p>{validationError}</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-        
-        {/* Form */}
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="itemCode"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Item Code <span className="text-red-500">*</span></FormLabel>
-                  <FormControl>
-                    <Input {...field} placeholder="Enter item code" />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            <FormField
-              control={form.control}
-              name="description"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Description <span className="text-red-500">*</span></FormLabel>
-                  <FormControl>
-                    <Input {...field} placeholder="Enter item description" />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="unitPrice"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Unit Price <span className="text-red-500">*</span></FormLabel>
-                    <FormControl>
-                      <Input 
-                        {...field} 
-                        type="number" 
-                        step="0.01" 
-                        min="0"
-                        placeholder="0.00" 
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="quantity"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Quantity <span className="text-red-500">*</span></FormLabel>
-                    <FormControl>
-                      <Input 
-                        {...field} 
-                        type="number" 
-                        min="1" 
-                        step="1"
-                        placeholder="1" 
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-            
-            <FormField
-              control={form.control}
-              name="category"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Category</FormLabel>
-                  <FormControl>
-                    <Input {...field} placeholder="Optional category" />
-                  </FormControl>
-                  <FormDescription>
-                    Categorize the item for better organization (optional)
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            <DialogFooter>
-              <Button 
-                type="button" 
-                variant="outline" 
-                onClick={() => onOpenChange(false)}
-              >
-                Cancel
-              </Button>
-              <Button 
-                type="submit"
-                disabled={createBudgetItem.isPending}
-              >
-                {createBudgetItem.isPending && (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                )}
-                Add Budget Item
-              </Button>
-            </DialogFooter>
-          </form>
-        </Form>
+        {formContent}
       </DialogContent>
     </Dialog>
   );
