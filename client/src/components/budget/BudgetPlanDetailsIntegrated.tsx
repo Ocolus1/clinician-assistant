@@ -31,7 +31,8 @@ import {
   AlertCircle,
   Check,
   X,
-  Save
+  Save,
+  Info as InfoIcon
 } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { BudgetPlan, BudgetItem, useBudgetFeature } from "./BudgetFeatureContext";
@@ -385,6 +386,8 @@ export function BudgetPlanDetails({
                   onClick={() => setIsAddItemDialogOpen(true)}
                   variant="secondary"
                   className="space-x-2"
+                  // Add item button is only active if we have editing mode on
+                  disabled={!isEditing}
                 >
                   <Plus className="h-4 w-4" />
                   <span>Add Item</span>
@@ -455,17 +458,53 @@ export function BudgetPlanDetails({
                 </Button>
               </>
             ) : (
-              <Button 
-                variant="outline" 
-                className="space-x-2"
-                onClick={() => setIsEditing(true)}
-              >
-                <Edit className="h-4 w-4" />
-                <span>Edit Allocations</span>
-              </Button>
+              <>
+                <Button 
+                  variant="outline" 
+                  className="space-x-2"
+                  onClick={() => setIsEditing(true)}
+                >
+                  <Edit className="h-4 w-4" />
+                  <span>Edit Allocations</span>
+                </Button>
+                
+                {/* Add Item button disabled when not in edit mode */}
+                <Button 
+                  onClick={() => {}} 
+                  variant="secondary"
+                  className="space-x-2"
+                  disabled={true}
+                >
+                  <Plus className="h-4 w-4" />
+                  <span>Add Item</span>
+                </Button>
+              </>
             )}
           </div>
         </div>
+        
+        {/* Workflow guide card when in edit mode */}
+        {isEditing && (
+          <div className="rounded-md bg-blue-50 p-4 border border-blue-200 mb-4">
+            <div className="flex">
+              <div className="flex-shrink-0">
+                <InfoIcon className="h-5 w-5 text-blue-400" />
+              </div>
+              <div className="ml-3">
+                <h3 className="text-sm font-medium text-blue-800">Edit Mode Active</h3>
+                <div className="mt-2 text-sm text-blue-700">
+                  <p>You're now in edit mode. You can:</p>
+                  <ol className="list-decimal ml-5 mt-1 space-y-1">
+                    <li>Adjust quantities of existing items</li>
+                    <li>Add new items to the budget</li>
+                    <li>Save your changes when finished</li>
+                  </ol>
+                  <p className="mt-2">Total budget is fixed at $375. Your changes will be validated before saving.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
         
         {/* Enhanced error message for budget allocation issues */}
         {budgetError && (
