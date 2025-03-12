@@ -29,7 +29,7 @@ import { BudgetPlan } from "@/components/budget/BudgetFeatureContext";
 
 interface BudgetPlanCardProps {
   plan: BudgetPlan;
-  onView: (planId: number) => void;
+  onView: () => void;
 }
 
 /**
@@ -154,7 +154,7 @@ export function BudgetPlanCard({ plan, onView }: BudgetPlanCardProps) {
         <Button 
           variant="default" 
           className="w-full"
-          onClick={() => onView(plan.id)}
+          onClick={onView}
         >
           View Details
           <ExternalLink className="h-4 w-4 ml-2" />

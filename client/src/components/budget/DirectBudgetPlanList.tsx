@@ -1,32 +1,17 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { 
   Card, 
-  CardContent, 
-  CardHeader, 
-  CardTitle, 
-  CardDescription,
-  CardFooter
+  CardContent
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { 
   Loader2, 
   AlertCircle, 
-  DollarSign, 
   PlusCircle, 
-  CalendarRange,
-  Check,
-  Clock,
-  ExternalLink,
-  Filter,
-  Plus
+  Filter
 } from "lucide-react";
-import { format } from "date-fns";
-import { formatCurrency } from "@/lib/utils";
-import { Progress } from "@/components/ui/progress";
-import { Badge } from "@/components/ui/badge";
-import { BudgetSettings } from "../../../../shared/schema";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
+import { BudgetSettings } from "@shared/schema";
+import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { BudgetItemForm } from "@/components/budget/BudgetItemForm";
 import { BudgetPlanCard } from "@/components/budget/BudgetPlanCard";
@@ -36,10 +21,6 @@ import { BudgetPlan, BudgetItem } from "@/components/budget/BudgetFeatureContext
 interface DirectBudgetPlanProps {
   clientId: number;
 }
-
-
-
-// Budget Item with usage tracking - we don't need this anymore since we're using the BudgetItem from BudgetFeatureContext
 
 /**
  * A component that directly fetches and displays budget plans
@@ -55,6 +36,9 @@ export function DirectBudgetPlanList({ clientId }: DirectBudgetPlanProps) {
   const [selectedPlanId, setSelectedPlanId] = useState<number | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  
+  // State for budget items specific to the selected plan
+  const [selectedPlanItems, setSelectedPlanItems] = useState<BudgetItem[]>([]);
   
   // Direct fetch from the API
   useEffect(() => {
@@ -191,6 +175,64 @@ export function DirectBudgetPlanList({ clientId }: DirectBudgetPlanProps) {
     fetchBudgetPlans();
   }, [clientId]);
   
+  // Fetch budget items for the selected plan
+  useEffect(() => {
+    if (selectedPlanId) {
+      const fetchItemsForSelectedPlan = async () => {
+        try {
+          const response = await fetch(`/api/clients/${clientId}/budget-items`);
+          if (!response.ok) {
+            throw new Error(`Error fetching budget items: ${response.status}`);
+          }
+          const allItems = await response.json();
+          const items = Array.isArray(allItems) ? allItems : [allItems];
+          
+          // Filter items for the selected plan and transform to match BudgetItem interface
+          const planItems = items
+            .filter((item: any) => item.budgetSettingsId === selectedPlanId)
+            .map((item: any) => ({
+              ...item,
+              usedQuantity: item.usedQuantity ?? 0,
+              balanceQuantity: item.balanceQuantity ?? item.quantity ?? 0,
+            }));
+            
+          setSelectedPlanItems(planItems);
+        } catch (error) {
+          console.error("[DirectBudgetPlanList] Error fetching items for plan details:", error);
+          setSelectedPlanItems([]);
+        }
+      };
+      
+      fetchItemsForSelectedPlan();
+    }
+  }, [selectedPlanId, clientId]);
+  
+  // Budget Plan Detailed View
+  const handleViewDetails = (plan: BudgetPlan) => {
+    setSelectedPlanId(plan.id);
+    setShowPlanDetailsView(true);
+  };
+  
+  // Handle adding a budget item to a plan
+  const handleAddItem = (plan: BudgetPlan) => {
+    setActivePlan(plan);
+    setShowAddItemDialog(true);
+  };
+  
+  // Find the selected plan for details view
+  const selectedPlan = useMemo(() => {
+    if (showPlanDetailsView && selectedPlanId && plans.length > 0) {
+      return plans.find(p => p.id === selectedPlanId) || null;
+    }
+    return null;
+  }, [showPlanDetailsView, selectedPlanId, plans]);
+  
+  const handleBackFromDetails = () => {
+    setShowPlanDetailsView(false);
+    setSelectedPlanId(null);
+  };
+  
+  // Render loading state
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -200,6 +242,7 @@ export function DirectBudgetPlanList({ clientId }: DirectBudgetPlanProps) {
     );
   }
   
+  // Render error state
   if (error) {
     return (
       <Card className="border-red-200 bg-red-50">
@@ -216,6 +259,7 @@ export function DirectBudgetPlanList({ clientId }: DirectBudgetPlanProps) {
     );
   }
   
+  // Render empty state
   if (plans.length === 0) {
     return (
       <Card className="bg-muted/50">
@@ -234,82 +278,8 @@ export function DirectBudgetPlanList({ clientId }: DirectBudgetPlanProps) {
       </Card>
     );
   }
-  
-  // Budget Plan Detailed View
-  const handleViewDetails = (plan: BudgetPlan) => {
-    setSelectedPlanId(plan.id);
-    setShowPlanDetailsView(true);
-    
-    // Fetch the budget items for this plan
-    const fetchBudgetItems = async () => {
-      try {
-        const response = await fetch(`/api/clients/${clientId}/budget-items`);
-        if (!response.ok) {
-          throw new Error(`Error fetching budget items: ${response.status}`);
-        }
-        const items = await response.json();
-        return Array.isArray(items) ? items : [items];
-      } catch (error) {
-        console.error("[DirectBudgetPlanList] Error fetching items for plan details:", error);
-        return [];
-      }
-    };
-  };
-  
-  // Handle adding a budget item to a plan
-  const handleAddItem = (plan: BudgetPlan) => {
-    setActivePlan(plan);
-    setShowAddItemDialog(true);
-  };
-  
-  // Filter budget items for the current plan if in details view
-  const filteredItems = useMemo(() => {
-    if (showPlanDetailsView && selectedPlanId && plans.length > 0) {
-      return plans.filter(p => p.id === selectedPlanId);
-    }
-    return [];
-  }, [showPlanDetailsView, selectedPlanId, plans]);
 
-  const selectedPlan = filteredItems.length > 0 ? filteredItems[0] : null;
-  
-  const handleBackFromDetails = () => {
-    setShowPlanDetailsView(false);
-    setSelectedPlanId(null);
-  };
-
-  // State for budget items specific to the selected plan
-  const [selectedPlanItems, setSelectedPlanItems] = useState<BudgetItem[]>([]);
-  
-  // Fetch budget items for the selected plan
-  useEffect(() => {
-    if (selectedPlanId) {
-      const fetchItemsForSelectedPlan = async () => {
-        try {
-          const response = await fetch(`/api/clients/${clientId}/budget-items`);
-          if (!response.ok) {
-            throw new Error(`Error fetching budget items: ${response.status}`);
-          }
-          const allItems = await response.json();
-          const items = Array.isArray(allItems) ? allItems : [allItems];
-          // Filter items for the selected plan and transform to match BudgetItem interface
-          const planItems = items
-            .filter((item: any) => item.budgetSettingsId === selectedPlanId)
-            .map((item: any) => ({
-              ...item,
-              usedQuantity: item.usedQuantity ?? 0,  // Default to 0 if undefined
-              balanceQuantity: item.balanceQuantity ?? item.quantity ?? 0, // Default to quantity
-            }));
-          setSelectedPlanItems(planItems);
-        } catch (error) {
-          console.error("[DirectBudgetPlanList] Error fetching items for plan details:", error);
-          setSelectedPlanItems([]);
-        }
-      };
-      
-      fetchItemsForSelectedPlan();
-    }
-  }, [selectedPlanId, clientId]);
-
+  // Primary component render
   return (
     <div className="space-y-6">
       {showPlanDetailsView && selectedPlan ? (
@@ -343,7 +313,7 @@ export function DirectBudgetPlanList({ clientId }: DirectBudgetPlanProps) {
               <BudgetPlanCard 
                 key={plan.id} 
                 plan={plan} 
-                onView={planId => handleViewDetails(plans.find(p => p.id === planId) as BudgetPlan)}
+                onView={() => handleViewDetails(plan)}
               />
             ))}
           </div>
