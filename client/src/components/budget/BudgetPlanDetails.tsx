@@ -277,9 +277,10 @@ export function BudgetPlanDetails({
                       return total + (item.unitPrice * quantity);
                     }, 0);
                     
-                    // Check if the new budget exceeds the available funds
-                    if (newTotalBudget > plan.availableFunds) {
-                      setBudgetError("Your adjustments would result in a total that exceeds the available budget. Please reduce allocated quantities.");
+                    // Check for any validation errors - we don't need to check against plan.availableFunds
+                    // since we're using the sum of all items as the available funds
+                    if (budgetError) {
+                      // If there's still an error from real-time validation, don't save
                       return;
                     } else {
                       setBudgetError(null);
@@ -332,17 +333,20 @@ export function BudgetPlanDetails({
           </div>
         </div>
         
-        {/* Error message for budget allocation issues */}
+        {/* Enhanced error message for budget allocation issues */}
         {budgetError && (
-          <div className="rounded-md bg-red-50 p-4 mb-4 border border-red-200">
+          <div className="rounded-md bg-red-50 p-4 mb-4 border-2 border-red-300 animate-pulse">
             <div className="flex">
               <div className="flex-shrink-0">
-                <AlertCircle className="h-5 w-5 text-red-400" />
+                <AlertCircle className="h-5 w-5 text-red-500" />
               </div>
-              <div className="ml-3">
+              <div className="ml-3 flex-1">
                 <h3 className="text-sm font-medium text-red-800">Budget Allocation Error</h3>
                 <div className="mt-2 text-sm text-red-700">
                   <p>{budgetError}</p>
+                </div>
+                <div className="mt-3 text-xs text-red-600">
+                  <p>Please adjust your allocations to continue.</p>
                 </div>
               </div>
             </div>
@@ -415,11 +419,13 @@ export function BudgetPlanDetails({
                                     return total + (currentItem.unitPrice * qty);
                                   }, 0);
                                   
-                                  // Check if the new budget exceeds the available funds
-                                  if (newTotalBudget > plan.availableFunds) {
-                                    setBudgetError("Your adjustments would result in a total that exceeds the available budget. Please reduce allocated quantities.");
-                                  } else {
-                                    setBudgetError(null);
+                                  // Clear any previous error
+                                  setBudgetError(null);
+                                  
+                                  // Add validation rule as needed (removed the plan.availableFunds check since 
+                                  // we're using the sum of all items as our available funds)
+                                  if (newQuantity < item.usedQuantity) {
+                                    setBudgetError(`You cannot allocate less than the already used quantity (${item.usedQuantity}) for ${item.description}.`);
                                   }
                                   
                                   setHasUnsavedChanges(true);
