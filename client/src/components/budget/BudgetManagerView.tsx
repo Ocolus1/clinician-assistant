@@ -12,6 +12,7 @@ import { BudgetItemForm } from "./BudgetItemForm";
 import { Button } from "@/components/ui/button";
 import { Loader2, Plus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useForm, FormProvider } from "react-hook-form";
 
 interface BudgetManagerViewProps {
   clientId: number;
@@ -39,6 +40,13 @@ function BudgetManagerContent({ clientId }: BudgetManagerViewProps) {
   const [showDetailsView, setShowDetailsView] = useState(false);
   const [currentPlan, setCurrentPlan] = useState<BudgetPlan | null>(null);
   const { toast } = useToast();
+  
+  // Initialize the form for budget management
+  const budgetForm = useForm({
+    defaultValues: {
+      items: [] 
+    }
+  });
   
   // Watch for changes in selected plan ID
   useEffect(() => {
