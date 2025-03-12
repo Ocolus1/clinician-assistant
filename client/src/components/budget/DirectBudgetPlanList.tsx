@@ -24,14 +24,14 @@ import { format } from "date-fns";
 import { formatCurrency } from "@/lib/utils";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { BudgetSettings, BudgetItem } from "../../../../shared/schema";
+import { BudgetSettings } from "../../../../shared/schema";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { BudgetItemForm } from "@/components/budget/BudgetItemForm";
 import { BudgetPlanCard } from "@/components/budget/BudgetPlanCard";
 import { BudgetPlanDetails } from "@/components/budget/BudgetPlanDetails";
-import { BudgetPlan } from "@/components/budget/BudgetFeatureContext";
+import { BudgetPlan, BudgetItem } from "@/components/budget/BudgetFeatureContext";
 
 interface DirectBudgetPlanProps {
   clientId: number;
@@ -39,13 +39,7 @@ interface DirectBudgetPlanProps {
 
 
 
-// Budget Item with usage tracking
-interface EnhancedBudgetItem extends Omit<BudgetItem, 'name' | 'category'> {
-  usedQuantity?: number;
-  balanceQuantity?: number;
-  name?: string | null;
-  category?: string | null;
-}
+// Budget Item with usage tracking - we don't need this anymore since we're using the BudgetItem from BudgetFeatureContext
 
 /**
  * A component that directly fetches and displays budget plans
@@ -126,12 +120,19 @@ export function DirectBudgetPlanList({ clientId }: DirectBudgetPlanProps) {
           throw new Error(`Error fetching budget items: ${response.status} ${response.statusText}`);
         }
         
-        let items: BudgetItem[] = await response.json();
+        let rawItems = await response.json();
         
         // Ensure items is an array
-        if (!Array.isArray(items)) {
-          items = items ? [items] : [];
+        if (!Array.isArray(rawItems)) {
+          rawItems = rawItems ? [rawItems] : [];
         }
+        
+        // Transform items to match BudgetItem interface
+        const items: BudgetItem[] = rawItems.map((item: any) => ({
+          ...item,
+          usedQuantity: item.usedQuantity ?? 0,  // Default to 0 if undefined
+          balanceQuantity: item.balanceQuantity ?? item.quantity ?? 0, // Default to quantity
+        }));
         
         console.log(`[DirectBudgetPlanList] Received ${items.length} budget items`);
         
@@ -263,10 +264,8 @@ export function DirectBudgetPlanList({ clientId }: DirectBudgetPlanProps) {
   
   // Filter budget items for the current plan if in details view
   const filteredItems = useMemo(() => {
-    if (showPlanDetailsView && selectedPlanId) {
-      return plans.length > 0 
-        ? plans.filter(p => p.id === selectedPlanId)
-        : [];
+    if (showPlanDetailsView && selectedPlanId && plans.length > 0) {
+      return plans.filter(p => p.id === selectedPlanId);
     }
     return [];
   }, [showPlanDetailsView, selectedPlanId, plans]);
@@ -292,8 +291,14 @@ export function DirectBudgetPlanList({ clientId }: DirectBudgetPlanProps) {
           }
           const allItems = await response.json();
           const items = Array.isArray(allItems) ? allItems : [allItems];
-          // Filter items for the selected plan
-          const planItems = items.filter((item: BudgetItem) => item.budgetSettingsId === selectedPlanId);
+          // Filter items for the selected plan and transform to match BudgetItem interface
+          const planItems = items
+            .filter((item: any) => item.budgetSettingsId === selectedPlanId)
+            .map((item: any) => ({
+              ...item,
+              usedQuantity: item.usedQuantity ?? 0,  // Default to 0 if undefined
+              balanceQuantity: item.balanceQuantity ?? item.quantity ?? 0, // Default to quantity
+            }));
           setSelectedPlanItems(planItems);
         } catch (error) {
           console.error("[DirectBudgetPlanList] Error fetching items for plan details:", error);
@@ -395,12 +400,19 @@ export function DirectBudgetPlanList({ clientId }: DirectBudgetPlanProps) {
                         throw new Error(`Error fetching budget items: ${response.status} ${response.statusText}`);
                       }
                       
-                      let items: BudgetItem[] = await response.json();
+                      let rawItems = await response.json();
                       
                       // Ensure items is an array
-                      if (!Array.isArray(items)) {
-                        items = items ? [items] : [];
+                      if (!Array.isArray(rawItems)) {
+                        rawItems = rawItems ? [rawItems] : [];
                       }
+                      
+                      // Transform items to match BudgetItem interface
+                      const items: BudgetItem[] = rawItems.map((item: any) => ({
+                        ...item,
+                        usedQuantity: item.usedQuantity ?? 0,  // Default to 0 if undefined
+                        balanceQuantity: item.balanceQuantity ?? item.quantity ?? 0, // Default to quantity
+                      }));
                       
                       // Calculate usage for each plan
                       // Group items by budget settings ID
