@@ -70,6 +70,7 @@ export function BudgetPlanDetails({
   onMakeActive
 }: BudgetPlanDetailsProps) {
   const [isAddItemDialogOpen, setIsAddItemDialogOpen] = useState(false);
+  const [pendingItemData, setPendingItemData] = useState<any>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [confirmationText, setConfirmationText] = useState("");
   const [itemToDelete, setItemToDelete] = useState<BudgetItem | null>(null);

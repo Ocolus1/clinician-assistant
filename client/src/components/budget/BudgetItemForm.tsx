@@ -5,6 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { formatCurrency } from "@/lib/utils";
 import { 
   Dialog, 
   DialogContent, 
@@ -31,16 +32,8 @@ import {
   SelectTrigger, 
   SelectValue 
 } from "@/components/ui/select";
-import { insertBudgetItemSchema, BudgetItemCatalog, InsertBudgetItem } from "../../../../shared/schema";
-import { Search, Plus, Loader2 } from "lucide-react";
-
-interface BudgetItemFormProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  clientId: number;
-  budgetSettingsId: number;
-  onSuccess?: () => void;
-}
+import { insertBudgetItemSchema, BudgetItemCatalog, InsertBudgetItem, BudgetItem } from "../../../../shared/schema";
+import { Search, Plus, Loader2, AlertCircle } from "lucide-react";
 
 // Extend the schema to add validation messages
 const budgetItemFormSchema = insertBudgetItemSchema.extend({
@@ -54,20 +47,36 @@ const budgetItemFormSchema = insertBudgetItemSchema.extend({
 
 type BudgetItemFormValues = z.infer<typeof budgetItemFormSchema>;
 
+interface BudgetItemFormProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  clientId: number;
+  budgetSettingsId: number;
+  onSuccess?: () => void;
+  totalBudgeted?: number; // Total budgeted amount for validation
+  currentTotal?: number;  // Current total of all existing items
+  onValidationRequired?: (data: BudgetItemFormValues, excessAmount: number) => Promise<boolean>;
+}
+
 /**
  * A form component for creating and editing budget items
+ * with integrated budget validation
  */
 export function BudgetItemForm({ 
   open, 
   onOpenChange, 
   clientId, 
   budgetSettingsId,
-  onSuccess 
+  onSuccess,
+  totalBudgeted,
+  currentTotal,
+  onValidationRequired
 }: BudgetItemFormProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCatalogItem, setSelectedCatalogItem] = useState<BudgetItemCatalog | null>(null);
+  const [validationError, setValidationError] = useState<string | null>(null);
   
   // Form setup
   const form = useForm<BudgetItemFormValues>({
@@ -156,8 +165,41 @@ export function BudgetItemForm({
     }
   }, [selectedCatalogItem, form]);
   
-  // Handle form submission
-  const onSubmit = (data: BudgetItemFormValues) => {
+  // Handle form submission with budget validation
+  const onSubmit = async (data: BudgetItemFormValues) => {
+    // Clear any previous validation errors
+    setValidationError(null);
+    
+    // Check for budget validation if props are provided
+    if (totalBudgeted !== undefined && currentTotal !== undefined && onValidationRequired) {
+      // Calculate the total for this new item
+      const newItemTotal = data.unitPrice * data.quantity;
+      
+      // Calculate the new total budget after adding this item
+      const newTotalBudget = currentTotal + newItemTotal;
+      
+      // Check if this would exceed the total budgeted amount
+      const difference = newTotalBudget - totalBudgeted;
+      
+      if (difference > 0) {
+        // Over budget case - ask for confirmation via the parent callback
+        const shouldProceed = await onValidationRequired(data, difference);
+        if (!shouldProceed) {
+          // User chose not to proceed with over-budget allocation
+          return;
+        }
+      } else if (difference < 0) {
+        // Under budget case - also handled by parent if needed
+        const shouldProceed = await onValidationRequired(data, difference);
+        if (!shouldProceed) {
+          // User chose not to proceed with under-budget allocation
+          return;
+        }
+      }
+      // If exactly on budget, proceed without confirmation
+    }
+    
+    // Proceed with creating the budget item
     createBudgetItem.mutate(data);
   };
   
@@ -225,6 +267,23 @@ export function BudgetItemForm({
             )}
           </div>
         </div>
+        
+        {/* Show validation error if exists */}
+        {validationError && (
+          <div className="rounded-md bg-red-50 p-4 mb-4 border-2 border-red-300">
+            <div className="flex">
+              <div className="flex-shrink-0">
+                <AlertCircle className="h-5 w-5 text-red-500" />
+              </div>
+              <div className="ml-3 flex-1">
+                <h3 className="text-sm font-medium text-red-800">Budget Validation Error</h3>
+                <div className="mt-2 text-sm text-red-700">
+                  <p>{validationError}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
         
         {/* Form */}
         <Form {...form}>
