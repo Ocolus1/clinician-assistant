@@ -24,7 +24,7 @@ export function BudgetValidation({
   const percentageCapped = Math.min(percentageUsed, 100);
   
   // Determine alert variant based on budget status
-  let alertVariant: "default" | "destructive" | "success" = "default";
+  let alertVariant: "default" | "destructive" = "default";
   let alertIcon = <AlertCircle className="h-4 w-4" />;
   let alertTitle = "Budget Allocation";
   let alertDescription = `You have allocated ${formatCurrency(totalAllocated)} of your ${formatCurrency(totalBudget)} budget.`;
@@ -37,8 +37,8 @@ export function BudgetValidation({
     alertDescription = `You have exceeded your budget by ${formatCurrency(Math.abs(remainingBudget))}.`;
   } else if (remainingBudget === 0) {
     // Budget fully allocated
-    alertVariant = "success";
-    alertIcon = <CheckCircle className="h-4 w-4" />;
+    alertVariant = "default"; // Using default instead of success since the Alert component doesn't support success
+    alertIcon = <CheckCircle className="h-4 w-4 text-success" />;
     alertTitle = "Budget Fully Allocated";
     alertDescription = `You have allocated all ${formatCurrency(totalBudget)} of your available budget.`;
   } else if (hasItems && remainingBudget > 0) {

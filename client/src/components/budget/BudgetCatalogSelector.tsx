@@ -1,35 +1,24 @@
 import { useState } from "react";
-import { 
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectTrigger,
-  SelectValue
-} from "@/components/ui/select";
-import { Button } from "@/components/ui/button";
-import { PlusCircle, Search } from "lucide-react";
-import { Input } from "@/components/ui/input";
 import { useQuery } from "@tanstack/react-query";
+import { Check, ChevronsUpDown, PlusCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent } from "@/components/ui/card";
 
-type BudgetItemCatalog = {
+interface BudgetItemCatalog {
   id: number;
   itemCode: string;
   description: string;
   defaultUnitPrice: number;
   category: string | null;
   isActive: boolean | null;
-};
-
-type GroupedCatalogItems = {
-  [key: string]: BudgetItemCatalog[];
-};
+}
 
 interface BudgetCatalogSelectorProps {
-  onSelectItem: (item: { 
+  onSelectItem: (item: {
     itemCode: string;
     description: string;
     unitPrice: number;
@@ -44,139 +33,142 @@ interface BudgetCatalogSelectorProps {
 
 /**
  * Component for selecting items from the budget catalog
- * with search and category filtering
  */
 export function BudgetCatalogSelector({
   onSelectItem,
+  clientId,
+  budgetSettingsId,
   disabled = false
 }: BudgetCatalogSelectorProps) {
-  const [selectedItemCode, setSelectedItemCode] = useState<string>("");
-  const [searchTerm, setSearchTerm] = useState<string>("");
-  const [quantity, setQuantity] = useState<number>(1);
+  const [open, setOpen] = useState(false);
+  const [selectedItem, setSelectedItem] = useState<BudgetItemCatalog | null>(null);
+  const [quantity, setQuantity] = useState(1);
   
   // Fetch catalog items
-  const { data: catalogItems = [] } = useQuery<BudgetItemCatalog[]>({
+  const { data: catalogItems = [], isLoading } = useQuery({
     queryKey: ["/api/budget-catalog"],
+    queryFn: async () => {
+      const response = await fetch("/api/budget-catalog");
+      if (!response.ok) throw new Error("Failed to fetch budget catalog");
+      return response.json();
+    }
   });
   
-  // Filter items by search term
-  const filteredItems = catalogItems.filter(item => 
-    item.isActive !== false && 
-    (searchTerm === "" || 
-     item.itemCode.toLowerCase().includes(searchTerm.toLowerCase()) ||
-     item.description.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+  // Handle selecting an item from the dropdown
+  const handleSelectItem = (item: BudgetItemCatalog) => {
+    setSelectedItem(item);
+    setOpen(false);
+  };
   
-  // Group items by category
-  const groupedItems = filteredItems.reduce<GroupedCatalogItems>((acc, item) => {
-    const category = item.category || "Uncategorized";
-    if (!acc[category]) {
-      acc[category] = [];
-    }
-    acc[category].push(item);
-    return acc;
-  }, {});
-  
-  // Get selected item details
-  const selectedItem = catalogItems.find(item => item.itemCode === selectedItemCode);
-  
-  // Handle adding item
+  // Handle adding the selected item to the budget
   const handleAddItem = () => {
-    if (selectedItem) {
-      onSelectItem({
-        itemCode: selectedItem.itemCode,
-        description: selectedItem.description,
-        unitPrice: selectedItem.defaultUnitPrice,
-        quantity,
-        name: null,
-        category: selectedItem.category
-      });
-      
-      // Reset form
-      setSelectedItemCode("");
-      setQuantity(1);
-      setSearchTerm("");
-    }
+    if (!selectedItem) return;
+    
+    onSelectItem({
+      itemCode: selectedItem.itemCode,
+      description: selectedItem.description,
+      unitPrice: selectedItem.defaultUnitPrice,
+      quantity: quantity,
+      name: null, // These are required by the schema but can be null
+      category: selectedItem.category
+    });
+    
+    // Reset the form
+    setSelectedItem(null);
+    setQuantity(1);
   };
   
   return (
-    <Card className="border-dashed">
-      <CardContent className="pt-4">
-        <div className="space-y-4">
-          <h3 className="text-sm font-medium">Add Budget Item</h3>
-          
-          <div className="relative">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              type="search"
-              placeholder="Search items..."
-              className="pl-8"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              disabled={disabled}
-            />
-          </div>
-          
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="item-select">Select Item</Label>
-              <Select
-                value={selectedItemCode}
-                onValueChange={setSelectedItemCode}
-                disabled={disabled || filteredItems.length === 0}
+    <div className="space-y-4">
+      <div className="text-sm font-medium mb-2">Add Budget Item</div>
+      
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
+        {/* Item selector */}
+        <div className="md:col-span-7">
+          <Label htmlFor="item-selector" className="mb-2 block">
+            Select Item
+          </Label>
+          <Popover open={open} onOpenChange={setOpen}>
+            <PopoverTrigger asChild>
+              <Button
+                id="item-selector"
+                variant="outline"
+                role="combobox"
+                aria-expanded={open}
+                disabled={disabled || isLoading}
+                className="w-full justify-between"
               >
-                <SelectTrigger id="item-select">
-                  <SelectValue placeholder="Select an item" />
-                </SelectTrigger>
-                <SelectContent>
-                  {Object.entries(groupedItems).map(([category, items]) => (
-                    <SelectGroup key={category}>
-                      <SelectLabel>{category}</SelectLabel>
-                      {items.map((item) => (
-                        <SelectItem 
-                          key={item.id} 
-                          value={item.itemCode}
-                        >
-                          {item.itemCode} - {item.description}
-                        </SelectItem>
-                      ))}
-                    </SelectGroup>
+                {selectedItem ? selectedItem.description : "Select an item..."}
+                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-full p-0" align="start">
+              <Command>
+                <CommandInput placeholder="Search catalog items..." />
+                <CommandEmpty>No items found.</CommandEmpty>
+                <CommandGroup>
+                  {catalogItems.map((item: BudgetItemCatalog) => (
+                    <CommandItem
+                      key={item.id}
+                      value={item.itemCode}
+                      onSelect={() => handleSelectItem(item)}
+                    >
+                      <Check
+                        className={cn(
+                          "mr-2 h-4 w-4",
+                          selectedItem?.id === item.id ? "opacity-100" : "opacity-0"
+                        )}
+                      />
+                      <div className="flex flex-col">
+                        <span>{item.description}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {item.itemCode} - ${item.defaultUnitPrice.toFixed(2)}
+                        </span>
+                      </div>
+                    </CommandItem>
                   ))}
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="quantity-input">Quantity</Label>
-              <Input
-                id="quantity-input"
-                type="number"
-                min="1"
-                value={quantity}
-                onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
-                disabled={disabled || !selectedItem}
-              />
-            </div>
-          </div>
-          
-          {selectedItem && (
-            <div className="text-sm">
-              <p><span className="font-medium">Unit Price:</span> ${selectedItem.defaultUnitPrice.toFixed(2)}</p>
-              <p><span className="font-medium">Total:</span> ${(selectedItem.defaultUnitPrice * quantity).toFixed(2)}</p>
-            </div>
-          )}
-          
+                </CommandGroup>
+              </Command>
+            </PopoverContent>
+          </Popover>
+        </div>
+        
+        {/* Quantity input */}
+        <div className="md:col-span-3">
+          <Label htmlFor="quantity-input" className="mb-2 block">
+            Quantity
+          </Label>
+          <Input
+            id="quantity-input"
+            type="number"
+            value={quantity}
+            onChange={(e) => setQuantity(Number(e.target.value))}
+            min={1}
+            className="w-full"
+            disabled={!selectedItem || disabled}
+          />
+        </div>
+        
+        {/* Add button */}
+        <div className="md:col-span-2">
           <Button
-            type="button"
             onClick={handleAddItem}
-            disabled={disabled || !selectedItem}
+            disabled={!selectedItem || disabled}
             className="w-full"
           >
             <PlusCircle className="mr-2 h-4 w-4" />
-            Add Item
+            Add
           </Button>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+      
+      {/* Price preview */}
+      {selectedItem && (
+        <div className="text-sm text-muted-foreground mt-2">
+          Item Total: ${(selectedItem.defaultUnitPrice * quantity).toFixed(2)}
+          {' '}(${selectedItem.defaultUnitPrice.toFixed(2)} × {quantity})
+        </div>
+      )}
+    </div>
   );
 }
