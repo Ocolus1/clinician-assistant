@@ -234,6 +234,8 @@ export function UnifiedBudgetManager({
             description: item.description,
             quantity: item.quantity,
             unitPrice: item.unitPrice,
+            name: null,       // Required by the schema but can be null
+            category: null    // Required by the schema but can be null
           };
           await addItemMutation.mutateAsync(newItem);
         } else if (item.id) {
@@ -246,6 +248,8 @@ export function UnifiedBudgetManager({
             description: item.description,
             quantity: item.quantity,
             unitPrice: item.unitPrice,
+            name: null,       // Required by the schema but can be null
+            category: null    // Required by the schema but can be null
           };
           await updateItemMutation.mutateAsync(updatedItem);
         }
