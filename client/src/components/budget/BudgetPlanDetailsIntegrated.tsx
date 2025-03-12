@@ -256,10 +256,7 @@ export function BudgetPlanDetails({
               <span>Make Active</span>
             </Button>
           )}
-          <Button className="space-x-2">
-            <Edit className="h-4 w-4" />
-            <span>Edit Plan</span>
-          </Button>
+          {/* "Edit Plan" button removed as requested */}
         </div>
       </div>
       
@@ -444,6 +441,7 @@ export function BudgetPlanDetails({
               </>
             ) : (
               <>
+                {/* Only show Edit Allocations in non-edit mode */}
                 <Button 
                   variant="outline" 
                   className="space-x-2"
@@ -451,17 +449,6 @@ export function BudgetPlanDetails({
                 >
                   <Edit className="h-4 w-4" />
                   <span>Edit Allocations</span>
-                </Button>
-                
-                {/* Add Item button disabled when not in edit mode */}
-                <Button 
-                  onClick={() => {}} 
-                  variant="secondary"
-                  className="space-x-2"
-                  disabled={true}
-                >
-                  <Plus className="h-4 w-4" />
-                  <span>Add Item</span>
                 </Button>
               </>
             )}
@@ -478,13 +465,13 @@ export function BudgetPlanDetails({
               <div className="ml-3">
                 <h3 className="text-sm font-medium text-blue-800">Edit Mode Active</h3>
                 <div className="mt-2 text-sm text-blue-700">
-                  <p>You're now in edit mode. You can:</p>
+                  <p>You're now in edit mode. The workflow is:</p>
                   <ol className="list-decimal ml-5 mt-1 space-y-1">
                     <li>Adjust quantities of existing items</li>
-                    <li>Add new items to the budget</li>
-                    <li>Save your changes when finished</li>
+                    <li>Click "Add Item" to include new products from the catalog</li>
+                    <li>Click "Save Changes" when ready - budget will be validated</li>
                   </ol>
-                  <p className="mt-2">Total budget is fixed at $375. Your changes will be validated before saving.</p>
+                  <p className="mt-2">Total budget is fixed at $375. Changes will be validated against this amount before saving.</p>
                 </div>
               </div>
             </div>
