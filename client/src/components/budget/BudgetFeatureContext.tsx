@@ -311,7 +311,7 @@ export function BudgetFeatureProvider({ children, clientId, initialBudgetPlans }
   // Mutation to create a new budget item
   const createBudgetItemMutation = useMutation({
     mutationFn: async (itemData: any) => {
-      const response = await apiRequest("POST", `/api/clients/${clientId}/budget_items`, {
+      const response = await apiRequest("POST", `/api/clients/${clientId}/budget-items`, {
         ...itemData,
         clientId,
       });
@@ -346,7 +346,7 @@ export function BudgetFeatureProvider({ children, clientId, initialBudgetPlans }
   // Mutation to update an existing budget item
   const updateBudgetItemMutation = useMutation({
     mutationFn: async (itemData: any) => {
-      const response = await apiRequest("PUT", `/api/clients/${clientId}/budget_items/${itemData.id}`, itemData);
+      const response = await apiRequest("PUT", `/api/budget-items/${itemData.id}`, itemData);
       
       if (!response.ok) {
         const errorData = await response.json();
@@ -378,7 +378,7 @@ export function BudgetFeatureProvider({ children, clientId, initialBudgetPlans }
   // Mutation to delete a budget item
   const deleteBudgetItemMutation = useMutation({
     mutationFn: async (itemId: number) => {
-      const response = await apiRequest("DELETE", `/api/clients/${clientId}/budget_items/${itemId}`);
+      const response = await apiRequest("DELETE", `/api/budget-items/${itemId}`);
       
       if (!response.ok) {
         const errorData = await response.json();
