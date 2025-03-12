@@ -269,6 +269,23 @@ export function BudgetPlanDetails({
                   className="space-x-2"
                   disabled={!hasUnsavedChanges}
                   onClick={async () => {
+                    // Calculate the new total budget based on edited items
+                    const newTotalBudget = items.reduce((total, item) => {
+                      const editedItem = editedItems[item.id];
+                      const quantity = editedItem ? editedItem.quantity : item.quantity;
+                      return total + (item.unitPrice * quantity);
+                    }, 0);
+                    
+                    // Check if the new budget exceeds the available funds
+                    if (newTotalBudget > plan.availableFunds) {
+                      toast({
+                        variant: "destructive",
+                        title: "Budget Exceeded",
+                        description: "Your adjustments would result in a total that exceeds the available budget. Please reduce allocated quantities.",
+                      });
+                      return;
+                    }
+                    
                     // Save all edited items
                     try {
                       const promises = Object.values(editedItems).map(item => 
@@ -325,7 +342,6 @@ export function BudgetPlanDetails({
                   <TableRow>
                     <TableHead className="w-[100px]">Code</TableHead>
                     <TableHead>Description</TableHead>
-                    <TableHead>Category</TableHead>
                     <TableHead className="text-right">Unit Price</TableHead>
                     <TableHead className="text-right">Allocated</TableHead>
                     <TableHead className="text-right">Used</TableHead>
@@ -344,13 +360,6 @@ export function BudgetPlanDetails({
                         <TableRow key={item.id}>
                           <TableCell className="font-medium">{item.itemCode}</TableCell>
                           <TableCell>{item.description}</TableCell>
-                          <TableCell>
-                            {item.category && (
-                              <Badge variant="outline" className="font-normal">
-                                {item.category}
-                              </Badge>
-                            )}
-                          </TableCell>
                           <TableCell className="text-right">
                             {formatCurrency(item.unitPrice)}
                           </TableCell>
@@ -452,7 +461,7 @@ export function BudgetPlanDetails({
                     })
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={isEditing ? 8 : 9} className="text-center py-6 text-muted-foreground">
+                      <TableCell colSpan={isEditing ? 7 : 8} className="text-center py-6 text-muted-foreground">
                         No budget items available
                       </TableCell>
                     </TableRow>
