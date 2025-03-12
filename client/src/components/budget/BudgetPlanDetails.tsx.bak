@@ -98,237 +98,255 @@ export function BudgetPlanDetails({
   });
   const { toast } = useToast();
   const { deleteBudgetItem, updateBudgetItem } = useBudgetFeature();
-  
-  // Use form context for allocation quantities
-  const allocationsForm = useForm({
-    defaultValues: {
-      allocations: items.reduce((acc, item) => {
-        acc[item.id] = item.quantity;
-        return acc;
-      }, {} as Record<number, number>),
-    },
+
+  // Create a form schema for the allocations
+  const allocationsFormSchema = z.object({
+    items: z.array(z.object({
+      id: z.number(),
+      quantity: z.number().min(0),
+    }))
   });
   
-  // Calculate budget statistics
-  const totalAllocation = items.reduce((total, item) => total + (item.unitPrice * item.quantity), 0);
-  const totalUsed = items.reduce((total, item) => total + (item.unitPrice * item.usedQuantity), 0);
-  const totalBudgeted = plan.availableFunds || 0;
-  const percentUsed = totalBudgeted > 0 ? Math.round((totalUsed / totalBudgeted) * 100) : 0;
-  const remainingBudget = totalBudgeted - totalUsed;
-  
-  // Real-time budget validation during editing
-  useEffect(() => {
-    if (isEditing) {
-      // Calculate the new total budget based on edited quantities
-      const newTotalBudget = items.reduce((total, item) => {
-        const editedItem = editedItems[item.id];
-        const quantity = editedItem ? editedItem.quantity : item.quantity;
-        return total + (item.unitPrice * quantity);
-      }, 0);
-      
-      // Fixed budget constraint of $375
-      const fixedTotalBudget = 375;
-      
-      // Validate against the budget constraint
-      if (newTotalBudget > fixedTotalBudget) {
-        setBudgetError(`Your allocation exceeds the budget by ${formatCurrency(newTotalBudget - fixedTotalBudget)}.`);
-      } else if (newTotalBudget < fixedTotalBudget) {
-        setBudgetError(`Your allocation is under budget by ${formatCurrency(fixedTotalBudget - newTotalBudget)}.`);
-      } else {
-        setBudgetError(null);
-      }
-    } else {
-      setBudgetError(null);
+  // Initialize the form for allocations editing
+  const allocationsForm = useForm({
+    defaultValues: {
+      items: items.map(item => ({
+        id: item.id,
+        quantity: item.quantity
+      }))
     }
-  }, [editedItems, isEditing, items]);
+  });
   
-  // Handle quantity changes in edit mode
-  const handleQuantityChange = (item: BudgetItem, newQuantity: number) => {
-    // Ensure quantity is not less than what's already been used
-    if (newQuantity < item.usedQuantity) {
-      toast({
-        title: "Invalid quantity",
-        description: `Quantity cannot be less than the used amount (${item.usedQuantity}).`,
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    // Update the edited item
-    const updatedItem = { 
-      ...item, 
-      quantity: newQuantity,
-      balanceQuantity: newQuantity - item.usedQuantity
-    };
-    
-    setEditedItems((prev) => ({
-      ...prev,
-      [item.id]: updatedItem,
-    }));
-    
-    setHasUnsavedChanges(true);
-  };
-  
-  // Save changes to edited items
+  // Function to save the edited items
   const saveChanges = async () => {
-    // Filter out items that haven't changed
-    const changedItems = Object.values(editedItems).filter(
-      (editedItem) => {
-        const originalItem = items.find(item => item.id === editedItem.id);
-        return originalItem && originalItem.quantity !== editedItem.quantity;
-      }
-    );
-    
-    if (changedItems.length === 0) {
-      setIsEditing(false);
-      setEditedItems({});
-      return;
-    }
-    
     try {
-      // Update each changed item
-      for (const item of changedItems) {
-        await updateBudgetItem(item);
-      }
+      const promises = Object.values(editedItems).map(item => 
+        updateBudgetItem(item)
+      );
+      await Promise.all(promises);
       
       toast({
-        title: "Changes saved",
-        description: `Successfully updated ${changedItems.length} budget item${changedItems.length > 1 ? 's' : ''}.`,
+        title: "Changes Saved",
+        description: "Budget item allocations have been updated.",
       });
       
-      // Reset edit state
       setIsEditing(false);
       setEditedItems({});
       setHasUnsavedChanges(false);
     } catch (error) {
-      console.error("Error saving changes:", error);
       toast({
-        title: "Error",
-        description: "Failed to save changes. Please try again.",
         variant: "destructive",
+        title: "Save Failed",
+        description: "Failed to save changes. Please try again.",
       });
     }
   };
   
-  // Handle delete item click
+  // Format dates for display
+  const formattedStartDate = plan.startDate 
+    ? format(new Date(plan.startDate), "MMM d, yyyy") 
+    : "Not specified";
+    
+  const formattedEndDate = plan.endDate 
+    ? format(new Date(plan.endDate), "MMM d, yyyy") 
+    : "Not specified";
+  
+  // Calculate total budgeted amount - this is the sum of all allocated items
+  const totalBudgeted = items.reduce(
+    (sum, item) => sum + (item.unitPrice * item.quantity), 
+    0
+  );
+  
+  // Total used in sessions - currently not implemented, will be 0
+  const totalConsumed = 0; // This should later come from session records
+  
+  // Percentage used (consumed) from the budget
+  const percentageUsed = totalBudgeted > 0 
+    ? Math.min(Math.round((totalConsumed / totalBudgeted) * 100), 100) 
+    : 0;
+  
+  // Since we're using the sum of all items as our "available funds",
+  // and since we're currently not tracking any usage, the available balance
+  // is equal to the total budgeted amount
+  const availableBalance = totalBudgeted - totalConsumed;
+  
+  // Handle item deletion with confirmation
   const handleDeleteClick = (item: BudgetItem) => {
     setItemToDelete(item);
-    setConfirmationText("");
     setIsDeleteDialogOpen(true);
+    setConfirmationText("");
   };
   
-  // Handle confirm delete
   const handleConfirmDelete = async () => {
-    if (!itemToDelete || confirmationText !== "delete") return;
+    if (!itemToDelete) return;
     
     try {
       await deleteBudgetItem(itemToDelete.id);
-      
       toast({
-        title: "Item deleted",
-        description: `"${itemToDelete.description}" was successfully removed from the budget plan.`,
+        title: "Item Deleted",
+        description: `${itemToDelete.description} has been deleted.`,
       });
-      
       setIsDeleteDialogOpen(false);
       setItemToDelete(null);
-      setConfirmationText("");
     } catch (error) {
-      console.error("Error deleting item:", error);
       toast({
-        title: "Error",
-        description: "Failed to delete the item. Please try again.",
         variant: "destructive",
+        title: "Error",
+        description: "Failed to delete item. Please try again.",
       });
     }
+  };
+  
+  // Function to handle quantity changes
+  const handleQuantityChange = (item: BudgetItem, newQuantity: number) => {
+    const safeQuantity = Math.max(
+      newQuantity, 
+      item.usedQuantity
+    );
+    
+    // Create a new edited item with updated quantity
+    const updatedItem = {
+      ...item,
+      quantity: safeQuantity,
+      balanceQuantity: safeQuantity - item.usedQuantity
+    };
+    
+    // Update the edited items record
+    setEditedItems({
+      ...editedItems,
+      [item.id]: updatedItem
+    });
+    
+    // Calculate the new total budget in real-time
+    const newTotalBudget = items.reduce((total, currentItem) => {
+      if (currentItem.id === item.id) {
+        return total + (currentItem.unitPrice * safeQuantity);
+      }
+      const edited = editedItems[currentItem.id];
+      const qty = edited ? edited.quantity : currentItem.quantity;
+      return total + (currentItem.unitPrice * qty);
+    }, 0);
+    
+    // Clear any previous error
+    setBudgetError(null);
+    
+    // Add validation rule as needed
+    if (safeQuantity < item.usedQuantity) {
+      setBudgetError(`You cannot allocate less than the already used quantity (${item.usedQuantity}) for ${item.description}.`);
+    }
+    
+    setHasUnsavedChanges(true);
   };
   
   return (
     <div className="space-y-6">
-      {/* Budget Plan Header */}
-      <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-4">
-        <div>
-          <Button 
-            variant="ghost" 
-            className="h-8 w-8 p-0 mb-2" 
-            onClick={onBack}
-          >
-            <ArrowLeft className="h-4 w-4" />
-            <span className="sr-only">Back</span>
+      {/* Header with back button */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" size="icon" onClick={onBack}>
+            <ArrowLeft className="h-5 w-5" />
           </Button>
-          
-          <h2 className="text-2xl font-bold tracking-tight">
-            {plan.planName || `Plan #${plan.id}`}
-          </h2>
-          
-          <div className="flex items-center gap-2 mt-1 text-muted-foreground">
-            <FileText className="h-4 w-4" />
-            <span>{plan.planCode || '-'}</span>
-          </div>
+          <h2 className="text-2xl font-semibold">Plan Details</h2>
         </div>
         
-        <div className="flex items-center gap-2">
-          <Badge variant={plan.isActive ? "default" : "secondary"}>
-            {plan.isActive ? "Active" : "Inactive"}
-          </Badge>
-          
+        <div className="flex gap-2">
           {!plan.isActive && onMakeActive && (
             <Button 
               variant="outline" 
-              size="sm"
+              className="space-x-2" 
               onClick={() => onMakeActive(plan)}
             >
-              Make Active
+              <Check className="h-4 w-4" />
+              <span>Make Active</span>
             </Button>
           )}
+          {/* Edit Plan button removed per UX requirements */}
         </div>
       </div>
       
-      {/* Budget Plan Overview Cards */}
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Total Funding</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {formatCurrency(totalBudgeted)}
+      {/* Plan Summary Card */}
+      <Card>
+        <CardHeader>
+          <div className="flex justify-between items-start">
+            <div>
+              <CardTitle className="text-xl mb-1">{plan.planName}</CardTitle>
+              <CardDescription>
+                {plan.planCode && (
+                  <span className="font-medium text-foreground">{plan.planCode}</span>
+                )}
+                {plan.planCode && " - "}
+                {plan.isActive 
+                  ? <Badge variant="default">Active</Badge>
+                  : <Badge variant="outline">Inactive</Badge>
+                }
+              </CardDescription>
             </div>
-            <div className="text-xs text-muted-foreground mt-1 flex items-center">
-              <Calendar className="h-3 w-3 mr-1" />
-              <span>Fixed budget: $375</span>
+            <div className="text-right">
+              <div className="text-sm text-muted-foreground mb-1">Total Budget</div>
+              <div className="text-2xl font-semibold">{formatCurrency(totalBudgeted)}</div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </CardHeader>
         
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Budget Usage</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <div className="text-2xl font-bold">
-              {formatCurrency(totalUsed)}
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Date Information */}
+            <div className="space-y-3">
+              <div className="text-sm font-medium flex items-center">
+                <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
+                Date Information
+              </div>
+              <div className="grid grid-cols-2 gap-2 text-sm">
+                <div className="text-muted-foreground">Start Date:</div>
+                <div>{formattedStartDate}</div>
+                <div className="text-muted-foreground">End Date:</div>
+                <div>{formattedEndDate}</div>
+              </div>
             </div>
-            <Progress value={percentUsed} className="h-2" />
-            <div className="text-xs text-muted-foreground">
-              {percentUsed}% of total funds used
+            
+            {/* Usage Information */}
+            <div className="space-y-3">
+              <div className="text-sm font-medium flex items-center">
+                <DollarSign className="h-4 w-4 mr-2 text-muted-foreground" />
+                Budget Usage
+              </div>
+              <div className="grid grid-cols-2 gap-2 text-sm">
+                <div className="text-muted-foreground">Budgeted:</div>
+                <div>{formatCurrency(totalBudgeted)}</div>
+                <div className="text-muted-foreground">Used:</div>
+                <div>{formatCurrency(totalConsumed)}</div>
+                <div className="text-muted-foreground">Available:</div>
+                <div className={`font-medium ${availableBalance < 0 ? 'text-red-500' : ''}`}>
+                  {formatCurrency(availableBalance)}
+                </div>
+              </div>
             </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Remaining Balance</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {formatCurrency(remainingBudget)}
+            
+            {/* Usage Progress */}
+            <div className="space-y-3">
+              <div className="text-sm font-medium flex items-center">
+                <FileText className="h-4 w-4 mr-2 text-muted-foreground" />
+                Funding Progress
+              </div>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span>Usage</span>
+                    <span>{percentageUsed}%</span>
+                  </div>
+                  <Progress value={percentageUsed} className="h-2" />
+                </div>
+                <div className="text-sm flex justify-between">
+                  <span>{items.length} items</span>
+                  <span className="text-green-600">
+                    Within budget
+                  </span>
+                </div>
+              </div>
             </div>
-            <div className="text-xs text-muted-foreground mt-1">
-              {items.length} item{items.length !== 1 ? 's' : ''} in plan
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+          </div>
+        </CardContent>
+      </Card>
       
       {/* Budget Items Section */}
       <div className="space-y-4">
@@ -609,21 +627,28 @@ export function BudgetPlanDetails({
         </Card>
       </div>
       
-      {/* Add Item Dialog */}
+      {/* Add Item Dialog with Budget Validation */}
       {isAddItemDialogOpen && (
-        <BudgetItemForm
-          open={isAddItemDialogOpen}
+        /* Important: We'll unmount the FormProvider within the dialog to avoid React hook context conflicts */
+        <Dialog 
+          open={isAddItemDialogOpen} 
           onOpenChange={setIsAddItemDialogOpen}
-          clientId={plan.clientId}
-          budgetSettingsId={plan.id}
-          totalBudgeted={375} // Fixed budget constraint
-          currentTotal={totalBudgeted}
-          onSuccess={() => {
-            // Make sure we stay in edit mode after adding an item
-            setIsEditing(true);
-            setHasUnsavedChanges(true);
-          }}
-          onValidationRequired={async (data, difference) => {
+        >
+          <DialogContent className="sm:max-w-[550px]">
+            <BudgetItemForm
+              clientId={plan.clientId}
+              budgetSettingsId={plan.id}
+              totalBudgeted={375} // Fixed budget constraint
+              currentTotal={totalBudgeted}
+              onClose={() => setIsAddItemDialogOpen(false)}
+              onSuccess={() => {
+                // Make sure we stay in edit mode after adding an item
+                setIsEditing(true);
+                setHasUnsavedChanges(true);
+                // Close the dialog
+                setIsAddItemDialogOpen(false);
+              }}
+              onValidationRequired={async (data, difference) => {
             // Store the pending item data temporarily
             setPendingItemData(data);
             
