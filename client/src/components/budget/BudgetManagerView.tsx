@@ -6,7 +6,7 @@ import {
   useBudgetFeature
 } from "./BudgetFeatureContext";
 import { DirectBudgetPlanList } from "./DirectBudgetPlanList";
-import { BudgetPlanDetails } from "./BudgetPlanDetails";
+import { BudgetPlanDetails } from "./BudgetPlanDetailsIntegrated";
 import { BudgetPlanForm } from "./BudgetPlanForm";
 import { BudgetItemForm } from "./BudgetItemForm";
 import { Button } from "@/components/ui/button";
@@ -42,7 +42,13 @@ function BudgetManagerContent({ clientId }: BudgetManagerViewProps) {
   const { toast } = useToast();
   
   // Initialize the form for budget management
-  const budgetForm = useForm({
+  const budgetForm = useForm<{
+    items: Array<{
+      id: number;
+      quantity: number;
+      unitPrice: number;
+    }>;
+  }>({
     defaultValues: {
       items: [] 
     }
@@ -147,16 +153,32 @@ function BudgetManagerContent({ clientId }: BudgetManagerViewProps) {
     );
   }
   
+  // When a plan is selected, set the form's default values
+  useEffect(() => {
+    if (currentPlan && currentPlanItems.length > 0) {
+      budgetForm.reset({
+        items: currentPlanItems.map(item => ({
+          id: item.id,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+          // Include other item properties needed for the form
+        }))
+      });
+    }
+  }, [currentPlan, currentPlanItems, budgetForm]);
+
   return (
     <div>
       {/* Show the appropriate view based on state */}
       {showDetailsView && currentPlan ? (
-        <BudgetPlanDetails 
-          plan={currentPlan}
-          items={currentPlanItems}
-          onBack={handleBackToList}
-          onMakeActive={handleMakeActiveClick}
-        />
+        <FormProvider {...budgetForm}>
+          <BudgetPlanDetails 
+            plan={currentPlan}
+            items={currentPlanItems}
+            onBack={handleBackToList}
+            onMakeActive={handleMakeActiveClick}
+          />
+        </FormProvider>
       ) : (
         <div className="space-y-6">
           <div className="flex justify-between items-center">
