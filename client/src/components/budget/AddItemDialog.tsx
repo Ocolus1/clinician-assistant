@@ -301,7 +301,7 @@ export function AddItemDialog({
                             <div className="font-medium text-sm">{item.description}</div>
                             <div className="text-xs text-muted-foreground">{item.itemCode}</div>
                           </div>
-                          <div className="text-sm font-medium">${item.defaultUnitPrice.toFixed(2)}</div>
+                          <div className="text-sm font-medium">${typeof item.defaultUnitPrice === 'number' ? item.defaultUnitPrice.toFixed(2) : item.defaultUnitPrice}</div>
                         </div>
                         {item.category && (
                           <div className="mt-1">
