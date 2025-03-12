@@ -12,7 +12,7 @@ import { BudgetItemForm } from "./BudgetItemForm";
 import { Button } from "@/components/ui/button";
 import { Loader2, Plus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useForm, FormProvider } from "react-hook-form";
+// We no longer need form imports as BudgetPlanDetails has its own form context
 
 interface BudgetManagerViewProps {
   clientId: number;
@@ -41,18 +41,7 @@ function BudgetManagerContent({ clientId }: BudgetManagerViewProps) {
   const [currentPlan, setCurrentPlan] = useState<BudgetPlan | null>(null);
   const { toast } = useToast();
   
-  // Initialize the form for budget management
-  const budgetForm = useForm<{
-    items: Array<{
-      id: number;
-      quantity: number;
-      unitPrice: number;
-    }>;
-  }>({
-    defaultValues: {
-      items: [] 
-    }
-  });
+  // We no longer need to initialize a form here since BudgetPlanDetails has its own form context
   
   // Watch for changes in selected plan ID
   useEffect(() => {
@@ -153,32 +142,16 @@ function BudgetManagerContent({ clientId }: BudgetManagerViewProps) {
     );
   }
   
-  // When a plan is selected, set the form's default values
-  useEffect(() => {
-    if (currentPlan && currentPlanItems.length > 0) {
-      budgetForm.reset({
-        items: currentPlanItems.map(item => ({
-          id: item.id,
-          quantity: item.quantity,
-          unitPrice: item.unitPrice,
-          // Include other item properties needed for the form
-        }))
-      });
-    }
-  }, [currentPlan, currentPlanItems, budgetForm]);
-
   return (
     <div>
       {/* Show the appropriate view based on state */}
       {showDetailsView && currentPlan ? (
-        <FormProvider {...budgetForm}>
-          <BudgetPlanDetails 
-            plan={currentPlan}
-            items={currentPlanItems}
-            onBack={handleBackToList}
-            onMakeActive={handleMakeActiveClick}
-          />
-        </FormProvider>
+        <BudgetPlanDetails 
+          plan={currentPlan}
+          items={currentPlanItems}
+          onBack={handleBackToList}
+          onMakeActive={handleMakeActiveClick}
+        />
       ) : (
         <div className="space-y-6">
           <div className="flex justify-between items-center">

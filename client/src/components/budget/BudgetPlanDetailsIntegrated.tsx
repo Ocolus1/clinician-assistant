@@ -46,8 +46,21 @@ import {
   DialogTitle,
   DialogClose,
 } from "@/components/ui/dialog";
-import { useFormContext } from "react-hook-form";
+import { useForm, FormProvider } from "react-hook-form";
 import { z } from "zod";
+
+// Define our form schema
+const budgetAllocationSchema = z.object({
+  items: z.array(z.object({
+    id: z.number(),
+    quantity: z.number().min(0),
+    unitPrice: z.number(),
+    description: z.string().optional(),
+    itemCode: z.string().optional()
+  }))
+});
+
+type BudgetAllocationFormValues = z.infer<typeof budgetAllocationSchema>;
 
 interface BudgetPlanDetailsProps {
   plan: BudgetPlan;
@@ -61,7 +74,7 @@ interface BudgetPlanDetailsProps {
 
 /**
  * Detailed view of a budget plan including items, usage stats and actions
- * This version uses the form context from parent component
+ * This version creates and manages its own form context
  */
 export function BudgetPlanDetails({ 
   plan, 
@@ -100,8 +113,18 @@ export function BudgetPlanDetails({
   const { toast } = useToast();
   const { deleteBudgetItem, updateBudgetItem } = useBudgetFeature();
   
-  // Use the form context from parent
-  const form = useFormContext();
+  // Create our own form instead of using parent's context
+  const formMethods = useForm<BudgetAllocationFormValues>({
+    defaultValues: {
+      items: items.map(item => ({
+        id: item.id,
+        quantity: item.quantity,
+        unitPrice: item.unitPrice,
+        description: item.description,
+        itemCode: item.itemCode
+      }))
+    }
+  });
   
   // Function to save the edited items
   const saveChanges = async () => {
@@ -225,7 +248,8 @@ export function BudgetPlanDetails({
   };
   
   return (
-    <div className="space-y-6">
+    <FormProvider {...formMethods}>
+      <div className="space-y-6">
       {/* Header with back button */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
@@ -356,6 +380,16 @@ export function BudgetPlanDetails({
                   <X className="h-4 w-4" />
                   <span>Cancel</span>
                 </Button>
+
+                <Button 
+                  onClick={() => setIsAddItemDialogOpen(true)}
+                  variant="secondary"
+                  className="space-x-2"
+                >
+                  <Plus className="h-4 w-4" />
+                  <span>Add Item</span>
+                </Button>
+
                 <Button 
                   className="space-x-2"
                   disabled={!hasUnsavedChanges}
@@ -421,20 +455,14 @@ export function BudgetPlanDetails({
                 </Button>
               </>
             ) : (
-              <>
-                <Button 
-                  variant="outline" 
-                  className="space-x-2"
-                  onClick={() => setIsEditing(true)}
-                >
-                  <Edit className="h-4 w-4" />
-                  <span>Edit Allocations</span>
-                </Button>
-                <Button onClick={() => setIsAddItemDialogOpen(true)}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  <span>Add Item</span>
-                </Button>
-              </>
+              <Button 
+                variant="outline" 
+                className="space-x-2"
+                onClick={() => setIsEditing(true)}
+              >
+                <Edit className="h-4 w-4" />
+                <span>Edit Allocations</span>
+              </Button>
             )}
           </div>
         </div>
@@ -685,5 +713,6 @@ export function BudgetPlanDetails({
         </DialogContent>
       </Dialog>
     </div>
+    </FormProvider>
   );
 }
