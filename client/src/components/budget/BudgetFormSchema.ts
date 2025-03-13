@@ -5,13 +5,13 @@ import { z } from 'zod';
  */
 export const FIXED_BUDGET_AMOUNT = 375; // Maximum allocated budget
 export const AVAILABLE_FUNDS_AMOUNT = 500; // Total available funds
-export const INITIAL_USED_AMOUNT = 0; // Initial amount used (no sessions yet)
+export const INITIAL_USED_AMOUNT = 225; // Initial amount used (1x THERAPY-001 @ 150 + 1x THERAPY-002 @ 75)
 
-// Mock values for used quantities - in a real app, these would come from the database
-// showing actual usage from sessions
+// Used quantities for budget items - represents actual usage from sessions
+// These should match with the data from the API
 export const MOCK_USED_QUANTITIES: Record<string, number> = {
-  "THERAPY-001": 0, // Individual Speech Therapy
-  "THERAPY-002": 0, // Group Speech Therapy
+  "THERAPY-001": 1, // Individual Speech Therapy (1 session used)
+  "THERAPY-002": 1, // Group Speech Therapy (1 session used) 
   "THERAPY-003": 0  // All other items are unused by default
 };
 
