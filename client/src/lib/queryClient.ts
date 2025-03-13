@@ -61,6 +61,51 @@ export async function apiRequest(
       console.warn('API URL contains undefined or null values:', url);
     }
     
+    // Check for data type issues with budget items
+    if (url.includes('budget-items') && data) {
+      console.log('Validating budget item data before submission:', data);
+      
+      // Add type validation for common numeric fields
+      if (typeof data === 'object' && data !== null) {
+        const budgetData = data as any;
+        
+        // Ensure quantity is a number
+        if ('quantity' in budgetData && budgetData.quantity !== undefined) {
+          const originalQuantity = budgetData.quantity;
+          budgetData.quantity = Number(budgetData.quantity);
+          
+          if (isNaN(budgetData.quantity)) {
+            console.error('Invalid quantity value:', originalQuantity);
+            throw new Error(`Invalid quantity: "${originalQuantity}" is not a valid number`);
+          }
+        }
+        
+        // Ensure unitPrice is a number
+        if ('unitPrice' in budgetData && budgetData.unitPrice !== undefined) {
+          const originalPrice = budgetData.unitPrice;
+          budgetData.unitPrice = Number(budgetData.unitPrice);
+          
+          if (isNaN(budgetData.unitPrice)) {
+            console.error('Invalid unit price value:', originalPrice);
+            throw new Error(`Invalid unit price: "${originalPrice}" is not a valid number`);
+          }
+        }
+        
+        // Ensure budgetSettingsId is a number
+        if ('budgetSettingsId' in budgetData && budgetData.budgetSettingsId !== undefined) {
+          const originalId = budgetData.budgetSettingsId;
+          budgetData.budgetSettingsId = Number(budgetData.budgetSettingsId);
+          
+          if (isNaN(budgetData.budgetSettingsId)) {
+            console.error('Invalid budgetSettingsId value:', originalId);
+            throw new Error(`Invalid budget settings ID: "${originalId}" is not a valid number`);
+          }
+        }
+        
+        console.log('Validated budget data:', budgetData);
+      }
+    }
+    
     console.log(`API Request: ${method} ${url}`, data || '');
     
     const res = await fetch(url, {

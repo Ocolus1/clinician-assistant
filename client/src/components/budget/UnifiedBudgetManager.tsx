@@ -189,13 +189,27 @@ export function UnifiedBudgetManager({ clientId }: UnifiedBudgetManagerProps) {
 
   // Add a new catalog item to the form
   const handleAddCatalogItem = (catalogItem: CatalogItem, quantity: number) => {
+    // Validate inputs first
+    if (!catalogItem.itemCode) {
+      toast({
+        title: "Invalid Item",
+        description: "The selected item is missing a required item code.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    // Ensure quantity is a positive number
+    const validQuantity = Math.max(1, Number(quantity) || 1);
+    
+    // Ensure unit price is a valid number
+    const unitPrice = Math.max(0, Number(catalogItem.defaultUnitPrice) || 0);
+    
     // Get current allocated total
     const currentTotal = form.getValues().totalAllocated || 0;
     
-    // Calculate new item cost
-    const itemCost = catalogItem.defaultUnitPrice * quantity;
-    
-    // Use fixed budget amount
+    // Calculate new item cost with validated values
+    const itemCost = unitPrice * validQuantity;
     
     // Check if this would exceed the budget
     if (currentTotal + itemCost > FIXED_BUDGET_AMOUNT) {
@@ -207,17 +221,19 @@ export function UnifiedBudgetManager({ clientId }: UnifiedBudgetManagerProps) {
       return;
     }
     
-    // Create new item with explicit isNew flag
+    // Create new item with explicit isNew flag and properly validated data
     const newItem = {
       id: -1 * (Date.now()), // Temporary negative ID to identify as new
       itemCode: catalogItem.itemCode,
-      description: catalogItem.description,
-      quantity: quantity,
-      unitPrice: catalogItem.defaultUnitPrice,
-      total: catalogItem.defaultUnitPrice * quantity,
+      description: catalogItem.description || catalogItem.itemCode,
+      quantity: validQuantity,
+      unitPrice: unitPrice,
+      total: unitPrice * validQuantity,
       isNew: true, // This flag is critical for identifying items to create
-      name: catalogItem.description,
-      category: catalogItem.category || "Other"
+      name: catalogItem.description || catalogItem.itemCode,
+      category: catalogItem.category || "Other",
+      clientId: Number(clientId),
+      budgetSettingsId: activePlan?.id ? Number(activePlan.id) : undefined
     };
     
     console.log("Created new budget item:", newItem);
@@ -356,15 +372,20 @@ export function UnifiedBudgetManager({ clientId }: UnifiedBudgetManagerProps) {
           console.log("Processing creation of new items...");
           const createPromises = itemsToCreate.map(item => {
             console.log(`Creating new item ${item.itemCode} with quantity ${item.quantity} for client ${clientId}`);
-            return apiRequest('POST', `/api/clients/${clientId}/budget-items`, {
+            // Ensure all values are of the correct type
+            const payload = {
               budgetSettingsId: activePlan.id,
               itemCode: item.itemCode,
               description: item.description,
-              quantity: item.quantity,
-              unitPrice: item.unitPrice,
+              // Ensure quantity is a number
+              quantity: Number(item.quantity),
+              // Ensure unitPrice is a number
+              unitPrice: Number(item.unitPrice),
               name: item.name || item.description,
-              category: item.category
-            });
+              category: item.category || "Other"
+            };
+            console.log("Sending formatted payload:", payload);
+            return apiRequest('POST', `/api/clients/${clientId}/budget-items`, payload);
           });
           allPromises.push(...createPromises);
         }
@@ -485,11 +506,29 @@ export function UnifiedBudgetManager({ clientId }: UnifiedBudgetManagerProps) {
       form.reset();
     },
     onError: (error: any) => {
+      console.error('Error details:', error);
+      
+      // Format a more user-friendly error message
+      let errorMessage = 'Failed to update budget items';
+      
+      if (error) {
+        // Extract useful information from the error
+        if (error.message) {
+          errorMessage = error.message;
+        }
+        
+        // Handle specific error cases we can identify
+        if (error.status === 400) {
+          errorMessage = 'Invalid data format detected. Please check your inputs.';
+        }
+      }
+      
       toast({
         title: 'Error',
-        description: error.message || 'Failed to update budget items',
+        description: errorMessage,
         variant: 'destructive'
       });
+      
       console.error('Failed to update budget items:', error);
     }
   });
