@@ -92,10 +92,10 @@ export function UnifiedBudgetManager({ clientId }: UnifiedBudgetManagerProps) {
 
   // Get catalog items
   const catalogQuery = useQuery({
-    queryKey: ['/api/budget-item-catalog'],
+    queryKey: ['/api/budget-catalog'],
     queryFn: async () => {
       try {
-        const response = await fetch('/api/budget-item-catalog');
+        const response = await fetch('/api/budget-catalog');
         if (!response.ok) {
           throw new Error('Failed to fetch catalog items');
         }
@@ -298,6 +298,11 @@ export function UnifiedBudgetManager({ clientId }: UnifiedBudgetManagerProps) {
       
       queryClient.invalidateQueries({ 
         queryKey: [`/api/clients/${clientId}/budget-settings`] 
+      });
+      
+      // Also invalidate the catalog query to ensure it's fresh
+      queryClient.invalidateQueries({
+        queryKey: ['/api/budget-catalog']
       });
       
       // Reset the form
