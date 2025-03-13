@@ -61,16 +61,26 @@ export function UnifiedBudgetManager({ clientId }: UnifiedBudgetManagerProps) {
     setBudgetItems
   } = useBudgetFeature();
   
-  // Helper function to get client-specific budget amount
+  // Helper function to calculate client-specific budget amount based on items
   const getClientBudget = () => {
-    // Use the active plan's availableFunds if available, properly handling string values
+    // Calculate total budget from all budget items
+    if (budgetItems && budgetItems.length > 0) {
+      return budgetItems.reduce((total, item) => {
+        const quantity = Number(item.quantity);
+        const unitPrice = Number(item.unitPrice);
+        return total + (quantity * unitPrice);
+      }, 0);
+    }
+    
+    // Fallback to active plan's availableFunds if items not available
     if (activePlan && activePlan.availableFunds) {
       // Convert string values to numbers if needed
       return typeof activePlan.availableFunds === 'string' 
         ? parseFloat(activePlan.availableFunds) 
         : activePlan.availableFunds;
     }
-    // Fallback to a sensible default if no budget is defined (should never happen in practice)
+    
+    // Final fallback if nothing else is available
     return 0;
   };
 
@@ -165,19 +175,22 @@ export function UnifiedBudgetManager({ clientId }: UnifiedBudgetManagerProps) {
 
       // Calculate total allocated from items
       const totalAllocated = initialItems.reduce(
-        (sum: number, item: any) => sum + (item.quantity * item.unitPrice), 0
+        (sum: number, item: any) => sum + (Number(item.quantity) * Number(item.unitPrice)), 0
       );
 
-      // Get available funds from active plan or use the import from BudgetFormSchema as fallback
-      const availableFunds = activePlan?.availableFunds || 0;
+      // Calculate total budget as the sum of all budget items
+      const totalBudget = initialItems.reduce(
+        (sum: number, item: any) => sum + (Number(item.quantity) * Number(item.unitPrice)), 0
+      );
 
-      // Calculate remaining budget - unused amount for now
-      const remainingBudget = availableFunds; // Remaining budget is total budget - used (not allocated)
+      // Calculate remaining budget as total budget minus used (not allocated)
+      // For now, this is the same as total budget since we start with no usage
+      const remainingBudget = totalBudget; 
 
       // Set default values with real data
       form.reset({
         items: initialItems,
-        totalBudget: availableFunds,
+        totalBudget: totalBudget,
         totalAllocated: totalAllocated,
         remainingBudget: remainingBudget
       });
