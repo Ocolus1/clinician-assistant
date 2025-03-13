@@ -48,8 +48,7 @@ export function UnifiedBudgetManager({ clientId }: UnifiedBudgetManagerProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
-  // Fixed budget constant - set to 2000 which is the fixed total value of items added when client was created
-  const FIXED_BUDGET_AMOUNT = 2000;
+  // The budget amount is now client-specific and should be pulled from the active plan
   const [formInitialized, setFormInitialized] = useState(false);
   // Add debug mode for troubleshooting
   const [debugMode, setDebugMode] = useState(true);
@@ -156,8 +155,8 @@ export function UnifiedBudgetManager({ clientId }: UnifiedBudgetManagerProps) {
         (sum: number, item: any) => sum + (item.quantity * item.unitPrice), 0
       );
 
-      // Get available funds from active plan or default to the fixed budget
-      const availableFunds = FIXED_BUDGET_AMOUNT; // Always use the fixed budget amount of 2000
+      // Get available funds from the active plan - this is client-specific
+      const availableFunds = activePlan?.availableFunds || 0;
 
       // Calculate remaining budget - unused amount for now
       const remainingBudget = availableFunds; // Remaining budget is total budget - used (not allocated)
