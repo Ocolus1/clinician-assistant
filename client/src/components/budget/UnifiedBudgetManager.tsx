@@ -161,8 +161,8 @@ export function UnifiedBudgetManager({ clientId }: UnifiedBudgetManagerProps) {
       // Get available funds from the active plan - this is client-specific
       const availableFunds = activePlan?.availableFunds || 0;
 
-      // Calculate remaining budget - unused amount for now
-      const remainingBudget = availableFunds; // Remaining budget is total budget - used (not allocated)
+      // Calculate remaining budget by subtracting allocated from available funds
+      const remainingBudget = availableFunds - totalAllocated; // Remaining budget is total budget minus allocated amount
 
       // Set default values with real data
       form.reset({
@@ -703,7 +703,7 @@ export function UnifiedBudgetManager({ clientId }: UnifiedBudgetManagerProps) {
                 totalBudget={getClientBudget()} // Set to client-specific budget amount
                 totalAllocated={form.watch("totalAllocated") || 0}
                 remainingBudget={getClientBudget() - (form.watch("totalAllocated") || 0)} // Total remaining budget is total budget minus allocated amount
-                originalAllocated={totalAllocated} // The original allocated budget amount before edits
+                originalAllocated={(itemsQuery.data || []).reduce((sum, item) => sum + (item.quantity * item.unitPrice), 0)}
               />
               
               <Separator className="my-4" />
