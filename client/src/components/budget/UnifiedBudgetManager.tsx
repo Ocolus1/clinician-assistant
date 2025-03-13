@@ -5,7 +5,8 @@ import * as z from "zod";
 import { 
   unifiedBudgetFormSchema,
   UnifiedBudgetFormValues,
-  budgetItemSchema
+  budgetItemSchema,
+  FIXED_BUDGET_AMOUNT
 } from "./BudgetFormSchema";
 import { 
   Form, 
@@ -48,8 +49,8 @@ export function UnifiedBudgetManager({ clientId }: UnifiedBudgetManagerProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
-  // Fixed budget constant - set to 2000 which is the fixed total value of items added when client was created
-  const FIXED_BUDGET_AMOUNT = 2000;
+  // We'll use the active plan's availableFunds from BudgetFormSchema for fallback
+  // instead of using a local constant
   const [formInitialized, setFormInitialized] = useState(false);
   // Add debug mode for troubleshooting
   const [debugMode, setDebugMode] = useState(true);
@@ -156,8 +157,8 @@ export function UnifiedBudgetManager({ clientId }: UnifiedBudgetManagerProps) {
         (sum: number, item: any) => sum + (item.quantity * item.unitPrice), 0
       );
 
-      // Get available funds from active plan or default to the fixed budget
-      const availableFunds = FIXED_BUDGET_AMOUNT; // Always use the fixed budget amount of 2000
+      // Get available funds from active plan or use the import from BudgetFormSchema as fallback
+      const availableFunds = activePlan?.availableFunds || 0;
 
       // Calculate remaining budget - unused amount for now
       const remainingBudget = availableFunds; // Remaining budget is total budget - used (not allocated)
