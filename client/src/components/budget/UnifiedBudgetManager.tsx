@@ -476,18 +476,58 @@ export function UnifiedBudgetManager({ clientId }: UnifiedBudgetManagerProps) {
           .then(res => res.json())
           .then(data => {
             console.log("Refreshed budget items:", data);
-            setBudgetItems(data);
+            // Verify items are valid before updating state
+            if (!Array.isArray(data)) {
+              console.error("Invalid data format received:", data);
+              return;
+            }
+            
+            // Check if we have duplicate items in the response
+            const itemCodes = new Set();
+            const uniqueItems = data.filter(item => {
+              // Skip invalid items
+              if (!item || !item.itemCode) return false;
+              
+              // Check if this item code already exists
+              if (itemCodes.has(item.itemCode)) {
+                console.warn(`Duplicate item found: ${item.itemCode}`);
+                return false;
+              }
+              
+              // Valid unique item
+              itemCodes.add(item.itemCode);
+              return true;
+            });
+            
+            // Calculate total allocation for validation
+            const totalAllocated = uniqueItems.reduce(
+              (sum, item) => sum + (Number(item.quantity) * Number(item.unitPrice)), 
+              0
+            );
+            
+            // Verify allocation doesn't exceed the budget
+            if (totalAllocated > FIXED_BUDGET_AMOUNT) {
+              console.error(`Budget validation failed! Total allocation ${totalAllocated} exceeds budget ${FIXED_BUDGET_AMOUNT}.`);
+              toast({
+                title: "Budget Error",
+                description: "The total allocation exceeds the budget limit. Some items may not be saved.",
+                variant: "destructive"
+              });
+            }
+            
+            // Update with validated unique items
+            setBudgetItems(uniqueItems);
             
             // Directly update the field array with the freshly fetched items
-            if (Array.isArray(data) && data.length > 0) {
-              console.log("Directly updating form fields with fresh data:", data);
+            if (uniqueItems.length > 0) {
+              console.log("Directly updating form fields with fresh data:", uniqueItems);
               // First remove all existing fields
               remove();
               // Then add all refreshed items
-              data.forEach(item => {
+              uniqueItems.forEach(item => {
                 append({
                   ...item,
-                  total: item.quantity * item.unitPrice,
+                  total: Number(item.quantity) * Number(item.unitPrice),
                   isNew: false
                 });
               });
@@ -541,6 +581,43 @@ export function UnifiedBudgetManager({ clientId }: UnifiedBudgetManagerProps) {
     if (saveMutation.isPending) {
       console.log("Save mutation is already pending, ignoring submission");
       return;
+    }
+    
+    // Validate total allocation
+    const totalAllocated = data.items.reduce(
+      (sum, item) => sum + (Number(item.quantity) * Number(item.unitPrice)), 
+      0
+    );
+    
+    // Strict budget enforcement
+    if (totalAllocated > FIXED_BUDGET_AMOUNT) {
+      console.error(`Budget validation failed before submission! Total allocation ${totalAllocated} exceeds budget ${FIXED_BUDGET_AMOUNT}.`);
+      toast({
+        title: "Budget Limit Exceeded",
+        description: "Your total allocation exceeds the budget limit. Please reduce quantities or remove items.",
+        variant: "destructive"
+      });
+      return; // Prevent submission
+    }
+    
+    // Validate for duplicate items
+    const seenItemCodes = new Set();
+    const duplicateItems = data.items.filter(item => {
+      if (seenItemCodes.has(item.itemCode)) {
+        return true; // This is a duplicate
+      }
+      seenItemCodes.add(item.itemCode);
+      return false;
+    });
+    
+    if (duplicateItems.length > 0) {
+      console.error(`Found ${duplicateItems.length} duplicate items before submission`);
+      toast({
+        title: "Duplicate Items Detected",
+        description: "There are duplicate items in your budget. Please remove duplicates before saving.",
+        variant: "destructive"
+      });
+      return; // Prevent submission
     }
     
     // Log form state for debugging
@@ -762,6 +839,45 @@ export function UnifiedBudgetManager({ clientId }: UnifiedBudgetManagerProps) {
                   // Get current form values
                   const formValues = form.getValues();
                   console.log("Current form values:", formValues);
+                  
+                  // Apply the same validation as the onSubmit function
+                  
+                  // Validate total allocation
+                  const totalAllocated = formValues.items.reduce(
+                    (sum, item) => sum + (Number(item.quantity) * Number(item.unitPrice)), 
+                    0
+                  );
+                  
+                  // Strict budget enforcement
+                  if (totalAllocated > FIXED_BUDGET_AMOUNT) {
+                    console.error(`Budget validation failed before submission! Total allocation ${totalAllocated} exceeds budget ${FIXED_BUDGET_AMOUNT}.`);
+                    toast({
+                      title: "Budget Limit Exceeded",
+                      description: "Your total allocation exceeds the budget limit. Please reduce quantities or remove items.",
+                      variant: "destructive"
+                    });
+                    return; // Prevent submission
+                  }
+                  
+                  // Validate for duplicate items
+                  const seenItemCodes = new Set();
+                  const duplicateItems = formValues.items.filter(item => {
+                    if (seenItemCodes.has(item.itemCode)) {
+                      return true; // This is a duplicate
+                    }
+                    seenItemCodes.add(item.itemCode);
+                    return false;
+                  });
+                  
+                  if (duplicateItems.length > 0) {
+                    console.error(`Found ${duplicateItems.length} duplicate items before submission`);
+                    toast({
+                      title: "Duplicate Items Detected",
+                      description: "There are duplicate items in your budget. Please remove duplicates before saving.",
+                      variant: "destructive"
+                    });
+                    return; // Prevent submission
+                  }
                   
                   // Manually trigger direct API calls rather than using form submission
                   try {

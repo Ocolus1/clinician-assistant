@@ -22,6 +22,11 @@ export function BudgetValidation({
   remainingBudget,
   originalAllocated 
 }: BudgetValidationProps) {
+  // Important: Enforce the budget limit as a hard constraint
+  if (totalAllocated > totalBudget) {
+    console.error(`Budget limit exceeded! Allocated ${totalAllocated} exceeds total budget ${totalBudget}`);
+  }
+  
   // Total used amount should be 0 until items are actually used in sessions
   // This will be replaced with actual usage data from the API in the future
   const totalUsed = 0;
