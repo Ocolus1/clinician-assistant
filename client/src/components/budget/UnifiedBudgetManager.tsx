@@ -49,8 +49,6 @@ export function UnifiedBudgetManager({ clientId }: UnifiedBudgetManagerProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
-  // We'll use the active plan's availableFunds from BudgetFormSchema for fallback
-  // instead of using a local constant
   const [formInitialized, setFormInitialized] = useState(false);
   // Add debug mode for troubleshooting
   const [debugMode, setDebugMode] = useState(true);
@@ -62,6 +60,12 @@ export function UnifiedBudgetManager({ clientId }: UnifiedBudgetManagerProps) {
     budgetItems, 
     setBudgetItems
   } = useBudgetFeature();
+  
+  // Helper function to get client-specific budget amount
+  const getClientBudget = () => {
+    // Use the active plan's availableFunds if available, otherwise use the fallback
+    return activePlan?.availableFunds ?? FIXED_BUDGET_AMOUNT;
+  };
 
   // Get active budget plan
   const plansQuery = useQuery({
@@ -213,10 +217,11 @@ export function UnifiedBudgetManager({ clientId }: UnifiedBudgetManagerProps) {
     const itemCost = unitPrice * validQuantity;
     
     // Check if this would exceed the budget
-    if (currentTotal + itemCost > FIXED_BUDGET_AMOUNT) {
+    const clientBudget = getClientBudget();
+    if (currentTotal + itemCost > clientBudget) {
       toast({
         title: "Budget Exceeded",
-        description: `Adding this item would exceed the available budget of ${formatCurrency(FIXED_BUDGET_AMOUNT)}`,
+        description: `Adding this item would exceed the available budget of ${formatCurrency(clientBudget)}`,
         variant: "destructive"
       });
       return;
@@ -248,8 +253,8 @@ export function UnifiedBudgetManager({ clientId }: UnifiedBudgetManagerProps) {
     // Update the allocated total
     form.setValue("totalAllocated", newTotalAllocated);
     
-    // Remaining budget stays at FIXED_BUDGET_AMOUNT since it's calculated as total budget - used (not allocated)
-    form.setValue("remainingBudget", FIXED_BUDGET_AMOUNT);
+    // Update remainingBudget with client-specific budget
+    form.setValue("remainingBudget", getClientBudget());
     
     // Show success notification
     toast({
@@ -300,8 +305,8 @@ export function UnifiedBudgetManager({ clientId }: UnifiedBudgetManagerProps) {
     const newTotalAllocated = currentAllocated + difference;
     form.setValue("totalAllocated", newTotalAllocated);
     
-    // Remaining budget stays at FIXED_BUDGET_AMOUNT since it's calculated as total budget - used (not allocated)
-    form.setValue("remainingBudget", FIXED_BUDGET_AMOUNT);
+    // Update remainingBudget with client-specific budget
+    form.setValue("remainingBudget", getClientBudget());
   };
 
   // Handle deleting an item
@@ -317,8 +322,8 @@ export function UnifiedBudgetManager({ clientId }: UnifiedBudgetManagerProps) {
     const newTotalAllocated = currentAllocated - itemTotal;
     form.setValue("totalAllocated", newTotalAllocated);
     
-    // Remaining budget stays at FIXED_BUDGET_AMOUNT since it's calculated as total budget - used (not allocated)
-    form.setValue("remainingBudget", FIXED_BUDGET_AMOUNT);
+    // Update remainingBudget with client-specific budget 
+    form.setValue("remainingBudget", getClientBudget());
     
     // Remove from field array
     remove(index);
@@ -590,9 +595,10 @@ export function UnifiedBudgetManager({ clientId }: UnifiedBudgetManagerProps) {
       0
     );
     
-    // Strict budget enforcement
-    if (totalAllocated > FIXED_BUDGET_AMOUNT) {
-      console.error(`Budget validation failed before submission! Total allocation ${totalAllocated} exceeds budget ${FIXED_BUDGET_AMOUNT}.`);
+    // Strict budget enforcement with client-specific budget
+    const clientBudget = getClientBudget();
+    if (totalAllocated > clientBudget) {
+      console.error(`Budget validation failed before submission! Total allocation ${totalAllocated} exceeds budget ${clientBudget}.`);
       toast({
         title: "Budget Limit Exceeded",
         description: "Your total allocation exceeds the budget limit. Please reduce quantities or remove items.",
