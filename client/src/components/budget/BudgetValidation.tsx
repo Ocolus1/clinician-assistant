@@ -30,10 +30,14 @@ export function BudgetValidation({
     : 0;
   
   // Determine the budget status
-  // Compare as numbers
-  const isOverBudget = Number(totalUsed) > Number(FIXED_BUDGET_AMOUNT);
-  // Check if they're equal (with a small tolerance for floating point comparison)
-  const isFullyUsed = Math.abs(Number(totalUsed) - Number(FIXED_BUDGET_AMOUNT)) < 0.01;
+  // Convert string values to numbers to ensure comparison works correctly
+  const usedAmount = typeof totalUsed === 'string' ? parseFloat(totalUsed) : totalUsed;
+  const budgetAmount = typeof FIXED_BUDGET_AMOUNT === 'string' ? parseFloat(FIXED_BUDGET_AMOUNT) : FIXED_BUDGET_AMOUNT;
+  
+  // Check if over budget 
+  const isOverBudget = usedAmount > budgetAmount;
+  // Check if fully used with tolerance for floating point math
+  const isFullyUsed = Math.abs(usedAmount - budgetAmount) < 0.01;
   
   // Status color
   const statusColor = isOverBudget 

@@ -411,11 +411,11 @@ export function UnifiedBudgetManager({ clientId }: UnifiedBudgetManagerProps) {
                   {fields.map((item, index) => (
                     <BudgetItemRow 
                       key={item.id || index}
-                      item={item}
+                      item={item as unknown as RowBudgetItem}
                       index={index}
                       onUpdateQuantity={handleUpdateItemQuantity}
                       onDelete={handleDeleteItem}
-                      allItems={fields as RowBudgetItem[]}
+                      allItems={fields.map(field => field as unknown as RowBudgetItem)}
                     />
                   ))}
                 </div>
