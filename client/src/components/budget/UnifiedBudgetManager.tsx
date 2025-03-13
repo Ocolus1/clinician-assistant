@@ -154,13 +154,11 @@ export function UnifiedBudgetManager({ clientId }: UnifiedBudgetManagerProps) {
         (sum: number, item: any) => sum + (item.quantity * item.unitPrice), 0
       );
 
-      // Get available funds from active plan or default to 0
-      const availableFunds = activePlan?.availableFunds ? 
-        (typeof activePlan.availableFunds === 'string' ? 
-          parseFloat(activePlan.availableFunds) : activePlan.availableFunds) : 0;
+      // Get available funds from active plan or default to the fixed budget
+      const availableFunds = FIXED_BUDGET_AMOUNT; // Always use the fixed budget amount of 2000
 
-      // Calculate remaining budget
-      const remainingBudget = availableFunds - totalAllocated;
+      // Calculate remaining budget - unused amount for now
+      const remainingBudget = availableFunds; // Remaining budget is total budget - used (not allocated)
 
       // Set default values with real data
       form.reset({
@@ -281,8 +279,8 @@ export function UnifiedBudgetManager({ clientId }: UnifiedBudgetManagerProps) {
     const newTotalAllocated = currentAllocated + difference;
     form.setValue("totalAllocated", newTotalAllocated);
     
-    // Calculate remaining budget as FIXED_BUDGET_AMOUNT - totalAllocated
-    form.setValue("remainingBudget", FIXED_BUDGET_AMOUNT - newTotalAllocated);
+    // Remaining budget stays at FIXED_BUDGET_AMOUNT since it's calculated as total budget - used (not allocated)
+    form.setValue("remainingBudget", FIXED_BUDGET_AMOUNT);
   };
 
   // Handle deleting an item
@@ -497,7 +495,7 @@ export function UnifiedBudgetManager({ clientId }: UnifiedBudgetManagerProps) {
             <BudgetValidation 
               totalBudget={FIXED_BUDGET_AMOUNT} // Set to fixed budget amount which was added when client was created
               totalAllocated={form.watch("totalAllocated") || 0}
-              remainingBudget={FIXED_BUDGET_AMOUNT - (form.watch("totalAllocated") || 0)} // Calculate as totalBudget - totalAllocated
+              remainingBudget={FIXED_BUDGET_AMOUNT} // Total remaining budget is total budget minus used (not allocated)
               originalAllocated={FIXED_BUDGET_AMOUNT} // The original allocated budget amount
             />
             
@@ -547,7 +545,7 @@ export function UnifiedBudgetManager({ clientId }: UnifiedBudgetManagerProps) {
                 <BudgetCatalogSelector 
                   catalogItems={catalogQuery.data || []}
                   onAddItem={handleAddCatalogItem}
-                  remainingBudget={form.watch("remainingBudget") || 0}
+                  remainingBudget={FIXED_BUDGET_AMOUNT - (form.watch("totalAllocated") || 0)} // Calculate remaining allocation
                   activePlan={activePlan}
                 />
               )}

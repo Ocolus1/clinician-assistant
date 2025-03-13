@@ -56,8 +56,8 @@ export function BudgetValidation({
   // Progress color for usage indicator
   const progressColor = "bg-blue-600"; // Blue for usage
   
-  // Calculate remaining budget as total budget - allocated
-  const remainingAllocation = budgetAmount - allocatedAmount;
+  // Calculate remaining budget as total budget - used (not allocated)
+  const remainingAllocation = budgetAmount - usedAmount;
   
   // Calculate percentage of allocated vs total budget
   const percentAllocated = budgetAmount > 0
@@ -139,8 +139,8 @@ export function BudgetValidation({
         <Alert variant="default" className="border-green-200 bg-green-50">
           <CheckCircle2 className="h-4 w-4 text-green-600" />
           <AlertDescription className="text-green-800">
-            <strong>Budget in Good Standing:</strong> Your budget allocation is under the limit with {formatCurrency(remainingAllocation)} 
-            still available.
+            <strong>Budget in Good Standing:</strong> Your total remaining budget is {formatCurrency(remainingAllocation)}, 
+            with {formatCurrency(budgetAmount - allocatedAmount)} available for allocation.
           </AlertDescription>
         </Alert>
       )}
