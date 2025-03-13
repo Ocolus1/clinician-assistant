@@ -7,11 +7,11 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { RowBudgetItem } from './BudgetTypes';
 import { 
-  FIXED_BUDGET_AMOUNT,
   getUsedQuantity,
   validateUsedQuantity,
   getQuantityValidationError
 } from './BudgetFormSchema';
+import { useBudgetFeature } from './BudgetFeatureContext';
 import { 
   Tooltip,
   TooltipContent,
@@ -49,6 +49,21 @@ export function BudgetItemRow({
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
   
+  // Get client-specific budget through context
+  const { budgetItems } = useBudgetFeature();
+  
+  // Calculate client-specific budget total
+  const getClientBudget = () => {
+    if (budgetItems && budgetItems.length > 0) {
+      return budgetItems.reduce((total, item) => {
+        const quantity = Number(item.quantity);
+        const unitPrice = Number(item.unitPrice);
+        return total + (quantity * unitPrice);
+      }, 0);
+    }
+    return 0;
+  };
+  
   // Update local quantity when prop changes
   useEffect(() => {
     setQuantity(item.quantity);
@@ -71,16 +86,19 @@ export function BudgetItemRow({
       return true;
     }
 
-    // For increases, check against budget limits
+    // For increases, check against client-specific budget limits
     const totalWithoutCurrentItem = calculateTotalWithoutCurrentItem();
     const newItemTotal = newQuantity * item.unitPrice;
     const newGrandTotal = totalWithoutCurrentItem + newItemTotal;
     
-    if (newGrandTotal > FIXED_BUDGET_AMOUNT) {
-      const overage = newGrandTotal - FIXED_BUDGET_AMOUNT;
+    // Get client-specific budget total
+    const clientBudget = getClientBudget();
+    
+    if (newGrandTotal > clientBudget) {
+      const overage = newGrandTotal - clientBudget;
       setValidationError(
         `This quantity would exceed the budget limit by ${formatCurrency(overage)}. ` +
-        `Maximum allowed for this item is ${Math.floor((FIXED_BUDGET_AMOUNT - totalWithoutCurrentItem) / item.unitPrice)} units.`
+        `Maximum allowed for this item is ${Math.floor((clientBudget - totalWithoutCurrentItem) / item.unitPrice)} units.`
       );
       return false;
     }
