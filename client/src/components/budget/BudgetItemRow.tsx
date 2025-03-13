@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
-interface BudgetItem {
+// A simplified BudgetItem type for the row component
+interface RowBudgetItem {
   id?: number;
   itemCode: string;
   description: string;
@@ -16,10 +17,12 @@ interface BudgetItem {
   isNew?: boolean;
   name?: string;
   category?: string;
+  budgetSettingsId?: number;
+  clientId?: number;
 }
 
 interface BudgetItemRowProps {
-  item: BudgetItem;
+  item: RowBudgetItem;
   index: number;
   onUpdateQuantity: (index: number, newQuantity: number) => void;
   onDelete: (index: number) => void;

@@ -27,7 +27,7 @@ import { formatCurrency } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import { useBudgetFeature } from "./BudgetFeatureContext";
+import { useBudgetFeature, BudgetPlan, BudgetItem } from "./BudgetFeatureContext";
 import { Loader2, AlertCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 

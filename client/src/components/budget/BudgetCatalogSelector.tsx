@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { formatCurrency } from "@/lib/utils";
 import { Loader2, Plus } from 'lucide-react';
 import { Label } from "@/components/ui/label";
+import { BudgetPlan } from './BudgetFeatureContext';
 
 // Types
 interface CatalogItem {
@@ -20,17 +21,6 @@ interface CatalogItem {
   defaultUnitPrice: number;
   category: string | null;
   isActive: boolean | null;
-}
-
-interface BudgetPlan {
-  id: number;
-  clientId: number;
-  planCode: string | null;
-  planSerialNumber: string | null;
-  isActive: boolean | null;
-  availableFunds: number;
-  endOfPlan: string | null;
-  createdAt: Date | null;
 }
 
 interface BudgetCatalogSelectorProps {

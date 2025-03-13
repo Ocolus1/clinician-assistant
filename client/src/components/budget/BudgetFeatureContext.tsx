@@ -5,8 +5,11 @@ export interface BudgetPlan {
   id: number;
   clientId: number;
   planCode: string | null;
+  planSerialNumber: string | null;
   isActive: boolean | null;
   availableFunds: number;
+  endOfPlan: string | null;
+  createdAt: Date | null;
 }
 
 export interface BudgetItem {
