@@ -22,7 +22,7 @@ import {
   Alert,
   AlertDescription
 } from "@/components/ui/alert";
-import { BudgetDonutChart } from './BudgetDonutChart';
+import { SegmentedProgressBar } from './SegmentedProgressBar';
 
 interface BudgetItemRowProps {
   item: RowBudgetItem;
@@ -327,9 +327,16 @@ export function BudgetItemRow({
         </div>
       ) : (
         <div className="flex items-center justify-between">
-          {/* Chart and total area */}
-          <div className="flex flex-col md:flex-row items-center gap-4 mx-auto py-1">
-            <BudgetDonutChart 
+          {/* Progress bar and total area */}
+          <div className="w-full flex flex-col gap-3 py-1">
+            <div className="flex justify-between items-center mb-1">
+              <div className="text-sm font-medium">
+                {item.quantity} units ({formatCurrency(item.unitPrice)} per unit)
+              </div>
+              <div className="font-medium text-lg">{formatCurrency(item.total)}</div>
+            </div>
+            
+            <SegmentedProgressBar 
               total={item.quantity}
               used={getUsedQuantity(item.itemCode)}
               colors={{
@@ -337,16 +344,9 @@ export function BudgetItemRow({
                 total: '#D1D5DB', // Gray for balance
                 background: '#F3F4F6', // Light gray background
               }}
-              size={75}
-              strokeWidth={10}
+              height={20}
+              className="w-full"
             />
-            
-            <div className="text-center">
-              <div className="font-medium text-lg">{formatCurrency(item.total)}</div>
-              <div className="text-sm text-gray-500 mt-1">
-                {formatCurrency(item.unitPrice)} per unit
-              </div>
-            </div>
           </div>
         </div>
       )}
