@@ -155,122 +155,65 @@ export function BudgetItemRow({
   
   return (
     <div className={cn(
-      "border rounded-md p-4 transition-colors",
+      "border rounded-md p-3 transition-colors",
       isEditing ? "border-blue-300 bg-blue-50" : "border-gray-200",
       item.isNew && "border-green-300 bg-green-50",
       hasUnsavedChanges && !isEditing && "border-amber-300 bg-amber-50"
     )}>
-      {/* Item Header */}
-      <div className="flex items-center justify-between mb-3">
-        <div className="space-y-1">
-          <div className="flex items-center gap-2">
-            <div className="font-medium">{item.description}</div>
-            {item.isNew && <Badge variant="outline" className="bg-green-100 text-green-800 text-xs">New</Badge>}
-            {hasUnsavedChanges && !isEditing && (
-              <Badge variant="outline" className="bg-amber-100 text-amber-800 text-xs">Unsaved Change</Badge>
-            )}
-            {item.category && (
-              <Badge variant="secondary" className="text-xs">{item.category}</Badge>
-            )}
-          </div>
-          <div className="text-sm text-gray-500">{item.itemCode}</div>
-        </div>
-        
-        {/* Action Buttons */}
-        <div className="flex items-center gap-1">
-          {!isEditing && (
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button 
-                    size="sm" 
-                    variant="ghost" 
-                    className="h-8 w-8 p-0" 
-                    onClick={handleStartEdit}
-                  >
-                    <Edit2 className="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Edit quantity</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          )}
-          
-          {/* Item action buttons */}
-          {!isEditing && (
-            item.isNew ? (
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button 
-                      size="sm" 
-                      variant="ghost" 
-                      className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-100" 
-                      onClick={() => onDelete(index)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Remove item</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            ) : getUsedQuantity(item.itemCode) > 0 ? (
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button 
-                      size="sm" 
-                      variant="ghost" 
-                      className="h-8 w-8 p-0 text-gray-400 cursor-not-allowed"
-                      disabled
-                    >
-                      <Archive className="h-4 w-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Cannot archive - item has used units</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            ) : (
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button 
-                      size="sm" 
-                      variant="ghost" 
-                      className="h-8 w-8 p-0 text-amber-500 hover:text-amber-700 hover:bg-amber-100" 
-                      onClick={() => {
-                        // For now, we'll set quantity to 0 instead of deleting
-                        onUpdateQuantity(index, 0);
-                      }}
-                    >
-                      <Archive className="h-4 w-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Archive item (sets quantity to 0)</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            )
-          )}
-        </div>
-      </div>
-      
-      {/* Item Body */}
       {isEditing ? (
-        <div className="flex items-center justify-between">
-          <div className="text-sm">
-            <span className="font-medium">{formatCurrency(item.unitPrice)}</span>
-            <span className="text-gray-500"> per unit</span>
+        <div className="flex flex-col gap-4">
+          {/* Item Header in Edit Mode */}
+          <div className="flex items-center justify-between">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <div className="font-medium">{item.description}</div>
+                {item.isNew && <Badge variant="outline" className="bg-green-100 text-green-800 text-xs">New</Badge>}
+                {hasUnsavedChanges && (
+                  <Badge variant="outline" className="bg-amber-100 text-amber-800 text-xs">Unsaved Change</Badge>
+                )}
+                {item.category && (
+                  <Badge variant="secondary" className="text-xs">{item.category}</Badge>
+                )}
+              </div>
+              <div className="text-sm text-gray-500">{item.itemCode}</div>
+            </div>
+            
+            <div className="flex items-center gap-2">
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button 
+                      size="sm" 
+                      variant="ghost" 
+                      className="h-8 w-8 p-0" 
+                      onClick={handleApplyEdit}
+                    >
+                      <Check className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Apply changes (click Save All Changes to save)</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+              <Button 
+                size="sm" 
+                variant="ghost" 
+                className="h-8 w-8 p-0" 
+                onClick={handleCancelEdit}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
           
-          <div className="flex items-center gap-2">
+          {/* Edit Quantity Controls */}
+          <div className="flex items-center justify-between">
+            <div className="text-sm">
+              <span className="font-medium">{formatCurrency(item.unitPrice)}</span>
+              <span className="text-gray-500"> per unit</span>
+            </div>
+            
             <div className="flex items-center">
               <Button
                 type="button"
@@ -298,55 +241,131 @@ export function BudgetItemRow({
                 <Plus className="h-3 w-3" />
               </Button>
             </div>
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button 
-                    size="sm" 
-                    variant="ghost" 
-                    className="h-8 w-8 p-0" 
-                    onClick={handleApplyEdit}
-                  >
-                    <Check className="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Apply changes (click Save All Changes to save)</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-            <Button 
-              size="sm" 
-              variant="ghost" 
-              className="h-8 w-8 p-0" 
-              onClick={handleCancelEdit}
-            >
-              <X className="h-4 w-4" />
-            </Button>
           </div>
         </div>
       ) : (
-        <div className="flex items-center justify-between">
-          {/* Progress bar and total area */}
-          <div className="w-full flex flex-col gap-3 py-1">
-            <div className="flex justify-between items-center mb-1">
-              <div className="text-sm font-medium">
-                {item.quantity} units ({formatCurrency(item.unitPrice)} per unit)
+        <div className="flex flex-col gap-2">
+          {/* Combined Header and Progress Bar on the same row */}
+          <div>
+            {/* Title and Cost */}
+            <div className="flex items-center justify-between mb-1">
+              <div className="flex-1">
+                <div className="flex items-center gap-2">
+                  <div className="font-medium">{item.description}</div>
+                  {item.isNew && <Badge variant="outline" className="bg-green-100 text-green-800 text-xs">New</Badge>}
+                  {hasUnsavedChanges && (
+                    <Badge variant="outline" className="bg-amber-100 text-amber-800 text-xs">Unsaved Change</Badge>
+                  )}
+                  {item.category && (
+                    <Badge variant="secondary" className="text-xs">{item.category}</Badge>
+                  )}
+                </div>
+                <div className="text-sm text-gray-500">{item.itemCode}</div>
               </div>
-              <div className="font-medium text-lg">{formatCurrency(item.total)}</div>
+              
+              <div className="font-medium text-right">
+                {formatCurrency(item.total)}
+                <div className="text-xs text-gray-500">
+                  {item.quantity} × {formatCurrency(item.unitPrice)}
+                </div>
+              </div>
             </div>
             
-            <SegmentedProgressBar 
-              total={item.quantity}
-              used={getUsedQuantity(item.itemCode)}
-              colors={{
-                used: '#2563EB', // Blue for used
-                total: '#D1D5DB', // Gray for balance
-                background: '#F3F4F6', // Light gray background
-              }}
-              height={20}
-              className="w-full"
-            />
+            {/* Progress Bar and Action Buttons on same row */}
+            <div className="flex items-center gap-2 mt-2">
+              <div className="flex-1">
+                <SegmentedProgressBar 
+                  total={item.quantity}
+                  used={getUsedQuantity(item.itemCode)}
+                  colors={{
+                    used: '#2563EB', // Blue for used
+                    total: '#D1D5DB', // Gray for balance
+                    background: '#F3F4F6', // Light gray background
+                  }}
+                  height={12}
+                  className="w-full"
+                />
+              </div>
+              
+              {/* Action Buttons */}
+              <div className="flex items-center">
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button 
+                        size="sm" 
+                        variant="ghost" 
+                        className="h-6 w-6 p-0" 
+                        onClick={handleStartEdit}
+                      >
+                        <Edit2 className="h-3 w-3" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Edit quantity</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+                
+                {item.isNew ? (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button 
+                          size="sm" 
+                          variant="ghost" 
+                          className="h-6 w-6 p-0 text-red-500 hover:text-red-700 hover:bg-red-100" 
+                          onClick={() => onDelete(index)}
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Remove item</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                ) : getUsedQuantity(item.itemCode) > 0 ? (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button 
+                          size="sm" 
+                          variant="ghost" 
+                          className="h-6 w-6 p-0 text-gray-400 cursor-not-allowed"
+                          disabled
+                        >
+                          <Archive className="h-3 w-3" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Cannot archive - item has used units</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                ) : (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button 
+                          size="sm" 
+                          variant="ghost" 
+                          className="h-6 w-6 p-0 text-amber-500 hover:text-amber-700 hover:bg-amber-100" 
+                          onClick={() => {
+                            onUpdateQuantity(index, 0);
+                          }}
+                        >
+                          <Archive className="h-3 w-3" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Archive item (sets quantity to 0)</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       )}

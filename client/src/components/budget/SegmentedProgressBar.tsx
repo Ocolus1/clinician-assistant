@@ -55,7 +55,7 @@ export function SegmentedProgressBar({
   
   // Create segments for the progress bar
   const segments = [];
-  const gapSize = 2; // Size of the gap between segments in pixels
+  const gapSize = 1; // Size of the gap between segments in pixels (reduced for more compact look)
   
   // Calculate the segment width (accounting for gaps)
   // We subtract (total - 1) * gapSize from the total width to account for gaps between segments
@@ -67,7 +67,7 @@ export function SegmentedProgressBar({
     segments.push(
       <div
         key={i}
-        className="h-full rounded-sm"
+        className="h-full rounded-[1px]"
         style={{
           width: segmentWidth,
           backgroundColor: isUsed ? colors.used : colors.total,
