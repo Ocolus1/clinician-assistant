@@ -86,6 +86,9 @@ export function BudgetItemRow({
   const handleStartEdit = () => {
     setIsEditing(true);
     setValidationError(null);
+    
+    // Re-validate with current quantity to ensure the UI is consistent
+    validateQuantity(quantity);
   };
   
   // Cancel editing (revert to original quantity)
@@ -108,9 +111,17 @@ export function BudgetItemRow({
     
     // Then check budget constraints
     if (validateQuantity(quantity)) {
+      // Only mark as unsaved if the quantity actually changed
+      const hasChanged = quantity !== item.quantity;
+      
+      // Update the form state
       onUpdateQuantity(index, quantity);
       setIsEditing(false);
-      setHasUnsavedChanges(true);
+      
+      // Only show "unsaved changes" badge if something actually changed
+      if (hasChanged) {
+        setHasUnsavedChanges(true);
+      }
     }
   };
   

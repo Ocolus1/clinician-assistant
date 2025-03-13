@@ -239,6 +239,7 @@ export function UnifiedBudgetManager({ clientId }: UnifiedBudgetManagerProps) {
   // Mutation for saving all changes
   const saveMutation = useMutation({
     mutationFn: async (data: UnifiedBudgetFormValues) => {
+      // Check if budget is exceeded
       if (data.remainingBudget < 0) {
         throw new Error("Cannot save: Budget allocation exceeds the maximum allowed amount");
       }
@@ -246,44 +247,51 @@ export function UnifiedBudgetManager({ clientId }: UnifiedBudgetManagerProps) {
       // Ensure items is not undefined
       const items = data.items || [];
       
+      // Filter items to update (existing items) and items to create (new items)
       const itemsToUpdate = items.filter(item => !item.isNew && item.id);
       const itemsToCreate = items.filter(item => item.isNew);
       
+      // Debug log for transparency
       console.log("Items to update:", itemsToUpdate);
       console.log("Items to create:", itemsToCreate);
       
-      // Update existing items
-      const updatePromises = itemsToUpdate.map(item => 
-        apiRequest('PUT', `/api/budget-items/${item.id}`, {
-          quantity: item.quantity,
-          unitPrice: item.unitPrice
-        })
-      );
-      
-      // Create new items
-      const createPromises = itemsToCreate.map(item => 
-        apiRequest('POST', `/api/budget-items`, {
-          clientId: clientId,
-          budgetSettingsId: activePlan?.id,
-          itemCode: item.itemCode,
-          description: item.description,
-          quantity: item.quantity,
-          unitPrice: item.unitPrice,
-          name: item.name || item.description,
-          category: item.category
-        })
-      );
-      
-      // Also update budget settings if needed to ensure correct available funds
-      if (activePlan && activePlan.availableFunds !== AVAILABLE_FUNDS_AMOUNT) {
-        await apiRequest('PUT', `/api/budget-settings/${activePlan.id}`, {
-          availableFunds: AVAILABLE_FUNDS_AMOUNT
-        });
+      try {
+        // Update existing items
+        const updatePromises = itemsToUpdate.map(item => 
+          apiRequest('PUT', `/api/budget-items/${item.id}`, {
+            quantity: item.quantity,
+            unitPrice: item.unitPrice
+          })
+        );
+        
+        // Create new items
+        const createPromises = itemsToCreate.map(item => 
+          apiRequest('POST', `/api/budget-items`, {
+            clientId: clientId,
+            budgetSettingsId: activePlan?.id,
+            itemCode: item.itemCode,
+            description: item.description,
+            quantity: item.quantity,
+            unitPrice: item.unitPrice,
+            name: item.name || item.description,
+            category: item.category
+          })
+        );
+        
+        // Also update budget settings if needed to ensure correct available funds
+        if (activePlan && activePlan.availableFunds !== AVAILABLE_FUNDS_AMOUNT) {
+          await apiRequest('PUT', `/api/budget-settings/${activePlan.id}`, {
+            availableFunds: AVAILABLE_FUNDS_AMOUNT
+          });
+        }
+        
+        // Execute all promises and catch any errors
+        const results = await Promise.all([...updatePromises, ...createPromises]);
+        return results;
+      } catch (error) {
+        console.error("Error during save operation:", error);
+        throw error; // Re-throw to trigger onError handler
       }
-      
-      // Execute all promises
-      const results = await Promise.all([...updatePromises, ...createPromises]);
-      return results;
     },
     onSuccess: () => {
       toast({
@@ -305,8 +313,11 @@ export function UnifiedBudgetManager({ clientId }: UnifiedBudgetManagerProps) {
         queryKey: ['/api/budget-catalog']
       });
       
-      // Reset the form
+      // Reset the form initialized state to trigger form refill with fresh data
       setFormInitialized(false);
+      
+      // Mark form as pristine
+      form.reset(form.getValues());
     },
     onError: (error: any) => {
       toast({
@@ -320,7 +331,29 @@ export function UnifiedBudgetManager({ clientId }: UnifiedBudgetManagerProps) {
 
   // Submit handler
   const onSubmit = (data: UnifiedBudgetFormValues) => {
-    saveMutation.mutate(data);
+    // Extra validation before submitting
+    const calculatedTotal = data.items.reduce((sum, item) => sum + (item.quantity * item.unitPrice), 0);
+    const calculatedRemaining = FIXED_BUDGET_AMOUNT - calculatedTotal;
+    
+    // Update the totals in the form before submitting to ensure they match the calculated values
+    form.setValue("totalAllocated", calculatedTotal);
+    form.setValue("remainingBudget", calculatedRemaining);
+    
+    // Submit the updated form data
+    const updatedData = form.getValues();
+    console.log("Submitting budget data:", updatedData);
+    
+    // Only proceed if budget is not exceeded
+    if (calculatedRemaining < 0) {
+      toast({
+        title: 'Validation Error',
+        description: 'Budget exceeded. Please adjust your allocations before saving.',
+        variant: 'destructive'
+      });
+      return;
+    }
+    
+    saveMutation.mutate(updatedData);
   };
 
   // Loading state
