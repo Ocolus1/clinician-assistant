@@ -27,9 +27,9 @@ export function BudgetValidation({
     console.error(`Budget limit exceeded! Allocated ${totalAllocated} exceeds total budget ${totalBudget}`);
   }
   
-  // Total used amount should be 0 until items are actually used in sessions
-  // This will be replaced with actual usage data from the API in the future
-  const totalUsed = 0;
+  // Total used amount should be calculated from session data when available
+  // For now, we use 0 as a starting point but this will be updated when session usage data is implemented
+  const totalUsed = 0; // Starting at 0 for initial implementation
   
   // Calculate percentage of used amount vs total budget
   const percentUsed = totalUsed > 0 && totalBudget > 0
@@ -134,8 +134,11 @@ export function BudgetValidation({
         <Alert variant="default" className="border-amber-200 bg-amber-50">
           <AlertTriangle className="h-4 w-4 text-amber-600" />
           <AlertDescription className="text-amber-800">
-            <strong>Budget Fully Allocated:</strong> You have allocated your entire budget of {formatCurrency(budgetAmount)}.
-            Any additional items will require adjusting existing allocations.
+            <strong>Budget Fully Allocated:</strong> You have allocated your entire available budget of {formatCurrency(budgetAmount)}.
+            {totalUsed > 0 
+              ? ` ${formatCurrency(totalUsed)} has been used so far.`
+              : ''
+            } Any additional items will require adjusting existing allocations.
           </AlertDescription>
         </Alert>
       )}
@@ -144,8 +147,11 @@ export function BudgetValidation({
         <Alert variant="default" className="border-green-200 bg-green-50">
           <CheckCircle2 className="h-4 w-4 text-green-600" />
           <AlertDescription className="text-green-800">
-            <strong>Budget in Good Standing:</strong> Your total remaining budget is {formatCurrency(remainingAllocation)}, 
-            with {formatCurrency(budgetAmount - allocatedAmount)} available for allocation.
+            <strong>Budget in Good Standing:</strong> Your total budget is {formatCurrency(budgetAmount)}. 
+            {totalUsed > 0 
+              ? `You've used ${formatCurrency(totalUsed)}, leaving ${formatCurrency(remainingAllocation)} remaining.`
+              : `No items have been used yet, with ${formatCurrency(budgetAmount - allocatedAmount)} still available for allocation.`
+            }
           </AlertDescription>
         </Alert>
       )}

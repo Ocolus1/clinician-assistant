@@ -622,7 +622,7 @@ export function UnifiedBudgetManager({ clientId }: UnifiedBudgetManagerProps) {
       console.error(`Budget validation failed before submission! Total allocation ${totalAllocated} exceeds budget ${clientBudget}.`);
       toast({
         title: "Budget Limit Exceeded",
-        description: "Your total allocation exceeds the budget limit. Please reduce quantities or remove items.",
+        description: `Your total allocation exceeds the available budget of ${formatCurrency(clientBudget)}. Please reduce quantities or remove items.`,
         variant: "destructive"
       });
       return; // Prevent submission
@@ -729,13 +729,7 @@ export function UnifiedBudgetManager({ clientId }: UnifiedBudgetManagerProps) {
           Budget Plan: {activePlan?.planCode || 'Default Plan'}
         </CardTitle>
         <CardDescription>
-          Available Funds: {formatCurrency(
-            activePlan && activePlan.availableFunds
-              ? (typeof activePlan.availableFunds === 'string' 
-                  ? parseFloat(activePlan.availableFunds) 
-                  : activePlan.availableFunds)
-              : 0
-          )}
+          Total Budget: {formatCurrency(getClientBudget())}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -836,9 +830,12 @@ export function UnifiedBudgetManager({ clientId }: UnifiedBudgetManagerProps) {
                     <p>Item Count: {items.length}</p>
                     <p>New Items: {items.filter(item => item.isNew).length}</p>
                     <p>Total Allocated: {formatCurrency(form.watch("totalAllocated") || 0)}</p>
-                    <p>Client Budget: {formatCurrency(getClientBudget())}</p>
+                    <p>Initial Budget Items Total: {formatCurrency(getClientBudget())}</p>
+                    <p>Budget Items Count: {budgetItems.length}</p>
+                    <p>Budget Items Details: {budgetItems.map(item => 
+                      `${item.quantity}x${item.unitPrice}`).join(', ')}</p>
                     <p>Active Plan ID: {activePlan?.id || "None"}</p>
-                    <p>Plan Funds: {activePlan ? formatCurrency(
+                    <p>Plan Available Funds (raw): {activePlan ? formatCurrency(
                       typeof activePlan.availableFunds === 'string' 
                         ? parseFloat(activePlan.availableFunds) 
                         : activePlan.availableFunds || 0
@@ -888,7 +885,7 @@ export function UnifiedBudgetManager({ clientId }: UnifiedBudgetManagerProps) {
                     console.error(`Budget validation failed before submission! Total allocation ${totalAllocated} exceeds budget ${clientBudget}.`);
                     toast({
                       title: "Budget Limit Exceeded",
-                      description: "Your total allocation exceeds the budget limit. Please reduce quantities or remove items.",
+                      description: `Your total allocation exceeds the available budget of ${formatCurrency(clientBudget)}. Please reduce quantities or remove items.`,
                       variant: "destructive"
                     });
                     return; // Prevent submission
