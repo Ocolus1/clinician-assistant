@@ -408,12 +408,30 @@ export function UnifiedBudgetManager({ clientId }: UnifiedBudgetManagerProps) {
 
   // Submit handler
   const onSubmit = (data: UnifiedBudgetFormValues) => {
+    console.log("Submit handler called with data:", data);
+    
     // Prevent double submission
     if (saveMutation.isPending) {
+      console.log("Save mutation is already pending, ignoring submission");
       return;
     }
     
+    // Log form state for debugging
+    console.log("Form state:", {
+      isDirty: form.formState.isDirty,
+      isSubmitting: form.formState.isSubmitting,
+      errors: form.formState.errors
+    });
+    
+    // Log items that will be updated/created
+    console.log("Items to save:", {
+      total: data.items.length,
+      new: data.items.filter(item => item.isNew).length,
+      existing: data.items.filter(item => !item.isNew).length
+    });
+    
     // Perform the save operation
+    console.log("Triggering save mutation");
     saveMutation.mutate(data);
   };
 
