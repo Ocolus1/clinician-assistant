@@ -447,12 +447,42 @@ export function UnifiedBudgetManager({ clientId }: UnifiedBudgetManagerProps) {
         queryKey: [`/api/clients/${clientId}/budget-settings`] 
       });
       
-      // Reset the form initialized state to trigger form refill with fresh data
-      console.log("Resetting form initialized state to refresh data");
-      setFormInitialized(false);
+      // Force a complete refresh of the data
+      setTimeout(() => {
+        console.log("Forcing manual data refresh");
+        // Fetch the latest budget items
+        fetch(`/api/clients/${clientId}/budget-items`)
+          .then(res => res.json())
+          .then(data => {
+            console.log("Refreshed budget items:", data);
+            setBudgetItems(data);
+            
+            // Directly update the field array with the freshly fetched items
+            if (Array.isArray(data) && data.length > 0) {
+              console.log("Directly updating form fields with fresh data:", data);
+              // First remove all existing fields
+              remove();
+              // Then add all refreshed items
+              data.forEach(item => {
+                append({
+                  ...item,
+                  total: item.quantity * item.unitPrice,
+                  isNew: false
+                });
+              });
+            }
+          })
+          .catch(err => console.error("Error refreshing budget items:", err));
+          
+        // Reset the form initialized state to trigger complete form refill
+        setFormInitialized(false);
+        
+        // Reset any locally cached items in the form
+        form.reset();
+      }, 500);
       
-      // Mark form as pristine
-      form.reset(form.getValues());
+      // Mark form as pristine without keeping any stale data
+      form.reset();
     },
     onError: (error: any) => {
       toast({
