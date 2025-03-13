@@ -65,6 +65,13 @@ export function BudgetItemRow({
   
   // Validate that the new quantity doesn't exceed budget
   const validateQuantity = (newQuantity: number): boolean => {
+    // Always allow decreasing the quantity
+    if (newQuantity <= item.quantity) {
+      setValidationError(null);
+      return true;
+    }
+
+    // For increases, check against budget limits
     const totalWithoutCurrentItem = calculateTotalWithoutCurrentItem();
     const newItemTotal = newQuantity * item.unitPrice;
     const newGrandTotal = totalWithoutCurrentItem + newItemTotal;

@@ -7,7 +7,7 @@ import { z } from 'zod';
  * Instead, we're using client-specific values from the active plan.
  * These values are kept as fallbacks only.
  */
-export const FIXED_BUDGET_AMOUNT = 0; // Placeholder, use client-specific values instead
+export const FIXED_BUDGET_AMOUNT = 2000; // Fixed budget amount for all clients
 export const AVAILABLE_FUNDS_AMOUNT = 0; // Placeholder, use client-specific values instead
 export const INITIAL_USED_AMOUNT = 0; // Placeholder, use client-specific values instead
 
