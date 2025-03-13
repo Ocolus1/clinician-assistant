@@ -250,8 +250,8 @@ export function UnifiedBudgetManager({ clientId }: UnifiedBudgetManagerProps) {
     // Update the allocated total
     form.setValue("totalAllocated", newTotalAllocated);
     
-    // Remaining budget stays at FIXED_BUDGET_AMOUNT since it's calculated as total budget - used (not allocated)
-    form.setValue("remainingBudget", FIXED_BUDGET_AMOUNT);
+    // Remaining budget stays at getClientBudget() since it's calculated as total budget - used (not allocated)
+    form.setValue("remainingBudget", getClientBudget());
     
     // Show success notification
     toast({
@@ -302,8 +302,8 @@ export function UnifiedBudgetManager({ clientId }: UnifiedBudgetManagerProps) {
     const newTotalAllocated = currentAllocated + difference;
     form.setValue("totalAllocated", newTotalAllocated);
     
-    // Remaining budget stays at FIXED_BUDGET_AMOUNT since it's calculated as total budget - used (not allocated)
-    form.setValue("remainingBudget", FIXED_BUDGET_AMOUNT);
+    // Remaining budget stays at getClientBudget() since it's calculated as total budget - used (not allocated)
+    form.setValue("remainingBudget", getClientBudget());
   };
 
   // Handle deleting an item
@@ -319,8 +319,8 @@ export function UnifiedBudgetManager({ clientId }: UnifiedBudgetManagerProps) {
     const newTotalAllocated = currentAllocated - itemTotal;
     form.setValue("totalAllocated", newTotalAllocated);
     
-    // Remaining budget stays at FIXED_BUDGET_AMOUNT since it's calculated as total budget - used (not allocated)
-    form.setValue("remainingBudget", FIXED_BUDGET_AMOUNT);
+    // Remaining budget stays at getClientBudget() since it's calculated as total budget - used (not allocated)
+    form.setValue("remainingBudget", getClientBudget());
     
     // Remove from field array
     remove(index);
@@ -509,8 +509,8 @@ export function UnifiedBudgetManager({ clientId }: UnifiedBudgetManagerProps) {
             );
             
             // Verify allocation doesn't exceed the budget
-            if (totalAllocated > FIXED_BUDGET_AMOUNT) {
-              console.error(`Budget validation failed! Total allocation ${totalAllocated} exceeds budget ${FIXED_BUDGET_AMOUNT}.`);
+            if (totalAllocated > getClientBudget()) {
+              console.error(`Budget validation failed! Total allocation ${totalAllocated} exceeds budget ${getClientBudget()}.`);
               toast({
                 title: "Budget Error",
                 description: "The total allocation exceeds the budget limit. Some items may not be saved.",
@@ -593,8 +593,8 @@ export function UnifiedBudgetManager({ clientId }: UnifiedBudgetManagerProps) {
     );
     
     // Strict budget enforcement
-    if (totalAllocated > FIXED_BUDGET_AMOUNT) {
-      console.error(`Budget validation failed before submission! Total allocation ${totalAllocated} exceeds budget ${FIXED_BUDGET_AMOUNT}.`);
+    if (totalAllocated > getClientBudget()) {
+      console.error(`Budget validation failed before submission! Total allocation ${totalAllocated} exceeds budget ${getClientBudget()}.`);
       toast({
         title: "Budget Limit Exceeded",
         description: "Your total allocation exceeds the budget limit. Please reduce quantities or remove items.",
@@ -718,10 +718,10 @@ export function UnifiedBudgetManager({ clientId }: UnifiedBudgetManagerProps) {
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             {/* Budget Validation */}
             <BudgetValidation 
-              totalBudget={FIXED_BUDGET_AMOUNT} // Set to fixed budget amount which was added when client was created
+              totalBudget={getClientBudget()} // Set to fixed budget amount which was added when client was created
               totalAllocated={form.watch("totalAllocated") || 0}
-              remainingBudget={FIXED_BUDGET_AMOUNT} // Total remaining budget is total budget minus used (not allocated)
-              originalAllocated={FIXED_BUDGET_AMOUNT} // The original allocated budget amount
+              remainingBudget={getClientBudget()} // Total remaining budget is total budget minus used (not allocated)
+              originalAllocated={getClientBudget()} // The original allocated budget amount
             />
             
             {/* Current Budget Items */}
@@ -770,7 +770,7 @@ export function UnifiedBudgetManager({ clientId }: UnifiedBudgetManagerProps) {
                 <BudgetCatalogSelector 
                   catalogItems={catalogQuery.data || []}
                   onAddItem={handleAddCatalogItem}
-                  remainingBudget={FIXED_BUDGET_AMOUNT - (form.watch("totalAllocated") || 0)} // Calculate remaining allocation
+                  remainingBudget={getClientBudget() - (form.watch("totalAllocated") || 0)} // Calculate remaining allocation
                   activePlan={activePlan}
                 />
               )}
@@ -852,8 +852,8 @@ export function UnifiedBudgetManager({ clientId }: UnifiedBudgetManagerProps) {
                   );
                   
                   // Strict budget enforcement
-                  if (totalAllocated > FIXED_BUDGET_AMOUNT) {
-                    console.error(`Budget validation failed before submission! Total allocation ${totalAllocated} exceeds budget ${FIXED_BUDGET_AMOUNT}.`);
+                  if (totalAllocated > getClientBudget()) {
+                    console.error(`Budget validation failed before submission! Total allocation ${totalAllocated} exceeds budget ${getClientBudget()}.`);
                     toast({
                       title: "Budget Limit Exceeded",
                       description: "Your total allocation exceeds the budget limit. Please reduce quantities or remove items.",

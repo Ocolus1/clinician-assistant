@@ -76,8 +76,8 @@ export function BudgetFeatureProvider({
   const [activePlan, setActivePlan] = useState<BudgetPlan | null>(initialPlan);
   const [budgetItems, setBudgetItems] = useState<BudgetItem[]>(initialItems);
   
-  // Calculate budget totals
-  const totalBudget = FIXED_BUDGET_AMOUNT;
+  // Calculate budget totals - use activePlan's availableFunds (client-specific)
+  const totalBudget = activePlan?.availableFunds || 0;
   const totalAllocated = budgetItems.reduce((total, item) => {
     return total + (item.quantity * item.unitPrice);
   }, 0);
