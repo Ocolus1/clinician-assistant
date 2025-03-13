@@ -309,7 +309,7 @@ export function UnifiedBudgetManager({ clientId }: UnifiedBudgetManagerProps) {
     });
   };
 
-  // Save changes mutation
+  // Save changes mutation - improved implementation
   const saveMutation = useMutation({
     mutationFn: async (data: UnifiedBudgetFormValues) => {
       // Ensure items is not undefined
@@ -320,27 +320,34 @@ export function UnifiedBudgetManager({ clientId }: UnifiedBudgetManagerProps) {
       const itemsToCreate = items.filter(item => item.isNew);
       
       // Debug log
-      console.log("Items to update:", itemsToUpdate);
-      console.log("Items to create:", itemsToCreate);
+      console.log("Save mutation triggered");
+      console.log("Form data:", data);
+      console.log("Total items to save:", items.length);
+      console.log("Items to update:", itemsToUpdate.length, itemsToUpdate);
+      console.log("Items to create:", itemsToCreate.length, itemsToCreate);
       
       try {
         const allPromises = [];
         
         // Update existing items
         if (itemsToUpdate.length > 0) {
-          const updatePromises = itemsToUpdate.map(item => 
-            apiRequest('PUT', `/api/budget-items/${item.id}`, {
+          console.log("Processing updates for existing items...");
+          const updatePromises = itemsToUpdate.map(item => {
+            console.log(`Updating item ID ${item.id} with quantity ${item.quantity} and unit price ${item.unitPrice}`);
+            return apiRequest('PUT', `/api/budget-items/${item.id}`, {
               quantity: item.quantity,
               unitPrice: item.unitPrice
-            })
-          );
+            });
+          });
           allPromises.push(...updatePromises);
         }
         
         // Create new items
         if (itemsToCreate.length > 0 && activePlan) {
-          const createPromises = itemsToCreate.map(item => 
-            apiRequest('POST', `/api/budget-items`, {
+          console.log("Processing creation of new items...");
+          const createPromises = itemsToCreate.map(item => {
+            console.log(`Creating new item ${item.itemCode} with quantity ${item.quantity}`);
+            return apiRequest('POST', `/api/budget-items`, {
               clientId: clientId,
               budgetSettingsId: activePlan.id,
               itemCode: item.itemCode,
@@ -349,52 +356,95 @@ export function UnifiedBudgetManager({ clientId }: UnifiedBudgetManagerProps) {
               unitPrice: item.unitPrice,
               name: item.name || item.description,
               category: item.category
-            })
-          );
+            });
+          });
           allPromises.push(...createPromises);
         }
         
-        // We no longer need to update budget settings as we're using the client-specific values
-        // Removed the automatic budget settings update to maintain client budget settings integrity
-        
         // Execute all promises or return empty array if no changes
         if (allPromises.length === 0) {
-          return [];
+          console.log("No changes detected to save");
+          return {
+            success: true,
+            message: "No changes detected to save",
+            results: []
+          };
         }
         
+        console.log(`Executing ${allPromises.length} save operations...`);
         const results = await Promise.all(allPromises);
-        return results;
+        console.log("Save operations completed successfully:", results);
+        
+        return {
+          success: true,
+          message: "Budget items saved successfully",
+          results: results
+        };
       } catch (error) {
         console.error("Error during save operation:", error);
         throw error; // Re-throw to trigger onError handler
       }
     },
-    onSuccess: (results) => {
-      // If no results returned (no changes made), show different message
-      if (results && results.length === 0) {
+    onSuccess: (response: any) => {
+      console.log("Save mutation success handler called with response:", response);
+      
+      // Check the response shape to handle both formats (array or object)
+      if (response && typeof response === 'object') {
+        // Handle the new response format (object with success, message, results)
+        if ('success' in response && 'results' in response) {
+          toast({
+            title: 'Success',
+            description: response.message || 'Budget changes saved'
+          });
+          
+          // Check if there were actual changes made
+          const results = response.results || [];
+          if (Array.isArray(results) && results.length === 0) {
+            console.log("No changes were applied");
+            return;
+          }
+        } 
+        // Handle the old format (array of results)
+        else if (Array.isArray(response)) {
+          if (response.length === 0) {
+            toast({
+              title: 'No Changes',
+              description: 'No changes were detected to save.'
+            });
+            return;
+          }
+          else {
+            toast({
+              title: 'Success',
+              description: 'Budget items updated successfully'
+            });
+          }
+        }
+      } else {
+        // Default success message if response format is unexpected
         toast({
-          title: 'No Changes',
-          description: 'No changes were detected to save.'
+          title: 'Success',
+          description: 'Budget changes saved'
         });
-        return;
       }
       
-      toast({
-        title: 'Success',
-        description: 'Budget items updated successfully'
-      });
-      
-      // Invalidate queries to refresh data
+      // Always invalidate queries to refresh data
+      console.log("Invalidating budget items query");
       queryClient.invalidateQueries({ 
         queryKey: [`/api/clients/${clientId}/budget-items`] 
       });
       
+      console.log("Invalidating budget settings query");
       queryClient.invalidateQueries({ 
         queryKey: [`/api/clients/${clientId}/budget-settings`] 
       });
       
       // Reset the form initialized state to trigger form refill with fresh data
+      console.log("Resetting form initialized state to refresh data");
       setFormInitialized(false);
+      
+      // Mark form as pristine
+      form.reset(form.getValues());
     },
     onError: (error: any) => {
       toast({
@@ -595,14 +645,16 @@ export function UnifiedBudgetManager({ clientId }: UnifiedBudgetManagerProps) {
                 </div>
               )}
               
-              {/* Check if we have any items to save or form is dirty before enabling save button */}
+              {/* Modified save button without conditional disabling based on form.formState.isDirty */}
               <Button 
                 type="submit" 
-                disabled={
-                  saveMutation.isPending || 
-                  (!(form.formState.isDirty || items.some(item => item.isNew)))
-                }
+                disabled={saveMutation.isPending}
                 className="w-full md:w-auto"
+                onClick={() => {
+                  console.log("Save button clicked manually");
+                  // Force form submission
+                  form.handleSubmit(onSubmit)();
+                }}
               >
                 {saveMutation.isPending ? (
                   <>
