@@ -63,8 +63,15 @@ export function UnifiedBudgetManager({ clientId }: UnifiedBudgetManagerProps) {
   
   // Helper function to get client-specific budget amount
   const getClientBudget = () => {
-    // Use the active plan's availableFunds if available, otherwise use the fallback
-    return activePlan?.availableFunds ?? FIXED_BUDGET_AMOUNT;
+    // Use the active plan's availableFunds if available, properly handling string values
+    if (activePlan && activePlan.availableFunds) {
+      // Convert string values to numbers if needed
+      return typeof activePlan.availableFunds === 'string' 
+        ? parseFloat(activePlan.availableFunds) 
+        : activePlan.availableFunds;
+    }
+    // Fallback to a sensible default if no budget is defined (should never happen in practice)
+    return 0;
   };
 
   // Get active budget plan
@@ -511,12 +518,13 @@ export function UnifiedBudgetManager({ clientId }: UnifiedBudgetManagerProps) {
               0
             );
             
-            // Verify allocation doesn't exceed the budget
-            if (totalAllocated > FIXED_BUDGET_AMOUNT) {
-              console.error(`Budget validation failed! Total allocation ${totalAllocated} exceeds budget ${FIXED_BUDGET_AMOUNT}.`);
+            // Verify allocation doesn't exceed the client-specific budget
+            const clientBudget = getClientBudget();
+            if (totalAllocated > clientBudget) {
+              console.error(`Budget validation failed! Total allocation ${totalAllocated} exceeds budget ${clientBudget}.`);
               toast({
                 title: "Budget Error",
-                description: "The total allocation exceeds the budget limit. Some items may not be saved.",
+                description: `The total allocation exceeds the available budget of ${formatCurrency(clientBudget)}. Some items may not be saved.`,
                 variant: "destructive"
               });
             }
@@ -722,10 +730,10 @@ export function UnifiedBudgetManager({ clientId }: UnifiedBudgetManagerProps) {
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             {/* Budget Validation */}
             <BudgetValidation 
-              totalBudget={FIXED_BUDGET_AMOUNT} // Set to fixed budget amount which was added when client was created
+              totalBudget={getClientBudget()} // Use client-specific budget from active plan
               totalAllocated={form.watch("totalAllocated") || 0}
-              remainingBudget={FIXED_BUDGET_AMOUNT} // Total remaining budget is total budget minus used (not allocated)
-              originalAllocated={FIXED_BUDGET_AMOUNT} // The original allocated budget amount
+              remainingBudget={getClientBudget()} // Total remaining budget is client budget minus used (not allocated)
+              originalAllocated={getClientBudget()} // The client's original allocated budget amount
             />
             
             {/* Current Budget Items */}
@@ -774,7 +782,7 @@ export function UnifiedBudgetManager({ clientId }: UnifiedBudgetManagerProps) {
                 <BudgetCatalogSelector 
                   catalogItems={catalogQuery.data || []}
                   onAddItem={handleAddCatalogItem}
-                  remainingBudget={FIXED_BUDGET_AMOUNT - (form.watch("totalAllocated") || 0)} // Calculate remaining allocation
+                  remainingBudget={getClientBudget() - (form.watch("totalAllocated") || 0)} // Calculate remaining allocation based on client budget
                   activePlan={activePlan}
                 />
               )}
@@ -815,7 +823,13 @@ export function UnifiedBudgetManager({ clientId }: UnifiedBudgetManagerProps) {
                     <p>Item Count: {items.length}</p>
                     <p>New Items: {items.filter(item => item.isNew).length}</p>
                     <p>Total Allocated: {formatCurrency(form.watch("totalAllocated") || 0)}</p>
+                    <p>Client Budget: {formatCurrency(getClientBudget())}</p>
                     <p>Active Plan ID: {activePlan?.id || "None"}</p>
+                    <p>Plan Funds: {activePlan ? formatCurrency(
+                      typeof activePlan.availableFunds === 'string' 
+                        ? parseFloat(activePlan.availableFunds) 
+                        : activePlan.availableFunds || 0
+                    ) : 'N/A'}</p>
                   </div>
                   <div className="flex justify-end mt-2">
                     <Button
@@ -855,9 +869,10 @@ export function UnifiedBudgetManager({ clientId }: UnifiedBudgetManagerProps) {
                     0
                   );
                   
-                  // Strict budget enforcement
-                  if (totalAllocated > FIXED_BUDGET_AMOUNT) {
-                    console.error(`Budget validation failed before submission! Total allocation ${totalAllocated} exceeds budget ${FIXED_BUDGET_AMOUNT}.`);
+                  // Strict budget enforcement with client-specific budget
+                  const clientBudget = getClientBudget();
+                  if (totalAllocated > clientBudget) {
+                    console.error(`Budget validation failed before submission! Total allocation ${totalAllocated} exceeds budget ${clientBudget}.`);
                     toast({
                       title: "Budget Limit Exceeded",
                       description: "Your total allocation exceeds the budget limit. Please reduce quantities or remove items.",
