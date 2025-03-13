@@ -1,10 +1,12 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { BudgetFeatureProvider } from "./BudgetFeatureContext";
-import { DirectBudgetPlanList } from "./DirectBudgetPlanList";
 import { BudgetPlanDetails } from "./BudgetPlanDetailsIntegrated";
 import { BudgetPlanForm } from "./BudgetPlanForm";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Loader2 } from "lucide-react";
 
 interface BudgetManagerViewProps {
   clientId: number;
@@ -16,6 +18,65 @@ interface BudgetManagerViewProps {
  */
 function BudgetManagerContent({ clientId }: BudgetManagerViewProps) {
   const [showCreatePlanForm, setShowCreatePlanForm] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Check if the API routes are working
+  useEffect(() => {
+    const checkApi = async () => {
+      try {
+        const response = await fetch(`/api/clients/${clientId}/budget/plans`);
+        if (!response.ok) {
+          setError(`Failed to load budget data: ${response.statusText}`);
+        }
+        setIsLoading(false);
+      } catch (error) {
+        console.error("Error checking budget API:", error);
+        setError("Failed to connect to budget services. Please try again later.");
+        setIsLoading(false);
+      }
+    };
+
+    checkApi();
+  }, [clientId]);
+
+  if (isLoading) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Budget Management</CardTitle>
+          <CardDescription>Loading budget information...</CardDescription>
+        </CardHeader>
+        <CardContent className="flex justify-center py-8">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (error) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Budget Management</CardTitle>
+          <CardDescription>Error loading budget data</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Alert variant="destructive">
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+          <div className="mt-4 flex justify-end">
+            <Button 
+              onClick={() => window.location.reload()} 
+              variant="outline"
+            >
+              Retry
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
   
   return (
     <div>

@@ -86,8 +86,8 @@ export function BudgetCatalogSelector() {
         throw new Error('Selected catalog item not found');
       }
       
-      // Create new budget item
-      return apiRequest('POST', `/api/clients/${activePlan.clientId}/budget/${activePlan.id}/items`, {
+      // Create new budget item using the correct endpoint
+      return apiRequest('POST', `/api/budget-items`, {
         clientId: activePlan.clientId,
         budgetSettingsId: activePlan.id,
         itemCode: selectedCatalogItem.itemCode,
@@ -112,8 +112,9 @@ export function BudgetCatalogSelector() {
       
       // Invalidate related queries
       if (activePlan) {
+        // Update to use the correct query key format
         queryClient.invalidateQueries({ 
-          queryKey: ['/api/clients', activePlan.clientId, 'budget-items'] 
+          queryKey: [`/api/clients/${activePlan.clientId}/budget-items`] 
         });
       }
     },

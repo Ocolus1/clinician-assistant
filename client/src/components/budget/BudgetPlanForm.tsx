@@ -40,7 +40,8 @@ export function BudgetPlanForm({ open, onOpenChange, clientId }: BudgetPlanFormP
   // Mutation for creating a budget plan
   const createPlanMutation = useMutation({
     mutationFn: (data: BudgetPlanFormValues) => {
-      return apiRequest('POST', `/api/clients/${clientId}/budget/plans`, {
+      // Use correct budget-settings endpoint instead of budget/plans
+      return apiRequest('POST', `/api/clients/${clientId}/budget-settings`, {
         ...data,
         clientId,
         isActive: true,
@@ -51,7 +52,7 @@ export function BudgetPlanForm({ open, onOpenChange, clientId }: BudgetPlanFormP
         title: 'Success',
         description: 'Budget plan created successfully',
       });
-      queryClient.invalidateQueries({ queryKey: [`/api/clients/${clientId}/budget/plans`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/clients/${clientId}/budget-settings`] });
       form.reset();
       onOpenChange(false);
     },

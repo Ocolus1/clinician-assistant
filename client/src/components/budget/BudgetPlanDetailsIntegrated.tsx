@@ -29,13 +29,17 @@ export function BudgetPlanDetails({ clientId }: BudgetPlanDetailsProps) {
 
   // Get active budget plan
   const plansQuery = useQuery({
-    queryKey: [`/api/clients/${clientId}/budget/plans`],
+    queryKey: [`/api/clients/${clientId}/budget-settings`],
     queryFn: async () => {
-      const response = await fetch(`/api/clients/${clientId}/budget/plans`);
+      // Use the correct API endpoint for budget settings
+      const response = await fetch(`/api/clients/${clientId}/budget-settings?all=true`);
       if (!response.ok) {
         throw new Error('Failed to fetch budget plans');
       }
-      return response.json();
+      const data = await response.json();
+      console.log("Fetched budget settings data:", data);
+      // Handle both array and single object responses
+      return Array.isArray(data) ? data : [data];
     }
   });
 
