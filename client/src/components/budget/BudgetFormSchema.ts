@@ -8,6 +8,34 @@ export const AVAILABLE_FUNDS_AMOUNT = 500; // Total available funds
 export const INITIAL_USED_AMOUNT = 0; // Initial amount used (no sessions yet)
 
 /**
+ * Schema for unified budget form
+ */
+// Schema for budget item in the form
+export const budgetItemSchema = z.object({
+  id: z.number().optional(),
+  itemCode: z.string().min(1, 'Item code is required'),
+  description: z.string().min(1, 'Description is required'),
+  quantity: z.number().min(0, 'Quantity must be at least 0'),
+  unitPrice: z.number().min(0.01, 'Unit price must be greater than 0'),
+  total: z.number(),
+  isNew: z.boolean().optional(),
+  name: z.string().optional(),
+  category: z.string().optional(),
+  budgetSettingsId: z.number().optional(),
+  clientId: z.number().optional(),
+});
+
+// Main schema for unified budget form
+export const unifiedBudgetFormSchema = z.object({
+  totalAllocated: z.number().min(0, "Total allocated must be at least 0"),
+  remainingBudget: z.number().min(0, "Budget cannot be exceeded"),
+  items: z.array(budgetItemSchema),
+  totalBudget: z.number().optional(),
+});
+
+export type UnifiedBudgetFormValues = z.infer<typeof unifiedBudgetFormSchema>;
+
+/**
  * Schema for budget item form
  */
 export const budgetItemFormSchema = z.object({

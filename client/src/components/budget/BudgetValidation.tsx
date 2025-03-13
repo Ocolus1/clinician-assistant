@@ -74,7 +74,7 @@ export function BudgetValidation({
       </div>
       
       <Progress 
-        value={percentUsed} 
+        value={percentAllocated} 
         className="h-2" 
         indicatorClassName={progressColor}
       />
@@ -114,16 +114,16 @@ export function BudgetValidation({
         </Alert>
       )}
       
-      {isFullyUsed && (
+      {isFullyAllocated && (
         <Alert variant="default" className="border-amber-200 bg-amber-50">
           <AlertTriangle className="h-4 w-4 text-amber-600" />
           <AlertDescription className="text-amber-800">
-            You have used your entire allocated budget of {formatCurrency(FIXED_BUDGET_AMOUNT)}.
+            You have allocated your entire budget of {formatCurrency(FIXED_BUDGET_AMOUNT)}.
           </AlertDescription>
         </Alert>
       )}
       
-      {!isOverBudget && !isFullyUsed && percentUsed > 80 && (
+      {!isOverBudget && !isFullyAllocated && percentAllocated > 80 && (
         <Alert variant="default" className="border-amber-200 bg-amber-50">
           <AlertTriangle className="h-4 w-4 text-amber-600" />
           <AlertDescription className="text-amber-800">
@@ -132,7 +132,7 @@ export function BudgetValidation({
         </Alert>
       )}
       
-      {!isOverBudget && !isFullyUsed && percentUsed <= 80 && (
+      {!isOverBudget && !isFullyAllocated && percentAllocated <= 80 && (
         <Alert variant="default" className="border-green-200 bg-green-50">
           <CheckCircle2 className="h-4 w-4 text-green-600" />
           <AlertDescription className="text-green-800">

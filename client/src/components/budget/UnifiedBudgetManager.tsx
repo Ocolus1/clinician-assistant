@@ -2,7 +2,13 @@ import React, { useMemo, useState, useEffect } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { FIXED_BUDGET_AMOUNT, AVAILABLE_FUNDS_AMOUNT } from "./BudgetFormSchema";
+import { 
+  FIXED_BUDGET_AMOUNT, 
+  AVAILABLE_FUNDS_AMOUNT,
+  unifiedBudgetFormSchema,
+  UnifiedBudgetFormValues,
+  budgetItemSchema
+} from "./BudgetFormSchema";
 import { 
   Form, 
   FormControl, 
@@ -33,31 +39,9 @@ import { Loader2, AlertCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { CatalogItem, RowBudgetItem } from "./BudgetTypes";
 
-// Schema for budget items in the form
-const budgetItemSchema = z.object({
-  id: z.number().optional(), // Optional for new items being added
-  itemCode: z.string(),
-  description: z.string(),
-  quantity: z.number().min(0),
-  unitPrice: z.number().min(0),
-  total: z.number(), // Calculated field
-  isNew: z.boolean().optional(), // Flag to track newly added items
-  name: z.string().optional(),
-  category: z.string().optional(),
-  budgetSettingsId: z.number().optional(),
-  clientId: z.number().optional()
-});
+// We're using the budgetItemSchema imported from BudgetFormSchema.ts
 
-// Schema for the unified budget form
-export const unifiedBudgetFormSchema = z.object({
-  items: z.array(budgetItemSchema),
-  // Meta fields for validation
-  totalBudget: z.number(),
-  totalAllocated: z.number(),
-  remainingBudget: z.number()
-});
-
-export type UnifiedBudgetFormValues = z.infer<typeof unifiedBudgetFormSchema>;
+// We're using the unifiedBudgetFormSchema directly from BudgetFormSchema.ts
 
 interface UnifiedBudgetManagerProps {
   clientId: number;
@@ -189,7 +173,7 @@ export function UnifiedBudgetManager({ clientId }: UnifiedBudgetManagerProps) {
   });
 
   // Watch values for real-time calculation
-  const items = form.watch("items");
+  const items = form.watch("items") || [];
   const totalAllocated = useMemo(() => 
     items.reduce((sum, item) => sum + (item.quantity * item.unitPrice), 0),
     [items]
@@ -251,8 +235,11 @@ export function UnifiedBudgetManager({ clientId }: UnifiedBudgetManagerProps) {
         throw new Error("Cannot save: Budget allocation exceeds the maximum allowed amount");
       }
       
-      const itemsToUpdate = data.items.filter(item => !item.isNew && item.id);
-      const itemsToCreate = data.items.filter(item => item.isNew);
+      // Ensure items is not undefined
+      const items = data.items || [];
+      
+      const itemsToUpdate = items.filter(item => !item.isNew && item.id);
+      const itemsToCreate = items.filter(item => item.isNew);
       
       console.log("Items to update:", itemsToUpdate);
       console.log("Items to create:", itemsToCreate);
@@ -393,9 +380,9 @@ export function UnifiedBudgetManager({ clientId }: UnifiedBudgetManagerProps) {
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             {/* Budget Validation */}
             <BudgetValidation 
-              totalBudget={form.watch("totalBudget")} 
-              totalAllocated={form.watch("totalAllocated")}
-              remainingBudget={form.watch("remainingBudget")}
+              totalBudget={FIXED_BUDGET_AMOUNT} 
+              totalAllocated={form.watch("totalAllocated") || 0}
+              remainingBudget={form.watch("remainingBudget") || FIXED_BUDGET_AMOUNT}
             />
             
             {/* Current Budget Items */}
@@ -444,7 +431,7 @@ export function UnifiedBudgetManager({ clientId }: UnifiedBudgetManagerProps) {
                 <BudgetCatalogSelector 
                   catalogItems={catalogQuery.data || []}
                   onAddItem={handleAddCatalogItem}
-                  remainingBudget={form.watch("remainingBudget")}
+                  remainingBudget={form.watch("remainingBudget") || FIXED_BUDGET_AMOUNT}
                   activePlan={activePlan}
                 />
               )}
