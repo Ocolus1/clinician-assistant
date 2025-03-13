@@ -112,7 +112,7 @@ export function BudgetFeatureProvider({
 /**
  * Hook to access budget feature context
  */
-export function useBudgetFeature() {
+export const useBudgetFeature = () => {
   const context = useContext(BudgetFeatureContext);
   
   if (context === undefined) {

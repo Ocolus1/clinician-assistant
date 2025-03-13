@@ -7,7 +7,6 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { RowBudgetItem } from './BudgetTypes';
 import { 
-  FIXED_BUDGET_AMOUNT,
   getUsedQuantity,
   validateUsedQuantity,
   getQuantityValidationError
@@ -29,7 +28,10 @@ interface BudgetItemRowProps {
   index: number;
   onUpdateQuantity: (index: number, newQuantity: number) => void;
   onDelete: (index: number) => void;
-  allItems: RowBudgetItem[]; // All budget items for validation
+  allItems?: RowBudgetItem[]; // All budget items for validation
+  disabled?: boolean;
+  validationError?: string | null;
+  maxBudget?: number; // Maximum budget amount, client-specific
 }
 
 /**
@@ -42,7 +44,9 @@ export function BudgetItemRow({
   index, 
   onUpdateQuantity, 
   onDelete,
-  allItems
+  allItems = [],
+  disabled = false,
+  validationError: externalValidationError = null
 }: BudgetItemRowProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [quantity, setQuantity] = useState(item.quantity);
