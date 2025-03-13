@@ -5,21 +5,7 @@ import { Trash2, Edit2, X, Save, Plus, Minus } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-
-// A simplified BudgetItem type for the row component
-interface RowBudgetItem {
-  id?: number;
-  itemCode: string;
-  description: string;
-  quantity: number;
-  unitPrice: number;
-  total: number;
-  isNew?: boolean;
-  name?: string;
-  category?: string;
-  budgetSettingsId?: number;
-  clientId?: number;
-}
+import { RowBudgetItem } from './BudgetTypes';
 
 interface BudgetItemRowProps {
   item: RowBudgetItem;

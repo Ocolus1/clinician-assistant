@@ -1,17 +1,32 @@
 import { createContext, useContext, ReactNode, useState } from "react";
 import { FIXED_BUDGET_AMOUNT } from "./BudgetFormSchema";
 
+// Define BudgetPlan type directly here to avoid circular dependencies
 export interface BudgetPlan {
   id: number;
   clientId: number;
-  planCode: string | null;
   planSerialNumber: string | null;
+  planCode: string | null;
   isActive: boolean | null;
   availableFunds: number;
   endOfPlan: string | null;
   createdAt: Date | null;
+  
+  // Additional properties for UI display
+  active?: boolean;
+  archived?: boolean;
+  totalUsed?: number;
+  itemCount?: number;
+  percentUsed?: number;
+  
+  // Mapped properties for consistent UI naming
+  planName?: string;
+  fundingSource?: string;
+  startDate?: string | null;
+  endDate?: string | null;
 }
 
+// Budget item interface for use within the context
 export interface BudgetItem {
   id: number;
   clientId: number;

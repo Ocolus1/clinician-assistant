@@ -30,22 +30,26 @@ import { apiRequest } from "@/lib/queryClient";
 import { useBudgetFeature, BudgetPlan, BudgetItem } from "./BudgetFeatureContext";
 import { Loader2, AlertCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { CatalogItem, RowBudgetItem } from "./BudgetTypes";
+
+// Schema for budget items in the form
+const budgetItemSchema = z.object({
+  id: z.number().optional(), // Optional for new items being added
+  itemCode: z.string(),
+  description: z.string(),
+  quantity: z.number().min(0),
+  unitPrice: z.number().min(0),
+  total: z.number(), // Calculated field
+  isNew: z.boolean().optional(), // Flag to track newly added items
+  name: z.string().optional(),
+  category: z.string().optional(),
+  budgetSettingsId: z.number().optional(),
+  clientId: z.number().optional()
+});
 
 // Schema for the unified budget form
 export const unifiedBudgetFormSchema = z.object({
-  items: z.array(z.object({
-    id: z.number().optional(), // Optional for new items being added
-    itemCode: z.string(),
-    description: z.string(),
-    quantity: z.number().min(0),
-    unitPrice: z.number().min(0),
-    total: z.number(), // Calculated field
-    isNew: z.boolean().optional(), // Flag to track newly added items
-    name: z.string().optional(),
-    category: z.string().optional(),
-    budgetSettingsId: z.number().optional(),
-    clientId: z.number().optional()
-  })),
+  items: z.array(budgetItemSchema),
   // Meta fields for validation
   totalBudget: z.number(),
   totalAllocated: z.number(),
@@ -206,10 +210,13 @@ export function UnifiedBudgetManager({ clientId }: UnifiedBudgetManagerProps) {
     remove(index);
   };
 
+  // Using CatalogItem from BudgetTypes.ts
+  
   // Handle adding a catalog item
-  const handleAddCatalogItem = (catalogItem: any, quantity: number) => {
+  const handleAddCatalogItem = (catalogItem: CatalogItem, quantity: number) => {
     if (!activePlan) return;
     
+    // Create a new budget item from catalog item
     const newItem = {
       itemCode: catalogItem.itemCode,
       description: catalogItem.description,
@@ -217,8 +224,8 @@ export function UnifiedBudgetManager({ clientId }: UnifiedBudgetManagerProps) {
       unitPrice: catalogItem.defaultUnitPrice,
       total: quantity * catalogItem.defaultUnitPrice,
       isNew: true,
-      name: catalogItem.description,
-      category: catalogItem.category,
+      name: catalogItem.description, // Use description as the name
+      category: catalogItem.category !== null ? catalogItem.category : undefined, // Handle null case explicitly
       budgetSettingsId: activePlan.id,
       clientId: clientId
     };

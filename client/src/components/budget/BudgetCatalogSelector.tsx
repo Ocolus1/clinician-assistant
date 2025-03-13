@@ -12,16 +12,7 @@ import { formatCurrency } from "@/lib/utils";
 import { Loader2, Plus } from 'lucide-react';
 import { Label } from "@/components/ui/label";
 import { BudgetPlan } from './BudgetFeatureContext';
-
-// Types
-interface CatalogItem {
-  id: number;
-  itemCode: string;
-  description: string;
-  defaultUnitPrice: number;
-  category: string | null;
-  isActive: boolean | null;
-}
+import { CatalogItem } from './BudgetTypes';
 
 interface BudgetCatalogSelectorProps {
   catalogItems: CatalogItem[];
