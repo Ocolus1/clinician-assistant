@@ -2,18 +2,18 @@ import { z } from 'zod';
 
 /**
  * Constants for budget management
+ * 
+ * NOTE: These constants are NOT used for actual calculation anymore.
+ * Instead, we're using client-specific values from the active plan.
+ * These values are kept as fallbacks only.
  */
-export const FIXED_BUDGET_AMOUNT = 375; // Maximum allocated budget
-export const AVAILABLE_FUNDS_AMOUNT = 500; // Total available funds
-export const INITIAL_USED_AMOUNT = 225; // Initial amount used (1x THERAPY-001 @ 150 + 1x THERAPY-002 @ 75)
+export const FIXED_BUDGET_AMOUNT = 0; // Placeholder, use client-specific values instead
+export const AVAILABLE_FUNDS_AMOUNT = 0; // Placeholder, use client-specific values instead
+export const INITIAL_USED_AMOUNT = 0; // Placeholder, use client-specific values instead
 
-// Used quantities for budget items - represents actual usage from sessions
-// These should match with the data from the API
-export const MOCK_USED_QUANTITIES: Record<string, number> = {
-  "THERAPY-001": 1, // Individual Speech Therapy (1 session used)
-  "THERAPY-002": 1, // Group Speech Therapy (1 session used) 
-  "THERAPY-003": 0  // All other items are unused by default
-};
+// Used quantities for budget items are now retrieved from the API
+// This mock is kept for reference only and is not used in production code
+export const MOCK_USED_QUANTITIES: Record<string, number> = {};
 
 /**
  * Schema for unified budget form
@@ -72,22 +72,33 @@ export type BudgetCatalogSelectionValues = z.infer<typeof budgetCatalogSelection
  * @param currentTotal Current total allocated funds
  * @param itemPrice Price of new item to add
  * @param itemQuantity Quantity of new item
+ * @param maxBudget Maximum budget amount specific to client
  * @returns Boolean indicating if adding this item exceeds the budget
  */
-export function exceedsBudget(currentTotal: number, itemPrice: number, itemQuantity: number): boolean {
+export function exceedsBudget(
+  currentTotal: number, 
+  itemPrice: number, 
+  itemQuantity: number, 
+  maxBudget: number
+): boolean {
   const newTotal = currentTotal + (itemPrice * itemQuantity);
-  return newTotal > FIXED_BUDGET_AMOUNT;
+  return newTotal > maxBudget;
 }
 
 /**
  * Calculates the maximum quantity that can be added without exceeding budget
  * @param currentTotal Current total allocated funds
  * @param itemPrice Price of item
+ * @param maxBudget Maximum budget amount specific to client
  * @returns Maximum quantity that can be added
  */
-export function calculateMaxQuantity(currentTotal: number, itemPrice: number): number {
+export function calculateMaxQuantity(
+  currentTotal: number, 
+  itemPrice: number, 
+  maxBudget: number
+): number {
   if (itemPrice <= 0) return 0;
-  const remainingBudget = FIXED_BUDGET_AMOUNT - currentTotal;
+  const remainingBudget = maxBudget - currentTotal;
   return Math.floor(remainingBudget / itemPrice);
 }
 

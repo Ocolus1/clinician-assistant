@@ -6,9 +6,16 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
+interface ProgressSegment {
+  value: number;  // Percentage value (0-100)
+  color: string;  // CSS color string (can be a Tailwind class)
+  label: string;  // Label for this segment
+}
+
 interface SegmentedProgressBarProps {
-  total: number;
-  used: number;
+  // Original support for simple unit-based segments
+  total?: number;
+  used?: number;
   height?: number;
   colors?: {
     used: string;
@@ -16,18 +23,19 @@ interface SegmentedProgressBarProps {
     background: string;
   };
   className?: string;
+
+  // New support for percentage-based segments
+  segments?: ProgressSegment[];
 }
 
 /**
- * A segmented progress bar for visualizing budget item usage
- * Shows total allocation and used amount in a horizontal bar format
+ * A versatile progress bar component that can display either:
+ * 1. A segmented item quantity bar (with total/used units)
+ * 2. A continuous percentage-based progress bar with multiple segments
  * 
- * This visualization uses a segmented approach where:
- * - The bar is divided into equal segments based on the total quantity
- * - Each segment represents one unit
- * - Used segments are colored blue, balance segments are gray
- * - Segments are separated by white space
- * - Hovering shows detailed information about total/used/balance
+ * This component supports two usage patterns:
+ * - Unit-based: <SegmentedProgressBar total={5} used={2} />
+ * - Percentage-based: <SegmentedProgressBar segments={[{value: 30, color: 'bg-blue-600', label: 'Used'}, ...]} />
  */
 export function SegmentedProgressBar({
   total,
@@ -39,12 +47,55 @@ export function SegmentedProgressBar({
     background: '#F3F4F6', // Very light gray background
   },
   className = '',
+  segments
 }: SegmentedProgressBarProps) {
-  // Calculate derived values
-  const balance = Math.max(0, total - used);
+  // Determine if we're using the segments API
+  const useSegmentsApi = segments && segments.length > 0;
   
-  // Don't render segments if total is 0
-  if (total <= 0) {
+  // PERCENTAGE-BASED RENDERING
+  if (useSegmentsApi) {
+    return (
+      <TooltipProvider>
+        <Tooltip delayDuration={100}>
+          <TooltipTrigger asChild>
+            <div 
+              className={`w-full rounded-md overflow-hidden flex ${className}`}
+              style={{ height: `${height}px` }}
+            >
+              {segments.map((segment, index) => (
+                <div
+                  key={index}
+                  className={`h-full ${segment.color}`}
+                  style={{
+                    width: `${segment.value}%`,
+                  }}
+                />
+              ))}
+            </div>
+          </TooltipTrigger>
+          <TooltipContent className="p-3">
+            <div className="space-y-2 text-sm">
+              <div className="text-center font-medium pb-1 border-b border-gray-100">
+                Budget Distribution
+              </div>
+              {segments.map((segment, index) => (
+                <div key={index} className="flex justify-between gap-6">
+                  <div className="flex items-center gap-2">
+                    <div className={`h-3 w-3 rounded-full ${segment.color}`}></div>
+                    <span className="font-semibold">{segment.label}:</span>
+                  </div>
+                  <span>{segment.value}%</span>
+                </div>
+              ))}
+            </div>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    );
+  }
+  
+  // UNIT-BASED RENDERING (ORIGINAL FUNCTIONALITY)
+  if (!total || total <= 0) {
     return (
       <div 
         className={`w-full rounded-full bg-gray-100 ${className}`}
@@ -53,18 +104,21 @@ export function SegmentedProgressBar({
     );
   }
   
+  // Calculate derived values for unit-based display
+  const usedValue = used || 0;
+  const balance = Math.max(0, total - usedValue);
+  
   // Create segments for the progress bar
-  const segments = [];
-  const gapSize = 2; // Size of the gap between segments in pixels - increased for better visibility
+  const unitSegments = [];
+  const gapSize = 2; // Size of the gap between segments in pixels
   
   // Calculate the segment width (accounting for gaps)
-  // We subtract (total - 1) * gapSize from the total width to account for gaps between segments
   const segmentWidth = `calc((100% - (${total - 1} * ${gapSize}px)) / ${total})`;
   
   // Generate segments
   for (let i = 0; i < total; i++) {
-    const isUsed = i < used;
-    segments.push(
+    const isUsed = i < usedValue;
+    unitSegments.push(
       <div
         key={i}
         className={`h-full ${i === 0 ? 'rounded-l-sm' : i === total - 1 ? 'rounded-r-sm' : ''}`}
@@ -85,7 +139,7 @@ export function SegmentedProgressBar({
             className={`w-full rounded-md flex items-center ${className}`}
             style={{ height: `${height}px` }}
           >
-            {segments}
+            {unitSegments}
           </div>
         </TooltipTrigger>
         <TooltipContent className="p-3">
@@ -102,7 +156,7 @@ export function SegmentedProgressBar({
                 <div className="h-3 w-3 rounded-full" style={{ backgroundColor: colors.used }}></div>
                 <span className="font-semibold">Used in sessions:</span>
               </div>
-              <span>{used} units</span>
+              <span>{usedValue} units</span>
             </div>
             <div className="flex justify-between gap-6">
               <div className="flex items-center gap-2">
@@ -114,9 +168,9 @@ export function SegmentedProgressBar({
             
             {/* Display usage percentage */}
             <div className="mt-1 pt-1 border-t border-gray-100 text-center">
-              {used > 0 ? (
+              {usedValue > 0 ? (
                 <span className="text-xs font-medium text-blue-600">
-                  {Math.round((used / total) * 100)}% of allocation used
+                  {Math.round((usedValue / total) * 100)}% of allocation used
                 </span>
               ) : (
                 <span className="text-xs font-medium text-gray-500">

@@ -3,7 +3,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { formatCurrency } from "@/lib/utils";
 import { AlertCircle, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { Progress } from "@/components/ui/progress";
-import { FIXED_BUDGET_AMOUNT, AVAILABLE_FUNDS_AMOUNT, INITIAL_USED_AMOUNT } from "./BudgetFormSchema";
+import { SegmentedProgressBar } from './SegmentedProgressBar';
 
 interface BudgetValidationProps {
   totalBudget: number;
@@ -20,31 +20,31 @@ export function BudgetValidation({
   totalBudget, 
   totalAllocated, 
   remainingBudget,
-  originalAllocated = FIXED_BUDGET_AMOUNT // Default to the fixed budget amount if not provided
+  originalAllocated 
 }: BudgetValidationProps) {
-  // For this fixed budget plan, use initial amount (0) for the "used" value
-  // In a real app, this would come from counting actual usage in sessions
-  const totalUsed = INITIAL_USED_AMOUNT;
+  // Store used amount at 30% of total for demo purposes
+  // In a real app, this would come from API data on actual session usage
+  const totalUsed = totalBudget * 0.3;
   
-  // Calculate percentage of used amount vs original allocation
-  const percentUsed = totalUsed > 0 
-    ? Math.min(Math.round((totalUsed / originalAllocated) * 100), 100) 
+  // Calculate percentage of used amount vs total budget
+  const percentUsed = totalUsed > 0 && totalBudget > 0
+    ? Math.min(Math.round((totalUsed / totalBudget) * 100), 100) 
     : 0;
   
   // Determine the budget status
   // Convert string values to numbers to ensure comparison works correctly
   const allocatedAmount = typeof totalAllocated === 'string' ? parseFloat(totalAllocated) : totalAllocated;
   const usedAmount = typeof totalUsed === 'string' ? parseFloat(totalUsed) : totalUsed;
-  const originalAmount = typeof originalAllocated === 'string' ? parseFloat(originalAllocated) : originalAllocated;
+  const budgetAmount = typeof totalBudget === 'string' ? parseFloat(totalBudget) : totalBudget;
   
-  // Check if over budget - comparing to original allocation
-  const isOverBudget = allocatedAmount > originalAmount;
+  // Check if over budget - comparing to total budget
+  const isOverBudget = allocatedAmount > budgetAmount;
   
   // Check if fully allocated (with tolerance for floating point math)
-  const isFullyAllocated = Math.abs(allocatedAmount - originalAmount) < 0.01;
+  const isFullyAllocated = Math.abs(allocatedAmount - budgetAmount) < 0.01;
   
-  // Calculate the allocation difference (reallocation - original allocation)
-  const allocationDifference = allocatedAmount - originalAmount;
+  // Calculate the allocation difference (allocation - budget)
+  const allocationDifference = allocatedAmount - budgetAmount;
   
   // Status color based on allocation status
   const statusColor = isOverBudget 
@@ -56,8 +56,20 @@ export function BudgetValidation({
   // Progress color for usage indicator
   const progressColor = "bg-blue-600"; // Blue for usage
   
-  // Calculate remaining budget as original amount - allocated
-  const remainingAllocation = originalAmount - allocatedAmount;
+  // Calculate remaining budget as total budget - allocated
+  const remainingAllocation = budgetAmount - allocatedAmount;
+  
+  // Calculate percentage of allocated vs total budget
+  const percentAllocated = budgetAmount > 0
+    ? Math.min(Math.round((allocatedAmount / budgetAmount) * 100), 100)
+    : 0;
+  
+  // Segments for the progress bar - Used, Allocated, Available
+  const segments = [
+    { value: percentUsed, color: 'bg-blue-600', label: 'Used' },
+    { value: percentAllocated - percentUsed, color: 'bg-amber-500', label: 'Allocated' },
+    { value: 100 - percentAllocated, color: 'bg-gray-200', label: 'Available' }
+  ];
   
   return (
     <div className="space-y-4">
@@ -74,19 +86,15 @@ export function BudgetValidation({
         </div>
       </div>
       
-      {/* Usage progress bar */}
-      <Progress 
-        value={percentUsed} 
-        className="h-3" 
-        indicatorClassName={progressColor}
-      />
+      {/* Segmented progress bar showing Used, Allocated, and Available */}
+      <SegmentedProgressBar segments={segments} />
       
       {/* Budget metrics - reformatted as per requirements */}
       <div className="grid grid-cols-3 gap-4 text-sm">
         <div>
-          <div className="text-gray-500">Total Allocated</div>
+          <div className="text-gray-500">Total Budget</div>
           <div className="font-medium">
-            {formatCurrency(originalAmount)}
+            {formatCurrency(budgetAmount)}
             {isOverBudget && (
               <span className="text-xs ml-1 text-red-500">
                 ({formatCurrency(allocationDifference)})
@@ -106,22 +114,13 @@ export function BudgetValidation({
         </div>
       </div>
       
-      {/* Additional information about available funds */}
-      <div className="grid grid-cols-1 gap-4 text-sm bg-gray-50 p-3 rounded-md border border-gray-100">
-        <div>
-          <div className="text-gray-500 mb-1">Total Available Funds</div>
-          <div className="font-medium text-lg">{formatCurrency(AVAILABLE_FUNDS_AMOUNT)}</div>
-          <div className="text-xs text-gray-500 mt-1">Total funds available for this client</div>
-        </div>
-      </div>
-      
       {/* Status alerts */}
       {isOverBudget && (
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
             <strong>Budget Limit Exceeded:</strong> You are over budget by {formatCurrency(Math.abs(remainingAllocation))}.
-            Please reduce quantities or remove items to stay within your original allocation of {formatCurrency(originalAmount)}.
+            Please reduce quantities or remove items to stay within your available budget of {formatCurrency(budgetAmount)}.
           </AlertDescription>
         </Alert>
       )}
@@ -130,7 +129,7 @@ export function BudgetValidation({
         <Alert variant="default" className="border-amber-200 bg-amber-50">
           <AlertTriangle className="h-4 w-4 text-amber-600" />
           <AlertDescription className="text-amber-800">
-            <strong>Budget Fully Allocated:</strong> You have allocated your entire budget of {formatCurrency(originalAmount)}.
+            <strong>Budget Fully Allocated:</strong> You have allocated your entire budget of {formatCurrency(budgetAmount)}.
             Any additional items will require adjusting existing allocations.
           </AlertDescription>
         </Alert>
