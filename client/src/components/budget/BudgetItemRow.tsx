@@ -22,6 +22,7 @@ import {
   Alert,
   AlertDescription
 } from "@/components/ui/alert";
+import { BudgetDonutChart } from './BudgetDonutChart';
 
 interface BudgetItemRowProps {
   item: RowBudgetItem;
@@ -234,17 +235,22 @@ export function BudgetItemRow({
         ) : (
           <div className="flex items-center gap-2">
             <div className="flex items-center gap-4">
-              <div className="text-right">
-                <div className="font-medium">{formatCurrency(item.total)}</div>
-                <div className="grid grid-cols-3 gap-2 text-xs text-gray-500 mt-1">
-                  <div>
-                    <span className="font-semibold">Total:</span> {item.quantity} units
-                  </div>
-                  <div>
-                    <span className="font-semibold text-blue-600">Used:</span> {getUsedQuantity(item.itemCode)} units
-                  </div>
-                  <div>
-                    <span className="font-semibold text-green-600">Balance:</span> {item.quantity - getUsedQuantity(item.itemCode)} units
+              <div className="flex items-center gap-3">
+                <BudgetDonutChart 
+                  total={item.quantity}
+                  used={getUsedQuantity(item.itemCode)}
+                  colors={{
+                    total: '#2563EB', // Blue
+                    used: '#D1D5DB', // Gray 
+                    background: '#F3F4F6', // Light gray background
+                  }}
+                  size={70}
+                  strokeWidth={8}
+                />
+                <div className="text-right">
+                  <div className="font-medium">{formatCurrency(item.total)}</div>
+                  <div className="text-xs text-gray-500 mt-1">
+                    {formatCurrency(item.unitPrice)} per unit
                   </div>
                 </div>
               </div>

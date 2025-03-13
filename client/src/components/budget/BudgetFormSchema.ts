@@ -10,7 +10,7 @@ export const INITIAL_USED_AMOUNT = 0; // Initial amount used (no sessions yet)
 // Mock values for used quantities - in a real app, these would come from the database
 // showing actual usage from sessions
 export const MOCK_USED_QUANTITIES: Record<string, number> = {
-  "THERAPY-001": 1, // Individual Speech Therapy
+  "THERAPY-001": 0, // Individual Speech Therapy
   "THERAPY-002": 0, // Group Speech Therapy
   "THERAPY-003": 0  // All other items are unused by default
 };
