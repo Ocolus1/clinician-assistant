@@ -224,11 +224,11 @@ export function UnifiedBudgetManager({ clientId }: UnifiedBudgetManagerProps) {
     // Update totals
     const newTotalAllocated = currentTotal + itemCost;
     
-    // Calculate remaining budget using fixed total budget
-    const newRemainingBudget = FIXED_BUDGET_AMOUNT - newTotalAllocated;
-    
+    // Update the allocated total
     form.setValue("totalAllocated", newTotalAllocated);
-    form.setValue("remainingBudget", newRemainingBudget);
+    
+    // Remaining budget stays at FIXED_BUDGET_AMOUNT since it's calculated as total budget - used (not allocated)
+    form.setValue("remainingBudget", FIXED_BUDGET_AMOUNT);
     
     // Show success notification
     toast({
@@ -296,8 +296,8 @@ export function UnifiedBudgetManager({ clientId }: UnifiedBudgetManagerProps) {
     const newTotalAllocated = currentAllocated - itemTotal;
     form.setValue("totalAllocated", newTotalAllocated);
     
-    // Calculate remaining budget using fixed total budget constant
-    form.setValue("remainingBudget", FIXED_BUDGET_AMOUNT - newTotalAllocated);
+    // Remaining budget stays at FIXED_BUDGET_AMOUNT since it's calculated as total budget - used (not allocated)
+    form.setValue("remainingBudget", FIXED_BUDGET_AMOUNT);
     
     // Remove from field array
     remove(index);
