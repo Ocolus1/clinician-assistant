@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Input } from "@/components/ui/input";
 import { formatCurrency } from "@/lib/utils";
-import { Edit2, X, Check, Plus, Minus, AlertTriangle, Archive } from 'lucide-react';
+import { Edit2, X, Check, Plus, Minus, AlertTriangle, Archive, Trash2 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -97,6 +97,15 @@ export function BudgetItemRow({
   
   // Apply the edited quantity to the form (but don't save to database)
   const handleApplyEdit = () => {
+    const usedQty = getUsedQuantity(item.itemCode);
+    
+    // First check that quantity isn't less than used quantity
+    if (quantity < usedQty) {
+      setValidationError(`Cannot set quantity less than ${usedQty} unit(s) already used in sessions`);
+      return;
+    }
+    
+    // Then check budget constraints
     if (validateQuantity(quantity)) {
       onUpdateQuantity(index, quantity);
       setIsEditing(false);
@@ -112,19 +121,34 @@ export function BudgetItemRow({
   };
   
   const decrementQuantity = () => {
-    if (quantity > 1) {
+    // Get used quantity for this item
+    const usedQty = getUsedQuantity(item.itemCode);
+    
+    // Don't allow decreasing below used quantity
+    if (quantity > usedQty && quantity > 0) {
       const newQuantity = quantity - 1;
       setQuantity(newQuantity);
       validateQuantity(newQuantity);
+    } else if (quantity <= usedQty) {
+      setValidationError(`Cannot decrease below ${usedQty} unit(s) already used in sessions`);
     }
   };
   
   // Handle direct input change
   const handleQuantityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newQuantity = parseInt(e.target.value);
+    const usedQty = getUsedQuantity(item.itemCode);
+    
     if (!isNaN(newQuantity) && newQuantity >= 0) {
-      setQuantity(newQuantity);
-      validateQuantity(newQuantity);
+      // Validate that quantity isn't less than what's already used
+      if (newQuantity < usedQty) {
+        setValidationError(`Cannot set quantity less than ${usedQty} unit(s) already used in sessions`);
+        // Still update the display value but don't apply changes
+        setQuantity(newQuantity);
+      } else {
+        setQuantity(newQuantity);
+        validateQuantity(newQuantity);
+      }
     }
   };
   
@@ -212,7 +236,17 @@ export function BudgetItemRow({
             <div className="flex items-center gap-4">
               <div className="text-right">
                 <div className="font-medium">{formatCurrency(item.total)}</div>
-                <div className="text-sm text-gray-500">{item.quantity} units</div>
+                <div className="grid grid-cols-3 gap-2 text-xs text-gray-500 mt-1">
+                  <div>
+                    <span className="font-semibold">Total:</span> {item.quantity} units
+                  </div>
+                  <div>
+                    <span className="font-semibold text-blue-600">Used:</span> {getUsedQuantity(item.itemCode)} units
+                  </div>
+                  <div>
+                    <span className="font-semibold text-green-600">Balance:</span> {item.quantity - getUsedQuantity(item.itemCode)} units
+                  </div>
+                </div>
               </div>
               <TooltipProvider>
                 <Tooltip>
@@ -231,23 +265,65 @@ export function BudgetItemRow({
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button 
-                      size="sm" 
-                      variant="ghost" 
-                      className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-100" 
-                      onClick={() => onDelete(index)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Remove item</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+              {/* Only allow deletion if the item is new and not yet saved */}
+              {item.isNew ? (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button 
+                        size="sm" 
+                        variant="ghost" 
+                        className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-100" 
+                        onClick={() => onDelete(index)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Remove item</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              ) : getUsedQuantity(item.itemCode) > 0 ? (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button 
+                        size="sm" 
+                        variant="ghost" 
+                        className="h-8 w-8 p-0 text-gray-400 cursor-not-allowed"
+                        disabled
+                      >
+                        <Archive className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Cannot archive - item has used units</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              ) : (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button 
+                        size="sm" 
+                        variant="ghost" 
+                        className="h-8 w-8 p-0 text-amber-500 hover:text-amber-700 hover:bg-amber-100" 
+                        onClick={() => {
+                          // For now, we'll set quantity to 0 instead of deleting
+                          onUpdateQuantity(index, 0);
+                        }}
+                      >
+                        <Archive className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Archive item (sets quantity to 0)</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
             </div>
           </div>
         )}
