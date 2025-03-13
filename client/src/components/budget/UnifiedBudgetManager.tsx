@@ -153,21 +153,21 @@ export function UnifiedBudgetManager({ clientId }: UnifiedBudgetManagerProps) {
       const totalCalculated = initialItems.reduce((sum: number, item: any) => 
         sum + (item.quantity * item.unitPrice), 0);
       
-      // Use the constant values for consistent budget management
+      // Get client-specific budget amounts from the active plan
+      // Parse to ensure we're working with numbers instead of strings
+      const clientBudgetAmount = activePlan.availableFunds 
+        ? (typeof activePlan.availableFunds === 'string' ? parseFloat(activePlan.availableFunds) : activePlan.availableFunds)
+        : FIXED_BUDGET_AMOUNT;
+      
+      console.log('Client budget amount:', clientBudgetAmount);
+      
+      // Use the client-specific budget amount
       form.reset({
         items: initialItems,
-        totalBudget: FIXED_BUDGET_AMOUNT,
+        totalBudget: clientBudgetAmount,
         totalAllocated: totalCalculated,
-        remainingBudget: FIXED_BUDGET_AMOUNT - totalCalculated
+        remainingBudget: clientBudgetAmount - totalCalculated
       });
-      
-      // Override activePlan with correct available funds amount if needed
-      if (activePlan.availableFunds !== AVAILABLE_FUNDS_AMOUNT) {
-        setActivePlan({
-          ...activePlan,
-          availableFunds: AVAILABLE_FUNDS_AMOUNT
-        });
-      }
       
       setFormInitialized(true);
       setBudgetItems(itemsQuery.data);
@@ -190,8 +190,13 @@ export function UnifiedBudgetManager({ clientId }: UnifiedBudgetManagerProps) {
   // Update meta fields whenever items change
   useEffect(() => {
     if (activePlan && formInitialized) {
+      // Get client-specific budget amount
+      const clientBudgetAmount = activePlan.availableFunds 
+        ? (typeof activePlan.availableFunds === 'string' ? parseFloat(activePlan.availableFunds) : activePlan.availableFunds)
+        : FIXED_BUDGET_AMOUNT;
+      
       form.setValue("totalAllocated", totalAllocated);
-      form.setValue("remainingBudget", FIXED_BUDGET_AMOUNT - totalAllocated);
+      form.setValue("remainingBudget", clientBudgetAmount - totalAllocated);
     }
   }, [form, totalAllocated, activePlan, formInitialized]);
 
