@@ -699,11 +699,10 @@ export function UnifiedBudgetManager({ clientId }: UnifiedBudgetManagerProps) {
             <div className="space-y-6">
               {/* Budget validation component */}
               <BudgetValidation 
-                // Use client-specific budget amount
-                totalBudget={getClientBudget()} // Set to client-specific budget amount
+                totalBudget={getClientBudget()} 
                 totalAllocated={form.watch("totalAllocated") || 0}
-                remainingBudget={getClientBudget() - (form.watch("totalAllocated") || 0)} // Total remaining budget is total budget minus allocated amount
-                originalAllocated={(itemsQuery.data || []).reduce((sum, item) => sum + (item.quantity * item.unitPrice), 0)}
+                remainingBudget={getClientBudget() - (form.watch("totalAllocated") || 0)}
+                originalAllocated={0}
               />
               
               <Separator className="my-4" />
