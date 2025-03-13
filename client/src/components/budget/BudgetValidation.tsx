@@ -22,9 +22,9 @@ export function BudgetValidation({
   remainingBudget,
   originalAllocated 
 }: BudgetValidationProps) {
-  // Store used amount at 30% of total for demo purposes
-  // In a real app, this would come from API data on actual session usage
-  const totalUsed = totalBudget * 0.3;
+  // Total used amount should be 0 until items are actually used in sessions
+  // This will be replaced with actual usage data from the API in the future
+  const totalUsed = 0;
   
   // Calculate percentage of used amount vs total budget
   const percentUsed = totalUsed > 0 && totalBudget > 0
