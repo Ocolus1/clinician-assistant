@@ -1,4 +1,10 @@
 import React from 'react';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface BudgetDonutChartProps {
   total: number;
@@ -18,8 +24,8 @@ interface BudgetDonutChartProps {
  * 
  * This visualization uses a segmented approach where:
  * - The donut is divided into equal segments based on the total quantity
- * - Used segments are colored differently than balance segments
- * - This creates a clear visual distinction between used and available units
+ * - Used segments are colored blue, balance segments are gray
+ * - Hovering shows detailed information about total/used/balance
  */
 export function BudgetDonutChart({
   total,
@@ -27,8 +33,8 @@ export function BudgetDonutChart({
   size = 80,
   strokeWidth = 10,
   colors = {
-    total: '#3B82F6', // Blue for available balance
-    used: '#D1D5DB', // Light gray for used portion
+    used: '#3B82F6', // Blue for used portion
+    total: '#D1D5DB', // Light gray for balance
     background: '#F3F4F6' // Very light gray for background
   }
 }: BudgetDonutChartProps) {
@@ -51,10 +57,6 @@ export function BudgetDonutChart({
             strokeWidth={strokeWidth}
           />
         </svg>
-        <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-          <span className="text-xs font-medium">0/0</span>
-          <span className="text-[10px] text-gray-500">units</span>
-        </div>
       </div>
     );
   }
@@ -70,12 +72,6 @@ export function BudgetDonutChart({
     const isUsed = i < used;
     const startAngle = i * segmentRadians;
     const endAngle = (i + 0.95) * segmentRadians; // 0.95 to create small gap between segments
-    
-    // Calculate start and end points of the arc
-    const startX = center + radius * Math.cos(startAngle - Math.PI/2);
-    const startY = center + radius * Math.sin(startAngle - Math.PI/2);
-    const endX = center + radius * Math.cos(endAngle - Math.PI/2);
-    const endY = center + radius * Math.sin(endAngle - Math.PI/2);
     
     // Create SVG arc path
     // Calculate if this arc is more than half the circle (large-arc-flag)
@@ -100,29 +96,51 @@ export function BudgetDonutChart({
   }
   
   return (
-    <div className="relative" style={{ width: size, height: size }}>
-      {/* Background circle */}
-      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="absolute">
-        <circle
-          cx={center}
-          cy={center}
-          r={radius}
-          fill="none"
-          stroke={colors.background}
-          strokeWidth={strokeWidth}
-        />
-      </svg>
-      
-      {/* Segmented donut */}
-      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="absolute">
-        {segments}
-      </svg>
-      
-      {/* Center text displaying used/total */}
-      <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-        <span className="text-xs font-medium">{used}/{total}</span>
-        <span className="text-[10px] text-gray-500">units</span>
-      </div>
-    </div>
+    <TooltipProvider>
+      <Tooltip delayDuration={100}>
+        <TooltipTrigger asChild>
+          <div className="relative" style={{ width: size, height: size }}>
+            {/* Background circle */}
+            <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="absolute">
+              <circle
+                cx={center}
+                cy={center}
+                r={radius}
+                fill="none"
+                stroke={colors.background}
+                strokeWidth={strokeWidth}
+              />
+            </svg>
+            
+            {/* Segmented donut */}
+            <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="absolute">
+              {segments}
+            </svg>
+          </div>
+        </TooltipTrigger>
+        <TooltipContent className="p-2">
+          <div className="space-y-1 text-sm">
+            <div className="flex justify-between gap-4">
+              <span className="font-semibold">Total:</span>
+              <span>{total} units</span>
+            </div>
+            <div className="flex justify-between gap-4">
+              <div className="flex items-center gap-1">
+                <div className="h-2 w-2 rounded-full bg-blue-500"></div>
+                <span className="font-semibold">Used:</span>
+              </div>
+              <span>{used} units</span>
+            </div>
+            <div className="flex justify-between gap-4">
+              <div className="flex items-center gap-1">
+                <div className="h-2 w-2 rounded-full bg-gray-300"></div>
+                <span className="font-semibold">Balance:</span>
+              </div>
+              <span>{balance} units</span>
+            </div>
+          </div>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   );
 }

@@ -155,13 +155,14 @@ export function BudgetItemRow({
   
   return (
     <div className={cn(
-      "border rounded-md p-3 transition-colors",
+      "border rounded-md p-4 transition-colors",
       isEditing ? "border-blue-300 bg-blue-50" : "border-gray-200",
       item.isNew && "border-green-300 bg-green-50",
       hasUnsavedChanges && !isEditing && "border-amber-300 bg-amber-50"
     )}>
-      <div className="flex items-center justify-between">
-        <div className="space-y-1 flex-1">
+      {/* Item Header */}
+      <div className="flex items-center justify-between mb-3">
+        <div className="space-y-1">
           <div className="flex items-center gap-2">
             <div className="font-medium">{item.description}</div>
             {item.isNew && <Badge variant="outline" className="bg-green-100 text-green-800 text-xs">New</Badge>}
@@ -172,12 +173,103 @@ export function BudgetItemRow({
               <Badge variant="secondary" className="text-xs">{item.category}</Badge>
             )}
           </div>
-          <div className="text-sm text-gray-500">
-            {item.itemCode} • {formatCurrency(item.unitPrice)} per unit
-          </div>
+          <div className="text-sm text-gray-500">{item.itemCode}</div>
         </div>
         
-        {isEditing ? (
+        {/* Action Buttons */}
+        <div className="flex items-center gap-1">
+          {!isEditing && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button 
+                    size="sm" 
+                    variant="ghost" 
+                    className="h-8 w-8 p-0" 
+                    onClick={handleStartEdit}
+                  >
+                    <Edit2 className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Edit quantity</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
+          
+          {/* Item action buttons */}
+          {!isEditing && (
+            item.isNew ? (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button 
+                      size="sm" 
+                      variant="ghost" 
+                      className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-100" 
+                      onClick={() => onDelete(index)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Remove item</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            ) : getUsedQuantity(item.itemCode) > 0 ? (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button 
+                      size="sm" 
+                      variant="ghost" 
+                      className="h-8 w-8 p-0 text-gray-400 cursor-not-allowed"
+                      disabled
+                    >
+                      <Archive className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Cannot archive - item has used units</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            ) : (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button 
+                      size="sm" 
+                      variant="ghost" 
+                      className="h-8 w-8 p-0 text-amber-500 hover:text-amber-700 hover:bg-amber-100" 
+                      onClick={() => {
+                        // For now, we'll set quantity to 0 instead of deleting
+                        onUpdateQuantity(index, 0);
+                      }}
+                    >
+                      <Archive className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Archive item (sets quantity to 0)</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )
+          )}
+        </div>
+      </div>
+      
+      {/* Item Body */}
+      {isEditing ? (
+        <div className="flex items-center justify-between">
+          <div className="text-sm">
+            <span className="font-medium">{formatCurrency(item.unitPrice)}</span>
+            <span className="text-gray-500"> per unit</span>
+          </div>
+          
           <div className="flex items-center gap-2">
             <div className="flex items-center">
               <Button
@@ -232,108 +324,32 @@ export function BudgetItemRow({
               <X className="h-4 w-4" />
             </Button>
           </div>
-        ) : (
-          <div className="flex items-center gap-2">
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-3">
-                <BudgetDonutChart 
-                  total={item.quantity}
-                  used={getUsedQuantity(item.itemCode)}
-                  colors={{
-                    total: '#2563EB', // Blue
-                    used: '#D1D5DB', // Gray 
-                    background: '#F3F4F6', // Light gray background
-                  }}
-                  size={70}
-                  strokeWidth={8}
-                />
-                <div className="text-right">
-                  <div className="font-medium">{formatCurrency(item.total)}</div>
-                  <div className="text-xs text-gray-500 mt-1">
-                    {formatCurrency(item.unitPrice)} per unit
-                  </div>
-                </div>
+        </div>
+      ) : (
+        <div className="flex items-center justify-between">
+          {/* Chart and total area */}
+          <div className="flex flex-col md:flex-row items-center gap-4 mx-auto py-1">
+            <BudgetDonutChart 
+              total={item.quantity}
+              used={getUsedQuantity(item.itemCode)}
+              colors={{
+                used: '#2563EB', // Blue for used
+                total: '#D1D5DB', // Gray for balance
+                background: '#F3F4F6', // Light gray background
+              }}
+              size={75}
+              strokeWidth={10}
+            />
+            
+            <div className="text-center">
+              <div className="font-medium text-lg">{formatCurrency(item.total)}</div>
+              <div className="text-sm text-gray-500 mt-1">
+                {formatCurrency(item.unitPrice)} per unit
               </div>
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button 
-                      size="sm" 
-                      variant="ghost" 
-                      className="h-8 w-8 p-0" 
-                      onClick={handleStartEdit}
-                    >
-                      <Edit2 className="h-4 w-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Edit quantity</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-              {/* Only allow deletion if the item is new and not yet saved */}
-              {item.isNew ? (
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button 
-                        size="sm" 
-                        variant="ghost" 
-                        className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-100" 
-                        onClick={() => onDelete(index)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Remove item</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              ) : getUsedQuantity(item.itemCode) > 0 ? (
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button 
-                        size="sm" 
-                        variant="ghost" 
-                        className="h-8 w-8 p-0 text-gray-400 cursor-not-allowed"
-                        disabled
-                      >
-                        <Archive className="h-4 w-4" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Cannot archive - item has used units</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              ) : (
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button 
-                        size="sm" 
-                        variant="ghost" 
-                        className="h-8 w-8 p-0 text-amber-500 hover:text-amber-700 hover:bg-amber-100" 
-                        onClick={() => {
-                          // For now, we'll set quantity to 0 instead of deleting
-                          onUpdateQuantity(index, 0);
-                        }}
-                      >
-                        <Archive className="h-4 w-4" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Archive item (sets quantity to 0)</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              )}
             </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
       {hasUnsavedChanges && !isEditing && (
         <div className="mt-2 text-xs text-amber-600">
           Changes will only be saved when you click "Save All Changes" at the bottom
