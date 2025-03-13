@@ -251,49 +251,71 @@ export function UnifiedBudgetManager({ clientId }: UnifiedBudgetManagerProps) {
       const itemsToUpdate = items.filter(item => !item.isNew && item.id);
       const itemsToCreate = items.filter(item => item.isNew);
       
-      // Debug log for transparency
+      // Debug log
       console.log("Items to update:", itemsToUpdate);
       console.log("Items to create:", itemsToCreate);
       
       try {
+        const allPromises = [];
+        
         // Update existing items
-        const updatePromises = itemsToUpdate.map(item => 
-          apiRequest('PUT', `/api/budget-items/${item.id}`, {
-            quantity: item.quantity,
-            unitPrice: item.unitPrice
-          })
-        );
+        if (itemsToUpdate.length > 0) {
+          const updatePromises = itemsToUpdate.map(item => 
+            apiRequest('PUT', `/api/budget-items/${item.id}`, {
+              quantity: item.quantity,
+              unitPrice: item.unitPrice
+            })
+          );
+          allPromises.push(...updatePromises);
+        }
         
         // Create new items
-        const createPromises = itemsToCreate.map(item => 
-          apiRequest('POST', `/api/budget-items`, {
-            clientId: clientId,
-            budgetSettingsId: activePlan?.id,
-            itemCode: item.itemCode,
-            description: item.description,
-            quantity: item.quantity,
-            unitPrice: item.unitPrice,
-            name: item.name || item.description,
-            category: item.category
-          })
-        );
+        if (itemsToCreate.length > 0 && activePlan) {
+          const createPromises = itemsToCreate.map(item => 
+            apiRequest('POST', `/api/budget-items`, {
+              clientId: clientId,
+              budgetSettingsId: activePlan.id,
+              itemCode: item.itemCode,
+              description: item.description,
+              quantity: item.quantity,
+              unitPrice: item.unitPrice,
+              name: item.name || item.description,
+              category: item.category
+            })
+          );
+          allPromises.push(...createPromises);
+        }
         
         // Also update budget settings if needed to ensure correct available funds
         if (activePlan && activePlan.availableFunds !== AVAILABLE_FUNDS_AMOUNT) {
-          await apiRequest('PUT', `/api/budget-settings/${activePlan.id}`, {
+          const updateSettingsPromise = apiRequest('PUT', `/api/budget-settings/${activePlan.id}`, {
             availableFunds: AVAILABLE_FUNDS_AMOUNT
           });
+          allPromises.push(updateSettingsPromise);
         }
         
-        // Execute all promises and catch any errors
-        const results = await Promise.all([...updatePromises, ...createPromises]);
+        // Execute all promises or return empty array if no changes
+        if (allPromises.length === 0) {
+          return [];
+        }
+        
+        const results = await Promise.all(allPromises);
         return results;
       } catch (error) {
         console.error("Error during save operation:", error);
         throw error; // Re-throw to trigger onError handler
       }
     },
-    onSuccess: () => {
+    onSuccess: (results) => {
+      // If no results returned (no changes made), show different message
+      if (results && results.length === 0) {
+        toast({
+          title: 'No Changes',
+          description: 'No changes were detected to save.'
+        });
+        return;
+      }
+      
       toast({
         title: 'Success',
         description: 'Budget items updated successfully'
@@ -308,16 +330,8 @@ export function UnifiedBudgetManager({ clientId }: UnifiedBudgetManagerProps) {
         queryKey: [`/api/clients/${clientId}/budget-settings`] 
       });
       
-      // Also invalidate the catalog query to ensure it's fresh
-      queryClient.invalidateQueries({
-        queryKey: ['/api/budget-catalog']
-      });
-      
       // Reset the form initialized state to trigger form refill with fresh data
       setFormInitialized(false);
-      
-      // Mark form as pristine
-      form.reset(form.getValues());
     },
     onError: (error: any) => {
       toast({
@@ -331,11 +345,16 @@ export function UnifiedBudgetManager({ clientId }: UnifiedBudgetManagerProps) {
 
   // Submit handler
   const onSubmit = (data: UnifiedBudgetFormValues) => {
+    // Prevent double submission
+    if (saveMutation.isPending) {
+      return;
+    }
+    
     // Extra validation before submitting
     const calculatedTotal = data.items.reduce((sum, item) => sum + (item.quantity * item.unitPrice), 0);
     const calculatedRemaining = FIXED_BUDGET_AMOUNT - calculatedTotal;
     
-    // Update the totals in the form before submitting to ensure they match the calculated values
+    // Update the totals in the form
     form.setValue("totalAllocated", calculatedTotal);
     form.setValue("remainingBudget", calculatedRemaining);
     
@@ -353,6 +372,16 @@ export function UnifiedBudgetManager({ clientId }: UnifiedBudgetManagerProps) {
       return;
     }
     
+    // Check if there are any changes to save
+    if (!form.formState.isDirty && !updatedData.items.some(item => item.isNew)) {
+      toast({
+        title: 'No Changes',
+        description: 'No changes were detected to save.'
+      });
+      return;
+    }
+    
+    // Execute the mutation
     saveMutation.mutate(updatedData);
   };
 
@@ -426,9 +455,10 @@ export function UnifiedBudgetManager({ clientId }: UnifiedBudgetManagerProps) {
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             {/* Budget Validation */}
             <BudgetValidation 
-              totalBudget={FIXED_BUDGET_AMOUNT} 
+              totalBudget={FIXED_BUDGET_AMOUNT}
               totalAllocated={form.watch("totalAllocated") || 0}
               remainingBudget={form.watch("remainingBudget") || FIXED_BUDGET_AMOUNT}
+              originalAllocated={FIXED_BUDGET_AMOUNT} // Fixed original allocation: (150*1)+(75*3)
             />
             
             {/* Current Budget Items */}
