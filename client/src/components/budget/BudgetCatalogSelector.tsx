@@ -43,7 +43,8 @@ export function BudgetCatalogSelector({
   // Calculate max quantity based on remaining budget
   const maxQuantity = useMemo(() => {
     if (!selectedItem || remainingBudget <= 0) return 0;
-    return Math.floor(remainingBudget / selectedItem.defaultUnitPrice);
+    const maxAllowed = Math.floor(remainingBudget / selectedItem.defaultUnitPrice);
+    return Math.max(maxAllowed, 0); // Ensure we never return a negative number
   }, [selectedItem, remainingBudget]);
   
   // Handle selecting an item

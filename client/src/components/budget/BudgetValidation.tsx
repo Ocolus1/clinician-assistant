@@ -3,6 +3,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { formatCurrency } from "@/lib/utils";
 import { AlertCircle, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { Progress } from "@/components/ui/progress";
+import { FIXED_BUDGET_AMOUNT, AVAILABLE_FUNDS_AMOUNT } from "./BudgetFormSchema";
 
 interface BudgetValidationProps {
   totalBudget: number;
@@ -20,8 +21,8 @@ export function BudgetValidation({
   remainingBudget 
 }: BudgetValidationProps) {
   // Calculate percentage of budget used
-  const percentUsed = totalBudget > 0 
-    ? Math.min(Math.round((totalAllocated / totalBudget) * 100), 100) 
+  const percentUsed = FIXED_BUDGET_AMOUNT > 0 
+    ? Math.min(Math.round((totalAllocated / FIXED_BUDGET_AMOUNT) * 100), 100) 
     : 0;
   
   // Determine the budget status
@@ -61,8 +62,8 @@ export function BudgetValidation({
       
       <div className="grid grid-cols-3 gap-4 text-sm">
         <div>
-          <div className="text-gray-500">Total Budget</div>
-          <div className="font-medium">{formatCurrency(totalBudget)}</div>
+          <div className="text-gray-500">Maximum Budget</div>
+          <div className="font-medium">{formatCurrency(FIXED_BUDGET_AMOUNT)}</div>
         </div>
         <div>
           <div className="text-gray-500">Allocated</div>
@@ -73,6 +74,13 @@ export function BudgetValidation({
           <div className={`font-medium ${statusColor}`}>
             {formatCurrency(remainingBudget)}
           </div>
+        </div>
+      </div>
+      
+      <div className="text-sm text-gray-500 p-2 bg-blue-50 border border-blue-100 rounded-md">
+        <div className="flex justify-between">
+          <span>Total Available Funds:</span>
+          <span className="font-medium">{formatCurrency(AVAILABLE_FUNDS_AMOUNT)}</span>
         </div>
       </div>
       
@@ -91,7 +99,7 @@ export function BudgetValidation({
         <Alert variant="default" className="border-amber-200 bg-amber-50">
           <AlertTriangle className="h-4 w-4 text-amber-600" />
           <AlertDescription className="text-amber-800">
-            Your budget is fully allocated. No funds remain for additional items.
+            Your budget is fully allocated. The maximum allocation limit is {formatCurrency(FIXED_BUDGET_AMOUNT)}.
           </AlertDescription>
         </Alert>
       )}
@@ -100,7 +108,7 @@ export function BudgetValidation({
         <Alert variant="default" className="border-amber-200 bg-amber-50">
           <AlertTriangle className="h-4 w-4 text-amber-600" />
           <AlertDescription className="text-amber-800">
-            You are approaching your budget limit. {formatCurrency(remainingBudget)} remaining.
+            You are approaching your budget limit. {formatCurrency(remainingBudget)} remaining out of {formatCurrency(FIXED_BUDGET_AMOUNT)}.
           </AlertDescription>
         </Alert>
       )}
@@ -109,7 +117,7 @@ export function BudgetValidation({
         <Alert variant="default" className="border-green-200 bg-green-50">
           <CheckCircle2 className="h-4 w-4 text-green-600" />
           <AlertDescription className="text-green-800">
-            Your budget is being allocated efficiently. {formatCurrency(remainingBudget)} still available.
+            Your budget is being allocated efficiently. {formatCurrency(remainingBudget)} still available out of {formatCurrency(FIXED_BUDGET_AMOUNT)}.
           </AlertDescription>
         </Alert>
       )}

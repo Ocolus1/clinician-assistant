@@ -247,8 +247,15 @@ export function UnifiedBudgetManager({ clientId }: UnifiedBudgetManagerProps) {
   // Mutation for saving all changes
   const saveMutation = useMutation({
     mutationFn: async (data: UnifiedBudgetFormValues) => {
+      if (data.remainingBudget < 0) {
+        throw new Error("Cannot save: Budget allocation exceeds the maximum allowed amount");
+      }
+      
       const itemsToUpdate = data.items.filter(item => !item.isNew && item.id);
       const itemsToCreate = data.items.filter(item => item.isNew);
+      
+      console.log("Items to update:", itemsToUpdate);
+      console.log("Items to create:", itemsToCreate);
       
       // Update existing items
       const updatePromises = itemsToUpdate.map(item => 
@@ -267,10 +274,17 @@ export function UnifiedBudgetManager({ clientId }: UnifiedBudgetManagerProps) {
           description: item.description,
           quantity: item.quantity,
           unitPrice: item.unitPrice,
-          name: item.name,
+          name: item.name || item.description,
           category: item.category
         })
       );
+      
+      // Also update budget settings if needed to ensure correct available funds
+      if (activePlan && activePlan.availableFunds !== AVAILABLE_FUNDS_AMOUNT) {
+        await apiRequest('PUT', `/api/budget-settings/${activePlan.id}`, {
+          availableFunds: AVAILABLE_FUNDS_AMOUNT
+        });
+      }
       
       // Execute all promises
       const results = await Promise.all([...updatePromises, ...createPromises]);
@@ -287,13 +301,17 @@ export function UnifiedBudgetManager({ clientId }: UnifiedBudgetManagerProps) {
         queryKey: [`/api/clients/${clientId}/budget-items`] 
       });
       
+      queryClient.invalidateQueries({ 
+        queryKey: [`/api/clients/${clientId}/budget-settings`] 
+      });
+      
       // Reset the form
       setFormInitialized(false);
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast({
         title: 'Error',
-        description: 'Failed to update budget items',
+        description: error.message || 'Failed to update budget items',
         variant: 'destructive'
       });
       console.error('Failed to update budget items:', error);
