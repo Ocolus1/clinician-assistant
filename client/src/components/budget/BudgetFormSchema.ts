@@ -7,6 +7,14 @@ export const FIXED_BUDGET_AMOUNT = 375; // Maximum allocated budget
 export const AVAILABLE_FUNDS_AMOUNT = 500; // Total available funds
 export const INITIAL_USED_AMOUNT = 0; // Initial amount used (no sessions yet)
 
+// Mock values for used quantities - in a real app, these would come from the database
+// showing actual usage from sessions
+export const MOCK_USED_QUANTITIES: Record<string, number> = {
+  "THERAPY-001": 1, // Individual Speech Therapy
+  "THERAPY-002": 0, // Group Speech Therapy
+  "THERAPY-003": 0  // All other items are unused by default
+};
+
 /**
  * Schema for unified budget form
  */
@@ -81,4 +89,38 @@ export function calculateMaxQuantity(currentTotal: number, itemPrice: number): n
   if (itemPrice <= 0) return 0;
   const remainingBudget = FIXED_BUDGET_AMOUNT - currentTotal;
   return Math.floor(remainingBudget / itemPrice);
+}
+
+/**
+ * Gets the used quantity for a specific item code
+ * @param itemCode The product's item code
+ * @returns The quantity that has been used in sessions
+ */
+export function getUsedQuantity(itemCode: string): number {
+  return MOCK_USED_QUANTITIES[itemCode] || 0;
+}
+
+/**
+ * Validates that the requested quantity is not less than what's already used
+ * @param itemCode The product's item code
+ * @param requestedQuantity The quantity the user wants to set
+ * @returns Boolean indicating if the quantity is valid
+ */
+export function validateUsedQuantity(itemCode: string, requestedQuantity: number): boolean {
+  const usedQuantity = getUsedQuantity(itemCode);
+  return requestedQuantity >= usedQuantity;
+}
+
+/**
+ * Gets the error message for quantity validation
+ * @param itemCode The product's item code
+ * @param requestedQuantity The quantity the user wants to set
+ * @returns Error message or null if valid
+ */
+export function getQuantityValidationError(itemCode: string, requestedQuantity: number): string | null {
+  const usedQuantity = getUsedQuantity(itemCode);
+  if (requestedQuantity < usedQuantity) {
+    return `Quantity cannot be less than ${usedQuantity} unit(s) already used in sessions`;
+  }
+  return null;
 }

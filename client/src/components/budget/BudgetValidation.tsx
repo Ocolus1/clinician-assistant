@@ -69,7 +69,7 @@ export function BudgetValidation({
           Budget Usage Status
         </div>
         <div className={`text-sm font-bold ${statusColor}`}>
-          {isOverBudget ? 'Over Budget!' : isFullyAllocated ? 'Fully Allocated' : 'Available Budget'}
+          {isOverBudget ? 'Over Budget!' : isFullyAllocated ? '0% Used' : 'Available Budget'}
         </div>
       </div>
       
@@ -96,12 +96,7 @@ export function BudgetValidation({
         </div>
       </div>
       
-      <div className="text-sm text-gray-500 p-2 bg-blue-50 border border-blue-100 rounded-md">
-        <div className="flex justify-between">
-          <span>Total Available Funds:</span>
-          <span className="font-medium">{formatCurrency(AVAILABLE_FUNDS_AMOUNT)}</span>
-        </div>
-      </div>
+      {/* Removed duplicate "Total Available Funds" section as it's already shown at the top of the card */}
       
       {/* Status alerts */}
       {isOverBudget && (

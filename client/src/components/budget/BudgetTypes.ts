@@ -22,6 +22,8 @@ export interface RowBudgetItem {
   quantity: number;
   unitPrice: number;
   total: number;
+  usedQuantity?: number; // Quantity already used in sessions
+  balanceQuantity?: number; // Remaining quantity available for use
   isNew?: boolean;
   name?: string; // Changed from string | null to string | undefined for form compatibility
   category?: string; // Changed from string | null to string | undefined for form compatibility

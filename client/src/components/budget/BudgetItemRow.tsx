@@ -1,12 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { Input } from "@/components/ui/input";
 import { formatCurrency } from "@/lib/utils";
-import { Trash2, Edit2, X, Check, Plus, Minus, AlertTriangle } from 'lucide-react';
+import { Edit2, X, Check, Plus, Minus, AlertTriangle, Archive } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { RowBudgetItem } from './BudgetTypes';
-import { FIXED_BUDGET_AMOUNT } from './BudgetFormSchema';
+import { 
+  FIXED_BUDGET_AMOUNT,
+  getUsedQuantity,
+  validateUsedQuantity,
+  getQuantityValidationError
+} from './BudgetFormSchema';
 import { 
   Tooltip,
   TooltipContent,
