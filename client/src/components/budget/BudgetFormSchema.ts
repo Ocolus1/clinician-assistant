@@ -1,9 +1,10 @@
 import { z } from 'zod';
 
 /**
- * Fixed budget amount constant used for the validation
+ * Constants for budget management
  */
-export const FIXED_BUDGET_AMOUNT = 375;
+export const FIXED_BUDGET_AMOUNT = 375; // Maximum allocated budget
+export const AVAILABLE_FUNDS_AMOUNT = 500; // Total available funds
 
 /**
  * Schema for budget item form

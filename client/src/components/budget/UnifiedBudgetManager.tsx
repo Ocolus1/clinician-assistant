@@ -2,6 +2,7 @@ import React, { useMemo, useState, useEffect } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
+import { FIXED_BUDGET_AMOUNT, AVAILABLE_FUNDS_AMOUNT } from "./BudgetFormSchema";
 import { 
   Form, 
   FormControl, 
@@ -134,9 +135,9 @@ export function UnifiedBudgetManager({ clientId }: UnifiedBudgetManagerProps) {
     resolver: zodResolver(unifiedBudgetFormSchema),
     defaultValues: {
       items: [],
-      totalBudget: 375, // Fixed budget amount
+      totalBudget: FIXED_BUDGET_AMOUNT, // Fixed budget amount (375)
       totalAllocated: 0,
-      remainingBudget: 375
+      remainingBudget: FIXED_BUDGET_AMOUNT
     }
   });
 
@@ -156,15 +157,25 @@ export function UnifiedBudgetManager({ clientId }: UnifiedBudgetManagerProps) {
         clientId: item.clientId
       }));
       
+      // Total allocated is the sum of all items
       const totalCalculated = initialItems.reduce((sum: number, item: any) => 
         sum + (item.quantity * item.unitPrice), 0);
       
+      // Use the constant values for consistent budget management
       form.reset({
         items: initialItems,
-        totalBudget: activePlan.availableFunds,
+        totalBudget: FIXED_BUDGET_AMOUNT,
         totalAllocated: totalCalculated,
-        remainingBudget: activePlan.availableFunds - totalCalculated
+        remainingBudget: FIXED_BUDGET_AMOUNT - totalCalculated
       });
+      
+      // Override activePlan with correct available funds amount if needed
+      if (activePlan.availableFunds !== AVAILABLE_FUNDS_AMOUNT) {
+        setActivePlan({
+          ...activePlan,
+          availableFunds: AVAILABLE_FUNDS_AMOUNT
+        });
+      }
       
       setFormInitialized(true);
       setBudgetItems(itemsQuery.data);
@@ -188,7 +199,7 @@ export function UnifiedBudgetManager({ clientId }: UnifiedBudgetManagerProps) {
   useEffect(() => {
     if (activePlan && formInitialized) {
       form.setValue("totalAllocated", totalAllocated);
-      form.setValue("remainingBudget", activePlan.availableFunds - totalAllocated);
+      form.setValue("remainingBudget", FIXED_BUDGET_AMOUNT - totalAllocated);
     }
   }, [form, totalAllocated, activePlan, formInitialized]);
 
@@ -356,7 +367,7 @@ export function UnifiedBudgetManager({ clientId }: UnifiedBudgetManagerProps) {
           Budget Plan: {activePlan?.planCode || 'Default Plan'}
         </CardTitle>
         <CardDescription>
-          Available Funds: {formatCurrency(activePlan?.availableFunds || 0)}
+          Available Funds: {formatCurrency(AVAILABLE_FUNDS_AMOUNT)}
         </CardDescription>
       </CardHeader>
       <CardContent>
