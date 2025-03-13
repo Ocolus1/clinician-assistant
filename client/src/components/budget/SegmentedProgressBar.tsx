@@ -55,7 +55,7 @@ export function SegmentedProgressBar({
   
   // Create segments for the progress bar
   const segments = [];
-  const gapSize = 1; // Size of the gap between segments in pixels (reduced for more compact look)
+  const gapSize = 2; // Size of the gap between segments in pixels - increased for better visibility
   
   // Calculate the segment width (accounting for gaps)
   // We subtract (total - 1) * gapSize from the total width to account for gaps between segments
@@ -67,7 +67,7 @@ export function SegmentedProgressBar({
     segments.push(
       <div
         key={i}
-        className="h-full rounded-[1px]"
+        className={`h-full ${i === 0 ? 'rounded-l-sm' : i === total - 1 ? 'rounded-r-sm' : ''}`}
         style={{
           width: segmentWidth,
           backgroundColor: isUsed ? colors.used : colors.total,
@@ -88,25 +88,41 @@ export function SegmentedProgressBar({
             {segments}
           </div>
         </TooltipTrigger>
-        <TooltipContent className="p-2">
-          <div className="space-y-1 text-sm">
-            <div className="flex justify-between gap-4">
-              <span className="font-semibold">Total:</span>
+        <TooltipContent className="p-3">
+          <div className="space-y-2 text-sm">
+            <div className="text-center font-medium pb-1 border-b border-gray-100">
+              Item Usage Status
+            </div>
+            <div className="flex justify-between gap-6">
+              <span className="font-semibold">Total allocation:</span>
               <span>{total} units</span>
             </div>
-            <div className="flex justify-between gap-4">
-              <div className="flex items-center gap-1">
-                <div className="h-2 w-2 rounded-full bg-blue-500"></div>
-                <span className="font-semibold">Used:</span>
+            <div className="flex justify-between gap-6">
+              <div className="flex items-center gap-2">
+                <div className="h-3 w-3 rounded-full" style={{ backgroundColor: colors.used }}></div>
+                <span className="font-semibold">Used in sessions:</span>
               </div>
               <span>{used} units</span>
             </div>
-            <div className="flex justify-between gap-4">
-              <div className="flex items-center gap-1">
-                <div className="h-2 w-2 rounded-full bg-gray-300"></div>
-                <span className="font-semibold">Balance:</span>
+            <div className="flex justify-between gap-6">
+              <div className="flex items-center gap-2">
+                <div className="h-3 w-3 rounded-full" style={{ backgroundColor: colors.total }}></div>
+                <span className="font-semibold">Remaining balance:</span>
               </div>
               <span>{balance} units</span>
+            </div>
+            
+            {/* Display usage percentage */}
+            <div className="mt-1 pt-1 border-t border-gray-100 text-center">
+              {used > 0 ? (
+                <span className="text-xs font-medium text-blue-600">
+                  {Math.round((used / total) * 100)}% of allocation used
+                </span>
+              ) : (
+                <span className="text-xs font-medium text-gray-500">
+                  No units used yet
+                </span>
+              )}
             </div>
           </div>
         </TooltipContent>

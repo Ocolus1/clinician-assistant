@@ -487,18 +487,46 @@ export function UnifiedBudgetManager({ clientId }: UnifiedBudgetManagerProps) {
             
             {/* Form Submission */}
             <div className="flex flex-col items-end gap-2">
-              {items.some(item => item.isNew) || form.formState.isDirty ? (
+              {/* Show notification about unsaved changes */}
+              {(items.some(item => item.isNew) || form.formState.isDirty) && !saveMutation.isPending ? (
                 <div className="mb-2 text-sm text-amber-600 font-medium p-2 bg-amber-50 border border-amber-200 rounded-md w-full text-center">
                   You have unsaved changes. Click the button below to save all changes.
                 </div>
               ) : null}
+              
+              {/* Show saving indicator when in progress */}
+              {saveMutation.isPending && (
+                <div className="mb-2 text-sm text-blue-600 font-medium p-2 bg-blue-50 border border-blue-200 rounded-md w-full text-center flex items-center justify-center">
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  Saving your budget changes...
+                </div>
+              )}
+              
+              {/* Show success message after saving */}
+              {saveMutation.isSuccess && !form.formState.isDirty && (
+                <div className="mb-2 text-sm text-green-600 font-medium p-2 bg-green-50 border border-green-200 rounded-md w-full text-center">
+                  All changes have been saved successfully.
+                </div>
+              )}
+              
+              {/* Check if we have any items to save or form is dirty before enabling save button */}
               <Button 
                 type="submit" 
-                disabled={saveMutation.isPending || !formInitialized}
+                disabled={
+                  saveMutation.isPending || 
+                  !formInitialized || 
+                  (items.length === 0) || 
+                  (!items.some(item => item.isNew) && !form.formState.isDirty)
+                }
                 size="lg"
                 className="px-8"
               >
-                {saveMutation.isPending ? 'Saving Changes...' : 'Save All Changes'}
+                {saveMutation.isPending ? (
+                  <div className="flex items-center">
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    Saving Changes...
+                  </div>
+                ) : 'Save All Changes'}
               </Button>
             </div>
           </form>
