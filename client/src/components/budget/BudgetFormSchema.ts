@@ -5,6 +5,7 @@ import { z } from 'zod';
  */
 export const FIXED_BUDGET_AMOUNT = 375; // Maximum allocated budget
 export const AVAILABLE_FUNDS_AMOUNT = 500; // Total available funds
+export const INITIAL_USED_AMOUNT = 0; // Initial amount used (no sessions yet)
 
 /**
  * Schema for budget item form

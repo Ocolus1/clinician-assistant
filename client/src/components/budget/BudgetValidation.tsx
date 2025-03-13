@@ -3,7 +3,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { formatCurrency } from "@/lib/utils";
 import { AlertCircle, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { Progress } from "@/components/ui/progress";
-import { FIXED_BUDGET_AMOUNT, AVAILABLE_FUNDS_AMOUNT } from "./BudgetFormSchema";
+import { FIXED_BUDGET_AMOUNT, AVAILABLE_FUNDS_AMOUNT, INITIAL_USED_AMOUNT } from "./BudgetFormSchema";
 
 interface BudgetValidationProps {
   totalBudget: number;
@@ -20,8 +20,9 @@ export function BudgetValidation({
   totalAllocated, 
   remainingBudget 
 }: BudgetValidationProps) {
-  // For this fixed budget plan, we start with $0 used
-  const totalUsed = totalAllocated;
+  // For this fixed budget plan, use initial amount (0) for the "used" value
+  // In a real app, this would come from counting actual usage in sessions
+  const totalUsed = INITIAL_USED_AMOUNT;
   
   // Calculate percentage of allocated budget used
   const percentUsed = totalUsed > 0 
