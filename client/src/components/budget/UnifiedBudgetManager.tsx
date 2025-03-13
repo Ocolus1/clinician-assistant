@@ -415,6 +415,7 @@ export function UnifiedBudgetManager({ clientId }: UnifiedBudgetManagerProps) {
                       index={index}
                       onUpdateQuantity={handleUpdateItemQuantity}
                       onDelete={handleDeleteItem}
+                      allItems={fields as RowBudgetItem[]}
                     />
                   ))}
                 </div>

@@ -1,23 +1,29 @@
 import React, { useState, useEffect } from 'react';
 import { Input } from "@/components/ui/input";
 import { formatCurrency } from "@/lib/utils";
-import { Trash2, Edit2, X, Check, Plus, Minus } from 'lucide-react';
+import { Trash2, Edit2, X, Check, Plus, Minus, AlertTriangle } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { RowBudgetItem } from './BudgetTypes';
+import { FIXED_BUDGET_AMOUNT } from './BudgetFormSchema';
 import { 
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+  Alert,
+  AlertDescription
+} from "@/components/ui/alert";
 
 interface BudgetItemRowProps {
   item: RowBudgetItem;
   index: number;
   onUpdateQuantity: (index: number, newQuantity: number) => void;
   onDelete: (index: number) => void;
+  allItems: RowBudgetItem[]; // All budget items for validation
 }
 
 /**
@@ -29,20 +35,51 @@ export function BudgetItemRow({
   item, 
   index, 
   onUpdateQuantity, 
-  onDelete 
+  onDelete,
+  allItems
 }: BudgetItemRowProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [quantity, setQuantity] = useState(item.quantity);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [validationError, setValidationError] = useState<string | null>(null);
   
   // Update local quantity when prop changes
   useEffect(() => {
     setQuantity(item.quantity);
   }, [item.quantity]);
   
+  // Calculate total budget with current quantities (excluding this item)
+  const calculateTotalWithoutCurrentItem = () => {
+    return allItems.reduce((total, currentItem, idx) => {
+      // Skip the current item being edited
+      if (idx === index) return total;
+      return total + (currentItem.quantity * currentItem.unitPrice);
+    }, 0);
+  };
+  
+  // Validate that the new quantity doesn't exceed budget
+  const validateQuantity = (newQuantity: number): boolean => {
+    const totalWithoutCurrentItem = calculateTotalWithoutCurrentItem();
+    const newItemTotal = newQuantity * item.unitPrice;
+    const newGrandTotal = totalWithoutCurrentItem + newItemTotal;
+    
+    if (newGrandTotal > FIXED_BUDGET_AMOUNT) {
+      const overage = newGrandTotal - FIXED_BUDGET_AMOUNT;
+      setValidationError(
+        `This quantity would exceed the budget limit by ${formatCurrency(overage)}. ` +
+        `Maximum allowed for this item is ${Math.floor((FIXED_BUDGET_AMOUNT - totalWithoutCurrentItem) / item.unitPrice)} units.`
+      );
+      return false;
+    }
+    
+    setValidationError(null);
+    return true;
+  };
+  
   // Start editing the item
   const handleStartEdit = () => {
     setIsEditing(true);
+    setValidationError(null);
   };
   
   // Cancel editing (revert to original quantity)
@@ -50,25 +87,30 @@ export function BudgetItemRow({
     setQuantity(item.quantity);
     setIsEditing(false);
     setHasUnsavedChanges(false);
+    setValidationError(null);
   };
   
   // Apply the edited quantity to the form (but don't save to database)
   const handleApplyEdit = () => {
-    onUpdateQuantity(index, quantity);
-    setIsEditing(false);
-    setHasUnsavedChanges(true);
+    if (validateQuantity(quantity)) {
+      onUpdateQuantity(index, quantity);
+      setIsEditing(false);
+      setHasUnsavedChanges(true);
+    }
   };
   
   // Handle quantity increment/decrement
   const incrementQuantity = () => {
     const newQuantity = quantity + 1;
     setQuantity(newQuantity);
+    validateQuantity(newQuantity);
   };
   
   const decrementQuantity = () => {
     if (quantity > 1) {
       const newQuantity = quantity - 1;
       setQuantity(newQuantity);
+      validateQuantity(newQuantity);
     }
   };
   
@@ -77,6 +119,7 @@ export function BudgetItemRow({
     const newQuantity = parseInt(e.target.value);
     if (!isNaN(newQuantity) && newQuantity >= 0) {
       setQuantity(newQuantity);
+      validateQuantity(newQuantity);
     }
   };
   
@@ -208,6 +251,15 @@ export function BudgetItemRow({
         <div className="mt-2 text-xs text-amber-600">
           Changes will only be saved when you click "Save All Changes" at the bottom
         </div>
+      )}
+      
+      {validationError && isEditing && (
+        <Alert variant="destructive" className="mt-2 py-2">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription className="text-xs">
+            {validationError}
+          </AlertDescription>
+        </Alert>
       )}
     </div>
   );
