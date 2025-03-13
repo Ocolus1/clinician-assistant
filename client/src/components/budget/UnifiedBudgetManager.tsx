@@ -343,46 +343,145 @@ export function UnifiedBudgetManager({ clientId }: UnifiedBudgetManagerProps) {
     }
   });
 
-  // Submit handler
-  const onSubmit = (data: UnifiedBudgetFormValues) => {
+  // Submit handler with explicit API calls for reliability
+  const onSubmit = async (data: UnifiedBudgetFormValues) => {
     // Prevent double submission
     if (saveMutation.isPending) {
       return;
     }
     
-    // Extra validation before submitting
-    const calculatedTotal = data.items.reduce((sum, item) => sum + (item.quantity * item.unitPrice), 0);
-    const calculatedRemaining = FIXED_BUDGET_AMOUNT - calculatedTotal;
-    
-    // Update the totals in the form
-    form.setValue("totalAllocated", calculatedTotal);
-    form.setValue("remainingBudget", calculatedRemaining);
-    
-    // Submit the updated form data
-    const updatedData = form.getValues();
-    console.log("Submitting budget data:", updatedData);
-    
-    // Only proceed if budget is not exceeded
-    if (calculatedRemaining < 0) {
+    try {
+      // Calculate totals for validation
+      const calculatedTotal = data.items.reduce((sum, item) => sum + (item.quantity * item.unitPrice), 0);
+      const calculatedRemaining = FIXED_BUDGET_AMOUNT - calculatedTotal;
+      
+      // Validate budget before proceeding
+      if (calculatedRemaining < 0) {
+        toast({
+          title: 'Validation Error',
+          description: 'Budget exceeded. Please adjust your allocations before saving.',
+          variant: 'destructive'
+        });
+        return;
+      }
+      
+      // Separate items by operation type
+      const itemsToUpdate = data.items.filter(item => !item.isNew && item.id);
+      const itemsToCreate = data.items.filter(item => item.isNew);
+      
+      // Check if there are any changes to save
+      if (itemsToUpdate.length === 0 && itemsToCreate.length === 0) {
+        toast({
+          title: 'No Changes',
+          description: 'No changes were detected to save.'
+        });
+        return;
+      }
+      
+      // Show saving toast
       toast({
-        title: 'Validation Error',
-        description: 'Budget exceeded. Please adjust your allocations before saving.',
+        title: 'Saving Changes',
+        description: 'Updating budget allocations...'
+      });
+      
+      // Update existing items directly - avoids internal Promise.all issues
+      let updateSuccess = true;
+      for (const item of itemsToUpdate) {
+        try {
+          await fetch(`/api/budget-items/${item.id}`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              quantity: item.quantity,
+              unitPrice: item.unitPrice
+            }),
+          });
+        } catch (err) {
+          console.error(`Failed to update item ${item.id}:`, err);
+          updateSuccess = false;
+        }
+      }
+      
+      // Create new items directly
+      let createSuccess = true;
+      if (activePlan) {
+        for (const item of itemsToCreate) {
+          try {
+            await fetch(`/api/budget-items`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                clientId: clientId,
+                budgetSettingsId: activePlan.id,
+                itemCode: item.itemCode,
+                description: item.description,
+                quantity: item.quantity,
+                unitPrice: item.unitPrice,
+                name: item.name || item.description,
+                category: item.category
+              }),
+            });
+          } catch (err) {
+            console.error(`Failed to create new item:`, err);
+            createSuccess = false;
+          }
+        }
+      }
+      
+      // Update budget settings if needed
+      if (activePlan && activePlan.availableFunds !== AVAILABLE_FUNDS_AMOUNT) {
+        try {
+          await fetch(`/api/budget-settings/${activePlan.id}`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              availableFunds: AVAILABLE_FUNDS_AMOUNT
+            }),
+          });
+        } catch (err) {
+          console.error(`Failed to update budget settings:`, err);
+        }
+      }
+      
+      // Refresh data
+      queryClient.invalidateQueries({ 
+        queryKey: [`/api/clients/${clientId}/budget-items`] 
+      });
+      
+      queryClient.invalidateQueries({ 
+        queryKey: [`/api/clients/${clientId}/budget-settings`] 
+      });
+      
+      // Reset form state to trigger refresh
+      setFormInitialized(false);
+      
+      // Show success or partial success message
+      if (updateSuccess && createSuccess) {
+        toast({
+          title: 'Success',
+          description: 'Budget items updated successfully'
+        });
+      } else {
+        toast({
+          title: 'Partial Success',
+          description: 'Some budget items may not have been updated correctly.',
+          variant: 'destructive'
+        });
+      }
+    } catch (error) {
+      console.error("Form submission error:", error);
+      toast({
+        title: 'Error',
+        description: 'Failed to update budget items. Please try again.',
         variant: 'destructive'
       });
-      return;
     }
-    
-    // Check if there are any changes to save
-    if (!form.formState.isDirty && !updatedData.items.some(item => item.isNew)) {
-      toast({
-        title: 'No Changes',
-        description: 'No changes were detected to save.'
-      });
-      return;
-    }
-    
-    // Execute the mutation
-    saveMutation.mutate(updatedData);
   };
 
   // Loading state
