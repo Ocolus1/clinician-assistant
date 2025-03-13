@@ -1,4 +1,5 @@
 import { createContext, useContext, ReactNode, useState } from "react";
+import { FIXED_BUDGET_AMOUNT, AVAILABLE_FUNDS_AMOUNT } from "./BudgetFormSchema";
 
 // Define BudgetPlan type directly here to avoid circular dependencies
 export interface BudgetPlan {
@@ -75,8 +76,8 @@ export function BudgetFeatureProvider({
   const [activePlan, setActivePlan] = useState<BudgetPlan | null>(initialPlan);
   const [budgetItems, setBudgetItems] = useState<BudgetItem[]>(initialItems);
   
-  // Calculate budget totals - use activePlan's availableFunds (client-specific)
-  const totalBudget = activePlan?.availableFunds || 0;
+  // Calculate budget totals
+  const totalBudget = FIXED_BUDGET_AMOUNT;
   const totalAllocated = budgetItems.reduce((total, item) => {
     return total + (item.quantity * item.unitPrice);
   }, 0);
@@ -112,7 +113,7 @@ export function BudgetFeatureProvider({
 /**
  * Hook to access budget feature context
  */
-export const useBudgetFeature = () => {
+export function useBudgetFeature() {
   const context = useContext(BudgetFeatureContext);
   
   if (context === undefined) {

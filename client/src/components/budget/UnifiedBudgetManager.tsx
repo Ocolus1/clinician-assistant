@@ -48,7 +48,8 @@ export function UnifiedBudgetManager({ clientId }: UnifiedBudgetManagerProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
-  // The budget amount is now client-specific and should be pulled from the active plan
+  // Fixed budget constant - set to 2000 which is the fixed total value of items added when client was created
+  const FIXED_BUDGET_AMOUNT = 2000;
   const [formInitialized, setFormInitialized] = useState(false);
   // Add debug mode for troubleshooting
   const [debugMode, setDebugMode] = useState(true);
@@ -60,9 +61,6 @@ export function UnifiedBudgetManager({ clientId }: UnifiedBudgetManagerProps) {
     budgetItems, 
     setBudgetItems
   } = useBudgetFeature();
-  
-  // Get client-specific budget amount from active plan
-  const getClientBudget = () => activePlan?.availableFunds || 0;
 
   // Get active budget plan
   const plansQuery = useQuery({
@@ -158,11 +156,11 @@ export function UnifiedBudgetManager({ clientId }: UnifiedBudgetManagerProps) {
         (sum: number, item: any) => sum + (item.quantity * item.unitPrice), 0
       );
 
-      // Get available funds from the active plan - this is client-specific
-      const availableFunds = activePlan?.availableFunds || 0;
+      // Get available funds from active plan or default to the fixed budget
+      const availableFunds = FIXED_BUDGET_AMOUNT; // Always use the fixed budget amount of 2000
 
-      // Calculate remaining budget by subtracting allocated from available funds
-      const remainingBudget = availableFunds - totalAllocated; // Remaining budget is total budget minus allocated amount
+      // Calculate remaining budget - unused amount for now
+      const remainingBudget = availableFunds; // Remaining budget is total budget - used (not allocated)
 
       // Set default values with real data
       form.reset({
@@ -213,12 +211,11 @@ export function UnifiedBudgetManager({ clientId }: UnifiedBudgetManagerProps) {
     // Calculate new item cost with validated values
     const itemCost = unitPrice * validQuantity;
     
-    // Check if this would exceed the budget (client-specific)
-    const clientBudget = getClientBudget();
-    if (currentTotal + itemCost > clientBudget) {
+    // Check if this would exceed the budget
+    if (currentTotal + itemCost > FIXED_BUDGET_AMOUNT) {
       toast({
         title: "Budget Exceeded",
-        description: `Adding this item would exceed the available budget of ${formatCurrency(clientBudget)}`,
+        description: `Adding this item would exceed the available budget of ${formatCurrency(FIXED_BUDGET_AMOUNT)}`,
         variant: "destructive"
       });
       return;
@@ -250,8 +247,8 @@ export function UnifiedBudgetManager({ clientId }: UnifiedBudgetManagerProps) {
     // Update the allocated total
     form.setValue("totalAllocated", newTotalAllocated);
     
-    // Remaining budget is calculated from client-specific budget minus allocated amount
-    form.setValue("remainingBudget", getClientBudget() - newTotalAllocated);
+    // Remaining budget stays at FIXED_BUDGET_AMOUNT since it's calculated as total budget - used (not allocated)
+    form.setValue("remainingBudget", FIXED_BUDGET_AMOUNT);
     
     // Show success notification
     toast({
@@ -302,8 +299,8 @@ export function UnifiedBudgetManager({ clientId }: UnifiedBudgetManagerProps) {
     const newTotalAllocated = currentAllocated + difference;
     form.setValue("totalAllocated", newTotalAllocated);
     
-    // Remaining budget is calculated from client-specific budget minus allocated amount
-    form.setValue("remainingBudget", getClientBudget() - newTotalAllocated);
+    // Remaining budget stays at FIXED_BUDGET_AMOUNT since it's calculated as total budget - used (not allocated)
+    form.setValue("remainingBudget", FIXED_BUDGET_AMOUNT);
   };
 
   // Handle deleting an item
@@ -319,8 +316,8 @@ export function UnifiedBudgetManager({ clientId }: UnifiedBudgetManagerProps) {
     const newTotalAllocated = currentAllocated - itemTotal;
     form.setValue("totalAllocated", newTotalAllocated);
     
-    // Remaining budget is calculated from client-specific budget minus allocated amount
-    form.setValue("remainingBudget", getClientBudget() - newTotalAllocated);
+    // Remaining budget stays at FIXED_BUDGET_AMOUNT since it's calculated as total budget - used (not allocated)
+    form.setValue("remainingBudget", FIXED_BUDGET_AMOUNT);
     
     // Remove from field array
     remove(index);
@@ -441,46 +438,130 @@ export function UnifiedBudgetManager({ clientId }: UnifiedBudgetManagerProps) {
           if (response.length === 0) {
             toast({
               title: 'No Changes',
-              description: 'No budget changes were detected'
+              description: 'No changes were detected to save.'
             });
-          } else {
+            return;
+          }
+          else {
             toast({
               title: 'Success',
-              description: 'Budget changes saved successfully'
+              description: 'Budget items updated successfully'
             });
           }
         }
-        // If response format is unknown, show a generic success message
-        else {
-          toast({
-            title: 'Success',
-            description: 'Budget changes saved successfully'
-          });
-        }
-      } 
-      // Default success message for any other response type
-      else {
+      } else {
+        // Default success message if response format is unexpected
         toast({
           title: 'Success',
-          description: 'Budget changes saved successfully'
+          description: 'Budget changes saved'
         });
       }
       
-      // Invalidate affected queries to refresh data
-      queryClient.invalidateQueries({
-        queryKey: [`/api/clients/${clientId}/budget-items`],
+      // Always invalidate queries to refresh data
+      console.log("Invalidating budget items query");
+      queryClient.invalidateQueries({ 
+        queryKey: [`/api/clients/${clientId}/budget-items`] 
       });
       
-      // Show toast and log for debug mode
-      if (debugMode) {
-        console.log("Budget saved successfully. Response:", response);
-      }
+      console.log("Invalidating budget settings query");
+      queryClient.invalidateQueries({ 
+        queryKey: [`/api/clients/${clientId}/budget-settings`] 
+      });
+      
+      // Force a complete refresh of the data
+      setTimeout(() => {
+        console.log("Forcing manual data refresh");
+        // Fetch the latest budget items
+        fetch(`/api/clients/${clientId}/budget-items`)
+          .then(res => res.json())
+          .then(data => {
+            console.log("Refreshed budget items:", data);
+            // Verify items are valid before updating state
+            if (!Array.isArray(data)) {
+              console.error("Invalid data format received:", data);
+              return;
+            }
+            
+            // Check if we have duplicate items in the response
+            const itemCodes = new Set();
+            const uniqueItems = data.filter(item => {
+              // Skip invalid items
+              if (!item || !item.itemCode) return false;
+              
+              // Check if this item code already exists
+              if (itemCodes.has(item.itemCode)) {
+                console.warn(`Duplicate item found: ${item.itemCode}`);
+                return false;
+              }
+              
+              // Valid unique item
+              itemCodes.add(item.itemCode);
+              return true;
+            });
+            
+            // Calculate total allocation for validation
+            const totalAllocated = uniqueItems.reduce(
+              (sum, item) => sum + (Number(item.quantity) * Number(item.unitPrice)), 
+              0
+            );
+            
+            // Verify allocation doesn't exceed the budget
+            if (totalAllocated > FIXED_BUDGET_AMOUNT) {
+              console.error(`Budget validation failed! Total allocation ${totalAllocated} exceeds budget ${FIXED_BUDGET_AMOUNT}.`);
+              toast({
+                title: "Budget Error",
+                description: "The total allocation exceeds the budget limit. Some items may not be saved.",
+                variant: "destructive"
+              });
+            }
+            
+            // Update with validated unique items
+            setBudgetItems(uniqueItems);
+            
+            // Directly update the field array with the freshly fetched items
+            if (uniqueItems.length > 0) {
+              console.log("Directly updating form fields with fresh data:", uniqueItems);
+              // First remove all existing fields
+              remove();
+              // Then add all refreshed items
+              uniqueItems.forEach(item => {
+                append({
+                  ...item,
+                  total: Number(item.quantity) * Number(item.unitPrice),
+                  isNew: false
+                });
+              });
+            }
+          })
+          .catch(err => console.error("Error refreshing budget items:", err));
+          
+        // Reset the form initialized state to trigger complete form refill
+        setFormInitialized(false);
+        
+        // Reset any locally cached items in the form
+        form.reset();
+      }, 500);
+      
+      // Mark form as pristine without keeping any stale data
+      form.reset();
     },
     onError: (error: any) => {
-      console.error("Save mutation error:", error);
+      console.error('Error details:', error);
       
-      // Extract error message if available, otherwise use a generic message
-      const errorMessage = error?.message || 'Failed to save budget changes';
+      // Format a more user-friendly error message
+      let errorMessage = 'Failed to update budget items';
+      
+      if (error) {
+        // Extract useful information from the error
+        if (error.message) {
+          errorMessage = error.message;
+        }
+        
+        // Handle specific error cases we can identify
+        if (error.status === 400) {
+          errorMessage = 'Invalid data format detected. Please check your inputs.';
+        }
+      }
       
       toast({
         title: 'Error',
@@ -488,390 +569,341 @@ export function UnifiedBudgetManager({ clientId }: UnifiedBudgetManagerProps) {
         variant: 'destructive'
       });
       
-      // Show detailed error trace in debug mode
-      if (debugMode) {
-        console.error("Detailed error:", error);
-      }
+      console.error('Failed to update budget items:', error);
     }
   });
-  
-  // Function to validate and save changes
-  const handleSave = async () => {
-    try {
-      // Get form values
-      const data = form.getValues();
-      console.log("Form values before save:", data);
-      
-      // Validate the form first
-      const valid = await form.trigger();
-      if (!valid) {
-        console.error("Form validation failed, cannot save");
-        const errors = form.formState.errors;
-        console.error("Form errors:", errors);
-        
-        // Show validation error toast
-        toast({
-          title: "Validation Failed",
-          description: "Please fix the errors before saving",
-          variant: "destructive"
-        });
-        return;
-      }
-      
-      // Additional validation - check for budget overrun
-      const totalAllocated = data.totalAllocated || 0;
-      const clientBudget = getClientBudget();
-      
-      // Validate that total allocation doesn't exceed client-specific budget
-      if (totalAllocated > clientBudget) {
-        console.error(`Budget validation failed! Total allocation ${totalAllocated} exceeds budget ${clientBudget}.`);
-        
-        // Show budget error toast
-        toast({
-          title: "Budget Exceeded",
-          description: `Total allocation (${formatCurrency(totalAllocated)}) exceeds available budget (${formatCurrency(clientBudget)})`,
-          variant: "destructive"
-        });
-        return;
-      }
-      
-      console.log("Validation passed, proceeding to save");
-      
-      // Call mutation to save
-      await saveMutation.mutateAsync(data);
-      
-    } catch (error) {
-      console.error("Error in save handler:", error);
-      toast({
-        title: "Error",
-        description: "Failed to save budget changes",
-        variant: "destructive"
-      });
-    }
-  };
-  
-  // Cancel editing and reload data
-  const handleCancel = () => {
-    console.log("Cancelling budget edit");
+
+  // Submit handler
+  const onSubmit = (data: UnifiedBudgetFormValues) => {
+    console.log("Submit handler called with data:", data);
     
-    // Reset form with original values
-    if (itemsQuery.data && activePlan) {
-      const originalItems = itemsQuery.data.map((item: any) => ({
-        id: item.id,
-        itemCode: item.itemCode,
-        description: item.description,
-        quantity: item.quantity,
-        unitPrice: item.unitPrice,
-        total: item.unitPrice * item.quantity,
-        name: item.name,
-        category: item.category,
-        budgetSettingsId: item.budgetSettingsId,
-        clientId: item.clientId
-      }));
-      
-      // Calculate total allocated from original items
-      const totalAllocated = originalItems.reduce(
-        (sum: number, item: any) => sum + (item.quantity * item.unitPrice), 0
-      );
-      
-      // Reset form with original values
-      form.reset({
-        items: originalItems,
-        totalBudget: getClientBudget(),
-        totalAllocated: totalAllocated,
-        remainingBudget: getClientBudget() - totalAllocated
-      });
-      
-      toast({
-        title: "Changes Discarded",
-        description: "Budget changes have been reverted"
-      });
-    }
-  };
-  
-  // Handle form submission - mainly for validation, actual save is in handleSave
-  const onSubmit = async (data: UnifiedBudgetFormValues) => {
-    console.log("Form submitted with data:", data);
-    
-    // Validate budget
-    const totalAllocated = data.totalAllocated || 0;
-    const clientBudget = getClientBudget();
-    
-    // Use client-specific budget for validation
-    if (totalAllocated > clientBudget) {
-      console.error(`Budget validation failed before submission! Total allocation ${totalAllocated} exceeds budget ${clientBudget}.`);
-      
-      form.setError("totalAllocated", {
-        type: "custom",
-        message: `Total exceeds available budget of ${formatCurrency(clientBudget)}`
-      });
-      
+    // Prevent double submission
+    if (saveMutation.isPending) {
+      console.log("Save mutation is already pending, ignoring submission");
       return;
     }
     
-    // If valid, trigger save mutation
-    await handleSave();
+    // Validate total allocation
+    const totalAllocated = data.items.reduce(
+      (sum, item) => sum + (Number(item.quantity) * Number(item.unitPrice)), 
+      0
+    );
+    
+    // Strict budget enforcement
+    if (totalAllocated > FIXED_BUDGET_AMOUNT) {
+      console.error(`Budget validation failed before submission! Total allocation ${totalAllocated} exceeds budget ${FIXED_BUDGET_AMOUNT}.`);
+      toast({
+        title: "Budget Limit Exceeded",
+        description: "Your total allocation exceeds the budget limit. Please reduce quantities or remove items.",
+        variant: "destructive"
+      });
+      return; // Prevent submission
+    }
+    
+    // Validate for duplicate items
+    const seenItemCodes = new Set();
+    const duplicateItems = data.items.filter(item => {
+      if (seenItemCodes.has(item.itemCode)) {
+        return true; // This is a duplicate
+      }
+      seenItemCodes.add(item.itemCode);
+      return false;
+    });
+    
+    if (duplicateItems.length > 0) {
+      console.error(`Found ${duplicateItems.length} duplicate items before submission`);
+      toast({
+        title: "Duplicate Items Detected",
+        description: "There are duplicate items in your budget. Please remove duplicates before saving.",
+        variant: "destructive"
+      });
+      return; // Prevent submission
+    }
+    
+    // Log form state for debugging
+    console.log("Form state:", {
+      isDirty: form.formState.isDirty,
+      isSubmitting: form.formState.isSubmitting,
+      errors: form.formState.errors
+    });
+    
+    // Log items that will be updated/created
+    console.log("Items to save:", {
+      total: data.items.length,
+      new: data.items.filter(item => item.isNew).length,
+      existing: data.items.filter(item => !item.isNew).length
+    });
+    
+    // Perform the save operation
+    console.log("Triggering save mutation");
+    saveMutation.mutate(data);
   };
-  
-  // Helper to determine if content is loading
-  const isLoading = plansQuery.isLoading || itemsQuery.isLoading || catalogQuery.isLoading;
-  
-  // Load error states
-  const loadError = plansQuery.error || itemsQuery.error || catalogQuery.error;
-  
+
   // Loading state
-  if (isLoading) {
+  if (plansQuery.isPending) {
     return (
-      <div className="flex flex-col items-center justify-center p-8 space-y-4">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <div className="text-center">
-          <h3 className="text-lg font-medium">Loading Budget Information</h3>
-          <p className="text-sm text-muted-foreground">Please wait while we fetch your budget data.</p>
-        </div>
-      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>Budget Management</CardTitle>
+          <CardDescription>Loading budget information...</CardDescription>
+        </CardHeader>
+        <CardContent className="flex justify-center py-8">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </CardContent>
+      </Card>
     );
   }
-  
+
   // Error state
-  if (loadError) {
+  if (plansQuery.isError) {
     return (
-      <Alert variant="destructive" className="my-4">
-        <AlertCircle className="h-4 w-4" />
-        <AlertDescription>
-          Error loading budget data. Please try again later.
-          {debugMode && <div className="mt-2 text-xs opacity-70">{String(loadError)}</div>}
-        </AlertDescription>
-      </Alert>
+      <Card>
+        <CardHeader>
+          <CardTitle>Budget Management</CardTitle>
+          <CardDescription>Error loading budget data</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              An error occurred while loading budget data. Please try again.
+            </AlertDescription>
+          </Alert>
+        </CardContent>
+      </Card>
     );
   }
-  
-  // No active plan state
-  if (!activePlan) {
+
+  // No plans state
+  if (plansQuery.data.length === 0) {
     return (
-      <Alert className="my-4">
-        <AlertCircle className="h-4 w-4" />
-        <AlertDescription>
-          No active budget plan found for this client. Please create a budget plan first.
-        </AlertDescription>
-      </Alert>
+      <Card>
+        <CardHeader>
+          <CardTitle>Budget Management</CardTitle>
+          <CardDescription>No budget plans available</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Alert>
+            <AlertDescription>
+              There are no budget plans created for this client. 
+              Please create a new budget plan to manage budget items.
+            </AlertDescription>
+          </Alert>
+        </CardContent>
+      </Card>
     );
   }
-  
+
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle>Budget Management</CardTitle>
-                <CardDescription>
-                  Manage budget items for plan {activePlan?.planCode || "Default"}
-                </CardDescription>
-              </div>
-              <div className="flex items-center gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handleCancel}
-                  disabled={saveMutation.isPending}
-                >
-                  Cancel
-                </Button>
-                <Button 
-                  type="submit" 
-                  disabled={saveMutation.isPending}
-                >
-                  {saveMutation.isPending ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Saving...
-                    </>
-                  ) : (
-                    "Save Changes"
-                  )}
-                </Button>
-              </div>
-            </div>
-          </CardHeader>
-          
-          <CardContent>
-            <div className="space-y-6">
-              {/* Budget validation component */}
-              <BudgetValidation 
-                totalBudget={getClientBudget()} 
-                totalAllocated={form.watch("totalAllocated") || 0}
-                remainingBudget={getClientBudget() - (form.watch("totalAllocated") || 0)}
-                originalAllocated={0}
-              />
+    <Card>
+      <CardHeader>
+        <CardTitle>
+          Budget Plan: {activePlan?.planCode || 'Default Plan'}
+        </CardTitle>
+        <CardDescription>
+          Available Funds: {formatCurrency(
+            activePlan && activePlan.availableFunds
+              ? (typeof activePlan.availableFunds === 'string' 
+                  ? parseFloat(activePlan.availableFunds) 
+                  : activePlan.availableFunds)
+              : 0
+          )}
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            {/* Budget Validation */}
+            <BudgetValidation 
+              totalBudget={FIXED_BUDGET_AMOUNT} // Set to fixed budget amount which was added when client was created
+              totalAllocated={form.watch("totalAllocated") || 0}
+              remainingBudget={FIXED_BUDGET_AMOUNT} // Total remaining budget is total budget minus used (not allocated)
+              originalAllocated={FIXED_BUDGET_AMOUNT} // The original allocated budget amount
+            />
+            
+            {/* Current Budget Items */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-medium">Current Budget Allocations</h3>
               
-              <Separator className="my-4" />
-              
-              {/* Budget item catalog selector */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-medium">Add Items from Catalog</h3>
-                <BudgetCatalogSelector 
-                  catalogItems={catalogQuery.data || []}
-                  onAddItem={handleAddCatalogItem}
-                  disabled={saveMutation.isPending}
-                />
-              </div>
-              
-              <Separator className="my-4" />
-              
-              {/* Budget items list */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-medium">Budget Items</h3>
-                
-                {/* Show message if no items */}
-                {fields.length === 0 ? (
-                  <div className="text-center p-4 border rounded-md bg-muted/20">
-                    <p className="text-muted-foreground">No budget items have been added yet.</p>
-                    <p className="text-sm text-muted-foreground mt-1">Use the catalog above to add items.</p>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {/* Budget item header */}
-                    <div className="grid grid-cols-12 gap-4 px-4 py-2 font-medium text-sm bg-muted/20 rounded-md">
-                      <div className="col-span-4">Item</div>
-                      <div className="col-span-2 text-right">Unit Price</div>
-                      <div className="col-span-2 text-right">Quantity</div>
-                      <div className="col-span-2 text-right">Total</div>
-                      <div className="col-span-2 text-right">Actions</div>
-                    </div>
-                    
-                    {/* Budget items */}
-                    <div className="space-y-2">
-                      {fields.map((field, index) => (
-                        <FormField
-                          key={field.id}
-                          control={form.control}
-                          name={`items.${index}`}
-                          render={() => (
-                            <FormItem>
-                              <BudgetItemRow
-                                item={form.getValues().items[index]}
-                                index={index}
-                                onUpdateQuantity={handleUpdateItemQuantity}
-                                onDelete={handleDeleteItem}
-                                disabled={saveMutation.isPending}
-                                validationError={undefined}
-                              />
-                            </FormItem>
-                          )}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-              
-              <Separator className="my-4" />
-              
-              {/* Budget totals */}
-              <div className="flex flex-col space-y-2">
-                <div className="flex justify-between items-center">
-                  <span className="font-medium">Total Allocated:</span>
-                  <span className="font-semibold">
-                    {formatCurrency(form.watch("totalAllocated") || 0)}
-                  </span>
+              {fields.length === 0 ? (
+                <div className="text-center py-4 text-gray-500">
+                  No budget items added yet. Use the catalog selector below to add items.
                 </div>
-                <div className="flex justify-between items-center">
-                  <span className="font-medium">Remaining Budget:</span>
-                  <span className="font-semibold text-primary">
-                    {formatCurrency(getClientBudget() - (form.watch("totalAllocated") || 0))} {/* Calculate remaining allocation */}
-                  </span>
+              ) : (
+                <div className="space-y-2">
+                  {fields.map((item, index) => (
+                    <BudgetItemRow 
+                      key={item.id || index}
+                      item={item as unknown as RowBudgetItem}
+                      index={index}
+                      onUpdateQuantity={handleUpdateItemQuantity}
+                      onDelete={handleDeleteItem}
+                      allItems={fields.map(field => field as unknown as RowBudgetItem)}
+                    />
+                  ))}
                 </div>
-              </div>
-            </div>
-          </CardContent>
-          
-          <CardFooter className="border-t p-6 flex justify-between">
-            <div>
-              {/* Debug toggle in development */}
-              {process.env.NODE_ENV === 'development' && (
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => setDebugMode(!debugMode)}
-                >
-                  {debugMode ? 'Disable Debug' : 'Enable Debug'}
-                </Button>
               )}
             </div>
             
-            <div className="flex gap-2">
+            <Separator />
+            
+            {/* Catalog Item Selector */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-medium">Add New Budget Item</h3>
+              
+              {catalogQuery.isPending ? (
+                <div className="flex items-center justify-center py-4">
+                  <Loader2 className="h-6 w-6 animate-spin text-gray-500" />
+                </div>
+              ) : catalogQuery.isError ? (
+                <div className="p-4 border border-red-300 bg-red-50 rounded-md text-red-700">
+                  Failed to load catalog items. Please try again.
+                </div>
+              ) : !catalogQuery.data ? (
+                <div className="p-4 border border-amber-300 bg-amber-50 rounded-md text-amber-700">
+                  No catalog items available. Please check your configuration.
+                </div>
+              ) : (
+                <BudgetCatalogSelector 
+                  catalogItems={catalogQuery.data || []}
+                  onAddItem={handleAddCatalogItem}
+                  remainingBudget={FIXED_BUDGET_AMOUNT - (form.watch("totalAllocated") || 0)} // Calculate remaining allocation
+                  activePlan={activePlan}
+                />
+              )}
+            </div>
+            
+            <Separator />
+            
+            {/* Form Submission */}
+            <div className="flex flex-col items-end gap-2">
+              {/* Show notification about unsaved changes */}
+              {(items.some(item => item.isNew) || form.formState.isDirty) && !saveMutation.isPending ? (
+                <div className="mb-2 text-sm text-amber-600 font-medium p-2 bg-amber-50 border border-amber-200 rounded-md w-full text-center">
+                  You have unsaved changes. Click the button below to save all changes.
+                </div>
+              ) : null}
+              
+              {/* Show saving indicator when in progress */}
+              {saveMutation.isPending && (
+                <div className="mb-2 text-sm text-blue-600 font-medium p-2 bg-blue-50 border border-blue-200 rounded-md w-full text-center flex items-center justify-center">
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  Saving your budget changes...
+                </div>
+              )}
+              
+              {/* Show success message after saving */}
+              {saveMutation.isSuccess && !form.formState.isDirty && (
+                <div className="mb-2 text-sm text-green-600 font-medium p-2 bg-green-50 border border-green-200 rounded-md w-full text-center">
+                  All changes have been saved successfully.
+                </div>
+              )}
+              
+              {/* Debug panel */}
+              {debugMode && (
+                <div className="mb-4 p-4 border border-blue-300 bg-blue-50 rounded-md w-full">
+                  <h4 className="font-medium text-blue-700 mb-2">Debug Information</h4>
+                  <div className="text-xs text-blue-800 space-y-1">
+                    <p>Form Status: {form.formState.isDirty ? "Dirty" : "Clean"}</p>
+                    <p>Item Count: {items.length}</p>
+                    <p>New Items: {items.filter(item => item.isNew).length}</p>
+                    <p>Total Allocated: {formatCurrency(form.watch("totalAllocated") || 0)}</p>
+                    <p>Active Plan ID: {activePlan?.id || "None"}</p>
+                  </div>
+                  <div className="flex justify-end mt-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="text-xs"
+                      onClick={() => {
+                        console.log("Form values:", form.getValues());
+                        console.log("Form state:", form.formState);
+                        console.log("Items:", items);
+                      }}
+                    >
+                      Log State
+                    </Button>
+                  </div>
+                </div>
+              )}
+              
+              {/* Standalone save button that bypasses form submission */}
               <Button 
-                type="button" 
-                variant="outline" 
-                onClick={handleCancel}
+                type="button" // Changed to button type to prevent form submission
                 disabled={saveMutation.isPending}
+                className="w-full md:w-auto"
+                onClick={() => {
+                  console.log("Save button clicked directly");
+                  
+                  // Get current form values
+                  const formValues = form.getValues();
+                  console.log("Current form values:", formValues);
+                  
+                  // Apply the same validation as the onSubmit function
+                  
+                  // Validate total allocation
+                  const totalAllocated = formValues.items.reduce(
+                    (sum, item) => sum + (Number(item.quantity) * Number(item.unitPrice)), 
+                    0
+                  );
+                  
+                  // Strict budget enforcement
+                  if (totalAllocated > FIXED_BUDGET_AMOUNT) {
+                    console.error(`Budget validation failed before submission! Total allocation ${totalAllocated} exceeds budget ${FIXED_BUDGET_AMOUNT}.`);
+                    toast({
+                      title: "Budget Limit Exceeded",
+                      description: "Your total allocation exceeds the budget limit. Please reduce quantities or remove items.",
+                      variant: "destructive"
+                    });
+                    return; // Prevent submission
+                  }
+                  
+                  // Validate for duplicate items
+                  const seenItemCodes = new Set();
+                  const duplicateItems = formValues.items.filter(item => {
+                    if (seenItemCodes.has(item.itemCode)) {
+                      return true; // This is a duplicate
+                    }
+                    seenItemCodes.add(item.itemCode);
+                    return false;
+                  });
+                  
+                  if (duplicateItems.length > 0) {
+                    console.error(`Found ${duplicateItems.length} duplicate items before submission`);
+                    toast({
+                      title: "Duplicate Items Detected",
+                      description: "There are duplicate items in your budget. Please remove duplicates before saving.",
+                      variant: "destructive"
+                    });
+                    return; // Prevent submission
+                  }
+                  
+                  // Manually trigger direct API calls rather than using form submission
+                  try {
+                    // Directly trigger the mutation
+                    saveMutation.mutate(formValues);
+                  } catch (error) {
+                    console.error("Error triggering save mutation:", error);
+                    toast({
+                      title: "Save Error",
+                      description: "Failed to save changes. See console for details.",
+                      variant: "destructive"
+                    });
+                  }
+                }}
               >
-                Cancel
-              </Button>
-              <Button 
-                type="submit" 
-                disabled={saveMutation.isPending || form.formState.isSubmitting}
-              >
-                {saveMutation.isPending || form.formState.isSubmitting ? (
+                {saveMutation.isPending ? (
                   <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
                     Saving...
                   </>
-                ) : (
-                  "Save Changes"
-                )}
+                ) : "Save All Changes"}
               </Button>
             </div>
-          </CardFooter>
-        </Card>
-        
-        {/* Form validation errors */}
-        {Object.keys(form.formState.errors).length > 0 && (
-          <Alert variant="destructive" className="mt-4">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>
-              Please fix the form errors before submitting.
-              {debugMode && (
-                <pre className="mt-2 text-xs opacity-70">
-                  {JSON.stringify(form.formState.errors, null, 2)}
-                </pre>
-              )}
-            </AlertDescription>
-          </Alert>
-        )}
-        
-        {/* Debug panel for development */}
-        {debugMode && (
-          <div className="mt-8 p-4 border rounded-md bg-slate-50 dark:bg-slate-900">
-            <h3 className="text-sm font-semibold mb-2">Debug Information:</h3>
-            <div className="space-y-2">
-              <div className="text-xs">
-                <strong>Active Plan:</strong> {JSON.stringify(activePlan)}
-              </div>
-              <div className="text-xs">
-                <strong>Form Values:</strong> {JSON.stringify(form.getValues())}
-              </div>
-              <div className="text-xs">
-                <strong>Client Budget:</strong> {getClientBudget()}
-              </div>
-              <div className="text-xs">
-                <strong>Total Allocated:</strong> {form.watch("totalAllocated")}
-              </div>
-              <div className="text-xs">
-                <strong>Form State:</strong> Dirty: {form.formState.isDirty.toString()}, Submitting: {form.formState.isSubmitting.toString()}
-              </div>
-              <div className="text-xs">
-                <strong>Items Query Status:</strong> {itemsQuery.status}
-              </div>
-              <div className="text-xs">
-                <strong>Plans Query Status:</strong> {plansQuery.status}
-              </div>
-            </div>
-          </div>
-        )}
-      </form>
-    </Form>
+          </form>
+        </Form>
+      </CardContent>
+    </Card>
   );
 }

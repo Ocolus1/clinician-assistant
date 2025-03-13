@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { RowBudgetItem } from './BudgetTypes';
 import { 
+  FIXED_BUDGET_AMOUNT,
   getUsedQuantity,
   validateUsedQuantity,
   getQuantityValidationError
@@ -28,10 +29,7 @@ interface BudgetItemRowProps {
   index: number;
   onUpdateQuantity: (index: number, newQuantity: number) => void;
   onDelete: (index: number) => void;
-  allItems?: RowBudgetItem[]; // All budget items for validation
-  disabled?: boolean;
-  validationError?: string | null;
-  maxBudget?: number; // Maximum budget amount, client-specific
+  allItems: RowBudgetItem[]; // All budget items for validation
 }
 
 /**
@@ -44,10 +42,7 @@ export function BudgetItemRow({
   index, 
   onUpdateQuantity, 
   onDelete,
-  allItems = [],
-  disabled = false,
-  validationError: externalValidationError = null,
-  maxBudget = 0
+  allItems
 }: BudgetItemRowProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [quantity, setQuantity] = useState(item.quantity);
@@ -76,22 +71,16 @@ export function BudgetItemRow({
       return true;
     }
 
-    // Skip budget validation if maxBudget is not provided or zero
-    if (!maxBudget) {
-      setValidationError(null);
-      return true;
-    }
-
     // For increases, check against budget limits
     const totalWithoutCurrentItem = calculateTotalWithoutCurrentItem();
     const newItemTotal = newQuantity * item.unitPrice;
     const newGrandTotal = totalWithoutCurrentItem + newItemTotal;
     
-    if (newGrandTotal > maxBudget) {
-      const overage = newGrandTotal - maxBudget;
+    if (newGrandTotal > FIXED_BUDGET_AMOUNT) {
+      const overage = newGrandTotal - FIXED_BUDGET_AMOUNT;
       setValidationError(
         `This quantity would exceed the budget limit by ${formatCurrency(overage)}. ` +
-        `Maximum allowed for this item is ${Math.floor((maxBudget - totalWithoutCurrentItem) / item.unitPrice)} units.`
+        `Maximum allowed for this item is ${Math.floor((FIXED_BUDGET_AMOUNT - totalWithoutCurrentItem) / item.unitPrice)} units.`
       );
       return false;
     }

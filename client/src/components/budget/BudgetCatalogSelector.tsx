@@ -17,9 +17,8 @@ import { CatalogItem } from './BudgetTypes';
 interface BudgetCatalogSelectorProps {
   catalogItems: CatalogItem[];
   onAddItem: (catalogItem: CatalogItem, quantity: number) => void;
-  remainingBudget?: number;
-  activePlan?: BudgetPlan | null;
-  disabled?: boolean;
+  remainingBudget: number;
+  activePlan: BudgetPlan | null;
 }
 
 /**
@@ -29,9 +28,8 @@ interface BudgetCatalogSelectorProps {
 export function BudgetCatalogSelector({ 
   catalogItems, 
   onAddItem,
-  remainingBudget = 0,
-  activePlan = null,
-  disabled = false
+  remainingBudget,
+  activePlan
 }: BudgetCatalogSelectorProps) {
   const [selectedItemId, setSelectedItemId] = useState<string>('');
   const [quantity, setQuantity] = useState<number>(1);

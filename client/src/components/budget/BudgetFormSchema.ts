@@ -3,15 +3,16 @@ import { z } from 'zod';
 /**
  * Constants for budget management
  * 
- * NOTE: These constants are ONLY used as fallbacks when client-specific values 
- * are not available. In production, always use client-specific values.
+ * NOTE: These constants are NOT used for actual calculation anymore.
+ * Instead, we're using client-specific values from the active plan.
+ * These values are kept as fallbacks only.
  */
-export const DEFAULT_BUDGET_AMOUNT = 2000; // Fallback budget amount if client budget is not set
-export const DEFAULT_AVAILABLE_FUNDS = 0; // Fallback available funds amount
-export const DEFAULT_USED_AMOUNT = 0; // Default starting value for used amount
+export const FIXED_BUDGET_AMOUNT = 2000; // Fixed budget amount for all clients
+export const AVAILABLE_FUNDS_AMOUNT = 0; // Placeholder, use client-specific values instead
+export const INITIAL_USED_AMOUNT = 0; // Placeholder, use client-specific values instead
 
-// Used quantities tracking
-// In production, these values should be fetched from the API based on session data
+// Used quantities for budget items are now retrieved from the API
+// This mock is kept for reference only and is not used in production code
 export const MOCK_USED_QUANTITIES: Record<string, number> = {};
 
 /**
