@@ -355,9 +355,8 @@ export function UnifiedBudgetManager({ clientId }: UnifiedBudgetManagerProps) {
         if (itemsToCreate.length > 0 && activePlan) {
           console.log("Processing creation of new items...");
           const createPromises = itemsToCreate.map(item => {
-            console.log(`Creating new item ${item.itemCode} with quantity ${item.quantity}`);
-            return apiRequest('POST', `/api/budget-items`, {
-              clientId: clientId,
+            console.log(`Creating new item ${item.itemCode} with quantity ${item.quantity} for client ${clientId}`);
+            return apiRequest('POST', `/api/clients/${clientId}/budget-items`, {
               budgetSettingsId: activePlan.id,
               itemCode: item.itemCode,
               description: item.description,
