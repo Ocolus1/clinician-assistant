@@ -207,7 +207,7 @@ export function UnifiedBudgetManager({ clientId }: UnifiedBudgetManagerProps) {
       return;
     }
     
-    // Create new item
+    // Create new item with explicit isNew flag
     const newItem = {
       id: -1 * (Date.now()), // Temporary negative ID to identify as new
       itemCode: catalogItem.itemCode,
@@ -215,10 +215,12 @@ export function UnifiedBudgetManager({ clientId }: UnifiedBudgetManagerProps) {
       quantity: quantity,
       unitPrice: catalogItem.defaultUnitPrice,
       total: catalogItem.defaultUnitPrice * quantity,
-      isNew: true,
+      isNew: true, // This flag is critical for identifying items to create
       name: catalogItem.description,
       category: catalogItem.category || "Other"
     };
+    
+    console.log("Created new budget item:", newItem);
     
     // Add to field array
     append(newItem);
@@ -318,8 +320,13 @@ export function UnifiedBudgetManager({ clientId }: UnifiedBudgetManagerProps) {
       const items = data.items || [];
       
       // Filter items to update (existing items) and items to create (new items)
-      const itemsToUpdate = items.filter(item => !item.isNew && item.id);
-      const itemsToCreate = items.filter(item => item.isNew);
+      // Make sure we properly identify new items - they either have isNew=true OR negative ID (temporary)
+      const itemsToUpdate = items.filter(item => !item.isNew && item.id && item.id > 0);
+      const itemsToCreate = items.filter(item => item.isNew || !item.id || item.id < 0);
+      
+      console.log("Items check for creation - all items:", items);
+      console.log("Items with isNew flag:", items.filter(item => item.isNew).length);
+      console.log("Items with negative ID:", items.filter(item => item.id && item.id < 0).length);
       
       // Debug log
       console.log("Save mutation triggered");
