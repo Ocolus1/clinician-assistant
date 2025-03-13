@@ -94,12 +94,20 @@ export function UnifiedBudgetManager({ clientId }: UnifiedBudgetManagerProps) {
   const catalogQuery = useQuery({
     queryKey: ['/api/budget-item-catalog'],
     queryFn: async () => {
-      const response = await fetch('/api/budget-item-catalog');
-      if (!response.ok) {
-        throw new Error('Failed to fetch catalog items');
+      try {
+        const response = await fetch('/api/budget-item-catalog');
+        if (!response.ok) {
+          throw new Error('Failed to fetch catalog items');
+        }
+        const data = await response.json();
+        // Return empty array if data is not valid
+        return Array.isArray(data) ? data : [];
+      } catch (error) {
+        console.error('Error fetching catalog items:', error);
+        return []; // Return empty array on error for graceful degradation
       }
-      return response.json();
-    }
+    },
+    retry: 2 // Add retry logic to handle temporary network issues
   });
 
   // Set active plan from data (first active plan by default)

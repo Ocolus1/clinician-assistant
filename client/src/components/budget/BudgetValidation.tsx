@@ -24,7 +24,7 @@ export function BudgetValidation({
   // In a real app, this would come from counting actual usage in sessions
   const totalUsed = INITIAL_USED_AMOUNT;
   
-  // Calculate percentage of allocated budget used vs total allocation
+  // Calculate percentage of allocated budget vs total allocation
   const percentAllocated = totalAllocated > 0 
     ? Math.min(Math.round((totalAllocated / FIXED_BUDGET_AMOUNT) * 100), 100) 
     : 0;
@@ -74,7 +74,7 @@ export function BudgetValidation({
       </div>
       
       <Progress 
-        value={percentAllocated} 
+        value={percentUsed} 
         className="h-2" 
         indicatorClassName={progressColor}
       />
