@@ -51,6 +51,8 @@ export function UnifiedBudgetManager({ clientId }: UnifiedBudgetManagerProps) {
   // Fixed budget constant - set to 2000 which is the fixed total value of items added when client was created
   const FIXED_BUDGET_AMOUNT = 2000;
   const [formInitialized, setFormInitialized] = useState(false);
+  // Add debug mode for troubleshooting
+  const [debugMode, setDebugMode] = useState(true);
   
   // Use the budget feature context
   const { 
@@ -645,15 +647,59 @@ export function UnifiedBudgetManager({ clientId }: UnifiedBudgetManagerProps) {
                 </div>
               )}
               
-              {/* Modified save button without conditional disabling based on form.formState.isDirty */}
+              {/* Debug panel */}
+              {debugMode && (
+                <div className="mb-4 p-4 border border-blue-300 bg-blue-50 rounded-md w-full">
+                  <h4 className="font-medium text-blue-700 mb-2">Debug Information</h4>
+                  <div className="text-xs text-blue-800 space-y-1">
+                    <p>Form Status: {form.formState.isDirty ? "Dirty" : "Clean"}</p>
+                    <p>Item Count: {items.length}</p>
+                    <p>New Items: {items.filter(item => item.isNew).length}</p>
+                    <p>Total Allocated: {formatCurrency(form.watch("totalAllocated") || 0)}</p>
+                    <p>Active Plan ID: {activePlan?.id || "None"}</p>
+                  </div>
+                  <div className="flex justify-end mt-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="text-xs"
+                      onClick={() => {
+                        console.log("Form values:", form.getValues());
+                        console.log("Form state:", form.formState);
+                        console.log("Items:", items);
+                      }}
+                    >
+                      Log State
+                    </Button>
+                  </div>
+                </div>
+              )}
+              
+              {/* Standalone save button that bypasses form submission */}
               <Button 
-                type="submit" 
+                type="button" // Changed to button type to prevent form submission
                 disabled={saveMutation.isPending}
                 className="w-full md:w-auto"
                 onClick={() => {
-                  console.log("Save button clicked manually");
-                  // Force form submission
-                  form.handleSubmit(onSubmit)();
+                  console.log("Save button clicked directly");
+                  
+                  // Get current form values
+                  const formValues = form.getValues();
+                  console.log("Current form values:", formValues);
+                  
+                  // Manually trigger direct API calls rather than using form submission
+                  try {
+                    // Directly trigger the mutation
+                    saveMutation.mutate(formValues);
+                  } catch (error) {
+                    console.error("Error triggering save mutation:", error);
+                    toast({
+                      title: "Save Error",
+                      description: "Failed to save changes. See console for details.",
+                      variant: "destructive"
+                    });
+                  }
                 }}
               >
                 {saveMutation.isPending ? (

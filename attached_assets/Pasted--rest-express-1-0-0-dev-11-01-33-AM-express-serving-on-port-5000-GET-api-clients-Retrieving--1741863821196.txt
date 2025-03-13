@@ -1,0 +1,74 @@
+> rest-express@1.0.0 dev
+11:01:33 AM [express] serving on port 5000
+GET /api/clients - Retrieving all clients
+Include incomplete clients: false
+Getting all clients from database
+Found 11 clients in database
+Found 11 clients in database
+Returning 4 clients after filtering
+11:01:53 AM [express] GET /api/clients 304 in 128ms :: [{"id":37,"name":"Gabriel","dateOfBirth":"2025…
+GET /api/clients - Retrieving all clients
+Include incomplete clients: false
+Getting all clients from database
+Found 11 clients in database
+Found 11 clients in database
+Returning 4 clients after filtering
+11:01:53 AM [express] GET /api/clients 304 in 24ms :: [{"id":37,"name":"Gabriel","dateOfBirth":"2025-…
+Getting goals for client 51
+GET /api/clients/51 - Fetching client with ID: 51
+Attempting to get client with ID: 51
+Getting allies for client 51
+Getting budget items for client 51
+Getting budget settings for client 51, all=false
+Getting active budget setting for client 51
+Getting budget settings for client 51
+Getting budget settings for client 51, all=true
+Getting all budget settings for client 51
+Getting all budget settings for client 51
+Found client with ID 51: {"id":51,"name":"Test 2","dateOfBirth":"2024-11-26","gender":null,"preferredLanguage":null,"contactEmail":null,"contactPhone":null,"address":null,"medicalHistory":null,"communicationNeeds":null,"therapyPreferences":null,"fundsManagement":"Self-Managed","availableFunds":"0","onboardingStatus":"complete"}
+Client with ID 51 found: {
+  id: 51,
+  name: 'Test 2',
+  dateOfBirth: '2024-11-26',
+  gender: null,
+  preferredLanguage: null,
+  contactEmail: null,
+  contactPhone: null,
+  address: null,
+  medicalHistory: null,
+  communicationNeeds: null,
+  therapyPreferences: null,
+  fundsManagement: 'Self-Managed',
+  availableFunds: '0',
+  onboardingStatus: 'complete'
+}
+11:02:42 AM [express] GET /api/clients/51 304 in 115ms :: {"id":51,"name":"Test 2","dateOfBirth":"202…
+Found 1 allies for client 51
+11:02:42 AM [express] GET /api/clients/51/allies 304 in 119ms :: [{"id":46,"clientId":51,"name":"sss"…
+Found budget settings for client 51
+Found budget settings for client 51
+11:02:42 AM [express] GET /api/clients/51/budget-settings 304 in 117ms :: {"id":43,"clientId":51,"pla…
+Found 4 budget items for client 51
+11:02:42 AM [express] GET /api/clients/51/budget-items 304 in 120ms :: [{"id":22,"clientId":51,"budge…
+Found 1 budget settings for client 51
+Found 1 budget settings for client 51
+11:02:42 AM [express] GET /api/clients/51/budget-settings 304 in 117ms :: [{"id":43,"clientId":51,"pl…
+Found 1 goals for client 51
+11:02:42 AM [express] GET /api/clients/51/goals 304 in 138ms :: [{"id":35,"clientId":51,"title":"s","…
+11:02:42 AM [express] GET /api/clients/51/budget/plans 200 in 4ms
+Getting subgoals for goal 35
+Found 1 subgoals for goal 35
+11:02:43 AM [express] GET /api/goals/35/subgoals 304 in 24ms :: [{"id":56,"goalId":35,"title":"s","de…
+11:02:43 AM [express] GET /api/clients/51/budget/plans 200 in 3ms
+Getting all budget item catalog entries
+Getting budget settings for client 51, all=true
+Getting all budget settings for client 51
+Getting all budget settings for client 51
+Found 11 budget item catalog entries
+11:02:43 AM [express] GET /api/budget-catalog 304 in 26ms :: [{"id":1,"itemCode":"THERAPY-001","descr…
+Found 1 budget settings for client 51
+Found 1 budget settings for client 51
+11:02:43 AM [express] GET /api/clients/51/budget-settings 304 in 24ms :: [{"id":43,"clientId":51,"pla…
+Getting budget items for client 51
+Found 4 budget items for client 51
+11:02:43 AM [express] GET /api/clients/51/budget-items 304 in 24ms :: [{"id":22,"clientId":51,"budget…
