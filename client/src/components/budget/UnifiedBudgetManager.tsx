@@ -436,9 +436,13 @@ export function UnifiedBudgetManager({ clientId }: UnifiedBudgetManagerProps) {
                 <div className="p-4 border border-red-300 bg-red-50 rounded-md text-red-700">
                   Failed to load catalog items. Please try again.
                 </div>
+              ) : !catalogQuery.data ? (
+                <div className="p-4 border border-amber-300 bg-amber-50 rounded-md text-amber-700">
+                  No catalog items available. Please check your configuration.
+                </div>
               ) : (
                 <BudgetCatalogSelector 
-                  catalogItems={catalogQuery.data}
+                  catalogItems={catalogQuery.data || []}
                   onAddItem={handleAddCatalogItem}
                   remainingBudget={form.watch("remainingBudget")}
                   activePlan={activePlan}

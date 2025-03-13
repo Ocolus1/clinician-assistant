@@ -24,37 +24,43 @@ export function BudgetValidation({
   // In a real app, this would come from counting actual usage in sessions
   const totalUsed = INITIAL_USED_AMOUNT;
   
-  // Calculate percentage of allocated budget used
+  // Calculate percentage of allocated budget used vs total allocation
+  const percentAllocated = totalAllocated > 0 
+    ? Math.min(Math.round((totalAllocated / FIXED_BUDGET_AMOUNT) * 100), 100) 
+    : 0;
+  
+  // Calculate percentage of used amount vs total allocation
   const percentUsed = totalUsed > 0 
     ? Math.min(Math.round((totalUsed / FIXED_BUDGET_AMOUNT) * 100), 100) 
     : 0;
   
   // Determine the budget status
   // Convert string values to numbers to ensure comparison works correctly
+  const allocatedAmount = typeof totalAllocated === 'string' ? parseFloat(totalAllocated) : totalAllocated;
   const usedAmount = typeof totalUsed === 'string' ? parseFloat(totalUsed) : totalUsed;
   const budgetAmount = typeof FIXED_BUDGET_AMOUNT === 'string' ? parseFloat(FIXED_BUDGET_AMOUNT) : FIXED_BUDGET_AMOUNT;
   
   // Check if over budget 
-  const isOverBudget = usedAmount > budgetAmount;
-  // Check if fully used with tolerance for floating point math
-  const isFullyUsed = Math.abs(usedAmount - budgetAmount) < 0.01;
+  const isOverBudget = allocatedAmount > budgetAmount;
+  // Check if fully allocated (with tolerance for floating point math)
+  const isFullyAllocated = Math.abs(allocatedAmount - budgetAmount) < 0.01;
   
-  // Status color
+  // Status color based on allocation status
   const statusColor = isOverBudget 
     ? "text-red-600" 
-    : isFullyUsed 
+    : isFullyAllocated 
       ? "text-amber-600" 
       : "text-green-600";
   
-  // Progress color
+  // Progress color based on allocation status
   const progressColor = isOverBudget 
     ? "bg-red-600" 
-    : isFullyUsed 
+    : isFullyAllocated 
       ? "bg-amber-500" 
       : "bg-green-600";
   
-  // Calculate remaining budget as allocated - used
-  const remainingAllocation = FIXED_BUDGET_AMOUNT - totalUsed;
+  // Calculate remaining budget as fixed amount - allocated
+  const remainingAllocation = FIXED_BUDGET_AMOUNT - totalAllocated;
   
   return (
     <div className="space-y-4">
@@ -63,7 +69,7 @@ export function BudgetValidation({
           Budget Usage Status
         </div>
         <div className={`text-sm font-bold ${statusColor}`}>
-          {isOverBudget ? 'Over Budget!' : isFullyUsed ? 'Fully Used' : 'Available Budget'}
+          {isOverBudget ? 'Over Budget!' : isFullyAllocated ? 'Fully Allocated' : 'Available Budget'}
         </div>
       </div>
       
