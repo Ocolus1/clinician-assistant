@@ -419,10 +419,17 @@ export function UnifiedBudgetManager({ clientId }: UnifiedBudgetManagerProps) {
             <Separator />
             
             {/* Form Submission */}
-            <div className="flex justify-end">
+            <div className="flex flex-col items-end gap-2">
+              {items.some(item => item.isNew) || form.formState.isDirty ? (
+                <div className="mb-2 text-sm text-amber-600 font-medium p-2 bg-amber-50 border border-amber-200 rounded-md w-full text-center">
+                  You have unsaved changes. Click the button below to save all changes.
+                </div>
+              ) : null}
               <Button 
                 type="submit" 
                 disabled={saveMutation.isPending || !formInitialized}
+                size="lg"
+                className="px-8"
               >
                 {saveMutation.isPending ? 'Saving Changes...' : 'Save All Changes'}
               </Button>
