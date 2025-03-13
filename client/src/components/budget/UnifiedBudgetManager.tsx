@@ -250,8 +250,8 @@ export function UnifiedBudgetManager({ clientId }: UnifiedBudgetManagerProps) {
     // Update the allocated total
     form.setValue("totalAllocated", newTotalAllocated);
     
-    // Remaining budget is calculated from client-specific budget - used (not allocated)
-    form.setValue("remainingBudget", getClientBudget());
+    // Remaining budget is calculated from client-specific budget minus allocated amount
+    form.setValue("remainingBudget", getClientBudget() - newTotalAllocated);
     
     // Show success notification
     toast({
@@ -302,8 +302,8 @@ export function UnifiedBudgetManager({ clientId }: UnifiedBudgetManagerProps) {
     const newTotalAllocated = currentAllocated + difference;
     form.setValue("totalAllocated", newTotalAllocated);
     
-    // Remaining budget is calculated from client-specific budget
-    form.setValue("remainingBudget", getClientBudget());
+    // Remaining budget is calculated from client-specific budget minus allocated amount
+    form.setValue("remainingBudget", getClientBudget() - newTotalAllocated);
   };
 
   // Handle deleting an item
@@ -319,8 +319,8 @@ export function UnifiedBudgetManager({ clientId }: UnifiedBudgetManagerProps) {
     const newTotalAllocated = currentAllocated - itemTotal;
     form.setValue("totalAllocated", newTotalAllocated);
     
-    // Remaining budget is calculated from client-specific budget
-    form.setValue("remainingBudget", getClientBudget());
+    // Remaining budget is calculated from client-specific budget minus allocated amount
+    form.setValue("remainingBudget", getClientBudget() - newTotalAllocated);
     
     // Remove from field array
     remove(index);
@@ -579,7 +579,7 @@ export function UnifiedBudgetManager({ clientId }: UnifiedBudgetManagerProps) {
         items: originalItems,
         totalBudget: getClientBudget(),
         totalAllocated: totalAllocated,
-        remainingBudget: getClientBudget()
+        remainingBudget: getClientBudget() - totalAllocated
       });
       
       toast({
@@ -702,8 +702,8 @@ export function UnifiedBudgetManager({ clientId }: UnifiedBudgetManagerProps) {
                 // Use client-specific budget amount
                 totalBudget={getClientBudget()} // Set to client-specific budget amount
                 totalAllocated={form.watch("totalAllocated") || 0}
-                remainingBudget={getClientBudget()} // Total remaining budget is total budget minus used (not allocated)
-                originalAllocated={getClientBudget()} // The original allocated budget amount
+                remainingBudget={getClientBudget() - (form.watch("totalAllocated") || 0)} // Total remaining budget is total budget minus allocated amount
+                originalAllocated={totalAllocated} // The original allocated budget amount before edits
               />
               
               <Separator className="my-4" />
