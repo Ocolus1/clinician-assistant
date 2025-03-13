@@ -343,7 +343,7 @@ export function UnifiedBudgetManager({ clientId }: UnifiedBudgetManagerProps) {
     }
   });
 
-  // Submit handler with explicit API calls for reliability
+  // Submit handler - focusing on form state tracking and direct API calls
   const onSubmit = async (data: UnifiedBudgetFormValues) => {
     // Prevent double submission
     if (saveMutation.isPending) {
@@ -351,32 +351,41 @@ export function UnifiedBudgetManager({ clientId }: UnifiedBudgetManagerProps) {
     }
     
     try {
-      // Calculate totals for validation
-      const calculatedTotal = data.items.reduce((sum, item) => sum + (item.quantity * item.unitPrice), 0);
-      const calculatedRemaining = FIXED_BUDGET_AMOUNT - calculatedTotal;
+      // Show saving indicator immediately for user feedback
+      toast({
+        title: 'Processing',
+        description: 'Checking budget changes...'
+      });
       
-      // Validate budget before proceeding
-      if (calculatedRemaining < 0) {
+      // Get the original items from the database to compare
+      const response = await fetch(`/api/clients/${clientId}/budget-items`);
+      const originalItems = await response.json();
+      
+      // Identify which items have actually changed
+      const changedItems = data.items.filter(formItem => {
+        if (formItem.isNew) return true; // New items are always changes
+        
+        // Find the matching original item
+        const originalItem = originalItems.find((o: any) => o.id === formItem.id);
+        if (!originalItem) return true; // If not found in original, consider it changed
+        
+        // Compare the quantity and unitPrice to detect changes
+        return formItem.quantity !== originalItem.quantity || 
+               parseFloat(formItem.unitPrice) !== parseFloat(originalItem.unitPrice);
+      });
+      
+      // If nothing actually changed, show message and exit
+      if (changedItems.length === 0) {
         toast({
-          title: 'Validation Error',
-          description: 'Budget exceeded. Please adjust your allocations before saving.',
-          variant: 'destructive'
+          title: 'No Changes',
+          description: 'No changes detected to save.'
         });
         return;
       }
       
       // Separate items by operation type
-      const itemsToUpdate = data.items.filter(item => !item.isNew && item.id);
-      const itemsToCreate = data.items.filter(item => item.isNew);
-      
-      // Check if there are any changes to save
-      if (itemsToUpdate.length === 0 && itemsToCreate.length === 0) {
-        toast({
-          title: 'No Changes',
-          description: 'No changes were detected to save.'
-        });
-        return;
-      }
+      const itemsToUpdate = changedItems.filter(item => !item.isNew && item.id);
+      const itemsToCreate = changedItems.filter(item => item.isNew);
       
       // Show saving toast
       toast({
@@ -384,11 +393,19 @@ export function UnifiedBudgetManager({ clientId }: UnifiedBudgetManagerProps) {
         description: 'Updating budget allocations...'
       });
       
-      // Update existing items directly - avoids internal Promise.all issues
+      // Create a log for debugging
+      console.log('Original items:', originalItems);
+      console.log('Changed items:', changedItems);
+      console.log('Items to update:', itemsToUpdate);
+      console.log('Items to create:', itemsToCreate);
+      
+      // Execute API calls in sequence to avoid race conditions
+      
+      // 1. Update existing items first
       let updateSuccess = true;
       for (const item of itemsToUpdate) {
         try {
-          await fetch(`/api/budget-items/${item.id}`, {
+          const updateResponse = await fetch(`/api/budget-items/${item.id}`, {
             method: 'PUT',
             headers: {
               'Content-Type': 'application/json',
@@ -398,18 +415,24 @@ export function UnifiedBudgetManager({ clientId }: UnifiedBudgetManagerProps) {
               unitPrice: item.unitPrice
             }),
           });
+          
+          if (!updateResponse.ok) {
+            throw new Error(`Failed to update item ${item.id}: ${updateResponse.status}`);
+          }
+          
+          console.log(`Successfully updated item ${item.id}`);
         } catch (err) {
           console.error(`Failed to update item ${item.id}:`, err);
           updateSuccess = false;
         }
       }
       
-      // Create new items directly
+      // 2. Create new items 
       let createSuccess = true;
       if (activePlan) {
         for (const item of itemsToCreate) {
           try {
-            await fetch(`/api/budget-items`, {
+            const createResponse = await fetch(`/api/budget-items`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
@@ -425,6 +448,12 @@ export function UnifiedBudgetManager({ clientId }: UnifiedBudgetManagerProps) {
                 category: item.category
               }),
             });
+            
+            if (!createResponse.ok) {
+              throw new Error(`Failed to create new item: ${createResponse.status}`);
+            }
+            
+            console.log('Successfully created new item');
           } catch (err) {
             console.error(`Failed to create new item:`, err);
             createSuccess = false;
@@ -432,10 +461,11 @@ export function UnifiedBudgetManager({ clientId }: UnifiedBudgetManagerProps) {
         }
       }
       
-      // Update budget settings if needed
+      // 3. Update budget settings if needed
+      let settingsUpdateSuccess = true;
       if (activePlan && activePlan.availableFunds !== AVAILABLE_FUNDS_AMOUNT) {
         try {
-          await fetch(`/api/budget-settings/${activePlan.id}`, {
+          const settingsResponse = await fetch(`/api/budget-settings/${activePlan.id}`, {
             method: 'PUT',
             headers: {
               'Content-Type': 'application/json',
@@ -444,8 +474,15 @@ export function UnifiedBudgetManager({ clientId }: UnifiedBudgetManagerProps) {
               availableFunds: AVAILABLE_FUNDS_AMOUNT
             }),
           });
+          
+          if (!settingsResponse.ok) {
+            throw new Error(`Failed to update budget settings: ${settingsResponse.status}`);
+          }
+          
+          console.log('Successfully updated budget settings');
         } catch (err) {
           console.error(`Failed to update budget settings:`, err);
+          settingsUpdateSuccess = false;
         }
       }
       
@@ -461,8 +498,11 @@ export function UnifiedBudgetManager({ clientId }: UnifiedBudgetManagerProps) {
       // Reset form state to trigger refresh
       setFormInitialized(false);
       
-      // Show success or partial success message
-      if (updateSuccess && createSuccess) {
+      // Clear form dirty state
+      form.reset(form.getValues());
+      
+      // Show appropriate success or error message
+      if (updateSuccess && createSuccess && settingsUpdateSuccess) {
         toast({
           title: 'Success',
           description: 'Budget items updated successfully'
@@ -470,7 +510,7 @@ export function UnifiedBudgetManager({ clientId }: UnifiedBudgetManagerProps) {
       } else {
         toast({
           title: 'Partial Success',
-          description: 'Some budget items may not have been updated correctly.',
+          description: 'Some budget items may not have been updated correctly. Please check and try again.',
           variant: 'destructive'
         });
       }
