@@ -30,8 +30,7 @@ import {
   Mail,
   Phone,
   Archive,
-  Star,
-  AlertTriangle
+  Star
 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Badge } from "@/components/ui/badge";
@@ -59,7 +58,6 @@ import ClientPersonalInfo from "@/components/profile/ClientPersonalInfo";
 import ClientAllies from "@/components/profile/ClientAllies";
 import ClientGoals from "@/components/profile/ClientGoals";
 import { BudgetManagerView } from "@/components/budget/BudgetManagerView";
-import { BudgetPlanView } from "@/components/budget/BudgetPlanView";
 import ClientSessions from "@/components/profile/ClientSessions";
 import ClientReports from "@/components/profile/ClientReports";
 import AddAllyDialog from "@/components/profile/AddAllyDialog";
@@ -644,32 +642,9 @@ export default function ClientProfile() {
             </TabsContent>
             
             <TabsContent value="budget" className="mt-0">
-              {/* Use the enhanced budget plan view for comprehensive budget management */}
+              {/* Use the new comprehensive BudgetManagerView for budget management */}
               <div className="space-y-8">
-                {/* Feature flag for new budget plan system */}
-                {import.meta.env.DEV ? (
-                  <>
-                    {/* Warning notice for development environment */}
-                    <div className="mb-4">
-                      <Card className="bg-yellow-50 border-yellow-200">
-                        <CardContent className="py-4">
-                          <div className="flex items-center space-x-2">
-                            <AlertTriangle className="h-5 w-5 text-yellow-600" />
-                            <p className="text-sm text-yellow-800">
-                              Using new budget management interface. This is currently in testing.
-                            </p>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    </div>
-                    
-                    {/* New Budget Plan View UI */}
-                    <BudgetPlanView clientId={clientId} />
-                  </>
-                ) : (
-                  /* Original Budget Manager View for production use */
-                  <BudgetManagerView clientId={clientId} />
-                )}
+                <BudgetManagerView clientId={clientId} />
               </div>
             </TabsContent>
             

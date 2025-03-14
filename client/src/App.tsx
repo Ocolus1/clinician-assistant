@@ -13,7 +13,6 @@ import ClientProfile from "@/pages/ClientProfile";
 import Sessions from "@/pages/Sessions";
 import Settings from "@/pages/Settings";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { BudgetFeatureProvider } from "@/components/budget/BudgetFeatureContext";
 
 function Router() {
   const [location] = useLocation();
@@ -54,10 +53,8 @@ function Router() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <BudgetFeatureProvider>
-        <Router />
-        <Toaster />
-      </BudgetFeatureProvider>
+      <Router />
+      <Toaster />
     </QueryClientProvider>
   );
 }

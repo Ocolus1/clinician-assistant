@@ -1,173 +1,941 @@
-import React, { useState } from 'react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
-import { Plus, FileText, ShoppingCart, Settings, DollarSign } from 'lucide-react';
-import { useBudgetFeature } from './BudgetFeatureContext';
-import { formatCurrency } from '@/lib/utils';
+import React, { useMemo, useState, useEffect } from "react";
+import { useForm, useFieldArray } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import { 
+  unifiedBudgetFormSchema,
+  UnifiedBudgetFormValues,
+  budgetItemSchema,
+  FIXED_BUDGET_AMOUNT
+} from "./BudgetFormSchema";
+import { 
+  Form, 
+  FormControl, 
+  FormField, 
+  FormItem, 
+  FormLabel, 
+  FormMessage 
+} from "@/components/ui/form";
+import { 
+  Card, 
+  CardContent, 
+  CardDescription, 
+  CardFooter, 
+  CardHeader, 
+  CardTitle 
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { BudgetValidation } from "./BudgetValidation";
+import { BudgetItemRow } from "./BudgetItemRow";
+import { BudgetCatalogSelector } from "./BudgetCatalogSelector";
+import { Separator } from "@/components/ui/separator";
+import { formatCurrency } from "@/lib/utils";
+import { useToast } from "@/hooks/use-toast";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import { useBudgetFeature, BudgetPlan, BudgetItem } from "./BudgetFeatureContext";
+import { Loader2, AlertCircle } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { CatalogItem, RowBudgetItem } from "./BudgetTypes";
+
+// We're using the budgetItemSchema imported from BudgetFormSchema.ts
+// We're using the unifiedBudgetFormSchema directly from BudgetFormSchema.ts
 
 interface UnifiedBudgetManagerProps {
   clientId: number;
 }
 
-/**
- * Unified view for managing all aspects of a specific budget plan
- */
 export function UnifiedBudgetManager({ clientId }: UnifiedBudgetManagerProps) {
-  const [activeTab, setActiveTab] = useState('summary');
-  const { plans, activePlan, selectedPlanId } = useBudgetFeature();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
   
-  // Find the selected plan or fallback to active plan
-  const currentPlan = selectedPlanId 
-    ? plans.find(p => p.id === selectedPlanId) 
-    : activePlan;
+  const [formInitialized, setFormInitialized] = useState(false);
+  // Add debug mode for troubleshooting
+  const [debugMode, setDebugMode] = useState(true);
   
-  if (!currentPlan) {
+  // Use the budget feature context
+  const { 
+    activePlan, 
+    setActivePlan, 
+    budgetItems, 
+    setBudgetItems
+  } = useBudgetFeature();
+  
+  // Helper function to calculate client-specific budget amount based on items
+  const getClientBudget = () => {
+    // Calculate total budget from all budget items
+    if (budgetItems && budgetItems.length > 0) {
+      return budgetItems.reduce((total, item) => {
+        const quantity = Number(item.quantity);
+        const unitPrice = Number(item.unitPrice);
+        return total + (quantity * unitPrice);
+      }, 0);
+    }
+    
+    // Fallback to active plan's availableFunds if items not available
+    if (activePlan && activePlan.availableFunds) {
+      // Convert string values to numbers if needed
+      return typeof activePlan.availableFunds === 'string' 
+        ? parseFloat(activePlan.availableFunds) 
+        : activePlan.availableFunds;
+    }
+    
+    // Final fallback if nothing else is available
+    return 0;
+  };
+
+  // Get active budget plan
+  const plansQuery = useQuery({
+    queryKey: [`/api/clients/${clientId}/budget-settings`],
+    queryFn: async () => {
+      const response = await fetch(`/api/clients/${clientId}/budget-settings?all=true`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch budget plans');
+      }
+      const data = await response.json();
+      // Handle both array and single object responses
+      return Array.isArray(data) ? data : [data];
+    }
+  });
+
+  // Get budget items for the active plan
+  const itemsQuery = useQuery({
+    queryKey: [`/api/clients/${clientId}/budget-items`, activePlan?.id],
+    queryFn: async () => {
+      if (!activePlan) {
+        return [];
+      }
+      const response = await fetch(`/api/clients/${clientId}/budget-items?budgetSettingsId=${activePlan.id}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch budget items');
+      }
+      return response.json();
+    },
+    enabled: !!activePlan
+  });
+
+  // Get catalog items
+  const catalogQuery = useQuery({
+    queryKey: ['/api/budget-catalog'],
+    queryFn: async () => {
+      try {
+        const response = await fetch('/api/budget-catalog');
+        if (!response.ok) {
+          throw new Error('Failed to fetch catalog items');
+        }
+        const data = await response.json();
+        // Return empty array if data is not valid
+        return Array.isArray(data) ? data : [];
+      } catch (error) {
+        console.error('Error fetching catalog items:', error);
+        return []; // Return empty array on error for graceful degradation
+      }
+    },
+    retry: 2 // Add retry logic to handle temporary network issues
+  });
+
+  // Set active plan from data (first active plan by default)
+  useEffect(() => {
+    if (plansQuery.data && plansQuery.data.length > 0 && !activePlan) {
+      const activePlans = plansQuery.data.filter((plan: any) => plan.isActive);
+      if (activePlans.length > 0) {
+        setActivePlan(activePlans[0]);
+      } else {
+        setActivePlan(plansQuery.data[0]);
+      }
+    }
+  }, [plansQuery.data, activePlan, setActivePlan]);
+
+  // Form setup with budget items
+  const form = useForm<UnifiedBudgetFormValues>({
+    resolver: zodResolver(unifiedBudgetFormSchema),
+    defaultValues: {
+      items: [],
+      totalBudget: 0, // Will be updated with client-specific budget
+      totalAllocated: 0,
+      remainingBudget: 0 // Will be updated with client-specific budget
+    }
+  });
+
+  // Initialize form with data when it's available
+  useEffect(() => {
+    if (itemsQuery.data && activePlan && !formInitialized) {
+      const initialItems = itemsQuery.data.map((item: any) => ({
+        id: item.id,
+        itemCode: item.itemCode,
+        description: item.description,
+        quantity: item.quantity,
+        unitPrice: item.unitPrice,
+        total: item.unitPrice * item.quantity,
+        name: item.name,
+        category: item.category,
+        budgetSettingsId: item.budgetSettingsId,
+        clientId: item.clientId
+      }));
+
+      // Calculate total allocated from items
+      const totalAllocated = initialItems.reduce(
+        (sum: number, item: any) => sum + (Number(item.quantity) * Number(item.unitPrice)), 0
+      );
+
+      // Calculate total budget as the sum of all budget items
+      const totalBudget = initialItems.reduce(
+        (sum: number, item: any) => sum + (Number(item.quantity) * Number(item.unitPrice)), 0
+      );
+
+      // Calculate remaining budget as total budget minus used (not allocated)
+      // For now, this is the same as total budget since we start with no usage
+      const remainingBudget = totalBudget; 
+
+      // Set default values with real data
+      form.reset({
+        items: initialItems,
+        totalBudget: totalBudget,
+        totalAllocated: totalAllocated,
+        remainingBudget: remainingBudget
+      });
+
+      // Update budget items in context
+      setBudgetItems(initialItems);
+      
+      // Mark form as initialized to prevent redundant resets
+      setFormInitialized(true);
+    }
+  }, [itemsQuery.data, activePlan, formInitialized, form, setBudgetItems]);
+
+  // Use field array to manage budget items
+  const { fields, append, remove, update } = useFieldArray({
+    control: form.control,
+    name: "items"
+  });
+
+  // Items from form state
+  const items = form.watch("items") || [];
+
+  // Add a new catalog item to the form
+  const handleAddCatalogItem = (catalogItem: CatalogItem, quantity: number) => {
+    // Validate inputs first
+    if (!catalogItem.itemCode) {
+      toast({
+        title: "Invalid Item",
+        description: "The selected item is missing a required item code.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    // Ensure quantity is a positive number
+    const validQuantity = Math.max(1, Number(quantity) || 1);
+    
+    // Ensure unit price is a valid number
+    const unitPrice = Math.max(0, Number(catalogItem.defaultUnitPrice) || 0);
+    
+    // Get current allocated total
+    const currentTotal = form.getValues().totalAllocated || 0;
+    
+    // Calculate new item cost with validated values
+    const itemCost = unitPrice * validQuantity;
+    
+    // Check if this would exceed the budget
+    const clientBudget = getClientBudget();
+    if (currentTotal + itemCost > clientBudget) {
+      toast({
+        title: "Budget Exceeded",
+        description: `Adding this item would exceed the available budget of ${formatCurrency(clientBudget)}`,
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    // Create new item with explicit isNew flag and properly validated data
+    const newItem = {
+      id: -1 * (Date.now()), // Temporary negative ID to identify as new
+      itemCode: catalogItem.itemCode,
+      description: catalogItem.description || catalogItem.itemCode,
+      quantity: validQuantity,
+      unitPrice: unitPrice,
+      total: unitPrice * validQuantity,
+      isNew: true, // This flag is critical for identifying items to create
+      name: catalogItem.description || catalogItem.itemCode,
+      category: catalogItem.category || "Other",
+      clientId: Number(clientId),
+      budgetSettingsId: activePlan?.id ? Number(activePlan.id) : undefined
+    };
+    
+    console.log("Created new budget item:", newItem);
+    
+    // Add to field array
+    append(newItem);
+    
+    // Update totals
+    const newTotalAllocated = currentTotal + itemCost;
+    
+    // Update the allocated total
+    form.setValue("totalAllocated", newTotalAllocated);
+    
+    // Update remainingBudget with client-specific budget
+    form.setValue("remainingBudget", getClientBudget());
+    
+    // Show success notification
+    toast({
+      title: "Item Added",
+      description: `Added ${quantity} x ${catalogItem.itemCode} to budget.`
+    });
+  };
+
+  // Handle updating item quantity
+  const handleUpdateItemQuantity = (index: number, newQuantity: number) => {
+    const item = form.getValues().items[index];
+    const oldQuantity = item.quantity;
+    const unitPrice = item.unitPrice;
+    
+    // Skip if no change
+    if (oldQuantity === newQuantity) return;
+    
+    // Calculate difference in allocated amount
+    const oldTotal = oldQuantity * unitPrice;
+    const newTotal = newQuantity * unitPrice;
+    const difference = newTotal - oldTotal;
+    
+    // Get current totals
+    const currentAllocated = form.getValues().totalAllocated || 0;
+    const currentRemaining = form.getValues().remainingBudget || 0;
+    
+    // Check if this would exceed the budget
+    if (difference > 0 && difference > currentRemaining) {
+      toast({
+        title: "Budget Exceeded",
+        description: `Increasing this quantity would exceed the available budget.`,
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    // Update item
+    const updatedItem = {
+      ...item,
+      quantity: newQuantity,
+      total: newTotal
+    };
+    
+    // Update in field array
+    update(index, updatedItem);
+    
+    // Update totals
+    const newTotalAllocated = currentAllocated + difference;
+    form.setValue("totalAllocated", newTotalAllocated);
+    
+    // Update remainingBudget with client-specific budget
+    form.setValue("remainingBudget", getClientBudget());
+  };
+
+  // Handle deleting an item
+  const handleDeleteItem = (index: number) => {
+    const item = form.getValues().items[index];
+    const itemTotal = item.quantity * item.unitPrice;
+    
+    // Get current totals
+    const currentAllocated = form.getValues().totalAllocated || 0;
+    const currentRemaining = form.getValues().remainingBudget || 0;
+    
+    // Update totals
+    const newTotalAllocated = currentAllocated - itemTotal;
+    form.setValue("totalAllocated", newTotalAllocated);
+    
+    // Update remainingBudget with client-specific budget 
+    form.setValue("remainingBudget", getClientBudget());
+    
+    // Remove from field array
+    remove(index);
+    
+    // Show success notification
+    toast({
+      title: "Item Removed",
+      description: `Removed ${item.itemCode} from budget.`
+    });
+  };
+
+  // Save changes mutation - improved implementation
+  const saveMutation = useMutation({
+    mutationFn: async (data: UnifiedBudgetFormValues) => {
+      // Ensure items is not undefined
+      const items = data.items || [];
+      
+      // Filter items to update (existing items) and items to create (new items)
+      // Make sure we properly identify new items - they either have isNew=true OR negative ID (temporary)
+      const itemsToUpdate = items.filter(item => !item.isNew && item.id && item.id > 0);
+      const itemsToCreate = items.filter(item => item.isNew || !item.id || item.id < 0);
+      
+      console.log("Items check for creation - all items:", items);
+      console.log("Items with isNew flag:", items.filter(item => item.isNew).length);
+      console.log("Items with negative ID:", items.filter(item => item.id && item.id < 0).length);
+      
+      // Debug log
+      console.log("Save mutation triggered");
+      console.log("Form data:", data);
+      console.log("Total items to save:", items.length);
+      console.log("Items to update:", itemsToUpdate.length, itemsToUpdate);
+      console.log("Items to create:", itemsToCreate.length, itemsToCreate);
+      
+      try {
+        const allPromises = [];
+        
+        // Update existing items
+        if (itemsToUpdate.length > 0) {
+          console.log("Processing updates for existing items...");
+          const updatePromises = itemsToUpdate.map(item => {
+            console.log(`Updating item ID ${item.id} with quantity ${item.quantity} and unit price ${item.unitPrice}`);
+            return apiRequest('PUT', `/api/budget-items/${item.id}`, {
+              quantity: item.quantity,
+              unitPrice: item.unitPrice
+            });
+          });
+          allPromises.push(...updatePromises);
+        }
+        
+        // Create new items
+        if (itemsToCreate.length > 0 && activePlan) {
+          console.log("Processing creation of new items...");
+          const createPromises = itemsToCreate.map(item => {
+            console.log(`Creating new item ${item.itemCode} with quantity ${item.quantity} for client ${clientId}`);
+            // Ensure all values are of the correct type
+            const payload = {
+              budgetSettingsId: activePlan.id,
+              itemCode: item.itemCode,
+              description: item.description,
+              // Ensure quantity is a number
+              quantity: Number(item.quantity),
+              // Ensure unitPrice is a number
+              unitPrice: Number(item.unitPrice),
+              name: item.name || item.description,
+              category: item.category || "Other"
+            };
+            console.log("Sending formatted payload:", payload);
+            return apiRequest('POST', `/api/clients/${clientId}/budget-items`, payload);
+          });
+          allPromises.push(...createPromises);
+        }
+        
+        // Execute all promises or return empty array if no changes
+        if (allPromises.length === 0) {
+          console.log("No changes detected to save");
+          return {
+            success: true,
+            message: "No changes detected to save",
+            results: []
+          };
+        }
+        
+        console.log(`Executing ${allPromises.length} save operations...`);
+        const results = await Promise.all(allPromises);
+        console.log("Save operations completed successfully:", results);
+        
+        return {
+          success: true,
+          message: "Budget items saved successfully",
+          results: results
+        };
+      } catch (error) {
+        console.error("Error during save operation:", error);
+        throw error; // Re-throw to trigger onError handler
+      }
+    },
+    onSuccess: (response: any) => {
+      console.log("Save mutation success handler called with response:", response);
+      
+      // Check the response shape to handle both formats (array or object)
+      if (response && typeof response === 'object') {
+        // Handle the new response format (object with success, message, results)
+        if ('success' in response && 'results' in response) {
+          toast({
+            title: 'Success',
+            description: response.message || 'Budget changes saved'
+          });
+          
+          // Check if there were actual changes made
+          const results = response.results || [];
+          if (Array.isArray(results) && results.length === 0) {
+            console.log("No changes were applied");
+            return;
+          }
+        } 
+        // Handle the old format (array of results)
+        else if (Array.isArray(response)) {
+          if (response.length === 0) {
+            toast({
+              title: 'No Changes',
+              description: 'No changes were detected to save.'
+            });
+            return;
+          }
+          else {
+            toast({
+              title: 'Success',
+              description: 'Budget items updated successfully'
+            });
+          }
+        }
+      } else {
+        // Default success message if response format is unexpected
+        toast({
+          title: 'Success',
+          description: 'Budget changes saved'
+        });
+      }
+      
+      // Always invalidate queries to refresh data
+      console.log("Invalidating budget items query");
+      queryClient.invalidateQueries({ 
+        queryKey: [`/api/clients/${clientId}/budget-items`] 
+      });
+      
+      console.log("Invalidating budget settings query");
+      queryClient.invalidateQueries({ 
+        queryKey: [`/api/clients/${clientId}/budget-settings`] 
+      });
+      
+      // Force a complete refresh of the data
+      setTimeout(() => {
+        console.log("Forcing manual data refresh");
+        // Fetch the latest budget items
+        fetch(`/api/clients/${clientId}/budget-items`)
+          .then(res => res.json())
+          .then(data => {
+            console.log("Refreshed budget items:", data);
+            // Verify items are valid before updating state
+            if (!Array.isArray(data)) {
+              console.error("Invalid data format received:", data);
+              return;
+            }
+            
+            // Check if we have duplicate items in the response
+            const itemCodes = new Set();
+            const uniqueItems = data.filter(item => {
+              // Skip invalid items
+              if (!item || !item.itemCode) return false;
+              
+              // Check if this item code already exists
+              if (itemCodes.has(item.itemCode)) {
+                console.warn(`Duplicate item found: ${item.itemCode}`);
+                return false;
+              }
+              
+              // Valid unique item
+              itemCodes.add(item.itemCode);
+              return true;
+            });
+            
+            // Calculate total allocation for validation
+            const totalAllocated = uniqueItems.reduce(
+              (sum, item) => sum + (Number(item.quantity) * Number(item.unitPrice)), 
+              0
+            );
+            
+            // Verify allocation doesn't exceed the client-specific budget
+            const clientBudget = getClientBudget();
+            if (totalAllocated > clientBudget) {
+              console.error(`Budget validation failed! Total allocation ${totalAllocated} exceeds budget ${clientBudget}.`);
+              toast({
+                title: "Budget Error",
+                description: `The total allocation exceeds the available budget of ${formatCurrency(clientBudget)}. Some items may not be saved.`,
+                variant: "destructive"
+              });
+            }
+            
+            // Update with validated unique items
+            setBudgetItems(uniqueItems);
+            
+            // Directly update the field array with the freshly fetched items
+            if (uniqueItems.length > 0) {
+              console.log("Directly updating form fields with fresh data:", uniqueItems);
+              // First remove all existing fields
+              remove();
+              // Then add all refreshed items
+              uniqueItems.forEach(item => {
+                append({
+                  ...item,
+                  total: Number(item.quantity) * Number(item.unitPrice),
+                  isNew: false
+                });
+              });
+            }
+          })
+          .catch(err => console.error("Error refreshing budget items:", err));
+          
+        // Reset the form initialized state to trigger complete form refill
+        setFormInitialized(false);
+        
+        // Reset any locally cached items in the form
+        form.reset();
+      }, 500);
+      
+      // Mark form as pristine without keeping any stale data
+      form.reset();
+    },
+    onError: (error: any) => {
+      console.error('Error details:', error);
+      
+      // Format a more user-friendly error message
+      let errorMessage = 'Failed to update budget items';
+      
+      if (error) {
+        // Extract useful information from the error
+        if (error.message) {
+          errorMessage = error.message;
+        }
+        
+        // Handle specific error cases we can identify
+        if (error.status === 400) {
+          errorMessage = 'Invalid data format detected. Please check your inputs.';
+        }
+      }
+      
+      toast({
+        title: 'Error',
+        description: errorMessage,
+        variant: 'destructive'
+      });
+      
+      console.error('Failed to update budget items:', error);
+    }
+  });
+
+  // Submit handler
+  const onSubmit = (data: UnifiedBudgetFormValues) => {
+    console.log("Submit handler called with data:", data);
+    
+    // Prevent double submission
+    if (saveMutation.isPending) {
+      console.log("Save mutation is already pending, ignoring submission");
+      return;
+    }
+    
+    // Validate total allocation
+    const totalAllocated = data.items.reduce(
+      (sum, item) => sum + (Number(item.quantity) * Number(item.unitPrice)), 
+      0
+    );
+    
+    // Strict budget enforcement with client-specific budget
+    const clientBudget = getClientBudget();
+    if (totalAllocated > clientBudget) {
+      console.error(`Budget validation failed before submission! Total allocation ${totalAllocated} exceeds budget ${clientBudget}.`);
+      toast({
+        title: "Budget Limit Exceeded",
+        description: `Your total allocation exceeds the available budget of ${formatCurrency(clientBudget)}. Please reduce quantities or remove items.`,
+        variant: "destructive"
+      });
+      return; // Prevent submission
+    }
+    
+    // Validate for duplicate items
+    const seenItemCodes = new Set();
+    const duplicateItems = data.items.filter(item => {
+      if (seenItemCodes.has(item.itemCode)) {
+        return true; // This is a duplicate
+      }
+      seenItemCodes.add(item.itemCode);
+      return false;
+    });
+    
+    if (duplicateItems.length > 0) {
+      console.error(`Found ${duplicateItems.length} duplicate items before submission`);
+      toast({
+        title: "Duplicate Items Detected",
+        description: "There are duplicate items in your budget. Please remove duplicates before saving.",
+        variant: "destructive"
+      });
+      return; // Prevent submission
+    }
+    
+    // Log form state for debugging
+    console.log("Form state:", {
+      isDirty: form.formState.isDirty,
+      isSubmitting: form.formState.isSubmitting,
+      errors: form.formState.errors
+    });
+    
+    // Log items that will be updated/created
+    console.log("Items to save:", {
+      total: data.items.length,
+      new: data.items.filter(item => item.isNew).length,
+      existing: data.items.filter(item => !item.isNew).length
+    });
+    
+    // Perform the save operation
+    console.log("Triggering save mutation");
+    saveMutation.mutate(data);
+  };
+
+  // Loading state
+  if (plansQuery.isPending) {
     return (
-      <Card className="col-span-full text-center p-8">
-        <CardContent className="flex flex-col items-center justify-center py-12">
-          <DollarSign className="h-12 w-12 text-gray-400 mb-4" />
-          <h3 className="text-xl font-medium mb-2">No Budget Plan Selected</h3>
-          <p className="text-gray-500 mb-4 max-w-md mx-auto">
-            Please select a budget plan from the plans view or create a new one.
-          </p>
+      <Card>
+        <CardHeader>
+          <CardTitle>Budget Management</CardTitle>
+          <CardDescription>Loading budget information...</CardDescription>
+        </CardHeader>
+        <CardContent className="flex justify-center py-8">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </CardContent>
       </Card>
     );
   }
-  
-  return (
-    <div className="space-y-6">
+
+  // Error state
+  if (plansQuery.isError) {
+    return (
       <Card>
-        <CardHeader className="pb-3">
-          <div className="flex justify-between items-start">
-            <div>
-              <CardTitle>{currentPlan.planName}</CardTitle>
-              <p className="text-sm text-gray-500">
-                {currentPlan.planCode || currentPlan.planSerialNumber}
-              </p>
-            </div>
-            <div className="flex gap-2">
-              {currentPlan.active && (
-                <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                  Active
-                </Badge>
-              )}
-            </div>
-          </div>
+        <CardHeader>
+          <CardTitle>Budget Management</CardTitle>
+          <CardDescription>Error loading budget data</CardDescription>
         </CardHeader>
-        
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-            <div className="space-y-1">
-              <p className="text-sm font-medium text-gray-500">Available Funds</p>
-              <p className="text-2xl font-bold">{formatCurrency(currentPlan.availableFunds || 0)}</p>
-            </div>
-            
-            <div className="space-y-1">
-              <p className="text-sm font-medium text-gray-500">Used</p>
-              <p className="text-2xl font-bold">{formatCurrency(currentPlan.totalUsed || 0)}</p>
-            </div>
-            
-            <div className="space-y-1">
-              <p className="text-sm font-medium text-gray-500">Remaining</p>
-              <p className="text-2xl font-bold">
-                {formatCurrency((currentPlan.availableFunds || 0) - (currentPlan.totalUsed || 0))}
-              </p>
-            </div>
-          </div>
-          
-          <Separator className="my-6" />
-          
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="mb-4">
-              <TabsTrigger value="summary">
-                <FileText className="h-4 w-4 mr-2" />
-                Summary
-              </TabsTrigger>
-              <TabsTrigger value="items">
-                <ShoppingCart className="h-4 w-4 mr-2" />
-                Budget Items
-              </TabsTrigger>
-              <TabsTrigger value="settings">
-                <Settings className="h-4 w-4 mr-2" />
-                Plan Settings
-              </TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="summary" className="space-y-4">
-              <Card>
-                <CardContent className="p-6">
-                  <div className="space-y-2">
-                    <h3 className="text-lg font-medium">Budget Plan Summary</h3>
-                    <p className="text-gray-500">
-                      Details about plan funding, utilization, and expiration.
-                    </p>
-                    
-                    <div className="grid grid-cols-2 gap-4 mt-4">
-                      <div>
-                        <p className="text-sm font-medium text-gray-500">Plan Code</p>
-                        <p>{currentPlan.planCode || 'N/A'}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-gray-500">Serial Number</p>
-                        <p>{currentPlan.planSerialNumber || 'N/A'}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-gray-500">Start Date</p>
-                        <p>{currentPlan.startDate || 'N/A'}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-gray-500">End Date</p>
-                        <p>{currentPlan.endDate || 'N/A'}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-gray-500">Funding Source</p>
-                        <p>{currentPlan.fundingSource || 'N/A'}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-gray-500">Budget Status</p>
-                        <p>{(currentPlan.percentUsed || 0) >= 100 ? 'Depleted' : 'Available'}</p>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-            
-            <TabsContent value="items" className="space-y-4">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-medium">Budget Items</h3>
-                <Button size="sm">
-                  <Plus className="h-4 w-4 mr-2" /> 
-                  Add Item
-                </Button>
-              </div>
-              
-              <Card>
-                <CardContent className="p-6">
-                  <p className="text-gray-500">
-                    This section will show a list of budget items associated with this plan.
-                  </p>
-                </CardContent>
-              </Card>
-            </TabsContent>
-            
-            <TabsContent value="settings" className="space-y-4">
-              <h3 className="text-lg font-medium">Plan Settings</h3>
-              <Card>
-                <CardContent className="p-6">
-                  <p className="text-gray-500">
-                    This section will allow editing plan settings and management options.
-                  </p>
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </Tabs>
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              An error occurred while loading budget data. Please try again.
+            </AlertDescription>
+          </Alert>
         </CardContent>
       </Card>
-    </div>
+    );
+  }
+
+  // No plans state
+  if (plansQuery.data.length === 0) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Budget Management</CardTitle>
+          <CardDescription>No budget plans available</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Alert>
+            <AlertDescription>
+              There are no budget plans created for this client. 
+              Please create a new budget plan to manage budget items.
+            </AlertDescription>
+          </Alert>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>
+          Budget Plan: {activePlan?.planCode || 'Default Plan'}
+        </CardTitle>
+        <CardDescription>
+          Total Budget: {formatCurrency(getClientBudget())}
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            {/* Budget Validation */}
+            <BudgetValidation 
+              totalBudget={getClientBudget()} // Use client-specific budget from active plan
+              totalAllocated={form.watch("totalAllocated") || 0}
+              remainingBudget={getClientBudget()} // Total remaining budget is client budget minus used (not allocated)
+              originalAllocated={getClientBudget()} // The client's original allocated budget amount
+            />
+            
+            {/* Current Budget Items */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-medium">Current Budget Allocations</h3>
+              
+              {fields.length === 0 ? (
+                <div className="text-center py-4 text-gray-500">
+                  No budget items added yet. Use the catalog selector below to add items.
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {fields.map((item, index) => (
+                    <BudgetItemRow 
+                      key={item.id || index}
+                      item={item as unknown as RowBudgetItem}
+                      index={index}
+                      onUpdateQuantity={handleUpdateItemQuantity}
+                      onDelete={handleDeleteItem}
+                      allItems={fields.map(field => field as unknown as RowBudgetItem)}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+            
+            <Separator />
+            
+            {/* Catalog Item Selector */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-medium">Add New Budget Item</h3>
+              
+              {catalogQuery.isPending ? (
+                <div className="flex items-center justify-center py-4">
+                  <Loader2 className="h-6 w-6 animate-spin text-gray-500" />
+                </div>
+              ) : catalogQuery.isError ? (
+                <div className="p-4 border border-red-300 bg-red-50 rounded-md text-red-700">
+                  Failed to load catalog items. Please try again.
+                </div>
+              ) : !catalogQuery.data ? (
+                <div className="p-4 border border-amber-300 bg-amber-50 rounded-md text-amber-700">
+                  No catalog items available. Please check your configuration.
+                </div>
+              ) : (
+                <BudgetCatalogSelector 
+                  catalogItems={catalogQuery.data || []}
+                  onAddItem={handleAddCatalogItem}
+                  remainingBudget={getClientBudget() - (form.watch("totalAllocated") || 0)} // Calculate remaining allocation based on client budget
+                  activePlan={activePlan}
+                />
+              )}
+            </div>
+            
+            <Separator />
+            
+            {/* Form Submission */}
+            <div className="flex flex-col items-end gap-2">
+              {/* Show notification about unsaved changes */}
+              {(items.some(item => item.isNew) || form.formState.isDirty) && !saveMutation.isPending ? (
+                <div className="mb-2 text-sm text-amber-600 font-medium p-2 bg-amber-50 border border-amber-200 rounded-md w-full text-center">
+                  You have unsaved changes. Click the button below to save all changes.
+                </div>
+              ) : null}
+              
+              {/* Show saving indicator when in progress */}
+              {saveMutation.isPending && (
+                <div className="mb-2 text-sm text-blue-600 font-medium p-2 bg-blue-50 border border-blue-200 rounded-md w-full text-center flex items-center justify-center">
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  Saving your budget changes...
+                </div>
+              )}
+              
+              {/* Show success message after saving */}
+              {saveMutation.isSuccess && !form.formState.isDirty && (
+                <div className="mb-2 text-sm text-green-600 font-medium p-2 bg-green-50 border border-green-200 rounded-md w-full text-center">
+                  All changes have been saved successfully.
+                </div>
+              )}
+              
+              {/* Debug panel */}
+              {debugMode && (
+                <div className="mb-4 p-4 border border-blue-300 bg-blue-50 rounded-md w-full">
+                  <h4 className="font-medium text-blue-700 mb-2">Debug Information</h4>
+                  <div className="text-xs text-blue-800 space-y-1">
+                    <p>Form Status: {form.formState.isDirty ? "Dirty" : "Clean"}</p>
+                    <p>Item Count: {items.length}</p>
+                    <p>New Items: {items.filter(item => item.isNew).length}</p>
+                    <p>Total Allocated: {formatCurrency(form.watch("totalAllocated") || 0)}</p>
+                    <p>Initial Budget Items Total: {formatCurrency(getClientBudget())}</p>
+                    <p>Budget Items Count: {budgetItems.length}</p>
+                    <p>Budget Items Details: {budgetItems.map(item => 
+                      `${item.quantity}x${item.unitPrice}`).join(', ')}</p>
+                    <p>Active Plan ID: {activePlan?.id || "None"}</p>
+                    <p>Plan Available Funds (raw): {activePlan ? formatCurrency(
+                      typeof activePlan.availableFunds === 'string' 
+                        ? parseFloat(activePlan.availableFunds) 
+                        : activePlan.availableFunds || 0
+                    ) : 'N/A'}</p>
+                  </div>
+                  <div className="flex justify-end mt-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="text-xs"
+                      onClick={() => {
+                        console.log("Form values:", form.getValues());
+                        console.log("Form state:", form.formState);
+                        console.log("Items:", items);
+                      }}
+                    >
+                      Log State
+                    </Button>
+                  </div>
+                </div>
+              )}
+              
+              {/* Standalone save button that bypasses form submission */}
+              <Button 
+                type="button" // Changed to button type to prevent form submission
+                disabled={saveMutation.isPending}
+                className="w-full md:w-auto"
+                onClick={() => {
+                  console.log("Save button clicked directly");
+                  
+                  // Get current form values
+                  const formValues = form.getValues();
+                  console.log("Current form values:", formValues);
+                  
+                  // Apply the same validation as the onSubmit function
+                  
+                  // Validate total allocation
+                  const totalAllocated = formValues.items.reduce(
+                    (sum, item) => sum + (Number(item.quantity) * Number(item.unitPrice)), 
+                    0
+                  );
+                  
+                  // Strict budget enforcement with client-specific budget
+                  const clientBudget = getClientBudget();
+                  if (totalAllocated > clientBudget) {
+                    console.error(`Budget validation failed before submission! Total allocation ${totalAllocated} exceeds budget ${clientBudget}.`);
+                    toast({
+                      title: "Budget Limit Exceeded",
+                      description: `Your total allocation exceeds the available budget of ${formatCurrency(clientBudget)}. Please reduce quantities or remove items.`,
+                      variant: "destructive"
+                    });
+                    return; // Prevent submission
+                  }
+                  
+                  // Validate for duplicate items
+                  const seenItemCodes = new Set();
+                  const duplicateItems = formValues.items.filter(item => {
+                    if (seenItemCodes.has(item.itemCode)) {
+                      return true; // This is a duplicate
+                    }
+                    seenItemCodes.add(item.itemCode);
+                    return false;
+                  });
+                  
+                  if (duplicateItems.length > 0) {
+                    console.error(`Found ${duplicateItems.length} duplicate items before submission`);
+                    toast({
+                      title: "Duplicate Items Detected",
+                      description: "There are duplicate items in your budget. Please remove duplicates before saving.",
+                      variant: "destructive"
+                    });
+                    return; // Prevent submission
+                  }
+                  
+                  // Manually trigger direct API calls rather than using form submission
+                  try {
+                    // Directly trigger the mutation
+                    saveMutation.mutate(formValues);
+                  } catch (error) {
+                    console.error("Error triggering save mutation:", error);
+                    toast({
+                      title: "Save Error",
+                      description: "Failed to save changes. See console for details.",
+                      variant: "destructive"
+                    });
+                  }
+                }}
+              >
+                {saveMutation.isPending ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    Saving...
+                  </>
+                ) : "Save All Changes"}
+              </Button>
+            </div>
+          </form>
+        </Form>
+      </CardContent>
+    </Card>
   );
 }
