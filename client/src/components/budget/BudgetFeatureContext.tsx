@@ -44,6 +44,9 @@ interface BudgetFeatureContextType {
   selectedPlanId: number | null;
   setSelectedPlanId: (id: number | null) => void;
   
+  // Budget items
+  budgetItems: BudgetItem[];
+  
   // UI State
   formDialogOpen: boolean;
   setFormDialogOpen: (open: boolean) => void;
@@ -163,6 +166,8 @@ export function BudgetFeatureProvider({ children }: { children: ReactNode }) {
   const activePlan = plans.find(plan => plan.active) || null;
   
   // Context value
+  const budgetItems = itemsQuery.data || [];
+  
   const value: BudgetFeatureContextType = {
     enableEnhancedBudget,
     setEnableEnhancedBudget,
@@ -178,6 +183,7 @@ export function BudgetFeatureProvider({ children }: { children: ReactNode }) {
     loading,
     error,
     refresh,
+    budgetItems,
   };
   
   return (
