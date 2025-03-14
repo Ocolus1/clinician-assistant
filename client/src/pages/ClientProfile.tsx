@@ -58,6 +58,7 @@ import ClientPersonalInfo from "@/components/profile/ClientPersonalInfo";
 import ClientAllies from "@/components/profile/ClientAllies";
 import ClientGoals from "@/components/profile/ClientGoals";
 import { BudgetManagerView } from "@/components/budget/BudgetManagerView";
+import { BudgetPlanView } from "@/components/budget/BudgetPlanView";
 import ClientSessions from "@/components/profile/ClientSessions";
 import ClientReports from "@/components/profile/ClientReports";
 import AddAllyDialog from "@/components/profile/AddAllyDialog";
@@ -642,8 +643,23 @@ export default function ClientProfile() {
             </TabsContent>
             
             <TabsContent value="budget" className="mt-0">
-              {/* Use the new comprehensive BudgetManagerView for budget management */}
+              {/* Use the enhanced budget plan view for comprehensive budget management */}
               <div className="space-y-8">
+                {/* Keep using BudgetManagerView for backward compatibility while we test the new implementation */}
+                {process.env.NODE_ENV === 'development' && (
+                  <div className="mb-4">
+                    <Card className="bg-yellow-50 border-yellow-200">
+                      <CardContent className="py-4">
+                        <div className="flex items-center space-x-2">
+                          <Clock className="h-5 w-5 text-yellow-600" />
+                          <p className="text-sm text-yellow-800">
+                            We're implementing a new budget management experience that will be available soon.
+                          </p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                )}
                 <BudgetManagerView clientId={clientId} />
               </div>
             </TabsContent>
