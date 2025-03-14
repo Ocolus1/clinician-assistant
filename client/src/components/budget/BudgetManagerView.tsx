@@ -174,7 +174,7 @@ export function BudgetManagerView({ clientId }: BudgetManagerViewProps) {
               {budgetItems.map((item) => (
                 <div key={item.id} className="flex justify-between items-center p-2 rounded-md border">
                   <div>
-                    <p className="font-medium">{item.itemName || 'Unnamed Item'}</p>
+                    <p className="font-medium">{item.name || item.itemCode || 'Unnamed Item'}</p>
                     <p className="text-sm text-gray-500">{item.itemCode}</p>
                   </div>
                   <div className="text-right">
