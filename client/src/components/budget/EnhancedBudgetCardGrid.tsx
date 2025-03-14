@@ -1,127 +1,96 @@
 import React from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
-import { CalendarClock, Check, Clock, DollarSign, Eye } from 'lucide-react';
+import { Eye, Clock, CalendarClock, FileBarChart, Loader2 } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import { BudgetPlan } from './BudgetFeatureContext';
 
 interface EnhancedBudgetCardGridProps {
-  clientId: number;
+  plans: BudgetPlan[];
+  loading: boolean;
   onPlanSelected: (planId: number) => void;
 }
 
 /**
- * Grid display of budget plans with enhanced visual information
+ * Grid display of budget plan cards with enhanced visual indicators
  */
-export function EnhancedBudgetCardGrid({ clientId, onPlanSelected }: EnhancedBudgetCardGridProps) {
-  // Fetch all budget plans for this client
-  const { data: budgetPlans = [], isLoading } = useQuery<BudgetPlan[]>({
-    queryKey: ['/api/clients', clientId, 'budget/plans'],
-    queryFn: async () => {
-      const response = await fetch(`/api/clients/${clientId}/budget/plans`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch budget plans');
-      }
-      return response.json();
-    }
-  });
+export function EnhancedBudgetCardGrid({ 
+  plans,
+  loading,
+  onPlanSelected
+}: EnhancedBudgetCardGridProps) {
 
-  if (isLoading) {
+  // Show loading state
+  if (loading) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {[1, 2, 3, 4].map((i) => (
-          <Card key={i} className="animate-pulse">
-            <CardHeader className="bg-gray-100 h-24" />
-            <CardContent className="py-6">
-              <div className="h-4 bg-gray-200 rounded mb-3" />
-              <div className="h-4 bg-gray-200 w-3/4 rounded mb-3" />
-              <div className="h-4 bg-gray-200 w-1/2 rounded" />
-            </CardContent>
-          </Card>
-        ))}
+      <div className="flex flex-col items-center justify-center p-8 min-h-[200px]">
+        <Loader2 className="h-8 w-8 text-primary animate-spin mb-4" />
+        <p className="text-muted-foreground">Loading budget plans...</p>
       </div>
     );
   }
 
-  // If no budget plans exist yet
-  if (budgetPlans.length === 0) {
+  // Show empty state
+  if (!plans || plans.length === 0) {
     return (
       <Card className="col-span-full text-center p-8">
         <CardContent className="flex flex-col items-center justify-center py-12">
-          <DollarSign className="h-12 w-12 text-gray-400 mb-4" />
+          <FileBarChart className="h-12 w-12 text-gray-400 mb-4" />
           <h3 className="text-xl font-medium mb-2">No Budget Plans Yet</h3>
-          <p className="text-gray-500 mb-4 max-w-md mx-auto">
-            Get started by creating your first budget plan. This will help track available funds and expenses.
+          <p className="text-gray-500 mb-6 max-w-md mx-auto">
+            Create your first budget plan by clicking the "New Budget Plan" button above.
           </p>
         </CardContent>
       </Card>
     );
   }
 
-  // Sort plans so active plans appear first, then by creation date (newest first)
-  const sortedPlans = [...budgetPlans].sort((a, b) => {
-    // First sort by active status
-    if (a.active && !b.active) return -1;
-    if (!a.active && b.active) return 1;
-    
-    // Then sort by created date (newest first)
-    const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-    const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-    return dateB - dateA;
-  });
-
+  // Render grid of plan cards
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-      {sortedPlans.map((plan) => (
-        <Card 
-          key={plan.id} 
-          className={`
-            overflow-hidden transition-all
-            ${plan.active ? 'border-green-500 border-2' : 'border'}
-            ${plan.archived ? 'opacity-70' : 'opacity-100'}
-            hover:shadow-md
-          `}
-        >
-          <CardHeader className="pb-2">
-            <div className="flex justify-between items-start">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {plans.map((plan) => (
+        <Card key={plan.id} className={`
+          overflow-hidden transition-all duration-200 hover:shadow-md
+          ${plan.active ? 'border-green-200 bg-green-50/30' : ''}
+        `}>
+          <CardContent className="p-5">
+            <div className="flex justify-between items-start mb-4">
               <div>
-                <CardTitle className="text-lg">{plan.planName || `Plan #${plan.id}`}</CardTitle>
+                <h3 className="font-medium text-lg">{plan.planName}</h3>
                 <p className="text-sm text-gray-500">
-                  {plan.planCode || plan.planSerialNumber || 'No plan identifier'}
+                  {plan.fundingSource || 'NDIS'}
                 </p>
               </div>
-              <div className="flex gap-2">
-                {plan.active && <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">Active</Badge>}
-                {plan.archived && <Badge variant="outline" className="bg-gray-100 text-gray-500">Archived</Badge>}
-              </div>
-            </div>
-          </CardHeader>
-          
-          <CardContent className="pb-2">
-            <div className="space-y-4">
-              <div>
-                <div className="flex justify-between items-center mb-1">
-                  <span className="text-sm font-medium">Budget Utilization</span>
-                  <span className="text-sm font-medium">{plan.percentUsed.toFixed(0)}%</span>
-                </div>
-                <Progress 
-                  value={plan.percentUsed} 
-                  className={`h-2 ${plan.percentUsed > 90 ? 'bg-red-100' : 'bg-blue-100'}`}
-                  indicatorClassName={plan.percentUsed > 90 ? 'bg-red-500' : undefined}
-                />
-              </div>
               
+              {plan.active && (
+                <span className="text-xs font-medium bg-green-100 text-green-800 px-2 py-1 rounded-full">
+                  Active
+                </span>
+              )}
+            </div>
+            
+            <div className="mb-3">
+              <div className="flex justify-between text-sm mb-1">
+                <span>Used: {plan.percentUsed}%</span>
+                <span>{formatCurrency(plan.totalUsed || 0)} of {formatCurrency(plan.availableFunds || 0)}</span>
+              </div>
+              <Progress 
+                value={plan.percentUsed} 
+                max={100} 
+                className={`h-2 ${plan.percentUsed > 90 ? 'bg-red-100' : 'bg-gray-100'}`}
+              />
+            </div>
+            
+            <div className="mt-4">
               <div className="grid grid-cols-2 gap-2 text-sm">
                 <div>
                   <span className="text-gray-500 block">Available:</span>
-                  <span className="font-medium">{formatCurrency(plan.availableFunds)}</span>
+                  <span className="font-medium">{formatCurrency(plan.availableFunds || 0)}</span>
                 </div>
                 <div>
                   <span className="text-gray-500 block">Used:</span>
-                  <span className="font-medium">{formatCurrency(plan.totalUsed)}</span>
+                  <span className="font-medium">{formatCurrency(plan.totalUsed || 0)}</span>
                 </div>
                 
                 <div className="flex items-center gap-1">

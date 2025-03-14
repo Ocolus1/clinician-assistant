@@ -28,58 +28,66 @@ interface BudgetPlanFormProps {
 export function BudgetPlanForm({ open, onOpenChange, clientId }: BudgetPlanFormProps) {
   const { toast } = useToast();
   
-  // Form
+  // Set up the form
   const form = useForm<BudgetPlanFormValues>({
     resolver: zodResolver(budgetPlanSchema),
     defaultValues: {
       planCode: '',
-      availableFunds: 375, // Default budget amount
-    }
+      availableFunds: 0,
+    },
   });
   
-  // Mutation for creating a budget plan
-  const createPlanMutation = useMutation({
-    mutationFn: (data: BudgetPlanFormValues) => {
-      // Use correct budget-settings endpoint instead of budget/plans
+  // Set up the mutation
+  const createBudgetPlan = useMutation({
+    mutationFn: async (values: BudgetPlanFormValues) => {
       return apiRequest('POST', `/api/clients/${clientId}/budget-settings`, {
-        ...data,
+        ...values,
         clientId,
-        isActive: true,
+        isActive: true, // Make this the active plan
       });
     },
     onSuccess: () => {
-      toast({
-        title: 'Success',
-        description: 'Budget plan created successfully',
-      });
-      queryClient.invalidateQueries({ queryKey: [`/api/clients/${clientId}/budget-settings`] });
+      // Reset the form
       form.reset();
+      
+      // Close the dialog
       onOpenChange(false);
-    },
-    onError: (error) => {
+      
+      // Invalidate budget settings queries to refresh the data
+      queryClient.invalidateQueries({ queryKey: ['/api/clients', clientId, 'budget-settings'] });
+      
+      // Show success toast
       toast({
-        title: 'Error',
-        description: 'Failed to create budget plan. Please try again.',
+        title: 'Budget plan created',
+        description: 'Your budget plan has been created successfully.',
+      });
+    },
+    onError: (error: any) => {
+      console.error('Error creating budget plan:', error);
+      
+      // Show error toast
+      toast({
+        title: 'Error creating budget plan',
+        description: error.message || 'An error occurred while creating the budget plan.',
         variant: 'destructive',
       });
-      console.error('Failed to create budget plan:', error);
-    }
+    },
   });
   
-  // Submit handler
-  const onSubmit = (data: BudgetPlanFormValues) => {
-    createPlanMutation.mutate(data);
+  // Handle form submission
+  const onSubmit = (values: BudgetPlanFormValues) => {
+    createBudgetPlan.mutate(values);
   };
   
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>Create New Budget Plan</DialogTitle>
+          <DialogTitle>Create Budget Plan</DialogTitle>
         </DialogHeader>
         
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <FormField
               control={form.control}
               name="planCode"
@@ -87,7 +95,7 @@ export function BudgetPlanForm({ open, onOpenChange, clientId }: BudgetPlanFormP
                 <FormItem>
                   <FormLabel>Plan Code</FormLabel>
                   <FormControl>
-                    <Input {...field} placeholder="Enter plan code or reference" />
+                    <Input placeholder="e.g., NDIS-2024" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -101,12 +109,12 @@ export function BudgetPlanForm({ open, onOpenChange, clientId }: BudgetPlanFormP
                 <FormItem>
                   <FormLabel>Available Funds</FormLabel>
                   <FormControl>
-                    <Input 
-                      {...field} 
-                      type="number" 
-                      min={1}
-                      step={0.01}
-                      placeholder="Enter available funds" 
+                    <Input
+                      type="number"
+                      placeholder="0.00"
+                      step="0.01"
+                      min="0"
+                      {...field}
                     />
                   </FormControl>
                   <FormMessage />
@@ -115,11 +123,18 @@ export function BudgetPlanForm({ open, onOpenChange, clientId }: BudgetPlanFormP
             />
             
             <DialogFooter>
-              <Button 
-                type="submit" 
-                disabled={createPlanMutation.isPending}
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => onOpenChange(false)}
               >
-                {createPlanMutation.isPending ? 'Creating...' : 'Create Plan'}
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={createBudgetPlan.isPending}
+              >
+                {createBudgetPlan.isPending ? 'Creating...' : 'Create Plan'}
               </Button>
             </DialogFooter>
           </form>

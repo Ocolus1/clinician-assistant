@@ -1,120 +1,104 @@
-import React, { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useToast } from "@/hooks/use-toast";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Button } from "@/components/ui/button";
-import { PlusCircle, ArrowLeft } from "lucide-react";
-import { EnhancedBudgetCardGrid } from "./EnhancedBudgetCardGrid";
-import { BudgetFeatureProvider, useBudgetFeature, BudgetPlan } from "./BudgetFeatureContext";
-import { UnifiedBudgetManager } from "./UnifiedBudgetManager";
-import { BudgetPlanForm } from "./BudgetPlanForm";
+import React, { useState, useEffect } from 'react';
+import { PlusCircle, ChevronLeft } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Button } from '@/components/ui/button';
+import { EnhancedBudgetCardGrid } from './EnhancedBudgetCardGrid';
+import { BudgetPlanForm } from './BudgetPlanForm';
+import { UnifiedBudgetManager } from './UnifiedBudgetManager';
+import { useBudgetFeature } from './BudgetFeatureContext';
 
 interface BudgetPlanViewProps {
   clientId: number;
 }
 
 /**
- * Main budget plan management view for client profiles
- * Uses the same form as onboarding process for consistency
+ * Unified view for budget plans, displaying a list of plans and their details
  */
 export function BudgetPlanView({ clientId }: BudgetPlanViewProps) {
-  const [activeTab, setActiveTab] = useState("plans");
-  const [createMode, setCreateMode] = useState(false);
-  const [showCreateDialog, setShowCreateDialog] = useState(false);
-  const queryClient = useQueryClient();
-  const { toast } = useToast();
-
-  // Get budget plans data
-  const plansQuery = useQuery({
-    queryKey: [`/api/clients/${clientId}/budget-settings`, "all"],
-    queryFn: async () => {
-      const response = await fetch(`/api/clients/${clientId}/budget-settings?all=true`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch budget plans');
-      }
-      const data = await response.json();
-      // Handle both array and single object responses
-      return Array.isArray(data) ? data : [data];
-    }
-  });
-
-  // Handle plan selection for viewing details
-  const handlePlanSelected = (planId: number) => {
-    setActiveTab("details");
+  // Get budget feature context
+  const { 
+    plans, 
+    selectedPlanId, 
+    setSelectedPlanId, 
+    formDialogOpen, 
+    setFormDialogOpen,
+    setClientId,
+    loading
+  } = useBudgetFeature();
+  
+  // Set up local state
+  const [activeTab, setActiveTab] = useState('plans');
+  
+  // Set client ID in context when component mounts or clientId changes
+  useEffect(() => {
+    setClientId(clientId);
+  }, [clientId, setClientId]);
+  
+  // Handle selecting a budget plan
+  const handlePlanSelect = (planId: number) => {
+    setSelectedPlanId(planId);
+    setActiveTab('details');
   };
-
-  // Handle create button click
+  
+  // Handle returning to plans view
+  const handleBackToPlans = () => {
+    setSelectedPlanId(null);
+    setActiveTab('plans');
+  };
+  
+  // Open form dialog to create a new budget plan
   const handleCreatePlan = () => {
-    setShowCreateDialog(true);
+    setFormDialogOpen(true);
   };
-
-  // Handle dialog close
-  const handleCreateDialogClose = () => {
-    setShowCreateDialog(false);
-  };
-
-  // Handle successful creation
-  const handleCreateSuccess = () => {
-    setShowCreateDialog(false);
-    
-    // Refresh plans data
-    queryClient.invalidateQueries({ queryKey: [`/api/clients/${clientId}/budget-settings`] });
-    
-    toast({
-      title: "Budget Plan Created",
-      description: "The new budget plan has been created successfully.",
-    });
-  };
-
-  // Create UI based on the active tab
+  
   return (
-    <BudgetFeatureProvider clientId={clientId}>
-      <div className="space-y-4">
-        <Tabs 
-          value={activeTab} 
-          onValueChange={setActiveTab}
-          className="w-full"
-        >
-          <div className="flex justify-between items-center mb-4">
-            <TabsList>
-              <TabsTrigger value="plans">Budget Plans</TabsTrigger>
-              <TabsTrigger value="details" disabled={activeTab !== "details"}>Plan Details</TabsTrigger>
-            </TabsList>
-            
-            {activeTab === "plans" && (
-              <Button onClick={handleCreatePlan}>
-                <PlusCircle className="h-4 w-4 mr-2" />
-                Create Budget Plan
-              </Button>
-            )}
-            
-            {activeTab === "details" && (
-              <Button variant="outline" onClick={() => setActiveTab("plans")}>
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to Plans
-              </Button>
-            )}
-          </div>
-          
-          <TabsContent value="plans" className="space-y-4">
-            <EnhancedBudgetCardGrid 
-              clientId={clientId} 
-              onPlanSelected={handlePlanSelected}
-            />
-          </TabsContent>
-          
-          <TabsContent value="details" className="space-y-4">
-            <UnifiedBudgetManager clientId={clientId} />
-          </TabsContent>
-        </Tabs>
+    <div className="w-full space-y-6">
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-semibold">Budget Management</h2>
         
-        {/* Use the existing BudgetPlanForm for now */}
-        <BudgetPlanForm
-          open={showCreateDialog}
-          onOpenChange={setShowCreateDialog}
-          clientId={clientId}
-        />
+        {activeTab === 'plans' && (
+          <Button onClick={handleCreatePlan}>
+            <PlusCircle className="h-4 w-4 mr-2" />
+            New Budget Plan
+          </Button>
+        )}
+        
+        {activeTab === 'details' && (
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={handleBackToPlans}
+          >
+            <ChevronLeft className="h-4 w-4 mr-1" />
+            Back to Plans
+          </Button>
+        )}
       </div>
-    </BudgetFeatureProvider>
+      
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="mb-4">
+          <TabsTrigger value="plans">All Plans</TabsTrigger>
+          <TabsTrigger value="details" disabled={!selectedPlanId}>Plan Details</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="plans" className="space-y-4">
+          <EnhancedBudgetCardGrid 
+            plans={plans} 
+            loading={loading}
+            onPlanSelected={handlePlanSelect}
+          />
+        </TabsContent>
+        
+        <TabsContent value="details" className="space-y-4">
+          <UnifiedBudgetManager clientId={clientId} />
+        </TabsContent>
+      </Tabs>
+      
+      <BudgetPlanForm
+        open={formDialogOpen}
+        onOpenChange={setFormDialogOpen}
+        clientId={clientId}
+      />
+    </div>
   );
 }

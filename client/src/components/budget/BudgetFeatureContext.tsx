@@ -1,10 +1,8 @@
-import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { BudgetSettings, BudgetItem } from '@shared/schema';
 
-/**
- * Budget Plan type with UI-friendly properties
- */
+// Define the structure of a budget plan for UI display
 export interface BudgetPlan {
   // Original BudgetSettings properties
   id: number;
@@ -31,232 +29,167 @@ export interface BudgetPlan {
 }
 
 interface BudgetFeatureContextType {
-  clientId: number;
+  // Feature flags
+  enableEnhancedBudget: boolean;
+  setEnableEnhancedBudget: (enabled: boolean) => void;
+  
+  // Current client ID
+  clientId: number | null;
+  setClientId: (id: number | null) => void;
+  
+  // Budget plan management
   plans: BudgetPlan[];
+  setPlans: (plans: BudgetPlan[]) => void;
   activePlan: BudgetPlan | null;
   selectedPlanId: number | null;
-  isLoading: boolean;
-  setSelectedPlanId: (planId: number | null) => void;
-  createPlan: (plan: Partial<BudgetSettings>) => Promise<BudgetPlan>;
-  updatePlan: (planId: number, plan: Partial<BudgetSettings>) => Promise<BudgetPlan>;
-  archivePlan: (planId: number) => Promise<void>;
-  setActivePlan: (planId: number) => Promise<void>;
+  setSelectedPlanId: (id: number | null) => void;
+  
+  // UI State
+  formDialogOpen: boolean;
+  setFormDialogOpen: (open: boolean) => void;
+  
+  // Derived data
+  loading: boolean;
+  error: Error | null;
+  
+  // Actions
+  refresh: () => void;
 }
 
-const defaultContext: BudgetFeatureContextType = {
-  clientId: 0,
-  plans: [],
-  activePlan: null,
-  selectedPlanId: null,
-  isLoading: false,
-  setSelectedPlanId: () => {},
-  createPlan: async () => ({} as BudgetPlan),
-  updatePlan: async () => ({} as BudgetPlan),
-  archivePlan: async () => {},
-  setActivePlan: async () => {}
-};
+const BudgetFeatureContext = createContext<BudgetFeatureContextType | undefined>(undefined);
 
-const BudgetFeatureContext = createContext<BudgetFeatureContextType>(defaultContext);
-
-interface BudgetFeatureProviderProps {
-  children: ReactNode;
-  clientId: number;
-}
-
-export function BudgetFeatureProvider({ children, clientId }: BudgetFeatureProviderProps) {
+export function BudgetFeatureProvider({ children }: { children: ReactNode }) {
+  // Feature flags
+  const [enableEnhancedBudget, setEnableEnhancedBudget] = useState(true);
+  
+  // Current client ID
+  const [clientId, setClientId] = useState<number | null>(null);
+  
+  // Budget plan management
+  const [plans, setPlans] = useState<BudgetPlan[]>([]);
   const [selectedPlanId, setSelectedPlanId] = useState<number | null>(null);
   
-  // Fetch budget plans
-  const { data: budgetSettings = [], isLoading: isLoadingSettings } = useQuery<BudgetSettings[]>({
-    queryKey: ['/api/clients', clientId, 'budget-settings', 'all'],
+  // UI State
+  const [formDialogOpen, setFormDialogOpen] = useState(false);
+  
+  // Fetch budget settings and items for the client
+  const settingsQuery = useQuery({
+    queryKey: ['/api/clients', clientId, 'budget-settings', { all: true }],
+    enabled: Boolean(clientId),
     queryFn: async () => {
+      if (!clientId) return null;
       const response = await fetch(`/api/clients/${clientId}/budget-settings?all=true`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch budget settings');
-      }
-      const data = await response.json();
-      return Array.isArray(data) ? data : [data];
+      if (!response.ok) throw new Error('Failed to fetch budget settings');
+      return response.json() as Promise<BudgetSettings[]>;
     }
   });
   
-  // Fetch budget items
-  const { data: budgetItems = [], isLoading: isLoadingItems } = useQuery<BudgetItem[]>({
+  const itemsQuery = useQuery({
     queryKey: ['/api/clients', clientId, 'budget-items'],
+    enabled: Boolean(clientId),
     queryFn: async () => {
+      if (!clientId) return [];
       const response = await fetch(`/api/clients/${clientId}/budget-items`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch budget items');
-      }
-      return response.json();
+      if (!response.ok) throw new Error('Failed to fetch budget items');
+      return response.json() as Promise<BudgetItem[]>;
     }
   });
   
-  // Transform budget settings and items into UI-friendly budget plans
-  const plans = budgetSettings.map(settings => {
-    // Get items for this budget settings
-    const items = budgetItems.filter(item => item.budgetSettingsId === settings.id);
-    
-    // Calculate total used
-    const totalUsed = items.reduce((sum, item) => {
-      const unitPrice = typeof item.unitPrice === 'string' 
-        ? parseFloat(item.unitPrice) 
-        : item.unitPrice;
-      
-      const quantity = typeof item.quantity === 'string'
-        ? parseInt(item.quantity)
-        : item.quantity;
-        
-      return sum + (unitPrice * quantity);
-    }, 0);
-    
-    // Calculate percent used
-    const availableFunds = typeof settings.availableFunds === 'string'
-      ? parseFloat(settings.availableFunds)
-      : settings.availableFunds;
-      
-    const percentUsed = availableFunds > 0 
-      ? Math.min(100, (totalUsed / availableFunds) * 100)
-      : 0;
-    
-    // Transform to BudgetPlan
-    return {
-      // Original properties
-      id: settings.id,
-      clientId: settings.clientId,
-      planSerialNumber: settings.planSerialNumber,
-      planCode: settings.planCode,
-      isActive: settings.isActive,
-      availableFunds,
-      endOfPlan: settings.endOfPlan,
-      createdAt: settings.createdAt,
-      
-      // UI display properties
-      active: !!settings.isActive,
-      archived: false, // Will be implemented later
-      totalUsed,
-      itemCount: items.length,
-      percentUsed,
-      
-      // Mapped properties
-      planName: settings.planCode || `Plan #${settings.id}`,
-      fundingSource: 'NDIS', // Placeholder
-      startDate: settings.createdAt ? new Date(settings.createdAt).toLocaleDateString() : null,
-      endDate: settings.endOfPlan ? new Date(settings.endOfPlan).toLocaleDateString() : null
-    };
-  });
+  // Derived loading and error states
+  const loading = settingsQuery.isLoading || itemsQuery.isLoading;
+  const error = settingsQuery.error || itemsQuery.error || null;
   
-  // Find active plan
+  // Function to trigger manual refresh
+  const refresh = () => {
+    if (clientId) {
+      settingsQuery.refetch();
+      itemsQuery.refetch();
+    }
+  };
+  
+  // Process and transform budget data
+  useEffect(() => {
+    if (!settingsQuery.data || !clientId) {
+      setPlans([]);
+      return;
+    }
+    
+    // Map the settings data to our UI-friendly budget plan format
+    const transformedPlans: BudgetPlan[] = settingsQuery.data.map(setting => {
+      // Get items for this budget setting
+      const budgetItems = itemsQuery.data?.filter(item => item.budgetSettingsId === setting.id) || [];
+      
+      // Calculate total used amount for this budget setting
+      const totalUsed = budgetItems.reduce((sum, item) => {
+        return sum + (item.unitPrice * item.quantity);
+      }, 0);
+      
+      // Calculate percent used
+      const percentUsed = setting.availableFunds > 0 
+        ? Math.min(100, Math.round((totalUsed / setting.availableFunds) * 100))
+        : 0;
+      
+      // Create the budget plan object
+      return {
+        // Original properties
+        id: setting.id,
+        clientId: setting.clientId,
+        planSerialNumber: setting.planSerialNumber,
+        planCode: setting.planCode,
+        isActive: setting.isActive,
+        availableFunds: setting.availableFunds,
+        endOfPlan: setting.endOfPlan,
+        createdAt: setting.createdAt,
+        
+        // Additional UI properties
+        active: Boolean(setting.isActive),
+        archived: false, // Not implemented yet
+        totalUsed,
+        itemCount: budgetItems.length,
+        percentUsed,
+        
+        // Mapped properties
+        planName: setting.planCode || `Plan #${setting.id}`,
+        fundingSource: 'NDIS', // Default value, could be enhanced later
+        startDate: setting.createdAt ? new Date(setting.createdAt).toLocaleDateString() : null,
+        endDate: setting.endOfPlan ? new Date(setting.endOfPlan).toLocaleDateString() : null,
+      };
+    });
+    
+    setPlans(transformedPlans);
+  }, [settingsQuery.data, itemsQuery.data, clientId]);
+  
+  // Get the active plan
   const activePlan = plans.find(plan => plan.active) || null;
   
-  // If no selected plan and active plan exists, select it
-  useEffect(() => {
-    if (!selectedPlanId && activePlan) {
-      setSelectedPlanId(activePlan.id);
-    }
-  }, [selectedPlanId, activePlan]);
-  
-  // Methods for managing plans
-  const createPlan = async (plan: Partial<BudgetSettings>): Promise<BudgetPlan> => {
-    const response = await fetch(`/api/clients/${clientId}/budget-settings`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        ...plan,
-        clientId
-      })
-    });
-    
-    if (!response.ok) {
-      throw new Error('Failed to create budget plan');
-    }
-    
-    const data = await response.json();
-    return {
-      ...data,
-      active: !!data.isActive,
-      archived: false,
-      totalUsed: 0,
-      itemCount: 0,
-      percentUsed: 0,
-      planName: data.planCode || `Plan #${data.id}`,
-      fundingSource: 'NDIS',
-      startDate: data.createdAt ? new Date(data.createdAt).toLocaleDateString() : null,
-      endDate: data.endOfPlan ? new Date(data.endOfPlan).toLocaleDateString() : null
-    };
-  };
-  
-  const updatePlan = async (planId: number, plan: Partial<BudgetSettings>): Promise<BudgetPlan> => {
-    const response = await fetch(`/api/clients/${clientId}/budget-settings/${planId}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(plan)
-    });
-    
-    if (!response.ok) {
-      throw new Error('Failed to update budget plan');
-    }
-    
-    const data = await response.json();
-    const existingPlan = plans.find(p => p.id === planId);
-    
-    return {
-      ...data,
-      active: !!data.isActive,
-      archived: false,
-      totalUsed: existingPlan?.totalUsed || 0,
-      itemCount: existingPlan?.itemCount || 0,
-      percentUsed: existingPlan?.percentUsed || 0,
-      planName: data.planCode || `Plan #${data.id}`,
-      fundingSource: 'NDIS',
-      startDate: data.createdAt ? new Date(data.createdAt).toLocaleDateString() : null,
-      endDate: data.endOfPlan ? new Date(data.endOfPlan).toLocaleDateString() : null
-    };
-  };
-  
-  const archivePlan = async (planId: number): Promise<void> => {
-    // This will be implemented when we add archived flag to the schema
-    console.log('Archive plan not yet implemented', planId);
-  };
-  
-  const setActivePlan = async (planId: number): Promise<void> => {
-    // Set this plan as active and all others as inactive
-    const response = await fetch(`/api/clients/${clientId}/budget-settings/${planId}/activate`, {
-      method: 'PUT'
-    });
-    
-    if (!response.ok) {
-      throw new Error('Failed to set active plan');
-    }
+  // Context value
+  const value: BudgetFeatureContextType = {
+    enableEnhancedBudget,
+    setEnableEnhancedBudget,
+    clientId,
+    setClientId,
+    plans,
+    setPlans,
+    activePlan,
+    selectedPlanId,
+    setSelectedPlanId,
+    formDialogOpen,
+    setFormDialogOpen,
+    loading,
+    error,
+    refresh,
   };
   
   return (
-    <BudgetFeatureContext.Provider
-      value={{
-        clientId,
-        plans,
-        activePlan,
-        selectedPlanId,
-        isLoading: isLoadingSettings || isLoadingItems,
-        setSelectedPlanId,
-        createPlan,
-        updatePlan,
-        archivePlan,
-        setActivePlan
-      }}
-    >
+    <BudgetFeatureContext.Provider value={value}>
       {children}
     </BudgetFeatureContext.Provider>
   );
 }
 
-// Custom hook to use the budget feature context
 export function useBudgetFeature() {
   const context = useContext(BudgetFeatureContext);
-  if (context === undefined) {
+  if (!context) {
     throw new Error('useBudgetFeature must be used within a BudgetFeatureProvider');
   }
   return context;
