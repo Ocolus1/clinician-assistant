@@ -384,8 +384,14 @@ function BudgetPlanCard({
     }).format(amount);
   };
   
+  // Helper to get funds value considering both old and new schema
+  const getFundsValue = (plan: any) => {
+    // Support both schema versions
+    return plan.ndisFunds !== undefined ? plan.ndisFunds : plan.availableFunds;
+  };
+  
   // Format date with error handling
-  const formatDate = (dateString: string | null) => {
+  const formatDate = (dateString: string | null | undefined) => {
     if (!dateString) return 'Not set';
     
     try {
@@ -436,7 +442,7 @@ function BudgetPlanCard({
       <CardContent className="py-4">
         {/* Budget amount */}
         <div className="mb-5">
-          <div className="text-2xl font-bold">{formatCurrency(plan.availableFunds)}</div>
+          <div className="text-2xl font-bold">{formatCurrency(getFundsValue(plan))}</div>
           <div className="text-sm text-gray-500 flex items-center gap-1 mt-1">
             <DollarSign className="h-3 w-3" />
             {plan.fundingSource} Funding
@@ -448,7 +454,7 @@ function BudgetPlanCard({
           <div className="flex justify-between text-sm font-medium">
             <span>Usage</span>
             <span>
-              {formatCurrency(plan.totalUsed)} / {formatCurrency(plan.availableFunds)}
+              {formatCurrency(plan.totalUsed)} / {formatCurrency(getFundsValue(plan))}
             </span>
           </div>
           <div className="text-xs text-right text-gray-500 -mt-2">
@@ -474,7 +480,7 @@ function BudgetPlanCard({
           <div className="pt-2 flex justify-between text-xs text-gray-500">
             <div className="flex items-center gap-1">
               <Calendar className="h-3 w-3" />
-              <span>End: {formatDate(plan.endDate)}</span>
+              <span>End: {plan.endDate ? formatDate(plan.endDate) : 'Not set'}</span>
             </div>
             
             {plan.endDate && (
