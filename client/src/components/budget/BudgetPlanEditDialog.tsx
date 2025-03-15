@@ -44,10 +44,10 @@ const budgetPlanEditSchema = z.object({
     .string()
     .min(3, { message: "Plan name must be at least 3 characters" })
     .max(100, { message: "Plan name must be at most 100 characters" }),
-  availableFunds: z
+  ndisFunds: z
     .string()
     .refine((val) => !isNaN(parseFloat(val)) && parseFloat(val) >= 0, {
-      message: "Available funds must be a positive number",
+      message: "NDIS funds must be a positive number",
     }),
   endDate: z.date().nullable().optional(),
   setAsActive: z.boolean().default(false), // Flag to set this as the active plan (UI only)
@@ -86,7 +86,7 @@ export function BudgetPlanEditDialog({
     defaultValues: {
       planCode: "",
       planName: "",
-      availableFunds: "0",
+      ndisFunds: "0",
       endDate: null,
       setAsActive: false,
     },
@@ -102,7 +102,7 @@ export function BudgetPlanEditDialog({
       form.reset({
         planCode: plan.planCode || "",
         planName: plan.planName || "",
-        availableFunds: String(plan.availableFunds || 0),
+        ndisFunds: String(plan.ndisFunds || plan.availableFunds || 0), // Handle both schema versions
         endDate,
         setAsActive: plan.active || false,
       });
@@ -201,10 +201,10 @@ export function BudgetPlanEditDialog({
             
             <FormField
               control={form.control}
-              name="availableFunds"
+              name="ndisFunds"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Available Funds</FormLabel>
+                  <FormLabel>NDIS Funds</FormLabel>
                   <FormControl>
                     <div className="relative">
                       <span className="absolute left-3 top-2.5 text-muted-foreground">$</span>
@@ -217,7 +217,7 @@ export function BudgetPlanEditDialog({
                     </div>
                   </FormControl>
                   <FormDescription>
-                    The total amount of funding available for this plan
+                    The total amount of NDIS funding available for this plan
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
