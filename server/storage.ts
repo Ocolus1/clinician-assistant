@@ -105,7 +105,7 @@ export class DBStorage implements IStorage {
     // Process client data for storage
     const processedClient = {
       ...client,
-      availableFunds: Number(client.availableFunds) || 0,
+      ndisFunds: Number(client.ndisFunds) || 0,
       fundsManagement: client.fundsManagement || null,
       // Make sure these fields are passed through properly
       gender: client.gender || null,
@@ -189,7 +189,7 @@ export class DBStorage implements IStorage {
       const processedClient = {
         ...client,
         // Convert any string numbers to actual numbers
-        availableFunds: client.availableFunds !== undefined ? Number(client.availableFunds) : undefined,
+        ndisFunds: client.ndisFunds !== undefined ? Number(client.ndisFunds) : undefined,
         // Ensure null fields are properly handled
         fundsManagement: client.fundsManagement || null,
         gender: client.gender || null,

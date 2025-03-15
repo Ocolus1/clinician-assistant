@@ -70,11 +70,11 @@ export default function ClientBudget({
     }, 0);
   }, [budgetItems]);
   
-  // Parse available funds safely
-  const availableFunds = React.useMemo(() => {
+  // Parse NDIS funds safely
+  const ndisFunds = React.useMemo(() => {
     if (!budgetSettings) return 0;
     
-    const fundsValue = budgetSettings.availableFunds;
+    const fundsValue = budgetSettings.ndisFunds;
     if (fundsValue === undefined || fundsValue === null) return 0;
     
     return typeof fundsValue === 'string' 
@@ -84,12 +84,12 @@ export default function ClientBudget({
   
   // Calculate budget percentage
   const budgetPercentage = React.useMemo(() => {
-    if (!budgetSettings || availableFunds <= 0) return 0;
-    return (totalBudget / availableFunds) * 100;
-  }, [totalBudget, budgetSettings, availableFunds]);
+    if (!budgetSettings || ndisFunds <= 0) return 0;
+    return (totalBudget / ndisFunds) * 100;
+  }, [totalBudget, budgetSettings, ndisFunds]);
   
   // Calculate remaining funds
-  const remainingFunds = availableFunds - totalBudget;
+  const remainingFunds = ndisFunds - totalBudget;
   
   // Handle delete click
   const handleDeleteClick = (item: BudgetItem) => {
@@ -193,8 +193,8 @@ export default function ClientBudget({
             <CardContent className="pt-2">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div>
-                  <h4 className="text-sm font-medium text-gray-500 mb-1">Available Funds</h4>
-                  <p className="text-2xl font-bold">${availableFunds.toFixed(2)}</p>
+                  <h4 className="text-sm font-medium text-gray-500 mb-1">NDIS Funds</h4>
+                  <p className="text-2xl font-bold">${ndisFunds.toFixed(2)}</p>
                   <div className="text-xs text-gray-500 mt-1">
                     {budgetSettings && budgetSettings.planCode 
                       ? `Plan: ${budgetSettings.planCode}` 
@@ -233,9 +233,9 @@ export default function ClientBudget({
                     "bg-blue-500"
                   }
                 />
-                {budgetPercentage > 100 && availableFunds > 0 && (
+                {budgetPercentage > 100 && ndisFunds > 0 && (
                   <div className="text-xs text-red-600 mt-1">
-                    Budget exceeded by ${(totalBudget - availableFunds).toFixed(2)}
+                    Budget exceeded by ${(totalBudget - ndisFunds).toFixed(2)}
                   </div>
                 )}
               </div>
