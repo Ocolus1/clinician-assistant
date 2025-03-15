@@ -12,6 +12,8 @@ import {
   AlertTriangle
 } from "lucide-react";
 import { format } from "date-fns";
+import { useToast } from "@/hooks/use-toast";
+import { cn, formatCurrency } from "@/lib/utils";
 import {
   Table,
   TableBody,
@@ -37,9 +39,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
-import { formatCurrency } from "@/lib/utils";
-import { cn } from "@/lib/utils";
-import { useBudgetFeature } from "./BudgetFeatureContext";
 import { BudgetPlanEditDialog } from "./BudgetPlanEditDialog";
 
 /**
@@ -104,6 +103,12 @@ export function BudgetPlanFullView({
     onToggleActive();
   };
   
+  // Helper to get funds value considering both old and new schema
+  const getFundsValue = (plan: any) => {
+    // Support both schema versions
+    return plan.ndisFunds !== undefined ? plan.ndisFunds : plan.availableFunds;
+  };
+  
   return (
     <div className="space-y-6">
       {/* Header with back button and actions */}
@@ -111,7 +116,7 @@ export function BudgetPlanFullView({
         <Button 
           variant="ghost" 
           className="gap-1"
-          onClick={handleBackToPlansList}
+          onClick={onBack}
         >
           <ArrowLeft className="h-4 w-4" />
           <span>Back to Plans</span>
@@ -209,7 +214,7 @@ export function BudgetPlanFullView({
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Total Items:</span>
-                  <span>{plan.itemCount}</span>
+                  <span>{plan.itemCount || (budgetItems && budgetItems.length) || 0}</span>
                 </div>
                 <div className="flex justify-between font-medium">
                   <span className="text-muted-foreground">Status:</span>
@@ -231,24 +236,24 @@ export function BudgetPlanFullView({
                 <div className="flex justify-between items-center mb-1.5">
                   <div className="text-sm">Used Funds</div>
                   <div className="text-sm text-muted-foreground">
-                    {plan.percentUsed}%
+                    {plan.percentUsed || 0}%
                   </div>
                 </div>
                 <Progress 
-                  value={plan.percentUsed} 
+                  value={plan.percentUsed || 0} 
                   className="h-2"
                   indicatorClassName={cn(
-                    plan.percentUsed >= 90 ? "bg-red-500" :
-                    plan.percentUsed >= 75 ? "bg-amber-500" :
+                    (plan.percentUsed || 0) >= 90 ? "bg-red-500" :
+                    (plan.percentUsed || 0) >= 75 ? "bg-amber-500" :
                     "bg-emerald-500"
                   )} 
                 />
                 <div className="flex justify-between mt-1.5 text-sm">
                   <span className="font-medium">
-                    {formatCurrency(plan.totalUsed)}
+                    {formatCurrency(plan.totalUsed || 0)}
                   </span>
                   <span className="text-muted-foreground">
-                    of {formatCurrency(plan.availableFunds)}
+                    of {formatCurrency(getFundsValue(plan) || 0)}
                   </span>
                 </div>
               </div>
@@ -256,12 +261,12 @@ export function BudgetPlanFullView({
                 <div className="rounded-md border p-3">
                   <div className="text-sm text-muted-foreground mb-1">Remaining</div>
                   <div className="text-lg font-medium">
-                    {formatCurrency(plan.availableFunds - plan.totalUsed)}
+                    {formatCurrency((getFundsValue(plan) || 0) - (plan.totalUsed || 0))}
                   </div>
                 </div>
                 <div className="rounded-md border p-3">
                   <div className="text-sm text-muted-foreground mb-1">Items</div>
-                  <div className="text-lg font-medium">{plan.itemCount}</div>
+                  <div className="text-lg font-medium">{plan.itemCount || (budgetItems && budgetItems.length) || 0}</div>
                 </div>
               </div>
             </div>
@@ -270,7 +275,7 @@ export function BudgetPlanFullView({
             <div className="space-y-4">
               <h3 className="text-sm font-semibold">Actions</h3>
               <div className="space-y-2">
-                <Button className="w-full" onClick={() => {}}>
+                <Button className="w-full" onClick={() => toast({ title: "Coming Soon", description: "Add budget item feature will be available soon." })}>
                   <PlusCircle className="h-4 w-4 mr-2" />
                   Add Budget Item
                 </Button>
@@ -284,7 +289,7 @@ export function BudgetPlanFullView({
                     Set as Active Plan
                   </Button>
                 )}
-                <Button variant="outline" className="w-full">
+                <Button variant="outline" className="w-full" onClick={() => toast({ title: "Coming Soon", description: "Generate report feature will be available soon." })}>
                   <FileText className="h-4 w-4 mr-2" />
                   Generate Report
                 </Button>
@@ -296,13 +301,13 @@ export function BudgetPlanFullView({
           <div className="space-y-4">
             <div className="flex justify-between items-center">
               <h3 className="font-semibold">Budget Items</h3>
-              <Button variant="outline" size="sm">
+              <Button variant="outline" size="sm" onClick={() => toast({ title: "Coming Soon", description: "Add item feature will be available soon." })}>
                 <PlusCircle className="h-4 w-4 mr-2" />
                 Add Item
               </Button>
             </div>
             
-            {!Array.isArray(selectedPlanItems) || selectedPlanItems.length === 0 ? (
+            {!budgetItems || budgetItems.length === 0 ? (
               <Card className="bg-muted/50">
                 <CardContent className="flex flex-col items-center justify-center py-12">
                   <div className="rounded-full bg-background p-3 mb-4">
@@ -312,7 +317,7 @@ export function BudgetPlanFullView({
                   <p className="text-center text-muted-foreground mb-4 max-w-md">
                     Add budget items to track therapy expenses and funding allocations for this plan.
                   </p>
-                  <Button>
+                  <Button onClick={() => toast({ title: "Coming Soon", description: "Add budget item feature will be available soon." })}>
                     Add First Budget Item
                   </Button>
                 </CardContent>
@@ -346,8 +351,8 @@ export function BudgetPlanFullView({
                             <TableCell>{item.itemCode}</TableCell>
                             <TableCell className="text-right">{formatCurrency(item.unitPrice)}</TableCell>
                             <TableCell className="text-right">{item.quantity}</TableCell>
-                            <TableCell className="text-right">{item.usedQuantity}</TableCell>
-                            <TableCell className="text-right">{item.balanceQuantity}</TableCell>
+                            <TableCell className="text-right">{item.usedQuantity || 0}</TableCell>
+                            <TableCell className="text-right">{item.balanceQuantity || item.quantity}</TableCell>
                             <TableCell className="text-right">
                               {formatCurrency(item.unitPrice * item.quantity)}
                             </TableCell>
@@ -359,8 +364,12 @@ export function BudgetPlanFullView({
                                   </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
-                                  <DropdownMenuItem>Edit Item</DropdownMenuItem>
-                                  <DropdownMenuItem className="text-destructive">Delete Item</DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => toast({ title: "Coming Soon", description: "Edit item feature will be available soon." })}>
+                                    Edit Item
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem className="text-destructive" onClick={() => toast({ title: "Coming Soon", description: "Delete item feature will be available soon." })}>
+                                    Delete Item
+                                  </DropdownMenuItem>
                                 </DropdownMenuContent>
                               </DropdownMenu>
                             </TableCell>
@@ -377,11 +386,22 @@ export function BudgetPlanFullView({
       </Card>
       
       {/* Budget Plan Edit Dialog */}
-      <BudgetPlanEditDialog
-        open={showEditDialog}
-        onOpenChange={setShowEditDialog}
-        planId={selectedPlanId}
-      />
+      {plan && (
+        <BudgetPlanEditDialog
+          open={showEditDialog}
+          onOpenChange={setShowEditDialog}
+          plan={plan}
+          budgetItems={budgetItems || []}
+          catalogItems={[]}
+          onSave={() => {
+            toast({
+              title: "Budget plan updated",
+              description: "The budget plan has been updated successfully."
+            });
+            setShowEditDialog(false);
+          }}
+        />
+      )}
     </div>
   );
 }
