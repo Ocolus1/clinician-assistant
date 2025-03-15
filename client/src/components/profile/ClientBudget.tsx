@@ -170,9 +170,13 @@ export default function ClientBudget({
       {/* Show either Card Grid View or Traditional Item Table View */}
       {viewMode === 'card' ? (
         <BudgetCardGrid 
-          budgetSettings={budgetSettings}
+          budgetSettings={budgetSettings ? [budgetSettings] : []}
           budgetItems={budgetItems}
+          catalogItems={[]} // Provide an empty array as it's a required prop
+          clientSessions={[]} // Provide an empty array as it's a required prop
           onCreatePlan={handleCreatePlan}
+          onUpdatePlan={() => {}} // Placeholder function
+          onUpdateItems={() => {}} // Placeholder function
           onArchivePlan={handleArchivePlan}
           onSetActivePlan={handleSetActivePlan}
         />

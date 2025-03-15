@@ -40,7 +40,9 @@ export default function ClientList() {
     mutationFn: (clientId: number) => 
       apiRequest("DELETE", `/api/clients/${clientId}`),
     onSuccess: () => {
+      // Invalidate both standard clients query and enriched clients query
       queryClient.invalidateQueries({ queryKey: ["/api/clients"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/clients/enriched"] });
     }
   });
 
@@ -184,17 +186,25 @@ export default function ClientList() {
                         <Edit className="h-4 w-4 mr-1" />
                         Edit
                       </Button>
-                      {client.onboardingStatus === 'incomplete' && (
-                        <Button 
-                          onClick={() => handleDeleteClient(client.id)} 
-                          variant="outline" 
-                          size="sm" 
-                          className="text-red-600 hover:text-red-800"
-                        >
-                          <Trash2 className="h-4 w-4 mr-1" />
-                          Delete
-                        </Button>
-                      )}
+                      <Button 
+                        onClick={() => handleDeleteClient(client.id)} 
+                        variant="outline" 
+                        size="sm" 
+                        className="text-red-600 hover:text-red-800"
+                        disabled={deleteClientMutation.isPending}
+                      >
+                        {deleteClientMutation.isPending && deleteClientMutation.variables === client.id ? (
+                          <>
+                            <span className="animate-spin h-4 w-4 mr-1">⏳</span>
+                            Deleting...
+                          </>
+                        ) : (
+                          <>
+                            <Trash2 className="h-4 w-4 mr-1" />
+                            Delete
+                          </>
+                        )}
+                      </Button>
                     </div>
                   </div>
                 </li>
