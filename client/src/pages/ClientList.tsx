@@ -10,11 +10,27 @@ import { Badge } from "@/components/ui/badge";
 import { Client } from "@shared/schema";
 import { format } from "date-fns";
 import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export default function ClientList() {
   const [location, setLocation] = useLocation();
   const [showIncomplete, setShowIncomplete] = useState(false);
   const queryClient = useQueryClient();
+  const { toast } = useToast();
+  
+  // State for delete confirmation dialog
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [clientToDelete, setClientToDelete] = useState<Client | null>(null);
   
   // Fetch clients with server-side filtering
   const { data: clients = [], isLoading, error, refetch } = useQuery<Client[]>({
@@ -40,9 +56,27 @@ export default function ClientList() {
     mutationFn: (clientId: number) => 
       apiRequest("DELETE", `/api/clients/${clientId}`),
     onSuccess: () => {
+      // Show success toast
+      toast({
+        title: "Client deleted",
+        description: "The client has been successfully deleted",
+        variant: "default",
+      });
+      
       // Invalidate both standard clients query and enriched clients query
       queryClient.invalidateQueries({ queryKey: ["/api/clients"] });
       queryClient.invalidateQueries({ queryKey: ["/api/clients/enriched"] });
+      
+      // Reset client to delete
+      setClientToDelete(null);
+    },
+    onError: (error) => {
+      // Show error toast
+      toast({
+        title: "Error deleting client",
+        description: error instanceof Error ? error.message : "An unknown error occurred",
+        variant: "destructive",
+      });
     }
   });
 
@@ -50,9 +84,15 @@ export default function ClientList() {
     setLocation("/clients/new");
   };
   
-  const handleDeleteClient = (clientId: number) => {
-    if (window.confirm("Are you sure you want to delete this client?")) {
-      deleteClientMutation.mutate(clientId);
+  const openDeleteDialog = (client: Client) => {
+    setClientToDelete(client);
+    setDeleteDialogOpen(true);
+  };
+  
+  const handleDeleteClient = () => {
+    if (clientToDelete) {
+      deleteClientMutation.mutate(clientToDelete.id);
+      setDeleteDialogOpen(false);
     }
   };
   
@@ -187,7 +227,7 @@ export default function ClientList() {
                         Edit
                       </Button>
                       <Button 
-                        onClick={() => handleDeleteClient(client.id)} 
+                        onClick={() => openDeleteDialog(client)} 
                         variant="outline" 
                         size="sm" 
                         className="text-red-600 hover:text-red-800"
@@ -225,6 +265,29 @@ export default function ClientList() {
           )}
         </CardContent>
       </Card>
+      
+      {/* Delete confirmation dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action will permanently delete {clientToDelete?.name}'s record and all associated data.
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteClient}
+              className="bg-red-600 hover:bg-red-700 text-white"
+              disabled={deleteClientMutation.isPending}
+            >
+              {deleteClientMutation.isPending ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
