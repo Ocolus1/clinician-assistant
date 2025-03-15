@@ -115,8 +115,8 @@ export default function BudgetCardGrid({
       planSerialNumber: setting.planSerialNumber,
       planName,
       active: !!setting.isActive,
-      // Use calculated total from items instead of the setting's availableFunds
-      availableFunds: totalAllocated,
+      // Use calculated total from items instead of the setting's ndisFunds
+      availableFunds: totalAllocated, // Keep using availableFunds for UI compatibility
       endDate,
       startDate,
       totalUsed,

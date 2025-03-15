@@ -177,8 +177,34 @@ export default function ClientBudget({
           onCreatePlan={handleCreatePlan}
           onUpdatePlan={() => {}} // Placeholder function
           onUpdateItems={() => {}} // Placeholder function
-          onArchivePlan={handleArchivePlan}
-          onSetActivePlan={handleSetActivePlan}
+          onArchivePlan={(plan) => handleArchivePlan({
+            id: plan.id,
+            clientId: plan.clientId,
+            planCode: plan.planCode,
+            planSerialNumber: plan.planSerialNumber,
+            isActive: !!plan.isActive,
+            availableFunds: plan.availableFunds,
+            endOfPlan: plan.endOfPlan,
+            // Add any required properties that might be missing
+            percentUsed: 0,
+            totalUsed: 0,
+            itemCount: 0,
+            remainingFunds: 0
+          })}
+          onSetActivePlan={(plan) => handleSetActivePlan({
+            id: plan.id,
+            clientId: plan.clientId,
+            planCode: plan.planCode,
+            planSerialNumber: plan.planSerialNumber,
+            isActive: !!plan.isActive,
+            availableFunds: plan.availableFunds,
+            endOfPlan: plan.endOfPlan,
+            // Add any required properties that might be missing
+            percentUsed: 0,
+            totalUsed: 0,
+            itemCount: 0,
+            remainingFunds: 0
+          })}
         />
       ) : (
         <>
