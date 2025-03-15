@@ -18,7 +18,7 @@ export const clients = pgTable("clients", {
   therapyPreferences: text("therapy_preferences"),
   fundsManagement: text("funds_management"), // Made optional to allow null values
   // We're moving availableFunds to the budget section, but keeping it here for backward compatibility
-  availableFunds: numeric("available_funds").notNull().$type<number>().default(0),
+  ndisFunds: numeric("ndis_funds").notNull().$type<number>().default(0),
   // Add onboarding status field to track completion
   onboardingStatus: text("onboarding_status").default("incomplete"),
 });
@@ -60,7 +60,7 @@ export const budgetSettings = pgTable("budget_settings", {
   planSerialNumber: text("plan_serial_number"),
   planCode: text("plan_code"),
   isActive: boolean("is_active").default(true),
-  availableFunds: numeric("available_funds").notNull().$type<number>().default(0),
+  ndisFunds: numeric("ndis_funds").notNull().$type<number>().default(0),
   endOfPlan: text("end_of_plan"),
   createdAt: timestamp("created_at").defaultNow(),
 });
@@ -91,7 +91,7 @@ export const budgetItems = pgTable("budget_items", {
 export const insertClientSchema = createInsertSchema(clients)
   .extend({
     // Ensure availableFunds is always parsed as a number
-    availableFunds: z.coerce.number()
+    ndisFunds: z.coerce.number()
   });
 
 export const insertAllySchema = createInsertSchema(allies)
@@ -119,7 +119,7 @@ export const insertBudgetSettingsSchema = createInsertSchema(budgetSettings)
   .omit({ id: true, clientId: true })
   .extend({
     // Ensure availableFunds is always parsed as a number
-    availableFunds: z.coerce.number(),
+    ndisFunds: z.coerce.number(),
     // Make endOfPlan optional
     endOfPlan: z.string().optional(),
   });
@@ -137,7 +137,7 @@ export const insertBudgetItemSchema = createInsertSchema(budgetItems)
     quantity: z.coerce.number()
       .min(1, { message: "Quantity must be at least 1" })
   });
-  
+
 // Create schema for budget item catalog
 export const insertBudgetItemCatalogSchema = createInsertSchema(budgetItemCatalog)
   .omit({ id: true })
@@ -194,19 +194,19 @@ export const sessionNotes = pgTable("session_notes", {
   clientId: integer("client_id").notNull().references(() => clients.id, { onDelete: "cascade" }),
   displaySessionId: text("display_session_id"), // Added display session ID for reference
   presentAllies: text("present_allies").array(),
-  
+
   // General observations (ratings from 0-10)
   moodRating: integer("mood_rating"),
   physicalActivityRating: integer("physical_activity_rating"),
   focusRating: integer("focus_rating"),
   cooperationRating: integer("cooperation_rating"),
-  
+
   // General note
   notes: text("notes"),
-  
+
   // Products used in session
   products: text("products"),
-  
+
   // Metadata
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
