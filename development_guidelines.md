@@ -13,12 +13,13 @@ This document outlines the development standards and best practices for our Spee
 7. [Page Structure Organization](#page-structure-organization)
 8. [File Naming and Organization](#file-naming-and-organization)
 9. [Form Implementation](#form-implementation)
-10. [Data Fetching](#data-fetching)
-11. [Code Style](#code-style)
-12. [Testing](#testing) *(New)*
-13. [User Experience Considerations](#user-experience-considerations) *(New)*
-14. [Troubleshooting Common Issues](#troubleshooting-common-issues)
-15. [Examples](#examples)
+10. [Schema Changes and Data Evolution](#schema-changes-and-data-evolution) *(New)*
+11. [Data Fetching](#data-fetching)
+12. [Code Style](#code-style)
+13. [Testing](#testing) *(New)*
+14. [User Experience Considerations](#user-experience-considerations) *(New)*
+15. [Troubleshooting Common Issues](#troubleshooting-common-issues)
+16. [Examples](#examples)
 
 ## Component Architecture
 
@@ -565,6 +566,59 @@ Organize by feature, not by file type:
 ### ✅ Good Example
 ```tsx
 // SessionForm.tsx - Main form container
+
+## Schema Changes and Data Evolution
+
+### Schema Evolution Process
+- **Document All Schema Changes**: Maintain a record of all schema changes with update dates
+- **Sync Frontend and Backend**: Update all schema references across the codebase when making schema changes
+- **Migration Planning**: Plan both data and code migrations for schema changes
+- **Form Validation Updates**: Always update all form validation schemas to match database schema changes
+
+### Field Renaming Guidelines
+- **Update All References**: When renaming fields (e.g., `availableFunds` to `ndisFunds`), search globally and update all references
+- **Check Form Schema Modifications**: Pay special attention to form validation schemas using `.omit()` or `.extend()`
+- **Run Form Validation Tests**: Verify all forms work correctly after schema changes
+- **Monitor Console Errors**: Watch for schema validation errors in console after changes
+
+### ✅ Good Example
+```tsx
+// Before schema change in schema.ts:
+export const clients = pgTable("clients", {
+  // ...other fields
+  availableFunds: numeric("available_funds").notNull().$type<number>().default(0),
+});
+
+// After schema change in schema.ts:
+export const clients = pgTable("clients", {
+  // ...other fields
+  ndisFunds: numeric("ndis_funds").notNull().$type<number>().default(0),
+});
+
+// Before schema change in ClientForm.tsx:
+const modifiedClientSchema = insertClientSchema
+  .omit({ availableFunds: true })
+  .extend({
+    name: z.string().min(1, { message: "Client name is required" }),
+    // Other validations
+  });
+
+// After schema change in ClientForm.tsx:
+const modifiedClientSchema = insertClientSchema
+  .omit({ ndisFunds: true }) // Updated field name here
+  .extend({
+    name: z.string().min(1, { message: "Client name is required" }),
+    // Other validations
+  });
+```
+
+### Schema Change Checklist
+1. **Update Schema Definition**: Modify fields in the schema.ts file first
+2. **Update Database**: Run migrations or direct schema updates
+3. **Update Form Validation**: Update all form validation schemas
+4. **Update API Routes**: Ensure API routes handle new field names
+5. **Update UI Components**: Update any UI components that display or interact with changed fields
+6. **Test Workflows**: Test all affected user workflows end-to-end
 export function SessionForm({ clientId, onComplete }) {
   const [step, setStep] = useState(0);
   const formMethods = useForm({

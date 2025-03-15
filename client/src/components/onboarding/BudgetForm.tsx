@@ -835,14 +835,14 @@ export default function BudgetForm({ clientId, onComplete, onPrevious }: BudgetF
                       )}
                     />
 
-                    {/* Available Funds with Budget Surplus/Deficit */}
+                    {/* NDIS Funds with Budget Surplus/Deficit */}
                     <FormField
                       control={settingsForm.control}
-                      name="availableFunds"
+                      name="ndisFunds"
                       render={({ field }) => (
                         <FormItem className="flex flex-col space-y-2">
                           <FormLabel className="text-sm font-medium">
-                            Available Funds <span className="text-red-500">*</span>
+                            NDIS Funds <span className="text-red-500">*</span>
                           </FormLabel>
                           <div className="flex flex-col md:flex-row md:items-center gap-4">
                             <div className="relative flex-1">
