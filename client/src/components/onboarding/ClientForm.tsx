@@ -34,13 +34,18 @@ export default function ClientForm({ onComplete }: ClientFormProps) {
     },
   });
   
-  const handleSubmit = (data: any) => {
+  const handleSubmit = async (data: any) => {
     setIsSubmitting(true);
     try {
-      // Just return the form data, parent will handle creating the client
-      onComplete(data);
+      // Let parent handle client creation and navigation
+      await onComplete(data);
     } catch (error) {
       console.error("Error in client form submission:", error);
+      toast({
+        title: "Error",
+        description: "Failed to create client. Please try again.",
+        variant: "destructive",
+      });
     } finally {
       setIsSubmitting(false);
     }

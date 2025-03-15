@@ -198,18 +198,15 @@ export default function OnboardingForm() {
       <div className="bg-card rounded-lg shadow-sm p-6 md:p-8">
         {step === 0 && (
           <ClientForm 
-            onComplete={(data) => {
+            onComplete={async (data) => {
               setClientData(data);
-              // Create client at this point
-              createClient.mutate({
+              // Create client and wait for response
+              const result = await createClient.mutateAsync({
                 ...data,
-                availableFunds: 0
-              }, {
-                onSuccess: () => {
-                  // Only proceed to next step after successful client creation
-                  handleNext();
-                }
+                ndisFunds: 0
               });
+              setClientId(result.id);
+              handleNext();
             }} 
           />
         )}
