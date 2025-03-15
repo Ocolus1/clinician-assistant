@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
+import { apiRequest } from "@/lib/utils";
 import { format, differenceInYears } from "date-fns";
 import {
   PlusCircle,
@@ -617,16 +618,13 @@ export default function EnhancedClientList() {
     
     setIsDeleting(true);
     try {
-      const response = await fetch(`/api/clients/${clientId}`, {
-        method: 'DELETE',
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Error deleting client: ${response.statusText}`);
-      }
+      // Use the apiRequest function instead of fetch directly
+      await apiRequest("DELETE", `/api/clients/${clientId}`);
       
       // Invalidate queries to refresh data
+      // First invalidate the base client query
       queryClient.invalidateQueries({ queryKey: ["/api/clients"] });
+      // Also invalidate the enriched clients query since the component uses this for display
       queryClient.invalidateQueries({ queryKey: ["/api/clients/enriched"] });
       
       // Reset delete dialog state
@@ -634,6 +632,7 @@ export default function EnhancedClientList() {
       setDeleteDialogOpen(false);
     } catch (error) {
       console.error("Failed to delete client:", error);
+      // Consider showing an error toast here if you want to inform the user
     } finally {
       setIsDeleting(false);
     }
@@ -837,7 +836,10 @@ export default function EnhancedClientList() {
               <h3 className="text-lg font-medium mb-1">Failed to load clients</h3>
               <p className="text-gray-500 mb-4">There was an error loading the client list.</p>
               <Button 
-                onClick={() => queryClient.invalidateQueries({ queryKey: ["/api/clients"] })}
+                onClick={() => {
+                  queryClient.invalidateQueries({ queryKey: ["/api/clients"] });
+                  queryClient.invalidateQueries({ queryKey: ["/api/clients/enriched"] });
+                }}
                 variant="outline"
               >
                 Try Again
@@ -997,7 +999,10 @@ export default function EnhancedClientList() {
                     <Download className="h-4 w-4 mr-2" />
                     Export All Clients
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => queryClient.invalidateQueries({ queryKey: ["/api/clients"] })}>
+                  <DropdownMenuItem onClick={() => {
+                    queryClient.invalidateQueries({ queryKey: ["/api/clients"] });
+                    queryClient.invalidateQueries({ queryKey: ["/api/clients/enriched"] });
+                  }}>
                     <LineChart className="h-4 w-4 mr-2" />
                     Refresh Data
                   </DropdownMenuItem>
