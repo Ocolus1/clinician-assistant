@@ -25,9 +25,43 @@ import {
   XCircle,
   Edit
 } from "lucide-react";
-import { BudgetPlan, BudgetItemDetail } from "./BudgetPlanFullView";
 import { format, differenceInDays, isAfter } from "date-fns";
 import type { BudgetSettings, BudgetItem, BudgetItemCatalog } from "@shared/schema";
+
+// Define internal interfaces for this component
+interface BudgetPlan {
+  id: number;
+  clientId: number;
+  planCode: string | null;
+  planSerialNumber: string | null;
+  isActive?: boolean | null;
+  active?: boolean;
+  ndisFunds?: number;
+  availableFunds: number;
+  endOfPlan?: string | null;
+  endDate?: string | null;
+  startDate?: string | null;
+  createdAt?: Date | null;
+  totalUsed: number;
+  percentUsed: number;
+  itemCount: number;
+  remainingFunds: number;
+  archived?: boolean;
+  fundingSource?: string;
+  daysRemaining?: number | null;
+  planName?: string;
+  enhancedItems?: BudgetItemDetail[];
+}
+
+interface BudgetItemDetail extends BudgetItem {
+  usedQuantity: number;
+  remainingQuantity: number;
+  totalPrice: number;
+  usedAmount: number;
+  remainingAmount: number;
+  usagePercentage: number;
+  balanceQuantity?: number;
+}
 
 // Import dialog components
 import { BudgetPlanCreateDialog } from "./BudgetPlanCreateDialog";
@@ -79,6 +113,9 @@ export default function BudgetCardGrid({
       return sum + (unitPrice * quantity);
     }, 0);
     
+    // Get NDIS funds from new schema or fallback to 0
+    const ndisAmount = typeof setting.ndisFunds === 'number' ? setting.ndisFunds : 0;
+    
     // Calculate used funds based on sessions
     // This is a simplified version - in a real app you might need more complex logic
     const totalUsed = 0; // Placeholder until we implement session-based calculations
@@ -115,14 +152,15 @@ export default function BudgetCardGrid({
       planSerialNumber: setting.planSerialNumber,
       planName,
       active: !!setting.isActive,
-      // Use calculated total from items instead of the setting's ndisFunds
-      availableFunds: totalAllocated, // Keep using availableFunds for UI compatibility
+      // Support both schema versions
+      ndisFunds: ndisAmount,
+      availableFunds: ndisAmount, // Use ndisFunds for backward compatibility with UI components
       endDate,
       startDate,
       totalUsed,
       percentUsed,
       itemCount: planItems.length,
-      remainingFunds: totalAllocated - totalUsed,
+      remainingFunds: ndisAmount - totalUsed,
       archived: false, // Add proper handling if you have an archived field
       fundingSource,
       createdAt: setting.createdAt,
