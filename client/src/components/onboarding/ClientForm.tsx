@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FUNDS_MANAGEMENT_OPTIONS, insertClientSchema } from "@shared/schema";
 import { useState } from "react";
+import { useToast } from "@/hooks/use-toast";
 
 interface ClientFormProps {
   onComplete: (clientData: any) => void;
@@ -15,6 +16,7 @@ interface ClientFormProps {
 
 export default function ClientForm({ onComplete }: ClientFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { toast } = useToast();
   
   // Create a modified schema without availableFunds for the form
   // Add additional validation to ensure name is not empty
