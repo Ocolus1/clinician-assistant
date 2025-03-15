@@ -93,7 +93,7 @@ export default function BudgetForm({ clientId, onComplete, onPrevious }: BudgetF
   const settingsForm = useForm<InsertBudgetSettings>({
     resolver: zodResolver(insertBudgetSettingsSchema),
     defaultValues: {
-      availableFunds: 0,
+      ndisFunds: 0,
       endOfPlan: undefined,
       planSerialNumber: generatePlanSerialNumber(),
       isActive: true,
@@ -138,7 +138,7 @@ export default function BudgetForm({ clientId, onComplete, onPrevious }: BudgetF
     
     return () => clearTimeout(debouncedSave);
   }, [
-    settingsForm.watch("availableFunds"), 
+    settingsForm.watch("ndisFunds"), 
     settingsForm.watch("isActive"),
     isPickingDate
   ]);
@@ -161,7 +161,7 @@ export default function BudgetForm({ clientId, onComplete, onPrevious }: BudgetF
   useEffect(() => {
     if (budgetSettings) {
       // Set form values from fetched settings
-      settingsForm.setValue("availableFunds", budgetSettings.availableFunds);
+      settingsForm.setValue("ndisFunds", budgetSettings.ndisFunds);
       settingsForm.setValue("isActive", budgetSettings.isActive);
       
       // Set planSerialNumber if it exists, otherwise generate a new one
@@ -422,8 +422,8 @@ export default function BudgetForm({ clientId, onComplete, onPrevious }: BudgetF
   };
 
   const daysLeft = calculateDaysLeft();
-  const availableFunds = settingsForm.watch("availableFunds") || 0;
-  const budgetDifference = availableFunds - totalBudget;
+  const ndisFunds = settingsForm.watch("ndisFunds") || 0;
+  const budgetDifference = ndisFunds - totalBudget;
   const hasBudgetSurplus = budgetDifference >= 0;
   
   // Format currency values
@@ -779,12 +779,12 @@ export default function BudgetForm({ clientId, onComplete, onPrevious }: BudgetF
                       <div className="h-4 w-full bg-gray-200 rounded-full overflow-hidden">
                         <div 
                           className="h-full bg-primary rounded-full"
-                          style={{ width: `${Math.min(100, (totalBudget / availableFunds) * 100)}%` }}
+                          style={{ width: `${Math.min(100, (totalBudget / ndisFunds) * 100)}%` }}
                         ></div>
                       </div>
                       <div className="flex justify-between mt-2 text-xs text-gray-500">
                         <span>0%</span>
-                        <span>Allocated: {((totalBudget / availableFunds) * 100).toFixed(1)}%</span>
+                        <span>Allocated: {((totalBudget / ndisFunds) * 100).toFixed(1)}%</span>
                         <span>100%</span>
                       </div>
                     </div>

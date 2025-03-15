@@ -580,7 +580,7 @@ export class DBStorage implements IStorage {
       // Process settings data for update
       const processedSettings = {
         ...settings,
-        availableFunds: Number(settings.availableFunds || 0),
+        ndisFunds: Number(settings.ndisFunds || 0),
         endOfPlan: settings.endOfPlan || null
       };
       
