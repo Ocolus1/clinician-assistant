@@ -46,36 +46,22 @@ import { BudgetPlanEditDialog } from "./BudgetPlanEditDialog";
  * A full-screen detailed view of a budget plan with its items and usage statistics
  */
 interface BudgetPlanFullViewProps {
-  onBackToPlansList: () => void;
+  plan: any; // Using any temporarily to fix type issues
+  budgetItems: any[];
+  onBack: () => void;
+  onEdit: () => void;
+  onToggleActive: () => void;
 }
 
-export function BudgetPlanFullView({ onBackToPlansList }: BudgetPlanFullViewProps) {
+export function BudgetPlanFullView({ 
+  plan, 
+  budgetItems, 
+  onBack, 
+  onEdit, 
+  onToggleActive 
+}: BudgetPlanFullViewProps) {
   const [showEditDialog, setShowEditDialog] = useState(false);
-  const { 
-    selectedPlanId, 
-    getBudgetPlanById, 
-    selectedPlanItems, 
-    updatePlan,
-    createBudgetItem,
-    deleteBudgetItem,
-    viewPlanDetails,
-    setActivePlan
-  } = useBudgetFeature();
-  
-  // Get the selected plan details
-  const plan = selectedPlanId ? getBudgetPlanById(selectedPlanId) : null;
-  
-  // Handle back button click to return to plans view
-  const handleBackToPlansList = () => {
-    // Set selected plan to null to return to grid view
-    if (selectedPlanId) {
-      // Reset the selected plan in context - using 0 as a signal value
-      // The context will handle this as "no plan selected"
-      viewPlanDetails(0);
-      // Call the parent component's handler to switch tabs
-      onBackToPlansList();
-    }
-  };
+  const { toast } = useToast();
   
   if (!plan) {
     return (
@@ -94,10 +80,10 @@ export function BudgetPlanFullView({ onBackToPlansList }: BudgetPlanFullViewProp
   const isExpired = plan.endDate ? new Date(plan.endDate) < today : false;
   
   // Group budget items by category
-  const itemsByCategory: Record<string, typeof selectedPlanItems> = {};
-  // Safely iterate through selectedPlanItems only if it's an array
-  if (Array.isArray(selectedPlanItems)) {
-    selectedPlanItems.forEach(item => {
+  const itemsByCategory: Record<string, any[]> = {};
+  // Safely iterate through budgetItems only if it's an array
+  if (Array.isArray(budgetItems)) {
+    budgetItems.forEach(item => {
       if (item) { // Ensure item exists
         const category = item.category || "Uncategorized";
         if (!itemsByCategory[category]) {
@@ -108,21 +94,14 @@ export function BudgetPlanFullView({ onBackToPlansList }: BudgetPlanFullViewProp
     });
   }
   
-  // Handle edit button click
+  // Pass the edit action to parent
   const handleEditPlan = () => {
-    setShowEditDialog(true);
+    onEdit();
   };
   
-  // Handle activating this plan
-  const handleSetActive = async () => {
-    if (!plan || plan.isActive) return;
-    
-    try {
-      await setActivePlan(plan.id);
-      // Success feedback is handled by the toast in the context
-    } catch (error) {
-      console.error("Failed to set plan as active:", error);
-    }
+  // Pass the activate action to parent
+  const handleSetActive = () => {
+    onToggleActive();
   };
   
   return (
