@@ -18,10 +18,10 @@ export default function ClientForm({ onComplete }: ClientFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
   
-  // Create a modified schema without availableFunds for the form
+  // Create a modified schema without ndisFunds for the form
   // Add additional validation to ensure name is not empty
   const modifiedClientSchema = insertClientSchema
-    .omit({ availableFunds: true })
+    .omit({ ndisFunds: true })
     .extend({
       name: z.string().min(1, { message: "Client name is required" }),
       dateOfBirth: z.string().min(1, { message: "Date of birth is required" }),
