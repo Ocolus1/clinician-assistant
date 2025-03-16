@@ -642,9 +642,13 @@ export default function ClientProfile() {
             </TabsContent>
             
             <TabsContent value="budget" className="mt-0">
-              {/* Use the new comprehensive BudgetManagerView for budget management */}
+              {/* Use the enhanced client budget tab for budget management */}
               <div className="space-y-8">
-                <BudgetManagerView clientId={clientId} />
+                <EnhancedClientBudgetTab 
+                  clientId={clientId} 
+                  budgetSettings={budgetSettings} 
+                  budgetItems={budgetItems} 
+                />
               </div>
             </TabsContent>
             

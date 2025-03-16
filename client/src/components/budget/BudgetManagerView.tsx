@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from "react";
-import { BudgetFeatureProvider } from "./BudgetFeatureContext";
+import { BudgetFeatureProvider, useBudgetFeature } from "./BudgetFeatureContext";
 import { BudgetPlanDetails } from "./BudgetPlanDetailsIntegrated";
-import { BudgetPlanForm } from "./BudgetPlanForm";
+import { EnhancedBudgetPlanCreateWizard } from "./EnhancedBudgetPlanCreateWizard";
 import { Button } from "@/components/ui/button";
-import { Plus, ChevronLeft } from "lucide-react";
+import { Plus, ChevronLeft, RefreshCw } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
-import { BudgetPlansView } from "./BudgetPlansView";
+import { EnhancedBudgetPlansView } from "./EnhancedBudgetPlansView";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface BudgetManagerViewProps {
@@ -17,33 +17,23 @@ interface BudgetManagerViewProps {
 /**
  * Main budget management view container component
  * This handles overall state management and rendering of the appropriate subviews
+ * Uses the BudgetFeatureContext for state management
  */
 function BudgetManagerContent({ clientId }: BudgetManagerViewProps) {
   const [showCreatePlanForm, setShowCreatePlanForm] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [activeView, setActiveView] = useState<'overview' | 'details'>('overview');
-  const [selectedPlanId, setSelectedPlanId] = useState<number | null>(null);
+  
+  // Get budget state from context
+  const { 
+    isLoading, 
+    error, 
+    refreshData, 
+    viewPlanDetails, 
+    returnToOverview, 
+    selectedPlanId,
+    budgetPlans
+  } = useBudgetFeature();
 
-  // Check if the API routes are working
-  useEffect(() => {
-    const checkApi = async () => {
-      try {
-        const response = await fetch(`/api/clients/${clientId}/budget/plans`);
-        if (!response.ok) {
-          setError(`Failed to load budget data: ${response.statusText}`);
-        }
-        setIsLoading(false);
-      } catch (error) {
-        console.error("Error checking budget API:", error);
-        setError("Failed to connect to budget services. Please try again later.");
-        setIsLoading(false);
-      }
-    };
-
-    checkApi();
-  }, [clientId]);
-
+  // If plans are loading, show a loading indicator
   if (isLoading) {
     return (
       <Card>
@@ -58,6 +48,7 @@ function BudgetManagerContent({ clientId }: BudgetManagerViewProps) {
     );
   }
 
+  // If there was an error, show an error message
   if (error) {
     return (
       <Card>
@@ -67,13 +58,14 @@ function BudgetManagerContent({ clientId }: BudgetManagerViewProps) {
         </CardHeader>
         <CardContent>
           <Alert variant="destructive">
-            <AlertDescription>{error}</AlertDescription>
+            <AlertDescription>{error.message}</AlertDescription>
           </Alert>
           <div className="mt-4 flex justify-end">
             <Button 
-              onClick={() => window.location.reload()} 
+              onClick={() => refreshData()} 
               variant="outline"
             >
+              <RefreshCw className="h-4 w-4 mr-2" />
               Retry
             </Button>
           </div>
@@ -81,49 +73,20 @@ function BudgetManagerContent({ clientId }: BudgetManagerViewProps) {
       </Card>
     );
   }
-
-  const handleViewPlanDetails = (planId: number) => {
-    setSelectedPlanId(planId);
-    setActiveView('details');
-  };
   
   return (
     <div>
       <div className="space-y-6">
-        {activeView === 'overview' ? (
-          <Tabs defaultValue="overview" className="w-full">
-            <TabsList className="mb-4">
-              <TabsTrigger value="overview">Plans Overview</TabsTrigger>
-              <TabsTrigger value="details">Plan Details</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="overview">
-              <BudgetPlansView clientId={clientId} onViewPlan={handleViewPlanDetails} />
-            </TabsContent>
-            
-            <TabsContent value="details">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-2xl font-semibold">Budget Plan Details</h2>
-                <Button 
-                  onClick={() => setActiveView('overview')} 
-                  variant="outline"
-                  size="sm"
-                >
-                  <ChevronLeft className="mr-2 h-4 w-4" />
-                  Back to Plans
-                </Button>
-              </div>
-              <BudgetPlanDetails 
-                clientId={clientId}
-              />
-            </TabsContent>
-          </Tabs>
+        {!selectedPlanId ? (
+          // Plans Overview - Show the enhanced budget plans view
+          <EnhancedBudgetPlansView clientId={clientId} onViewPlan={viewPlanDetails} />
         ) : (
+          // Plan Details - Show the plan details view
           <>
             <div className="flex justify-between items-center">
               <h2 className="text-2xl font-semibold">Budget Plan Details</h2>
               <Button 
-                onClick={() => setActiveView('overview')} 
+                onClick={returnToOverview} 
                 variant="outline"
                 size="sm"
               >
@@ -141,18 +104,21 @@ function BudgetManagerContent({ clientId }: BudgetManagerViewProps) {
         )}
       </div>
       
-      {/* Create Plan Form Dialog */}
-      <BudgetPlanForm 
+      {/* Enhanced Budget Plan Creation Wizard */}
+      <EnhancedBudgetPlanCreateWizard 
         open={showCreatePlanForm}
         onOpenChange={setShowCreatePlanForm}
         clientId={clientId}
+        onSuccess={() => {
+          refreshData();
+        }}
       />
     </div>
   );
 }
 
 /**
- * Exported budget manager component with simplified interface
+ * Exported budget manager component with BudgetFeatureProvider context
  */
 export function BudgetManagerView({ clientId }: BudgetManagerViewProps) {
   return (
