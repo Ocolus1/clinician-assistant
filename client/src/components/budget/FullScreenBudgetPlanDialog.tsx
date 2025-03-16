@@ -226,14 +226,14 @@ export function FullScreenBudgetPlanDialog({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-4xl w-full p-0 overflow-hidden">
+        <DialogContent className="max-w-6xl w-full p-0 overflow-hidden">
           <DialogHeader className="p-4 border-b">
             <DialogTitle className="text-xl font-bold">Create New Budget Plan</DialogTitle>
           </DialogHeader>
           
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="overflow-auto p-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="overflow-auto p-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Left Panel - Budget Items */}
                 <div className="border rounded-lg overflow-hidden">
                   <div className="flex justify-between items-center p-3 bg-slate-50 border-b">
