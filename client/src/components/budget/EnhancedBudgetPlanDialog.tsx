@@ -115,11 +115,11 @@ export function EnhancedBudgetPlanDialog({
     mutationFn: async (data: BudgetPlanFormValues) => {
       // Transform form values to match API expectations
       const transformedData: Partial<InsertBudgetSettings> = {
-        startDate: new Date(data.startDate),
-        endDate: new Date(data.endDate),
+        endOfPlan: data.endDate, // We map the end date to the endOfPlan field
         ndisFunds: Number(data.ndisFunds),
         isActive: data.isActive,
-        fundsManagement: data.fundsManagement,
+        // Generate a serial number based on date if needed
+        planSerialNumber: `BP-${new Date().getTime().toString().slice(-6)}`,
       };
 
       // Create budget plan
@@ -220,13 +220,13 @@ export function EnhancedBudgetPlanDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl max-h-[90vh] overflow-hidden flex flex-col">
-        <DialogHeader>
+      <DialogContent className="max-w-5xl h-[90vh] overflow-y-auto p-0 pb-0">
+        <DialogHeader className="px-6 pt-6 pb-2">
           <DialogTitle className="text-2xl font-bold">Create New Budget Plan</DialogTitle>
         </DialogHeader>
         
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 flex-1 overflow-hidden">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 px-6 pt-0 pb-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 overflow-hidden h-full">
               {/* Left Column - Plan Details */}
               <div className="space-y-6 overflow-y-auto p-2">
