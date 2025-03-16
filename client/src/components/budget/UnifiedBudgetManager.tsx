@@ -73,12 +73,12 @@ export function UnifiedBudgetManager({ clientId, selectedPlanId }: UnifiedBudget
       }, 0);
     }
     
-    // Fallback to active plan's availableFunds if items not available
-    if (activePlan && activePlan.availableFunds) {
+    // Fallback to active plan's ndisFunds if items not available
+    if (activePlan && activePlan.ndisFunds) {
       // Convert string values to numbers if needed
-      return typeof activePlan.availableFunds === 'string' 
-        ? parseFloat(activePlan.availableFunds) 
-        : activePlan.availableFunds;
+      return typeof activePlan.ndisFunds === 'string' 
+        ? parseFloat(activePlan.ndisFunds) 
+        : activePlan.ndisFunds;
     }
     
     // Final fallback if nothing else is available
@@ -135,9 +135,20 @@ export function UnifiedBudgetManager({ clientId, selectedPlanId }: UnifiedBudget
     retry: 2 // Add retry logic to handle temporary network issues
   });
 
-  // Set active plan from data (first active plan by default)
+  // Set active plan from data (prioritize selected plan ID, then active plans, then first plan)
   useEffect(() => {
     if (plansQuery.data && plansQuery.data.length > 0 && !activePlan) {
+      // If a specific plan ID is provided, use that one
+      if (selectedPlanId) {
+        const selectedPlan = plansQuery.data.find((plan: any) => plan.id === selectedPlanId);
+        if (selectedPlan) {
+          console.log("Using selected plan ID:", selectedPlanId);
+          setActivePlan(selectedPlan);
+          return;
+        }
+      }
+      
+      // Otherwise use the first active plan
       const activePlans = plansQuery.data.filter((plan: any) => plan.isActive);
       if (activePlans.length > 0) {
         setActivePlan(activePlans[0]);
@@ -145,7 +156,7 @@ export function UnifiedBudgetManager({ clientId, selectedPlanId }: UnifiedBudget
         setActivePlan(plansQuery.data[0]);
       }
     }
-  }, [plansQuery.data, activePlan, setActivePlan]);
+  }, [plansQuery.data, activePlan, setActivePlan, selectedPlanId]);
 
   // Form setup with budget items
   const form = useForm<UnifiedBudgetFormValues>({
