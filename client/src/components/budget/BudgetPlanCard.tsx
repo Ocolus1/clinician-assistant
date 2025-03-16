@@ -140,12 +140,23 @@ export function BudgetPlanCard({ plan, clientId }: BudgetPlanCardProps) {
           {plan.isActive ? "Current Plan" : "Set as Active"}
         </Button>
         
-        <Link href={`/clients/${clientId}/budget/${plan.id}`}>
-          <Button variant="outline" size="sm" className="flex items-center gap-1">
-            <Eye className="h-4 w-4" />
-            Preview
-          </Button>
-        </Link>
+        <Button 
+          variant="outline" 
+          size="sm" 
+          className="flex items-center gap-1"
+          onClick={(e) => {
+            e.stopPropagation();
+            if (typeof document !== 'undefined') {
+              // Simulate click on the parent card
+              document.dispatchEvent(new CustomEvent('view-plan-details', { 
+                detail: { planId: plan.id }
+              }));
+            }
+          }}
+        >
+          <Eye className="h-4 w-4" />
+          Preview
+        </Button>
       </CardFooter>
     </Card>
   );

@@ -124,7 +124,10 @@ export function BudgetPlansGrid({ plans, clientId, onViewPlan }: BudgetPlansGrid
               onClick={() => handlePlanCardClick(plan.id)}
               className="cursor-pointer"
             >
-              <BudgetPlanCard plan={plan} clientId={clientId} />
+              <BudgetPlanCard 
+                plan={plan} 
+                clientId={clientId} 
+              />
             </div>
           ))}
         </div>

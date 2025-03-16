@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { BudgetPlansGrid } from "./BudgetPlansGrid";
 import { BudgetPlanCreateDialog } from "./BudgetPlanCreateDialog";
@@ -39,6 +39,24 @@ export function BudgetPlansView({ clientId, onViewPlan }: BudgetPlansViewProps) 
   
   // Check if any of the plans is active
   const hasActivePlan = budgetPlans.some(plan => plan.isActive);
+  
+  // Setup event listener for plan detail view
+  useEffect(() => {
+    const handleViewPlanDetails = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      if (customEvent.detail && customEvent.detail.planId && onViewPlan) {
+        onViewPlan(customEvent.detail.planId);
+      }
+    };
+    
+    // Add event listener
+    document.addEventListener('view-plan-details', handleViewPlanDetails);
+    
+    // Clean up
+    return () => {
+      document.removeEventListener('view-plan-details', handleViewPlanDetails);
+    };
+  }, [onViewPlan]);
   
   // Handle create plan form submission
   const handleCreatePlan = async (data: any) => {
