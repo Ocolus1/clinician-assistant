@@ -50,6 +50,7 @@ interface BudgetFeatureContextType {
   totalBudget: number;
   remainingBudget: number;
   refreshData: () => void;
+  isReadOnly: boolean; // Added to track if the current plan is read-only
 }
 
 const BudgetFeatureContext = createContext<BudgetFeatureContextType | undefined>(undefined);
@@ -90,6 +91,9 @@ export function BudgetFeatureProvider({
     }
   };
   
+  // Calculate whether the current plan is read-only (non-active plans are read-only)
+  const isReadOnly = activePlan ? !activePlan.isActive : false;
+  
   return (
     <BudgetFeatureContext.Provider
       value={{
@@ -102,7 +106,8 @@ export function BudgetFeatureProvider({
         totalAllocated,
         totalBudget,
         remainingBudget,
-        refreshData
+        refreshData,
+        isReadOnly
       }}
     >
       {children}

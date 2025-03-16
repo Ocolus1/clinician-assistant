@@ -12,6 +12,7 @@ import {
   getQuantityValidationError
 } from './BudgetFormSchema';
 import { useBudgetFeature } from './BudgetFeatureContext';
+import { LockIcon } from 'lucide-react';
 import { 
   Tooltip,
   TooltipContent,
@@ -50,7 +51,7 @@ export function BudgetItemRow({
   const [validationError, setValidationError] = useState<string | null>(null);
   
   // Get client-specific budget through context
-  const { budgetItems } = useBudgetFeature();
+  const { budgetItems, isReadOnly } = useBudgetFeature();
   
   // Calculate client-specific budget total
   const getClientBudget = () => {
@@ -109,6 +110,9 @@ export function BudgetItemRow({
   
   // Start editing the item
   const handleStartEdit = () => {
+    // If in read-only mode, don't allow editing
+    if (isReadOnly) return;
+    
     setIsEditing(true);
     setValidationError(null);
     
@@ -331,10 +335,14 @@ export function BudgetItemRow({
                       <Button 
                         size="sm" 
                         variant="ghost" 
-                        className="h-6 w-6 p-0" 
+                        className={cn(
+                          "h-6 w-6 p-0",
+                          isReadOnly && "text-gray-400 cursor-not-allowed"
+                        )}
                         onClick={handleStartEdit}
+                        disabled={isReadOnly}
                       >
-                        <Edit2 className="h-3 w-3" />
+                        {isReadOnly ? <LockIcon className="h-3 w-3" /> : <Edit2 className="h-3 w-3" />}
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>
@@ -343,7 +351,26 @@ export function BudgetItemRow({
                   </Tooltip>
                 </TooltipProvider>
                 
-                {item.isNew ? (
+                {isReadOnly ? (
+                  // In read-only mode, show lock icon for second button
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button 
+                          size="sm" 
+                          variant="ghost" 
+                          className="h-6 w-6 p-0 text-gray-400 cursor-not-allowed"
+                          disabled
+                        >
+                          <LockIcon className="h-3 w-3" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Cannot modify - plan is inactive</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                ) : item.isNew ? (
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>

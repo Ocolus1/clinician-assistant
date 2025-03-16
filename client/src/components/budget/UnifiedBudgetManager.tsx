@@ -35,7 +35,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useBudgetFeature } from "./BudgetFeatureContext";
 import { BudgetItem } from "./BudgetTypes";
-import { Loader2, AlertCircle } from "lucide-react";
+import { Loader2, AlertCircle, LockIcon } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { CatalogItem, RowBudgetItem } from "./BudgetTypes";
 
@@ -60,7 +60,8 @@ export function UnifiedBudgetManager({ clientId, selectedPlanId }: UnifiedBudget
     activePlan, 
     setActivePlan, 
     budgetItems, 
-    setBudgetItems
+    setBudgetItems,
+    isReadOnly
   } = useBudgetFeature();
   
   // Helper function to calculate client-specific budget amount based on items
@@ -737,6 +738,14 @@ export function UnifiedBudgetManager({ clientId, selectedPlanId }: UnifiedBudget
 
   return (
     <Card>
+      {isReadOnly && (
+        <Alert variant="warning" className="mb-4 bg-amber-50 border-amber-300">
+          <LockIcon className="h-4 w-4 text-amber-600" />
+          <AlertDescription className="text-amber-800">
+            This budget plan is read-only because it's no longer active. You cannot make changes to inactive plans.
+          </AlertDescription>
+        </Alert>
+      )}
       <CardHeader>
         <CardTitle>
           Budget Plan: {activePlan?.planCode || 'Default Plan'}
