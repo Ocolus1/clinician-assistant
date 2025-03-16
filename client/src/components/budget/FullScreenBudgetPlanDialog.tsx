@@ -13,6 +13,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import {
@@ -22,22 +23,34 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  FormDescription,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
-import { Tag, CalendarRange, DollarSign, Plus, Calculator } from "lucide-react";
+import { 
+  Tag, 
+  CalendarRange, 
+  DollarSign, 
+  Plus, 
+  Calculator, 
+  CheckCircle,
+  AlertTriangle,
+  Info
+} from "lucide-react";
 import { CatalogSelectionModal } from "@/components/budget/CatalogSelectionModal";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 // Form Schema with validation
 const budgetPlanSchema = z.object({
+  planCode: z.string().min(1, "Plan code is required"),
   startDate: z.string().min(1, "Start date is required"),
   endDate: z.string().min(1, "End date is required"),
   ndisFunds: z.string().min(1, "NDIS funds amount is required")
     .refine(val => !isNaN(Number(val)), {
       message: "Funds must be a valid number",
     }),
-  isActive: z.boolean().default(false),
+  isActive: z.boolean().default(true),
   budgetItems: z.array(z.object({
     itemCode: z.string().min(1, "Item code is required"),
     description: z.string().optional(),
@@ -59,13 +72,15 @@ interface FullScreenBudgetPlanDialogProps {
   onOpenChange: (open: boolean) => void;
   clientId: number;
   onSuccess?: () => void;
+  hasActivePlan?: boolean;
 }
 
 export function FullScreenBudgetPlanDialog({
   open,
   onOpenChange,
   clientId,
-  onSuccess
+  onSuccess,
+  hasActivePlan = false
 }: FullScreenBudgetPlanDialogProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -74,7 +89,8 @@ export function FullScreenBudgetPlanDialog({
   const [budgetItemsArray, setBudgetItemsArray] = useState<any[]>([]);
 
   // Generate a random Plan ID for display purposes
-  const planId = `PLAN-${new Date().getTime().toString().slice(-6)}-${Math.floor(Math.random() * 1000)}`;
+  const planCode = `PLAN-${new Date().getTime().toString().slice(-6)}`;
+  const planSerialNumber = `BP-${new Date().getTime().toString().slice(-6)}`;
 
   // Get catalog items for dropdown
   const { data: catalogItems = [] } = useQuery({
@@ -86,12 +102,20 @@ export function FullScreenBudgetPlanDialog({
     enabled: open,
   });
 
+  // Set default end date to 1 year from now
+  const getDefaultEndDate = () => {
+    const date = new Date();
+    date.setFullYear(date.getFullYear() + 1);
+    return date.toISOString().split('T')[0]; // Format as YYYY-MM-DD
+  };
+
   // Initialize form with empty/default values
   const form = useForm<BudgetPlanFormValues>({
     resolver: zodResolver(budgetPlanSchema),
     defaultValues: {
-      startDate: "",
-      endDate: "",
+      planCode,
+      startDate: new Date().toISOString().split('T')[0], // Today's date
+      endDate: getDefaultEndDate(),
       ndisFunds: "",
       isActive: true, // Always set to true
       budgetItems: [],
@@ -114,11 +138,11 @@ export function FullScreenBudgetPlanDialog({
     mutationFn: async (data: BudgetPlanFormValues) => {
       // Transform form values to match API expectations
       const transformedData: Partial<InsertBudgetSettings> = {
+        planCode: data.planCode,
         endOfPlan: data.endDate, // We map the end date to the endOfPlan field
         ndisFunds: Number(data.ndisFunds),
         isActive: true, // Always set to active
-        // Generate a serial number based on date if needed
-        planSerialNumber: `BP-${new Date().getTime().toString().slice(-6)}`,
+        planSerialNumber,
       };
 
       // Create budget plan
@@ -203,6 +227,14 @@ export function FullScreenBudgetPlanDialog({
     }
   };
 
+  // Remove a budget item from the array
+  const handleRemoveBudgetItem = (index: number) => {
+    const newBudgetItems = [...budgetItemsArray];
+    newBudgetItems.splice(index, 1);
+    setBudgetItemsArray(newBudgetItems);
+    form.setValue("budgetItems", newBudgetItems);
+  };
+
   // Submit handler
   function onSubmit(data: BudgetPlanFormValues) {
     // Update the form data with the budgetItemsArray and ensure isActive is true
@@ -218,206 +250,317 @@ export function FullScreenBudgetPlanDialog({
   // Reset form when dialog closes
   useEffect(() => {
     if (!open) {
-      form.reset();
+      form.reset({
+        planCode,
+        startDate: new Date().toISOString().split('T')[0],
+        endDate: getDefaultEndDate(),
+        ndisFunds: "",
+        isActive: true,
+        budgetItems: [],
+      });
       setBudgetItemsArray([]);
       setSelectedItem(null);
     }
-  }, [open, form]);
+  }, [open]);
 
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-6xl w-full p-0 overflow-hidden">
+        <DialogContent className="max-w-6xl w-full p-0 overflow-hidden h-[90vh] flex flex-col">
           <DialogHeader className="p-4 border-b">
-            <DialogTitle className="text-xl font-bold">Create New Budget Plan</DialogTitle>
+            <DialogTitle className="text-xl font-bold flex items-center gap-2">
+              <CheckCircle className="h-5 w-5 text-green-500" />
+              Create New Budget Plan
+            </DialogTitle>
+            <DialogDescription>
+              This new plan will be set as the active plan for this client. 
+              {hasActivePlan && "Any existing active plan will be automatically deactivated but preserved for reference."}
+            </DialogDescription>
           </DialogHeader>
           
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="overflow-auto p-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Left Panel - Budget Items */}
-                <div className="border rounded-lg overflow-hidden">
-                  <div className="flex justify-between items-center p-3 bg-slate-50 border-b">
-                    <h3 className="font-semibold">Planned Budget Items</h3>
-                    <span>Total: {formatCurrency(totalCost)}</span>
-                  </div>
-                  
-                  <div className="p-4 max-h-[300px] overflow-y-auto">
-                    {budgetItemsArray.length > 0 ? (
-                      <div className="space-y-3">
-                        {budgetItemsArray.map((item, index) => (
-                          <div key={index} className="border rounded-lg p-3 flex justify-between items-center">
-                            <div>
-                              <div className="font-medium">{item.itemCode}</div>
-                              <div className="text-gray-500 text-sm">{item.description}</div>
-                            </div>
-                            <div className="text-right">
-                              <div>{item.quantity} x {formatCurrency(Number(item.unitPrice))}</div>
-                              <div className="font-semibold">
-                                {formatCurrency(Number(item.quantity) * Number(item.unitPrice))}
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="h-full flex flex-col items-center justify-center text-center text-gray-500">
-                        <Calculator className="h-12 w-12 mb-3 text-gray-300" />
-                        <p className="mb-1">No budget items added yet</p>
-                        <p className="text-sm">Add items using the form on the right</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col flex-1 overflow-hidden">
+              <div className="overflow-auto flex-1 p-6">
+                {hasActivePlan && (
+                  <Alert className="mb-4 border-amber-200 bg-amber-50">
+                    <AlertTriangle className="h-4 w-4 text-amber-600" />
+                    <AlertTitle className="text-amber-800">Active Plan Will Be Deactivated</AlertTitle>
+                    <AlertDescription className="text-amber-700">
+                      Creating a new budget plan will automatically deactivate the current active plan.
+                      The previous plan will still be accessible for reference.
+                    </AlertDescription>
+                  </Alert>
+                )}
                 
-                {/* Right Panel - Budget Settings & Entry */}
-                <div className="space-y-4">
-                  {/* Budget Settings Section */}
-                  <div className="border rounded-lg overflow-hidden">
-                    <div className="bg-slate-50 p-3 border-b flex justify-between items-center">
-                      <h3 className="font-semibold">Budget Settings</h3>
-                      <span className="text-xs text-gray-500">Plan ID: {planId}</span>
-                    </div>
-                    
-                    <div className="p-4 space-y-4">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium">Plan Status</span>
-                        <div className="flex items-center gap-2">
-                          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-green-100">
-                            <span className="h-2.5 w-2.5 rounded-full bg-green-600"></span>
-                          </span>
-                          <span className="text-green-600">Active</span>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Left Panel - Budget Details */}
+                  <div className="space-y-4">
+                    {/* Budget Settings Section */}
+                    <div className="border rounded-lg overflow-hidden">
+                      <div className="bg-slate-50 p-3 border-b flex justify-between items-center">
+                        <h3 className="font-semibold">Budget Plan Details</h3>
+                      </div>
+                      
+                      <div className="p-4 space-y-4">
+                        <FormField
+                          control={form.control}
+                          name="planCode"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Plan Code</FormLabel>
+                              <FormControl>
+                                <Input placeholder="Enter plan code" {...field} />
+                              </FormControl>
+                              <FormDescription className="text-xs">
+                                A unique identifier for this budget plan (auto-generated but can be changed)
+                              </FormDescription>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      
+                        <div className="flex items-center justify-between pt-2">
+                          <span className="text-sm font-medium">Plan Status</span>
+                          <div className="flex items-center gap-2">
+                            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-green-100">
+                              <span className="h-2.5 w-2.5 rounded-full bg-green-600"></span>
+                            </span>
+                            <span className="text-green-600">Will be set as Active</span>
+                          </div>
+                        </div>
+                        
+                        <FormField
+                          control={form.control}
+                          name="ndisFunds"
+                          render={({ field }) => (
+                            <FormItem>
+                              <div className="flex justify-between items-center">
+                                <FormLabel>NDIS Funds</FormLabel>
+                                <span className={`text-sm ${remainingFunds >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                  Surplus: {formatCurrency(remainingFunds)}
+                                </span>
+                              </div>
+                              <FormControl>
+                                <div className="relative">
+                                  <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
+                                  <Input className="pl-8" placeholder="0" {...field} />
+                                </div>
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <div className="grid grid-cols-2 gap-4">
+                          <FormField
+                            control={form.control}
+                            name="startDate"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Start Date</FormLabel>
+                                <FormControl>
+                                  <Input type="date" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          
+                          <FormField
+                            control={form.control}
+                            name="endDate"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>End Date</FormLabel>
+                                <FormControl>
+                                  <Input type="date" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
                         </div>
                       </div>
+                    </div>
+                    
+                    {/* Budget Totals and Summary */}
+                    <div className="border rounded-lg overflow-hidden">
+                      <div className="bg-slate-50 p-3 border-b">
+                        <h3 className="font-semibold">Budget Summary</h3>
+                      </div>
                       
-                      <FormField
-                        control={form.control}
-                        name="ndisFunds"
-                        render={({ field }) => (
-                          <FormItem>
-                            <div className="flex justify-between items-center">
-                              <FormLabel>NDIS Funds</FormLabel>
-                              <span className="text-green-600 text-sm">
-                                Surplus: {formatCurrency(remainingFunds)}
-                              </span>
-                            </div>
-                            <FormControl>
-                              <div className="relative">
-                                <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
-                                <Input className="pl-8" placeholder="0" {...field} />
-                              </div>
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      
-                      <FormField
-                        control={form.control}
-                        name="endDate"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>End of Plan Date</FormLabel>
-                            <FormControl>
-                              <Input type="date" placeholder="Pick a date" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
+                      <div className="p-4">
+                        <div className="space-y-2">
+                          <div className="flex justify-between">
+                            <span className="text-gray-500">Total Items:</span>
+                            <span className="font-medium">{budgetItemsArray.length}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-500">Total Allocated:</span>
+                            <span className="font-medium">{formatCurrency(totalCost)}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-500">Available Funds:</span>
+                            <span className="font-medium">{formatCurrency(availableFunds)}</span>
+                          </div>
+                          <div className="border-t pt-2 mt-2 flex justify-between">
+                            <span className="font-medium">Remaining Funds:</span>
+                            <span className={`font-bold ${remainingFunds >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                              {formatCurrency(remainingFunds)}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
                   
-                  {/* Budget Item Entry Section */}
-                  <div className="border rounded-lg overflow-hidden">
-                    <div className="bg-slate-50 p-3 border-b flex justify-between items-center">
-                      <h3 className="font-semibold">Budget Item Entry</h3>
-                    </div>
-                    
-                    <div className="p-3 space-y-3">
-                      <div className="flex justify-between items-center">
-                        <span className="font-medium text-sm">Select Item</span>
-                        <Button 
-                          type="button" 
-                          variant="outline" 
-                          size="sm"
-                          className="text-blue-600 text-xs"
-                          onClick={() => {/* Implement add new catalog item */}}
-                        >
-                          <Plus className="h-3 w-3 mr-1" />
-                          Add New Catalog Item
-                        </Button>
+                  {/* Right Panel - Budget Items */}
+                  <div className="space-y-4">
+                    {/* Budget Items List */}
+                    <div className="border rounded-lg overflow-hidden">
+                      <div className="flex justify-between items-center p-3 bg-slate-50 border-b">
+                        <h3 className="font-semibold">Planned Budget Items</h3>
+                        <span>Total: {formatCurrency(totalCost)}</span>
                       </div>
                       
-                      {selectedItem ? (
-                        <div className="space-y-3">
-                          <div className="border rounded-lg p-2 bg-blue-50">
-                            <div className="font-medium text-sm">{selectedItem.itemCode}</div>
-                            <div className="text-gray-600 text-xs">{selectedItem.description}</div>
+                      <div className="p-4 max-h-[280px] overflow-y-auto">
+                        {budgetItemsArray.length > 0 ? (
+                          <div className="space-y-3">
+                            {budgetItemsArray.map((item, index) => (
+                              <div key={index} className="border rounded-lg p-3 flex justify-between items-center">
+                                <div>
+                                  <div className="font-medium">{item.itemCode}</div>
+                                  <div className="text-gray-500 text-sm">{item.description}</div>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                  <div className="text-right">
+                                    <div>{item.quantity} x {formatCurrency(Number(item.unitPrice))}</div>
+                                    <div className="font-semibold">
+                                      {formatCurrency(Number(item.quantity) * Number(item.unitPrice))}
+                                    </div>
+                                  </div>
+                                  <Button 
+                                    variant="ghost" 
+                                    size="sm"
+                                    className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
+                                    onClick={() => handleRemoveBudgetItem(index)}
+                                  >
+                                    &times;
+                                  </Button>
+                                </div>
+                              </div>
+                            ))}
                           </div>
-                          
-                          <div className="grid grid-cols-2 gap-3">
-                            <div>
-                              <FormLabel className="text-xs">Unit Price</FormLabel>
-                              <div className="relative">
-                                <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
+                        ) : (
+                          <div className="h-[200px] flex flex-col items-center justify-center text-center text-gray-500">
+                            <Calculator className="h-12 w-12 mb-3 text-gray-300" />
+                            <p className="mb-1">No budget items added yet</p>
+                            <p className="text-sm">Add items using the form below</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    
+                    {/* Budget Item Entry Section */}
+                    <div className="border rounded-lg overflow-hidden">
+                      <div className="bg-slate-50 p-3 border-b flex justify-between items-center">
+                        <h3 className="font-semibold">Add Budget Item</h3>
+                      </div>
+                      
+                      <div className="p-3 space-y-3">
+                        {selectedItem ? (
+                          <div className="space-y-3">
+                            <div className="border rounded-lg p-2 bg-blue-50">
+                              <div className="font-medium text-sm">{selectedItem.itemCode}</div>
+                              <div className="text-gray-600 text-xs">{selectedItem.description}</div>
+                            </div>
+                            
+                            <div className="grid grid-cols-2 gap-3">
+                              <div>
+                                <FormLabel className="text-xs">Unit Price</FormLabel>
+                                <div className="relative">
+                                  <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
+                                  <Input 
+                                    className="pl-8 bg-gray-50 h-8 text-sm" 
+                                    value={selectedItem.unitPrice} 
+                                    readOnly
+                                  />
+                                </div>
+                              </div>
+                              
+                              <div>
+                                <FormLabel className="text-xs">Quantity</FormLabel>
                                 <Input 
-                                  className="pl-8 bg-gray-50 h-8 text-sm" 
-                                  value={selectedItem.unitPrice} 
-                                  readOnly
+                                  type="number" 
+                                  min="1"
+                                  className="h-8 text-sm"
+                                  value={selectedItem.quantity}
+                                  onChange={(e) => setSelectedItem({
+                                    ...selectedItem,
+                                    quantity: e.target.value
+                                  })}
                                 />
                               </div>
                             </div>
                             
-                            <div>
-                              <FormLabel className="text-xs">Quantity</FormLabel>
-                              <Input 
-                                type="number" 
-                                min="1"
-                                className="h-8 text-sm"
-                                value={selectedItem.quantity}
-                                onChange={(e) => setSelectedItem({
-                                  ...selectedItem,
-                                  quantity: e.target.value
-                                })}
-                              />
+                            <div className="grid grid-cols-2 gap-3">
+                              <Button 
+                                type="button" 
+                                variant="outline"
+                                className="text-sm h-8"
+                                onClick={() => setSelectedItem(null)}
+                              >
+                                Cancel
+                              </Button>
+                              
+                              <Button 
+                                type="button" 
+                                className="text-sm h-8" 
+                                onClick={handleAddBudgetItem}
+                              >
+                                <Plus className="h-3 w-3 mr-1" />
+                                Add Budget Item
+                              </Button>
                             </div>
                           </div>
-                          
-                          <Button 
-                            type="button" 
-                            className="w-full text-sm h-8" 
-                            onClick={handleAddBudgetItem}
-                          >
-                            <Plus className="h-3 w-3 mr-1" />
-                            Add Budget Item
-                          </Button>
-                        </div>
-                      ) : (
-                        <div className="flex justify-center">
-                          <Button
-                            type="button"
-                            variant="outline"
-                            className="border-dashed h-16 flex items-center gap-2 text-sm"
-                            onClick={() => setCatalogModalOpen(true)}
-                          >
-                            <Tag className="h-4 w-4" />
-                            Select from Catalog...
-                          </Button>
-                        </div>
-                      )}
+                        ) : (
+                          <div className="flex justify-center">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              className="border-dashed h-16 flex items-center gap-2 text-sm"
+                              onClick={() => setCatalogModalOpen(true)}
+                            >
+                              <Tag className="h-4 w-4" />
+                              Select from Catalog...
+                            </Button>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
-
-              <div className="flex justify-end gap-2 mt-4">
-                <Button variant="outline" type="button" onClick={() => onOpenChange(false)}>
-                  Cancel
-                </Button>
-                <Button type="submit" disabled={mutation.isPending || budgetItemsArray.length === 0}>
-                  {mutation.isPending ? "Creating..." : "Create Budget Plan"}
-                </Button>
+              
+              {/* Fixed footer */}
+              <div className="border-t p-4 flex justify-between items-center bg-gray-50">
+                <div className="flex items-center gap-2 text-gray-500">
+                  <Info className="h-4 w-4" />
+                  <span className="text-sm">The plan will be automatically set as active</span>
+                </div>
+                
+                <div className="flex gap-2">
+                  <Button variant="outline" type="button" onClick={() => onOpenChange(false)}>
+                    Cancel
+                  </Button>
+                  <Button 
+                    type="submit" 
+                    disabled={mutation.isPending || budgetItemsArray.length === 0 || remainingFunds < 0}
+                    className="min-w-[150px]"
+                  >
+                    {mutation.isPending ? "Creating..." : "Create Budget Plan"}
+                  </Button>
+                </div>
               </div>
             </form>
           </Form>

@@ -188,6 +188,7 @@ export function BudgetPlansView({ clientId, onViewPlan }: BudgetPlansViewProps) 
         onOpenChange={setCreateDialogOpen}
         clientId={clientId}
         onSuccess={refetch}
+        hasActivePlan={hasActivePlan}
       />
       
       {/* Confirmation Dialog for Creating New Budget Plan */}

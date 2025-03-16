@@ -1,30 +1,17 @@
-import { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
+  DialogDescription,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Search, Plus } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { formatCurrency } from "@/lib/utils";
-
-interface CatalogItem {
-  id: number;
-  itemCode: string;
-  description: string;
-  defaultUnitPrice: number;
-  category: string | null;
-}
+import { Search, Tag } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { CatalogItem } from "./BudgetTypes";
 
 interface CatalogSelectionModalProps {
   open: boolean;
@@ -40,117 +27,129 @@ export function CatalogSelectionModal({
   onSelectItem,
 }: CatalogSelectionModalProps) {
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState<string>("all");
-  
-  // Get unique categories from catalog items
-  const uniqueCategories = Array.from(new Set(catalogItems.map(item => item.category || "uncategorized")));
-  const categories = ["all", ...uniqueCategories];
-  
-  // Filter catalog items based on search term and selected category
-  const filteredItems = catalogItems.filter(item => {
-    const matchesSearch = 
-      item.itemCode.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.description.toLowerCase().includes(searchTerm.toLowerCase());
-      
-    const matchesCategory = 
-      selectedCategory === "all" || 
-      item.category === selectedCategory ||
-      (selectedCategory === "uncategorized" && !item.category);
-      
-    return matchesSearch && matchesCategory;
-  });
-  
-  // Group catalog items by type for visual separation
-  const categorizeItem = (item: CatalogItem) => {
-    if (item.itemCode.startsWith("THERAPY")) return "Therapy";
-    if (item.itemCode.startsWith("ASSESS")) return "Assessment";
-    return item.category || "Other";
-  };
+  const [filteredItems, setFilteredItems] = useState<CatalogItem[]>([]);
+
+  // Reset search when modal opens
+  useEffect(() => {
+    if (open) {
+      setSearchTerm("");
+    }
+  }, [open]);
+
+  // Filter catalog items based on search term
+  useEffect(() => {
+    if (!catalogItems) {
+      setFilteredItems([]);
+      return;
+    }
+
+    const lowerSearchTerm = searchTerm.toLowerCase();
+    if (!lowerSearchTerm) {
+      setFilteredItems(catalogItems);
+      return;
+    }
+
+    const filtered = catalogItems.filter(
+      (item) =>
+        item.itemCode.toLowerCase().includes(lowerSearchTerm) ||
+        (item.description && item.description.toLowerCase().includes(lowerSearchTerm)) ||
+        (item.category && item.category.toLowerCase().includes(lowerSearchTerm))
+    );
+    setFilteredItems(filtered);
+  }, [searchTerm, catalogItems]);
+
+  // Group items by category for better organization
+  const groupedItems = filteredItems.reduce<Record<string, CatalogItem[]>>((acc, item) => {
+    const category = item.category || "Uncategorized";
+    if (!acc[category]) {
+      acc[category] = [];
+    }
+    acc[category].push(item);
+    return acc;
+  }, {});
+
+  // Sort categories alphabetically
+  const sortedCategories = Object.keys(groupedItems).sort();
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader>
-          <DialogTitle>Select Item from Catalog</DialogTitle>
-          <p className="text-sm text-gray-500 mt-1">
-            Choose an item from the catalog or add a new catalog item.
-          </p>
+          <DialogTitle className="text-xl font-semibold">Select from Catalog</DialogTitle>
+          <DialogDescription>
+            Choose an item from the catalog to add to your budget plan
+          </DialogDescription>
         </DialogHeader>
-        
-        <div className="my-2 flex items-center gap-2">
-          <div className="relative flex-1">
-            <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500" />
-            <Input 
-              className="pl-8" 
-              placeholder="Search by item code or description" 
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
-          
-          <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="All Categories" />
-            </SelectTrigger>
-            <SelectContent>
-              {categories.map(category => (
-                <SelectItem key={category} value={category}>
-                  {category === "all" ? "All Categories" : 
-                    category.charAt(0).toUpperCase() + category.slice(1)}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+
+        {/* Search bar */}
+        <div className="relative mb-4">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+          <Input
+            placeholder="Search by code, description or category..."
+            className="pl-10"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
         </div>
-        
-        <div className="max-h-[300px] overflow-y-auto border rounded-md">
-          {filteredItems.length > 0 ? (
-            <div className="divide-y">
-              {filteredItems.map(item => (
-                <div 
-                  key={item.id} 
-                  className="p-3 hover:bg-gray-50 cursor-pointer"
-                  onClick={() => onSelectItem(item)}
-                >
-                  <div className="flex justify-between">
-                    <div>
-                      <div className="font-medium">{item.itemCode}</div>
-                      <div className="text-sm text-gray-600">{item.description}</div>
-                      <div className="text-xs text-gray-500 mt-1">{categorizeItem(item)}</div>
-                    </div>
-                    <div className="font-semibold text-right">
-                      {formatCurrency(item.defaultUnitPrice)}
-                    </div>
+
+        {/* Catalog items */}
+        <div className="overflow-y-auto flex-1 pr-2">
+          {filteredItems.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              {catalogItems.length === 0
+                ? "No catalog items available. Add items in Settings."
+                : "No items match your search criteria."}
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {sortedCategories.map((category) => (
+                <div key={category}>
+                  <h3 className="font-medium text-sm text-gray-500 mb-2">{category}</h3>
+                  <div className="space-y-2">
+                    {groupedItems[category].map((item) => (
+                      <div
+                        key={item.id}
+                        className="border rounded-lg p-3 hover:border-primary/60 hover:bg-gray-50 cursor-pointer transition-colors"
+                        onClick={() => onSelectItem(item)}
+                      >
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <div className="font-medium flex items-center gap-2">
+                              {item.itemCode}
+                              {item.category && (
+                                <Badge variant="secondary" className="text-xs">
+                                  {item.category}
+                                </Badge>
+                              )}
+                            </div>
+                            <div className="text-sm text-gray-500 mt-1">
+                              {item.description}
+                            </div>
+                          </div>
+                          <div className="font-medium text-right">
+                            {formatCurrency(item.defaultUnitPrice)}
+                            <div className="text-xs text-gray-500">per unit</div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
               ))}
             </div>
-          ) : (
-            <div className="p-8 text-center text-gray-500">
-              No items match your search criteria
-            </div>
           )}
         </div>
-        
-        <DialogFooter className="flex justify-between items-center">
-          <Button 
-            type="button" 
-            variant="outline"
-            className="flex items-center gap-1 text-sm"
-            onClick={() => {/* Implement add new catalog item */}}
-          >
-            <Plus className="h-4 w-4" />
-            Add New Catalog Item
-          </Button>
-          
-          <Button 
-            type="button" 
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-          >
+
+        {/* Footer */}
+        <div className="pt-4 border-t mt-4 flex justify-between items-center">
+          <div className="text-sm text-gray-500">
+            <span className="font-medium">{filteredItems.length}</span> of{" "}
+            <span className="font-medium">{catalogItems.length}</span> items shown
+          </div>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-        </DialogFooter>
+        </div>
       </DialogContent>
     </Dialog>
   );
