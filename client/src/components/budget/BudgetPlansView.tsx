@@ -1,19 +1,30 @@
 import { useQuery } from "@tanstack/react-query";
 import { BudgetSettings, BudgetItem } from "@shared/schema";
-import { BudgetPlansGrid } from "./BudgetPlansGrid";
+import { BudgetPlansGrid } from "@/components/budget/BudgetPlansGrid";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { useBudgetFeature } from "./BudgetFeatureContext";
+import { BudgetFeatureProvider, useBudgetFeature } from "./BudgetFeatureContext";
 
 interface BudgetPlansViewProps {
   clientId: number;
 }
 
 /**
- * Top-level component that shows all budget plans for a client
- * This is used in the client profile budget tab
+ * Wrapper component to ensure BudgetFeatureProvider is present
  */
 export function BudgetPlansView({ clientId }: BudgetPlansViewProps) {
+  return (
+    <BudgetFeatureProvider clientId={clientId}>
+      <BudgetPlansViewContent clientId={clientId} />
+    </BudgetFeatureProvider>
+  );
+}
+
+/**
+ * Content component that shows all budget plans for a client
+ * This is used in the client profile budget tab
+ */
+function BudgetPlansViewContent({ clientId }: BudgetPlansViewProps) {
   const { refreshBudgetSettings } = useBudgetFeature();
 
   // Fetch all budget plans for this client
