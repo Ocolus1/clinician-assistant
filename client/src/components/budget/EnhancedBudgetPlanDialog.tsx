@@ -75,13 +75,13 @@ export function EnhancedBudgetPlanDialog({
     enabled: open,
   });
 
-  // Initialize form with default values
+  // Initialize form with empty/default values
   const form = useForm<BudgetPlanFormValues>({
     resolver: zodResolver(budgetPlanSchema),
     defaultValues: {
-      startDate: new Date().toISOString().split("T")[0],
-      endDate: new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString().split("T")[0],
-      ndisFunds: "10000",
+      startDate: "",
+      endDate: "",
+      ndisFunds: "",
       isActive: false,
       fundsManagement: "Self-Managed",
       budgetItems: [{
