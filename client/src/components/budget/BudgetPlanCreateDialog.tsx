@@ -126,8 +126,8 @@ export function BudgetPlanCreateDialog({
     const serialNumber = values.planSerialNumber || generatePlanSerialNumber();
     console.log("Using plan serial number for submission:", serialNumber);
     
-    // Format available funds as a number with 2 decimal places
-    const availableFunds = Number(parseFloat(values.availableFunds.toString()).toFixed(2));
+    // Format NDIS funds as a number with 2 decimal places
+    const ndisFunds = Number(parseFloat(values.ndisFunds.toString()).toFixed(2));
     
     // Prepare budget items from selected catalog items
     const budgetItems = selectedCatalogItems.map(item => ({
@@ -143,7 +143,7 @@ export function BudgetPlanCreateDialog({
       planCode: String(values.planCode).trim(), // Ensure string and remove whitespace
       planSerialNumber: String(serialNumber).trim(), // Ensure string and remove whitespace
       isActive: Boolean(values.isActive), // Explicit boolean conversion
-      availableFunds: availableFunds, // Properly formatted number
+      ndisFunds: ndisFunds, // Properly formatted number
       endOfPlan: values.endOfPlan ? String(values.endOfPlan) : null, // Ensure string or null
       budgetItems: budgetItems // Include budget items
     };
@@ -157,12 +157,12 @@ export function BudgetPlanCreateDialog({
     // The date is already a string from our date picker implementation
     console.log("Processing budget plan with endOfPlan:", values.endOfPlan);
     
-    // Validate if budget exceeds available funds
+    // Validate if budget exceeds NDIS funds
     if (isBudgetExceeded()) {
       // If budget exceeds, don't submit and show an error via form state
-      form.setError("availableFunds", { 
+      form.setError("ndisFunds", { 
         type: "manual", 
-        message: "Total budget cannot exceed available funds" 
+        message: "Total budget cannot exceed NDIS funds" 
       });
       return;
     }
@@ -171,7 +171,7 @@ export function BudgetPlanCreateDialog({
     const planData = {
       planSerialNumber: values.planSerialNumber || generatePlanSerialNumber(),
       planCode: values.planCode,
-      availableFunds: Number(parseFloat(values.availableFunds.toString()).toFixed(2)),
+      ndisFunds: Number(parseFloat(values.ndisFunds.toString()).toFixed(2)),
       isActive: values.isActive,
       endOfPlan: values.endOfPlan || null,
       budgetItems: selectedCatalogItems.map(item => ({
@@ -218,7 +218,7 @@ export function BudgetPlanCreateDialog({
         // Include only essential fields with proper types
         planSerialNumber: submissionId, // Use consistent ID for tracking
         planCode: planData.planCode || "",
-        availableFunds: Number(parseFloat(planData.availableFunds.toString()).toFixed(2)),
+        ndisFunds: Number(parseFloat(planData.ndisFunds.toString()).toFixed(2)),
         isActive: Boolean(planData.isActive),
         endOfPlan: planData.endOfPlan || null,
         
@@ -345,12 +345,12 @@ export function BudgetPlanCreateDialog({
   
   // Calculate remaining funds after allocated budget
   const calculateRemainingFunds = () => {
-    const availableFunds = form.watch("availableFunds") || 0;
+    const ndisFunds = form.watch("ndisFunds") || 0;
     const totalBudget = calculateTotalBudget();
-    return availableFunds - totalBudget;
+    return ndisFunds - totalBudget;
   };
   
-  // Check if budget exceeds available funds
+  // Check if budget exceeds NDIS funds
   const isBudgetExceeded = () => {
     return calculateRemainingFunds() < 0;
   };
@@ -639,7 +639,7 @@ export function BudgetPlanCreateDialog({
                           )}>
                             {formatCurrency(calculateRemainingFunds())}
                             {isBudgetExceeded() && 
-                              <span className="ml-2 text-xs italic text-red-500">Exceeds available funds</span>
+                              <span className="ml-2 text-xs italic text-red-500">Exceeds NDIS funds</span>
                             }
                           </div>
                         </div>
@@ -655,7 +655,7 @@ export function BudgetPlanCreateDialog({
                   <Button 
                     type="submit" 
                     disabled={isLoading || isSubmitting || (selectedCatalogItems.length > 0 && isBudgetExceeded())}
-                    title={isBudgetExceeded() ? "Total budget cannot exceed available funds" : ""}
+                    title={isBudgetExceeded() ? "Total budget cannot exceed NDIS funds" : ""}
                   >
                     {isLoading || isSubmitting ? "Creating..." : "Create Plan"}
                   </Button>
