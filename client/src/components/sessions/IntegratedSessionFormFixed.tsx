@@ -19,7 +19,9 @@ import {
   FileText,
   X,
   Edit,
-  Trash
+  Trash,
+  Calendar,
+  RefreshCw
 } from "lucide-react";
 import { integratedSessionFormSchema } from "@/hooks/sessions/useSessionForm";
 import { apiRequest } from "@/lib/queryClient";
@@ -64,7 +66,6 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { RatingSlider } from "@/components/sessions/RatingSlider";
 import { GoalSelectionDialog } from "@/components/sessions/dialogs/GoalSelectionDialog";
@@ -75,6 +76,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
+import { Client, Goal, Subgoal, Ally, BudgetItem, BudgetSettings, Strategy } from "@shared/schema";
 
 // Helper function to hide unwanted calendar elements
 function hideUnwantedCalendars() {
@@ -105,21 +107,143 @@ export function IntegratedSessionForm({
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("details");
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  // ... rest of your component state variables...
+  const [clientId, setClientId] = useState<number | null>(initialClient?.id || null);
+  const [selectedClientName, setSelectedClientName] = useState<string>(initialClient?.name || "");
   
+  // Goal selection state
   const [goalSelectionOpen, setGoalSelectionOpen] = useState(false);
   const [milestoneSelectionOpen, setMilestoneSelectionOpen] = useState(false);
   const [productSelectionOpen, setProductSelectionOpen] = useState(false);
   const [strategySelectionOpen, setStrategySelectionOpen] = useState(false);
+  const [selectedGoalId, setSelectedGoalId] = useState<number | null>(null);
+  const [selectedMilestoneId, setSelectedMilestoneId] = useState<number | null>(null);
+  const [currentMilestoneIndex, setCurrentMilestoneIndex] = useState<number | null>(null);
+  const [currentGoalIndex, setCurrentGoalIndex] = useState<number | null>(null);
+  const [selectedPerformanceAssessments, setSelectedPerformanceAssessments] = useState<any[]>([]);
+  const [goals, setGoals] = useState<Goal[]>([]);
+  const [subgoals, setSubgoals] = useState<Subgoal[]>([]);
+  const [selectedProduct, setSelectedProduct] = useState<(BudgetItem & { availableQuantity: number }) | null>(null);
+  const [quantity, setQuantity] = useState(1);
+  const [selectedProducts, setSelectedProducts] = useState<any[]>([]);
+  const [allStrategies, setAllStrategies] = useState<Strategy[]>([]);
+  const [allies, setAllies] = useState<Ally[]>([]);
+  const [selectedAllies, setSelectedAllies] = useState<string[]>([]);
+  const [clients, setClients] = useState<Client[]>([]);
+  const [budgetSettings, setBudgetSettings] = useState<BudgetSettings | null>(null);
+  const [budgetItems, setBudgetItems] = useState<BudgetItem[]>([]);
   
-  // ... other state variables as needed ...
+  // Form setup
+  const defaultValues: IntegratedSessionFormValues = {
+    session: {
+      clientId: initialClient?.id || 0,
+      date: new Date(),
+      location: "",
+      startTime: "",
+      endTime: "",
+      title: "",
+      status: "scheduled",
+      attendees: [],
+    },
+    performanceAssessments: [],
+    note: {
+      content: "",
+      observations: "",
+      products: []
+    }
+  };
   
-  // Rest of your component logic
-
+  const form = useForm<IntegratedSessionFormValues>({
+    resolver: zodResolver(integratedSessionFormSchema),
+    defaultValues,
+    mode: "onChange",
+  });
+  
+  // Fetch initial data when clientId changes
+  useEffect(() => {
+    if (clientId) {
+      // Fetch goals
+      fetch(`/api/clients/${clientId}/goals`)
+        .then(response => response.json())
+        .then(data => {
+          console.log("Goals fetched:", data);
+          setGoals(data);
+        })
+        .catch(error => {
+          console.error("Error fetching goals:", error);
+        });
+      
+      // Fetch allies
+      fetch(`/api/clients/${clientId}/allies`)
+        .then(response => response.json())
+        .then(data => {
+          console.log("Allies fetched:", data);
+          setAllies(data);
+        })
+        .catch(error => {
+          console.error("Error fetching allies:", error);
+        });
+      
+      // Fetch budget settings and items
+      fetch(`/api/clients/${clientId}/budget`)
+        .then(response => response.json())
+        .then(data => {
+          console.log("Budget settings fetched:", data);
+          if (data) {
+            setBudgetSettings(data);
+            
+            fetch(`/api/budget-settings/${data.id}/items`)
+              .then(response => response.json())
+              .then(items => {
+                console.log("Budget items fetched:", items);
+                setBudgetItems(items);
+              })
+              .catch(error => {
+                console.error("Error fetching budget items:", error);
+              });
+          }
+        })
+        .catch(error => {
+          console.error("Error fetching budget settings:", error);
+        });
+    }
+  }, [clientId]);
+  
+  // Fetch all clients and strategies on component mount
+  useEffect(() => {
+    fetch('/api/clients')
+      .then(response => response.json())
+      .then(data => {
+        console.log("Clients fetched:", data);
+        setClients(data);
+      })
+      .catch(error => {
+        console.error("Error fetching clients:", error);
+      });
+    
+    fetch('/api/strategies')
+      .then(response => response.json())
+      .then(data => {
+        console.log("Strategies fetched:", data);
+        setAllStrategies(data);
+      })
+      .catch(error => {
+        console.error("Error fetching strategies:", error);
+      });
+  }, []);
+  
+  // Function to calculate selected goal IDs
+  const selectedGoalIds = selectedPerformanceAssessments.map(assessment => assessment.goalId);
+  
+  // Function to calculate selected milestone IDs
+  const selectedMilestoneIds = selectedPerformanceAssessments.flatMap(assessment => 
+    assessment.milestones.map((milestone: any) => milestone.milestoneId)
+  );
+  
+  // Session creation mutation
   const createSessionMutation = useMutation({
     mutationFn: async (data: IntegratedSessionFormValues) => {
-      // Your existing mutation logic
+      // Convert time strings to proper format if needed
+      return await apiRequest("POST", `/api/sessions/integrated`, data);
     },
     onSuccess: () => {
       toast({
@@ -137,9 +261,24 @@ export function IntegratedSessionForm({
         variant: "destructive",
       });
       console.error("Error creating session:", error);
+      setIsSubmitting(false); // Reset submission state on error
     },
   });
-
+  
+  // Handle Dialog open/close
+  useEffect(() => {
+    if (!open) {
+      // Reset form state when dialog is closed
+      setIsSubmitting(false);
+    } else if (initialClient) {
+      // Set initial client data when dialog opens
+      setClientId(initialClient.id);
+      setSelectedClientName(initialClient.name);
+      form.setValue("session.clientId", initialClient.id);
+    }
+  }, [open, initialClient, form]);
+  
+  // Handle form submission
   function onSubmit(data: IntegratedSessionFormValues) {
     // Only submit the form if the user explicitly clicked the Create Session button
     if (isSubmitting) {
@@ -156,9 +295,345 @@ export function IntegratedSessionForm({
     e.preventDefault(); // Prevent form submission
     onOpenChange(false); // Close the dialog
   }
+  
+  // Handle dialog close attempt
+  const handleDialogOpenChange = (open: boolean) => {
+    if (!open && !isSubmitting) {
+      // If closing the dialog and not in submitting state, confirm with user
+      if (form.formState.isDirty) {
+        const confirmed = window.confirm("You have unsaved changes. Are you sure you want to close this form?");
+        if (confirmed) {
+          onOpenChange(false);
+        }
+      } else {
+        onOpenChange(false);
+      }
+    } else {
+      onOpenChange(open);
+    }
+  };
+  
+  // Handle tab navigation
+  const handleNext = () => {
+    if (activeTab === "details") setActiveTab("participants");
+    else if (activeTab === "participants") setActiveTab("performance");
+  };
+  
+  const handleBack = () => {
+    if (activeTab === "performance") setActiveTab("participants");
+    else if (activeTab === "participants") setActiveTab("details");
+  };
+  
+  // Handle goal selection
+  const handleGoalSelection = (goal: Goal) => {
+    const updatedAssessments = [...selectedPerformanceAssessments];
+    updatedAssessments.push({
+      goalId: goal.id,
+      goalTitle: goal.title,
+      notes: "",
+      milestones: []
+    });
+    
+    setSelectedPerformanceAssessments(updatedAssessments);
+    form.setValue("performanceAssessments", updatedAssessments);
+    setSelectedGoalId(goal.id);
+    
+    // Fetch subgoals for this goal
+    fetch(`/api/goals/${goal.id}/subgoals`)
+      .then(response => response.json())
+      .then(data => {
+        console.log("Subgoals fetched for goal:", goal.id, data);
+        setSubgoals(prevSubgoals => {
+          // Merge with existing subgoals
+          const existingSubgoalIds = prevSubgoals.map(sg => sg.id);
+          const newSubgoals = data.filter((sg: Subgoal) => !existingSubgoalIds.includes(sg.id));
+          return [...prevSubgoals, ...newSubgoals];
+        });
+      })
+      .catch(error => {
+        console.error("Error fetching subgoals:", error);
+      });
+  };
+  
+  // Handle milestone selection
+  const handleMilestoneSelection = (subgoal: Subgoal) => {
+    if (currentGoalIndex === null) return;
+    
+    const updatedAssessments = [...selectedPerformanceAssessments];
+    updatedAssessments[currentGoalIndex].milestones.push({
+      milestoneId: subgoal.id,
+      milestoneTitle: subgoal.title,
+      rating: 5,
+      strategies: [],
+      notes: ""
+    });
+    
+    setSelectedPerformanceAssessments(updatedAssessments);
+    form.setValue("performanceAssessments", updatedAssessments);
+  };
+  
+  // Handle strategy selection
+  const handleStrategySelection = (strategy: Strategy) => {
+    if (currentGoalIndex === null || currentMilestoneIndex === null) return;
+    
+    const updatedAssessments = [...selectedPerformanceAssessments];
+    const currentStrategies = updatedAssessments[currentGoalIndex].milestones[currentMilestoneIndex].strategies || [];
+    
+    // Check if strategy is already selected
+    if (currentStrategies.includes(strategy.name)) {
+      // Remove strategy
+      updatedAssessments[currentGoalIndex].milestones[currentMilestoneIndex].strategies = 
+        currentStrategies.filter(s => s !== strategy.name);
+    } else {
+      // Add strategy (limit to 5)
+      if (currentStrategies.length < 5) {
+        updatedAssessments[currentGoalIndex].milestones[currentMilestoneIndex].strategies = 
+          [...currentStrategies, strategy.name];
+      }
+    }
+    
+    setSelectedPerformanceAssessments(updatedAssessments);
+    form.setValue("performanceAssessments", updatedAssessments);
+  };
+  
+  // Handle product selection
+  const handleProductSelection = (product: BudgetItem & { availableQuantity: number }, quantity: number) => {
+    const newProduct = {
+      id: product.id,
+      name: product.name,
+      code: product.code,
+      unitPrice: product.unitPrice,
+      quantity: quantity
+    };
+    
+    const updatedProducts = [...selectedProducts, newProduct];
+    setSelectedProducts(updatedProducts);
+    form.setValue("note.products", updatedProducts);
+  };
+  
+  // Render dialog content based on isFullScreen prop
+  if (isFullScreen) {
+    return (
+      <div className="w-full h-full flex flex-col px-6 py-4">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-grow flex flex-col overflow-hidden">
+          <TabsList className="grid grid-cols-3 mb-4">
+            <TabsTrigger value="details">Session Details & Observations</TabsTrigger>
+            <TabsTrigger value="performance">Performance Assessment</TabsTrigger>
+            <TabsTrigger value="summary">Summary</TabsTrigger>
+          </TabsList>
 
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 overflow-hidden flex flex-col flex-grow">
+              <div className="flex-grow overflow-auto pr-2">
+                <TabsContent value="details" className="space-y-6 mt-0">
+                  {/* Session details content */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Session Information</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      {/* Session form fields */}
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+
+                <TabsContent value="performance" className="mt-0 px-4 overflow-auto">
+                  <div className="flex flex-col md:flex-row gap-4">
+                    <div className="md:w-2/3">
+                      <div className="flex justify-between items-center w-full mb-4">
+                        <h3 className="text-lg font-medium">
+                          <RefreshCw className="h-5 w-5 inline mr-2" />
+                          Performance Assessment
+                        </h3>
+                        <Button 
+                          type="button" 
+                          onClick={() => setGoalSelectionOpen(true)}
+                          disabled={!clientId}
+                        >
+                          <Plus className="h-4 w-4 mr-2" />
+                          Add Goal
+                        </Button>
+                      </div>
+
+                      {/* Goal selection dialog */}
+                      <GoalSelectionDialog
+                        open={goalSelectionOpen}
+                        onOpenChange={setGoalSelectionOpen}
+                        goals={goals}
+                        selectedGoalIds={selectedGoalIds}
+                        onSelectGoal={handleGoalSelection}
+                      />
+
+                      {selectedPerformanceAssessments.length === 0 ? (
+                        <div className="border rounded-md p-6 text-center bg-muted/10">
+                          <p className="text-muted-foreground">
+                            No goals selected yet. Click "Add Goal" to start assessment.
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="space-y-4">
+                          {selectedPerformanceAssessments.map((assessment, goalIndex) => (
+                            <Card key={assessment.goalId} className="shadow-sm">
+                              <CardHeader className="pb-2">
+                                <CardTitle className="text-base font-medium flex items-center justify-between">
+                                  <span>{assessment.goalTitle || `Goal ${goalIndex + 1}`}</span>
+                                  <Button 
+                                    variant="ghost" 
+                                    size="sm"
+                                    onClick={() => {
+                                      const updated = selectedPerformanceAssessments.filter((_, i) => i !== goalIndex);
+                                      setSelectedPerformanceAssessments(updated);
+                                      form.setValue("performanceAssessments", updated);
+                                    }}
+                                  >
+                                    <Trash className="h-4 w-4" />
+                                  </Button>
+                                </CardTitle>
+                              </CardHeader>
+                              <CardContent>
+                                {/* Milestone list */}
+                                <div className="space-y-2">
+                                  {assessment.milestones.length > 0 ? (
+                                    assessment.milestones.map((milestone: any, milestoneIndex: number) => (
+                                      <div key={milestone.milestoneId} className="border rounded-md p-3">
+                                        <div className="flex justify-between items-start mb-2">
+                                          <div className="font-medium">{milestone.milestoneTitle || `Milestone ${milestoneIndex + 1}`}</div>
+                                          <Button 
+                                            variant="ghost" 
+                                            size="sm"
+                                            onClick={() => {
+                                              const updated = [...selectedPerformanceAssessments];
+                                              updated[goalIndex].milestones = updated[goalIndex].milestones
+                                                .filter((_: any, i: number) => i !== milestoneIndex);
+                                              setSelectedPerformanceAssessments(updated);
+                                              form.setValue("performanceAssessments", updated);
+                                            }}
+                                          >
+                                            <X className="h-4 w-4" />
+                                          </Button>
+                                        </div>
+                                        {/* Rating slider */}
+                                        <RatingSlider 
+                                          value={milestone.rating || 5}
+                                          onChange={(value) => {
+                                            const updated = [...selectedPerformanceAssessments];
+                                            updated[goalIndex].milestones[milestoneIndex].rating = value;
+                                            setSelectedPerformanceAssessments(updated);
+                                            form.setValue("performanceAssessments", updated);
+                                          }}
+                                          label="Performance Rating"
+                                        />
+                                      </div>
+                                    ))
+                                  ) : (
+                                    <div className="text-sm text-muted-foreground p-2">
+                                      No milestones added. Click "Add Milestone" to assess progress.
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="mt-3">
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => {
+                                      setCurrentGoalIndex(goalIndex);
+                                      setSelectedGoalId(assessment.goalId);
+                                      setMilestoneSelectionOpen(true);
+                                    }}
+                                  >
+                                    <Plus className="h-4 w-4 mr-1" />
+                                    Add Milestone
+                                  </Button>
+                                </div>
+                              </CardContent>
+                            </Card>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="summary" className="mt-0">
+                  {/* Summary content */}
+                </TabsContent>
+              </div>
+
+              <div className="flex justify-between pt-4 border-t mt-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleCancel}
+                >
+                  Cancel
+                </Button>
+
+                <div className="flex gap-2">
+                  {activeTab !== "details" && (
+                    <Button type="button" variant="outline" onClick={handleBack}>
+                      Back
+                    </Button>
+                  )}
+                  
+                  {activeTab !== "summary" ? (
+                    <Button type="button" onClick={handleNext}>
+                      Next
+                    </Button>
+                  ) : (
+                    <Button 
+                      type="submit"
+                      disabled={createSessionMutation.isPending}
+                      onClick={() => setIsSubmitting(true)}
+                    >
+                      {createSessionMutation.isPending ? "Creating..." : "Create Session"}
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </form>
+          </Form>
+        </Tabs>
+
+        {/* Milestone selection dialog */}
+        <MilestoneSelectionDialog
+          open={milestoneSelectionOpen}
+          onOpenChange={setMilestoneSelectionOpen}
+          subgoals={subgoals.filter(sg => sg.goalId === selectedGoalId)}
+          selectedMilestoneIds={selectedMilestoneIds}
+          onSelectMilestone={handleMilestoneSelection}
+        />
+
+        {/* Strategy selection dialog */}
+        <StrategySelectionDialog
+          open={strategySelectionOpen}
+          onOpenChange={setStrategySelectionOpen}
+          selectedStrategies={
+            currentGoalIndex !== null && currentMilestoneIndex !== null
+              ? selectedPerformanceAssessments[currentGoalIndex]?.milestones[currentMilestoneIndex]?.strategies || []
+              : []
+          }
+          milestoneId={selectedMilestoneId || 0}
+          onSelectStrategy={handleStrategySelection}
+        />
+
+        {/* Product selection dialog */}
+        <ProductSelectionDialog
+          open={productSelectionOpen}
+          onOpenChange={setProductSelectionOpen}
+          products={budgetItems.map(item => ({ 
+            ...item, 
+            availableQuantity: item.quantity - (selectedProducts.find(p => p.id === item.id)?.quantity || 0)
+          }))}
+          onSelectProduct={handleProductSelection}
+        />
+      </div>
+    );
+  }
+
+  // Non-fullscreen dialog mode
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleDialogOpenChange}>
       <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle>Create New Session</DialogTitle>
@@ -176,8 +651,361 @@ export function IntegratedSessionForm({
 
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 overflow-hidden flex flex-col flex-grow">
-              {/* Your form tabs and fields go here */}
-              
+              <div className="flex-grow overflow-auto pr-2">
+                <TabsContent value="details" className="space-y-6 mt-0">
+                  {/* Client selection */}
+                  <FormField
+                    control={form.control}
+                    name="session.clientId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Client</FormLabel>
+                        <Select
+                          onValueChange={(value) => {
+                            const id = parseInt(value);
+                            field.onChange(id);
+                            setClientId(id);
+                            const client = clients.find(c => c.id === id);
+                            if (client) {
+                              setSelectedClientName(client.name);
+                            }
+                          }}
+                          defaultValue={field.value ? field.value.toString() : undefined}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select client" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {clients.map((client) => (
+                              <SelectItem key={client.id} value={client.id.toString()}>
+                                {client.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  {/* Other session details fields */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="session.date"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-col">
+                          <FormLabel>Date</FormLabel>
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <FormControl>
+                                <Button
+                                  variant={"outline"}
+                                  className={`w-full pl-3 text-left font-normal ${!field.value ? "text-muted-foreground" : ""}`}
+                                >
+                                  {field.value ? (
+                                    format(field.value, "PPP")
+                                  ) : (
+                                    <span>Pick a date</span>
+                                  )}
+                                  <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                </Button>
+                              </FormControl>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                              <Calendar
+                                mode="single"
+                                selected={field.value}
+                                onSelect={field.onChange}
+                                disabled={(date) =>
+                                  date < new Date("1900-01-01")
+                                }
+                                initialFocus
+                              />
+                            </PopoverContent>
+                          </Popover>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="session.title"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Session Title</FormLabel>
+                          <FormControl>
+                            <Input {...field} placeholder="Enter session title" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="session.startTime"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Start Time</FormLabel>
+                          <FormControl>
+                            <Input {...field} type="time" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="session.endTime"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>End Time</FormLabel>
+                          <FormControl>
+                            <Input {...field} type="time" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  <FormField
+                    control={form.control}
+                    name="session.location"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Location</FormLabel>
+                        <FormControl>
+                          <Input {...field} placeholder="Enter session location" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="note.observations"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Observations</FormLabel>
+                        <FormControl>
+                          <Textarea
+                            {...field}
+                            placeholder="Enter session observations"
+                            className="min-h-[100px]"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </TabsContent>
+
+                <TabsContent value="participants" className="space-y-6 mt-0">
+                  {/* Participants tab content */}
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                      <h3 className="text-lg font-medium">Session Attendees</h3>
+                    </div>
+
+                    <div className="space-y-2">
+                      {selectedAllies.length > 0 ? (
+                        <div className="flex flex-wrap gap-2 mt-2">
+                          {selectedAllies.map((allyId) => {
+                            const ally = allies.find(a => a.id.toString() === allyId);
+                            return (
+                              <Badge 
+                                key={allyId} 
+                                variant="secondary"
+                                className="flex items-center gap-1 py-1.5"
+                              >
+                                <span>{ally?.name || "Unknown Attendee"}</span>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-4 w-4 p-0 text-muted-foreground hover:text-foreground"
+                                  onClick={() => {
+                                    const updated = selectedAllies.filter(id => id !== allyId);
+                                    setSelectedAllies(updated);
+                                    form.setValue("session.attendees", updated);
+                                  }}
+                                >
+                                  <X className="h-3 w-3" />
+                                </Button>
+                              </Badge>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <div className="border rounded-md p-6 text-center bg-muted/10">
+                          <p className="text-muted-foreground">
+                            No attendees added yet.
+                          </p>
+                        </div>
+                      )}
+                    </div>
+
+                    <div>
+                      <h3 className="text-sm font-medium mb-2">Available Allies</h3>
+                      <div className="grid grid-cols-1 gap-2 max-h-[300px] overflow-y-auto pr-2">
+                        {allies.length > 0 ? (
+                          allies.map((ally) => (
+                            <Card 
+                              key={ally.id} 
+                              className={`cursor-pointer hover:bg-muted/20 ${
+                                selectedAllies.includes(ally.id.toString()) ? "bg-muted/20" : ""
+                              }`}
+                              onClick={() => {
+                                if (!selectedAllies.includes(ally.id.toString())) {
+                                  const updated = [...selectedAllies, ally.id.toString()];
+                                  setSelectedAllies(updated);
+                                  form.setValue("session.attendees", updated);
+                                }
+                              }}
+                            >
+                              <CardContent className="p-3 flex justify-between items-center">
+                                <div>
+                                  <div className="font-medium">{ally.name}</div>
+                                  <div className="text-sm text-muted-foreground">{ally.role}</div>
+                                </div>
+                                {selectedAllies.includes(ally.id.toString()) && (
+                                  <Check className="h-4 w-4 text-primary" />
+                                )}
+                              </CardContent>
+                            </Card>
+                          ))
+                        ) : (
+                          <div className="text-center p-4 text-muted-foreground">
+                            No allies found for this client.
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="performance" className="space-y-6 mt-0">
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                      <h3 className="text-lg font-medium">Performance Assessment</h3>
+                      <Button 
+                        type="button" 
+                        onClick={() => setGoalSelectionOpen(true)}
+                        disabled={!clientId}
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add Goal
+                      </Button>
+                    </div>
+
+                    <GoalSelectionDialog
+                      open={goalSelectionOpen}
+                      onOpenChange={setGoalSelectionOpen}
+                      goals={goals}
+                      selectedGoalIds={selectedGoalIds}
+                      onSelectGoal={handleGoalSelection}
+                    />
+
+                    {selectedPerformanceAssessments.length === 0 ? (
+                      <div className="border rounded-md p-6 text-center bg-muted/10">
+                        <p className="text-muted-foreground">
+                          No goals selected yet. Click "Add Goal" to start assessment.
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {selectedPerformanceAssessments.map((assessment, goalIndex) => (
+                          <Card key={assessment.goalId} className="shadow-sm">
+                            <CardHeader className="pb-2">
+                              <CardTitle className="text-base font-medium flex items-center justify-between">
+                                <span>{assessment.goalTitle || `Goal ${goalIndex + 1}`}</span>
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm"
+                                  onClick={() => {
+                                    const updated = selectedPerformanceAssessments.filter((_, i) => i !== goalIndex);
+                                    setSelectedPerformanceAssessments(updated);
+                                    form.setValue("performanceAssessments", updated);
+                                  }}
+                                >
+                                  <Trash className="h-4 w-4" />
+                                </Button>
+                              </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                              {/* Milestone list */}
+                              <div className="space-y-2">
+                                {assessment.milestones.length > 0 ? (
+                                  assessment.milestones.map((milestone: any, milestoneIndex: number) => (
+                                    <div key={milestone.milestoneId} className="border rounded-md p-3">
+                                      <div className="flex justify-between items-start mb-2">
+                                        <div className="font-medium">{milestone.milestoneTitle || `Milestone ${milestoneIndex + 1}`}</div>
+                                        <Button 
+                                          variant="ghost" 
+                                          size="sm"
+                                          onClick={() => {
+                                            const updated = [...selectedPerformanceAssessments];
+                                            updated[goalIndex].milestones = updated[goalIndex].milestones
+                                              .filter((_: any, i: number) => i !== milestoneIndex);
+                                            setSelectedPerformanceAssessments(updated);
+                                            form.setValue("performanceAssessments", updated);
+                                          }}
+                                        >
+                                          <X className="h-4 w-4" />
+                                        </Button>
+                                      </div>
+                                      {/* Rating slider */}
+                                      <RatingSlider 
+                                        value={milestone.rating || 5}
+                                        onChange={(value) => {
+                                          const updated = [...selectedPerformanceAssessments];
+                                          updated[goalIndex].milestones[milestoneIndex].rating = value;
+                                          setSelectedPerformanceAssessments(updated);
+                                          form.setValue("performanceAssessments", updated);
+                                        }}
+                                        label="Performance Rating"
+                                      />
+                                    </div>
+                                  ))
+                                ) : (
+                                  <div className="text-sm text-muted-foreground p-2">
+                                    No milestones added. Click "Add Milestone" to assess progress.
+                                  </div>
+                                )}
+                              </div>
+                              <div className="mt-3">
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => {
+                                    setCurrentGoalIndex(goalIndex);
+                                    setSelectedGoalId(assessment.goalId);
+                                    setMilestoneSelectionOpen(true);
+                                  }}
+                                >
+                                  <Plus className="h-4 w-4 mr-1" />
+                                  Add Milestone
+                                </Button>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </TabsContent>
+              </div>
+
               <div className="flex justify-between mt-4 pt-4 border-t">
                 <div>
                   <Button
@@ -212,6 +1040,28 @@ export function IntegratedSessionForm({
             </form>
           </Form>
         </Tabs>
+
+        {/* Milestone selection dialog */}
+        <MilestoneSelectionDialog
+          open={milestoneSelectionOpen}
+          onOpenChange={setMilestoneSelectionOpen}
+          subgoals={subgoals.filter(sg => sg.goalId === selectedGoalId)}
+          selectedMilestoneIds={selectedMilestoneIds}
+          onSelectMilestone={handleMilestoneSelection}
+        />
+
+        {/* Strategy selection dialog */}
+        <StrategySelectionDialog
+          open={strategySelectionOpen}
+          onOpenChange={setStrategySelectionOpen}
+          selectedStrategies={
+            currentGoalIndex !== null && currentMilestoneIndex !== null
+              ? selectedPerformanceAssessments[currentGoalIndex]?.milestones[currentMilestoneIndex]?.strategies || []
+              : []
+          }
+          milestoneId={selectedMilestoneId || 0}
+          onSelectStrategy={handleStrategySelection}
+        />
       </DialogContent>
     </Dialog>
   );
