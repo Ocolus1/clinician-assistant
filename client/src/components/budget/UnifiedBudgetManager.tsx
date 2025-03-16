@@ -33,7 +33,8 @@ import { formatCurrency } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import { useBudgetFeature, BudgetPlan, BudgetItem } from "./BudgetFeatureContext";
+import { useBudgetFeature } from "./BudgetFeatureContext";
+import { BudgetItem } from "./BudgetTypes";
 import { Loader2, AlertCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { CatalogItem, RowBudgetItem } from "./BudgetTypes";
@@ -66,7 +67,7 @@ export function UnifiedBudgetManager({ clientId, selectedPlanId }: UnifiedBudget
   const getClientBudget = () => {
     // Calculate total budget from all budget items
     if (budgetItems && budgetItems.length > 0) {
-      return budgetItems.reduce((total, item) => {
+      return budgetItems.reduce((total: number, item: BudgetItem) => {
         const quantity = Number(item.quantity);
         const unitPrice = Number(item.unitPrice);
         return total + (quantity * unitPrice);
