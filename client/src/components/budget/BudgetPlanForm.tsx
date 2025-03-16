@@ -23,9 +23,10 @@ interface BudgetPlanFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   clientId: number;
+  onSuccess?: () => void;
 }
 
-export function BudgetPlanForm({ open, onOpenChange, clientId }: BudgetPlanFormProps) {
+export function BudgetPlanForm({ open, onOpenChange, clientId, onSuccess }: BudgetPlanFormProps) {
   const { toast } = useToast();
   
   // Form
@@ -55,6 +56,10 @@ export function BudgetPlanForm({ open, onOpenChange, clientId }: BudgetPlanFormP
       queryClient.invalidateQueries({ queryKey: [`/api/clients/${clientId}/budget-settings`] });
       form.reset();
       onOpenChange(false);
+      // Call the onSuccess callback if provided
+      if (onSuccess) {
+        onSuccess();
+      }
     },
     onError: (error) => {
       toast({

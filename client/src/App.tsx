@@ -10,6 +10,7 @@ import PrintSummary from "@/pages/PrintSummary";
 import ClientList from "@/pages/ClientList";
 import EnhancedClientList from "@/pages/EnhancedClientList";
 import ClientProfile from "@/pages/ClientProfile";
+import { BudgetPlanDetailsPage } from "@/components/budget/BudgetPlanDetailsPage";
 import Sessions from "@/pages/Sessions";
 import Settings from "@/pages/Settings";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -32,6 +33,7 @@ function Router() {
         <Route path="/client/:clientId/summary" component={Summary} />
         <Route path="/client/:id/profile" component={ClientProfile} />
         <Route path="/clients/:id/profile" component={ClientProfile} />
+        <Route path="/clients/:clientId/budget/:planId" component={BudgetPlanDetailsPage} />
         <Route path="/client/:id/print" component={PrintSummary} />
         <Route path="/sessions" component={Sessions} />
         <Route path="/settings" component={Settings} />

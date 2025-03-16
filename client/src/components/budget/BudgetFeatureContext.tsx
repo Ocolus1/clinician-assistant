@@ -50,6 +50,7 @@ interface BudgetFeatureContextType {
   totalBudget: number;
   remainingBudget: number;
   refreshData: () => void;
+  refreshBudgetSettings: () => void;
 }
 
 const BudgetFeatureContext = createContext<BudgetFeatureContextType | undefined>(undefined);

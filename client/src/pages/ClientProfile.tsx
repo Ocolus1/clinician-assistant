@@ -57,7 +57,7 @@ import type { Client, Ally, Goal, Subgoal, BudgetSettings, BudgetItem } from "@s
 import ClientPersonalInfo from "@/components/profile/ClientPersonalInfo";
 import ClientAllies from "@/components/profile/ClientAllies";
 import ClientGoals from "@/components/profile/ClientGoals";
-import { BudgetManagerView } from "@/components/budget/BudgetManagerView";
+import { BudgetPlansView } from "@/components/budget/BudgetPlansView";
 import ClientSessions from "@/components/profile/ClientSessions";
 import ClientReports from "@/components/profile/ClientReports";
 import AddAllyDialog from "@/components/profile/AddAllyDialog";
@@ -642,9 +642,9 @@ export default function ClientProfile() {
             </TabsContent>
             
             <TabsContent value="budget" className="mt-0">
-              {/* Use the new comprehensive BudgetManagerView for budget management */}
+              {/* Use the BudgetPlansView component to show grid of budget plans */}
               <div className="space-y-8">
-                <BudgetManagerView clientId={clientId} />
+                <BudgetPlansView clientId={clientId} />
               </div>
             </TabsContent>
             
