@@ -72,11 +72,23 @@ export function BudgetPlansView({ clientId, onViewPlan }: BudgetPlansViewProps) 
   
   // Mutation to deactivate the current active plan
   const deactivatePlanMutation = useMutation({
-    mutationFn: async (planId: number) => {
+    mutationFn: async (plan: BudgetSettings) => {
+      // We need to provide all the required fields from the existing plan
+      // and only update the isActive field
+      const dataToUpdate = {
+        ndisFunds: plan.ndisFunds,
+        endOfPlan: plan.endOfPlan || undefined,
+        planCode: plan.planCode || undefined,
+        planSerialNumber: plan.planSerialNumber || undefined,
+        isActive: false // Update this field
+      };
+      
+      console.log("Deactivating plan with data:", dataToUpdate);
+      
       return apiRequest(
         "PUT",
-        `/api/budget-settings/${planId}`, 
-        { isActive: false }
+        `/api/budget-settings/${plan.id}`, 
+        dataToUpdate
       );
     },
     onSuccess: () => {
@@ -107,8 +119,8 @@ export function BudgetPlansView({ clientId, onViewPlan }: BudgetPlansViewProps) 
   // Handle confirmation to proceed with creating a new plan
   const handleConfirmCreatePlan = () => {
     if (activePlan) {
-      // Deactivate the current active plan
-      deactivatePlanMutation.mutate(activePlan.id);
+      // Deactivate the current active plan by passing the entire plan object
+      deactivatePlanMutation.mutate(activePlan);
     }
     setConfirmDialogOpen(false);
   };
