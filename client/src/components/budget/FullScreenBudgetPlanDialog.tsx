@@ -27,7 +27,7 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { Tag, CalendarRange, DollarSign, Plus, Calculator } from "lucide-react";
-import { CatalogSelectionModal } from "./CatalogSelectionModal";
+import { CatalogSelectionModal } from "@/components/budget/CatalogSelectionModal";
 
 // Form Schema with validation
 const budgetPlanSchema = z.object({
