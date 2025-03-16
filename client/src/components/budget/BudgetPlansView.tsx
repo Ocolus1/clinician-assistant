@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { BudgetPlansGrid } from "./BudgetPlansGrid";
-import { EnhancedBudgetPlanDialog } from "./EnhancedBudgetPlanDialog";
+import { FullScreenBudgetPlanDialog } from "./FullScreenBudgetPlanDialog";
 import { Button } from "@/components/ui/button";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { BudgetSettings } from "@shared/schema";
@@ -129,8 +129,8 @@ export function BudgetPlansView({ clientId, onViewPlan }: BudgetPlansViewProps) 
         onViewPlan={onViewPlan}
       />
       
-      {/* Enhanced Budget Plan Dialog */}
-      <EnhancedBudgetPlanDialog
+      {/* Full Screen Budget Plan Dialog */}
+      <FullScreenBudgetPlanDialog
         open={createDialogOpen}
         onOpenChange={setCreateDialogOpen}
         clientId={clientId}
