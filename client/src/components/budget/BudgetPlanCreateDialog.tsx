@@ -58,7 +58,7 @@ import type { BudgetSettings, BudgetItemCatalog } from "@shared/schema";
 const createPlanSchema = z.object({
   planCode: z.string().min(1, "Plan code is required"),
   planSerialNumber: z.string().optional(),
-  availableFunds: z.number().positive("Available funds must be positive"),
+  ndisFunds: z.number().positive("NDIS funds must be positive"),
   isActive: z.boolean().default(false),
   endOfPlan: z.string().optional(),
 });
@@ -114,7 +114,7 @@ export function BudgetPlanCreateDialog({
     defaultValues: {
       planCode: "",
       planSerialNumber: generatePlanSerialNumber(),
-      availableFunds: 0,
+      ndisFunds: 0,
       isActive: !hasActivePlan, // Default to active if no active plan exists
       endOfPlan: undefined,
     },
@@ -367,7 +367,7 @@ export function BudgetPlanCreateDialog({
       form.reset({
         planCode: "",
         planSerialNumber: newSerialNumber,
-        availableFunds: 0,
+        ndisFunds: 0,
         isActive: !hasActivePlan,
         endOfPlan: undefined,
       });
@@ -452,12 +452,12 @@ export function BudgetPlanCreateDialog({
                   
                   <FormField
                     control={form.control}
-                    name="availableFunds"
+                    name="ndisFunds"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel className="text-sm font-medium flex items-center gap-1">
                           <DollarSign className="h-3.5 w-3.5" />
-                          Total Available Funds
+                          Total NDIS Funds
                         </FormLabel>
                         <FormControl>
                           <Input 
@@ -627,8 +627,8 @@ export function BudgetPlanCreateDialog({
                         </div>
                         
                         <div className="flex justify-between">
-                          <div className="font-medium">Available Funds:</div>
-                          <div className="font-medium text-gray-800">{formatCurrency(form.watch("availableFunds") || 0)}</div>
+                          <div className="font-medium">NDIS Funds:</div>
+                          <div className="font-medium text-gray-800">{formatCurrency(form.watch("ndisFunds") || 0)}</div>
                         </div>
                         
                         <div className="flex justify-between border-t border-gray-200 pt-2">
