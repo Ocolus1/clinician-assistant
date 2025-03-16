@@ -421,14 +421,14 @@ export function FullScreenBudgetPlanDialog({
                 </div>
               </div>
 
-              <DialogFooter className="mt-6 py-4 px-6 border-t sticky bottom-0 bg-white">
+              <div className="flex justify-end gap-2 mt-4">
                 <Button variant="outline" type="button" onClick={() => onOpenChange(false)}>
                   Cancel
                 </Button>
                 <Button type="submit" disabled={mutation.isPending || budgetItemsArray.length === 0}>
                   {mutation.isPending ? "Creating..." : "Create Budget Plan"}
                 </Button>
-              </DialogFooter>
+              </div>
             </form>
           </Form>
         </DialogContent>
