@@ -1,119 +1,141 @@
-import React, { useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
-import { PlusCircle, RefreshCw } from "lucide-react";
+import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { BudgetPlansGrid } from "./BudgetPlansGrid";
+import { EnhancedBudgetPlanDialog } from "./EnhancedBudgetPlanDialog";
 import { Button } from "@/components/ui/button";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { BudgetSettings } from "@shared/schema";
+import { Plus, CreditCard, RefreshCw, AlertCircle } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useToast } from "@/hooks/use-toast";
-import { formatCurrency } from "@/lib/utils";
-import { BudgetPlanCard } from "./BudgetPlanCard";
-import { useBudgetFeature } from "./BudgetFeatureContext";
-
-import type { BudgetSettings, BudgetItem } from "@shared/schema";
 
 interface BudgetPlansViewProps {
   clientId: number;
-  budgetPlans: BudgetSettings[];
-  budgetItems?: BudgetItem[];
-  isLoading: boolean;
-  onAddItem: (plan: BudgetSettings) => void;
+  onViewPlan?: (planId: number) => void;
 }
 
-export function BudgetPlansView({ 
-  clientId, 
-  budgetPlans, 
-  budgetItems = [], 
-  isLoading,
-  onAddItem
-}: BudgetPlansViewProps) {
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
-  const { setShowEditPlanDialog, setSelectedPlanId, setIsEditMode } = useBudgetFeature();
+export function BudgetPlansView({ clientId, onViewPlan }: BudgetPlansViewProps) {
+  // Dialog state
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
   
-  // Handle refresh
-  const handleRefresh = () => {
-    queryClient.invalidateQueries({ queryKey: ['/api/clients', clientId, 'budget/plans'] });
-    queryClient.invalidateQueries({ queryKey: ['/api/clients', clientId, 'budget-items'] });
+  // Fetch all budget plans for this client
+  const { 
+    data: budgetPlans = [], 
+    isLoading, 
+    isError, 
+    refetch 
+  } = useQuery<BudgetSettings[]>({
+    queryKey: [`/api/clients/${clientId}/budget-settings`, { all: true }],
+    queryFn: async () => {
+      try {
+        const res = await apiRequest("GET", `/api/clients/${clientId}/budget-settings?all=true`);
+        return res.json();
+      } catch (error) {
+        console.error("Error fetching budget plans:", error);
+        throw error;
+      }
+    },
+  });
+  
+  // Check if any of the plans is active
+  const hasActivePlan = budgetPlans.some(plan => plan.isActive);
+  
+  // Setup event listener for plan detail view
+  useEffect(() => {
+    const handleViewPlanDetails = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      if (customEvent.detail && customEvent.detail.planId && onViewPlan) {
+        onViewPlan(customEvent.detail.planId);
+      }
+    };
     
-    toast({
-      title: "Refreshed",
-      description: "Budget plan data has been refreshed.",
-    });
-  };
+    // Add event listener
+    document.addEventListener('view-plan-details', handleViewPlanDetails);
+    
+    // Clean up
+    return () => {
+      document.removeEventListener('view-plan-details', handleViewPlanDetails);
+    };
+  }, [onViewPlan]);
   
-  // Handle edit plan
-  const handleEditPlan = (plan: BudgetSettings) => {
-    setSelectedPlanId(plan.id);
-    setIsEditMode(true);
-    setShowEditPlanDialog(true);
-  };
+  // The creation functionality is now handled directly in the EnhancedBudgetPlanDialog
+  // using its own mutation and success callback
   
-  // Handle archive plan
-  const handleArchivePlan = (plan: BudgetSettings) => {
-    // This would be implemented with a mutation to update the plan's isActive status
-    toast({
-      title: plan.isActive ? "Plan Archived" : "Plan Restored",
-      description: `The plan has been ${plan.isActive ? 'archived' : 'restored'} successfully.`,
-    });
-  };
-  
-  // Loading state UI
+  // Loading state
   if (isLoading) {
     return (
-      <div className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="space-y-4">
-              <Skeleton className="h-48 w-full rounded-lg" />
-            </div>
+      <div className="space-y-4">
+        <div className="flex justify-between mb-6">
+          <h2 className="text-2xl font-semibold">Budget Plans</h2>
+          <Skeleton className="h-10 w-32" />
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {[...Array(3)].map((_, index) => (
+            <Skeleton key={index} className="h-64 w-full" />
           ))}
         </div>
       </div>
     );
   }
   
-  // Empty state UI
-  if (!budgetPlans.length) {
+  // Error state
+  if (isError) {
     return (
-      <div className="text-center p-8 border rounded-lg">
-        <div className="space-y-4">
-          <h3 className="text-lg font-medium">No Budget Plans</h3>
-          <p className="text-muted-foreground">
-            This client doesn't have any budget plans yet.
-            <br />
-            Create a new plan to start allocating funds.
-          </p>
+      <div className="space-y-4">
+        <div className="flex justify-between mb-6">
+          <h2 className="text-2xl font-semibold">Budget Plans</h2>
+          <Button onClick={() => refetch()}>
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Retry
+          </Button>
         </div>
+        
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>
+            Failed to load budget plans. Please try again.
+          </AlertDescription>
+        </Alert>
       </div>
     );
   }
   
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      {/* Header with Title and Create Button */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h3 className="text-lg font-medium">Budget Plans</h3>
-          <p className="text-muted-foreground">
-            Manage and track your client's budget plans.
+          <h2 className="text-2xl font-semibold">Budget Plans</h2>
+          <p className="text-sm text-gray-500">
+            Manage budget allocations for therapy and related services
           </p>
         </div>
-        <Button variant="outline" size="sm" onClick={handleRefresh}>
-          <RefreshCw className="h-4 w-4 mr-2" />
-          Refresh
+        
+        <Button 
+          onClick={() => setCreateDialogOpen(true)}
+          className="flex items-center gap-2"
+        >
+          <Plus className="h-4 w-4" />
+          Create New Plan
         </Button>
       </div>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {budgetPlans.map((plan) => (
-          <BudgetPlanCard
-            key={plan.id}
-            plan={plan}
-            budgetItems={budgetItems}
-            onEdit={handleEditPlan}
-            onAddItem={onAddItem}
-            onArchive={handleArchivePlan}
-          />
-        ))}
-      </div>
+      {/* Budget Plans Grid */}
+      <BudgetPlansGrid 
+        plans={budgetPlans} 
+        clientId={clientId} 
+        onViewPlan={onViewPlan}
+      />
+      
+      {/* Enhanced Budget Plan Dialog */}
+      <EnhancedBudgetPlanDialog
+        open={createDialogOpen}
+        onOpenChange={setCreateDialogOpen}
+        clientId={clientId}
+        onSuccess={refetch}
+      />
     </div>
   );
 }

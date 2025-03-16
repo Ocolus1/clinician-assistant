@@ -1,76 +1,118 @@
-import React, { createContext, useContext, useState, ReactNode } from "react";
-import { v4 as uuidv4 } from "uuid";
+import { createContext, useContext, ReactNode, useState } from "react";
+import { FIXED_BUDGET_AMOUNT, NDIS_FUNDS_AMOUNT } from "./BudgetFormSchema";
 
-// Context interface
-interface BudgetFeatureContextType {
-  // Plan ID generation
-  generatePlanCode: () => string;
+// Define BudgetPlan type directly here to avoid circular dependencies
+export interface BudgetPlan {
+  id: number;
+  clientId: number;
+  planSerialNumber: string | null;
+  planCode: string | null;
+  isActive: boolean | null;
+  ndisFunds: number;
+  endOfPlan: string | null;
+  createdAt: Date | null;
   
-  // Selected plan state
-  selectedPlanId: number | null;
-  setSelectedPlanId: (id: number | null) => void;
+  // Additional properties for UI display
+  active?: boolean;
+  archived?: boolean;
+  totalUsed?: number;
+  itemCount?: number;
+  percentUsed?: number;
   
-  // Dialog states
-  showEditPlanDialog: boolean;
-  setShowEditPlanDialog: (show: boolean) => void;
-  
-  // Edit mode
-  isEditMode: boolean;
-  setIsEditMode: (isEdit: boolean) => void;
+  // Mapped properties for consistent UI naming
+  planName?: string;
+  fundingSource?: string;
+  startDate?: string | null;
+  endDate?: string | null;
 }
 
-// Create the context
+// Budget item interface for use within the context
+export interface BudgetItem {
+  id: number;
+  clientId: number;
+  budgetSettingsId: number;
+  itemCode: string;
+  description: string;
+  quantity: number;
+  unitPrice: number;
+  name: string | null;
+  category: string | null;
+}
+
+interface BudgetFeatureContextType {
+  isEditing: boolean;
+  setIsEditing: (isEditing: boolean) => void;
+  activePlan: BudgetPlan | null;
+  setActivePlan: (plan: BudgetPlan | null) => void;
+  budgetItems: BudgetItem[];
+  setBudgetItems: (items: BudgetItem[]) => void;
+  totalAllocated: number;
+  totalBudget: number;
+  remainingBudget: number;
+  refreshData: () => void;
+}
+
 const BudgetFeatureContext = createContext<BudgetFeatureContextType | undefined>(undefined);
 
-// Provider component
 interface BudgetFeatureProviderProps {
   children: ReactNode;
+  clientId?: number;
+  initialPlan?: BudgetPlan | null;
+  initialItems?: BudgetItem[];
+  onRefresh?: () => void;
 }
 
-export function BudgetFeatureProvider({ children }: BudgetFeatureProviderProps) {
-  // Plan ID generation
-  const generatePlanCode = () => {
-    // Create a plan code with format BP-YYYY-XXXX where XXXX is random alphanumeric
-    const year = new Date().getFullYear();
-    const randomPart = uuidv4().substring(0, 4).toUpperCase();
-    return `BP-${year}-${randomPart}`;
-  };
+/**
+ * Provider component for budget feature state and context
+ */
+export function BudgetFeatureProvider({
+  children,
+  clientId,
+  initialPlan = null,
+  initialItems = [],
+  onRefresh
+}: BudgetFeatureProviderProps) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [activePlan, setActivePlan] = useState<BudgetPlan | null>(initialPlan);
+  const [budgetItems, setBudgetItems] = useState<BudgetItem[]>(initialItems);
   
-  // Selected plan state
-  const [selectedPlanId, setSelectedPlanId] = useState<number | null>(null);
+  // Calculate budget totals using client-specific budget from active plan
+  const totalBudget = activePlan?.ndisFunds ?? FIXED_BUDGET_AMOUNT;
+  const totalAllocated = budgetItems.reduce((total, item) => {
+    return total + (item.quantity * item.unitPrice);
+  }, 0);
+  const remainingBudget = totalBudget - totalAllocated;
   
-  // Dialog states
-  const [showEditPlanDialog, setShowEditPlanDialog] = useState(false);
-  
-  // Edit mode
-  const [isEditMode, setIsEditMode] = useState(false);
-  
-  // Context value
-  const value = {
-    // Plan ID generation
-    generatePlanCode,
-    
-    // Selected plan state
-    selectedPlanId,
-    setSelectedPlanId,
-    
-    // Dialog states
-    showEditPlanDialog,
-    setShowEditPlanDialog,
-    
-    // Edit mode
-    isEditMode,
-    setIsEditMode,
+  // Function to refresh data
+  const refreshData = () => {
+    if (onRefresh) {
+      onRefresh();
+    }
   };
   
   return (
-    <BudgetFeatureContext.Provider value={value}>
+    <BudgetFeatureContext.Provider
+      value={{
+        isEditing,
+        setIsEditing,
+        activePlan,
+        setActivePlan,
+        budgetItems,
+        setBudgetItems,
+        totalAllocated,
+        totalBudget,
+        remainingBudget,
+        refreshData
+      }}
+    >
       {children}
     </BudgetFeatureContext.Provider>
   );
 }
 
-// Custom hook to use the context
+/**
+ * Hook to access budget feature context
+ */
 export function useBudgetFeature() {
   const context = useContext(BudgetFeatureContext);
   
