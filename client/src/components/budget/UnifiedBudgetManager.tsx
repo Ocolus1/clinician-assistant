@@ -35,8 +35,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useBudgetFeature } from "./BudgetFeatureContext";
 import { BudgetItem } from "./BudgetTypes";
-import { Loader2, AlertCircle, LockIcon } from "lucide-react";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Loader2, AlertCircle, LockIcon, AlertTriangle } from "lucide-react";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { CatalogItem, RowBudgetItem } from "./BudgetTypes";
 
 // We're using the budgetItemSchema imported from BudgetFormSchema.ts
@@ -739,8 +739,9 @@ export function UnifiedBudgetManager({ clientId, selectedPlanId }: UnifiedBudget
   return (
     <Card>
       {isReadOnly && (
-        <Alert variant="warning" className="mb-4 bg-amber-50 border-amber-300">
-          <LockIcon className="h-4 w-4 text-amber-600" />
+        <Alert className="mb-4 bg-amber-50 border-amber-300">
+          <AlertTriangle className="h-4 w-4 text-amber-600" />
+          <AlertTitle className="text-amber-800">Read-Only Plan</AlertTitle>
           <AlertDescription className="text-amber-800">
             This budget plan is read-only because it's no longer active. You cannot make changes to inactive plans.
           </AlertDescription>
@@ -806,6 +807,11 @@ export function UnifiedBudgetManager({ clientId, selectedPlanId }: UnifiedBudget
               ) : !catalogQuery.data ? (
                 <div className="p-4 border border-amber-300 bg-amber-50 rounded-md text-amber-700">
                   No catalog items available. Please check your configuration.
+                </div>
+              ) : isReadOnly ? (
+                <div className="p-4 border border-amber-300 bg-amber-50 rounded-md text-amber-700 flex items-center">
+                  <LockIcon className="h-4 w-4 mr-2" />
+                  <span>Adding items is disabled for read-only budget plans.</span>
                 </div>
               ) : (
                 <BudgetCatalogSelector 
@@ -884,7 +890,7 @@ export function UnifiedBudgetManager({ clientId, selectedPlanId }: UnifiedBudget
               {/* Standalone save button that bypasses form submission */}
               <Button 
                 type="button" // Changed to button type to prevent form submission
-                disabled={saveMutation.isPending}
+                disabled={saveMutation.isPending || isReadOnly}
                 className="w-full md:w-auto"
                 onClick={() => {
                   console.log("Save button clicked directly");
