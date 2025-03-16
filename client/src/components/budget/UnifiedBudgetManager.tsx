@@ -43,9 +43,10 @@ import { CatalogItem, RowBudgetItem } from "./BudgetTypes";
 
 interface UnifiedBudgetManagerProps {
   clientId: number;
+  selectedPlanId?: number | null;
 }
 
-export function UnifiedBudgetManager({ clientId }: UnifiedBudgetManagerProps) {
+export function UnifiedBudgetManager({ clientId, selectedPlanId }: UnifiedBudgetManagerProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   

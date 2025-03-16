@@ -11,9 +11,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 interface BudgetPlansViewProps {
   clientId: number;
+  onViewPlan?: (planId: number) => void;
 }
 
-export function BudgetPlansView({ clientId }: BudgetPlansViewProps) {
+export function BudgetPlansView({ clientId, onViewPlan }: BudgetPlansViewProps) {
   // Dialog state
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   
@@ -121,7 +122,11 @@ export function BudgetPlansView({ clientId }: BudgetPlansViewProps) {
       </div>
       
       {/* Budget Plans Grid */}
-      <BudgetPlansGrid plans={budgetPlans} clientId={clientId} />
+      <BudgetPlansGrid 
+        plans={budgetPlans} 
+        clientId={clientId} 
+        onViewPlan={onViewPlan}
+      />
       
       {/* Create Plan Dialog */}
       <BudgetPlanCreateDialog

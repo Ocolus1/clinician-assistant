@@ -9,9 +9,10 @@ import { Search, Grid3X3, ListFilter } from "lucide-react";
 interface BudgetPlansGridProps {
   plans: BudgetSettings[];
   clientId: number;
+  onViewPlan?: (planId: number) => void;
 }
 
-export function BudgetPlansGrid({ plans, clientId }: BudgetPlansGridProps) {
+export function BudgetPlansGrid({ plans, clientId, onViewPlan }: BudgetPlansGridProps) {
   // Filter and sort state
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -62,6 +63,13 @@ export function BudgetPlansGrid({ plans, clientId }: BudgetPlansGridProps) {
     return 0;
   });
   
+  // Handle plan card click for plan details view
+  const handlePlanCardClick = (planId: number) => {
+    if (onViewPlan) {
+      onViewPlan(planId);
+    }
+  };
+  
   return (
     <div className="space-y-4">
       {/* Filters and Search */}
@@ -111,7 +119,13 @@ export function BudgetPlansGrid({ plans, clientId }: BudgetPlansGridProps) {
       {sortedPlans.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {sortedPlans.map((plan) => (
-            <BudgetPlanCard key={plan.id} plan={plan} clientId={clientId} />
+            <div 
+              key={plan.id} 
+              onClick={() => handlePlanCardClick(plan.id)}
+              className="cursor-pointer"
+            >
+              <BudgetPlanCard plan={plan} clientId={clientId} />
+            </div>
           ))}
         </div>
       ) : (
