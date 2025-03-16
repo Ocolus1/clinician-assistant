@@ -93,7 +93,7 @@ export function FullScreenBudgetPlanDialog({
       startDate: "",
       endDate: "",
       ndisFunds: "",
-      isActive: false,
+      isActive: true, // Always set to true
       budgetItems: [],
     },
   });
@@ -116,7 +116,7 @@ export function FullScreenBudgetPlanDialog({
       const transformedData: Partial<InsertBudgetSettings> = {
         endOfPlan: data.endDate, // We map the end date to the endOfPlan field
         ndisFunds: Number(data.ndisFunds),
-        isActive: data.isActive,
+        isActive: true, // Always set to active
         // Generate a serial number based on date if needed
         planSerialNumber: `BP-${new Date().getTime().toString().slice(-6)}`,
       };
@@ -205,9 +205,10 @@ export function FullScreenBudgetPlanDialog({
 
   // Submit handler
   function onSubmit(data: BudgetPlanFormValues) {
-    // Update the form data with the budgetItemsArray
+    // Update the form data with the budgetItemsArray and ensure isActive is true
     const updatedData = {
       ...data,
+      isActive: true, // Force to true
       budgetItems: budgetItemsArray,
     };
     
@@ -279,26 +280,15 @@ export function FullScreenBudgetPlanDialog({
                     </div>
                     
                     <div className="p-4 space-y-4">
-                      <FormField
-                        control={form.control}
-                        name="isActive"
-                        render={({ field }) => (
-                          <div className="flex items-center justify-between">
-                            <FormLabel className="cursor-pointer">Plan Status</FormLabel>
-                            <div className="flex items-center gap-2">
-                              <FormControl>
-                                <Switch
-                                  checked={field.value}
-                                  onCheckedChange={field.onChange}
-                                />
-                              </FormControl>
-                              <span className={field.value ? "text-green-600" : "text-gray-500"}>
-                                {field.value ? "Active" : "Inactive"}
-                              </span>
-                            </div>
-                          </div>
-                        )}
-                      />
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium">Plan Status</span>
+                        <div className="flex items-center gap-2">
+                          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-green-100">
+                            <span className="h-2.5 w-2.5 rounded-full bg-green-600"></span>
+                          </span>
+                          <span className="text-green-600">Active</span>
+                        </div>
+                      </div>
                       
                       <FormField
                         control={form.control}
