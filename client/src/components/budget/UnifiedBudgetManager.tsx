@@ -169,6 +169,7 @@ export function UnifiedBudgetManager({ clientId }: UnifiedBudgetManagerProps) {
             <BudgetPlansView 
               clientId={clientId}
               budgetPlans={budgetPlans}
+              budgetItems={budgetItems}
               isLoading={isLoading}
               onAddItem={handleOpenAddItemDialog}
             />

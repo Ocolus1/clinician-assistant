@@ -15,6 +15,7 @@ import {
 import { 
   Form, 
   FormControl, 
+  FormDescription,
   FormField, 
   FormItem, 
   FormLabel, 
@@ -342,7 +343,7 @@ export function EnhancedBudgetPlanDialog({
                       </div>
                       <FormControl>
                         <Switch
-                          checked={field.value}
+                          checked={field.value === true}
                           onCheckedChange={field.onChange}
                         />
                       </FormControl>
