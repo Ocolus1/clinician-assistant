@@ -1,12 +1,22 @@
 import { useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { BudgetPlansGrid } from "./BudgetPlansGrid";
 import { FullScreenBudgetPlanDialog } from "./FullScreenBudgetPlanDialog";
 import { Button } from "@/components/ui/button";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { BudgetSettings } from "@shared/schema";
-import { Plus, CreditCard, RefreshCw, AlertCircle } from "lucide-react";
+import { Plus, CreditCard, RefreshCw, AlertCircle, AlertTriangle } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { 
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 
 interface BudgetPlansViewProps {
@@ -15,8 +25,9 @@ interface BudgetPlansViewProps {
 }
 
 export function BudgetPlansView({ clientId, onViewPlan }: BudgetPlansViewProps) {
-  // Dialog state
+  // Dialog states
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   
   // Fetch all budget plans for this client
   const { 
@@ -37,8 +48,9 @@ export function BudgetPlansView({ clientId, onViewPlan }: BudgetPlansViewProps) 
     },
   });
   
-  // Check if any of the plans is active
-  const hasActivePlan = budgetPlans.some(plan => plan.isActive);
+  // Check if any of the plans is active and get the active plan
+  const activePlan = budgetPlans.find(plan => plan.isActive);
+  const hasActivePlan = !!activePlan;
   
   // Setup event listener for plan detail view
   useEffect(() => {
@@ -58,8 +70,48 @@ export function BudgetPlansView({ clientId, onViewPlan }: BudgetPlansViewProps) 
     };
   }, [onViewPlan]);
   
-  // The creation functionality is now handled directly in the EnhancedBudgetPlanDialog
-  // using its own mutation and success callback
+  // Mutation to deactivate the current active plan
+  const deactivatePlanMutation = useMutation({
+    mutationFn: async (planId: number) => {
+      return apiRequest(
+        "PUT",
+        `/api/budget-settings/${planId}`, 
+        { isActive: false }
+      );
+    },
+    onSuccess: () => {
+      // Refetch the plans to update the UI
+      queryClient.invalidateQueries({
+        queryKey: [`/api/clients/${clientId}/budget-settings`],
+      });
+      
+      // After successful deactivation, open the creation dialog
+      setCreateDialogOpen(true);
+    },
+    onError: (error) => {
+      console.error("Error deactivating plan:", error);
+    }
+  });
+  
+  // Handle create new plan button click
+  const handleCreateNewPlan = () => {
+    if (hasActivePlan && activePlan) {
+      // If an active plan exists, show confirmation dialog
+      setConfirmDialogOpen(true);
+    } else {
+      // No active plan, open creation dialog directly
+      setCreateDialogOpen(true);
+    }
+  };
+  
+  // Handle confirmation to proceed with creating a new plan
+  const handleConfirmCreatePlan = () => {
+    if (activePlan) {
+      // Deactivate the current active plan
+      deactivatePlanMutation.mutate(activePlan.id);
+    }
+    setConfirmDialogOpen(false);
+  };
   
   // Loading state
   if (isLoading) {
@@ -114,8 +166,9 @@ export function BudgetPlansView({ clientId, onViewPlan }: BudgetPlansViewProps) 
         </div>
         
         <Button 
-          onClick={() => setCreateDialogOpen(true)}
+          onClick={handleCreateNewPlan}
           className="flex items-center gap-2"
+          disabled={deactivatePlanMutation.isPending}
         >
           <Plus className="h-4 w-4" />
           Create New Plan
@@ -136,6 +189,40 @@ export function BudgetPlansView({ clientId, onViewPlan }: BudgetPlansViewProps) 
         clientId={clientId}
         onSuccess={refetch}
       />
+      
+      {/* Confirmation Dialog for Creating New Budget Plan */}
+      <AlertDialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-amber-500" />
+              Deactivate Current Budget Plan
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-gray-700 pt-2">
+              <p>
+                Creating a new budget plan will deactivate the current active plan 
+                <span className="font-medium"> {activePlan?.planSerialNumber}</span>.
+              </p>
+              <p className="mt-2">
+                The deactivated plan will still be visible and accessible for reference, but it will 
+                be set to read-only mode. No data will be lost.
+              </p>
+              <p className="mt-2">
+                Do you want to proceed?
+              </p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleConfirmCreatePlan}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              Proceed
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
