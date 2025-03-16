@@ -74,19 +74,19 @@ export function EnhancedBudgetPlanDialog({
     enabled: open,
   });
 
-  // Initialize form with default values
+  // Initialize form with minimal default values
   const form = useForm<BudgetPlanFormValues>({
     resolver: zodResolver(budgetPlanSchema),
     defaultValues: {
       startDate: "",
       endDate: "",
       ndisFunds: "",
-      isActive: false,
+      isActive: true, // Set to true by default for better UX
       budgetItems: [{
         itemCode: "",
         description: "",
-        quantity: "1",
-        unitPrice: "0",
+        quantity: "",
+        unitPrice: "",
       }],
     },
   });
@@ -112,12 +112,14 @@ export function EnhancedBudgetPlanDialog({
   const mutation = useMutation({
     mutationFn: async (data: BudgetPlanFormValues) => {
       // Transform form values to match API expectations
+      const planId = `BP-${new Date().getTime().toString().slice(-6)}`;
       const transformedData: Partial<InsertBudgetSettings> = {
+        // Note: startDate is not in the schema, so we don't include it
         endOfPlan: data.endDate, // We map the end date to the endOfPlan field
         ndisFunds: Number(data.ndisFunds),
         isActive: data.isActive,
-        // Generate a serial number based on date if needed
-        planSerialNumber: `BP-${new Date().getTime().toString().slice(-6)}`,
+        // Generate a serial number based on date
+        planSerialNumber: planId,
       };
 
       // Create budget plan
@@ -199,8 +201,8 @@ export function EnhancedBudgetPlanDialog({
     append({
       itemCode: "",
       description: "",
-      quantity: "1",
-      unitPrice: "0",
+      quantity: "",
+      unitPrice: "",
     });
   };
 
@@ -281,6 +283,7 @@ export function EnhancedBudgetPlanDialog({
                   <div className="space-y-2">
                     <FormLabel>Plan ID</FormLabel>
                     <div className="bg-gray-100 dark:bg-gray-800 p-2 rounded-md border border-gray-200 dark:border-gray-700 text-sm font-mono">
+                      {/* Using consistent ID format with the API transformation */}
                       {`BP-${new Date().getTime().toString().slice(-6)}`}
                     </div>
                     <p className="text-xs text-muted-foreground">This ID will be assigned to your plan automatically</p>
