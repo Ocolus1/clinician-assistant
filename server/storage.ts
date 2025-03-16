@@ -15,7 +15,7 @@ import {
   sessionNotes, performanceAssessments, milestoneAssessments, strategies
 } from "@shared/schema";
 import { db } from "./db";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 
 export interface IStorage {
   // Clients
@@ -513,6 +513,31 @@ export class DBStorage implements IStorage {
   async createBudgetSettings(clientId: number, settings: InsertBudgetSettings): Promise<BudgetSettings> {
     console.log(`Creating budget settings for client ${clientId}:`, JSON.stringify(settings));
     try {
+      // If the new plan is set to active, deactivate any existing active plans for this client
+      if (settings.isActive) {
+        console.log(`New plan is active, deactivating any existing active plans for client ${clientId}`);
+        
+        // Find all active plans for this client
+        const activePlans = await db.select()
+          .from(budgetSettings)
+          .where(and(
+            eq(budgetSettings.clientId, clientId),
+            eq(budgetSettings.isActive, true)
+          ));
+        
+        // If there are any active plans, deactivate them
+        if (activePlans.length > 0) {
+          console.log(`Found ${activePlans.length} active plans to deactivate`);
+          
+          for (const plan of activePlans) {
+            console.log(`Deactivating plan ${plan.id}`);
+            await db.update(budgetSettings)
+              .set({ isActive: false })
+              .where(eq(budgetSettings.id, plan.id));
+          }
+        }
+      }
+      
       // Process settings data for storage
       const processedSettings = {
         ...settings,
@@ -577,6 +602,43 @@ export class DBStorage implements IStorage {
   async updateBudgetSettings(id: number, settings: InsertBudgetSettings): Promise<BudgetSettings> {
     console.log(`Updating budget settings with ID ${id}:`, JSON.stringify(settings));
     try {
+      // First get the existing settings to check if active status is changing
+      const existingSettings = await db.select()
+        .from(budgetSettings)
+        .where(eq(budgetSettings.id, id));
+      
+      if (existingSettings.length === 0) {
+        console.error(`Budget settings with ID ${id} not found`);
+        throw new Error("Budget settings not found");
+      }
+      
+      const existing = existingSettings[0];
+      
+      // If this plan is being activated and it wasn't active before, deactivate other active plans
+      if (settings.isActive === true && existing.isActive === false) {
+        console.log(`Plan ${id} is being activated, deactivating other active plans for client ${existing.clientId}`);
+        
+        // Find all other active plans for this client
+        const activePlans = await db.select()
+          .from(budgetSettings)
+          .where(and(
+            eq(budgetSettings.clientId, existing.clientId),
+            eq(budgetSettings.isActive, true)
+          ));
+        
+        // If there are any active plans, deactivate them
+        if (activePlans.length > 0) {
+          console.log(`Found ${activePlans.length} active plans to deactivate`);
+          
+          for (const plan of activePlans) {
+            console.log(`Deactivating plan ${plan.id}`);
+            await db.update(budgetSettings)
+              .set({ isActive: false })
+              .where(eq(budgetSettings.id, plan.id));
+          }
+        }
+      }
+      
       // Process settings data for update
       const processedSettings = {
         ...settings,
@@ -588,11 +650,6 @@ export class DBStorage implements IStorage {
         .set(processedSettings)
         .where(eq(budgetSettings.id, id))
         .returning();
-      
-      if (!updatedSettings) {
-        console.error(`Budget settings with ID ${id} not found`);
-        throw new Error("Budget settings not found");
-      }
       
       console.log(`Successfully updated budget settings with ID ${id}`);
       return updatedSettings;
