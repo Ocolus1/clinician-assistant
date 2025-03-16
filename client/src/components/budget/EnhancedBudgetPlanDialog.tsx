@@ -24,7 +24,6 @@ import { formatCurrency } from "@/lib/utils";
 
 // Form Schema with validation
 const budgetPlanSchema = z.object({
-  planName: z.string().min(1, "Plan name is required"),
   startDate: z.string().min(1, "Start date is required"),
   endDate: z.string().min(1, "End date is required"),
   ndisFunds: z.string().min(1, "NDIS funds amount is required")
@@ -80,7 +79,6 @@ export function EnhancedBudgetPlanDialog({
   const form = useForm<BudgetPlanFormValues>({
     resolver: zodResolver(budgetPlanSchema),
     defaultValues: {
-      planName: "Therapy Budget Plan",
       startDate: new Date().toISOString().split("T")[0],
       endDate: new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString().split("T")[0],
       ndisFunds: "10000",
@@ -117,7 +115,6 @@ export function EnhancedBudgetPlanDialog({
     mutationFn: async (data: BudgetPlanFormValues) => {
       // Transform form values to match API expectations
       const transformedData: Partial<InsertBudgetSettings> = {
-        planName: data.planName,
         startDate: new Date(data.startDate),
         endDate: new Date(data.endDate),
         ndisFunds: Number(data.ndisFunds),
@@ -223,7 +220,7 @@ export function EnhancedBudgetPlanDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl max-h-[90vh] overflow-hidden flex flex-col" size="lg">
+      <DialogContent className="max-w-5xl max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold">Create New Budget Plan</DialogTitle>
         </DialogHeader>
@@ -235,20 +232,6 @@ export function EnhancedBudgetPlanDialog({
               <div className="space-y-6 overflow-y-auto p-2">
                 <div className="space-y-4">
                   <h3 className="text-lg font-semibold">Plan Details</h3>
-                  
-                  <FormField
-                    control={form.control}
-                    name="planName"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Plan Name</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Enter plan name" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
                   
                   <div className="grid grid-cols-2 gap-4">
                     <FormField
@@ -520,7 +503,7 @@ export function EnhancedBudgetPlanDialog({
                     <div className="space-y-2">
                       <div className="flex justify-between items-start">
                         <h4 className="font-medium text-base">
-                          {form.watch("planName") || "Unnamed Plan"}
+                          Budget Plan
                         </h4>
                         {form.watch("isActive") && (
                           <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
