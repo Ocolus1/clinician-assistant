@@ -21,7 +21,8 @@ import {
   Edit,
   Trash,
   Calendar,
-  RefreshCw
+  RefreshCw,
+  AlertCircle
 } from "lucide-react";
 import { integratedSessionFormSchema } from "@/hooks/sessions/useSessionForm";
 import { apiRequest } from "@/lib/queryClient";
@@ -50,6 +51,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+} from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
@@ -296,15 +302,15 @@ export function IntegratedSessionForm({
     onOpenChange(false); // Close the dialog
   }
   
+  // Add state for cancel dialog
+  const [showCancelDialog, setShowCancelDialog] = useState(false);
+
   // Handle dialog close attempt
   const handleDialogOpenChange = (open: boolean) => {
     if (!open && !isSubmitting) {
       // If closing the dialog and not in submitting state, confirm with user
       if (form.formState.isDirty) {
-        const confirmed = window.confirm("You have unsaved changes. Are you sure you want to close this form?");
-        if (confirmed) {
-          onOpenChange(false);
-        }
+        setShowCancelDialog(true); // Show the cancel confirmation dialog
       } else {
         onOpenChange(false);
       }
@@ -633,14 +639,42 @@ export function IntegratedSessionForm({
 
   // Non-fullscreen dialog mode
   return (
-    <Dialog open={open} onOpenChange={handleDialogOpenChange}>
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-hidden flex flex-col">
-        <DialogHeader>
-          <DialogTitle>Create New Session</DialogTitle>
-          <DialogDescription>
-            Record a therapy session with assessment and notes
-          </DialogDescription>
-        </DialogHeader>
+    <>
+      {/* Cancel Confirmation Dialog */}
+      <Dialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Cancel Session Creation</DialogTitle>
+          </DialogHeader>
+          <div className="py-3">
+            <p>Are you sure you want to cancel? All unsaved changes will be lost.</p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowCancelDialog(false)}>
+              Continue Editing
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={() => {
+                setShowCancelDialog(false);
+                onOpenChange(false);
+              }}
+            >
+              Discard Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Main Form Dialog */}
+      <Dialog open={open} onOpenChange={handleDialogOpenChange}>
+        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle>Create New Session</DialogTitle>
+            <DialogDescription>
+              Record a therapy session with assessment and notes
+            </DialogDescription>
+          </DialogHeader>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-grow flex flex-col overflow-hidden">
           <TabsList className="grid grid-cols-3 mb-4">
@@ -1064,5 +1098,6 @@ export function IntegratedSessionForm({
         />
       </DialogContent>
     </Dialog>
+    </>
   );
 }
