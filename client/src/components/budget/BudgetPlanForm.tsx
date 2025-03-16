@@ -1,90 +1,142 @@
-import React from 'react';
-import { z } from 'zod';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { useMutation } from '@tanstack/react-query';
-import { apiRequest } from '@/lib/queryClient';
-import { queryClient } from '@/lib/queryClient';
-import { useToast } from '@/hooks/use-toast';
+import { useState } from "react";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { Loader2 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { CalendarIcon } from "lucide-react";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
+import { format } from "date-fns";
 
-// Form schema
-const budgetPlanSchema = z.object({
-  planCode: z.string().min(1, 'Plan code is required'),
-  availableFunds: z.coerce.number().min(1, 'Available funds must be greater than 0'),
+// Zod schema for form validation
+const budgetPlanFormSchema = z.object({
+  planCode: z.string().min(1, "Plan code is required"),
+  planSerialNumber: z.string().optional(),
+  ndisFunds: z
+    .number({ 
+      required_error: "Amount is required", 
+      invalid_type_error: "Amount must be a number" 
+    })
+    .min(0, "Amount must be at least 0"),
+  endOfPlan: z.date().optional(),
 });
 
-type BudgetPlanFormValues = z.infer<typeof budgetPlanSchema>;
+type BudgetPlanFormValues = z.infer<typeof budgetPlanFormSchema>;
 
 interface BudgetPlanFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   clientId: number;
   onSuccess?: () => void;
+  initialValues?: Partial<BudgetPlanFormValues>;
 }
 
-export function BudgetPlanForm({ open, onOpenChange, clientId, onSuccess }: BudgetPlanFormProps) {
+export function BudgetPlanForm({ 
+  open, 
+  onOpenChange, 
+  clientId, 
+  onSuccess,
+  initialValues
+}: BudgetPlanFormProps) {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [endDate, setEndDate] = useState<Date | undefined>(
+    initialValues?.endOfPlan ? new Date(initialValues.endOfPlan) : undefined
+  );
   
-  // Form
+  // Initialize form with default values
   const form = useForm<BudgetPlanFormValues>({
-    resolver: zodResolver(budgetPlanSchema),
+    resolver: zodResolver(budgetPlanFormSchema),
     defaultValues: {
-      planCode: '',
-      availableFunds: 375, // Default budget amount
-    }
+      planCode: initialValues?.planCode || "",
+      planSerialNumber: initialValues?.planSerialNumber || "",
+      ndisFunds: initialValues?.ndisFunds || 0,
+      endOfPlan: initialValues?.endOfPlan,
+    },
   });
   
-  // Mutation for creating a budget plan
+  // Create the mutation for creating a new budget plan
   const createPlanMutation = useMutation({
-    mutationFn: (data: BudgetPlanFormValues) => {
-      // Use correct budget-settings endpoint instead of budget/plans
-      return apiRequest('POST', `/api/clients/${clientId}/budget-settings`, {
-        ...data,
-        clientId,
-        isActive: true,
+    mutationFn: async (data: BudgetPlanFormValues) => {
+      const response = await fetch(`/api/clients/${clientId}/budget-settings`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          ...data,
+          clientId,
+          isActive: false, // New plans are not active by default
+          endOfPlan: data.endOfPlan ? format(data.endOfPlan, "yyyy-MM-dd") : null,
+        }),
       });
+      
+      if (!response.ok) {
+        throw new Error("Failed to create budget plan");
+      }
+      
+      return response.json();
     },
     onSuccess: () => {
       toast({
-        title: 'Success',
-        description: 'Budget plan created successfully',
+        title: "Budget Plan Created",
+        description: "The budget plan has been created successfully.",
       });
-      queryClient.invalidateQueries({ queryKey: [`/api/clients/${clientId}/budget-settings`] });
-      form.reset();
+      
+      // Invalidate the budget settings query to refresh the data
+      queryClient.invalidateQueries({ 
+        queryKey: [`/api/clients/${clientId}/budget-settings`] 
+      });
+      
+      // Close the dialog
       onOpenChange(false);
-      // Call the onSuccess callback if provided
+      
+      // Execute the onSuccess callback if provided
       if (onSuccess) {
         onSuccess();
       }
+      
+      // Reset the form
+      form.reset();
     },
     onError: (error) => {
+      console.error("Error creating budget plan:", error);
       toast({
-        title: 'Error',
-        description: 'Failed to create budget plan. Please try again.',
-        variant: 'destructive',
+        title: "Error",
+        description: "There was an error creating the budget plan. Please try again.",
+        variant: "destructive",
       });
-      console.error('Failed to create budget plan:', error);
-    }
+    },
   });
-  
-  // Submit handler
-  const onSubmit = (data: BudgetPlanFormValues) => {
+
+  // Handle form submission
+  function onSubmit(data: BudgetPlanFormValues) {
     createPlanMutation.mutate(data);
-  };
-  
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>Create New Budget Plan</DialogTitle>
+          <DialogDescription>
+            Add a new budget plan for this client. All fields are required.
+          </DialogDescription>
         </DialogHeader>
         
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
             <FormField
               control={form.control}
               name="planCode"
@@ -92,8 +144,11 @@ export function BudgetPlanForm({ open, onOpenChange, clientId, onSuccess }: Budg
                 <FormItem>
                   <FormLabel>Plan Code</FormLabel>
                   <FormControl>
-                    <Input {...field} placeholder="Enter plan code or reference" />
+                    <Input placeholder="e.g. NDIS-2024-01" {...field} />
                   </FormControl>
+                  <FormDescription>
+                    A unique identifier for this budget plan
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -101,30 +156,106 @@ export function BudgetPlanForm({ open, onOpenChange, clientId, onSuccess }: Budg
             
             <FormField
               control={form.control}
-              name="availableFunds"
+              name="planSerialNumber"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Available Funds</FormLabel>
+                  <FormLabel>Plan Serial Number (Optional)</FormLabel>
+                  <FormControl>
+                    <Input placeholder="e.g. NDIS-123456789" {...field} />
+                  </FormControl>
+                  <FormDescription>
+                    The official serial number for this plan
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="ndisFunds"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Total Budget Amount</FormLabel>
                   <FormControl>
                     <Input 
-                      {...field} 
                       type="number" 
-                      min={1}
-                      step={0.01}
-                      placeholder="Enter available funds" 
+                      placeholder="0.00" 
+                      {...field} 
+                      onChange={(e) => field.onChange(parseFloat(e.target.value))}
                     />
                   </FormControl>
+                  <FormDescription>
+                    The total amount of funds available for this plan
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="endOfPlan"
+              render={({ field }) => (
+                <FormItem className="flex flex-col">
+                  <FormLabel>Plan End Date (Optional)</FormLabel>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <FormControl>
+                        <Button
+                          variant={"outline"}
+                          className={cn(
+                            "w-full pl-3 text-left font-normal",
+                            !field.value && "text-muted-foreground"
+                          )}
+                        >
+                          {field.value ? (
+                            format(field.value, "PPP")
+                          ) : (
+                            <span>Pick a date</span>
+                          )}
+                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                        </Button>
+                      </FormControl>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="center">
+                      <Calendar
+                        mode="single"
+                        selected={field.value}
+                        onSelect={(date) => {
+                          field.onChange(date);
+                          setEndDate(date);
+                        }}
+                        disabled={(date) => date < new Date()}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  <FormDescription>
+                    The date when this budget plan expires
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
             />
             
             <DialogFooter>
-              <Button 
-                type="submit" 
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => onOpenChange(false)}
                 disabled={createPlanMutation.isPending}
               >
-                {createPlanMutation.isPending ? 'Creating...' : 'Create Plan'}
+                Cancel
+              </Button>
+              <Button 
+                type="submit"
+                disabled={createPlanMutation.isPending}
+              >
+                {createPlanMutation.isPending && (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                )}
+                Create Plan
               </Button>
             </DialogFooter>
           </form>

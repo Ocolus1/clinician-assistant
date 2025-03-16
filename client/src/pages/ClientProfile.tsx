@@ -281,13 +281,11 @@ export default function ClientProfile() {
 
   // Calculate budget percentage - safely handle nullish values
   const budgetPercentage = useMemo(() => {
-    if (!budgetSettings || !budgetSettings.availableFunds) return 0;
+    if (!budgetSettings || !budgetSettings.ndisFunds) return 0;
     
-    const availableFunds = typeof budgetSettings.availableFunds === 'string' 
-      ? parseFloat(budgetSettings.availableFunds) 
-      : budgetSettings.availableFunds;
+    const totalFunds = budgetSettings.ndisFunds;
     
-    return availableFunds > 0 ? (totalBudget / availableFunds) * 100 : 0;
+    return totalFunds > 0 ? (totalBudget / totalFunds) * 100 : 0;
   }, [totalBudget, budgetSettings]);
 
   // Loading state
