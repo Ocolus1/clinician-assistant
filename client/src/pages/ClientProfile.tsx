@@ -57,7 +57,7 @@ import type { Client, Ally, Goal, Subgoal, BudgetSettings, BudgetItem } from "@s
 import ClientPersonalInfo from "@/components/profile/ClientPersonalInfo";
 import ClientAllies from "@/components/profile/ClientAllies";
 import ClientGoals from "@/components/profile/ClientGoals";
-import { BudgetManagerView } from "@/components/budget/BudgetManagerView";
+import { UnifiedBudgetManager } from "@/components/budget/UnifiedBudgetManager";
 import ClientSessions from "@/components/profile/ClientSessions";
 import ClientReports from "@/components/profile/ClientReports";
 import AddAllyDialog from "@/components/profile/AddAllyDialog";
@@ -642,9 +642,23 @@ export default function ClientProfile() {
             </TabsContent>
             
             <TabsContent value="budget" className="mt-0">
-              {/* Use the new comprehensive BudgetManagerView for budget management */}
+              {/* Use the UnifiedBudgetManager for improved budget management */}
               <div className="space-y-8">
-                <BudgetManagerView clientId={clientId} />
+                {/* Replace the old BudgetManagerView with our new component */}
+                <div className="flex justify-between items-center mb-4">
+                  <div>
+                    <h3 className="text-lg font-medium">Budget Management</h3>
+                    <p className="text-gray-500">
+                      Manage budget plans and track funding allocations for this client.
+                    </p>
+                  </div>
+                </div>
+                
+                {/* Import the UnifiedBudgetManager from the components/budget directory */}
+                {/* This component handles both budget plans and budget items */}
+                <div className="mt-6">
+                  <UnifiedBudgetManager clientId={clientId} />
+                </div>
               </div>
             </TabsContent>
             
