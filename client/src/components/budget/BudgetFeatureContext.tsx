@@ -1,5 +1,5 @@
 import { createContext, useContext, ReactNode, useState } from "react";
-import { FIXED_BUDGET_AMOUNT, AVAILABLE_FUNDS_AMOUNT } from "./BudgetFormSchema";
+import { FIXED_BUDGET_AMOUNT, NDIS_FUNDS_AMOUNT } from "./BudgetFormSchema";
 
 // Define BudgetPlan type directly here to avoid circular dependencies
 export interface BudgetPlan {

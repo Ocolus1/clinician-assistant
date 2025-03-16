@@ -8,7 +8,7 @@ import { z } from 'zod';
  * These values are kept as fallbacks only.
  */
 export const FIXED_BUDGET_AMOUNT = 2000; // Fixed budget amount for all clients
-export const AVAILABLE_FUNDS_AMOUNT = 0; // Placeholder, use client-specific values instead
+export const NDIS_FUNDS_AMOUNT = 0; // Placeholder, use client-specific values instead
 export const INITIAL_USED_AMOUNT = 0; // Placeholder, use client-specific values instead
 
 // Used quantities for budget items are now retrieved from the API
