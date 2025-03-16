@@ -384,7 +384,9 @@ export function EnhancedBudgetPlanCreateWizard({
                         <div className="text-sm font-medium">Plan Duration</div>
                         <div className="text-2xl font-bold">
                           {form.getValues().endOfPlan ? 
-                            format(form.getValues().endOfPlan, 'MMM d, yyyy') : 
+                            (form.getValues().endOfPlan instanceof Date ? 
+                              format(form.getValues().endOfPlan, 'MMM d, yyyy') : 
+                              'Invalid date') : 
                             'No end date'}
                         </div>
                         <div className="text-xs text-muted-foreground">
