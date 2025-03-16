@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { BudgetPlansGrid } from "./BudgetPlansGrid";
-import { BudgetPlanCreateDialog } from "./BudgetPlanCreateDialog";
+import { EnhancedBudgetPlanDialog } from "./EnhancedBudgetPlanDialog";
 import { Button } from "@/components/ui/button";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { BudgetSettings } from "@shared/schema";
@@ -58,25 +58,8 @@ export function BudgetPlansView({ clientId, onViewPlan }: BudgetPlansViewProps) 
     };
   }, [onViewPlan]);
   
-  // Handle create plan form submission
-  const handleCreatePlan = async (data: any) => {
-    try {
-      await apiRequest("POST", `/api/clients/${clientId}/budget-settings`, data);
-      
-      // Invalidate relevant queries to refresh the data
-      queryClient.invalidateQueries({ 
-        queryKey: [`/api/clients/${clientId}/budget-settings`]
-      });
-      
-      // Close the create dialog
-      setCreateDialogOpen(false);
-      
-      return true;
-    } catch (error) {
-      console.error("Error creating budget plan:", error);
-      return false;
-    }
-  };
+  // The creation functionality is now handled directly in the EnhancedBudgetPlanDialog
+  // using its own mutation and success callback
   
   // Loading state
   if (isLoading) {
@@ -146,13 +129,12 @@ export function BudgetPlansView({ clientId, onViewPlan }: BudgetPlansViewProps) 
         onViewPlan={onViewPlan}
       />
       
-      {/* Create Plan Dialog */}
-      <BudgetPlanCreateDialog
+      {/* Enhanced Budget Plan Dialog */}
+      <EnhancedBudgetPlanDialog
         open={createDialogOpen}
         onOpenChange={setCreateDialogOpen}
-        onSubmit={handleCreatePlan}
-        existingPlans={budgetPlans}
-        hasActivePlan={hasActivePlan}
+        clientId={clientId}
+        onSuccess={refetch}
       />
     </div>
   );

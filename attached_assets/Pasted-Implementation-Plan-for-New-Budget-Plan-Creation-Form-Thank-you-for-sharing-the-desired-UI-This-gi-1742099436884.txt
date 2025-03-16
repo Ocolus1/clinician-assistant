@@ -1,0 +1,116 @@
+Implementation Plan for New Budget Plan Creation Form
+Thank you for sharing the desired UI! This gives me a clear picture of what you're looking to implement. I can see this is a much more comprehensive and user-friendly interface compared to the current modal dialog.
+Form Analysis
+Looking at the image you provided, I notice these key components:
+1.	Two-panel layout: Left panel shows planned budget items with a total, right panel has settings and entry forms
+2.	Budget Settings section:
+•	Plan Status toggle (Active/Inactive)
+•	NDIS Funds input with real-time Surplus calculation
+•	End of Plan Date picker
+3.	Budget Item Entry section:
+•	Item selector with catalog integration
+•	"Add New Catalog Item" option
+•	"Add Budget Item" button
+4.	Navigation buttons:
+•	Previous (presumably to go back to another step)
+•	Save & Continue (to create the plan and possibly proceed to next step)
+Implementation Strategy
+To implement this form as a replacement for the current "Add New Plan" dialog while maintaining consistency with the onboarding flow, here's my suggested approach:
+1. Component Identification and Extraction
+First, we need to identify the onboarding budget form component to adapt it:
+client/src/components/onboarding/BudgetPlanningForm.tsx
+This component likely contains the layout and functionality we see in the image.
+2. Create a Reusable Component
+Extract the core functionality into a standalone component that can be used in both contexts:
+// New component: client/src/components/budget/BudgetPlanFormShared.tsx
+ 
+interface BudgetPlanFormSharedProps {
+  clientId: number;
+  initialValues?: {
+    ndisFunds?: number;
+    planStatus?: boolean;
+    endDate?: string;
+    items?: BudgetItem[];
+  };
+  onSubmit: (formData: BudgetPlanFormValues) => Promise<void>;
+  onCancel?: () => void;
+  submitButtonText?: string;
+  showPreviousButton?: boolean;
+  onPrevious?: () => void;
+  mode: 'create' | 'edit' | 'onboarding';
+}
+3. Adapt for Dialog Context
+Create a dialog wrapper that uses this shared component:
+// client/src/components/budget/NewBudgetPlanDialog.tsx
+ 
+export function NewBudgetPlanDialog({
+  open,
+  onOpenChange,
+  clientId,
+  onSubmitSuccess
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  clientId: number;
+  onSubmitSuccess?: () => void;
+}) {
+  const handleSubmit = async (formData: BudgetPlanFormValues) => {
+    try {
+      // API call to create new plan
+      // Close dialog on success
+      onOpenChange(false);
+      if (onSubmitSuccess) onSubmitSuccess();
+    } catch (error) {
+      // Handle error
+    }
+  };
+ 
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-5xl p-0 overflow-hidden">
+        <BudgetPlanFormShared
+          clientId={clientId}
+          onSubmit={handleSubmit}
+          onCancel={() => onOpenChange(false)}
+          submitButtonText="Save Plan"
+          showPreviousButton={false}
+          mode="create"
+        />
+      </DialogContent>
+    </Dialog>
+  );
+}
+4. Integration with Existing Code
+Update the BudgetPlansView component to use our new dialog:
+// In BudgetPlansView.tsx
+import { NewBudgetPlanDialog } from "./NewBudgetPlanDialog";
+ 
+// Replace the existing dialog with our new one
+<NewBudgetPlanDialog
+  open={createDialogOpen}
+  onOpenChange={setCreateDialogOpen}
+  clientId={clientId}
+  onSubmitSuccess={() => {
+    // Refresh budget plans data
+    refetch();
+  }}
+/>
+5. Data Flow Consistency
+Ensure both the onboarding form and the dialog form:
+•	Use the same validation logic
+•	Have consistent API interactions
+•	Share the same state management patterns
+•	Use the same item catalog data source
+Implementation Challenges and Solutions
+1.	Dialog Size: The current dialog might be too small for this richer UI. Solution: Use a full-width dialog or sheet component.
+2.	State Management: The form has complex state (items, calculations). Solution: Extract all state logic into custom hooks that can be reused.
+3.	Context Requirements: The form might depend on context providers. Solution: Ensure all required providers are available in both scenarios.
+4.	Navigation Flow: The onboarding version might expect specific navigation patterns. Solution: Make navigation callbacks optional and configurable.
+Technical Implementation Steps
+1.	First, create the shared form component by extracting from the onboarding version
+2.	Build the dialog wrapper with appropriate sizing and styling
+3.	Update the BudgetPlansView to use the new dialog
+4.	Test in both contexts to ensure consistency
+5.	Refine the user experience based on testing feedback
+The key is maintaining the exact same visual design and interaction patterns while adapting the form's behavior for the different context of adding a plan to an existing client.
+Would you like me to start implementing this right away, or would you like me to first examine the current onboarding form to refine this plan further?
