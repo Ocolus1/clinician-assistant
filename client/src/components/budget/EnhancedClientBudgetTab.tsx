@@ -1,13 +1,8 @@
-import React, { useState } from "react";
-import { BudgetFeatureProvider, useBudgetFeature } from "./BudgetFeatureContext";
+import React, { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
-import { Card, CardContent } from "../ui/card";
-import { Skeleton } from "../ui/skeleton";
-import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
-import { Button } from "../ui/button";
-import { AlertCircle, RefreshCw } from "lucide-react";
-import { EnhancedBudgetPlansView } from "./EnhancedBudgetPlansView";
-import { BudgetPlanDetails } from "./BudgetPlanDetailsIntegrated";
+import { BudgetFeatureProvider, useBudgetFeature, BudgetPlan } from "./BudgetFeatureContext";
+import { EnhancedBudgetCardGrid } from "./EnhancedBudgetCardGrid";
+import { BudgetPlanFullView } from "./BudgetPlanFullView";
 
 interface EnhancedClientBudgetTabProps {
   clientId: number;
@@ -17,109 +12,101 @@ interface EnhancedClientBudgetTabProps {
 
 /**
  * Budget tab contents that use the BudgetFeatureContext
- * Shows either the plan overview or plan details based on the selected plan
  */
 function BudgetTabContents({ clientId }: { clientId: number }) {
-  // Get budget state from context
-  const { 
-    budgetPlans, 
-    isLoading, 
-    error, 
-    refreshData, 
-    selectedPlanId, 
-    viewPlanDetails, 
-    returnToOverview 
-  } = useBudgetFeature();
+  const [activeTab, setActiveTab] = useState("plans");
+  const { budgetPlans, isLoading, error } = useBudgetFeature();
   
-  // Loading state
-  if (isLoading) {
-    return (
-      <div className="space-y-6">
-        <div className="flex justify-between items-center mb-6">
-          <div>
-            <Skeleton className="h-8 w-48 mb-2" />
-            <Skeleton className="h-4 w-64" />
-          </div>
-          <Skeleton className="h-10 w-36" />
-        </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {[...Array(3)].map((_, index) => (
-            <Skeleton key={index} className="h-64 w-full" />
-          ))}
-        </div>
-      </div>
+  // Direct fetch for plans as a fallback
+  const [directPlans, setDirectPlans] = useState<any[]>([]);
+  const [isDirectFetching, setIsDirectFetching] = useState(false);
+  
+  // Debug log when budget plans change
+  useEffect(() => {
+    console.log("[BudgetTabContents] Budget plans updated:", 
+      budgetPlans ? (Array.isArray(budgetPlans) ? budgetPlans.length : "non-array") : "null"
     );
-  }
-  
-  // Error state
-  if (error) {
-    return (
-      <div className="space-y-6">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-semibold">Budget Plans</h2>
-          <Button onClick={() => refreshData()}>
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Retry
-          </Button>
-        </div>
+    
+    if (budgetPlans && Array.isArray(budgetPlans) && budgetPlans.length > 0) {
+      console.log("[BudgetTabContents] First plan:", budgetPlans[0]);
+    } else {
+      // If we don't have budget plans from the context, do a direct fetch
+      if (!isDirectFetching && (!budgetPlans || (Array.isArray(budgetPlans) && budgetPlans.length === 0))) {
+        console.log("[BudgetTabContents] No budget plans from context, doing direct fetch");
+        setIsDirectFetching(true);
         
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Error</AlertTitle>
-          <AlertDescription>
-            Failed to load budget plans. Please try again.
-          </AlertDescription>
-        </Alert>
-      </div>
-    );
-  }
+        fetch(`/api/clients/${clientId}/budget-settings?all=true`)
+          .then(response => response.json())
+          .then(data => {
+            if (data) {
+              // Ensure we have an array
+              const plansArray = Array.isArray(data) ? data : [data];
+              console.log(`[BudgetTabContents] Direct fetch got ${plansArray.length} plans`);
+              setDirectPlans(plansArray);
+            }
+          })
+          .catch(error => {
+            console.error("[BudgetTabContents] Direct fetch error:", error);
+          })
+          .finally(() => {
+            setIsDirectFetching(false);
+          });
+      }
+    }
+  }, [budgetPlans, clientId, isDirectFetching]);
   
-  // Determine the active tab based on whether a plan is selected
-  const activeTab = selectedPlanId ? "details" : "plans";
+  // Handler to switch tabs when a plan is selected or unselected
+  const handlePlanSelection = (planId: number | null) => {
+    // If a plan is selected, switch to details tab
+    // If no plan is selected, switch to plans tab
+    setActiveTab(planId ? "details" : "plans");
+  };
+  
+  // If both sources have no plans, show direct plans debugging info
+  const showNoPlansDebug = 
+    (!budgetPlans || (Array.isArray(budgetPlans) && budgetPlans.length === 0)) && 
+    directPlans.length > 0;
   
   return (
-    <Tabs value={activeTab} className="w-full" onValueChange={(value) => {
-      // If switching to plans, clear the selected plan
-      if (value === "plans") {
-        returnToOverview();
-      }
-    }}>
+    <Tabs value={activeTab} className="w-full" onValueChange={setActiveTab}>
       <div className="flex justify-between items-center mb-4">
         <TabsList>
-          <TabsTrigger value="plans" className="px-4">Plans Overview</TabsTrigger>
+          <TabsTrigger value="plans" className="px-4">Plans</TabsTrigger>
           <TabsTrigger value="details" className="px-4">Plan Details</TabsTrigger>
         </TabsList>
       </div>
       
-      <Card>
-        <CardContent className="p-6">
-          <TabsContent value="plans" className="mt-0">
-            <EnhancedBudgetPlansView 
-              clientId={clientId}
-              onViewPlan={viewPlanDetails}
-            />
-          </TabsContent>
-          
-          <TabsContent value="details" className="mt-0">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold">Budget Plan Details</h2>
-              <Button 
-                onClick={returnToOverview} 
-                variant="outline"
-                size="sm"
-              >
-                Back to Plans Overview
-              </Button>
-            </div>
-            
-            <BudgetPlanDetails 
-              clientId={clientId}
-              planId={selectedPlanId || undefined}
-            />
-          </TabsContent>
-        </CardContent>
-      </Card>
+      {/* Debug info when we have direct plans but no context plans */}
+      {showNoPlansDebug && (
+        <div className="mb-4 p-4 border border-yellow-400 bg-yellow-50 rounded-md">
+          <div className="font-semibold mb-2">Debug Info: Context plans missing but plans found in database</div>
+          <div className="text-sm">Found {directPlans.length} plans in database:</div>
+          <ul className="text-xs mt-1 space-y-1">
+            {directPlans.map((plan, idx) => (
+              <li key={idx}>
+                Plan {idx+1}: ID {plan.id} - {plan.planSerialNumber || 'Unnamed'} - 
+                {plan.isActive ? ' (Active)' : ' (Inactive)'} -
+                ${plan.availableFunds}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+      
+      <TabsContent value="plans" className="mt-0">
+        <EnhancedBudgetCardGrid 
+          clientId={clientId}
+          onPlanSelected={(planId) => {
+            handlePlanSelection(planId);
+          }}
+        />
+      </TabsContent>
+      
+      <TabsContent value="details" className="mt-0">
+        <BudgetPlanFullView 
+          onBackToPlansList={() => handlePlanSelection(null)}
+        />
+      </TabsContent>
     </Tabs>
   );
 }
@@ -127,43 +114,131 @@ function BudgetTabContents({ clientId }: { clientId: number }) {
 /**
  * The main budget tab component for the client profile
  * Provides tab navigation between budget plans and plan details views
- * with the improved UI based on the onboarding experience.
  */
 export function EnhancedClientBudgetTab({ clientId, budgetSettings, budgetItems }: EnhancedClientBudgetTabProps) {
+  // Log the budget settings to diagnose issues
+  console.log(`[EnhancedClientBudgetTab] Rendering for client ${clientId}`, { 
+    budgetSettingsType: budgetSettings ? (Array.isArray(budgetSettings) ? `Array[${budgetSettings.length}]` : typeof budgetSettings) : 'undefined',
+    budgetItemsCount: budgetItems?.length || 0 
+  });
+  
+  // If budget settings is an array with content, log the first item
+  if (budgetSettings && Array.isArray(budgetSettings) && budgetSettings.length > 0) {
+    console.log(`[EnhancedClientBudgetTab] First budget setting:`, budgetSettings[0]);
+  }
+  
+  // Debug info for array processing
+  if (budgetSettings && !Array.isArray(budgetSettings)) {
+    console.log("[EnhancedClientBudgetTab] Converting single budget setting to array");
+  }
+  
   // Ensure we have an array of budget settings
   const budgetSettingsArray = budgetSettings ? 
     (Array.isArray(budgetSettings) ? budgetSettings : [budgetSettings]) : 
     [];
     
-  // Create initial budget plans from settings for the context
+  // Custom initial budget plans derived from the passed-in settings
   const initialBudgetPlans = budgetSettingsArray.map((setting: any) => {
+    // Create a meaningful plan name if one is not provided
+    const planName = setting.planSerialNumber || `Plan ${setting.id}`;
+    
     return {
       id: setting.id,
       clientId: setting.clientId,
-      planSerialNumber: setting.planSerialNumber,
+      planName: planName,
       planCode: setting.planCode || null,
       isActive: setting.isActive === true, // Ensure boolean
-      ndisFunds: typeof setting.ndisFunds === 'number' ? setting.ndisFunds : 
-                 typeof setting.ndisFunds === 'string' ? parseFloat(setting.ndisFunds) : 
-                 // Fallback to availableFunds for backward compatibility
-                 (typeof setting.availableFunds === 'number' ? setting.availableFunds : 
-                 typeof setting.availableFunds === 'string' ? parseFloat(setting.availableFunds) : 0),
-      endOfPlan: setting.endOfPlan,
-      createdAt: setting.createdAt,
-      planName: setting.planCode || setting.planSerialNumber || `Plan ${setting.id}`,
-      endDate: setting.endOfPlan,
-      totalUsed: 0, // Will be calculated from budget items
-      itemCount: budgetItems?.filter((item: any) => item.budgetSettingsId === setting.id).length || 0,
-      percentUsed: 0, // Will be calculated from usage data
+      availableFunds: parseFloat(setting.availableFunds) || 0,
+      endDate: setting.endOfPlan, // Field name in API is endOfPlan
+      startDate: setting.createdAt,
+      // These will be calculated from budget items later
+      totalUsed: 0,
+      itemCount: 0,
+      percentUsed: 0,
     };
   });
   
-  // Initialize the BudgetFeatureProvider with the transformed data
+  // Log the transformed budget plans
+  console.log(`[EnhancedClientBudgetTab] Transformed ${initialBudgetPlans.length} settings into plans`);
+  
+  // Direct debugging: Let's bypass the provider for now and test if we can directly render plans
+  if (initialBudgetPlans.length === 0) {
+    // If we have no budget plans, directly fetch from API as fallback
+    const [fetchedPlans, setFetchedPlans] = useState<any[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    
+    useEffect(() => {
+      const fetchDirectly = async () => {
+        try {
+          console.log(`[EnhancedClientBudgetTab] Directly fetching budget settings for client ${clientId}`);
+          
+          // Make a direct API call to get all budget settings
+          const response = await fetch(`/api/clients/${clientId}/budget-settings?all=true`);
+          
+          if (response.ok) {
+            let data = await response.json();
+            
+            // Ensure data is an array
+            if (!Array.isArray(data)) {
+              data = [data];
+            }
+            
+            console.log(`[EnhancedClientBudgetTab] Directly fetched ${data.length} budget settings`);
+            setFetchedPlans(data);
+          } else {
+            console.error(`[EnhancedClientBudgetTab] Error fetching budget settings: ${response.status}`);
+          }
+          
+          setIsLoading(false);
+        } catch (error) {
+          console.error("[EnhancedClientBudgetTab] Error in direct fetch:", error);
+          setIsLoading(false);
+        }
+      };
+      
+      fetchDirectly();
+    }, [clientId]);
+    
+    if (isLoading) {
+      return <div>Loading budget plans...</div>;
+    }
+    
+    if (fetchedPlans.length > 0) {
+      console.log(`[EnhancedClientBudgetTab] Using ${fetchedPlans.length} directly fetched plans`);
+      
+      // Create properly transformed plans from the fetched data
+      const directPlans = fetchedPlans.map((setting: any) => ({
+        id: setting.id,
+        clientId: setting.clientId,
+        planName: setting.planSerialNumber || `Plan ${setting.id}`,
+        planCode: setting.planCode || null,
+        isActive: setting.isActive === true,
+        availableFunds: parseFloat(setting.availableFunds) || 0,
+        endDate: setting.endOfPlan,
+        startDate: setting.createdAt,
+        totalUsed: 0,
+        itemCount: 0,
+        percentUsed: 0,
+      }));
+      
+      // Our primary fix is to use these direct plans
+      return (
+        <BudgetFeatureProvider 
+          clientId={clientId} 
+          initialBudgetPlans={directPlans}
+        >
+          <BudgetTabContents clientId={clientId} />
+        </BudgetFeatureProvider>
+      );
+    }
+  }
+  
+  // Our primary fix is to ensure we properly wrap all budget-related components
+  // in the BudgetFeatureProvider context which handles the data flow
   return (
     <BudgetFeatureProvider 
       clientId={clientId} 
       initialBudgetPlans={initialBudgetPlans}
-      initialItems={budgetItems || []}
     >
       <BudgetTabContents clientId={clientId} />
     </BudgetFeatureProvider>
