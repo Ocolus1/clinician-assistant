@@ -24,13 +24,26 @@ const badgeVariants = cva(
 )
 
 export interface BadgeProps
-  extends React.HTMLAttributes<HTMLDivElement>,
-    VariantProps<typeof badgeVariants> {}
-
-function Badge({ className, variant, ...props }: BadgeProps) {
-  return (
-    <div className={cn(badgeVariants({ variant }), className)} {...props} />
-  )
+  extends React.HTMLAttributes<HTMLSpanElement>,
+    VariantProps<typeof badgeVariants> {
+  asChild?: boolean;
 }
+
+/**
+ * Badge component for displaying status indicators or labels
+ * Changed from div to span element to prevent DOM nesting errors when used inside paragraphs
+ */
+const Badge = React.forwardRef<HTMLSpanElement, BadgeProps>(
+  ({ className, variant, ...props }, ref) => {
+    return (
+      <span 
+        ref={ref}
+        className={cn(badgeVariants({ variant }), className)} 
+        {...props} 
+      />
+    )
+  }
+)
+Badge.displayName = "Badge"
 
 export { Badge, badgeVariants }

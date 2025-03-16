@@ -6,20 +6,21 @@ This document outlines the development standards and best practices for our Spee
 
 1. [Component Architecture](#component-architecture)
 2. [State Management](#state-management) 
-3. [Complex State Management](#complex-state-management) *(New)*
-4. [Concurrency Handling](#concurrency-handling) *(New)*
-5. [Data Integrity](#data-integrity) *(New)*
-6. [Performance Optimization](#performance-optimization)
-7. [Page Structure Organization](#page-structure-organization)
-8. [File Naming and Organization](#file-naming-and-organization)
-9. [Form Implementation](#form-implementation)
-10. [Schema Changes and Data Evolution](#schema-changes-and-data-evolution) *(New)*
-11. [Data Fetching](#data-fetching)
-12. [Code Style](#code-style)
-13. [Testing](#testing) *(New)*
-14. [User Experience Considerations](#user-experience-considerations) *(New)*
-15. [Troubleshooting Common Issues](#troubleshooting-common-issues)
-16. [Examples](#examples)
+3. [Complex State Management](#complex-state-management)
+4. [Feature Management Patterns](#feature-management-patterns) *(New)*
+5. [Concurrency Handling](#concurrency-handling)
+6. [Data Integrity](#data-integrity)
+7. [Performance Optimization](#performance-optimization)
+8. [Page Structure Organization](#page-structure-organization)
+9. [File Naming and Organization](#file-naming-and-organization)
+10. [Form Implementation](#form-implementation)
+11. [Schema Changes and Data Evolution](#schema-changes-and-data-evolution)
+12. [Data Fetching](#data-fetching)
+13. [Code Style](#code-style)
+14. [Testing](#testing)
+15. [User Experience Considerations](#user-experience-considerations)
+16. [Troubleshooting Common Issues](#troubleshooting-common-issues)
+17. [Examples](#examples)
 
 ## Component Architecture
 
@@ -72,6 +73,7 @@ function ClientHeaderWithActionsAndStatusAndMetrics({ client, metrics }) {
 - **Local Component State**: Use for UI-specific state that doesn't affect other components
 - **React Query**: Use for server state (data fetching, caching, synchronization)
 - **Context API**: Use for theme, authentication, and other app-wide concerns
+- **Feature-Specific Context**: Create dedicated context providers for complex features (e.g., budget management, session notes)
 - **Consider Zustand**: For complex forms and state that spans multiple components
 
 ### Rules for State Management
@@ -79,6 +81,250 @@ function ClientHeaderWithActionsAndStatusAndMetrics({ client, metrics }) {
 2. Avoid prop drilling beyond 2 levels (use context or state management)
 3. Use controlled components for form inputs
 4. Memoize expensive calculations with `useMemo` and `useCallback`
+5. Establish clear ownership of shared state to prevent conflicts
+
+### State Hierarchy Design
+- **Feature Boundaries**: Define clear boundaries between feature states
+- **State Dependencies**: Document dependencies between related states
+- **State Synchronization**: Plan how related states should stay in sync
+- **Derived State**: Prefer computing derived state over storing redundant state
+
+### Handling Special States
+- **Read-Only Mode**: Implement consistent patterns for read-only states across components
+- **Loading States**: Manage loading states predictably across component trees
+- **Error States**: Propagate and handle errors consistently
+- **Empty States**: Design meaningful empty state representations
+
+### ✅ Good Example: Feature-specific Context
+```tsx
+// BudgetFeatureContext.tsx
+export interface BudgetFeatureContextType {
+  // State
+  activePlan: BudgetSettings | null;
+  isReadOnly: boolean;
+  operationInProgress: boolean;
+  
+  // Operations
+  createPlan: (planData: InsertBudgetSettings) => Promise<BudgetSettings>;
+  updatePlan: (planId: number, planData: Partial<InsertBudgetSettings>) => Promise<BudgetSettings>;
+  activatePlan: (planId: number) => Promise<void>;
+  
+  // Utilities
+  calculateRemaining: () => number;
+  validateAllocation: (amount: number) => boolean;
+}
+
+export const BudgetFeatureContext = createContext<BudgetFeatureContextType | null>(null);
+
+export function BudgetFeatureProvider({ children, clientId }: { children: ReactNode; clientId: number }) {
+  const [isReadOnly, setIsReadOnly] = useState(false);
+  const [operationInProgress, setOperationInProgress] = useState(false);
+  
+  // Fetch active plan and determine read-only state
+  const { data: activePlan } = useQuery({
+    queryKey: ['/api/budget-settings/active', clientId],
+    queryFn: () => apiRequest('GET', `/api/budget-settings/active/${clientId}`),
+  });
+  
+  // Logic to determine if current plan should be read-only
+  useEffect(() => {
+    setIsReadOnly(someCondition);
+  }, [activePlan]);
+  
+  // Provide context value with both state and operations
+  const value = {
+    activePlan,
+    isReadOnly,
+    operationInProgress,
+    createPlan: async (planData) => {
+      setOperationInProgress(true);
+      try {
+        // Implementation
+      } finally {
+        setOperationInProgress(false);
+      }
+    },
+    // Other operations...
+  };
+  
+  return (
+    <BudgetFeatureContext.Provider value={value}>
+      {children}
+    </BudgetFeatureContext.Provider>
+  );
+}
+
+// Custom hook for consuming the context
+export function useBudgetFeature() {
+  const context = useContext(BudgetFeatureContext);
+  if (!context) {
+    throw new Error('useBudgetFeature must be used within a BudgetFeatureProvider');
+  }
+  return context;
+}
+```
+
+## Feature Management Patterns
+
+### Feature Context Architecture
+- **Feature Module Organization**: Group related components, contexts, and utilities in feature-specific directories
+- **Context Composition**: Compose feature contexts as needed, with clear hierarchy and dependencies
+- **Feature-Level State**: Keep feature-specific state isolated and encapsulated
+- **Interface-Driven Development**: Define clear interfaces for feature contexts before implementation
+
+### Feature State Management
+- **Entity State Relationships**: Define clear relationships between different entity states
+- **Special States Handling**: Implement consistent patterns for special states like read-only mode
+- **State Derivation**: Use derived state for computed properties rather than storing redundant state
+- **Permission-Based Rendering**: Render UI elements based on user permissions and feature state
+
+### ✅ Good Example: Budget Feature Directory Structure
+```
+/components
+  /budget
+    /index.ts                      // Public API exports
+    /BudgetFeatureContext.tsx      // Feature-wide context and state
+    /UnifiedBudgetManager.tsx      // Main component for managing budgets
+    /BudgetPlansView.tsx           // Component for viewing budget plans
+    /BudgetCatalogSelector.tsx     // Component for selecting catalog items
+    /BudgetItemRow.tsx             // Component for individual budget items
+    /dialogs
+      /CreateBudgetPlanDialog.tsx  // Dialog for creating new budget plans
+      /ActivatePlanDialog.tsx      // Dialog for activating a plan
+    /utils
+      /budgetCalculations.ts       // Budget-specific utility functions
+```
+
+### ✅ Good Example: Feature with Read-Only State Pattern
+```tsx
+// Budget feature implementation with read-only state handling
+
+// 1. Central Context Definition
+export interface BudgetFeatureState {
+  activePlan: BudgetPlan | null;
+  isReadOnly: boolean;
+  readOnlyReason: string | null;
+}
+
+// 2. Feature Provider with State Derivation
+export function BudgetFeatureProvider({ clientId, children }) {
+  // Fetch necessary data
+  const { data: plans } = useQuery({
+    queryKey: ['/api/budget-plans', clientId],
+    queryFn: () => apiRequest('GET', `/api/clients/${clientId}/budget-plans`)
+  });
+  
+  // Derive read-only state
+  const [activeState, setActiveState] = useState<BudgetFeatureState>({
+    activePlan: null,
+    isReadOnly: false,
+    readOnlyReason: null
+  });
+  
+  // Update state based on fetched data
+  useEffect(() => {
+    if (!plans) return;
+    
+    const activePlan = plans.find(p => p.isActive);
+    const currentPlanId = parseInt(new URLSearchParams(window.location.search).get('planId') || '0');
+    const currentPlan = currentPlanId ? plans.find(p => p.id === currentPlanId) : activePlan;
+    
+    // Determine if the current view should be read-only
+    const isReadOnly = currentPlan ? (
+      !currentPlan.isActive || 
+      currentPlan.isArchived || 
+      currentPlan.endDate < new Date()
+    ) : false;
+    
+    // Set the reason for read-only state
+    let readOnlyReason = null;
+    if (isReadOnly && currentPlan) {
+      if (currentPlan.isArchived) {
+        readOnlyReason = "This plan is archived and cannot be modified.";
+      } else if (currentPlan.endDate < new Date()) {
+        readOnlyReason = "This plan has expired and cannot be modified.";
+      } else if (!currentPlan.isActive) {
+        readOnlyReason = "Only the active plan can be modified. Activate this plan to make changes.";
+      }
+    }
+    
+    setActiveState({
+      activePlan: currentPlan || null,
+      isReadOnly,
+      readOnlyReason
+    });
+  }, [plans]);
+  
+  // 3. Feature Operations
+  const activatePlan = async (planId: number) => {
+    // Implementation...
+  };
+  
+  const createNewItem = async (item: BudgetItem) => {
+    // Check read-only state before operations
+    if (activeState.isReadOnly) {
+      toast.error("Cannot add items to a read-only budget plan.");
+      return null;
+    }
+    
+    // Implementation...
+  };
+  
+  // 4. Provide context
+  return (
+    <BudgetFeatureContext.Provider value={{
+      ...activeState,
+      activatePlan,
+      createNewItem,
+      // Other operations...
+    }}>
+      {children}
+      
+      {/* 5. Global Feature UI Elements */}
+      {activeState.isReadOnly && activeState.readOnlyReason && (
+        <div className="sticky bottom-4 mx-auto max-w-md">
+          <Alert variant="warning" className="border shadow-md">
+            <LockIcon className="h-4 w-4 mr-2" />
+            <AlertTitle>Read-Only Mode</AlertTitle>
+            <AlertDescription>{activeState.readOnlyReason}</AlertDescription>
+          </Alert>
+        </div>
+      )}
+    </BudgetFeatureContext.Provider>
+  );
+}
+
+// 6. Consumer Components
+function BudgetItemForm() {
+  const { isReadOnly } = useBudgetFeature();
+  
+  return (
+    <Form>
+      <FormField
+        label="Item Description"
+        render={({ field }) => (
+          <Input {...field} readOnly={isReadOnly} />
+        )}
+      />
+      
+      <Button type="submit" disabled={isReadOnly}>
+        {isReadOnly ? (
+          <>
+            <LockIcon className="h-4 w-4 mr-2" />
+            Read Only
+          </>
+        ) : "Save Item"}
+      </Button>
+    </Form>
+  );
+}
+```
+
+### Feature Lifecycle Management
+- **Feature Initialization**: Implement clear initialization patterns for features
+- **Feature Cleanup**: Ensure proper cleanup when features are unmounted
+- **Cross-Feature Communication**: Define clear interfaces for communication between features
+- **Feature Configuration**: Allow features to be configured based on application needs
 
 ## Complex State Management
 
@@ -547,10 +793,237 @@ Organize by feature, not by file type:
 
 ## Form Implementation
 
-### Form Organization
-- Extract complex forms into their own components
-- Break large forms into logical sections
-- Use React Hook Form for form management
+### Form Architecture
+- **Component Structure**: Extract complex forms into their own components
+- **Logical Sections**: Break large forms into logical, self-contained sections
+- **State Management**: Use React Hook Form for form management
+- **Form Context**: For complex forms spanning multiple components, create a dedicated FormContext
+- **Read-Only State**: Implement consistent patterns for handling read-only form states
+
+### Complex Form Patterns
+- **Multi-Step Forms**: Use a wrapper component to manage form steps and navigation
+- **Conditional Form Fields**: Implement conditional visibility/validation based on form state
+- **Form Section Components**: Create reusable form section components with consistent interfaces
+- **Validation Propagation**: Ensure validation errors are visible and accessible across form components
+
+### Form State Management
+- **Form Context Isolation**: Isolate different forms' contexts to prevent state interference
+- **Form Reset Patterns**: Implement consistent patterns for form resets and initializations
+- **Derived Form State**: Calculate derived state from form values when needed
+- **Dirty State Tracking**: Track form modification state to prompt confirmation before navigating away
+
+### ✅ Good Example: Conditional Form Fields with Read-Only State
+```tsx
+// BudgetItemForm.tsx
+function BudgetItemForm({ isReadOnly }) {
+  const form = useForm({
+    resolver: zodResolver(budgetItemSchema),
+    defaultValues: {
+      itemCode: "",
+      description: "",
+      quantity: 1,
+      unitPrice: 0
+    }
+  });
+  
+  // Watch form values for conditional logic
+  const itemCode = form.watch("itemCode");
+  const quantity = form.watch("quantity");
+  
+  // Calculate a derived value (total)
+  const total = useMemo(() => {
+    const price = form.watch("unitPrice") || 0;
+    const qty = quantity || 0;
+    return price * qty;
+  }, [form, quantity]);
+  
+  return (
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)}>
+        <FormField
+          control={form.control}
+          name="itemCode"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Item Code</FormLabel>
+              <Select
+                onValueChange={field.onChange}
+                defaultValue={field.value}
+                disabled={isReadOnly}
+              >
+                {/* Select options */}
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        
+        {/* Show description field only when item code is selected */}
+        {itemCode && (
+          <FormField
+            control={form.control}
+            name="description"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Description</FormLabel>
+                <Input {...field} readOnly={isReadOnly} />
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
+        
+        <div className="flex gap-4">
+          <FormField
+            control={form.control}
+            name="quantity"
+            render={({ field }) => (
+              <FormItem className="flex-1">
+                <FormLabel>Quantity</FormLabel>
+                <Input 
+                  type="number" 
+                  {...field} 
+                  onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                  readOnly={isReadOnly}
+                />
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          
+          <FormField
+            control={form.control}
+            name="unitPrice"
+            render={({ field }) => (
+              <FormItem className="flex-1">
+                <FormLabel>Unit Price</FormLabel>
+                <Input 
+                  type="number" 
+                  {...field} 
+                  onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                  readOnly={isReadOnly}
+                />
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+        
+        <div className="mt-4 text-right">
+          <p className="text-sm text-muted-foreground">Total: {formatCurrency(total)}</p>
+        </div>
+        
+        <div className="mt-6 flex justify-end">
+          {isReadOnly ? (
+            <Badge variant="outline" className="flex items-center gap-1">
+              <LockIcon className="h-3 w-3" />
+              <span>Read Only</span>
+            </Badge>
+          ) : (
+            <Button type="submit">Save Item</Button>
+          )}
+        </div>
+      </form>
+    </Form>
+  );
+}
+```
+
+### ✅ Good Example: Form Context for Complex Forms
+```tsx
+// BudgetFormContext.tsx
+interface BudgetFormContextType {
+  // Form state
+  isReadOnly: boolean;
+  isDirty: boolean;
+  
+  // Form actions
+  resetForm: () => void;
+  submitForm: () => void;
+  
+  // Form utilities
+  calculateTotal: () => number;
+  validateItem: (item: BudgetItem) => boolean;
+}
+
+const BudgetFormContext = createContext<BudgetFormContextType | null>(null);
+
+export function BudgetFormProvider({ children, initialData, isReadOnly = false }) {
+  // Form setup with React Hook Form
+  const form = useForm({
+    resolver: zodResolver(budgetFormSchema),
+    defaultValues: initialData || {
+      planName: "",
+      startDate: new Date(),
+      endDate: null,
+      totalBudget: 0,
+      items: []
+    }
+  });
+  
+  // Track form state
+  const isDirty = form.formState.isDirty;
+  
+  // Form actions
+  const resetForm = useCallback(() => {
+    form.reset();
+  }, [form]);
+  
+  const submitForm = useCallback(() => {
+    form.handleSubmit(onSubmit)();
+  }, [form, onSubmit]);
+  
+  // Form utilities
+  const calculateTotal = useCallback(() => {
+    const items = form.getValues("items") || [];
+    return items.reduce((total, item) => total + (item.quantity * item.unitPrice), 0);
+  }, [form]);
+  
+  const validateItem = useCallback((item: BudgetItem) => {
+    // Custom validation logic
+    return item.quantity > 0 && item.unitPrice > 0;
+  }, []);
+  
+  // Context value
+  const value = {
+    isReadOnly,
+    isDirty,
+    resetForm,
+    submitForm,
+    calculateTotal,
+    validateItem,
+    form // Expose form if needed
+  };
+  
+  return (
+    <BudgetFormContext.Provider value={value}>
+      {children}
+    </BudgetFormContext.Provider>
+  );
+}
+
+// Custom hook
+export function useBudgetForm() {
+  const context = useContext(BudgetFormContext);
+  if (!context) {
+    throw new Error("useBudgetForm must be used within a BudgetFormProvider");
+  }
+  return context;
+}
+```
+
+### Form Validation Strategies
+- **Progressive Validation**: Validate fields as users interact with them
+- **Cross-Field Validation**: Implement validation that depends on multiple field values 
+- **Async Validation**: Validate against server data when necessary
+- **Validation Groups**: Group related validations for complex business rules
+- **Contextual Validation**: Apply different validation rules based on form context or state
+
+### Form Error Handling
+- **Visible Errors**: Ensure validation errors are clearly visible
+- **Actionable Errors**: Provide guidance on how to fix validation errors
+- **Error Grouping**: Group related errors for better user experience
+- **Error Recovery**: Help users recover from form errors easily
 - Validate with Zod schemas
 
 ### Multi-Step Forms
@@ -728,16 +1201,94 @@ function ClientSessions({ clientId }) {
 - Look for missing dependency arrays in useEffect, useMemo, or useCallback
 - Ensure proper memoization of expensive calculations
 - Verify that large lists are properly virtualized
+- Check form re-renders caused by frequent state updates
 
 ### State Management Problems
-- Check for prop drilling and refactor to use context or state management
-- Verify that form state is properly initialized
-- Look for race conditions in asynchronous state updates
+- **Context Interference**: Check for nested contexts that might interfere with each other 
+- **Form Context Isolation**: Verify form contexts are properly isolated to prevent state interference
+- **Read-Only State Propagation**: Ensure read-only state is consistently propagated to all components
+- **Race Conditions**: Look for race conditions in asynchronous state updates
+- **Initial State Handling**: Verify that form state is properly initialized with defaultValues
+- **State Reset Issues**: Check for incomplete state resets when switching between entities
 
-### Component Structure Issues
-- Identify components that are too large or have too many responsibilities
-- Check for deeply nested component hierarchies
-- Look for duplicate code that could be extracted into shared components
+### Component Rendering Issues
+- **Conditional Rendering Bugs**: Check complex conditional rendering logic for edge cases
+- **Form Components Not Updating**: Verify form field components are correctly watching form state
+- **Component Unmounting During Data Fetch**: Ensure components handle unmounting during async operations
+- **Missing Key Props**: Check that list items have appropriate key props to prevent re-render issues
+- **Ref Stability**: Ensure refs are stable across renders when needed
+
+### Form Implementation Issues
+- **Field Control Issues**: Verify that form fields are properly connected to form control
+- **Validation Timing**: Check validation timing for fields with interdependencies
+- **Form Reset Logic**: Ensure form reset logic resets all fields and derived state
+- **Formik vs. React Hook Form**: Ensure consistent form library usage across components
+- **Controlled vs. Uncontrolled**: Verify consistent approach to controlled/uncontrolled components
+
+### Data Flow Problems
+- **Data Transformation Inconsistency**: Check for inconsistent data transformation between API and UI
+- **Missing Query Invalidation**: Verify that mutations properly invalidate related queries
+- **Stale Data**: Look for components using stale data due to missing refetching
+- **Error Handling Gaps**: Ensure comprehensive error handling in data fetching operations
+
+### ✅ Good Example: Debugging Context Issues
+```tsx
+// Problem: Components not updating when context values change
+// Solution: Check for missing dependencies in context provider
+
+// Before: Missing dependency in context provider
+function BudgetFeatureProvider({ clientId, children }) {
+  const [isReadOnly, setIsReadOnly] = useState(false);
+  
+  // Fetch active plan
+  const { data: activePlan } = useQuery({
+    queryKey: ['/api/budget-settings/active', clientId],
+    queryFn: () => apiRequest('GET', `/api/budget-settings/active/${clientId}`)
+  });
+  
+  // BUG: Missing dependency on activePlan
+  useEffect(() => {
+    // Determine if current view should be read-only
+    setIsReadOnly(checkReadOnlyCondition());
+  }, [clientId]); // Missing activePlan dependency!
+  
+  return (
+    <BudgetFeatureContext.Provider value={{ activePlan, isReadOnly }}>
+      {children}
+    </BudgetFeatureContext.Provider>
+  );
+}
+
+// After: Fixed dependency array
+function BudgetFeatureProvider({ clientId, children }) {
+  const [isReadOnly, setIsReadOnly] = useState(false);
+  
+  // Fetch active plan
+  const { data: activePlan } = useQuery({
+    queryKey: ['/api/budget-settings/active', clientId],
+    queryFn: () => apiRequest('GET', `/api/budget-settings/active/${clientId}`)
+  });
+  
+  // Fixed: Added activePlan to dependency array
+  useEffect(() => {
+    // Determine if current view should be read-only based on active plan
+    setIsReadOnly(activePlan ? checkReadOnlyCondition(activePlan) : false);
+  }, [clientId, activePlan]); // Added activePlan dependency
+  
+  return (
+    <BudgetFeatureContext.Provider value={{ activePlan, isReadOnly }}>
+      {children}
+    </BudgetFeatureContext.Provider>
+  );
+}
+```
+
+### Complex Form Debugging
+- **Form Value Watching**: Use form.watch() to debug form values during development
+- **State Logging**: Add strategic console logs for complex state transitions
+- **React DevTools**: Use React DevTools to inspect component props and state
+- **Isolation Testing**: Test problematic components in isolation
+- **Step-by-Step Execution**: Debug complex operations by breaking them into smaller steps
 
 ## Examples
 
@@ -916,10 +1467,152 @@ describe('BudgetPlanManager', () => {
 
 ## User Experience Considerations
 
+### State Visualization Patterns
+- **Read-Only State Indicators**: Use consistent visual indicators for read-only states (lock icons, badges)
+- **Warning Banners**: Add clear warning banners for important state information (e.g., "This plan is read-only")
+- **Status Badges**: Use color-coded badges to show item status (active, archived, pending)
+- **Visual Hierarchies**: Establish clear visual hierarchies for primary, secondary, and tertiary actions
+
 ### Feedback for Complex Operations
 - **Progress Indicators**: Show progress for multi-step operations
 - **Success/Error Messaging**: Provide clear feedback on operation outcomes
 - **Confirmation Dialogs**: Request confirmation for destructive or significant actions
+- **Toast Notifications**: Use toast notifications for non-blocking feedback
+- **Form Validation Feedback**: Provide immediate and clear validation feedback
+- **Loading States**: Implement consistent loading states across the application
+
+### Accessibility and Usability
+- **Keyboard Navigation**: Ensure all interactive elements are keyboard accessible
+- **Focus Management**: Manage focus correctly, especially in modal workflows
+- **Error Recovery**: Make it easy for users to recover from errors
+- **Consistent Patterns**: Use consistent UI patterns for similar operations
+- **Adaptive Design**: Ensure the UI adapts appropriately to different screen sizes
+
+### ✅ Good Example: Read-Only State Visualization
+```tsx
+function BudgetPlanSummary({ plan, isReadOnly }) {
+  return (
+    <Card className={cn(
+      "border p-4",
+      isReadOnly && "border-amber-300 bg-amber-50"
+    )}>
+      {isReadOnly && (
+        <div className="mb-4 flex items-center gap-2 rounded-md border border-amber-300 bg-amber-100 p-2 text-amber-800">
+          <LockIcon className="h-4 w-4" />
+          <span className="text-sm font-medium">This budget plan is read-only. Create a new plan to make changes.</span>
+        </div>
+      )}
+      
+      <div className="flex justify-between">
+        <div>
+          <h3 className="text-lg font-medium">{plan.planName}</h3>
+          <p className="text-sm text-muted-foreground">
+            Created on {format(new Date(plan.createdAt), 'PPP')}
+          </p>
+        </div>
+        
+        <Badge variant={plan.isActive ? "success" : "outline"} className="h-fit">
+          {plan.isActive ? "Active" : "Inactive"}
+        </Badge>
+      </div>
+      
+      <div className="mt-4">
+        <h4 className="text-sm font-medium">Total Budget</h4>
+        <p className="text-2xl font-bold">{formatCurrency(plan.totalBudget)}</p>
+      </div>
+      
+      <div className="mt-4 flex justify-end gap-2">
+        {isReadOnly ? (
+          <div className="flex items-center gap-1 text-sm text-muted-foreground">
+            <LockIcon className="h-3 w-3" />
+            <span>Read Only</span>
+          </div>
+        ) : (
+          <>
+            <Button variant="outline" size="sm">Edit</Button>
+            {!plan.isActive && (
+              <Button size="sm">Activate Plan</Button>
+            )}
+          </>
+        )}
+      </div>
+    </Card>
+  );
+}
+```
+
+### ✅ Good Example: Form Validation Feedback
+```tsx
+function BudgetItemForm() {
+  const form = useForm({
+    resolver: zodResolver(budgetItemSchema),
+    defaultValues: { quantity: 1, unitPrice: 0 }
+  });
+  
+  // Derived validation
+  const quantityValue = form.watch("quantity");
+  const unitPriceValue = form.watch("unitPrice");
+  const totalValue = (quantityValue || 0) * (unitPriceValue || 0);
+  const remainingBudget = useBudgetFeature().calculateRemaining();
+  const isOverBudget = totalValue > remainingBudget;
+  
+  return (
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)}>
+        {isOverBudget && (
+          <Alert variant="destructive" className="mb-4">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Budget Exceeded</AlertTitle>
+            <AlertDescription>
+              This item would exceed your available budget by {formatCurrency(totalValue - remainingBudget)}.
+              Please adjust the quantity or unit price.
+            </AlertDescription>
+          </Alert>
+        )}
+        
+        {/* Form fields... */}
+        
+        <div className="mt-4 flex justify-between items-center">
+          <div>
+            <p className="text-sm font-medium">Total Cost</p>
+            <p className={cn(
+              "text-lg font-bold",
+              isOverBudget ? "text-destructive" : "text-foreground"
+            )}>
+              {formatCurrency(totalValue)}
+            </p>
+          </div>
+          
+          <div>
+            <p className="text-sm font-medium">Remaining Budget</p>
+            <p className={cn(
+              "text-lg font-bold",
+              remainingBudget - totalValue < 0 ? "text-destructive" : "text-foreground"
+            )}>
+              {formatCurrency(remainingBudget - totalValue)}
+            </p>
+          </div>
+        </div>
+        
+        <Button 
+          type="submit" 
+          className="mt-4 w-full"
+          disabled={isOverBudget || form.formState.isSubmitting}
+        >
+          {form.formState.isSubmitting ? "Saving..." : "Save Item"}
+        </Button>
+      </form>
+    </Form>
+  );
+}
+```
+
+### User Guidance
+- **Contextual Help**: Provide contextual help for complex features
+- **Empty States**: Design helpful empty states that guide users to the next action
+- **Incremental Disclosure**: Progressively reveal complexity as users need it
+- **Consistent Terminology**: Use consistent terminology throughout the application
+- **Informative Errors**: Provide actionable error messages that help users recover
 - **Loading States**: Display appropriate loading states during async operations
 
 ### State Visualization

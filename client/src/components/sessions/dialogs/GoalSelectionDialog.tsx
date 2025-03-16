@@ -33,26 +33,31 @@ interface GoalSelectionDialogProps {
 export function GoalSelectionDialog({ 
   open, 
   onOpenChange, 
-  goals, 
+  goals: propGoals, 
   selectedGoalIds, 
   onSelectGoal 
 }: GoalSelectionDialogProps) {
   const [localGoals, setLocalGoals] = useState<Goal[]>([]);
   const queryClient = useQueryClient();
-  const clientId = queryClient.getQueryData<any>(['formState'])?.clientId || 37; // Default to Gabriel's ID
-
-  // Hard-coded goals for Gabriel if necessary
-  const hardcodedGoals = [
-    { id: 24, clientId: 37, title: "Improve articulation of /s/ sounds", description: "Focus on correct tongue placement and airflow for s-sound production", priority: "high" },
-    { id: 25, clientId: 37, title: "Improve social skills", description: "Develop appropriate conversation skills and turn-taking", priority: "medium" }
-  ];
-
-  // Fetch goals directly when dialog opens
+  
+  // Prioritize using provided prop goals first, which come from parent component
   useEffect(() => {
     if (open) {
-      // First try to use the clientId from form state
-      const formClientId = queryClient.getQueryData<any>(['formState'])?.clientId || clientId;
-      console.log("GoalSelectionDialog opening with clientId:", formClientId);
+      // First use the goals passed in as props if they're available
+      if (propGoals && propGoals.length > 0) {
+        console.log("Using goals from props:", propGoals);
+        setLocalGoals(propGoals);
+        return;
+      }
+      
+      // If no prop goals, try to get clientId and fetch them
+      const formClientId = queryClient.getQueryData<any>(['formState'])?.clientId;
+      if (!formClientId) {
+        console.error("No clientId found in form state");
+        return;
+      }
+      
+      console.log("GoalSelectionDialog fetching goals for clientId:", formClientId);
 
       // Directly fetch goals
       fetch(`/api/clients/${formClientId}/goals`)
@@ -65,17 +70,16 @@ export function GoalSelectionDialog({
           if (Array.isArray(data) && data.length > 0) {
             setLocalGoals(data);
           } else {
-            console.log("No goals found, using hardcoded goals");
-            setLocalGoals(hardcodedGoals);
+            console.log("No goals found for client");
+            setLocalGoals([]);
           }
         })
         .catch(error => {
           console.error("Error fetching goals:", error);
-          // Fallback to hardcoded goals if fetch fails
-          setLocalGoals(hardcodedGoals);
+          setLocalGoals([]);
         });
     }
-  }, [open, clientId, queryClient]);
+  }, [open, propGoals, queryClient]);
 
   // Filter out already selected goals
   const availableGoals = localGoals.filter(goal => !selectedGoalIds.includes(goal.id));

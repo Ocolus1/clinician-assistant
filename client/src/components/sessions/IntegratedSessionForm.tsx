@@ -200,6 +200,10 @@ interface GoalSelectionDialogProps {
   onSelectGoal: (goal: Goal) => void;
 }
 
+// Import the GoalSelectionDialog from the separate component file
+import { GoalSelectionDialog as GoalSelectionDialogComponent } from "./dialogs/GoalSelectionDialog";
+
+// Use the imported component with a local wrapper to maintain compatibility
 const GoalSelectionDialog = ({ 
   open, 
   onOpenChange, 
@@ -207,85 +211,14 @@ const GoalSelectionDialog = ({
   selectedGoalIds, 
   onSelectGoal 
 }: GoalSelectionDialogProps) => {
-  const [localGoals, setLocalGoals] = useState<Goal[]>([]);
-  const queryClient = useQueryClient();
-  const clientId = queryClient.getQueryData<any>(['formState'])?.clientId || 37;
-
-  const hardcodedGoals = [
-    { id: 24, clientId: 37, title: "Improve articulation of /s/ sounds", description: "Focus on correct tongue placement and airflow for s-sound production", priority: "high" },
-    { id: 25, clientId: 37, title: "Improve social skills", description: "Develop appropriate conversation skills and turn-taking", priority: "medium" }
-  ];
-
-  useEffect(() => {
-    if (open) {
-      const formClientId = queryClient.getQueryData<any>(['formState'])?.clientId || clientId;
-      fetch(`/api/clients/${formClientId}/goals`)
-        .then(response => {
-          if (!response.ok) throw new Error(`Failed to fetch goals: ${response.status}`);
-          return response.json();
-        })
-        .then(data => {
-          if (Array.isArray(data) && data.length > 0) {
-            setLocalGoals(data);
-          } else {
-            setLocalGoals(hardcodedGoals);
-          }
-        })
-        .catch(error => {
-          setLocalGoals(hardcodedGoals);
-        });
-    }
-  }, [open, clientId, queryClient]);
-
-  const availableGoals = localGoals.filter(goal => !selectedGoalIds.includes(goal.id));
-
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
-        <DialogHeader>
-          <DialogTitle>Select Goal</DialogTitle>
-          <DialogDescription>
-            Choose a goal to assess in this session
-          </DialogDescription>
-        </DialogHeader>
-
-        <div className="py-4">
-          {availableGoals.length === 0 ? (
-            <div className="p-4 border rounded-md bg-muted/20 text-center">
-              <p className="text-muted-foreground">
-                {localGoals.length > 0 ? "All goals have been selected" : "No goals found for this client"}
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {availableGoals.map(goal => (
-                <Card 
-                  key={goal.id} 
-                  className="cursor-pointer hover:bg-muted/20"
-                  onClick={() => {
-                    onSelectGoal(goal);
-                    onOpenChange(false);
-                  }}
-                >
-                  <CardHeader className="p-4 pb-2">
-                    <CardTitle className="text-base">{goal.title}</CardTitle>
-                  </CardHeader>
-                  <CardContent className="p-4 pt-0">
-                    <p className="text-sm text-muted-foreground">{goal.description}</p>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
-        </div>
-
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    <GoalSelectionDialogComponent
+      open={open}
+      onOpenChange={onOpenChange}
+      goals={goals}
+      selectedGoalIds={selectedGoalIds}
+      onSelectGoal={onSelectGoal}
+    />
   );
 };
 
@@ -435,6 +368,7 @@ export function IntegratedSessionForm({
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("details");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [goalSelectionOpen, setGoalSelectionOpen] = useState(false);
   const [milestoneSelectionOpen, setMilestoneSelectionOpen] = useState(false);
@@ -896,7 +830,7 @@ const ProductSelectionDialog = ({
             <>
               <div className="max-h-[300px] overflow-y-auto border rounded-md">
                 <ScrollArea className="h-full pr-3">
-                  <div className="space-y-1 p-1"><div className="space-y-1 p-1">
+                  <div className="space-y-1 p-1">
                     {products.map(product => (
                       <div 
                         key={product.id} 
@@ -1031,9 +965,20 @@ const ProductSelectionDialog = ({
   });
 
   function onSubmit(data: IntegratedSessionFormValues) {
-    console.log("Form data:", data);
-    console.log("Form errors:", form.formState.errors);
-    createSessionMutation.mutate(data);
+    // Only submit the form if the user explicitly clicked the Create Session button
+    if (isSubmitting) {
+      console.log("Form data:", data);
+      console.log("Form errors:", form.formState.errors);
+      createSessionMutation.mutate(data);
+    } else {
+      console.log("Form submission prevented - user did not explicitly submit");
+    }
+  }
+  
+  // Handle cancel button click - prevents form submission
+  const handleCancel = (e: React.MouseEvent) => {
+    e.preventDefault(); // Prevent form submission
+    onOpenChange(false); // Close the dialog
   }
 
   const handleNext = () => {
@@ -1989,9 +1934,9 @@ const ProductSelectionDialog = ({
                                                           </Badge>
                                                         ))
                                                       ) : (
-                                                        <div className="text-sm text-muted-foreground italic">
+                                                        <span className="text-sm text-muted-foreground italic">
                                                           No strategies selected
-                                                        </div>
+                                                        </span>
                                                       )}
                                                     </div>
                                                     <p className="text-xs text-muted-foreground mt-1">
@@ -2070,7 +2015,7 @@ const ProductSelectionDialog = ({
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={() => onOpenChange(false)}
+                    onClick={handleCancel}
                   >
                     Cancel
                   </Button>
@@ -2078,6 +2023,7 @@ const ProductSelectionDialog = ({
                     <Button 
                       type="submit"
                       disabled={createSessionMutation.isPending}
+                      onClick={() => setIsSubmitting(true)}
                     >
                       {createSessionMutation.isPending ? "Creating..." : "Create Session"}
                     </Button>
