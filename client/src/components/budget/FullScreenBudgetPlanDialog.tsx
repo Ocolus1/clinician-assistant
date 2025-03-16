@@ -226,22 +226,22 @@ export function FullScreenBudgetPlanDialog({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-7xl w-full h-[90vh] p-0 overflow-hidden">
-          <DialogHeader className="p-6 border-b">
-            <DialogTitle className="text-2xl font-bold">Create New Budget Plan</DialogTitle>
+        <DialogContent className="max-w-4xl w-full p-0 overflow-hidden">
+          <DialogHeader className="p-4 border-b">
+            <DialogTitle className="text-xl font-bold">Create New Budget Plan</DialogTitle>
           </DialogHeader>
           
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="h-[calc(100%-160px)] overflow-auto p-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="overflow-auto p-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Left Panel - Budget Items */}
                 <div className="border rounded-lg overflow-hidden">
-                  <div className="flex justify-between items-center p-4 bg-slate-50 border-b">
-                    <h3 className="font-semibold text-lg">Planned Budget Items</h3>
+                  <div className="flex justify-between items-center p-3 bg-slate-50 border-b">
+                    <h3 className="font-semibold">Planned Budget Items</h3>
                     <span>Total: {formatCurrency(totalCost)}</span>
                   </div>
                   
-                  <div className="p-6 h-[500px]">
+                  <div className="p-4 max-h-[300px] overflow-y-auto">
                     {budgetItemsArray.length > 0 ? (
                       <div className="space-y-3">
                         {budgetItemsArray.map((item, index) => (
@@ -270,15 +270,15 @@ export function FullScreenBudgetPlanDialog({
                 </div>
                 
                 {/* Right Panel - Budget Settings & Entry */}
-                <div className="space-y-6">
+                <div className="space-y-4">
                   {/* Budget Settings Section */}
                   <div className="border rounded-lg overflow-hidden">
-                    <div className="bg-slate-50 p-4 border-b flex justify-between items-center">
-                      <h3 className="font-semibold text-lg">Budget Settings</h3>
-                      <span className="text-sm text-gray-500">Plan ID: {planId}</span>
+                    <div className="bg-slate-50 p-3 border-b flex justify-between items-center">
+                      <h3 className="font-semibold">Budget Settings</h3>
+                      <span className="text-xs text-gray-500">Plan ID: {planId}</span>
                     </div>
                     
-                    <div className="p-6 space-y-6">
+                    <div className="p-4 space-y-4">
                       <FormField
                         control={form.control}
                         name="isActive"
@@ -340,39 +340,39 @@ export function FullScreenBudgetPlanDialog({
                   
                   {/* Budget Item Entry Section */}
                   <div className="border rounded-lg overflow-hidden">
-                    <div className="bg-slate-50 p-4 border-b flex justify-between items-center">
-                      <h3 className="font-semibold text-lg">Budget Item Entry</h3>
+                    <div className="bg-slate-50 p-3 border-b flex justify-between items-center">
+                      <h3 className="font-semibold">Budget Item Entry</h3>
                     </div>
                     
-                    <div className="p-6 space-y-4">
+                    <div className="p-3 space-y-3">
                       <div className="flex justify-between items-center">
-                        <span className="font-medium">Select Item</span>
+                        <span className="font-medium text-sm">Select Item</span>
                         <Button 
                           type="button" 
                           variant="outline" 
                           size="sm"
-                          className="text-blue-600"
+                          className="text-blue-600 text-xs"
                           onClick={() => {/* Implement add new catalog item */}}
                         >
-                          <Plus className="h-4 w-4 mr-1" />
+                          <Plus className="h-3 w-3 mr-1" />
                           Add New Catalog Item
                         </Button>
                       </div>
                       
                       {selectedItem ? (
-                        <div className="space-y-4">
-                          <div className="border rounded-lg p-3 bg-blue-50">
-                            <div className="font-medium">{selectedItem.itemCode}</div>
-                            <div className="text-gray-600">{selectedItem.description}</div>
+                        <div className="space-y-3">
+                          <div className="border rounded-lg p-2 bg-blue-50">
+                            <div className="font-medium text-sm">{selectedItem.itemCode}</div>
+                            <div className="text-gray-600 text-xs">{selectedItem.description}</div>
                           </div>
                           
-                          <div className="grid grid-cols-2 gap-4">
+                          <div className="grid grid-cols-2 gap-3">
                             <div>
-                              <FormLabel>Unit Price</FormLabel>
+                              <FormLabel className="text-xs">Unit Price</FormLabel>
                               <div className="relative">
                                 <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
                                 <Input 
-                                  className="pl-8 bg-gray-50" 
+                                  className="pl-8 bg-gray-50 h-8 text-sm" 
                                   value={selectedItem.unitPrice} 
                                   readOnly
                                 />
@@ -380,10 +380,11 @@ export function FullScreenBudgetPlanDialog({
                             </div>
                             
                             <div>
-                              <FormLabel>Quantity</FormLabel>
+                              <FormLabel className="text-xs">Quantity</FormLabel>
                               <Input 
                                 type="number" 
-                                min="1" 
+                                min="1"
+                                className="h-8 text-sm"
                                 value={selectedItem.quantity}
                                 onChange={(e) => setSelectedItem({
                                   ...selectedItem,
@@ -395,23 +396,25 @@ export function FullScreenBudgetPlanDialog({
                           
                           <Button 
                             type="button" 
-                            className="w-full" 
+                            className="w-full text-sm h-8" 
                             onClick={handleAddBudgetItem}
                           >
-                            <Plus className="h-4 w-4 mr-1" />
+                            <Plus className="h-3 w-3 mr-1" />
                             Add Budget Item
                           </Button>
                         </div>
                       ) : (
-                        <Button
-                          type="button"
-                          variant="outline"
-                          className="w-full border-dashed h-24 flex flex-col gap-2"
-                          onClick={() => setCatalogModalOpen(true)}
-                        >
-                          <Tag className="h-5 w-5" />
-                          <span>Select from Catalog...</span>
-                        </Button>
+                        <div className="flex justify-center">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className="border-dashed h-16 flex items-center gap-2 text-sm"
+                            onClick={() => setCatalogModalOpen(true)}
+                          >
+                            <Tag className="h-4 w-4" />
+                            Select from Catalog...
+                          </Button>
+                        </div>
                       )}
                     </div>
                   </div>
