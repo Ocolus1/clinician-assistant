@@ -8,12 +8,9 @@ export interface BudgetPlan {
   planSerialNumber: string | null;
   planCode: string | null;
   isActive: boolean | null;
-  ndisFunds: number;
+  availableFunds: number;
   endOfPlan: string | null;
   createdAt: Date | null;
-  
-  // Legacy compatibility property
-  availableFunds?: number;
   
   // Additional properties for UI display
   active?: boolean;
@@ -53,7 +50,6 @@ interface BudgetFeatureContextType {
   totalBudget: number;
   remainingBudget: number;
   refreshData: () => void;
-  refreshBudgetSettings: () => void;
 }
 
 const BudgetFeatureContext = createContext<BudgetFeatureContextType | undefined>(undefined);
@@ -81,7 +77,7 @@ export function BudgetFeatureProvider({
   const [budgetItems, setBudgetItems] = useState<BudgetItem[]>(initialItems);
   
   // Calculate budget totals using client-specific budget from active plan
-  const totalBudget = activePlan?.ndisFunds ?? FIXED_BUDGET_AMOUNT;
+  const totalBudget = activePlan?.availableFunds ?? FIXED_BUDGET_AMOUNT;
   const totalAllocated = budgetItems.reduce((total, item) => {
     return total + (item.quantity * item.unitPrice);
   }, 0);
@@ -92,11 +88,6 @@ export function BudgetFeatureProvider({
     if (onRefresh) {
       onRefresh();
     }
-  };
-  
-  // Function to refresh budget settings (alias for refreshData for specific use cases)
-  const refreshBudgetSettings = () => {
-    refreshData();
   };
   
   return (
@@ -111,8 +102,7 @@ export function BudgetFeatureProvider({
         totalAllocated,
         totalBudget,
         remainingBudget,
-        refreshData,
-        refreshBudgetSettings
+        refreshData
       }}
     >
       {children}

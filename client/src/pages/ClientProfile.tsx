@@ -57,7 +57,7 @@ import type { Client, Ally, Goal, Subgoal, BudgetSettings, BudgetItem } from "@s
 import ClientPersonalInfo from "@/components/profile/ClientPersonalInfo";
 import ClientAllies from "@/components/profile/ClientAllies";
 import ClientGoals from "@/components/profile/ClientGoals";
-import { BudgetPlansView } from "@/components/budget/BudgetPlansView";
+import { BudgetManagerView } from "@/components/budget/BudgetManagerView";
 import ClientSessions from "@/components/profile/ClientSessions";
 import ClientReports from "@/components/profile/ClientReports";
 import AddAllyDialog from "@/components/profile/AddAllyDialog";
@@ -281,11 +281,13 @@ export default function ClientProfile() {
 
   // Calculate budget percentage - safely handle nullish values
   const budgetPercentage = useMemo(() => {
-    if (!budgetSettings || !budgetSettings.ndisFunds) return 0;
+    if (!budgetSettings || !budgetSettings.availableFunds) return 0;
     
-    const totalFunds = budgetSettings.ndisFunds;
+    const availableFunds = typeof budgetSettings.availableFunds === 'string' 
+      ? parseFloat(budgetSettings.availableFunds) 
+      : budgetSettings.availableFunds;
     
-    return totalFunds > 0 ? (totalBudget / totalFunds) * 100 : 0;
+    return availableFunds > 0 ? (totalBudget / availableFunds) * 100 : 0;
   }, [totalBudget, budgetSettings]);
 
   // Loading state
@@ -640,9 +642,9 @@ export default function ClientProfile() {
             </TabsContent>
             
             <TabsContent value="budget" className="mt-0">
-              {/* Use the BudgetPlansView component to show grid of budget plans */}
+              {/* Use the new comprehensive BudgetManagerView for budget management */}
               <div className="space-y-8">
-                <BudgetPlansView clientId={clientId} />
+                <BudgetManagerView clientId={clientId} />
               </div>
             </TabsContent>
             
