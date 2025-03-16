@@ -848,9 +848,9 @@ export function UnifiedBudgetManager({ clientId, selectedPlanId }: UnifiedBudget
                       `${item.quantity}x${item.unitPrice}`).join(', ')}</p>
                     <p>Active Plan ID: {activePlan?.id || "None"}</p>
                     <p>Plan Available Funds (raw): {activePlan ? formatCurrency(
-                      typeof activePlan.availableFunds === 'string' 
-                        ? parseFloat(activePlan.availableFunds) 
-                        : activePlan.availableFunds || 0
+                      typeof activePlan.ndisFunds === 'string' 
+                        ? parseFloat(activePlan.ndisFunds) 
+                        : activePlan.ndisFunds || 0
                     ) : 'N/A'}</p>
                   </div>
                   <div className="flex justify-end mt-2">

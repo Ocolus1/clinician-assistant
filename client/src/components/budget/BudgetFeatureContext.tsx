@@ -8,7 +8,7 @@ export interface BudgetPlan {
   planSerialNumber: string | null;
   planCode: string | null;
   isActive: boolean | null;
-  availableFunds: number;
+  ndisFunds: number;
   endOfPlan: string | null;
   createdAt: Date | null;
   
@@ -77,7 +77,7 @@ export function BudgetFeatureProvider({
   const [budgetItems, setBudgetItems] = useState<BudgetItem[]>(initialItems);
   
   // Calculate budget totals using client-specific budget from active plan
-  const totalBudget = activePlan?.availableFunds ?? FIXED_BUDGET_AMOUNT;
+  const totalBudget = activePlan?.ndisFunds ?? FIXED_BUDGET_AMOUNT;
   const totalAllocated = budgetItems.reduce((total, item) => {
     return total + (item.quantity * item.unitPrice);
   }, 0);
