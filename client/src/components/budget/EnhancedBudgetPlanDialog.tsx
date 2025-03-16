@@ -31,7 +31,6 @@ const budgetPlanSchema = z.object({
       message: "Funds must be a valid number",
     }),
   isActive: z.boolean().default(false),
-  fundsManagement: z.enum(FUNDS_MANAGEMENT_OPTIONS),
   budgetItems: z.array(z.object({
     itemCode: z.string().min(1, "Item code is required"),
     description: z.string().optional(),
@@ -79,11 +78,10 @@ export function EnhancedBudgetPlanDialog({
   const form = useForm<BudgetPlanFormValues>({
     resolver: zodResolver(budgetPlanSchema),
     defaultValues: {
-      startDate: new Date().toISOString().split("T")[0],
-      endDate: new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString().split("T")[0],
-      ndisFunds: "10000",
+      startDate: "",
+      endDate: "",
+      ndisFunds: "",
       isActive: false,
-      fundsManagement: "Self-Managed",
       budgetItems: [{
         itemCode: "",
         description: "",
@@ -280,33 +278,13 @@ export function EnhancedBudgetPlanDialog({
                     )}
                   />
                   
-                  <FormField
-                    control={form.control}
-                    name="fundsManagement"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Funds Management</FormLabel>
-                        <Select
-                          onValueChange={field.onChange}
-                          defaultValue={field.value}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select fund management type" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {FUNDS_MANAGEMENT_OPTIONS.map((option) => (
-                              <SelectItem key={option} value={option}>
-                                {option}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                  <div className="space-y-2">
+                    <FormLabel>Plan ID</FormLabel>
+                    <div className="bg-gray-100 dark:bg-gray-800 p-2 rounded-md border border-gray-200 dark:border-gray-700 text-sm font-mono">
+                      {`BP-${new Date().getTime().toString().slice(-6)}`}
+                    </div>
+                    <p className="text-xs text-muted-foreground">This ID will be assigned to your plan automatically</p>
+                  </div>
                   
                   <FormField
                     control={form.control}
@@ -522,7 +500,7 @@ export function EnhancedBudgetPlanDialog({
                         
                         <div className="flex items-center gap-1">
                           <DollarSign className="h-3.5 w-3.5" />
-                          <span>{formatCurrency(availableFunds)} ({form.watch("fundsManagement")})</span>
+                          <span>{formatCurrency(availableFunds)}</span>
                         </div>
                       </div>
                     </div>
