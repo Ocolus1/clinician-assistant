@@ -1,179 +1,151 @@
-import React from "react";
-import { format } from "date-fns";
+import { useState } from "react";
+import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { formatCurrency } from "@/lib/utils";
+import { BudgetSettings } from "@shared/schema";
 import { 
-  Activity, 
+  Calendar, 
   Check, 
   Clock, 
   DollarSign, 
-  Edit2, 
-  ExternalLink,
-  ShieldAlert, 
-  AlertTriangle
+  Eye, 
+  AlertCircle,
 } from "lucide-react";
-import { 
-  Card, 
-  CardContent, 
-  CardDescription, 
-  CardFooter, 
-  CardHeader, 
-  CardTitle 
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { cn } from "@/lib/utils";
-import { formatCurrency } from "@/lib/utils";
-import { Progress } from "@/components/ui/progress";
-
-// Import BudgetPlan interface from BudgetFeatureContext
-import { BudgetPlan } from "@/components/budget/BudgetFeatureContext";
+import { Link } from "wouter";
 
 interface BudgetPlanCardProps {
-  plan: BudgetPlan;
-  onView: () => void;
+  plan: BudgetSettings;
+  clientId: number;
 }
 
-/**
- * A card component to display a budget plan with usage statistics and status
- */
-export function BudgetPlanCard({ plan, onView }: BudgetPlanCardProps) {
-  const today = new Date();
-  const isExpired = plan.endDate ? new Date(plan.endDate) < today : false;
-  const isExpiringSoon = plan.endDate && !isExpired ? 
-    new Date(plan.endDate) < new Date(today.setDate(today.getDate() + 30)) : 
-    false;
-  // Will update this logic when we have actual session consumption data
-  const isLowFunds = false; // Currently no funds are consumed
+export function BudgetPlanCard({ plan, clientId }: BudgetPlanCardProps) {
+  // Utility function to handle both ndisFunds and availableFunds for backward compatibility
+  const getFundsValue = (plan: BudgetSettings): number => {
+    // If ndisFunds exists, use it (new schema)
+    if ('ndisFunds' in plan && plan.ndisFunds !== undefined) {
+      return typeof plan.ndisFunds === 'string' 
+        ? parseFloat(plan.ndisFunds) 
+        : plan.ndisFunds;
+    }
+    
+    // Otherwise use availableFunds (old schema)
+    if ('availableFunds' in plan && plan.availableFunds !== undefined && plan.availableFunds !== null) {
+      return typeof plan.availableFunds === 'string' 
+        ? parseFloat(plan.availableFunds) 
+        : (plan.availableFunds as number);
+    }
+    
+    // Default to 0 if neither exists
+    return 0;
+  };
   
-  // Calculate display values
-  // Available funds is the total budget allocated to the client
-  const availableFunds = plan.totalUsed; // totalUsed is actually the sum of all allocated items
+  // Get the total available funds for this plan
+  const totalFunds = getFundsValue(plan);
   
-  // Used budget is what's been consumed in sessions (placeholder for now - will be implemented later)
-  const usedBudget = 0; // This should later be calculated from session records
+  // Format date for display
+  const formatDate = (dateString?: string | null) => {
+    if (!dateString) return "No end date";
+    
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('en-AU', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      });
+    } catch (error) {
+      return "Invalid date";
+    }
+  };
   
-  // Calculate the balance
-  const balanceAmount = availableFunds - usedBudget;
+  // Calculate days remaining if end date exists
+  const getDaysRemaining = (endDate?: string | null) => {
+    if (!endDate) return null;
+    
+    try {
+      const end = new Date(endDate);
+      const today = new Date();
+      
+      // Set both dates to midnight for accurate day calculation
+      end.setHours(0, 0, 0, 0);
+      today.setHours(0, 0, 0, 0);
+      
+      const diffTime = end.getTime() - today.getTime();
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      
+      return diffDays;
+    } catch (error) {
+      return null;
+    }
+  };
   
-  const formattedBalance = formatCurrency(balanceAmount);
-  const formattedTotal = formatCurrency(availableFunds);
-  
-  // Calculate percentage used
-  const percentageUsed = availableFunds > 0 
-    ? Math.min(Math.round((usedBudget / availableFunds) * 100), 100) 
-    : 0;
-  
-  const progressColor = 
-    percentageUsed >= 90 ? "bg-red-500" :
-    percentageUsed >= 75 ? "bg-amber-500" :
-    "bg-emerald-500";
-  
-  // Format dates if available
-  const formattedStartDate = plan.startDate ? format(new Date(plan.startDate), "MMM d, yyyy") : null;
-  const formattedEndDate = plan.endDate ? format(new Date(plan.endDate), "MMM d, yyyy") : null;
+  const daysRemaining = getDaysRemaining(plan.endOfPlan);
   
   return (
-    <Card className={cn(
-      "overflow-hidden transition-all duration-200",
-      plan.isActive && "border-primary/70 shadow-md",
-      isExpired && "opacity-75 border-gray-200"
-    )}>
-      <CardHeader className={cn(
-        "pb-2",
-        plan.isActive && "bg-primary/5"
-      )}>
+    <Card className="overflow-hidden border border-gray-200 hover:border-primary/40 transition-all duration-200">
+      <CardHeader className="p-4 bg-gray-50 border-b border-gray-200">
         <div className="flex justify-between items-start">
           <div>
-            <CardTitle className="text-lg line-clamp-1">{plan.planName}</CardTitle>
-            <CardDescription>{plan.planCode}</CardDescription>
+            <h3 className="text-md font-semibold text-gray-800">{plan.planCode || "Unnamed Plan"}</h3>
+            <p className="text-xs text-gray-500">Plan ID: {plan.planSerialNumber || "N/A"}</p>
           </div>
-          
-          {plan.isActive && (
-            <Badge variant="outline" className="border-primary text-primary flex items-center gap-1">
-              <Check className="h-3 w-3" />
-              Active
-            </Badge>
-          )}
-          
-          {isExpired && (
-            <Badge variant="outline" className="border-red-500 text-red-600 flex items-center gap-1">
-              <ShieldAlert className="h-3 w-3" />
-              Expired
-            </Badge>
-          )}
-          
-          {!plan.isActive && !isExpired && (
-            <Badge variant="outline" className="border-gray-500 text-gray-600">
-              Inactive
-            </Badge>
-          )}
+          <Badge 
+            variant={plan.isActive ? "default" : "outline"}
+            className={plan.isActive ? "bg-green-500 hover:bg-green-600" : "text-gray-500"}
+          >
+            {plan.isActive ? "Active" : "Inactive"}
+          </Badge>
         </div>
       </CardHeader>
       
-      <CardContent className="pt-4 pb-2">
-        <div className="space-y-4">
-          {/* Budget Progress */}
-          <div>
-            <div className="flex justify-between items-center mb-1.5">
-              <div className="text-sm font-medium">Budget Usage</div>
-              <div className="text-sm text-muted-foreground">
-                {percentageUsed}%
-              </div>
-            </div>
-            <Progress value={percentageUsed} className="h-2" indicatorClassName={progressColor} />
-            <div className="flex justify-between mt-1.5 text-sm">
-              <div className="flex items-center gap-1">
-                <DollarSign className="h-3.5 w-3.5 text-muted-foreground" />
-                <span className="font-medium">{formattedBalance}</span>
-              </div>
-              <span className="text-muted-foreground">of {formattedTotal}</span>
+      <CardContent className="p-4 space-y-4">
+        <div className="grid grid-cols-2 gap-4 text-sm">
+          <div className="flex items-center gap-2">
+            <DollarSign className="h-4 w-4 text-gray-400" />
+            <div>
+              <p className="text-xs text-gray-500">Total Funds</p>
+              <p className="font-medium">{formatCurrency(totalFunds)}</p>
             </div>
           </div>
           
-          {/* Warning Indicators */}
-          {(isExpiringSoon || isLowFunds) && (
-            <div className={cn(
-              "rounded-md p-2 text-sm flex items-start gap-2",
-              isExpiringSoon ? "bg-amber-50 text-amber-800" : "bg-red-50 text-red-800"
-            )}>
-              <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0" />
-              <div>
-                {isExpiringSoon && !isExpired && (
-                  <span>Expires soon: {formattedEndDate}</span>
-                )}
-                {isLowFunds && (
-                  <span>{isExpiringSoon && !isExpired ? "• " : ""}
-                    {percentageUsed >= 90 ? "Critical" : "Low"} funds available
-                  </span>
-                )}
-              </div>
+          <div className="flex items-center gap-2">
+            <Calendar className="h-4 w-4 text-gray-400" />
+            <div>
+              <p className="text-xs text-gray-500">End Date</p>
+              <p className="font-medium">{formatDate(plan.endOfPlan)}</p>
             </div>
-          )}
-          
-          {/* Plan Details */}
-          <div className="grid grid-cols-2 gap-2 text-sm py-1">
-            <div className="flex items-center gap-1.5">
-              <Activity className="h-3.5 w-3.5 text-muted-foreground" />
-              <span>{plan.itemCount} items</span>
-            </div>
-            {formattedStartDate && (
-              <div className="flex items-center gap-1.5">
-                <Clock className="h-3.5 w-3.5 text-muted-foreground" />
-                <span className="truncate">Created {formattedStartDate}</span>
-              </div>
-            )}
           </div>
         </div>
+        
+        {daysRemaining !== null && (
+          <div className="flex items-center gap-2 text-sm">
+            <Clock className="h-4 w-4 text-gray-400" />
+            <div className="flex-1">
+              <p className="text-xs text-gray-500">Time Remaining</p>
+              <div className="flex items-center gap-1">
+                <p className={`font-medium ${daysRemaining < 30 ? "text-amber-600" : ""} ${daysRemaining < 14 ? "text-red-600" : ""}`}>
+                  {daysRemaining <= 0 ? "Expired" : `${daysRemaining} days remaining`}
+                </p>
+                {daysRemaining <= 14 && <AlertCircle className="h-3 w-3 text-red-500" />}
+              </div>
+            </div>
+          </div>
+        )}
       </CardContent>
       
-      <CardFooter className="pt-2">
-        <Button 
-          variant="default" 
-          className="w-full"
-          onClick={onView}
-        >
-          View Details
-          <ExternalLink className="h-4 w-4 ml-2" />
+      <CardFooter className="p-4 pt-0 flex justify-between">
+        <Button variant="ghost" size="sm" className="text-gray-500 hover:text-gray-700">
+          {plan.isActive && <Check className="h-4 w-4 mr-1 text-green-500" />}
+          {plan.isActive ? "Current Plan" : "Set as Active"}
         </Button>
+        
+        <Link href={`/clients/${clientId}/budget/${plan.id}`}>
+          <Button variant="outline" size="sm" className="flex items-center gap-1">
+            <Eye className="h-4 w-4" />
+            Preview
+          </Button>
+        </Link>
       </CardFooter>
     </Card>
   );

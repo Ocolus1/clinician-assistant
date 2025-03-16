@@ -1,0 +1,37 @@
+Implementation Plan: Budget Plans Overview Page
+I understand your requirements clearly now. You want to add an intermediate step between clicking the budget tab and seeing the budget details page, similar to how the goals tab works. Let me outline my approach:
+Current Flow
+•	User clicks "Budget" tab in client profile
+•	User is taken directly to the budget details page
+Desired Flow
+•	User clicks "Budget" tab in client profile
+•	User sees a grid of budget plan cards (like the goals tab)
+•	User clicks "Preview" on a card to see the budget details page
+•	The existing budget details page remains unchanged
+Implementation Plan
+1. Create a New Component: BudgetPlanCard
+•	Create a card component to display each budget plan in the grid
+•	Include plan code, date range, active status, and action buttons
+•	Add a "Preview" button that navigates to the detailed view
+2. Create a New Component: BudgetPlansGrid
+•	Create a grid layout to display multiple BudgetPlanCard components
+•	Include filtering capabilities and empty state handling
+•	Make sure this matches the style of the existing GoalsGrid
+3. Create a New Component: BudgetPlansView
+•	This will be the container component that houses the BudgetPlansGrid
+•	Include "Create New Plan" button and other top-level actions
+•	This component will be rendered when clicking the Budget tab initially
+4. Modify Client Profile Routing
+•	Update the tab handler in ClientProfile.tsx to render BudgetPlansView instead of the current budget details
+•	DO NOT modify the existing budget details component (BudgetPlanFullView)
+•	Implement proper navigation between the plans overview and details
+5. Implement Proper Navigation
+•	When clicking "Preview" on a card, navigate to a URL like /clients/:id/budget/:planId
+•	Ensure the back button in the details view returns to the plans overview
+Important Notes:
+1.	I will NOT modify the existing budget details page (BudgetPlanFullView)
+2.	I will pattern the new page after the goals tab's layout for consistency
+3.	I'll use proper query invalidation when creating/updating plans
+4.	I'll maintain all existing functionality while adding this intermediate step
+Would this approach meet your requirements? Is there anything specific about the card layout or navigation that you'd like me to focus on?
+

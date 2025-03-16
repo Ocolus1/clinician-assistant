@@ -369,6 +369,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(settings);
   });
 
+  // Budget Plans - Alternative URL for the front-end plans view
+  app.get("/api/clients/:clientId/budget/plans", async (req, res) => {
+    const clientId = parseInt(req.params.clientId);
+    
+    try {
+      // Return all budget settings for the client
+      const allSettings = await storage.getAllBudgetSettingsByClient(clientId);
+      res.json(allSettings || []);
+    } catch (error) {
+      console.error(`Error getting budget plans for client ${clientId}:`, error);
+      res.status(500).json({ error: "Failed to get budget plans" });
+    }
+  });
+
   app.get("/api/clients/:clientId/budget-settings", async (req, res) => {
     const clientId = parseInt(req.params.clientId);
     const all = req.query.all === 'true';
