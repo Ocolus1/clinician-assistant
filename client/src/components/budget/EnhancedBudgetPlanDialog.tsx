@@ -31,7 +31,6 @@ const budgetPlanSchema = z.object({
       message: "Funds must be a valid number",
     }),
   isActive: z.boolean().default(false),
-  fundsManagement: z.enum(FUNDS_MANAGEMENT_OPTIONS),
   budgetItems: z.array(z.object({
     itemCode: z.string().min(1, "Item code is required"),
     description: z.string().optional(),
@@ -83,7 +82,6 @@ export function EnhancedBudgetPlanDialog({
       endDate: "",
       ndisFunds: "",
       isActive: false,
-      fundsManagement: "Self-Managed",
       budgetItems: [{
         itemCode: "",
         description: "",
@@ -280,33 +278,7 @@ export function EnhancedBudgetPlanDialog({
                     )}
                   />
                   
-                  <FormField
-                    control={form.control}
-                    name="fundsManagement"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Funds Management</FormLabel>
-                        <Select
-                          onValueChange={field.onChange}
-                          defaultValue={field.value}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select fund management type" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {FUNDS_MANAGEMENT_OPTIONS.map((option) => (
-                              <SelectItem key={option} value={option}>
-                                {option}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+
                   
                   <FormField
                     control={form.control}
@@ -422,7 +394,7 @@ export function EnhancedBudgetPlanDialog({
                                     <FormControl>
                                       <div className="relative">
                                         <DollarSign className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500" />
-                                        <Input className="pl-8" type="number" min="0" step="0.01" {...field} />
+                                        <Input className="pl-8 bg-gray-50" readOnly type="number" min="0" step="0.01" {...field} />
                                       </div>
                                     </FormControl>
                                     <FormMessage />
@@ -438,7 +410,7 @@ export function EnhancedBudgetPlanDialog({
                                 <FormItem>
                                   <FormLabel>Description</FormLabel>
                                   <FormControl>
-                                    <Input placeholder="Item description" {...field} />
+                                    <Input placeholder="Item description" readOnly className="bg-gray-50" {...field} />
                                   </FormControl>
                                   <FormMessage />
                                 </FormItem>
@@ -522,7 +494,7 @@ export function EnhancedBudgetPlanDialog({
                         
                         <div className="flex items-center gap-1">
                           <DollarSign className="h-3.5 w-3.5" />
-                          <span>{formatCurrency(availableFunds)} ({form.watch("fundsManagement")})</span>
+                          <span>{formatCurrency(availableFunds)}</span>
                         </div>
                       </div>
                     </div>
