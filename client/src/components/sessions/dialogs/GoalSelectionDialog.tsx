@@ -219,12 +219,9 @@ export function GoalSelectionDialog({
                     }
                   }}
                 >
-                  <CardHeader className="p-4 pb-2">
+                  <CardHeader className="p-4">
                     <CardTitle className="text-base">{goal.title}</CardTitle>
                   </CardHeader>
-                  <CardContent className="p-4 pt-0">
-                    <p className="text-sm text-muted-foreground">{goal.description}</p>
-                  </CardContent>
                 </Card>
               ))}
             </div>
