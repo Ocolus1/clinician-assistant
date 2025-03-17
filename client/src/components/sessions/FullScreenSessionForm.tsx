@@ -777,14 +777,67 @@ export function FullScreenSessionForm({
   const selectedMilestoneIds = currentGoalAssessment?.milestones.map(m => m.milestoneId) || [];
 
   // Budget items for product selection
-  const { data: budgetSettings } = useQuery<BudgetSettings>({
+  const { data: budgetSettings, isLoading: isLoadingBudgetSettings } = useQuery<BudgetSettings>({
     queryKey: ["/api/clients", clientId, "budget-settings"],
+    queryFn: async () => {
+      console.log("Fetching budget settings for client ID:", clientId);
+      try {
+        const response = await fetch(`/api/clients/${clientId}/budget-settings`);
+        if (!response.ok) {
+          throw new Error(`Error fetching budget settings: ${response.status}`);
+        }
+        const data = await response.json();
+        console.log("Budget settings data received:", JSON.stringify(data));
+        
+        // Check if we got an active budget plan
+        if (!data || (Array.isArray(data) && data.length === 0)) {
+          console.warn("WARNING: No budget settings found for client", clientId);
+          return null;
+        }
+        
+        // If we got an array instead of a single object, find the active one
+        if (Array.isArray(data)) {
+          const activePlan = data.find(plan => plan.isActive === true);
+          console.log("Active plan found:", activePlan);
+          return activePlan || data[0]; // Use active plan or first plan as fallback
+        }
+        
+        return data;
+      } catch (error) {
+        console.error("Error in budget settings query:", error);
+        throw error;
+      }
+    },
     enabled: open && !!clientId,
+    staleTime: 5000, // Refresh every 5 seconds to avoid stale data
   });
 
-  const { data: budgetItems = [] } = useQuery<BudgetItem[]>({
+  const { data: budgetItems = [], isLoading: isLoadingBudgetItems } = useQuery<BudgetItem[]>({
     queryKey: ["/api/clients", clientId, "budget-items"],
+    queryFn: async () => {
+      console.log("Fetching budget items for client ID:", clientId);
+      try {
+        const response = await fetch(`/api/clients/${clientId}/budget-items`);
+        if (!response.ok) {
+          throw new Error(`Error fetching budget items: ${response.status}`);
+        }
+        const data = await response.json();
+        console.log("Budget items data received:", JSON.stringify(data));
+        
+        // Ensure we got valid data
+        if (!data || (Array.isArray(data) && data.length === 0)) {
+          console.warn("WARNING: No budget items found for client", clientId);
+          return [];
+        }
+        
+        return data;
+      } catch (error) {
+        console.error("Error in budget items query:", error);
+        throw error;
+      }
+    },
     enabled: open && !!clientId,
+    staleTime: 5000, // Refresh every 5 seconds to avoid stale data
   });
 
   // Fetch available strategies for milestone assessment
@@ -2073,6 +2126,8 @@ export function FullScreenSessionForm({
                                 console.log("Debug info - Available products:", availableProducts);
                                 console.log("Debug info - Budget items:", budgetItems);
                                 console.log("Debug info - Budget settings:", budgetSettings);
+                                console.log("Debug info - Is loading budget settings:", isLoadingBudgetSettings);
+                                console.log("Debug info - Is loading budget items:", isLoadingBudgetItems);
                                 
                                 if (!clientId) {
                                   console.log("Button disabled: No client selected");
@@ -2083,6 +2138,16 @@ export function FullScreenSessionForm({
                                   });
                                   return;
                                 } 
+                                
+                                // If still loading, show an informative message
+                                if (isLoadingBudgetSettings || isLoadingBudgetItems) {
+                                  console.log("Budget data is still loading, but we'll proceed");
+                                  toast({
+                                    title: "Loading budget data",
+                                    description: "Product information is still loading, but we'll show what's available",
+                                    duration: 3000,
+                                  });
+                                }
                                 
                                 // Add debug information about budget items and settings
                                 console.log("BUTTON CLICKED - Debug Info");
@@ -2106,12 +2171,28 @@ export function FullScreenSessionForm({
                                     });
                                   } else {
                                     console.log("CRITICAL ERROR: No budget items available at all");
-                                    toast({
-                                      title: "No products available",
-                                      description: "This client has no products in their budget",
-                                      variant: "destructive"
-                                    });
+                                    // Check if we're still loading before showing an error
+                                    if (isLoadingBudgetItems || isLoadingBudgetSettings) {
+                                      toast({
+                                        title: "Loading products",
+                                        description: "Product data is still loading, please try again in a moment",
+                                        duration: 3000,
+                                      });
+                                    } else {
+                                      toast({
+                                        title: "No products available",
+                                        description: "This client has no products in their budget",
+                                        variant: "destructive"
+                                      });
+                                    }
                                   }
+                                }
+                                
+                                // Force refresh data before showing dialog
+                                if (clientId) {
+                                  console.log("Refreshing budget data before showing dialog");
+                                  queryClient.invalidateQueries({ queryKey: ["/api/clients", clientId, "budget-settings"] });
+                                  queryClient.invalidateQueries({ queryKey: ["/api/clients", clientId, "budget-items"] });
                                 }
                                 
                                 setShowProductDialog(true);
@@ -2127,10 +2208,19 @@ export function FullScreenSessionForm({
                               // Enable button if we have a client ID AND:
                               // 1. Either we have available products (normal case), OR 
                               // 2. We have budget items (race condition case where availableProducts calculation failed)
-                              disabled={!clientId || (availableProducts.length === 0 && (!budgetItems || budgetItems.length === 0))}
+                              // 3. OR if the data is still loading (we'll show appropriate UI in this case)
+                              disabled={!clientId || 
+                                (availableProducts.length === 0 && 
+                                 (!budgetItems || budgetItems.length === 0) && 
+                                 !isLoadingBudgetItems && 
+                                 !isLoadingBudgetSettings)}
                             >
                               <ShoppingCart className="h-4 w-4 mr-2" />
-                              Add Product
+                              {isLoadingBudgetItems || isLoadingBudgetSettings ? (
+                                <>Loading Products...</>
+                              ) : (
+                                <>Add Product</>
+                              )}
                             </Button>
                           </div>
                         </CardContent>
