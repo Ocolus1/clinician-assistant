@@ -877,6 +877,21 @@ export function FullScreenSessionForm({
       .filter(item => item.availableQuantity > 0);  // Only show items with available quantity
       
     console.log("Filtered products:", filteredProducts);
+    
+    // Add detailed debugging for each filtered item
+    if (filteredProducts.length === 0) {
+      console.log("WARNING: No filtered products available after processing");
+      
+      if (budgetItems && budgetItems.length) {
+        console.log("Original budget items before filtering:");
+        budgetItems.forEach((item: any, index: number) => {
+          console.log(`Item ${index+1}: ID=${item.id}, Description=${item.description}, Quantity=${item.quantity}, BudgetSettingsId=${item.budgetSettingsId}`);
+        });
+      } else {
+        console.log("No budget items found at all");
+      }
+    }
+    
     return filteredProducts;
   }, [budgetItems, budgetSettings, form, clientId]);
 
@@ -1933,17 +1948,22 @@ export function FullScreenSessionForm({
                               variant="outline"
                               className="w-full"
                               onClick={() => {
-                                console.log("Available products:", availableProducts);
-                                console.log("budgetItems:", budgetItems);
-                                console.log("budgetSettings:", budgetSettings);
+                                // Debug info
+                                console.log("Debug info - Client ID:", clientId);
+                                console.log("Debug info - Available products:", availableProducts);
+                                console.log("Debug info - Budget items:", budgetItems);
+                                console.log("Debug info - Budget settings:", budgetSettings);
                                 
                                 if (!clientId) {
+                                  console.log("Button disabled: No client selected");
                                   toast({
                                     title: "Client required",
                                     description: "Please select a client first to see available products",
                                     variant: "destructive"
                                   });
                                   return;
+                                } else if (availableProducts.length === 0) {
+                                  console.log("Button disabled: No available products");
                                 }
                                 
                                 setShowProductDialog(true);
