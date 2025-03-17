@@ -368,12 +368,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/clients/:clientId/budget-items", async (req, res) => {
     const clientId = parseInt(req.params.clientId);
+    const budgetSettingsId = req.query.budgetSettingsId ? parseInt(req.query.budgetSettingsId as string) : undefined;
+    const strict = req.query.strict === 'true';
+    
     console.log(`GET /api/clients/${clientId}/budget-items - Fetching budget items for client`);
+    if (budgetSettingsId) {
+      console.log(`  With budgetSettingsId filter: ${budgetSettingsId}, strict mode: ${strict}`);
+    }
     
     try {
       // Get all the budget items for this client
-      const items = await storage.getBudgetItemsByClient(clientId);
-      console.log(`Found ${items.length} budget items for client ${clientId}`);
+      let items;
+      
+      // If a specific budget settings ID is provided, filter items for that plan
+      if (budgetSettingsId) {
+        items = await storage.getBudgetItemsBySettings(budgetSettingsId);
+        console.log(`Found ${items.length} budget items for plan ${budgetSettingsId}`);
+      } else {
+        items = await storage.getBudgetItemsByClient(clientId);
+        console.log(`Found ${items.length} budget items for client ${clientId}`);
+      }
       
       // Get all budget settings (plans) for this client to check active status
       const allBudgetSettings = await storage.getAllBudgetSettingsByClient(clientId);
@@ -384,7 +398,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // For each item, add a property indicating if it belongs to an active plan
       // This helps the client-side know which items belong to active vs. inactive plans
-      const enhancedItems = items.map(item => {
+      let enhancedItems = items.map(item => {
         // Find the budget settings associated with this item
         const itemSettings = allBudgetSettings.find(s => s.id === item.budgetSettingsId);
         
@@ -402,6 +416,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           planCode: itemSettings?.planCode || null
         };
       });
+      
+      // If strict mode is enabled, only return items from the exact plan requested
+      if (strict && budgetSettingsId) {
+        // Double check that items truly belong to the requested plan
+        enhancedItems = enhancedItems.filter(item => item.budgetSettingsId === budgetSettingsId);
+        console.log(`Strict mode enabled: Filtered to ${enhancedItems.length} items belonging to plan ${budgetSettingsId}`);
+      }
       
       console.log(`Returning ${enhancedItems.length} enhanced budget items`);
       res.json(enhancedItems);

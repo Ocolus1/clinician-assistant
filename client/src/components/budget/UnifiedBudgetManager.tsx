@@ -108,11 +108,17 @@ export function UnifiedBudgetManager({ clientId, selectedPlanId }: UnifiedBudget
       if (!activePlan) {
         return [];
       }
-      const response = await fetch(`/api/clients/${clientId}/budget-items?budgetSettingsId=${activePlan.id}`);
+      // Use strict filtering to only get items that belong to this specific plan
+      const response = await fetch(`/api/clients/${clientId}/budget-items?budgetSettingsId=${activePlan.id}&strict=true`);
       if (!response.ok) {
         throw new Error('Failed to fetch budget items');
       }
-      return response.json();
+      const items = await response.json();
+      
+      // Additional client-side filtering to ensure we only get items for this plan
+      return Array.isArray(items) 
+        ? items.filter(item => item.budgetSettingsId === activePlan.id)
+        : [];
     },
     enabled: !!activePlan
   });
@@ -511,20 +517,28 @@ export function UnifiedBudgetManager({ clientId, selectedPlanId }: UnifiedBudget
       // Force a complete refresh of the data
       setTimeout(() => {
         console.log("Forcing manual data refresh");
-        // Fetch the latest budget items
-        fetch(`/api/clients/${clientId}/budget-items`)
+        // Fetch the latest budget items with strict filtering
+        if (!activePlan) return;
+        
+        fetch(`/api/clients/${clientId}/budget-items?budgetSettingsId=${activePlan.id}&strict=true`)
           .then(res => res.json())
           .then(data => {
             console.log("Refreshed budget items:", data);
+            
+            // Additional filtering to ensure items belong to the current plan only
+            const filteredItems = Array.isArray(data) 
+              ? data.filter(item => item.budgetSettingsId === activePlan.id)
+              : [];
+            
             // Verify items are valid before updating state
-            if (!Array.isArray(data)) {
-              console.error("Invalid data format received:", data);
+            if (!Array.isArray(filteredItems)) {
+              console.error("Invalid data format received:", filteredItems);
               return;
             }
             
             // Check if we have duplicate items in the response
             const itemCodes = new Set();
-            const uniqueItems = data.filter(item => {
+            const uniqueItems = filteredItems.filter(item => {
               // Skip invalid items
               if (!item || !item.itemCode) return false;
               
