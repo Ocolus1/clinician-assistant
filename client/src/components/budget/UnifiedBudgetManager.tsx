@@ -111,6 +111,16 @@ export function UnifiedBudgetManager({ clientId, selectedPlanId }: UnifiedBudget
     return activePlan?.id;
   }, [selectedPlanId, activePlan?.id]);
   
+  // Reset form when targetPlanId changes
+  const prevTargetPlanIdRef = useRef<number | undefined>(targetPlanId);
+  useEffect(() => {
+    if (prevTargetPlanIdRef.current !== targetPlanId) {
+      console.log(`Target plan ID changed from ${prevTargetPlanIdRef.current} to ${targetPlanId}, resetting form state`);
+      setFormInitialized(false);
+      prevTargetPlanIdRef.current = targetPlanId;
+    }
+  }, [targetPlanId]);
+  
   const itemsQuery = useQuery({
     queryKey: [`/api/clients/${clientId}/budget-items`, targetPlanId],
     queryFn: async () => {
@@ -163,23 +173,32 @@ export function UnifiedBudgetManager({ clientId, selectedPlanId }: UnifiedBudget
 
   // Set active plan from data (prioritize selected plan ID, then active plans, then first plan)
   useEffect(() => {
-    if (plansQuery.data && plansQuery.data.length > 0 && !activePlan) {
+    if (plansQuery.data && plansQuery.data.length > 0) {
       // If a specific plan ID is provided, use that one
       if (selectedPlanId) {
         const selectedPlan = plansQuery.data.find((plan: any) => plan.id === selectedPlanId);
         if (selectedPlan) {
           console.log("Using selected plan ID:", selectedPlanId);
-          setActivePlan(selectedPlan);
+          // Only set if different to avoid unnecessary re-renders
+          if (!activePlan || activePlan.id !== selectedPlanId) {
+            setActivePlan(selectedPlan);
+            // Reset form initialization when switching plans
+            setFormInitialized(false);
+            console.log("Reset form initialization state due to plan change");
+          }
           return;
         }
       }
       
-      // Otherwise use the first active plan
-      const activePlans = plansQuery.data.filter((plan: any) => plan.isActive);
-      if (activePlans.length > 0) {
-        setActivePlan(activePlans[0]);
-      } else {
-        setActivePlan(plansQuery.data[0]);
+      // If we don't have an active plan yet, set one
+      if (!activePlan) {
+        // Otherwise use the first active plan
+        const activePlans = plansQuery.data.filter((plan: any) => plan.isActive);
+        if (activePlans.length > 0) {
+          setActivePlan(activePlans[0]);
+        } else {
+          setActivePlan(plansQuery.data[0]);
+        }
       }
     }
   }, [plansQuery.data, activePlan, setActivePlan, selectedPlanId]);
