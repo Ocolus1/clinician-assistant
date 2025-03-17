@@ -844,15 +844,22 @@ export function FullScreenSessionForm({
     // Filter only products from the active budget plan
     const filteredProducts = budgetItems
       .filter((item: BudgetItem) => {
-        // For debugging
-        console.log(`Item ${item.id}: budgetSettingsId=${item.budgetSettingsId}, quantity=${item.quantity}, active plan ID=${budgetSettings.id}`);
+        // Major issue: Let's log more details about the items and active plan
+        console.log(`Checking item ${item.id} (${item.description || 'unknown'}): budgetSettingsId=${item.budgetSettingsId}, quantity=${item.quantity}`);
+        
+        if (budgetSettings) {
+          console.log(`Active plan ID=${budgetSettings.id}, isActive=${budgetSettings.isActive}`);
+        } else {
+          console.log("No active budget settings found!");
+          return false; // Can't proceed without budget settings
+        }
         
         // CRITICAL RULE: Only include items from active budget plans
-        // 1. Check if item belongs to the active plan
-        const isActivePlan = item.budgetSettingsId === budgetSettings.id;
+        // 1. Check if item belongs to the active plan - EXACT match required
+        const isActivePlan = Number(item.budgetSettingsId) === Number(budgetSettings.id);
         
         // 2. Check if item has quantity > 0
-        const hasQuantity = item.quantity > 0;
+        const hasQuantity = Number(item.quantity) > 0;
         
         if (!isActivePlan) {
           console.log(`Item ${item.id} skipped: not from active plan (${item.budgetSettingsId} != ${budgetSettings.id})`);
@@ -861,6 +868,9 @@ export function FullScreenSessionForm({
         if (!hasQuantity) {
           console.log(`Item ${item.id} skipped: has zero quantity remaining`);
         }
+        
+        // Additional debug
+        console.log(`Item ${item.id} result: isActivePlan=${isActivePlan}, hasQuantity=${hasQuantity}`);
         
         // Both conditions must be true
         return isActivePlan && hasQuantity;
@@ -893,12 +903,53 @@ export function FullScreenSessionForm({
     // Add detailed debugging for each filtered item
     if (filteredProducts.length === 0) {
       console.log("WARNING: No filtered products available after processing");
+      console.log("CHECK: Budget settings ID:", budgetSettings?.id);
+      console.log("CHECK: Is budgetSettings defined?", !!budgetSettings);
+      
+      // Manually check budget items and settings for this client
+      if (clientId) {
+        console.log(`Checking settings and items for client ${clientId} directly via API`);
+        
+        // Make direct API calls to verify data
+        fetch(`/api/clients/${clientId}/budget-settings`)
+          .then(res => res.json())
+          .then(data => {
+            console.log("DEBUG API: Budget settings for client:", data);
+            
+            if (Array.isArray(data) && data.length > 0) {
+              console.log("Active settings found from API:", data.find(s => s.isActive === true));
+            }
+            
+            // Then fetch budget items
+            return fetch(`/api/clients/${clientId}/budget-items`);
+          })
+          .then(res => res.json())
+          .then(items => {
+            console.log("DEBUG API: Budget items for client:", items);
+            
+            // Check which items belong to the active plan
+            if (budgetSettings && items && items.length > 0) {
+              const activePlanId = budgetSettings.id;
+              const itemsInActivePlan = items.filter(item => item.budgetSettingsId === activePlanId);
+              console.log("DEBUG API: Items in active plan:", itemsInActivePlan);
+              console.log("DEBUG API: Active plan ID:", activePlanId);
+            }
+          })
+          .catch(err => console.error("Error fetching budget data:", err));
+      }
       
       if (budgetItems && budgetItems.length) {
         console.log("Original budget items before filtering:");
         budgetItems.forEach((item: any, index: number) => {
           console.log(`Item ${index+1}: ID=${item.id}, Description=${item.description}, Quantity=${item.quantity}, BudgetSettingsId=${item.budgetSettingsId}`);
         });
+        
+        // Check specifically which items match the active plan
+        if (budgetSettings) {
+          const activePlanId = budgetSettings.id;
+          const itemsMatchingActivePlan = budgetItems.filter(item => item.budgetSettingsId === activePlanId);
+          console.log(`Found ${itemsMatchingActivePlan.length} items matching active plan ID ${activePlanId}:`, itemsMatchingActivePlan);
+        }
       } else {
         console.log("No budget items found at all");
       }
