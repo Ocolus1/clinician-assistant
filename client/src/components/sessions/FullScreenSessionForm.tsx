@@ -278,6 +278,14 @@ const MilestoneSelectionDialog = ({
   selectedMilestoneIds,
   onSelectMilestone
 }: MilestoneSelectionDialogProps) => {
+  // Add debugging when dialog opens
+  useEffect(() => {
+    if (open) {
+      console.log("MilestoneSelectionDialog opened with subgoals:", subgoals);
+      console.log("Selected milestone IDs:", selectedMilestoneIds);
+    }
+  }, [open, subgoals, selectedMilestoneIds]);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
@@ -863,6 +871,41 @@ export function FullScreenSessionForm({
     queryKey: ["/api/goals", currentGoalId, "subgoals"],
     enabled: open && !!currentGoalId,
   });
+  
+  // Direct API fetch for subgoals when currentGoalId changes
+  // This is to diagnose if there's an issue with TanStack Query
+  const [directFetchSubgoals, setDirectFetchSubgoals] = useState<Subgoal[]>([]);
+  
+  useEffect(() => {
+    if (currentGoalId) {
+      console.log(`Directly fetching subgoals for goal ID ${currentGoalId}...`);
+      
+      fetch(`/api/goals/${currentGoalId}/subgoals`)
+        .then(response => {
+          if (!response.ok) {
+            throw new Error(`Error fetching subgoals: ${response.status}`);
+          }
+          return response.json();
+        })
+        .then(data => {
+          console.log(`SUCCESS! Direct fetch found ${data.length} subgoals for goal ID ${currentGoalId}:`, data);
+          setDirectFetchSubgoals(data);
+        })
+        .catch(error => {
+          console.error(`Error directly fetching subgoals for goal ID ${currentGoalId}:`, error);
+        });
+    }
+  }, [currentGoalId]);
+  
+  // Use the direct fetch results if available, otherwise fall back to react-query results
+  const combinedSubgoals = directFetchSubgoals.length > 0 ? directFetchSubgoals : subgoals;
+  
+  // Monitor combined subgoals data with useEffect
+  useEffect(() => {
+    if (currentGoalId) {
+      console.log(`Using ${combinedSubgoals.length} subgoals for goal ID ${currentGoalId}:`, combinedSubgoals);
+    }
+  }, [currentGoalId, combinedSubgoals]);
 
   // Get selected milestone IDs for the currently active goal
   const currentGoalAssessment = selectedPerformanceAssessments.find(a => a.goalId === currentGoalId);
@@ -1333,6 +1376,10 @@ export function FullScreenSessionForm({
     console.log("Goal selected:", goal);
     const currentAssessments = form.getValues("performanceAssessments") || [];
     console.log("Current performance assessments before adding:", currentAssessments);
+    
+    // Set the currentGoalId to load related subgoals/milestones for this goal
+    setCurrentGoalId(goal.id);
+    console.log("Setting currentGoalId to:", goal.id);
 
     // Add the selected goal to assessments if not already added
     if (!currentAssessments.some(a => a.goalId === goal.id)) {
