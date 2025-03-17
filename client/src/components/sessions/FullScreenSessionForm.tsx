@@ -787,11 +787,19 @@ export function FullScreenSessionForm({
   const selectedGoalIds = selectedPerformanceAssessments.map(assessment => assessment.goalId);
 
   // Debug logs for goals fetching
+  // Enhanced debugging for goals fetching and selection process
   useEffect(() => {
     if (open && clientId) {
       console.log(`DEBUG GOALS: Fetching status for client ${clientId}, showGoalDialog=${showGoalDialog}`);
       console.log(`DEBUG GOALS: isLoading=${isLoadingGoals}, goals count=${goals?.length || 0}`);
-      console.log(`DEBUG GOALS: Current value of goals:`, goals);
+      
+      if (goals && goals.length > 0) {
+        console.log("DEBUG GOALS: Goals data available:", 
+          goals.map(g => ({id: g.id, title: g.title}))
+        );
+      } else {
+        console.log("DEBUG GOALS: No goals data available yet");
+      }
       
       if (goalsError) {
         console.error("Error fetching goals:", goalsError);
@@ -801,9 +809,13 @@ export function FullScreenSessionForm({
       if (showGoalDialog) {
         console.log("GOAL DIALOG OPENED with these goals:", goals);
         console.log("Selected goal IDs when dialog opened:", selectedGoalIds);
+        
+        // Additional logging about selected assessments
+        const assessments = form.getValues("performanceAssessments") || [];
+        console.log("Current performance assessments:", assessments);
       }
     }
-  }, [open, clientId, goals, goalsError, showGoalDialog, isLoadingGoals, selectedGoalIds]);
+  }, [open, clientId, goals, goalsError, showGoalDialog, isLoadingGoals, selectedGoalIds, form]);
 
   // Fetch subgoals for the currently selected goal
   const { data: subgoals = [] } = useQuery<Subgoal[]>({
@@ -2540,6 +2552,9 @@ export function FullScreenSessionForm({
                                 return;
                               }
 
+                              console.log("DEBUG: Opening goal dialog from header button");
+                              console.log("Goals available:", goals?.length || 0);
+                              console.log("Selected goal IDs:", selectedGoalIds);
                               setShowGoalDialog(true);
                             }}
                           >
@@ -2564,6 +2579,9 @@ export function FullScreenSessionForm({
                                   });
                                   return;
                                 }
+                                console.log("DEBUG: Opening goal dialog from empty state button");
+                                console.log("Goals available:", goals?.length || 0);
+                                console.log("Selected goal IDs:", selectedGoalIds);
                                 setShowGoalDialog(true);
                               }}
                             >
