@@ -74,18 +74,34 @@ export function ProductSelectionDialog({
     console.log("DEBUG PRODUCTS: All products passed to dialog:", JSON.stringify(products, null, 2));
     console.log(`DEBUG PRODUCTS: Total products count: ${products.length}`);
     
-    // CRITICAL FIX: If we have products but none are marked active, assume they should all be active
-    // The filter was correctly finding items from active plan, but flag was not being set properly
+    // CRITICAL FIX: Added enhanced handling for race conditions
+    // Two scenarios to fix:
+    // 1. Products passed in but none marked as active (race condition in parent component)
+    // 2. Products passed in with some marked as active but some not (partial race condition)
     if (products.length > 0) {
       const productsMarkedActive = products.filter(p => p.isActivePlan === true);
+      const productsNotMarked = products.filter(p => p.isActivePlan === undefined);
       
+      // Case 1: None are marked as active - treat all as active
       if (productsMarkedActive.length === 0) {
         console.log("CRITICAL FIX: Products available but none marked as active - treating all as active");
         
-        // Return all products - they're already filtered at the source
+        // Return all products with isActivePlan flag set to true
         return products.map(product => ({ 
           ...product, 
           isActivePlan: true // Force this flag to true since we know these are from active plan
+        }));
+      }
+      
+      // Case 2: Some are marked as active, some have undefined flags (partial race condition)
+      // This could happen if the component rerenders during race condition resolution
+      if (productsNotMarked.length > 0) {
+        console.log(`CRITICAL FIX: ${productsNotMarked.length} products have undefined active status - marking them active`);
+        
+        // Return all products, updating only the ones without flags
+        return products.map(product => ({
+          ...product,
+          isActivePlan: product.isActivePlan === undefined ? true : product.isActivePlan
         }));
       }
     }

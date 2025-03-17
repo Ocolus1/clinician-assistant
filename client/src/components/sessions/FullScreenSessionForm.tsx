@@ -2085,8 +2085,11 @@ export function FullScreenSessionForm({
                                   console.log(`Opening dialog with ${availableProducts.length} products`);
                                 }
                               }}
-                              // Always enable button when in debug mode, otherwise check for products
-                              disabled={!clientId || availableProducts.length === 0}
+                              // CRITICAL FIX: Modified button enabling logic to handle race conditions
+                              // Enable button if we have a client ID AND:
+                              // 1. Either we have available products (normal case), OR 
+                              // 2. We have budget items (race condition case where availableProducts calculation failed)
+                              disabled={!clientId || (availableProducts.length === 0 && (!budgetItems || budgetItems.length === 0))}
                             >
                               <ShoppingCart className="h-4 w-4 mr-2" />
                               Add Product
