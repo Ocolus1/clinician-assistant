@@ -633,6 +633,12 @@ export function FullScreenSessionForm({
     performanceAssessments: [],
   };
   
+  // Create form
+  const form = useSafeForm<IntegratedSessionFormValues>({
+    resolver: zodResolver(integratedSessionFormSchema),
+    defaultValues,
+  });
+
   // Reset form values when form dialog is closed and reset form when reopened
   useEffect(() => {
     // When the form is closed, mark it as not initialized
@@ -688,19 +694,11 @@ export function FullScreenSessionForm({
         
         // Give form time to initialize, then force the client ID to be set correctly
         setTimeout(() => {
-          if (form) {
-            form.setValue("session.clientId", initialClient.id, { shouldDirty: true, shouldValidate: false });
-          }
+          form.setValue("session.clientId", initialClient.id, { shouldDirty: true, shouldValidate: false });
         }, 100);
       }
     }
   }, [open, initialClient, form]);
-
-  // Create form
-  const form = useSafeForm<IntegratedSessionFormValues>({
-    resolver: zodResolver(integratedSessionFormSchema),
-    defaultValues,
-  });
 
   // Watch clientId to update related data
   const clientId = form.watch("session.clientId");
