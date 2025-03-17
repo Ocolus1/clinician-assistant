@@ -2072,8 +2072,36 @@ export function FullScreenSessionForm({
                                     variant: "destructive"
                                   });
                                   return;
-                                } else if (availableProducts.length === 0) {
-                                  console.log("Button disabled: No available products");
+                                } 
+                                
+                                // Add debug information about budget items and settings
+                                console.log("BUTTON CLICKED - Debug Info");
+                                console.log(`Client ID: ${clientId}`);
+                                console.log(`Available products: ${availableProducts?.length || 0}`);
+                                console.log(`Budget items: ${budgetItems?.length || 0}`);
+                                console.log(`Budget settings present: ${!!budgetSettings}`);
+                                
+                                // Show warning toast if no available products detected
+                                if (availableProducts.length === 0) {
+                                  console.log("WARNING: No available products detected");
+                                  
+                                  // Despite no available products, if we have budget items, we'll still open the dialog
+                                  // This allows our fallback logic in ProductSelectionDialog to work
+                                  if (budgetItems && budgetItems.length > 0) {
+                                    console.log("WORKAROUND: Opening dialog anyway because budget items exist");
+                                    toast({
+                                      title: "Limited product information",
+                                      description: "Showing all available products from client's budget",
+                                      duration: 3000,
+                                    });
+                                  } else {
+                                    console.log("CRITICAL ERROR: No budget items available at all");
+                                    toast({
+                                      title: "No products available",
+                                      description: "This client has no products in their budget",
+                                      variant: "destructive"
+                                    });
+                                  }
                                 }
                                 
                                 setShowProductDialog(true);
