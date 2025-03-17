@@ -103,7 +103,7 @@ export function ProductSelectionDialog({
   };
 
   // Handle product selection and confirmation
-  const handleSelectProduct = (product: BudgetItem & { availableQuantity: number }) => {
+  const handleSelectProduct = (product: EnhancedBudgetItem) => {
     setSelectedProduct(product);
     // Reset quantity to 1 when selecting a new product
     setQuantity(1);

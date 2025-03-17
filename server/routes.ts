@@ -522,12 +522,116 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.put("/api/budget-settings/:id", async (req, res) => {
-    const result = insertBudgetSettingsSchema.safeParse(req.body);
-    if (!result.success) {
-      return res.status(400).json({ error: result.error });
+    console.log(`PUT /api/budget-settings/${req.params.id} - Updating budget settings`);
+    const budgetSettingsId = parseInt(req.params.id);
+    
+    try {
+      const result = insertBudgetSettingsSchema.safeParse(req.body);
+      if (!result.success) {
+        console.error("Validation error updating budget settings:", result.error);
+        return res.status(400).json({ error: result.error });
+      }
+      
+      // Before updating, check if isActive is changing from false to true
+      // When a plan is being activated, we need to deactivate any other active plans for the client
+      if (result.data.isActive === true) {
+        console.log(`Plan ${budgetSettingsId} is being activated`);
+        
+        const existingPlan = await pool.query(
+          `SELECT id, client_id, is_active FROM budget_settings WHERE id = $1`,
+          [budgetSettingsId]
+        );
+        
+        if (existingPlan.rows.length === 0) {
+          return res.status(404).json({ error: "Budget settings not found" });
+        }
+        
+        // If plan was already active, no need for special handling
+        if (existingPlan.rows[0].is_active) {
+          console.log(`Plan ${budgetSettingsId} was already active, updating normally`);
+          const settings = await storage.updateBudgetSettings(budgetSettingsId, result.data);
+          return res.json(settings);
+        }
+        
+        // Get client ID from the plan being activated
+        const clientId = existingPlan.rows[0].client_id;
+        console.log(`Plan belongs to client ${clientId}`);
+        
+        // Find any other active plans for this client and deactivate them
+        console.log(`Finding other active plans for client ${clientId}`);
+        const activePlans = await pool.query(
+          `SELECT id FROM budget_settings WHERE client_id = $1 AND is_active = true AND id != $2`,
+          [clientId, budgetSettingsId]
+        );
+        
+        // Begin a transaction to ensure all operations are atomic
+        const client = await pool.connect();
+        try {
+          await client.query('BEGIN');
+          
+          // Deactivate other active plans
+          for (const plan of activePlans.rows) {
+            console.log(`Deactivating plan ${plan.id}`);
+            await client.query(
+              `UPDATE budget_settings SET is_active = false WHERE id = $1`,
+              [plan.id]
+            );
+          }
+          
+          // Activate the new plan
+          console.log(`Activating plan ${budgetSettingsId}`);
+          await client.query(
+            `UPDATE budget_settings SET 
+              is_active = $1,
+              plan_name = $2,
+              plan_serial_number = $3,
+              plan_code = $4,
+              ndis_funds = $5,
+              funds_management = $6,
+              start_date = $7,
+              end_date = $8,
+              notes = $9
+            WHERE id = $10`,
+            [
+              result.data.isActive,
+              result.data.planName,
+              result.data.planSerialNumber,
+              result.data.planCode,
+              result.data.ndisFunds,
+              result.data.fundsManagement,
+              result.data.startDate,
+              result.data.endDate,
+              result.data.notes,
+              budgetSettingsId
+            ]
+          );
+          
+          // CRITICAL FIX: Do NOT update budgetSettingsId on budget items
+          // This ensures items stay with their original plan even when plan activation changes
+          
+          await client.query('COMMIT');
+          console.log(`Successfully activated plan ${budgetSettingsId} and deactivated ${activePlans.rows.length} other plans`);
+          
+          // Get the updated settings
+          const updatedSettings = await storage.getBudgetSettingsByClient(clientId);
+          res.json(updatedSettings);
+        } catch (error) {
+          await client.query('ROLLBACK');
+          console.error(`Error during plan activation transaction:`, error);
+          throw error;
+        } finally {
+          client.release();
+        }
+      } else {
+        // For non-activation updates, just update normally
+        console.log(`Updating plan ${budgetSettingsId} normally (not an activation)`);
+        const settings = await storage.updateBudgetSettings(budgetSettingsId, result.data);
+        res.json(settings);
+      }
+    } catch (error) {
+      console.error(`Error updating budget settings ${budgetSettingsId}:`, error);
+      res.status(500).json({ error: "Failed to update budget settings" });
     }
-    const settings = await storage.updateBudgetSettings(parseInt(req.params.id), result.data);
-    res.json(settings);
   });
 
   // Budget Item Catalog routes
