@@ -1399,10 +1399,17 @@ export function FullScreenSessionForm({
                                     </SelectTrigger>
                                   </FormControl>
                                   <SelectContent>
-                                    {/* Populate with available clinicians */}
-                                    <SelectItem value="1">Dr. Sarah Johnson</SelectItem>
-                                    <SelectItem value="2">Dr. Michael Chen</SelectItem>
-                                    <SelectItem value="3">Dr. Emily Rodriguez</SelectItem>
+                                    {/* Populate with allies from the client's allies list */}
+                                    {allies.map((ally) => (
+                                      <SelectItem key={ally.id} value={ally.id.toString()}>
+                                        {ally.name}
+                                      </SelectItem>
+                                    ))}
+                                    {allies.length === 0 && (
+                                      <SelectItem value="" disabled>
+                                        No clinicians available
+                                      </SelectItem>
+                                    )}
                                   </SelectContent>
                                 </Select>
                                 <FormMessage />
@@ -1937,10 +1944,9 @@ export function FullScreenSessionForm({
                         <div className="flex justify-between">
                           <p className="text-sm text-muted-foreground">Clinician</p>
                           <p className="text-sm font-medium">
-                            {form.watch("session.therapistId") === 1 || form.watch("session.therapistId") === "1" ? "Dr. Sarah Johnson" :
-                             form.watch("session.therapistId") === 2 || form.watch("session.therapistId") === "2" ? "Dr. Michael Chen" :
-                             form.watch("session.therapistId") === 3 || form.watch("session.therapistId") === "3" ? "Dr. Emily Rodriguez" :
-                             "Not selected"}
+                            {form.watch("session.therapistId") 
+                              ? allies.find(ally => ally.id === form.watch("session.therapistId"))?.name || "Not found"
+                              : "Not selected"}
                           </p>
                         </div>
                         <div className="flex justify-between">
