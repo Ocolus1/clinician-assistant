@@ -1,0 +1,90 @@
+> rest-express@1.0.0 dev
+> tsx server/index.ts
+
+1:06:39 PM [express] serving on port 5000
+GET /api/clients - Retrieving all clients
+Include incomplete clients: false
+Getting all clients from database
+Found 14 clients in database
+Found 14 clients in database
+Returning 1 clients after filtering
+1:07:02 PM [express] GET /api/clients 200 in 2597ms :: [{"id":59,"name":"Radwan","dateOfBirth":"2019…
+GET /api/clients - Retrieving all clients
+Include incomplete clients: false
+Getting all clients from database
+GET /api/sessions - Retrieving all sessions
+Getting all sessions
+Found 1 sessions
+Found 1 sessions
+1:07:16 PM [express] GET /api/sessions 304 in 194ms :: [{"id":1,"clientId":37,"therapistId":null,"ti…
+GET /api/clients - Retrieving all clients
+Include incomplete clients: false
+Getting all clients from database
+Found 14 clients in database
+Found 14 clients in database
+Returning 1 clients after filtering
+1:07:17 PM [express] GET /api/clients 304 in 25ms :: [{"id":59,"name":"Radwan","dateOfBirth":"2019-1…
+Found 14 clients in database
+Found 14 clients in database
+Returning 1 clients after filtering
+1:07:18 PM [express] GET /api/clients 304 in 2121ms :: [{"id":59,"name":"Radwan","dateOfBirth":"2019…
+GET /api/clients - Retrieving all clients
+Include incomplete clients: false
+Getting all clients from database
+Getting allies for client 59
+Found 14 clients in database
+Found 14 clients in database
+Returning 1 clients after filtering
+1:07:57 PM [express] GET /api/clients 304 in 107ms :: [{"id":59,"name":"Radwan","dateOfBirth":"2019-…
+Found 2 allies for client 59
+1:07:57 PM [express] GET /api/clients/59/allies 304 in 107ms :: [{"id":54,"clientId":59,"name":"Moha…
+GET /api/clients - Retrieving all clients
+Include incomplete clients: false
+Getting all clients from database
+Found 14 clients in database
+Found 14 clients in database
+Returning 1 clients after filtering
+1:07:58 PM [express] GET /api/clients 304 in 23ms :: [{"id":59,"name":"Radwan","dateOfBirth":"2019-1…
+GET /api/clients - Retrieving all clients
+Include incomplete clients: false
+Getting all clients from database
+Found 14 clients in database
+Found 14 clients in database
+Returning 1 clients after filtering
+1:07:58 PM [express] GET /api/clients 304 in 24ms :: [{"id":59,"name":"Radwan","dateOfBirth":"2019-1…
+Getting budget settings for client 59, all=false
+Getting active budget setting for client 59
+Getting budget settings for client 59
+Found budget settings for client 59
+Found budget settings for client 59
+1:07:58 PM [express] GET /api/clients/59/budget-settings 304 in 26ms :: {"id":48,"clientId":59,"plan…
+GET /api/clients/59/budget-items - Fetching budget items for client
+Getting budget items for client 59
+Found 4 budget items for client 59
+Found 4 budget items for client 59
+Getting all budget settings for client 59
+Found 2 budget settings for client 59
+Returning 4 enhanced budget items
+1:07:58 PM [express] GET /api/clients/59/budget-items 304 in 48ms :: [{"id":46,"clientId":59,"budget…
+GET /api/clients - Retrieving all clients
+Include incomplete clients: false
+Getting all clients from database
+Found 14 clients in database
+Found 14 clients in database
+Returning 1 clients after filtering
+1:08:41 PM [express] GET /api/clients 304 in 96ms :: [{"id":59,"name":"Radwan","dateOfBirth":"2019-1…
+Getting budget settings for client 59, all=false
+Getting active budget setting for client 59
+Getting budget settings for client 59
+Found budget settings for client 59
+Found budget settings for client 59
+1:08:44 PM [express] GET /api/clients/59/budget-settings 304 in 23ms :: {"id":48,"clientId":59,"plan…
+GET /api/clients/59/budget-items - Fetching budget items for client
+Getting budget items for client 59
+Found 4 budget items for client 59
+Found 4 budget items for client 59
+Getting all budget settings for client 59
+Found 2 budget settings for client 59
+Returning 4 enhanced budget items
+1:08:44 PM [express] GET /api/clients/59/budget-items 304 in 49ms :: [{"id":46,"clientId":59,"budget…
+  
