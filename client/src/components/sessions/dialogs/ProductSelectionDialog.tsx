@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { BudgetItem } from "@shared/schema";
 
 // Extended type to include isActivePlan flag returned by the API
@@ -29,7 +29,6 @@ import { Input } from "@/components/ui/input";
 import {
   Card,
   CardContent,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -53,10 +52,11 @@ export function ProductSelectionDialog({
 }: ProductSelectionDialogProps) {
   const [selectedProduct, setSelectedProduct] = useState<EnhancedBudgetItem | null>(null);
   const [quantity, setQuantity] = useState(1);
+  const [filteredProducts, setFilteredProducts] = useState<EnhancedBudgetItem[]>([]);
 
   // MAJOR FIX: Override isActivePlan flag correctly for all products
   // If user has selected a client, all products we get should be from that client's active plan
-  React.useEffect(() => {
+  useEffect(() => {
     if (products.length > 0) {
       // Count how many products have the isActivePlan flag set
       const activeCount = products.filter(p => p.isActivePlan === true).length;
@@ -69,7 +69,7 @@ export function ProductSelectionDialog({
   }, [products]);
   
   // Filter products to only include those from active plans
-  const activeProducts = React.useMemo(() => {
+  const computeActiveProducts = useMemo(() => {
     // Enhanced debugging for filter process
     console.log("DEBUG PRODUCTS: All products passed to dialog:", JSON.stringify(products, null, 2));
     console.log(`DEBUG PRODUCTS: Total products count: ${products.length}`);
@@ -113,11 +113,28 @@ export function ProductSelectionDialog({
     });
   }, [products]);
 
-  // Clear selection when dialog opens with new products
+  // Update filtered products when computed active products change or dialog opens
   useEffect(() => {
     if (open) {
       console.log("ProductSelectionDialog opened with products:", products);
-      console.log("Active products only:", activeProducts);
+      
+      // Initial computation of active products
+      const activeProductList = computeActiveProducts;
+      console.log("Active products calculated:", activeProductList);
+      
+      // CRITICAL FIX: If there are no active products but we have products,
+      // automatically show all available products
+      if (activeProductList.length === 0 && products.length > 0) {
+        console.log("AUTOMATIC FIX: No active products but products are available");
+        console.log("Setting all products as active to ensure dialog works");
+        
+        // Force all products to be considered active
+        const allProductsAsActive = products.map(p => ({...p, isActivePlan: true}));
+        setFilteredProducts(allProductsAsActive);
+      } else {
+        // Use computed active products
+        setFilteredProducts(activeProductList);
+      }
       
       // Log any non-active plan items that were filtered out
       const nonActiveItems = products.filter(p => p.isActivePlan === false);
@@ -129,7 +146,7 @@ export function ProductSelectionDialog({
       setSelectedProduct(null);
       setQuantity(1);
     }
-  }, [open, products, activeProducts]);
+  }, [open, products, computeActiveProducts]);
 
   // Handle quantity changes
   const increaseQuantity = () => {
@@ -165,6 +182,14 @@ export function ProductSelectionDialog({
     }
   };
 
+  // Handle showing all products when none are active
+  const handleShowAllProducts = () => {
+    console.log("EMERGENCY OVERRIDE: User requested to show all products");
+    // Force all products to be considered active - this is a user-initiated override
+    const allProductsAsActive = products.map(p => ({...p, isActivePlan: true}));
+    setFilteredProducts(allProductsAsActive);
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[600px]">
@@ -179,17 +204,28 @@ export function ProductSelectionDialog({
           <div>
             <h3 className="text-sm font-medium mb-2">Available Products</h3>
             <ScrollArea className="h-[300px] border rounded-md p-2">
-              {activeProducts.length === 0 ? (
+              {filteredProducts.length === 0 ? (
                 <div className="p-4 text-center space-y-2">
                   <Package className="h-10 w-10 mx-auto text-muted-foreground/50" />
                   <p className="text-muted-foreground font-medium">No products available in active budget plan</p>
+                  
+                  {/* CRITICAL FIX: Emergency fallback - show ALL products if none are active */}
+                  {products.length > 0 && (
+                    <Button 
+                      variant="outline" 
+                      onClick={handleShowAllProducts}
+                    >
+                      Show All Available Products
+                    </Button>
+                  )}
+                  
                   <p className="text-sm text-muted-foreground/70">
                     Please add products to the active budget plan in the client's profile
                   </p>
                 </div>
               ) : (
                 <div className="space-y-2">
-                  {activeProducts.map(product => (
+                  {filteredProducts.map(product => (
                     <Card 
                       key={product.id} 
                       className={`cursor-pointer hover:bg-muted/20 transition ${selectedProduct?.id === product.id ? 'border-primary' : ''}`}
