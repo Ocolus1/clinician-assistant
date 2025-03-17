@@ -246,7 +246,6 @@ const GoalSelectionDialog = ({
               >
                 <CardContent className="p-4">
                   <h4 className="font-medium">{goal.title}</h4>
-                  <p className="text-sm text-muted-foreground">{goal.description}</p>
                 </CardContent>
               </Card>
             ))
