@@ -1,5 +1,13 @@
 import React, { useState, useEffect } from "react";
 import { BudgetItem } from "@shared/schema";
+
+// Extended type to include isActivePlan flag returned by the API
+interface EnhancedBudgetItem extends BudgetItem {
+  isActivePlan?: boolean;
+  planSerialNumber?: string | null;
+  planCode?: string | null;
+  availableQuantity: number;
+}
 import { 
   Package,
   Minus,
@@ -30,8 +38,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 interface ProductSelectionDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  products: (BudgetItem & { availableQuantity: number })[];
-  onSelectProduct: (product: BudgetItem & { availableQuantity: number }, quantity: number) => void;
+  products: EnhancedBudgetItem[];
+  onSelectProduct: (product: EnhancedBudgetItem, quantity: number) => void;
 }
 
 /**
@@ -43,18 +51,36 @@ export function ProductSelectionDialog({
   products,
   onSelectProduct
 }: ProductSelectionDialogProps) {
-  const [selectedProduct, setSelectedProduct] = useState<(BudgetItem & { availableQuantity: number }) | null>(null);
+  const [selectedProduct, setSelectedProduct] = useState<EnhancedBudgetItem | null>(null);
   const [quantity, setQuantity] = useState(1);
+
+  // Filter products to only include those from active plans
+  const activeProducts = React.useMemo(() => {
+    // CRITICAL FIX: Only include items from active budget plans
+    return products.filter(product => {
+      // Check if product has isActivePlan property and it's not false
+      // This ensures we only see products from active plans
+      return product.isActivePlan !== false;
+    });
+  }, [products]);
 
   // Clear selection when dialog opens with new products
   useEffect(() => {
     if (open) {
       console.log("ProductSelectionDialog opened with products:", products);
+      console.log("Active products only:", activeProducts);
+      
+      // Log any non-active plan items that were filtered out
+      const nonActiveItems = products.filter(p => p.isActivePlan === false);
+      if (nonActiveItems.length > 0) {
+        console.warn("Warning: Filtered out products from inactive plans:", nonActiveItems);
+      }
+      
       // Reset selection state when dialog opens
       setSelectedProduct(null);
       setQuantity(1);
     }
-  }, [open, products]);
+  }, [open, products, activeProducts]);
 
   // Handle quantity changes
   const increaseQuantity = () => {
@@ -104,7 +130,7 @@ export function ProductSelectionDialog({
           <div>
             <h3 className="text-sm font-medium mb-2">Available Products</h3>
             <ScrollArea className="h-[300px] border rounded-md p-2">
-              {products.length === 0 ? (
+              {activeProducts.length === 0 ? (
                 <div className="p-4 text-center space-y-2">
                   <Package className="h-10 w-10 mx-auto text-muted-foreground/50" />
                   <p className="text-muted-foreground font-medium">No products available in active budget plan</p>
@@ -114,7 +140,7 @@ export function ProductSelectionDialog({
                 </div>
               ) : (
                 <div className="space-y-2">
-                  {products.map(product => (
+                  {activeProducts.map(product => (
                     <Card 
                       key={product.id} 
                       className={`cursor-pointer hover:bg-muted/20 transition ${selectedProduct?.id === product.id ? 'border-primary' : ''}`}

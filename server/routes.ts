@@ -388,9 +388,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Find the budget settings associated with this item
         const itemSettings = allBudgetSettings.find(s => s.id === item.budgetSettingsId);
         
+        // CRITICAL FIX: Ensure budget items maintain their association with their original budget plan.
+        // This is essential to prevent items from appearing to migrate between plans.
+        const originalBudgetSettingsId = item.budgetSettingsId;
+        
         // Add the isActivePlan property to help client determine if this is from an active plan
         return {
           ...item,
+          // Important: Budget settings ID should never be changed from the original
+          budgetSettingsId: originalBudgetSettingsId,
           isActivePlan: itemSettings ? !!itemSettings.isActive : false,
           planSerialNumber: itemSettings?.planSerialNumber || null,
           planCode: itemSettings?.planCode || null
