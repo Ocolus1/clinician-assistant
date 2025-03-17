@@ -348,8 +348,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.get("/api/clients/:clientId/budget-items", async (req, res) => {
-    const items = await storage.getBudgetItemsByClient(parseInt(req.params.clientId));
-    res.json(items);
+    const clientId = parseInt(req.params.clientId);
+    console.log(`GET /api/clients/${clientId}/budget-items - Fetching budget items for client`);
+    
+    try {
+      // Get all the budget items for this client
+      const items = await storage.getBudgetItemsByClient(clientId);
+      console.log(`Found ${items.length} budget items for client ${clientId}`);
+      
+      // Get all budget settings (plans) for this client to check active status
+      const allBudgetSettings = await storage.getAllBudgetSettingsByClient(clientId);
+      if (!allBudgetSettings || allBudgetSettings.length === 0) {
+        // If no budget settings, just return the items as-is
+        return res.json(items);
+      }
+      
+      // For each item, add a property indicating if it belongs to an active plan
+      // This helps the client-side know which items belong to active vs. inactive plans
+      const enhancedItems = items.map(item => {
+        // Find the budget settings associated with this item
+        const itemSettings = allBudgetSettings.find(s => s.id === item.budgetSettingsId);
+        
+        // Add the isActivePlan property to help client determine if this is from an active plan
+        return {
+          ...item,
+          isActivePlan: itemSettings ? !!itemSettings.isActive : false,
+          planSerialNumber: itemSettings?.planSerialNumber || null,
+          planCode: itemSettings?.planCode || null
+        };
+      });
+      
+      console.log(`Returning ${enhancedItems.length} enhanced budget items`);
+      res.json(enhancedItems);
+    } catch (error) {
+      console.error(`Error fetching budget items for client ${clientId}:`, error);
+      res.status(500).json({ error: "Failed to retrieve budget items" });
+    }
   });
 
   app.delete("/api/budget-items/:id", async (req, res) => {
