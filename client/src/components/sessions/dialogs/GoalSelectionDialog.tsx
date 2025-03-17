@@ -143,8 +143,28 @@ export function GoalSelectionDialog({
   // **** SECOND FIX: Add debug logging when filtering happens ****
   // Filter out already selected goals
   const availableGoals = React.useMemo(() => {
-    const filtered = localGoals.filter(goal => !selectedGoalIds.includes(goal.id));
+    console.log("FILTERING GOALS: Local goals:", localGoals);
+    console.log("FILTERING GOALS: Selected goal IDs:", selectedGoalIds);
+    
+    // Ensure we have valid arrays to work with
+    if (!Array.isArray(localGoals)) {
+      console.error("localGoals is not an array:", localGoals);
+      return [];
+    }
+    
+    if (!Array.isArray(selectedGoalIds)) {
+      console.error("selectedGoalIds is not an array:", selectedGoalIds);
+      return localGoals;
+    }
+    
+    // CRITICAL FIX: Convert IDs to numbers for reliable comparison
+    const selectedIdsAsNumbers = selectedGoalIds.map(id => Number(id));
+    console.log("Selected IDs as numbers:", selectedIdsAsNumbers);
+    
+    // Filter out goals that are already selected
+    const filtered = localGoals.filter(goal => !selectedIdsAsNumbers.includes(Number(goal.id)));
     console.log(`Filtering ${localGoals.length} goals - ${filtered.length} available, ${selectedGoalIds.length} selected`);
+    
     return filtered;
   }, [localGoals, selectedGoalIds]);
 
@@ -181,9 +201,22 @@ export function GoalSelectionDialog({
                   key={goal.id} 
                   className="cursor-pointer hover:bg-muted/20"
                   onClick={() => {
-                    console.log("Selecting goal:", goal);
-                    onSelectGoal(goal);
-                    onOpenChange(false);
+                    console.log("Goal Card Clicked - Selecting goal:", goal);
+                    
+                    // Wrap in try/catch to debug any potential issues
+                    try {
+                      // Call the parent component's selection handler
+                      onSelectGoal(goal);
+                      
+                      // Log the selection action occurred
+                      console.log("Goal selection handler called successfully");
+                      
+                      // Close the dialog
+                      onOpenChange(false);
+                    } catch (error) {
+                      console.error("Error selecting goal:", error);
+                      // Don't close dialog if there's an error
+                    }
                   }}
                 >
                   <CardHeader className="p-4 pb-2">

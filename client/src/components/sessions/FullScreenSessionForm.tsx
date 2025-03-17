@@ -1331,7 +1331,9 @@ export function FullScreenSessionForm({
 
   // Handlers for adding goals, milestones, products, etc.
   const handleGoalSelection = (goal: Goal) => {
+    console.log("Goal selected:", goal);
     const currentAssessments = form.getValues("performanceAssessments") || [];
+    console.log("Current performance assessments before adding:", currentAssessments);
 
     // Add the selected goal to assessments if not already added
     if (!currentAssessments.some(a => a.goalId === goal.id)) {
@@ -1342,7 +1344,39 @@ export function FullScreenSessionForm({
         milestones: []
       };
 
-      form.setValue("performanceAssessments", [...currentAssessments, newAssessment], { shouldDirty: true, shouldValidate: false });
+      // Use getValues then setValue to ensure form state is properly updated
+      const updatedAssessments = [...currentAssessments, newAssessment];
+      console.log("Updated assessments array:", updatedAssessments);
+      
+      // Set the value with proper options to ensure reactivity
+      form.setValue("performanceAssessments", updatedAssessments, { 
+        shouldDirty: true, 
+        shouldValidate: false,
+        shouldTouch: true 
+      });
+      
+      // Force form update
+      setTimeout(() => {
+        // Log the current form state after update
+        console.log("Form state after goal selection:", form.getValues("performanceAssessments"));
+        
+        // Force form state update if needed
+        const current = form.getValues();
+        form.reset(current, { keepValues: true });
+      }, 50);
+      
+      // Show confirmation toast
+      toast({
+        title: "Goal Added",
+        description: `"${goal.title}" has been added to the assessment`,
+      });
+    } else {
+      // Show warning if already selected
+      toast({
+        title: "Goal Already Selected",
+        description: `"${goal.title}" is already in the assessment`,
+        variant: "destructive"
+      });
     }
   };
 
