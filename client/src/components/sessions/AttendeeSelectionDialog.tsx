@@ -77,6 +77,18 @@ export function AttendeeSelectionDialog({
     }
   }, [open, availableAllies, selectedAllies, allies]);
   
+  // Safe guard to prevent the dialog from submitting the form
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (open && e.key === 'Enter') {
+        e.preventDefault();
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [open]);
+  
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">

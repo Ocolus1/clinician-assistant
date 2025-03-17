@@ -1400,13 +1400,14 @@ export function FullScreenSessionForm({
                                   </FormControl>
                                   <SelectContent>
                                     {/* Populate with allies from the client's allies list */}
-                                    {allies.map((ally) => (
-                                      <SelectItem key={ally.id} value={ally.id.toString()}>
-                                        {ally.name}
-                                      </SelectItem>
-                                    ))}
-                                    {allies.length === 0 && (
-                                      <SelectItem value="" disabled>
+                                    {allies.length > 0 ? (
+                                      allies.map((ally) => (
+                                        <SelectItem key={ally.id} value={ally.id.toString()}>
+                                          {ally.name}
+                                        </SelectItem>
+                                      ))
+                                    ) : (
+                                      <SelectItem value="0" disabled>
                                         No clinicians available
                                       </SelectItem>
                                     )}
@@ -1621,6 +1622,15 @@ export function FullScreenSessionForm({
                                   variant="outline"
                                   className="w-full"
                                   onClick={() => {
+                                    const therapistId = form.watch("session.therapistId");
+                                    if (!therapistId) {
+                                      toast({
+                                        title: "Therapist required",
+                                        description: "Please select a clinician before adding attendees.",
+                                        variant: "destructive"
+                                      });
+                                      return;
+                                    }
                                     setShowAttendeeDialog(true);
                                   }}
                                   disabled={alliesQuery.isLoading || 
