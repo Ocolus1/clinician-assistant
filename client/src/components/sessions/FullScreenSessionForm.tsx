@@ -106,7 +106,7 @@ const sessionFormSchema = insertSessionSchema.extend({
   clientId: z.coerce.number({
     required_error: "Client is required",
   }),
-  therapistId: z.string().optional(),
+  therapistId: z.coerce.number().optional(), // Using coerce.number() to handle string values from Select
   timeFrom: z.string().optional(),
   timeTo: z.string().optional(),
   location: z.string().optional(),
@@ -583,6 +583,7 @@ export function FullScreenSessionForm({
 }: FullScreenSessionFormProps) {
   // Create a ref to track previous clientId for handling client changes
   const previousClientIdRef = useRef<number | null>(null);
+  const formInitializedRef = useRef<boolean>(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -632,20 +633,68 @@ export function FullScreenSessionForm({
     performanceAssessments: [],
   };
   
-  // Log the initial client ID and ensure it's set correctly
+  // Reset form values when form dialog is closed and reset form when reopened
   useEffect(() => {
-    if (open && initialClient) {
-      console.log("Form opened with initial client:", initialClient);
-      console.log("Initial client ID:", initialClient.id);
+    // When the form is closed, mark it as not initialized
+    if (!open) {
+      formInitializedRef.current = false;
+      // Don't reset form here as the form instance might be reused
+    } 
+    // When the form is opened
+    else {
+      // If the form was previously not initialized, reset to default values
+      if (!formInitializedRef.current) {
+        console.log("Resetting form to default values");
+        
+        // Generate a new session ID for this session
+        const newSessionId = `ST-${new Date().getFullYear()}${String(new Date().getMonth() + 1).padStart(2, '0')}${String(new Date().getDate()).padStart(2, '0')}-${Math.floor(1000 + Math.random() * 9000)}`;
+        
+        // Reset to default values
+        form.reset({
+          session: {
+            sessionDate: new Date(),
+            location: "Clinic",
+            clientId: initialClient?.id || 0,
+            therapistId: undefined,
+            timeFrom: "09:00",
+            timeTo: "10:00",
+            title: "Therapy Session",
+            duration: 60,
+            status: "scheduled",
+            sessionId: newSessionId,
+          },
+          sessionNote: {
+            presentAllies: [],
+            presentAllyIds: [],
+            moodRating: 5,
+            focusRating: 5,
+            cooperationRating: 5,
+            physicalActivityRating: 5,
+            notes: "",
+            products: [],
+            status: "draft",
+          },
+          performanceAssessments: [],
+        });
+        
+        // Mark as initialized
+        formInitializedRef.current = true;
+      }
       
-      // Give form time to initialize, then force the client ID to be set correctly
-      setTimeout(() => {
-        if (form) {
-          form.setValue("session.clientId", initialClient.id, { shouldDirty: true, shouldValidate: false });
-        }
-      }, 100);
+      // If form was already initialized but we have an initial client, set the clientId
+      if (initialClient) {
+        console.log("Form opened with initial client:", initialClient);
+        console.log("Initial client ID:", initialClient.id);
+        
+        // Give form time to initialize, then force the client ID to be set correctly
+        setTimeout(() => {
+          if (form) {
+            form.setValue("session.clientId", initialClient.id, { shouldDirty: true, shouldValidate: false });
+          }
+        }, 100);
+      }
     }
-  }, [open, initialClient]);
+  }, [open, initialClient, form]);
 
   // Create form
   const form = useSafeForm<IntegratedSessionFormValues>({
