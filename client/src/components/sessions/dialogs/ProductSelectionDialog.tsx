@@ -54,14 +54,13 @@ export function ProductSelectionDialog({
   const [selectedProduct, setSelectedProduct] = useState<EnhancedBudgetItem | null>(null);
   const [quantity, setQuantity] = useState(1);
 
-  // Filter products to only include those from active plans
+  // All available products for selection
   const activeProducts = React.useMemo(() => {
-    // CRITICAL FIX: Only include items from active budget plans
-    return products.filter(product => {
-      // Check if product has isActivePlan property and it's not false
-      // This ensures we only see products from active plans
-      return product.isActivePlan !== false;
-    });
+    // For debugging
+    console.log("All available products:", products);
+    
+    // Accept products with quantity > 0, regardless of plan status
+    return products;
   }, [products]);
 
   // Clear selection when dialog opens with new products

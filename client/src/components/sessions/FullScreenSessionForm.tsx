@@ -847,18 +847,15 @@ export function FullScreenSessionForm({
         // For debugging
         console.log(`Item ${item.id}: budgetSettingsId=${item.budgetSettingsId}, quantity=${item.quantity}, active plan ID=${budgetSettings.id}`);
         
-        // IMPORTANT FIX: Only include items from the active budget plan and with quantity > 0
-        // This ensures only items from the ACTIVE budget plan are shown in the session
-        const fromActivePlan = item.budgetSettingsId === budgetSettings.id;
+        // IMPORTANT: We're enabling products to be used from this client's budget
+        // Make sure quantity is > 0, but no longer filtering strictly by active plan
         const hasQuantity = item.quantity > 0;
         
-        if (!fromActivePlan) {
-          console.log(`Item ${item.id} skipped: belongs to budget plan ${item.budgetSettingsId}, not active plan ${budgetSettings.id}`);
-        } else if (!hasQuantity) {
+        if (!hasQuantity) {
           console.log(`Item ${item.id} skipped: has zero quantity remaining`);
         }
         
-        return fromActivePlan && hasQuantity;
+        return hasQuantity;
       })
       .map((item: BudgetItem) => {
         // Find if this item is already selected in the form
