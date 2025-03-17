@@ -68,7 +68,7 @@ export function ProductSelectionDialog({
     }
   }, [products]);
   
-  // Filter products to only include those from active plans
+  // Filter products to only include those from active plans WITH available quantity
   const computeActiveProducts = useMemo(() => {
     // Enhanced debugging for filter process
     console.log("DEBUG PRODUCTS: All products passed to dialog:", JSON.stringify(products, null, 2));
@@ -82,12 +82,27 @@ export function ProductSelectionDialog({
       const productsMarkedActive = products.filter(p => p.isActivePlan === true);
       const productsNotMarked = products.filter(p => p.isActivePlan === undefined);
       
-      // Case 1: None are marked as active - treat all as active
+      // CRITICAL FIX: First filter out products with zero or negative available quantity
+      // This ensures we don't show products that have no remaining units
+      const availableProducts = products.filter(p => {
+        const hasAvailableUnits = (p.availableQuantity !== undefined && p.availableQuantity > 0);
+        if (!hasAvailableUnits) {
+          console.log(`Filtering out product ${p.id} (${p.description}) - no available units remaining`);
+        }
+        return hasAvailableUnits;
+      });
+      
+      if (availableProducts.length === 0) {
+        console.log("No products have available units - showing empty list");
+        return [];
+      }
+      
+      // Case 1: None are marked as active - treat all available products as active
       if (productsMarkedActive.length === 0) {
         console.log("CRITICAL FIX: Products available but none marked as active - treating all as active");
         
-        // Return all products with isActivePlan flag set to true
-        return products.map(product => ({ 
+        // Return all available products with isActivePlan flag set to true
+        return availableProducts.map(product => ({ 
           ...product, 
           isActivePlan: true // Force this flag to true since we know these are from active plan
         }));
@@ -98,17 +113,24 @@ export function ProductSelectionDialog({
       if (productsNotMarked.length > 0) {
         console.log(`CRITICAL FIX: ${productsNotMarked.length} products have undefined active status - marking them active`);
         
-        // Return all products, updating only the ones without flags
-        return products.map(product => ({
+        // Return all available products, updating only the ones without flags
+        return availableProducts.map(product => ({
           ...product,
           isActivePlan: product.isActivePlan === undefined ? true : product.isActivePlan
         }));
       }
+      
+      // Filter for active plan products with available quantity 
+      return availableProducts.filter(product => {
+        const shouldInclude = product.isActivePlan === true;
+        return shouldInclude;
+      });
     }
     
     // Normal path - use products that are already marked as active
     return products.filter(product => {
-      const shouldInclude = product.isActivePlan === true;
+      const hasAvailableUnits = (product.availableQuantity !== undefined && product.availableQuantity > 0);
+      const shouldInclude = product.isActivePlan === true && hasAvailableUnits;
       return shouldInclude;
     });
   }, [products]);
