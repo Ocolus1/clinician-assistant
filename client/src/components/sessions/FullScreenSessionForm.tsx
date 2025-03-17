@@ -1156,9 +1156,22 @@ export function FullScreenSessionForm({
     console.log("Updated products after removal:", updatedProducts);
   };
   
-  // Handle adding an attendee to the session
+  // Handle adding an attendee to the session without creating a new session
   const handleAddAttendee = (ally: Ally) => {
     console.log("Adding attendee:", ally);
+    
+    // First check if form is properly initialized
+    if (!form.getValues("session.clientId")) {
+      toast({
+        title: "Client Required",
+        description: "Please select a client before adding attendees",
+        variant: "destructive"
+      });
+      setShowAttendeeDialog(false);
+      return;
+    }
+    
+    // Get current attendee lists (defaulting to empty arrays if undefined)
     const currentAttendees = form.getValues("sessionNote.presentAllies") || [];
     const currentAttendeeIds = form.getValues("sessionNote.presentAllyIds") || [];
     
@@ -1166,18 +1179,29 @@ export function FullScreenSessionForm({
     const allyIdIndex = currentAttendeeIds.indexOf(ally.id);
     
     if (allyIdIndex === -1) {
-      // Add both name for display and ID for data integrity
-      form.setValue("sessionNote.presentAllies", [...currentAttendees, ally.name], { shouldDirty: true, shouldValidate: false });
-      form.setValue("sessionNote.presentAllyIds", [...currentAttendeeIds, ally.id], { shouldDirty: true, shouldValidate: false });
-      
-      // Show success toast
-      toast({
-        title: "Attendee added",
-        description: `${ally.name} has been added to the session.`,
-      });
-      
-      console.log("Updated attendees:", [...currentAttendees, ally.name]);
-      console.log("Updated attendee IDs:", [...currentAttendeeIds, ally.id]);
+      try {
+        // Add both name for display and ID for data integrity - with shouldValidate: false to prevent submission
+        form.setValue("sessionNote.presentAllies", [...currentAttendees, ally.name], 
+          { shouldDirty: true, shouldTouch: true, shouldValidate: false });
+        form.setValue("sessionNote.presentAllyIds", [...currentAttendeeIds, ally.id], 
+          { shouldDirty: true, shouldTouch: true, shouldValidate: false });
+        
+        // Show success toast
+        toast({
+          title: "Attendee added",
+          description: `${ally.name} has been added to the session.`,
+        });
+        
+        console.log("Updated attendees:", [...currentAttendees, ally.name]);
+        console.log("Updated attendee IDs:", [...currentAttendeeIds, ally.id]);
+      } catch (error) {
+        console.error("Error adding attendee:", error);
+        toast({
+          title: "Error",
+          description: "Failed to add attendee. Please try again.",
+          variant: "destructive"
+        });
+      }
     } else {
       // Show error toast for duplicate
       toast({

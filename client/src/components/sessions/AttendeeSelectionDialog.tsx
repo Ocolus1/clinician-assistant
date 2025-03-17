@@ -77,17 +77,33 @@ export function AttendeeSelectionDialog({
     }
   }, [open, availableAllies, selectedAllies, allies]);
   
-  // Safe guard to prevent the dialog from submitting the form
+  // Safe guard to prevent any form of submission
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (open && e.key === 'Enter') {
+      if (open && (e.key === 'Enter' || e.key === ' ')) {
         e.preventDefault();
+        e.stopPropagation();
       }
     };
     
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [open]);
+  
+  // Custom click handler to prevent form submission
+  const safelySelectAttendee = (ally: Ally) => {
+    // Prevent any default events
+    try {
+      onSelectAttendee(ally);
+    } catch (error) {
+      console.error("Error selecting attendee:", error);
+      toast({
+        title: "Error adding attendee",
+        description: "There was a problem adding this attendee. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
   
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -152,7 +168,11 @@ export function AttendeeSelectionDialog({
                   <Card 
                     key={ally.id} 
                     className="cursor-pointer hover:bg-accent transition-colors"
-                    onClick={() => onSelectAttendee(ally)}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      safelySelectAttendee(ally);
+                    }}
                   >
                     <CardContent className="p-3">
                       <div className="flex items-center">
