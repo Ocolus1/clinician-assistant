@@ -761,14 +761,49 @@ export function FullScreenSessionForm({
   }, [alliesQuery.data, alliesQuery.error, clientId]);
 
   // Fetch goals for assessment
-  const { data: goals = [] } = useQuery<Goal[]>({
+  const { data: goals = [], error: goalsError, isLoading: isLoadingGoals } = useQuery<Goal[]>({
     queryKey: ["/api/clients", clientId, "goals"],
     enabled: open && !!clientId,
+    queryFn: async () => {
+      console.log("DIRECT FETCH: Fetching goals for client ID:", clientId);
+      try {
+        const response = await fetch(`/api/clients/${clientId}/goals`);
+        if (!response.ok) {
+          throw new Error(`Error fetching goals: ${response.status}`);
+        }
+        const data = await response.json();
+        console.log("DIRECT FETCH: Goals data received:", JSON.stringify(data));
+        return data;
+      } catch (error) {
+        console.error("DIRECT FETCH: Error in goals query:", error);
+        throw error;
+      }
+    },
+    staleTime: 10000, // Reduce refetching to avoid race conditions
   });
-
+  
   // Get selected goal IDs from form state
   const selectedPerformanceAssessments = form.watch("performanceAssessments") || [];
   const selectedGoalIds = selectedPerformanceAssessments.map(assessment => assessment.goalId);
+
+  // Debug logs for goals fetching
+  useEffect(() => {
+    if (open && clientId) {
+      console.log(`DEBUG GOALS: Fetching status for client ${clientId}, showGoalDialog=${showGoalDialog}`);
+      console.log(`DEBUG GOALS: isLoading=${isLoadingGoals}, goals count=${goals?.length || 0}`);
+      console.log(`DEBUG GOALS: Current value of goals:`, goals);
+      
+      if (goalsError) {
+        console.error("Error fetching goals:", goalsError);
+      }
+      
+      // Add explicit logging when dialog is opened
+      if (showGoalDialog) {
+        console.log("GOAL DIALOG OPENED with these goals:", goals);
+        console.log("Selected goal IDs when dialog opened:", selectedGoalIds);
+      }
+    }
+  }, [open, clientId, goals, goalsError, showGoalDialog, isLoadingGoals, selectedGoalIds]);
 
   // Fetch subgoals for the currently selected goal
   const { data: subgoals = [] } = useQuery<Subgoal[]>({

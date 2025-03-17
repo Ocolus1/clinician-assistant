@@ -43,10 +43,22 @@ export function GoalSelectionDialog({
   // Prioritize using provided prop goals first, which come from parent component
   useEffect(() => {
     if (open) {
+      console.log("### GOAL DIALOG OPENED ###");
+      console.log("propGoals received:", propGoals);
+      console.log("propGoals length:", propGoals?.length || 0);
+      console.log("selectedGoalIds:", selectedGoalIds);
+      
       // First use the goals passed in as props if they're available
       if (propGoals && propGoals.length > 0) {
         console.log("Using goals from props:", propGoals);
         setLocalGoals(propGoals);
+        
+        // Also log the selectedGoalIds to check for filtering issues
+        if (selectedGoalIds.length > 0) {
+          console.log("Selected goal IDs:", selectedGoalIds);
+          const remainingGoals = propGoals.filter(goal => !selectedGoalIds.includes(goal.id));
+          console.log("Available goals after filtering selected ones:", remainingGoals);
+        }
         return;
       }
       
@@ -69,6 +81,13 @@ export function GoalSelectionDialog({
           console.log("SUCCESS - Goals fetched directly:", data);
           if (Array.isArray(data) && data.length > 0) {
             setLocalGoals(data);
+            
+            // Log after setting to check what's available for selection
+            console.log("Goals set from direct fetch. Available count:", data.length);
+            if (selectedGoalIds.length > 0) {
+              const remainingGoals = data.filter(goal => !selectedGoalIds.includes(goal.id));
+              console.log("Available goals after filtering selected ones:", remainingGoals);
+            }
           } else {
             console.log("No goals found for client");
             setLocalGoals([]);
@@ -79,7 +98,7 @@ export function GoalSelectionDialog({
           setLocalGoals([]);
         });
     }
-  }, [open, propGoals, queryClient]);
+  }, [open, propGoals, queryClient, selectedGoalIds]);
 
   // Filter out already selected goals
   const availableGoals = localGoals.filter(goal => !selectedGoalIds.includes(goal.id));
