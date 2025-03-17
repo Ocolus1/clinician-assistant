@@ -157,7 +157,7 @@ export function ProductSelectionDialog({
                       <CardContent className="p-3 pt-0">
                         <div className="flex justify-between text-sm">
                           <span className="text-muted-foreground">Available: {product.availableQuantity}</span>
-                          <span className="font-medium">${product.unitPrice.toFixed(2)}</span>
+                          <span className="font-medium">${Number(product.unitPrice || 0).toFixed(2)}</span>
                         </div>
                       </CardContent>
                     </Card>
@@ -176,7 +176,7 @@ export function ProductSelectionDialog({
                   <p className="text-sm text-muted-foreground">{selectedProduct.itemCode}</p>
                   <div className="flex justify-between items-center mt-2">
                     <span className="text-sm">Unit Price:</span>
-                    <span className="font-medium">${selectedProduct.unitPrice.toFixed(2)}</span>
+                    <span className="font-medium">${Number(selectedProduct.unitPrice || 0).toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between items-center mt-1">
                     <span className="text-sm">Available:</span>
@@ -220,7 +220,7 @@ export function ProductSelectionDialog({
                   </div>
                   <div className="flex justify-between items-center pt-2 border-t">
                     <span className="font-medium">Total:</span>
-                    <span className="font-bold">${(selectedProduct.unitPrice * quantity).toFixed(2)}</span>
+                    <span className="font-bold">${(Number(selectedProduct.unitPrice || 0) * Number(quantity || 0)).toFixed(2)}</span>
                   </div>
                 </div>
               </div>

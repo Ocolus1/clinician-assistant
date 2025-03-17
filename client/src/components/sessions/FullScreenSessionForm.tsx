@@ -1829,7 +1829,7 @@ export function FullScreenSessionForm({
                                       <div className="font-medium">{product.productDescription}</div>
                                       <div className="flex justify-between text-sm text-muted-foreground mt-1">
                                         <span>Code: {product.productCode}</span>
-                                        <span>${product.unitPrice.toFixed(2)} each</span>
+                                        <span>${Number(product.unitPrice || 0).toFixed(2)} each</span>
                                       </div>
                                       
                                       <div className="mt-4">
@@ -1903,7 +1903,7 @@ export function FullScreenSessionForm({
                                         </div>
                                         
                                         <div className="flex items-center">
-                                          <span className="font-medium mr-2">Total: ${(product.quantity * product.unitPrice).toFixed(2)}</span>
+                                          <span className="font-medium mr-2">Total: ${(Number(product.quantity || 0) * Number(product.unitPrice || 0)).toFixed(2)}</span>
                                           <Button 
                                             type="button"
                                             variant="ghost" 
@@ -1923,7 +1923,7 @@ export function FullScreenSessionForm({
                               {/* Grand Total */}
                               <div className="flex justify-end items-center py-2 px-4 font-medium text-lg">
                                 Grand Total: ${form.watch("sessionNote.products").reduce((total, product) => 
-                                  total + (product.quantity * product.unitPrice), 0).toFixed(2)}
+                                  total + (Number(product.quantity || 0) * Number(product.unitPrice || 0)), 0).toFixed(2)}
                               </div>
                             </div>
                           ) : (
