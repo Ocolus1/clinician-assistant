@@ -838,20 +838,30 @@ export function FullScreenSessionForm({
     if (!budgetSettings) {
       console.log("No active budget settings available - cannot show any products");
       
-      // CRITICAL FIX: This is the root cause! We return an empty array here,
-      // which means no products are shown even when they should be.
+      // CRITICAL FIX: The root cause is returning an empty array here. 
+      // Instead, let's handle budget items differently
       
-      // Instead, let's make all budget items "active plan" items
-      // The dialog component will handle marking them as active
+      // CRITICAL BUGFIX: If we have budget items, process them ALL as active
       if (budgetItems && budgetItems.length > 0) {
         console.log("RACE CONDITION FIX: We have budget items but no budget settings");
-        console.log("Passing all budget items through and letting dialog component handle them");
+        console.log("Processing all budget items as active plan items");
         
-        // Continue with processing - our dialog fix will mark them as active
-        // NOTE: We're skipping the return [] here to let processing continue
+        // Return all budget items marked as active plan
+        return budgetItems
+          .filter(item => Number(item.quantity) > 0) // Only include items with quantity
+          .map(item => {
+            console.log(`Processing item ${item.id} (${item.description || 'unknown'}) as active`);
+            // Mark every item as from the active plan
+            return {
+              ...item,
+              isActivePlan: true, // CRITICAL: Mark all as active
+              availableQuantity: item.quantity,
+              originalQuantity: item.quantity
+            };
+          });
       } else {
         // Only return empty array if we truly have no budget items
-        // Return empty array instead of fallback items from inactive plans
+        console.log("No budget items available at all");
         return [];
       }
     }
