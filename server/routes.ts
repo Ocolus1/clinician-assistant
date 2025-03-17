@@ -310,15 +310,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
     console.log("Budget item after validation:", JSON.stringify(result.data));
 
     try {
-      // Get the budget settings to pass its ID
-      const settings = await storage.getBudgetSettingsByClient(parseInt(req.params.clientId));
-      if (!settings) {
-        return res.status(404).json({ error: "Budget settings not found. Please create budget settings first." });
+      // Extract the clientId from the request
+      const clientId = parseInt(req.params.clientId);
+      
+      // Respect the budgetSettingsId from the request body if provided
+      let budgetSettingsId: number;
+      
+      if (result.data.budgetSettingsId) {
+        // Use the explicitly provided budgetSettingsId
+        budgetSettingsId = result.data.budgetSettingsId;
+        console.log(`Using provided budgetSettingsId: ${budgetSettingsId}`);
+      } else {
+        // Fallback to getting the active budget settings only if no ID is provided
+        console.log(`No budgetSettingsId provided, fetching active plan for client ${clientId}`);
+        const settings = await storage.getBudgetSettingsByClient(clientId);
+        if (!settings) {
+          return res.status(404).json({ error: "Budget settings not found. Please create budget settings first." });
+        }
+        budgetSettingsId = settings.id;
+        console.log(`Using active budgetSettingsId: ${budgetSettingsId}`);
       }
       
+      // Create the budget item with the determined budgetSettingsId
       const item = await storage.createBudgetItem(
-        parseInt(req.params.clientId), 
-        settings.id, 
+        clientId,
+        budgetSettingsId,
         result.data
       );
       res.json(item);

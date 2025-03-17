@@ -864,8 +864,9 @@ export function FullScreenSessionForm({
         console.log(`Item ${item.id}: budgetSettingsId=${item.budgetSettingsId}, quantity=${item.quantity}`);
         
         // Only include items from the active budget plan and with quantity > 0
-        // If budgetSettingsId is not set, include the item anyway as a fallback
-        return (item.budgetSettingsId === budgetSettings.id || !item.budgetSettingsId) && item.quantity > 0;
+        // FIXED: No longer include items without budgetSettingsId as fallback
+        // This ensures only items from the ACTIVE budget plan are shown
+        return (item.budgetSettingsId === budgetSettings.id) && item.quantity > 0;
       })
       .map((item: BudgetItem) => {
         // Find if this item is already selected in the form
