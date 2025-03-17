@@ -74,65 +74,65 @@ export function ProductSelectionDialog({
     console.log("DEBUG PRODUCTS: All products passed to dialog:", JSON.stringify(products, null, 2));
     console.log(`DEBUG PRODUCTS: Total products count: ${products.length}`);
     
+    // MOST CRITICAL FIX: Always filter out products with zero available quantity first
+    // This ensures we don't show products that have been fully used in the current session
+    const productsWithAvailableQuantity = products.filter(product => {
+      // Explicitly check for available quantity > 0
+      const hasAvailableQuantity = typeof product.availableQuantity === 'number' && product.availableQuantity > 0;
+      
+      if (!hasAvailableQuantity) {
+        console.log(`CRITICAL FILTER: Product ${product.id} (${product.description || 'unknown'}) excluded - no available quantity (${product.availableQuantity})`);
+      } else {
+        console.log(`AVAILABLE PRODUCT: ${product.id} (${product.description || 'unknown'}) has ${product.availableQuantity} units available`);
+      }
+      
+      return hasAvailableQuantity;
+    });
+    
+    // Exit early if no products have available quantity
+    if (productsWithAvailableQuantity.length === 0) {
+      console.log("QUANTITY CHECK: No products have available quantity - showing empty list");
+      return [];
+    }
+    
+    console.log(`QUANTITY CHECK: ${productsWithAvailableQuantity.length} of ${products.length} products have available quantity`);
+    
     // CRITICAL FIX: Added enhanced handling for race conditions
     // Two scenarios to fix:
     // 1. Products passed in but none marked as active (race condition in parent component)
     // 2. Products passed in with some marked as active but some not (partial race condition)
-    if (products.length > 0) {
-      const productsMarkedActive = products.filter(p => p.isActivePlan === true);
-      const productsNotMarked = products.filter(p => p.isActivePlan === undefined);
+    const productsMarkedActive = productsWithAvailableQuantity.filter(p => p.isActivePlan === true);
+    const productsNotMarked = productsWithAvailableQuantity.filter(p => p.isActivePlan === undefined);
+    
+    // Case 1: None are marked as active - treat all available products as active
+    if (productsMarkedActive.length === 0) {
+      console.log("CRITICAL FIX: Products available but none marked as active - treating all as active");
       
-      // CRITICAL FIX: First filter out products with zero or negative available quantity
-      // This ensures we don't show products that have no remaining units
-      const availableProducts = products.filter(p => {
-        const hasAvailableUnits = (p.availableQuantity !== undefined && p.availableQuantity > 0);
-        if (!hasAvailableUnits) {
-          console.log(`Filtering out product ${p.id} (${p.description}) - no available units remaining`);
-        }
-        return hasAvailableUnits;
-      });
-      
-      if (availableProducts.length === 0) {
-        console.log("No products have available units - showing empty list");
-        return [];
-      }
-      
-      // Case 1: None are marked as active - treat all available products as active
-      if (productsMarkedActive.length === 0) {
-        console.log("CRITICAL FIX: Products available but none marked as active - treating all as active");
-        
-        // Return all available products with isActivePlan flag set to true
-        return availableProducts.map(product => ({ 
-          ...product, 
-          isActivePlan: true // Force this flag to true since we know these are from active plan
-        }));
-      }
-      
-      // Case 2: Some are marked as active, some have undefined flags (partial race condition)
-      // This could happen if the component rerenders during race condition resolution
-      if (productsNotMarked.length > 0) {
-        console.log(`CRITICAL FIX: ${productsNotMarked.length} products have undefined active status - marking them active`);
-        
-        // Return all available products, updating only the ones without flags
-        return availableProducts.map(product => ({
-          ...product,
-          isActivePlan: product.isActivePlan === undefined ? true : product.isActivePlan
-        }));
-      }
-      
-      // Filter for active plan products with available quantity 
-      return availableProducts.filter(product => {
-        const shouldInclude = product.isActivePlan === true;
-        return shouldInclude;
-      });
+      // Return all available products with isActivePlan flag set to true
+      return productsWithAvailableQuantity.map(product => ({ 
+        ...product, 
+        isActivePlan: true // Force this flag to true since we know these are from active plan
+      }));
     }
     
-    // Normal path - use products that are already marked as active
-    return products.filter(product => {
-      const hasAvailableUnits = (product.availableQuantity !== undefined && product.availableQuantity > 0);
-      const shouldInclude = product.isActivePlan === true && hasAvailableUnits;
-      return shouldInclude;
-    });
+    // Case 2: Some are marked as active, some have undefined flags (partial race condition)
+    // This could happen if the component rerenders during race condition resolution
+    if (productsNotMarked.length > 0) {
+      console.log(`CRITICAL FIX: ${productsNotMarked.length} products have undefined active status - marking them active`);
+      
+      // Update products without active flags while maintaining availability filter
+      return productsWithAvailableQuantity.map(product => ({
+        ...product,
+        isActivePlan: product.isActivePlan === undefined ? true : product.isActivePlan
+      }));
+    }
+    
+    // Normal path - filter for active plan products that have available quantity
+    const activeProductsWithQuantity = productsWithAvailableQuantity.filter(product => product.isActivePlan === true);
+    
+    console.log(`FINAL FILTER: ${activeProductsWithQuantity.length} products are from active plan AND have available quantity`);
+    
+    return activeProductsWithQuantity;
   }, [products]);
 
   // Update filtered products when computed active products change or dialog opens
@@ -144,18 +144,45 @@ export function ProductSelectionDialog({
       const activeProductList = computeActiveProducts;
       console.log("Active products calculated:", activeProductList);
       
-      // CRITICAL FIX: If there are no active products but we have products,
-      // automatically show all available products
-      if (activeProductList.length === 0 && products.length > 0) {
-        console.log("AUTOMATIC FIX: No active products but products are available");
-        console.log("Setting all products as active to ensure dialog works");
+      // CRITICAL FIX: Filter out any products with zero available quantity
+      // This ensures products already fully used in the current session don't show up again
+      const productsWithQuantity = activeProductList.filter(product => {
+        const hasAvailableQuantity = Number(product.availableQuantity) > 0;
         
-        // Force all products to be considered active
-        const allProductsAsActive = products.map(p => ({...p, isActivePlan: true}));
+        if (!hasAvailableQuantity) {
+          console.log(`CRITICAL FIX: Removing product ${product.id} (${product.description}) - no available quantity remaining`);
+        }
+        
+        return hasAvailableQuantity;
+      });
+      
+      console.log(`AVAILABILITY CHECK: ${productsWithQuantity.length} of ${activeProductList.length} products have available quantity`);
+      
+      // CRITICAL FIX: If there are no active products but we have products,
+      // automatically show all available products (but only those with quantity)
+      if (productsWithQuantity.length === 0 && products.length > 0) {
+        console.log("AUTOMATIC FIX: No active products but products are available");
+        console.log("Attempting to show all products with available quantity as active");
+        
+        // Force all products to be considered active, but only include those with quantity
+        const allProductsAsActive = products
+          .filter(product => {
+            const hasQuantity = Number(product.availableQuantity) > 0;
+            
+            if (!hasQuantity) {
+              console.log(`QUANTITY CHECK: Product ${product.id} (${product.description}) excluded - no available quantity`);
+            }
+            
+            return hasQuantity;
+          })
+          .map(p => ({...p, isActivePlan: true}));
+          
+        console.log(`FALLBACK PRODUCTS: Found ${allProductsAsActive.length} products with quantity`);
         setFilteredProducts(allProductsAsActive);
       } else {
-        // Use computed active products
-        setFilteredProducts(activeProductList);
+        // Use computed active products (already filtered for quantity)
+        console.log(`ACTIVE PRODUCTS: Using ${productsWithQuantity.length} active products with available quantity`);
+        setFilteredProducts(productsWithQuantity);
       }
       
       // Log any non-active plan items that were filtered out
@@ -239,9 +266,23 @@ export function ProductSelectionDialog({
   // Handle showing all products when none are active
   const handleShowAllProducts = () => {
     console.log("EMERGENCY OVERRIDE: User requested to show all products");
-    // Force all products to be considered active - this is a user-initiated override
-    const allProductsAsActive = products.map(p => ({...p, isActivePlan: true}));
-    setFilteredProducts(allProductsAsActive);
+    
+    // CRITICAL FIX: Only show products that have available quantity
+    // This ensures that even in emergency override mode, we don't show products with zero quantity
+    const allProductsWithQuantity = products
+      .filter(product => {
+        const hasQuantity = typeof product.availableQuantity === 'number' && product.availableQuantity > 0;
+        
+        if (!hasQuantity) {
+          console.log(`EMERGENCY OVERRIDE: Product ${product.id} (${product.description || 'unknown'}) excluded - no available quantity`);
+        }
+        
+        return hasQuantity;
+      })
+      .map(p => ({...p, isActivePlan: true}));
+      
+    console.log(`EMERGENCY OVERRIDE: Showing ${allProductsWithQuantity.length} products with available quantity`);
+    setFilteredProducts(allProductsWithQuantity);
   };
 
   return (

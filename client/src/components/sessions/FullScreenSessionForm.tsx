@@ -598,6 +598,10 @@ export function FullScreenSessionForm({
   const [currentMilestoneId, setCurrentMilestoneId] = useState<number | null>(null);
   const [isFormSubmitting, setIsFormSubmitting] = useState(false);
   const [activeTab, setActiveTab] = useState("session");
+  
+  // CRITICAL FIX: Track the exact time when product dialog is opened
+  // This forces the availableProducts calculation to re-run
+  const [productDialogOpenTime, setProductDialogOpenTime] = useState(Date.now());
 
   // Generate a unique session ID for tracking
   const sessionId = useMemo(() => {
@@ -1112,7 +1116,7 @@ export function FullScreenSessionForm({
     }
     
     return filteredProducts;
-  }, [budgetItems, budgetSettings, form, clientId]);
+  }, [budgetItems, budgetSettings, form, clientId, productDialogOpenTime, form.watch("sessionNote.products")]);
 
   // Form submission handler
   const createSessionMutation = useMutation({
@@ -2241,6 +2245,12 @@ export function FullScreenSessionForm({
                                   queryClient.invalidateQueries({ queryKey: ["/api/clients", clientId, "budget-items"] });
                                 }
                                 
+                                // CRITICAL FIX: Update the productDialogOpenTime state
+                                // This forces a re-calculation of availableProducts memo based on latest form state
+                                setProductDialogOpenTime(Date.now());
+                                console.log("CRITICAL FIX: Updating productDialogOpenTime to force availableProducts refresh:", Date.now());
+                                
+                                // Then open the dialog
                                 setShowProductDialog(true);
                                 
                                 // Debug message about products
