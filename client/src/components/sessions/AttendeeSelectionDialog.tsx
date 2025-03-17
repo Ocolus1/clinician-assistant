@@ -171,7 +171,9 @@ export function AttendeeSelectionDialog({
                     onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
+                      // Use the safe handler but pass the event to prevent bubbling
                       safelySelectAttendee(ally);
+                      return false;
                     }}
                   >
                     <CardContent className="p-3">
@@ -193,7 +195,7 @@ export function AttendeeSelectionDialog({
         </div>
         
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
         </DialogFooter>

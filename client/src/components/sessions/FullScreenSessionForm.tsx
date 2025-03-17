@@ -956,6 +956,12 @@ export function FullScreenSessionForm({
   });
 
   function onSubmit(data: IntegratedSessionFormValues) {
+    // Safety check - if we're showing one of our internal dialogs, don't submit
+    if (showAttendeeDialog || showProductDialog || showGoalDialog || showMilestoneDialog || showStrategyDialog) {
+      console.log("Preventing submission while dialog is open");
+      return;
+    }
+    
     // Calculate session duration from timeFrom and timeTo if available
     if (data.session.timeFrom && data.session.timeTo) {
       const [fromHours, fromMinutes] = data.session.timeFrom.split(':').map(Number);
@@ -1645,8 +1651,25 @@ export function FullScreenSessionForm({
                                 <Button
                                   variant="outline"
                                   className="w-full"
-                                  onClick={() => {
-                                    const therapistId = form.watch("session.therapistId");
+                                  type="button"
+                                  onClick={(e) => {
+                                    // Prevent any default form submission behavior
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    
+                                    // Check if all required fields are set
+                                    const clientId = form.getValues("session.clientId");
+                                    const therapistId = form.getValues("session.therapistId");
+                                    
+                                    if (!clientId) {
+                                      toast({
+                                        title: "Client required",
+                                        description: "Please select a client before adding attendees.",
+                                        variant: "destructive"
+                                      });
+                                      return;
+                                    }
+                                    
                                     if (!therapistId) {
                                       toast({
                                         title: "Therapist required",
@@ -1655,6 +1678,8 @@ export function FullScreenSessionForm({
                                       });
                                       return;
                                     }
+                                    
+                                    // Only open dialog if all validations pass
                                     setShowAttendeeDialog(true);
                                   }}
                                   disabled={alliesQuery.isLoading || 
@@ -2338,10 +2363,30 @@ export function FullScreenSessionForm({
         allies={allies}
         selectedAllies={form.watch("sessionNote.presentAllies") || []}
         onSelectAttendee={(ally) => {
-          handleAddAttendee(ally);
-
-          // Close dialog after selection
-          setShowAttendeeDialog(false);
+          try {
+            // Handle with try/catch to prevent form submission
+            const currentAttendees = form.getValues("sessionNote.presentAllies") || [];
+            const currentAttendeeIds = form.getValues("sessionNote.presentAllyIds") || [];
+            
+            // Check if already in the list
+            if (!currentAttendees.includes(ally.name)) {
+              form.setValue("sessionNote.presentAllies", [...currentAttendees, ally.name], 
+                { shouldDirty: true, shouldValidate: false });
+              form.setValue("sessionNote.presentAllyIds", [...currentAttendeeIds, ally.id], 
+                { shouldDirty: true, shouldValidate: false });
+              
+              toast({
+                title: "Attendee added",
+                description: `${ally.name} has been added to the session`,
+              });
+            }
+            
+            // Important: Close dialog AFTER form updates
+            setShowAttendeeDialog(false);
+          } catch (error) {
+            console.error("Error adding attendee:", error);
+            setShowAttendeeDialog(false);
+          }
         }}
       />
     </div>
