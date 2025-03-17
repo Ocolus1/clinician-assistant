@@ -491,7 +491,7 @@ export function IntegratedSessionForm({
                                     onClick={() => {
                                       const updated = selectedPerformanceAssessments.filter((_, i) => i !== goalIndex);
                                       setSelectedPerformanceAssessments(updated);
-                                      form.setValue("performanceAssessments", updated, { shouldDirty: true, shouldValidate: false });
+                                      form.setValue("performanceAssessments", updated);
                                     }}
                                   >
                                     <Trash className="h-4 w-4" />
@@ -514,7 +514,7 @@ export function IntegratedSessionForm({
                                               updated[goalIndex].milestones = updated[goalIndex].milestones
                                                 .filter((_: any, i: number) => i !== milestoneIndex);
                                               setSelectedPerformanceAssessments(updated);
-                                              form.setValue("performanceAssessments", updated, { shouldDirty: true, shouldValidate: false });
+                                              form.setValue("performanceAssessments", updated);
                                             }}
                                           >
                                             <X className="h-4 w-4" />
@@ -527,7 +527,7 @@ export function IntegratedSessionForm({
                                             const updated = [...selectedPerformanceAssessments];
                                             updated[goalIndex].milestones[milestoneIndex].rating = value;
                                             setSelectedPerformanceAssessments(updated);
-                                            form.setValue("performanceAssessments", updated, { shouldDirty: true, shouldValidate: false });
+                                            form.setValue("performanceAssessments", updated);
                                           }}
                                           label="Performance Rating"
                                         />

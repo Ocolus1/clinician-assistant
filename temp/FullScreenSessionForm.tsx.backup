@@ -641,7 +641,7 @@ export function FullScreenSessionForm({
       // Give form time to initialize, then force the client ID to be set correctly
       setTimeout(() => {
         if (form) {
-          form.setValue("session.clientId", initialClient.id, { shouldDirty: true, shouldValidate: false });
+          form.setValue("session.clientId", initialClient.id);
         }
       }, 100);
     }
@@ -669,8 +669,8 @@ export function FullScreenSessionForm({
       if (prevClientId && prevClientId !== clientId) {
         console.log("Client changed from", prevClientId, "to", clientId, "- resetting attendees list");
         // Reset the attendees lists
-        form.setValue("sessionNote.presentAllies", [], { shouldDirty: true, shouldValidate: false });
-        form.setValue("sessionNote.presentAllyIds", [], { shouldDirty: true, shouldValidate: false });
+        form.setValue("sessionNote.presentAllies", []);
+        form.setValue("sessionNote.presentAllyIds", []);
         
         // Show notification to the user
         toast({
@@ -964,7 +964,7 @@ export function FullScreenSessionForm({
         milestones: []
       };
 
-      form.setValue("performanceAssessments", [...currentAssessments, newAssessment], { shouldDirty: true, shouldValidate: false });
+      form.setValue("performanceAssessments", [...currentAssessments, newAssessment]);
     }
   };
 
@@ -985,7 +985,7 @@ export function FullScreenSessionForm({
         notes: ""
       });
 
-      form.setValue("performanceAssessments", updatedAssessments, { shouldDirty: true, shouldValidate: false });
+      form.setValue("performanceAssessments", updatedAssessments);
     }
   };
 
@@ -1017,7 +1017,7 @@ export function FullScreenSessionForm({
       }
     }
 
-    form.setValue("performanceAssessments", updatedAssessments, { shouldDirty: true, shouldValidate: false });
+    form.setValue("performanceAssessments", updatedAssessments);
   };
 
   const handleAddProduct = (product: BudgetItem & { availableQuantity: number; originalQuantity?: number }, quantity: number) => {
@@ -1087,7 +1087,7 @@ export function FullScreenSessionForm({
         originalQuantity: product.originalQuantity || product.quantity // Keep track of original quantity
       };
 
-      form.setValue("sessionNote.products", [...currentProducts, newProduct], { shouldDirty: true, shouldValidate: false });
+      form.setValue("sessionNote.products", [...currentProducts, newProduct]);
       
       // Show success toast
       toast({
@@ -1113,7 +1113,7 @@ export function FullScreenSessionForm({
     updatedProducts.splice(index, 1);
     
     // Update the form
-    form.setValue("sessionNote.products", updatedProducts, { shouldDirty: true, shouldValidate: false });
+    form.setValue("sessionNote.products", updatedProducts);
     
     // Show success toast
     toast({
@@ -1136,8 +1136,8 @@ export function FullScreenSessionForm({
     
     if (allyIdIndex === -1) {
       // Add both name for display and ID for data integrity
-      form.setValue("sessionNote.presentAllies", [...currentAttendees, ally.name], { shouldDirty: true, shouldValidate: false });
-      form.setValue("sessionNote.presentAllyIds", [...currentAttendeeIds, ally.id], { shouldDirty: true, shouldValidate: false });
+      form.setValue("sessionNote.presentAllies", [...currentAttendees, ally.name]);
+      form.setValue("sessionNote.presentAllyIds", [...currentAttendeeIds, ally.id]);
       
       // Show success toast
       toast({
@@ -1171,14 +1171,14 @@ export function FullScreenSessionForm({
     updatedAttendeeIds.splice(index, 1);
     
     // Update the form values
-    form.setValue("sessionNote.presentAllies", updatedAttendees, { shouldDirty: true, shouldValidate: false });
-    form.setValue("sessionNote.presentAllyIds", updatedAttendeeIds, { shouldDirty: true, shouldValidate: false });
+    form.setValue("sessionNote.presentAllies", updatedAttendees);
+    form.setValue("sessionNote.presentAllyIds", updatedAttendeeIds);
   };
 
   const removeGoal = (goalId: number) => {
     const assessments = form.getValues("performanceAssessments") || [];
     const updatedAssessments = assessments.filter(a => a.goalId !== goalId);
-    form.setValue("performanceAssessments", updatedAssessments, { shouldDirty: true, shouldValidate: false });
+    form.setValue("performanceAssessments", updatedAssessments);
   };
 
   const removeMilestone = (goalId: number, milestoneId: number) => {
@@ -1192,7 +1192,7 @@ export function FullScreenSessionForm({
       }
       return assessment;
     });
-    form.setValue("performanceAssessments", updatedAssessments, { shouldDirty: true, shouldValidate: false });
+    form.setValue("performanceAssessments", updatedAssessments);
   };
 
   if (!open) return null;
@@ -1711,7 +1711,7 @@ export function FullScreenSessionForm({
                                               if (products[index].quantity > 1) {
                                                 const updatedProducts = [...products];
                                                 updatedProducts[index].quantity -= 1;
-                                                form.setValue("sessionNote.products", updatedProducts, { shouldDirty: true, shouldValidate: false });
+                                                form.setValue("sessionNote.products", updatedProducts);
                                               }
                                             }}
                                             disabled={product.quantity <= 1}
@@ -1736,7 +1736,7 @@ export function FullScreenSessionForm({
                                                 const products = form.getValues("sessionNote.products");
                                                 const updatedProducts = [...products];
                                                 updatedProducts[index].quantity += 1;
-                                                form.setValue("sessionNote.products", updatedProducts, { shouldDirty: true, shouldValidate: false });
+                                                form.setValue("sessionNote.products", updatedProducts);
                                               } else {
                                                 toast({
                                                   title: "Maximum quantity reached",
