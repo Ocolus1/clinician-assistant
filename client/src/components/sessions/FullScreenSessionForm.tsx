@@ -278,13 +278,30 @@ const MilestoneSelectionDialog = ({
   selectedMilestoneIds,
   onSelectMilestone
 }: MilestoneSelectionDialogProps) => {
+  const { toast } = useToast();
   // Add debugging when dialog opens
   useEffect(() => {
     if (open) {
       console.log("MilestoneSelectionDialog opened with subgoals:", subgoals);
       console.log("Selected milestone IDs:", selectedMilestoneIds);
+      
+      // Additional debug logging to check subgoals data structure
+      if (subgoals && subgoals.length > 0) {
+        console.log("First subgoal example:", subgoals[0]);
+      } else {
+        console.warn("WARNING: No subgoals available to display in the milestone selection dialog");
+        
+        // Use the toast function directly instead of a custom event
+        setTimeout(() => {
+          toast({
+            title: "Debug: No Milestones Found",
+            description: "No milestones were found for the selected goal. Check console for details.",
+            variant: "destructive"
+          });
+        }, 100);
+      }
     }
-  }, [open, subgoals, selectedMilestoneIds]);
+  }, [open, subgoals, selectedMilestoneIds, toast]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -296,9 +313,12 @@ const MilestoneSelectionDialog = ({
           </CardDescription>
         </CardHeader>
         <div className="space-y-3 px-1 py-2">
-          {subgoals.length === 0 ? (
+          {!subgoals || subgoals.length === 0 ? (
             <div className="text-center p-4">
               <p className="text-muted-foreground">No milestones available for assessment</p>
+              <p className="text-xs text-gray-500 mt-2">
+                This goal doesn't have any milestones defined. Please add milestones to the goal first.
+              </p>
             </div>
           ) : (
             subgoals.filter(subgoal => !selectedMilestoneIds.includes(subgoal.id)).map(subgoal => (
@@ -2737,8 +2757,15 @@ export function FullScreenSessionForm({
                                         size="sm"
                                         className="h-7 px-2 text-xs"
                                         onClick={() => {
+                                          // Set the goal ID first and then open the dialog
+                                          console.log("Setting currentGoalId before opening milestone dialog:", assessment.goalId);
                                           setCurrentGoalId(assessment.goalId);
-                                          setShowMilestoneDialog(true);
+                                          
+                                          // Brief timeout to ensure the goal ID change is processed before opening dialog
+                                          setTimeout(() => {
+                                            console.log("Opening milestone dialog for goal ID:", assessment.goalId);
+                                            setShowMilestoneDialog(true);
+                                          }, 100);
                                         }}
                                       >
                                         <Plus className="h-3 w-3 mr-1" /> Add
@@ -2875,7 +2902,7 @@ export function FullScreenSessionForm({
       <MilestoneSelectionDialog
         open={showMilestoneDialog}
         onOpenChange={setShowMilestoneDialog}
-        subgoals={subgoals}
+        subgoals={combinedSubgoals}
         selectedMilestoneIds={selectedMilestoneIds}
         onSelectMilestone={handleMilestoneSelection}
       />
