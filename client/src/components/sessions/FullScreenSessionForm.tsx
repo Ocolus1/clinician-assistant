@@ -870,9 +870,17 @@ export function FullScreenSessionForm({
   const createSessionMutation = useMutation({
     mutationFn: async (data: IntegratedSessionFormValues) => {
       console.log("Form submit data:", data);
+      
+      // Ensure therapistId is properly formatted
+      const sessionData = {
+        ...data.session,
+        therapistId: data.session.therapistId ? Number(data.session.therapistId) : undefined
+      };
+      
+      console.log("Formatted session data:", sessionData);
 
       // First create the session
-      const sessionResponse = await apiRequest("POST", "/api/sessions", data.session);
+      const sessionResponse = await apiRequest("POST", "/api/sessions", sessionData);
       console.log("Session created:", sessionResponse);
 
       if (!sessionResponse || !('id' in sessionResponse)) {
@@ -1906,9 +1914,9 @@ export function FullScreenSessionForm({
                         <div className="flex justify-between">
                           <p className="text-sm text-muted-foreground">Clinician</p>
                           <p className="text-sm font-medium">
-                            {form.watch("session.therapistId") === 1 ? "Dr. Sarah Johnson" :
-                             form.watch("session.therapistId") === 2 ? "Dr. Michael Chen" :
-                             form.watch("session.therapistId") === 3 ? "Dr. Emily Rodriguez" :
+                            {form.watch("session.therapistId") === 1 || form.watch("session.therapistId") === "1" ? "Dr. Sarah Johnson" :
+                             form.watch("session.therapistId") === 2 || form.watch("session.therapistId") === "2" ? "Dr. Michael Chen" :
+                             form.watch("session.therapistId") === 3 || form.watch("session.therapistId") === "3" ? "Dr. Emily Rodriguez" :
                              "Not selected"}
                           </p>
                         </div>
