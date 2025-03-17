@@ -1359,8 +1359,8 @@ export function FullScreenSessionForm({
                               <FormItem>
                                 <FormLabel>Clinician</FormLabel>
                                 <Select 
-                                  onValueChange={field.onChange}
-                                  value={field.value || ""}
+                                  onValueChange={(value) => field.onChange(Number(value))}
+                                  value={field.value?.toString() || ""}
                                 >
                                   <FormControl>
                                     <SelectTrigger>
@@ -1906,9 +1906,9 @@ export function FullScreenSessionForm({
                         <div className="flex justify-between">
                           <p className="text-sm text-muted-foreground">Clinician</p>
                           <p className="text-sm font-medium">
-                            {form.watch("session.therapistId") === "1" ? "Dr. Sarah Johnson" :
-                             form.watch("session.therapistId") === "2" ? "Dr. Michael Chen" :
-                             form.watch("session.therapistId") === "3" ? "Dr. Emily Rodriguez" :
+                            {form.watch("session.therapistId") === 1 ? "Dr. Sarah Johnson" :
+                             form.watch("session.therapistId") === 2 ? "Dr. Michael Chen" :
+                             form.watch("session.therapistId") === 3 ? "Dr. Emily Rodriguez" :
                              "Not selected"}
                           </p>
                         </div>
