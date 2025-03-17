@@ -96,7 +96,7 @@ export function ProductSelectionDialog({
         <DialogHeader>
           <DialogTitle>Select Product</DialogTitle>
           <DialogDescription>
-            Choose a product from all available budget plans
+            Choose a product from the active budget plan
           </DialogDescription>
         </DialogHeader>
 
@@ -105,8 +105,12 @@ export function ProductSelectionDialog({
             <h3 className="text-sm font-medium mb-2">Available Products</h3>
             <ScrollArea className="h-[300px] border rounded-md p-2">
               {products.length === 0 ? (
-                <div className="p-4 text-center">
-                  <p className="text-muted-foreground">No products available</p>
+                <div className="p-4 text-center space-y-2">
+                  <Package className="h-10 w-10 mx-auto text-muted-foreground/50" />
+                  <p className="text-muted-foreground font-medium">No products available in active budget plan</p>
+                  <p className="text-sm text-muted-foreground/70">
+                    Please add products to the active budget plan in the client's profile
+                  </p>
                 </div>
               ) : (
                 <div className="space-y-2">
