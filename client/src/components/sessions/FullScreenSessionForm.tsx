@@ -1443,6 +1443,25 @@ export function FullScreenSessionForm({
       form.setValue("performanceAssessments", updatedAssessments, { shouldDirty: true, shouldValidate: false });
     }
   };
+  
+  // Function to update milestone rating using numeric rating system
+  const updateMilestoneRating = (goalId: number, milestoneId: number, rating: number) => {
+    const assessments = form.getValues("performanceAssessments") || [];
+    const goalIndex = assessments.findIndex(a => a.goalId === goalId);
+    
+    if (goalIndex === -1) return;
+    
+    const milestoneIndex = assessments[goalIndex].milestones.findIndex(
+      m => m.milestoneId === milestoneId
+    );
+    
+    if (milestoneIndex === -1) return;
+    
+    const updatedAssessments = [...assessments];
+    updatedAssessments[goalIndex].milestones[milestoneIndex].rating = rating;
+    
+    form.setValue("performanceAssessments", updatedAssessments, { shouldDirty: true, shouldValidate: false });
+  };
 
   const handleStrategySelection = (strategy: Strategy) => {
     const assessments = form.getValues("performanceAssessments") || [];
@@ -2766,15 +2785,15 @@ export function FullScreenSessionForm({
                                                 <X className="h-3 w-3" />
                                               </Button>
                                             </div>
-                                            <div className="flex items-center mt-2">
-                                              <span className="text-xs text-muted-foreground mr-2">Rating:</span>
-                                              <Badge className={
-                                                (milestone.rating || 0) <= 3 ? "bg-red-100 text-red-800" :
-                                                (milestone.rating || 0) <= 6 ? "bg-amber-100 text-amber-800" :
-                                                "bg-green-100 text-green-800"
-                                              }>
-                                                {milestone.rating || 0}/10
-                                              </Badge>
+                                            <div className="flex flex-col mt-2">
+                                              <span className="text-xs text-muted-foreground mb-1">Rating:</span>
+                                              <NumericRating
+                                                label=""
+                                                value={milestone.rating || 0}
+                                                onChange={(value) => updateMilestoneRating(assessment.goalId, milestone.milestoneId, value)}
+                                                min={1}
+                                                max={10}
+                                              />
                                             </div>
 
                                             <div className="mt-2">
