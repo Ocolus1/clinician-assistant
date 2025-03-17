@@ -962,6 +962,12 @@ export function FullScreenSessionForm({
       return;
     }
     
+    // ADDITIONAL SAFETY CHECK: If there's a mutation in progress, don't submit again
+    if (createSessionMutation.isPending) {
+      console.log("Preventing duplicate submission - mutation already in progress");
+      return;
+    }
+    
     // Calculate session duration from timeFrom and timeTo if available
     if (data.session.timeFrom && data.session.timeTo) {
       const [fromHours, fromMinutes] = data.session.timeFrom.split(':').map(Number);
@@ -985,7 +991,20 @@ export function FullScreenSessionForm({
       data.session.title = 'Therapy Session';
     }
     
-    createSessionMutation.mutate(data);
+    // Add logging for debugging
+    console.log("Submitting session form with data:", JSON.stringify(data, null, 2));
+    
+    // Use a safe wrapper to prevent duplicate submissions
+    if (!isFormSubmitting) {
+      setIsFormSubmitting(true);
+      createSessionMutation.mutate(data, {
+        onSettled: () => {
+          setIsFormSubmitting(false);
+        }
+      });
+    } else {
+      console.log("Form submission prevented - already in progress");
+    }
   }
 
   // Handlers for adding goals, milestones, products, etc.
@@ -1651,11 +1670,17 @@ export function FullScreenSessionForm({
                                 <Button
                                   variant="outline"
                                   className="w-full"
-                                  type="button"
+                                  type="button" // Explicitly set to button type to avoid form submission
                                   onClick={(e) => {
                                     // Prevent any default form submission behavior
                                     e.preventDefault();
                                     e.stopPropagation();
+                                    
+                                    // Check if any dialog is already open
+                                    if (showAttendeeDialog || showProductDialog || showGoalDialog || showMilestoneDialog || showStrategyDialog) {
+                                      console.log("Another dialog is already open");
+                                      return;
+                                    }
                                     
                                     // Check if all required fields are set
                                     const clientId = form.getValues("session.clientId");
