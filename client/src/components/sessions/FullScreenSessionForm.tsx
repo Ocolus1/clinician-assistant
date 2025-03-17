@@ -799,8 +799,8 @@ export function FullScreenSessionForm({
     console.log("Budget items in availableProducts:", budgetItems);
     console.log("Budget settings in availableProducts:", budgetSettings);
     
-    // Force return some test products for debugging the Add Product button functionality
-    const debugMode = true; // Set to false in production
+    // Debug mode disabled for production use - will use actual budget items
+    const debugMode = false; // Disabled to show real products from active budget plan
     
     if (debugMode) {
       console.log("Debug mode enabled - returning test products");
@@ -1966,7 +1966,7 @@ export function FullScreenSessionForm({
                                 }
                               }}
                               // Always enable button when in debug mode, otherwise check for products
-                              disabled={false} // Set to 'availableProducts.length === 0' in production
+                              disabled={!clientId || availableProducts.length === 0}
                             >
                               <ShoppingCart className="h-4 w-4 mr-2" />
                               Add Product
