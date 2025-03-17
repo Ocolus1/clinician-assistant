@@ -643,62 +643,38 @@ export function FullScreenSessionForm({
   useEffect(() => {
     // When the form is closed, mark it as not initialized
     if (!open) {
+      // Simply mark as not initialized when closing
       formInitializedRef.current = false;
-      // Don't reset form here as the form instance might be reused
     } 
     // When the form is opened
-    else {
-      // If the form was previously not initialized, reset to default values
+    else if (open) {
+      // Reset form to default values when opening the form
       if (!formInitializedRef.current) {
-        console.log("Resetting form to default values");
-        
         // Generate a new session ID for this session
-        const newSessionId = `ST-${new Date().getFullYear()}${String(new Date().getMonth() + 1).padStart(2, '0')}${String(new Date().getDate()).padStart(2, '0')}-${Math.floor(1000 + Math.random() * 9000)}`;
+        const now = new Date();
+        const newSessionId = `ST-${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}-${Math.floor(1000 + Math.random() * 9000)}`;
         
-        // Reset to default values
+        // Use the default values we defined above rather than creating a new object
         form.reset({
+          ...defaultValues,
           session: {
-            sessionDate: new Date(),
-            location: "Clinic",
-            clientId: initialClient?.id || 0,
-            therapistId: undefined,
-            timeFrom: "09:00",
-            timeTo: "10:00",
-            title: "Therapy Session",
-            duration: 60,
-            status: "scheduled",
+            ...defaultValues.session,
             sessionId: newSessionId,
-          },
-          sessionNote: {
-            presentAllies: [],
-            presentAllyIds: [],
-            moodRating: 5,
-            focusRating: 5,
-            cooperationRating: 5,
-            physicalActivityRating: 5,
-            notes: "",
-            products: [],
-            status: "draft",
-          },
-          performanceAssessments: [],
+            sessionDate: new Date(),
+            clientId: initialClient?.id || 0
+          }
         });
         
-        // Mark as initialized
+        // Mark as initialized after reset is complete
         formInitializedRef.current = true;
       }
       
-      // If form was already initialized but we have an initial client, set the clientId
+      // Set client ID if we have an initial client (simplified logic)
       if (initialClient) {
-        console.log("Form opened with initial client:", initialClient);
-        console.log("Initial client ID:", initialClient.id);
-        
-        // Give form time to initialize, then force the client ID to be set correctly
-        setTimeout(() => {
-          form.setValue("session.clientId", initialClient.id, { shouldDirty: true, shouldValidate: false });
-        }, 100);
+        form.setValue("session.clientId", initialClient.id);
       }
     }
-  }, [open, initialClient, form]);
+  }, [open, initialClient, form, defaultValues]);
 
   // Watch clientId to update related data
   const clientId = form.watch("session.clientId");
