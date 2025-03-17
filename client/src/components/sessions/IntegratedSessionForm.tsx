@@ -377,6 +377,9 @@ export function IntegratedSessionForm({
 
   const [strategySelectionOpen, setStrategySelectionOpen] = useState(false);
   const [currentMilestoneIndex, setCurrentMilestoneIndex] = useState<number | null>(null);
+  
+  // Add state for attendee selection dialog
+  const [attendeeDialogOpen, setAttendeeDialogOpen] = useState(false);
 
   const removeProduct = (index: number) => {
     const products = form.getValues("sessionNote.products") || [];
@@ -1217,18 +1220,20 @@ const ProductSelectionDialog = ({
                             <Button
                               variant="outline"
                               size="sm"
-                              onClick={() => {
+                              type="button" 
+                              onClick={(e) => {
+                                e.preventDefault(); // Prevent form submission
+                                e.stopPropagation(); // Stop event bubbling
                                 console.log("New Attendee button clicked, allies:", allies);
                                 if (allies.length > 0) {
                                   const currentAllies = form.getValues("sessionNote.presentAllies") || [];
                                   const availableAllies = allies.filter(ally => 
                                     !currentAllies.includes(ally.name)
                                   );
+                                  
                                   if (availableAllies.length > 0) {
-                                    form.setValue("sessionNote.presentAllies", [
-                                      ...currentAllies, 
-                                      "__select__"
-                                    ], { shouldDirty: true, shouldValidate: false });
+                                    // Open the attendee dialog using our dedicated state variable
+                                    setAttendeeDialogOpen(true);
                                   } else {
                                     toast({
                                       title: "No more allies available",
@@ -1308,16 +1313,9 @@ const ProductSelectionDialog = ({
                         )}
 
                         <Dialog 
-                          open={allies.length > 0 && form.getValues("sessionNote.presentAllies")?.includes("__select__")}
+                          open={attendeeDialogOpen}
                           onOpenChange={(open) => {
-                            if (!open) {
-                              const currentAllies = form.getValues("sessionNote.presentAllies") || [];
-                              form.setValue(
-                                "sessionNote.presentAllies", 
-                                currentAllies.filter(a => a !== "__select__"),
-                                { shouldDirty: true, shouldValidate: false }
-                              );
-                            }
+                            setAttendeeDialogOpen(open);
                           }}
                         >
                           <DialogContent className="sm:max-w-[425px]">
@@ -1330,10 +1328,13 @@ const ProductSelectionDialog = ({
                             <div className="py-4">
                               <Select
                                 onValueChange={(value) => {
+                                  // Get current form values
                                   const currentAllies = form.getValues("sessionNote.presentAllies") || [];
                                   const [allyId, allyName] = value.split('|');
                                   const currentAllyIds = form.getValues("sessionNote.presentAllyIds") || [];
                                   const allyIdNum = parseInt(allyId);
+                                  
+                                  // Check if ally is already added
                                   if (currentAllies.includes(allyName) || currentAllyIds.includes(allyIdNum)) {
                                     toast({
                                       title: "Attendee already added",
@@ -1342,9 +1343,11 @@ const ProductSelectionDialog = ({
                                     });
                                     return;
                                   }
+                                  
+                                  // Update form with the new ally
                                   form.setValue(
                                     "sessionNote.presentAllies", 
-                                    [...currentAllies.filter(a => a !== "__select__"), allyName],
+                                    [...currentAllies, allyName],
                                     { shouldDirty: true, shouldValidate: false }
                                   );
                                   form.setValue(
@@ -1352,6 +1355,9 @@ const ProductSelectionDialog = ({
                                     [...currentAllyIds, allyIdNum],
                                     { shouldDirty: true, shouldValidate: false }
                                   );
+                                  
+                                  // Close the dialog
+                                  setAttendeeDialogOpen(false);
                                 }}
                               >
                                 <SelectTrigger>
