@@ -847,15 +847,23 @@ export function FullScreenSessionForm({
         // For debugging
         console.log(`Item ${item.id}: budgetSettingsId=${item.budgetSettingsId}, quantity=${item.quantity}, active plan ID=${budgetSettings.id}`);
         
-        // IMPORTANT: We're enabling products to be used from this client's budget
-        // Make sure quantity is > 0, but no longer filtering strictly by active plan
+        // CRITICAL RULE: Only include items from active budget plans
+        // 1. Check if item belongs to the active plan
+        const isActivePlan = item.budgetSettingsId === budgetSettings.id;
+        
+        // 2. Check if item has quantity > 0
         const hasQuantity = item.quantity > 0;
+        
+        if (!isActivePlan) {
+          console.log(`Item ${item.id} skipped: not from active plan (${item.budgetSettingsId} != ${budgetSettings.id})`);
+        }
         
         if (!hasQuantity) {
           console.log(`Item ${item.id} skipped: has zero quantity remaining`);
         }
         
-        return hasQuantity;
+        // Both conditions must be true
+        return isActivePlan && hasQuantity;
       })
       .map((item: BudgetItem) => {
         // Find if this item is already selected in the form
@@ -868,8 +876,12 @@ export function FullScreenSessionForm({
         // For debugging
         console.log(`Item ${item.id} (${item.description}): Original quantity=${item.quantity}, Already selected=${alreadySelectedQuantity}, Available=${availableQuantity}`);
         
+        // Calculate if this is from the active plan
+        const isActivePlan = item.budgetSettingsId === budgetSettings.id;
+        
         return {
           ...item,
+          isActivePlan, // CRITICAL: Pass along whether this item is from active plan
           availableQuantity,
           originalQuantity: item.quantity // Store the original quantity for reference
         };
