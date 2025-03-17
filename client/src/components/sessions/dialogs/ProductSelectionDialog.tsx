@@ -56,12 +56,32 @@ export function ProductSelectionDialog({
 
   // Filter products to only include those from active plans
   const activeProducts = React.useMemo(() => {
-    console.log("Filtering products based on active plan status:", products);
+    // Enhanced debugging for filter process
+    console.log("DEBUG PRODUCTS: All products passed to dialog:", JSON.stringify(products, null, 2));
+    console.log(`DEBUG PRODUCTS: Total products count: ${products.length}`);
+    
+    // Check if any products have isActivePlan set
+    const productsWithActivePlanFlag = products.filter(p => p.isActivePlan !== undefined);
+    console.log(`DEBUG PRODUCTS: Products with isActivePlan flag set: ${productsWithActivePlanFlag.length}`);
+    
+    // Check if any products are explicitly marked as active
+    const productsMarkedActive = products.filter(p => p.isActivePlan === true);
+    console.log(`DEBUG PRODUCTS: Products explicitly marked as active: ${productsMarkedActive.length}`);
+    
+    if (productsMarkedActive.length === 0) {
+      console.warn("CRITICAL ISSUE: No products marked as active! This will cause the Add Product button to be disabled.");
+      console.log("DETAILED PRODUCT DATA:");
+      products.forEach((p, index) => {
+        console.log(`Product ${index+1}: ID=${p.id}, Description=${p.description}, isActivePlan=${p.isActivePlan}, budgetSettingsId=${p.budgetSettingsId}`);
+      });
+    }
     
     // CRITICAL RULE: Only include items from active budget plans
     return products.filter(product => {
       // Check if product has isActivePlan property and it's true (not false)
       const shouldInclude = product.isActivePlan === true;
+      
+      console.log(`Product ${product.id} (${product.description || 'unknown'}): isActivePlan=${product.isActivePlan}, shouldInclude=${shouldInclude}`);
       
       if (!shouldInclude) {
         console.log(`Excluding product ID ${product.id} (${product.description}) - not from active plan`);

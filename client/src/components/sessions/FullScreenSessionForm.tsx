@@ -887,7 +887,10 @@ export function FullScreenSessionForm({
         console.log(`Item ${item.id} (${item.description}): Original quantity=${item.quantity}, Already selected=${alreadySelectedQuantity}, Available=${availableQuantity}`);
         
         // Calculate if this is from the active plan
-        const isActivePlan = item.budgetSettingsId === budgetSettings.id;
+        // FIX: Force strict number comparison with Number() to avoid type issues
+        const isActivePlan = Number(item.budgetSettingsId) === Number(budgetSettings.id);
+        
+        console.log(`Item ${item.id} (${item.description || 'unknown'}): budgetSettingsId=${item.budgetSettingsId} (${typeof item.budgetSettingsId}), activePlanId=${budgetSettings.id} (${typeof budgetSettings.id}), isActivePlan=${isActivePlan}`);
         
         return {
           ...item,
@@ -930,9 +933,17 @@ export function FullScreenSessionForm({
             // Check which items belong to the active plan
             if (budgetSettings && items && items.length > 0) {
               const activePlanId = budgetSettings.id;
-              const itemsInActivePlan = items.filter(item => item.budgetSettingsId === activePlanId);
+              const itemsInActivePlan = items.filter((item: BudgetItem) => Number(item.budgetSettingsId) === Number(activePlanId));
               console.log("DEBUG API: Items in active plan:", itemsInActivePlan);
               console.log("DEBUG API: Active plan ID:", activePlanId);
+              
+              // Check if there's a type mismatch issue
+              if (itemsInActivePlan.length === 0) {
+                console.warn("WARNING: Type mismatch may be causing filtering issues");
+                items.forEach((item: BudgetItem, index: number) => {
+                  console.log(`Item ${index+1}: ID=${item.id}, budgetSettingsId=${item.budgetSettingsId} (${typeof item.budgetSettingsId}), activePlanId=${activePlanId} (${typeof activePlanId})`);
+                });
+              }
             }
           })
           .catch(err => console.error("Error fetching budget data:", err));
@@ -947,8 +958,24 @@ export function FullScreenSessionForm({
         // Check specifically which items match the active plan
         if (budgetSettings) {
           const activePlanId = budgetSettings.id;
-          const itemsMatchingActivePlan = budgetItems.filter(item => item.budgetSettingsId === activePlanId);
+          // Fix: Use Number to ensure strict type comparison
+          const itemsMatchingActivePlan = budgetItems.filter(item => Number(item.budgetSettingsId) === Number(activePlanId));
           console.log(`Found ${itemsMatchingActivePlan.length} items matching active plan ID ${activePlanId}:`, itemsMatchingActivePlan);
+          
+          // Extended debug information
+          if (itemsMatchingActivePlan.length === 0) {
+            console.warn("WARNING: No matching items found in active plan - this is likely a type mismatch");
+            console.log("Detailed comparison of budget settings ID vs item budget settings IDs:");
+            
+            budgetItems.forEach((item, index) => {
+              console.log(`${index}. Item(${item.id}): budgetSettingsId=${item.budgetSettingsId} (${typeof item.budgetSettingsId})`);
+            });
+            console.log(`Active Plan ID: ${activePlanId} (${typeof activePlanId})`);
+            
+            // Try with string comparison
+            const itemsWithStringComparison = budgetItems.filter(item => String(item.budgetSettingsId) === String(activePlanId));
+            console.log(`Items with string comparison: ${itemsWithStringComparison.length}`);
+          }
         }
       } else {
         console.log("No budget items found at all");
