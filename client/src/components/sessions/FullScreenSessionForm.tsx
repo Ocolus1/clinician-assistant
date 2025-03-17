@@ -884,7 +884,22 @@ export function FullScreenSessionForm({
     
     // Get currently selected products from form
     const selectedProducts = form.watch("sessionNote.products") || [];
-    console.log("Selected products:", selectedProducts);
+    console.log("Selected products in THIS SESSION FORM:", selectedProducts);
+    
+    // CRITICAL FIX: Create a lookup of already selected quantities by budget item ID
+    // This ensures we track what is selected in the current session form
+    const selectedQuantitiesByItemId: Record<number, number> = {};
+    
+    // Process all selected products to build the lookup table
+    selectedProducts.forEach(product => {
+      const itemId = Number(product.budgetItemId);
+      if (!selectedQuantitiesByItemId[itemId]) {
+        selectedQuantitiesByItemId[itemId] = 0;
+      }
+      selectedQuantitiesByItemId[itemId] += Number(product.quantity || 0);
+    });
+    
+    console.log("Session form - Selected quantities by item ID:", selectedQuantitiesByItemId);
     
     // FIXED: No longer use fallback logic that includes budget items from inactive plans
     // But add special handling for race conditions
@@ -901,15 +916,39 @@ export function FullScreenSessionForm({
         
         // Return all budget items marked as active plan
         return budgetItems
-          .filter(item => Number(item.quantity) > 0) // Only include items with quantity
+          .filter(item => {
+            // Get original quantity
+            const originalQuantity = Number(item.quantity || 0);
+            
+            // Get already selected quantity in this session form
+            const alreadySelectedInForm = selectedQuantitiesByItemId[item.id] || 0;
+            
+            // Calculate remaining available quantity
+            const availableQuantity = originalQuantity - alreadySelectedInForm;
+            
+            console.log(`Item ${item.id} (${item.description || 'unknown'}): Original=${originalQuantity}, Selected=${alreadySelectedInForm}, Available=${availableQuantity}`);
+            
+            // CRITICAL: Only include items that still have available quantity
+            return availableQuantity > 0;
+          })
           .map(item => {
+            // Get original quantity
+            const originalQuantity = Number(item.quantity || 0);
+            
+            // Get already selected quantity in this session form
+            const alreadySelectedInForm = selectedQuantitiesByItemId[item.id] || 0;
+            
+            // Calculate remaining available quantity
+            const availableQuantity = originalQuantity - alreadySelectedInForm;
+            
             console.log(`Processing item ${item.id} (${item.description || 'unknown'}) as active`);
+            
             // Mark every item as from the active plan
             return {
               ...item,
               isActivePlan: true, // CRITICAL: Mark all as active
-              availableQuantity: item.quantity,
-              originalQuantity: item.quantity
+              availableQuantity: availableQuantity, // FIXED: Use calculated available quantity
+              originalQuantity: originalQuantity
             };
           });
       } else {
@@ -938,33 +977,40 @@ export function FullScreenSessionForm({
         // 1. Check if item belongs to the active plan - EXACT match required
         const isActivePlan = Number(item.budgetSettingsId) === Number(budgetSettings.id);
         
-        // 2. Check if item has quantity > 0
-        const hasQuantity = Number(item.quantity) > 0;
+        // 2. Calculate available quantity considering what's already selected in this form
+        const originalQuantity = Number(item.quantity || 0);
+        const alreadySelectedInForm = selectedQuantitiesByItemId[item.id] || 0;
+        const availableQuantity = originalQuantity - alreadySelectedInForm;
+        
+        // Only show items with remaining quantity
+        const hasAvailableQuantity = availableQuantity > 0;
         
         if (!isActivePlan) {
           console.log(`Item ${item.id} skipped: not from active plan (${item.budgetSettingsId} != ${budgetSettings.id})`);
         }
         
-        if (!hasQuantity) {
-          console.log(`Item ${item.id} skipped: has zero quantity remaining`);
+        if (!hasAvailableQuantity) {
+          console.log(`Item ${item.id} skipped: no available quantity (original=${originalQuantity}, used in form=${alreadySelectedInForm})`);
         }
         
         // Additional debug
-        console.log(`Item ${item.id} result: isActivePlan=${isActivePlan}, hasQuantity=${hasQuantity}`);
+        console.log(`Item ${item.id} result: isActivePlan=${isActivePlan}, hasAvailableQuantity=${hasAvailableQuantity}`);
         
         // Both conditions must be true
-        return isActivePlan && hasQuantity;
+        return isActivePlan && hasAvailableQuantity;
       })
       .map((item: BudgetItem) => {
-        // Find if this item is already selected in the form
-        const alreadySelectedItem = selectedProducts.find(p => p.budgetItemId === item.id);
-        const alreadySelectedQuantity = alreadySelectedItem ? alreadySelectedItem.quantity : 0;
-
-        // Calculate available quantity (original quantity minus what's already selected)
-        const availableQuantity = item.quantity - alreadySelectedQuantity;
+        // Get the original quantity
+        const originalQuantity = Number(item.quantity || 0);
+        
+        // Get what's already been selected in this form
+        const alreadySelectedInForm = selectedQuantitiesByItemId[item.id] || 0;
+        
+        // Calculate the remaining available quantity
+        const availableQuantity = originalQuantity - alreadySelectedInForm;
         
         // For debugging
-        console.log(`Item ${item.id} (${item.description}): Original quantity=${item.quantity}, Already selected=${alreadySelectedQuantity}, Available=${availableQuantity}`);
+        console.log(`Item ${item.id} (${item.description}): Original quantity=${originalQuantity}, Already selected IN FORM=${alreadySelectedInForm}, Available=${availableQuantity}`);
         
         // Calculate if this is from the active plan
         // FIX: Force strict number comparison with Number() to avoid type issues
@@ -978,8 +1024,8 @@ export function FullScreenSessionForm({
         return {
           ...item,
           isActivePlan, // CRITICAL: Pass along whether this item is from active plan
-          availableQuantity,
-          originalQuantity: item.quantity // Store the original quantity for reference
+          availableQuantity, // Use the calculated available quantity
+          originalQuantity // Store the original quantity for reference
         };
       })
       .filter(item => item.availableQuantity > 0);  // Only show items with available quantity

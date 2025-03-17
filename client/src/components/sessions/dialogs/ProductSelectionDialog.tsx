@@ -170,24 +170,56 @@ export function ProductSelectionDialog({
     }
   }, [open, products, computeActiveProducts]);
 
-  // Handle quantity changes
+  // Handle quantity changes with strict validation
   const increaseQuantity = () => {
     if (selectedProduct && quantity < selectedProduct.availableQuantity) {
-      setQuantity(prev => prev + 1);
+      // Log the current state for debugging
+      console.log(`Increasing quantity: current=${quantity}, max=${selectedProduct.availableQuantity}`);
+      setQuantity(prev => Math.min(prev + 1, selectedProduct.availableQuantity));
+    } else {
+      // Log when we can't increase due to limits
+      console.log(`Cannot increase quantity: current=${quantity}, max=${selectedProduct?.availableQuantity}`);
     }
   };
 
   const decreaseQuantity = () => {
     if (quantity > 1) {
+      console.log(`Decreasing quantity: from ${quantity} to ${quantity - 1}`);
       setQuantity(prev => prev - 1);
+    } else {
+      console.log(`Cannot decrease quantity below 1: current=${quantity}`);
     }
   };
 
   const handleQuantityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = parseInt(e.target.value, 10);
-    if (!isNaN(value) && value >= 1 && selectedProduct && value <= selectedProduct.availableQuantity) {
-      setQuantity(value);
+    
+    // Additional validation checks
+    if (isNaN(value)) {
+      console.log("Invalid quantity input: Not a number");
+      return; // Don't update for invalid input
     }
+    
+    if (value < 1) {
+      console.log("Invalid quantity input: Less than 1");
+      return; // Don't allow values less than 1
+    }
+    
+    if (!selectedProduct) {
+      console.log("Cannot set quantity: No product selected");
+      return; // Don't update if no product is selected
+    }
+    
+    if (value > selectedProduct.availableQuantity) {
+      console.log(`Quantity exceeds available: input=${value}, available=${selectedProduct.availableQuantity}`);
+      // Clamp to maximum available
+      setQuantity(selectedProduct.availableQuantity);
+      return;
+    }
+    
+    // All validation passed, update the quantity
+    console.log(`Setting quantity to ${value} for product ${selectedProduct.id} (max: ${selectedProduct.availableQuantity})`);
+    setQuantity(value);
   };
 
   // Handle product selection and confirmation
