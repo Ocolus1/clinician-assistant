@@ -313,13 +313,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Extract the clientId from the request
       const clientId = parseInt(req.params.clientId);
       
-      // Respect the budgetSettingsId from the request body if provided
+      // Get the budget settings ID either from the original request data
+      // or fall back to the active settings
       let budgetSettingsId: number;
       
-      if (result.data.budgetSettingsId) {
-        // Use the explicitly provided budgetSettingsId
-        budgetSettingsId = result.data.budgetSettingsId;
-        console.log(`Using provided budgetSettingsId: ${budgetSettingsId}`);
+      // Note: req.body might contain budgetSettingsId even though it's omitted from the schema
+      // This allows explicit selection of which budget plan the item belongs to
+      if (req.body.budgetSettingsId && typeof req.body.budgetSettingsId === 'number') {
+        // Use the explicitly provided budgetSettingsId from raw request body
+        budgetSettingsId = req.body.budgetSettingsId;
+        console.log(`Using provided budgetSettingsId from request: ${budgetSettingsId}`);
       } else {
         // Fallback to getting the active budget settings only if no ID is provided
         console.log(`No budgetSettingsId provided, fetching active plan for client ${clientId}`);
