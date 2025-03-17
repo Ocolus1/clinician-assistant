@@ -101,26 +101,44 @@ export function UnifiedBudgetManager({ clientId, selectedPlanId }: UnifiedBudget
     }
   });
 
-  // Get budget items for the active plan
+  // Get budget items for the selected plan (or active plan)
+  const targetPlanId = useMemo(() => {
+    // If selectedPlanId is provided, use that specifically (for plan details view)
+    if (selectedPlanId) {
+      return selectedPlanId;
+    }
+    // Otherwise fallback to active plan
+    return activePlan?.id;
+  }, [selectedPlanId, activePlan?.id]);
+  
   const itemsQuery = useQuery({
-    queryKey: [`/api/clients/${clientId}/budget-items`, activePlan?.id],
+    queryKey: [`/api/clients/${clientId}/budget-items`, targetPlanId],
     queryFn: async () => {
-      if (!activePlan) {
+      if (!targetPlanId) {
         return [];
       }
+      console.log(`Fetching budget items for plan ID: ${targetPlanId} (strict mode)`);
+      
       // Use strict filtering to only get items that belong to this specific plan
-      const response = await fetch(`/api/clients/${clientId}/budget-items?budgetSettingsId=${activePlan.id}&strict=true`);
+      const response = await fetch(`/api/clients/${clientId}/budget-items?budgetSettingsId=${targetPlanId}&strict=true`);
       if (!response.ok) {
         throw new Error('Failed to fetch budget items');
       }
       const items = await response.json();
       
+      // Ensure we have results
+      if (!Array.isArray(items) || items.length === 0) {
+        console.log(`No budget items found for plan ID ${targetPlanId}`);
+      } else {
+        console.log(`Found ${items.length} budget items for plan ID ${targetPlanId}`);
+      }
+      
       // Additional client-side filtering to ensure we only get items for this plan
       return Array.isArray(items) 
-        ? items.filter(item => item.budgetSettingsId === activePlan.id)
+        ? items.filter(item => item.budgetSettingsId === targetPlanId)
         : [];
     },
-    enabled: !!activePlan
+    enabled: !!targetPlanId
   });
 
   // Get catalog items
@@ -179,7 +197,13 @@ export function UnifiedBudgetManager({ clientId, selectedPlanId }: UnifiedBudget
 
   // Initialize form with data when it's available
   useEffect(() => {
-    if (itemsQuery.data && activePlan && !formInitialized) {
+    // Get the current plan from plansQuery based on targetPlanId
+    const currentPlan = plansQuery.data?.find((plan: any) => plan.id === targetPlanId);
+    
+    // If we have items and the relevant plan, initialize the form
+    if (itemsQuery.data && currentPlan && !formInitialized) {
+      console.log(`Initializing form for plan ID: ${targetPlanId}, data:`, itemsQuery.data);
+      
       const initialItems = itemsQuery.data.map((item: any) => ({
         id: item.id,
         itemCode: item.itemCode,
@@ -206,6 +230,8 @@ export function UnifiedBudgetManager({ clientId, selectedPlanId }: UnifiedBudget
       // Calculate remaining budget as total budget minus used (not allocated)
       // For now, this is the same as total budget since we start with no usage
       const remainingBudget = totalBudget; 
+      
+      console.log(`Form initialization: Found ${initialItems.length} items, total: $${totalBudget}`);
 
       // Set default values with real data
       form.reset({
@@ -221,7 +247,7 @@ export function UnifiedBudgetManager({ clientId, selectedPlanId }: UnifiedBudget
       // Mark form as initialized to prevent redundant resets
       setFormInitialized(true);
     }
-  }, [itemsQuery.data, activePlan, formInitialized, form, setBudgetItems]);
+  }, [itemsQuery.data, targetPlanId, plansQuery.data, formInitialized, form, setBudgetItems]);
 
   // Use field array to manage budget items
   const { fields, append, remove, update } = useFieldArray({

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -45,8 +45,32 @@ export function BudgetPlanCard({ plan, clientId }: BudgetPlanCardProps) {
     return 0;
   };
   
-  // Get the total available funds for this plan - use the correct value matching the details page
-  const totalFunds = getFundsValue(plan);
+  // Calculate total funds by fetching and summing the budget items for this plan
+  const [totalFunds, setTotalFunds] = useState<number>(0);
+  
+  // Fetch budget items for this specific plan and calculate their total
+  useEffect(() => {
+    const fetchBudgetItems = async () => {
+      try {
+        // Get budget items for this specific plan with strict filtering
+        const response = await fetch(`/api/clients/${clientId}/budget-items?budgetSettingsId=${plan.id}&strict=true`);
+        if (response.ok) {
+          const items = await response.json();
+          // Calculate total from item quantity * unitPrice
+          const calculatedTotal = items.reduce((total: number, item: any) => {
+            return total + (item.quantity * item.unitPrice);
+          }, 0);
+          
+          // Update the total funds with the calculated value
+          setTotalFunds(calculatedTotal);
+        }
+      } catch (error) {
+        console.error("Error fetching budget items for plan total:", error);
+      }
+    };
+    
+    fetchBudgetItems();
+  }, [plan.id, clientId]);
   
   // Format date for display
   const formatDate = (dateString?: string | null) => {
