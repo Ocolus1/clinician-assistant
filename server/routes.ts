@@ -299,6 +299,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Budget routes
   app.post("/api/clients/:clientId/budget-items", async (req, res) => {
+    const clientId = parseInt(req.params.clientId);
+    console.log(`POST /api/clients/${clientId}/budget-items - Creating new budget item`);
     console.log("Budget item request body:", JSON.stringify(req.body));
 
     const result = insertBudgetItemSchema.safeParse(req.body);
@@ -310,28 +312,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
     console.log("Budget item after validation:", JSON.stringify(result.data));
 
     try {
-      // Extract the clientId from the request
-      const clientId = parseInt(req.params.clientId);
-      
       // Get the budget settings ID either from the original request data
       // or fall back to the active settings
       let budgetSettingsId: number;
       
-      // Note: req.body might contain budgetSettingsId even though it's omitted from the schema
-      // This allows explicit selection of which budget plan the item belongs to
+      // IMPORTANT FIX: Always respect the budgetSettingsId from the request body
+      // This ensures budget items stay with their original plan instead of migrating
+      // to a new active plan when one is created
       if (req.body.budgetSettingsId && typeof req.body.budgetSettingsId === 'number') {
         // Use the explicitly provided budgetSettingsId from raw request body
         budgetSettingsId = req.body.budgetSettingsId;
         console.log(`Using provided budgetSettingsId from request: ${budgetSettingsId}`);
+        
+        // Verify that this budget setting exists and belongs to this client
+        const allSettings = await storage.getAllBudgetSettingsByClient(clientId);
+        const settingExists = allSettings.some(s => s.id === budgetSettingsId);
+        
+        if (!settingExists) {
+          console.error(`Specified budgetSettingsId ${budgetSettingsId} not found for client ${clientId}`);
+          return res.status(400).json({ 
+            error: "Invalid budget plan. The specified budget plan does not exist or does not belong to this client." 
+          });
+        }
       } else {
         // Fallback to getting the active budget settings only if no ID is provided
-        console.log(`No budgetSettingsId provided, fetching active plan for client ${clientId}`);
+        // This should rarely happen as the client always sends budgetSettingsId
+        console.warn(`No budgetSettingsId provided, fetching active plan for client ${clientId}`);
+        
         const settings = await storage.getBudgetSettingsByClient(clientId);
         if (!settings) {
-          return res.status(404).json({ error: "Budget settings not found. Please create budget settings first." });
+          console.error(`No active budget settings found for client ${clientId}`);
+          return res.status(404).json({ 
+            error: "No active budget plan found. Please create a budget plan first." 
+          });
         }
+        
         budgetSettingsId = settings.id;
-        console.log(`Using active budgetSettingsId: ${budgetSettingsId}`);
+        console.log(`Using active budgetSettingsId as fallback: ${budgetSettingsId}`);
       }
       
       // Create the budget item with the determined budgetSettingsId
@@ -340,10 +357,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         budgetSettingsId,
         result.data
       );
+      
+      console.log(`Successfully created budget item ${item.id} for client ${clientId} with budgetSettingsId ${budgetSettingsId}`);
       res.json(item);
     } catch (error) {
-      console.error("Error creating budget item:", error);
-      res.status(500).json({ error: "Internal server error" });
+      console.error(`Error creating budget item for client ${clientId}:`, error);
+      res.status(500).json({ error: "Failed to create budget item" });
     }
   });
 

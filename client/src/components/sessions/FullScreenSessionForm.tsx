@@ -833,40 +833,32 @@ export function FullScreenSessionForm({
     const selectedProducts = form.watch("sessionNote.products") || [];
     console.log("Selected products:", selectedProducts);
     
-    // If no budget settings, use all budget items as a fallback
+    // FIXED: No longer use fallback logic that includes budget items from inactive plans
+    // If no active budget settings, return an empty array instead
     if (!budgetSettings) {
-      console.log("No budget settings available - using all budget items as fallback");
-      const processedItems = budgetItems
-        .filter((item: BudgetItem) => item.quantity > 0)
-        .map((item: BudgetItem) => {
-          const alreadySelectedItem = selectedProducts.find(p => p.budgetItemId === item.id);
-          const alreadySelectedQuantity = alreadySelectedItem ? alreadySelectedItem.quantity : 0;
-          const availableQuantity = item.quantity - alreadySelectedQuantity;
-          
-          console.log(`Fallback item ${item.id}: quantity=${item.quantity}, available=${availableQuantity}`);
-          
-          return {
-            ...item,
-            availableQuantity,
-            originalQuantity: item.quantity
-          };
-        })
-        .filter(item => item.availableQuantity > 0);
-      
-      console.log("Available fallback products:", processedItems);
-      return processedItems;
+      console.log("No active budget settings available - cannot show any products");
+      // Return empty array instead of fallback items from inactive plans
+      return [];
     }
 
     // Filter only products from the active budget plan
     const filteredProducts = budgetItems
       .filter((item: BudgetItem) => {
         // For debugging
-        console.log(`Item ${item.id}: budgetSettingsId=${item.budgetSettingsId}, quantity=${item.quantity}`);
+        console.log(`Item ${item.id}: budgetSettingsId=${item.budgetSettingsId}, quantity=${item.quantity}, active plan ID=${budgetSettings.id}`);
         
-        // Only include items from the active budget plan and with quantity > 0
-        // FIXED: No longer include items without budgetSettingsId as fallback
-        // This ensures only items from the ACTIVE budget plan are shown
-        return (item.budgetSettingsId === budgetSettings.id) && item.quantity > 0;
+        // IMPORTANT FIX: Only include items from the active budget plan and with quantity > 0
+        // This ensures only items from the ACTIVE budget plan are shown in the session
+        const fromActivePlan = item.budgetSettingsId === budgetSettings.id;
+        const hasQuantity = item.quantity > 0;
+        
+        if (!fromActivePlan) {
+          console.log(`Item ${item.id} skipped: belongs to budget plan ${item.budgetSettingsId}, not active plan ${budgetSettings.id}`);
+        } else if (!hasQuantity) {
+          console.log(`Item ${item.id} skipped: has zero quantity remaining`);
+        }
+        
+        return fromActivePlan && hasQuantity;
       })
       .map((item: BudgetItem) => {
         // Find if this item is already selected in the form
