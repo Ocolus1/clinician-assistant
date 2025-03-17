@@ -769,10 +769,22 @@ export function FullScreenSessionForm({
       try {
         const response = await fetch(`/api/clients/${clientId}/goals`);
         if (!response.ok) {
+          console.error(`Error fetching goals: ${response.status}`, response);
           throw new Error(`Error fetching goals: ${response.status}`);
         }
         const data = await response.json();
-        console.log("DIRECT FETCH: Goals data received:", JSON.stringify(data));
+        console.log("DIRECT FETCH: Goals data received:", data);
+        
+        // Enhanced debug logging for goals data
+        if (Array.isArray(data)) {
+          console.log(`GOALS DATA: Found ${data.length} goals for client ${clientId}`);
+          data.forEach((goal, index) => {
+            console.log(`Goal ${index + 1}: ID=${goal.id}, Title=${goal.title}`);
+          });
+        } else {
+          console.warn("GOALS DATA WARNING: Received non-array data:", data);
+        }
+        
         return data;
       } catch (error) {
         console.error("DIRECT FETCH: Error in goals query:", error);
@@ -785,6 +797,36 @@ export function FullScreenSessionForm({
   // Get selected goal IDs from form state
   const selectedPerformanceAssessments = form.watch("performanceAssessments") || [];
   const selectedGoalIds = selectedPerformanceAssessments.map(assessment => assessment.goalId);
+  
+  // Debug logs for goals fetching and selection process
+  useEffect(() => {
+    if (open && clientId) {
+      console.log(`DEBUG GOALS: Fetching status for client ${clientId}, showGoalDialog=${showGoalDialog}`);
+      console.log(`DEBUG GOALS: isLoading=${isLoadingGoals}, goals count=${goals?.length || 0}`);
+      
+      if (goals && goals.length > 0) {
+        console.log("DEBUG GOALS: Goals data available:", 
+          goals.map(g => ({id: g.id, title: g.title}))
+        );
+      } else {
+        console.log("DEBUG GOALS: No goals data available yet");
+      }
+      
+      if (goalsError) {
+        console.error("Error fetching goals:", goalsError);
+      }
+      
+      // Add explicit logging when dialog is opened
+      if (showGoalDialog) {
+        console.log("GOAL DIALOG OPENED with these goals:", goals);
+        console.log("Selected goal IDs when dialog opened:", selectedGoalIds);
+        
+        // Additional logging about selected assessments
+        const assessments = form.getValues("performanceAssessments") || [];
+        console.log("Current performance assessments:", assessments);
+      }
+    }
+  }, [open, clientId, goals, goalsError, showGoalDialog, isLoadingGoals, selectedGoalIds, form]);
 
   // Debug logs for goals fetching
   // Enhanced debugging for goals fetching and selection process
