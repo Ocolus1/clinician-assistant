@@ -94,6 +94,10 @@ export function AttendeeSelectionDialog({
   const safelySelectAttendee = (ally: Ally) => {
     // Prevent any default events
     try {
+      // Add debug logging
+      console.log("Safely selecting attendee:", ally);
+      
+      // Use a try-catch to prevent any errors from propagating to the form
       onSelectAttendee(ally);
     } catch (error) {
       console.error("Error selecting attendee:", error);
@@ -169,10 +173,19 @@ export function AttendeeSelectionDialog({
                     key={ally.id} 
                     className="cursor-pointer hover:bg-accent transition-colors"
                     onClick={(e) => {
+                      // Prevent all default events to avoid form submission
                       e.preventDefault();
                       e.stopPropagation();
-                      // Use the safe handler but pass the event to prevent bubbling
+                      
+                      // Explicitly cancel any bubbling events that might trigger form submission
+                      if (e.nativeEvent) {
+                        e.nativeEvent.stopImmediatePropagation();
+                      }
+                      
+                      // Use the safe handler with added protections
                       safelySelectAttendee(ally);
+                      
+                      // Return false to prevent default behavior in older browsers
                       return false;
                     }}
                   >

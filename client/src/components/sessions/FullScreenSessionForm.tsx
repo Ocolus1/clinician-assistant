@@ -596,6 +596,7 @@ export function FullScreenSessionForm({
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [currentGoalId, setCurrentGoalId] = useState<number | null>(null);
   const [currentMilestoneId, setCurrentMilestoneId] = useState<number | null>(null);
+  const [isFormSubmitting, setIsFormSubmitting] = useState(false);
   const [activeTab, setActiveTab] = useState("session");
 
   // Generate a unique session ID for tracking
@@ -1004,6 +1005,10 @@ export function FullScreenSessionForm({
       });
     } else {
       console.log("Form submission prevented - already in progress");
+      toast({
+        title: "Submission in progress",
+        description: "Please wait while your session is being created",
+      });
     }
   }
 
@@ -1337,11 +1342,31 @@ export function FullScreenSessionForm({
                   <ChevronLeft className="h-4 w-4 mr-1" /> Previous
                 </Button>
                 <Button 
-                  onClick={form.handleSubmit(onSubmit)}
-                  disabled={createSessionMutation.isPending}
+                  onClick={(e) => {
+                    // Extra safety check before form submission
+                    if (isFormSubmitting || createSessionMutation.isPending) {
+                      console.log("Preventing duplicate submission from button click");
+                      e.preventDefault();
+                      e.stopPropagation();
+                      
+                      toast({
+                        title: "Submission in progress",
+                        description: "Please wait while your session is being created",
+                      });
+                      
+                      return;
+                    }
+                    form.handleSubmit(onSubmit)(e);
+                  }}
+                  disabled={isFormSubmitting || createSessionMutation.isPending}
                   variant="default"
                 >
-                  {createSessionMutation.isPending ? "Creating..." : "Create Session"}
+                  {isFormSubmitting || createSessionMutation.isPending ? (
+                    <span className="flex items-center">
+                      <RefreshCw className="h-4 w-4 mr-2 animate-spin" /> 
+                      Creating...
+                    </span>
+                  ) : "Create Session"}
                 </Button>
               </>
             )}
@@ -1376,7 +1401,19 @@ export function FullScreenSessionForm({
 
         {/* Main Content */}
         <Form {...form}>
-          <form className="flex-1 overflow-hidden" onSubmit={form.handleSubmit(onSubmit)}>
+          <form 
+            className="flex-1 overflow-hidden" 
+            onSubmit={(e) => {
+              // Extra safety: Prevent submission if any dialog is open
+              if (showAttendeeDialog || showProductDialog || showGoalDialog || showMilestoneDialog || showStrategyDialog) {
+                console.log("Preventing form submission while dialog is open");
+                e.preventDefault();
+                e.stopPropagation();
+                return false;
+              }
+              // Otherwise, let the form handler run
+              form.handleSubmit(onSubmit)(e);
+            }}>
             <Tabs 
               defaultValue="session" 
               className="h-full"
