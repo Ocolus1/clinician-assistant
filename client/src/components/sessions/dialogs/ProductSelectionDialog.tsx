@@ -96,7 +96,7 @@ export function ProductSelectionDialog({
         <DialogHeader>
           <DialogTitle>Select Product</DialogTitle>
           <DialogDescription>
-            Choose a product to include in this session
+            Choose a product from all available budget plans
           </DialogDescription>
         </DialogHeader>
 
