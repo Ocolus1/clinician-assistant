@@ -50,10 +50,19 @@ export function BudgetExpirationCard() {
   
   // Process the data to ensure it starts from current month (March 2025)
   const currentDate = new Date();
-  const currentYear = currentDate.getFullYear();
-  const currentMonth = currentDate.getMonth() + 1; // 0-indexed to 1-indexed
+  // In a real app we'd use the actual date, for demo we're setting to March 2025
+  const currentYear = 2025;
+  const currentMonth = 3; // March = 3 (1-indexed)
   
-  // Filter data to start from current month or use the first available month
+  // Transform the monthly data into daily data for more precise hovering
+  let dailyFundsData: Array<{
+    date: string;  // Format: YYYY-MM-DD
+    amount: number;
+    planCount: number;
+    month: string;  // Keep the original month format for backward compatibility
+  }> = [];
+  
+  // Filter data to start from current month
   if (fundsChartData.length > 0) {
     // Find current month data or closest available
     const currentMonthFormat = `${currentYear}-${currentMonth.toString().padStart(2, '0')}`;
@@ -63,6 +72,23 @@ export function BudgetExpirationCard() {
     
     if (startingIndex >= 0) {
       fundsChartData = fundsChartData.slice(startingIndex);
+      
+      // Create daily data points for each month
+      fundsChartData.forEach(monthData => {
+        const [year, month] = monthData.month.split('-');
+        const daysInMonth = new Date(parseInt(year), parseInt(month), 0).getDate();
+        
+        // For each day in the month, create a data point
+        for (let day = 1; day <= daysInMonth; day++) {
+          const dateStr = `${year}-${month}-${day.toString().padStart(2, '0')}`;
+          dailyFundsData.push({
+            date: dateStr,
+            amount: monthData.amount,
+            planCount: monthData.planCount,
+            month: monthData.month
+          });
+        }
+      });
     }
   }
   
@@ -147,20 +173,24 @@ export function BudgetExpirationCard() {
                   ) : (
                     <ResponsiveContainer width="100%" height="100%">
                       <AreaChart
-                        data={fundsChartData}
+                        data={dailyFundsData.length > 0 ? dailyFundsData : fundsChartData}
                         margin={{ top: 10, right: 0, left: 0, bottom: 0 }}
                       >
                         <XAxis 
-                          dataKey="month" 
+                          dataKey={dailyFundsData.length > 0 ? "date" : "month"}
                           tickFormatter={(value) => {
-                            const [year, month] = value.split('-');
-                            const date = new Date(parseInt(year), parseInt(month) - 1, 1);
+                            // For both daily and monthly data, we use the month format
+                            const parts = value.split('-');
+                            const year = parseInt(parts[0]);
+                            const month = parseInt(parts[1]) - 1;
+                            
+                            const date = new Date(year, month, 1);
                             return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
                           }}
                           tick={{ fontSize: 10 }}
                           tickLine={false}
                           axisLine={false}
-                          interval={0}
+                          interval={dailyFundsData.length > 0 ? 30 : 0} // Skip many ticks for daily data
                         />
                         <YAxis 
                           hide={true}
@@ -168,9 +198,26 @@ export function BudgetExpirationCard() {
                         <Tooltip 
                           formatter={(value) => formatCurrency(Number(value))}
                           labelFormatter={(value) => {
-                            const [year, month] = value.split('-');
-                            const date = new Date(parseInt(year), parseInt(month) - 1, 1);
-                            return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+                            // Check if we have a daily date (YYYY-MM-DD) or monthly (YYYY-MM)
+                            const parts = value.split('-');
+                            if (parts.length === 3) {
+                              // Daily format
+                              const [year, month, day] = parts;
+                              const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+                              return date.toLocaleDateString('en-US', { 
+                                month: 'long',
+                                day: 'numeric', 
+                                year: 'numeric' 
+                              });
+                            } else {
+                              // Monthly format
+                              const [year, month] = parts;
+                              const date = new Date(parseInt(year), parseInt(month) - 1, 1);
+                              return date.toLocaleDateString('en-US', { 
+                                month: 'long',
+                                year: 'numeric' 
+                              });
+                            }
                           }}
                           contentStyle={{ 
                             backgroundColor: 'rgba(255, 255, 255, 0.9)',
@@ -235,7 +282,7 @@ export function BudgetExpirationCard() {
                         />
                         <Bar
                           dataKey="planCount"
-                          name="Active Plans"
+                          name="Expiring Plans"
                           radius={[2, 2, 0, 0]}
                         >
                           {fundsChartData.map((entry, index) => (
