@@ -149,17 +149,17 @@ export function DashboardAIChat() {
   };
 
   return (
-    <Card className="h-full flex flex-col">
-      <CardHeader className="p-2 border-b flex flex-row items-center space-y-0 gap-2 flex-shrink-0">
-        <Avatar className="h-7 w-7 bg-primary">
+    <Card className="h-full flex flex-col bg-black/80 text-white border-white/20 backdrop-blur-xl shadow-lg">
+      <CardHeader className="p-2 border-b border-white/10 flex flex-row items-center space-y-0 gap-2 flex-shrink-0">
+        <Avatar className="h-7 w-7 bg-blue-500">
           <Bot className="h-4 w-4 text-white" />
         </Avatar>
-        <CardTitle className="text-base">Practice Assistant</CardTitle>
-        <Badge variant="outline" className="ml-1 bg-primary/10 text-xs">AI</Badge>
+        <CardTitle className="text-base text-white">Practice Assistant</CardTitle>
+        <Badge variant="outline" className="ml-1 bg-white/10 text-white text-xs border-white/20">AI</Badge>
         
         <div className="flex-grow"></div>
         
-        <Button variant="ghost" size="icon" onClick={toggleMinimized} className="h-7 w-7">
+        <Button variant="ghost" size="icon" onClick={toggleMinimized} className="h-7 w-7 text-white/70 hover:text-white hover:bg-white/10">
           {isMinimized ? <Maximize2 className="h-4 w-4" /> : <Minimize2 className="h-4 w-4" />}
         </Button>
       </CardHeader>
@@ -175,7 +175,7 @@ export function DashboardAIChat() {
                     className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
                   >
                     <div className={`max-w-[85%] flex ${message.role === 'user' ? 'flex-row-reverse' : 'flex-row'} items-start gap-1.5`}>
-                      <Avatar className={`h-5 w-5 ${message.role === 'user' ? 'bg-blue-500' : 'bg-primary'}`}>
+                      <Avatar className={`h-5 w-5 ${message.role === 'user' ? 'bg-primary' : 'bg-blue-500'}`}>
                         {message.role === 'user' ? (
                           <User className="h-3 w-3 text-white" />
                         ) : (
@@ -187,11 +187,13 @@ export function DashboardAIChat() {
                         className={`rounded-lg px-2.5 py-1.5 ${
                           message.role === 'user'
                             ? 'bg-primary text-primary-foreground'
-                            : 'bg-muted'
+                            : 'bg-white/10 text-white'
                         }`}
                       >
                         <p className="text-xs leading-normal">{message.content}</p>
-                        <span className="text-[10px] opacity-70 block mt-0.5">
+                        <span className={`text-[10px] block mt-0.5 ${
+                          message.role === 'user' ? 'opacity-70' : 'text-white/60'
+                        }`}>
                           {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </span>
                       </div>
@@ -202,14 +204,14 @@ export function DashboardAIChat() {
             </ScrollArea>
             
             {messages.length === 1 && (
-              <div className="px-3 py-1.5 flex-shrink-0 border-t">
-                <p className="text-[10px] text-muted-foreground mb-1.5">Suggested questions:</p>
+              <div className="px-3 py-1.5 flex-shrink-0 border-t border-white/10">
+                <p className="text-[10px] text-white/60 mb-1.5">Suggested questions:</p>
                 <div className="flex flex-wrap gap-1.5">
                   {SUGGESTIONS.map((suggestion) => (
                     <Badge
                       key={suggestion}
                       variant="outline"
-                      className="cursor-pointer hover:bg-primary/10 text-[10px] py-0.5"
+                      className="cursor-pointer border-white/20 text-white bg-transparent hover:bg-white/10 text-[10px] py-0.5"
                       onClick={() => handleSuggestionClick(suggestion)}
                     >
                       {suggestion}
@@ -220,7 +222,7 @@ export function DashboardAIChat() {
             )}
           </div>
           
-          <CardContent className="p-2 border-t flex-shrink-0">
+          <CardContent className="p-2 border-t border-white/10 flex-shrink-0">
             <div className="flex items-center gap-1.5">
               <Input
                 ref={inputRef}
@@ -228,16 +230,21 @@ export function DashboardAIChat() {
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
                 placeholder="Type a message..."
-                className="flex-1 h-8 text-xs"
+                className="flex-1 h-8 text-xs bg-white/10 border-white/20 text-white placeholder:text-white/50"
               />
-              <Button size="icon" onClick={handleSendMessage} disabled={!input.trim()} className="h-8 w-8">
+              <Button 
+                size="icon" 
+                onClick={handleSendMessage} 
+                disabled={!input.trim()} 
+                className="h-8 w-8 bg-blue-500 hover:bg-blue-600 text-white"
+              >
                 <Send className="h-3.5 w-3.5" />
               </Button>
             </div>
           </CardContent>
         </>
       ) : (
-        <CardContent className="p-2 flex items-center justify-center flex-grow text-muted-foreground text-xs">
+        <CardContent className="p-2 flex items-center justify-center flex-grow text-white/60 text-xs">
           Chat minimized
         </CardContent>
       )}
