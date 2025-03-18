@@ -22,7 +22,7 @@ export function FloatingMenu({ onRefreshClick }: FloatingMenuProps) {
   // Define the navigation items
   const navigationItems = [
     {
-      name: "Dashboard",
+      name: "Home",
       href: "/",
       icon: Home,
     },
