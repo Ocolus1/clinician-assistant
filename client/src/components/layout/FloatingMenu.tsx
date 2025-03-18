@@ -58,66 +58,77 @@ export function FloatingMenu({ onRefreshClick }: FloatingMenuProps) {
       {/* MacBook-style dock at the bottom of the screen */}
       <div 
         className={cn(
-          "fixed bottom-4 left-1/2 transform -translate-x-1/2 z-50 transition-all duration-300 ease-in-out",
-          isExpanded ? "w-auto" : "w-auto"
+          "fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50 transition-all duration-300 ease-in-out",
+          isExpanded ? "scale-110" : "scale-100"
         )}
       >
         <div 
           className={cn(
-            "flex items-center gap-1 bg-black/80 backdrop-blur-md rounded-full p-1 shadow-lg border border-white/20",
-            isExpanded ? "px-4" : "px-3"
+            "flex items-center bg-black/80 backdrop-blur-xl rounded-full shadow-lg border border-white/20",
+            isExpanded ? "px-4 py-2" : "px-3 py-1.5",
           )}
           onMouseEnter={() => setIsExpanded(true)}
           onMouseLeave={() => setIsExpanded(false)}
         >
           {/* Navigation icons */}
-          {navigationItems.map((item) => {
+          {navigationItems.map((item, index) => {
             const isActive = item.href === location;
             const ItemIcon = item.icon;
             
             return (
-              <Button
-                key={item.name}
-                variant="ghost"
-                size="icon"
-                className={cn(
-                  "rounded-full transition-all duration-300 h-12 w-12",
-                  isActive 
-                    ? "bg-white/20 text-white scale-110" 
-                    : "text-white/70 hover:bg-white/10 hover:text-white hover:scale-110",
-                  isExpanded && "mx-1"
+              <div key={item.name} className="relative px-1.5">
+                {/* Divider for all items except first */}
+                {index !== 0 && (
+                  <div className="absolute left-0 top-1/2 transform -translate-y-1/2 h-8 w-px bg-white/10" />
                 )}
-                onClick={() => navigate(item.href)}
-              >
-                <div className="flex flex-col items-center">
-                  <ItemIcon className="h-5 w-5" />
-                  {isExpanded && (
-                    <span className="text-[10px] mt-1">{item.name}</span>
+                
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className={cn(
+                    "rounded-full transition-all duration-300",
+                    isExpanded ? "h-14 w-14" : "h-12 w-12",
+                    isActive 
+                      ? "bg-white/20 text-white" 
+                      : "text-white/70 hover:bg-white/10 hover:text-white",
+                    isExpanded ? "mx-2" : "mx-1"
                   )}
-                </div>
-              </Button>
+                  onClick={() => navigate(item.href)}
+                >
+                  <div className="flex flex-col items-center">
+                    <ItemIcon className={isExpanded ? "h-6 w-6" : "h-5 w-5"} />
+                    {isExpanded && (
+                      <span className="text-xs mt-1 font-medium">{item.name}</span>
+                    )}
+                  </div>
+                </Button>
+              </div>
             );
           })}
           
           {/* Refresh button */}
           {onRefreshClick && (
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onRefreshClick}
-              className={cn(
-                "rounded-full transition-all duration-300 text-white/70 hover:bg-white/10 hover:text-white h-12 w-12",
-                "border-l border-white/20 pl-2",
-                isExpanded && "mx-1"
-              )}
-            >
-              <div className="flex flex-col items-center">
-                <RefreshCw className="h-5 w-5" />
-                {isExpanded && (
-                  <span className="text-[10px] mt-1">Refresh</span>
+            <div className="relative pl-1.5">
+              {/* Divider */}
+              <div className="absolute left-0 top-1/2 transform -translate-y-1/2 h-8 w-px bg-white/20" />
+              
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={onRefreshClick}
+                className={cn(
+                  "rounded-full transition-all duration-300 text-white/70 hover:bg-white/10 hover:text-white",
+                  isExpanded ? "h-14 w-14 mx-2" : "h-12 w-12 mx-1"
                 )}
-              </div>
-            </Button>
+              >
+                <div className="flex flex-col items-center">
+                  <RefreshCw className={isExpanded ? "h-6 w-6" : "h-5 w-5"} />
+                  {isExpanded && (
+                    <span className="text-xs mt-1 font-medium">Refresh</span>
+                  )}
+                </div>
+              </Button>
+            </div>
           )}
         </div>
       </div>
