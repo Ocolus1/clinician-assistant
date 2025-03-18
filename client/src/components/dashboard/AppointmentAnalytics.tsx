@@ -43,16 +43,39 @@ function formatDateByTimeframe(dateStr: string, timeframe: 'daily' | 'weekly' | 
     
     // Check if date is valid
     if (isNaN(date.getTime())) {
-      // For weekly view specifically, attempt to extract month info
+      // For weekly view specifically, attempt to extract week info
       if (timeframe === 'weekly' && typeof dateStr === 'string') {
-        // Try to extract YYYY-MM from the string if it matches that pattern
-        const matches = dateStr.match(/(\d{4})-(\d{2})/);
-        if (matches && matches.length >= 3) {
-          const year = matches[1];
-          const month = parseInt(matches[2]);
-          const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-          if (month >= 1 && month <= 12) {
-            return `${monthNames[month-1]} ${year}`;
+        // First try to extract YYYY-MM-DD or YYYY-MM format
+        const matchesYMD = dateStr.match(/(\d{4})-(\d{2})(?:-(\d{2}))?/);
+        if (matchesYMD) {
+          const year = matchesYMD[1];
+          // If we have a full date, we can calculate the week number
+          if (matchesYMD[3]) {
+            try {
+              const tempDate = new Date(`${year}-${matchesYMD[2]}-${matchesYMD[3]}`);
+              if (!isNaN(tempDate.getTime())) {
+                const firstDayOfYear = new Date(parseInt(year), 0, 1);
+                const pastDaysOfYear = (tempDate.getTime() - firstDayOfYear.getTime()) / 86400000;
+                const weekNum = Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7);
+                return `W${weekNum} ${year}`;
+              }
+            } catch (e) {
+              // If calculation fails, use fixed week based on month
+              const month = parseInt(matchesYMD[2]);
+              if (month >= 1 && month <= 12) {
+                // Simplification: each month has approximately 4 weeks
+                const approxWeek = (month - 1) * 4 + 1;
+                return `W${approxWeek} ${year}`;
+              }
+            }
+          } else {
+            // Only have year-month, estimate week
+            const month = parseInt(matchesYMD[2]);
+            if (month >= 1 && month <= 12) {
+              // Simplification: each month has approximately 4 weeks
+              const approxWeek = (month - 1) * 4 + 1;
+              return `W${approxWeek} ${year}`;
+            }
           }
         }
       }
@@ -63,8 +86,11 @@ function formatDateByTimeframe(dateStr: string, timeframe: 'daily' | 'weekly' | 
       case 'daily':
         return `${date.getDate()} ${date.toLocaleString('default', { month: 'short' })} ${date.getFullYear()}`;
       case 'weekly':
-        // For weekly view, show month and year
-        return `${date.toLocaleString('default', { month: 'short' })} ${date.getFullYear()}`;
+        // Extract week number (simple calculation, may need refinement for edge cases)
+        const firstDayOfYear = new Date(date.getFullYear(), 0, 1);
+        const pastDaysOfYear = (date.getTime() - firstDayOfYear.getTime()) / 86400000;
+        const weekNum = Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7);
+        return `W${weekNum} ${date.getFullYear()}`;
       case 'monthly':
         return `${date.toLocaleString('default', { month: 'short' })} ${date.getFullYear()}`;
       case 'yearly':
