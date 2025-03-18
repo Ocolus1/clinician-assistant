@@ -37,6 +37,7 @@ import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { borderStyles } from "@/lib/border-styles";
 import { StrategySelectionDialog } from "./StrategySelectionDialog";
+import { InlineStrategySelector } from "./InlineStrategySelector";
 import { AttendeeSelectionDialog } from "./AttendeeSelectionDialog";
 
 // UI Components
@@ -2808,43 +2809,31 @@ export function FullScreenSessionForm({
                                             </div>
 
                                             <div className="mt-2">
-                                              <span className="text-xs text-muted-foreground">Strategies:</span>
-                                              {milestone.strategies.length === 0 ? (
-                                                <div className="mt-1">
-                                                  <Button
-                                                    variant="outline"
-                                                    size="sm"
-                                                    className="h-7 px-2 text-xs w-full"
-                                                    onClick={() => {
-                                                      setCurrentGoalId(assessment.goalId);
-                                                      setCurrentMilestoneId(milestone.milestoneId);
-                                                      setShowStrategyDialog(true);
-                                                    }}
-                                                  >
-                                                    <Plus className="h-3 w-3 mr-1" /> Add Strategies
-                                                  </Button>
-                                                </div>
-                                              ) : (
-                                                <div className="flex flex-wrap gap-1 mt-1">
-                                                  {milestone.strategies.map((strategy, sIndex) => (
-                                                    <Badge key={sIndex} variant="outline" className="text-xs">
-                                                      {strategy}
-                                                    </Badge>
-                                                  ))}
-                                                  <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    className="h-6 px-2 text-xs"
-                                                    onClick={() => {
-                                                      setCurrentGoalId(assessment.goalId);
-                                                      setCurrentMilestoneId(milestone.milestoneId);
-                                                      setShowStrategyDialog(true);
-                                                    }}
-                                                  >
-                                                    <Plus className="h-3 w-3" />
-                                                  </Button>
-                                                </div>
-                                              )}
+                                              <InlineStrategySelector
+                                                selectedStrategies={milestone.strategies}
+                                                onChange={(updatedStrategies) => {
+                                                  // Update the form state with the new strategies
+                                                  const assessments = form.getValues("performanceAssessments") || [];
+                                                  const goalIndex = assessments.findIndex(a => a.goalId === assessment.goalId);
+                                                  
+                                                  if (goalIndex === -1) return;
+                                                  
+                                                  const milestoneIndex = assessments[goalIndex].milestones.findIndex(
+                                                    m => m.milestoneId === milestone.milestoneId
+                                                  );
+                                                  
+                                                  if (milestoneIndex === -1) return;
+                                                  
+                                                  const updatedAssessments = [...assessments];
+                                                  updatedAssessments[goalIndex].milestones[milestoneIndex].strategies = updatedStrategies;
+                                                  
+                                                  form.setValue("performanceAssessments", updatedAssessments, { 
+                                                    shouldDirty: true, 
+                                                    shouldValidate: false 
+                                                  });
+                                                }}
+                                                maxStrategies={5}
+                                              />
                                             </div>
                                           </div>
                                         ))}

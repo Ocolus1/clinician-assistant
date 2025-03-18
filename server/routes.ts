@@ -17,6 +17,18 @@ import {
   insertStrategySchema
 } from "@shared/schema";
 
+/**
+ * Formats and standardizes error responses
+ * @param error The error object
+ * @returns Formatted error message
+ */
+function formatError(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message;
+  }
+  return String(error);
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Debugging routes
   app.get("/api/debug/health", (req, res) => {

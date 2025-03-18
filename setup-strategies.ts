@@ -1,148 +1,167 @@
-import { db } from './server/db';
-import { strategies } from './shared/schema';
+import { db } from "./server/db";
+import { strategies, Strategy, insertStrategySchema } from "./shared/schema";
+import { eq } from "drizzle-orm";
 
 /**
  * This script sets up initial therapy strategies for autism and early childhood intervention
  */
 async function createInitialStrategies() {
-  console.log('Setting up initial therapy strategies...');
+  console.log("Setting up initial therapy strategies");
+
+  // Check if we already have strategies in the database
+  const existingStrategies = await db.select().from(strategies);
   
-  // Initial strategies for autism and early childhood intervention
+  if (existingStrategies.length > 0) {
+    console.log(`Found ${existingStrategies.length} existing strategies, checking for new ones to add...`);
+  }
+  
+  // Define categories and strategies
   const initialStrategies = [
+    // Communication Strategies
     {
-      name: "Visual Schedules",
-      description: "Using pictures or symbols to represent daily activities and transitions",
-      category: "Communication"
+      name: "Visual Supports",
+      category: "Communication",
+      description: "Using pictures, symbols, or written words to support communication"
     },
     {
-      name: "Social Stories",
-      description: "Personalized stories that explain social situations and appropriate responses",
-      category: "Social Skills"
+      name: "AAC Devices",
+      category: "Communication",
+      description: "Augmentative and alternative communication devices to assist with expression"
     },
     {
-      name: "PECS (Picture Exchange Communication System)",
-      description: "Communication system using picture cards to help children express needs and wants",
-      category: "Communication"
+      name: "Sign Language",
+      category: "Communication",
+      description: "Basic sign language to support verbal communication"
+    },
+    {
+      name: "PECS",
+      category: "Communication",
+      description: "Picture Exchange Communication System to facilitate communication"
+    },
+    
+    // Behavioral Strategies
+    {
+      name: "Positive Reinforcement",
+      category: "Behavioral",
+      description: "Rewarding desired behaviors to increase their frequency"
     },
     {
       name: "Token Economy",
-      description: "Reward system using tokens that can be exchanged for preferred items or activities",
-      category: "Behavior Management"
+      category: "Behavioral",
+      description: "Using tokens that can be exchanged for rewards to encourage positive behavior"
+    },
+    {
+      name: "Visual Schedules",
+      category: "Behavioral",
+      description: "Using pictures or symbols to represent activities or routines"
+    },
+    {
+      name: "Social Stories",
+      category: "Behavioral",
+      description: "Personalized stories that describe social situations and appropriate responses"
+    },
+    
+    // Sensory Strategies
+    {
+      name: "Sensory Diet",
+      category: "Sensory",
+      description: "Planned activities that provide sensory input throughout the day"
+    },
+    {
+      name: "Deep Pressure",
+      category: "Sensory",
+      description: "Applying firm but gentle pressure to the body to provide calming input"
+    },
+    {
+      name: "Noise-Cancelling Headphones",
+      category: "Sensory",
+      description: "Headphones that reduce environmental sounds for sensory regulation"
+    },
+    {
+      name: "Fidget Tools",
+      category: "Sensory",
+      description: "Small objects that provide sensory input and help with focus"
+    },
+    
+    // Social Skills Strategies
+    {
+      name: "Turn-Taking Activities",
+      category: "Social Skills",
+      description: "Games and activities that practice taking turns"
+    },
+    {
+      name: "Role-Playing",
+      category: "Social Skills",
+      description: "Acting out social scenarios to practice appropriate responses"
     },
     {
       name: "Video Modeling",
-      description: "Using videos to demonstrate target behaviors or skills for children to imitate",
-      category: "Learning"
+      category: "Social Skills",
+      description: "Watching videos of appropriate social interactions to learn from"
     },
+    {
+      name: "Peer Mentoring",
+      category: "Social Skills",
+      description: "Pairing with a peer who can model appropriate social behaviors"
+    },
+    
+    // Cognitive Strategies
     {
       name: "Task Analysis",
-      description: "Breaking complex skills into smaller, manageable steps for easier learning",
-      category: "Learning"
+      category: "Cognitive",
+      description: "Breaking down complex tasks into smaller, manageable steps"
     },
     {
-      name: "Sensory Integration Techniques",
-      description: "Activities that help regulate sensory processing and responses to stimuli",
-      category: "Sensory"
+      name: "Visual Timers",
+      category: "Cognitive",
+      description: "Timers that provide visual representation of time passing"
     },
     {
-      name: "Prompting Hierarchy",
-      description: "System of least-to-most or most-to-least prompting to support skill acquisition",
-      category: "Learning"
+      name: "Mind Mapping",
+      category: "Cognitive",
+      description: "Creating visual diagrams to organize and connect ideas"
     },
     {
-      name: "AAC (Augmentative and Alternative Communication)",
-      description: "Tools and systems to supplement or replace speech for communication",
-      category: "Communication"
-    },
-    {
-      name: "Natural Environment Teaching",
-      description: "Teaching skills in the context they will be used in everyday situations",
-      category: "Learning"
-    },
-    {
-      name: "Peer-Mediated Instruction",
-      description: "Using peers to model and reinforce appropriate behaviors and social skills",
-      category: "Social Skills"
-    },
-    {
-      name: "Joint Attention Training",
-      description: "Teaching shared focus on objects or activities with another person",
-      category: "Social Skills"
-    },
-    {
-      name: "Floor Time/DIR",
-      description: "Child-led play-based approach to build relationships and communication skills",
-      category: "Relationship"
-    },
-    {
-      name: "Behavioral Momentum",
-      description: "Beginning with easy tasks before introducing more challenging ones to build success",
-      category: "Behavior Management"
-    },
-    {
-      name: "Self-Management Strategies",
-      description: "Teaching children to monitor and regulate their own behavior and emotions",
-      category: "Self-Regulation"
-    },
-    {
-      name: "Discrete Trial Training",
-      description: "Structured teaching method breaking skills into simple components with reinforcement",
-      category: "Learning"
-    },
-    {
-      name: "Pivotal Response Treatment",
-      description: "Targeting pivotal areas of development like motivation and self-initiation",
-      category: "Learning"
-    },
-    {
-      name: "Functional Communication Training",
-      description: "Teaching appropriate communication to replace challenging behaviors",
-      category: "Communication"
-    },
-    {
-      name: "Structured Play Groups",
-      description: "Organized play activities targeting specific social skills and peer interaction",
-      category: "Social Skills"
-    },
-    {
-      name: "Errorless Learning",
-      description: "Teaching method minimizing errors during skill acquisition through proper supports",
-      category: "Learning"
+      name: "Metacognitive Strategies",
+      category: "Cognitive",
+      description: "Teaching awareness and understanding of one's own thought processes"
     }
   ];
-
-  // Clear existing strategies
-  const existingStrategies = await db.select().from(strategies);
-  if (existingStrategies.length > 0) {
-    console.log(`Found ${existingStrategies.length} existing strategies, checking for duplicates...`);
-  } else {
-    console.log('No existing strategies found, adding all initial strategies.');
-  }
-
-  // Add each strategy if it doesn't exist
+  
+  // Add each strategy if it doesn't already exist
   for (const strategy of initialStrategies) {
-    const existing = existingStrategies.find(s => 
-      s.name.toLowerCase() === strategy.name.toLowerCase()
-    );
+    // Check if this strategy already exists by name
+    const exists = existingStrategies.some(s => s.name === strategy.name);
     
-    if (!existing) {
-      await db.insert(strategies).values(strategy);
-      console.log(`Added strategy: ${strategy.name}`);
+    if (!exists) {
+      console.log(`Adding new strategy: ${strategy.name} (${strategy.category})`);
+      try {
+        // Validate with schema
+        const validatedStrategy = insertStrategySchema.parse(strategy);
+        
+        // Insert into database
+        await db.insert(strategies).values(validatedStrategy);
+        console.log(`Successfully added strategy: ${strategy.name}`);
+      } catch (error) {
+        console.error(`Error adding strategy ${strategy.name}:`, error);
+      }
     } else {
-      console.log(`Strategy already exists: ${strategy.name}`);
+      console.log(`Strategy already exists: ${strategy.name}, skipping`);
     }
   }
-
-  console.log('Strategy setup complete!');
+  
+  // Get final count
+  const finalStrategies = await db.select().from(strategies);
+  console.log(`Setup complete. Database now has ${finalStrategies.length} therapy strategies.`);
 }
 
 // Run the function
 createInitialStrategies()
   .then(() => {
-    console.log('Successfully set up therapy strategies');
+    console.log("Strategy setup completed successfully");
     process.exit(0);
   })
-  .catch((error) => {
-    console.error('Error setting up therapy strategies:', error);
+  .catch(error => {
+    console.error("Error setting up strategies:", error);
     process.exit(1);
   });
