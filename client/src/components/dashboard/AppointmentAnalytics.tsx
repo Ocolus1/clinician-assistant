@@ -57,21 +57,38 @@ function formatDateByTimeframe(dateStr: string, timeframe: 'daily' | 'weekly' | 
 }
 
 /**
+ * Format numbers with commas
+ */
+function formatNumberWithCommas(value: number): string {
+  return new Intl.NumberFormat('en-US').format(value);
+}
+
+/**
  * Helper function to format percent changes
+ * Note: We invert the sign since the trend calculation in our API is inverted (negative when it should be positive)
  */
 function formatPercentChange(percentChange?: number): string {
   if (percentChange === undefined || isNaN(percentChange)) return '0%';
-  return `${percentChange > 0 ? '+' : ''}${percentChange.toFixed(1)}%`;
+  
+  // Invert the sign to fix the percentage calculation bug
+  const correctedPercentChange = percentChange * -1;
+  
+  return `${correctedPercentChange > 0 ? '+' : ''}${correctedPercentChange.toFixed(1)}%`;
 }
 
 /**
  * Helper function to determine trend direction based on percent change
+ * Note: Also inverting the sign for this function to match the fix in formatPercentChange
  */
 function getTrendIcon(percentChange?: number) {
   if (!percentChange || isNaN(percentChange)) return null;
-  if (percentChange > 0) {
+  
+  // Invert the sign to fix the percentage calculation bug
+  const correctedPercentChange = percentChange * -1;
+  
+  if (correctedPercentChange > 0) {
     return <TrendingUp className="h-4 w-4 text-green-500" />;
-  } else if (percentChange < 0) {
+  } else if (correctedPercentChange < 0) {
     return <TrendingDown className="h-4 w-4 text-red-500" />;
   }
   return <Activity className="h-4 w-4 text-gray-400" />;
@@ -79,11 +96,16 @@ function getTrendIcon(percentChange?: number) {
 
 /**
  * Helper function to get the appropriate color for percent change
+ * Note: Also inverting the sign for this function to match the fix in formatPercentChange
  */
 function getTrendColor(percentChange?: number): string {
   if (!percentChange || isNaN(percentChange)) return 'text-gray-500';
-  if (percentChange > 0) return 'text-green-500';
-  if (percentChange < 0) return 'text-red-500';
+  
+  // Invert the sign to fix the percentage calculation bug
+  const correctedPercentChange = percentChange * -1;
+  
+  if (correctedPercentChange > 0) return 'text-green-500';
+  if (correctedPercentChange < 0) return 'text-red-500';
   return 'text-gray-500';
 }
 
@@ -103,7 +125,7 @@ const CustomTooltip = ({ active, payload, label, labelFormatter, selectedTimeFra
         </p>
         {payload[0].payload.count !== undefined && (
           <p className="text-xs text-muted-foreground">
-            {payload[0].payload.count} session{payload[0].payload.count !== 1 ? 's' : ''}
+            {formatNumberWithCommas(payload[0].payload.count)} session{payload[0].payload.count !== 1 ? 's' : ''}
           </p>
         )}
       </div>
@@ -146,8 +168,8 @@ export function AppointmentAnalytics() {
 
   const timeframeData = getTimeframeData();
   
-  // Get the last 6 periods for the chart, and enrich with revenue if available
-  const chartData = timeframeData ? timeframeData.slice(Math.max(0, timeframeData.length - 8)).map(item => {
+  // Get exactly the last 7 days for the chart, and enrich with revenue if available
+  const chartData = timeframeData ? timeframeData.slice(Math.max(0, timeframeData.length - 7)).map(item => {
     // Look for revenue property which might be available in dummy data
     const revenue = (item as any).revenue !== undefined ? (item as any).revenue : (item.count * 120); // Fallback to simple calculation
     return {
@@ -281,7 +303,7 @@ export function AppointmentAnalytics() {
                   {isLoading ? (
                     <Skeleton className="h-8 w-16" />
                   ) : (
-                    latestEntry?.count || 0
+                    formatNumberWithCommas(latestEntry?.count || 0)
                   )}
                 </div>
                 <span className="ml-1 text-sm text-muted-foreground">sessions</span>
