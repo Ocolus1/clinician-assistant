@@ -192,6 +192,8 @@ export function AppointmentAnalytics() {
       case 'daily':
         return dashboardData.appointments.daily;
       case 'weekly':
+        // Add logging to debug weekly data structure
+        console.log("Weekly data structure:", dashboardData.appointments.weekly);
         return dashboardData.appointments.weekly;
       case 'monthly':
         return dashboardData.appointments.monthly;
