@@ -1,0 +1,3 @@
+.custom-dialog-content [data-radix-primitive="close"] {
+  display: none !important;
+}

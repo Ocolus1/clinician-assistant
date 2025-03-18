@@ -1,12 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { Avatar } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -14,15 +9,10 @@ import {
   User,
   Wand2,
   Zap,
-  CircleDashed,
-  Minimize2,
-  Maximize2,
-  Brain,
-  Sparkles,
   Lamp,
   X,
 } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogClose } from '@/components/ui/dialog';
 import { v4 as uuidv4 } from 'uuid';
 
 // Define the message type
@@ -133,121 +123,114 @@ export function MagicLampChat() {
   return (
     <Card className="h-full flex flex-col justify-center items-center bg-black/90 text-white border-white/20 shadow-lg overflow-hidden">
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogTrigger asChild>
+        <motion.div 
+          className="relative flex flex-col items-center justify-center w-full h-full cursor-pointer"
+          whileHover={{ scale: 1.03 }}
+          transition={{ type: "spring", stiffness: 400, damping: 10 }}
+          onClick={() => setDialogOpen(true)}
+        >
+          {/* Magical smoke effect */}
           <motion.div 
-            className="relative flex flex-col items-center justify-center w-full h-full cursor-pointer"
-            whileHover={{ scale: 1.03 }}
-            transition={{ type: "spring", stiffness: 400, damping: 10 }}
+            className="absolute w-32 h-32 rounded-full bg-gradient-to-t from-white/20 to-transparent"
+            animate={{ 
+              scale: [1, 1.1, 1.2, 1.1, 1],
+              opacity: [0.2, 0.3, 0.2, 0.3, 0.2],
+              y: [0, -10]
+            }}
+            transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
+          />
+          
+          {/* Larger smoke */}
+          <motion.div 
+            className="absolute w-48 h-48 rounded-full bg-gradient-to-t from-white/10 to-transparent"
+            animate={{ 
+              scale: [1, 1.2, 1.4, 1.2, 1],
+              opacity: [0.1, 0.2, 0.1, 0.2, 0.1],
+              y: [0, -15]
+            }}
+            transition={{ duration: 6, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
+          />
+          
+          {/* Lamp */}
+          <motion.div
+            className="relative z-10 flex items-center justify-center"
+            animate={{ 
+              rotate: [0, 5, 0, -5, 0],
+              y: [0, -5, 0, -5, 0]
+            }}
+            transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
           >
-            {/* Magical smoke effect */}
             <motion.div 
-              className="absolute w-32 h-32 rounded-full bg-gradient-to-t from-white/20 to-transparent"
-              animate={{ 
-                scale: [1, 1.1, 1.2, 1.1, 1],
-                opacity: [0.2, 0.3, 0.2, 0.3, 0.2],
-                y: [0, -10]
-              }}
-              transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
-            />
-            
-            {/* Larger smoke */}
-            <motion.div 
-              className="absolute w-48 h-48 rounded-full bg-gradient-to-t from-white/10 to-transparent"
-              animate={{ 
-                scale: [1, 1.2, 1.4, 1.2, 1],
-                opacity: [0.1, 0.2, 0.1, 0.2, 0.1],
-                y: [0, -15]
-              }}
-              transition={{ duration: 6, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
-            />
-            
-            {/* Lamp */}
-            <motion.div
-              className="relative z-10 flex items-center justify-center"
-              animate={{ 
-                rotate: [0, 5, 0, -5, 0],
-                y: [0, -5, 0, -5, 0]
-              }}
-              transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
+              className="relative bg-gradient-to-br from-amber-400 to-amber-600 rounded-b-3xl p-2 shadow-lg shadow-amber-900/50 border border-amber-300/80"
+              whileHover={{ scale: 1.05 }}
+              transition={{ type: "spring", stiffness: 400, damping: 10 }}
             >
+              <Lamp className="h-16 w-16 text-amber-900" />
+              
+              {/* Magical glow */}
               <motion.div 
-                className="relative bg-gradient-to-br from-amber-400 to-amber-600 rounded-b-3xl p-2 shadow-lg shadow-amber-900/50 border border-amber-300/80"
-                whileHover={{ scale: 1.05 }}
-                transition={{ type: "spring", stiffness: 400, damping: 10 }}
-              >
-                <Lamp className="h-16 w-16 text-amber-900" />
-                
-                {/* Magical glow */}
-                <motion.div 
-                  className="absolute inset-0 rounded-b-3xl bg-white"
-                  animate={{ 
-                    opacity: [0.1, 0.3, 0.1],
-                    scale: [0.9, 1.05, 0.9],
-                  }}
-                  transition={{ duration: 2, repeat: Infinity }}
-                />
-              </motion.div>
-            </motion.div>
-            
-            {/* Floating particles */}
-            <motion.div 
-              className="absolute top-1/4 right-1/3 w-1.5 h-1.5 rounded-full bg-amber-300"
-              animate={{ y: [0, -15, 0], opacity: [0.4, 1, 0.4] }}
-              transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-            />
-            <motion.div 
-              className="absolute bottom-1/3 left-1/3 w-1 h-1 rounded-full bg-amber-200"
-              animate={{ y: [0, -12, 0], opacity: [0.3, 0.8, 0.3] }}
-              transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
-            />
-            <motion.div 
-              className="absolute top-1/3 left-1/3 w-2 h-2 rounded-full bg-amber-100"
-              animate={{ y: [0, -18, 0], opacity: [0.5, 1, 0.5] }}
-              transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-            />
-            
-            {/* Text */}
-            <motion.div 
-              className="mt-20 text-center px-6"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8 }}
-            >
-              <motion.p
-                className="text-lg font-light text-amber-100 leading-relaxed"
-                animate={{ opacity: [0.8, 1, 0.8] }}
-                transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-              >
-                Have you heard of Aladdin and his magical lamp? 
-                <span className="block mt-2 font-medium text-amber-200">Click on me and let's make some magic!</span>
-              </motion.p>
+                className="absolute inset-0 rounded-b-3xl bg-white"
+                animate={{ 
+                  opacity: [0.1, 0.3, 0.1],
+                  scale: [0.9, 1.05, 0.9],
+                }}
+                transition={{ duration: 2, repeat: Infinity }}
+              />
             </motion.div>
           </motion.div>
-        </DialogTrigger>
+          
+          {/* Floating particles */}
+          <motion.div 
+            className="absolute top-1/4 right-1/3 w-1.5 h-1.5 rounded-full bg-amber-300"
+            animate={{ y: [0, -15, 0], opacity: [0.4, 1, 0.4] }}
+            transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+          />
+          <motion.div 
+            className="absolute bottom-1/3 left-1/3 w-1 h-1 rounded-full bg-amber-200"
+            animate={{ y: [0, -12, 0], opacity: [0.3, 0.8, 0.3] }}
+            transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
+          />
+          <motion.div 
+            className="absolute top-1/3 left-1/3 w-2 h-2 rounded-full bg-amber-100"
+            animate={{ y: [0, -18, 0], opacity: [0.5, 1, 0.5] }}
+            transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+          />
+          
+          {/* Text */}
+          <motion.div 
+            className="mt-20 text-center px-6"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8 }}
+          >
+            <motion.p
+              className="text-lg font-light text-amber-100 leading-relaxed"
+              animate={{ opacity: [0.8, 1, 0.8] }}
+              transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+            >
+              Have you heard of Aladdin and his magical lamp? 
+              <span className="block mt-2 font-medium text-amber-200">Click on me and let's make some magic!</span>
+            </motion.p>
+          </motion.div>
+        </motion.div>
         
-        {/* Chat Dialog */}
+        {/* Chat Dialog - Fixed UI issues */}
         <DialogContent className="sm:max-w-[500px] max-h-[80vh] p-0 bg-black/95 border border-white/20 text-white overflow-hidden">
           <div className="flex flex-col h-[70vh]">
-            <DialogHeader className="p-3 border-b border-white/10 flex-shrink-0">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Avatar className="h-8 w-8 bg-black/80 border border-white/20">
-                    <motion.div
-                      animate={{ rotate: [0, 360] }}
-                      transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-                      className="absolute inset-0 rounded-full border border-white/10"
-                    />
-                    <Wand2 className="h-4 w-4 text-amber-300" />
-                  </Avatar>
-                  <DialogTitle className="text-md font-medium">Magic Assistant</DialogTitle>
-                </div>
-                <DialogClose asChild>
-                  <Button variant="ghost" size="icon" className="h-7 w-7 text-white/70 hover:text-white hover:bg-white/10">
-                    <X className="h-4 w-4" />
-                  </Button>
-                </DialogClose>
+            {/* Fixed header with proper alignment */}
+            <div className="flex items-center justify-between p-3 border-b border-white/10">
+              <div className="flex items-center gap-2">
+                <Avatar className="h-8 w-8 bg-black/80 border border-white/20">
+                  <Wand2 className="h-4 w-4 text-amber-300" />
+                </Avatar>
+                <h2 className="text-md font-medium">Magic Assistant</h2>
               </div>
-            </DialogHeader>
+              <DialogClose asChild>
+                <Button variant="ghost" size="icon" className="h-7 w-7 text-white/70 hover:text-white hover:bg-white/10">
+                  <X className="h-4 w-4" />
+                </Button>
+              </DialogClose>
+            </div>
             
             <ScrollArea ref={scrollAreaRef} className="flex-grow px-3 py-2">
               <div className="space-y-3">
