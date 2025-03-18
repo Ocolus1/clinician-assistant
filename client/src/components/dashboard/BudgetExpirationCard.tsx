@@ -98,6 +98,11 @@ export function BudgetExpirationCard() {
       const yearNum = parseInt(year);
       return yearNum > startingYear || (yearNum === startingYear && monthNum >= startingMonth);
     });
+    
+    // Limit to 6 months to avoid label crowding
+    if (fundsChartData.length > 6) {
+      fundsChartData = fundsChartData.slice(0, 6);
+    }
   }
   
   // Colors for bar chart
@@ -181,45 +186,34 @@ export function BudgetExpirationCard() {
                   ) : (
                     <ResponsiveContainer width="100%" height="100%">
                       <AreaChart
-                        data={dailyFundsData.length > 0 ? dailyFundsData : fundsChartData}
-                        margin={{ top: 10, right: 0, left: 0, bottom: 0 }}
+                        data={fundsChartData} 
+                        margin={{ top: 10, right: 15, left: 15, bottom: 30 }}
+                        barCategoryGap={10}
+                        barGap={3}
                       >
                         <XAxis 
-                          dataKey={dailyFundsData.length > 0 ? "date" : "month"}
+                          dataKey="month"
                           tickFormatter={(value) => {
-                            // Format: YYYY-MM or YYYY-MM-DD to "Month YYYY"
                             if (!value || typeof value !== 'string') return '';
                             
                             try {
-                              // Handle both daily and monthly formats
-                              const parts = value.split('-');
-                              let date;
+                              // Just extract year and month from YYYY-MM format
+                              const [year, month] = value.split('-');
                               
-                              if (parts.length === 3) {
-                                // Daily format: YYYY-MM-DD
-                                const [year, month, day] = parts;
-                                // Only show the 1st of each month for tick marks
-                                if (day !== '01') return '';
-                                date = new Date(parseInt(year), parseInt(month) - 1, 1);
-                              } else {
-                                // Monthly format: YYYY-MM
-                                const [year, month] = parts;
-                                date = new Date(parseInt(year), parseInt(month) - 1, 1);
-                              }
-                              
-                              // Format as "March 2025"
-                              return new Intl.DateTimeFormat('en-US', { 
-                                month: 'long', 
-                                year: 'numeric' 
-                              }).format(date);
+                              // Use short month names without year to save space
+                              const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
+                                                 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                              return monthNames[parseInt(month) - 1];
                             } catch (e) {
-                              return value; // Fallback to original value
+                              return value;
                             }
                           }}
-                          tick={{ fontSize: 10 }}
+                          tick={{ fontSize: 11, fill: '#555555' }}
                           tickLine={false}
                           axisLine={false}
-                          interval={0} // Show all months
+                          textAnchor="middle"
+                          height={35}
+                          interval={0} // Ensures all labels are displayed
                         />
                         <YAxis 
                           hide={true}
@@ -277,29 +271,33 @@ export function BudgetExpirationCard() {
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart
                         data={fundsChartData}
-                        margin={{ top: 5, right: 0, left: 0, bottom: 0 }}
+                        margin={{ top: 5, right: 15, left: 15, bottom: 15 }}
+                        barCategoryGap={20}
+                        barGap={5}
                       >
                         <XAxis 
                           dataKey="month"
                           tickFormatter={(value) => {
-                            // Format: YYYY-MM to "Short Month"
                             if (!value || typeof value !== 'string') return '';
                             
                             try {
+                              // Just extract year and month from YYYY-MM format
                               const [year, month] = value.split('-');
-                              const date = new Date(parseInt(year), parseInt(month) - 1, 1);
-                              // Format as "Mar" (short month name only)
-                              return new Intl.DateTimeFormat('en-US', { 
-                                month: 'short'
-                              }).format(date);
+                              
+                              // Use short month names with year
+                              const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
+                                                 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                              return monthNames[parseInt(month) - 1] + ' ' + year;
                             } catch (e) {
-                              return value; // Fallback to original value
+                              return value;
                             }
                           }}
-                          tick={{ fontSize: 8 }}
+                          tick={{ fontSize: 9, fill: '#555555' }}
                           tickLine={false}
                           axisLine={false}
-                          interval={0}
+                          height={30}
+                          textAnchor="middle"
+                          interval={0} // Ensures all labels are displayed
                         />
                         <YAxis 
                           hide={true}
