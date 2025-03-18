@@ -52,8 +52,8 @@ export function BudgetExpirationCard() {
   const COLORS = ['#16A34A', '#2563EB', '#EA580C', '#8B5CF6', '#EC4899', '#6B7280'];
 
   return (
-    <Card className="h-full">
-      <CardHeader className="pb-3">
+    <Card className="h-full flex flex-col">
+      <CardHeader className="pb-2 flex-shrink-0">
         <div className="flex items-center justify-between">
           <div>
             <CardTitle>Budget Expiration</CardTitle>
@@ -70,21 +70,21 @@ export function BudgetExpirationCard() {
         </div>
       </CardHeader>
       
-      <CardContent className="p-4">
-        <div className="grid grid-rows-2 gap-4 h-full">
+      <CardContent className="p-2 flex-grow overflow-auto">
+        <div className="grid grid-rows-2 gap-3 h-full">
           {/* Top row - Expiring plans and total funds visualization */}
-          <Card>
-            <CardHeader className="p-3 pb-2">
+          <Card className="flex flex-col">
+            <CardHeader className="p-2 pb-1 flex-shrink-0">
               <CardTitle className="text-sm">Expiring Next Month</CardTitle>
             </CardHeader>
-            <CardContent className="p-3 pt-0">
+            <CardContent className="p-2 pt-0 flex-grow overflow-auto">
               {isLoading ? (
                 <div className="space-y-2">
                   <Skeleton className="h-8 w-full" />
                   <Skeleton className="h-8 w-full" />
                 </div>
               ) : expiringCount > 0 ? (
-                <div className="space-y-2 max-h-[120px] overflow-auto pr-1">
+                <div className="space-y-2 overflow-auto pr-1 max-h-24">
                   {expiringClients.map((client) => (
                     <div key={`${client.clientId}-${client.planId}`} 
                       className="flex justify-between items-center p-2 border rounded-md bg-red-50 border-red-200">
@@ -103,7 +103,7 @@ export function BudgetExpirationCard() {
                   ))}
                 </div>
               ) : (
-                <div className="flex items-center justify-center h-[100px] text-muted-foreground">
+                <div className="flex items-center justify-center h-16 text-muted-foreground">
                   No plans expiring next month
                 </div>
               )}
@@ -111,15 +111,15 @@ export function BudgetExpirationCard() {
           </Card>
           
           {/* Bottom row - Funds visualization over time */}
-          <Card>
-            <CardHeader className="p-3 pb-1">
+          <Card className="flex flex-col">
+            <CardHeader className="p-2 pb-1 flex-shrink-0">
               <CardTitle className="text-sm flex items-center">
                 <DollarSign className="mr-1 h-4 w-4" />
                 Remaining Funds (Next 6 Months)
               </CardTitle>
             </CardHeader>
-            <CardContent className="p-3 pt-0">
-              <div className="h-[120px]">
+            <CardContent className="p-2 pt-0 flex-grow overflow-hidden">
+              <div className="h-3/4">
                 {isLoading ? (
                   <Skeleton className="w-full h-full" />
                 ) : (
@@ -159,7 +159,7 @@ export function BudgetExpirationCard() {
               </div>
               
               {/* Plan counts as small bar chart */}
-              <div className="h-[60px] mt-2">
+              <div className="h-1/4">
                 {!isLoading && (
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart

@@ -35,24 +35,24 @@ function DashboardContent() {
   
   return (
     <DashboardLayout onRefreshClick={handleRefresh}>
-      <div className="grid grid-cols-2 gap-4 p-4 overflow-hidden h-screen">
+      <div className="grid grid-cols-2 grid-rows-2 gap-4 p-4 h-[calc(100vh-1.5rem)] pb-20">
         {/* Top Left - AI Chatbox */}
-        <div className="h-full">
+        <div className="overflow-auto rounded-lg border shadow-sm">
           <DashboardAIChat />
         </div>
         
         {/* Top Right - Appointment Analytics */}
-        <div className="h-full">
+        <div className="overflow-auto rounded-lg border shadow-sm">
           <AppointmentAnalytics />
         </div>
         
         {/* Bottom Left - Budget Expiration */}
-        <div className="h-full">
+        <div className="overflow-auto rounded-lg border shadow-sm">
           <BudgetExpirationCard />
         </div>
         
         {/* Bottom Right - Tasks Timeline */}
-        <div className="h-full">
+        <div className="overflow-auto rounded-lg border shadow-sm">
           <UpcomingTasksTimeline />
         </div>
       </div>

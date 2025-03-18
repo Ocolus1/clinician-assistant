@@ -68,11 +68,11 @@ function AppointmentSummaryCard({
   const sparklineData = data ? data.slice(Math.max(0, data.length - 6)) : [];
   
   return (
-    <Card className="w-full h-full">
-      <CardHeader className="pb-2">
+    <Card className="w-full flex flex-col overflow-hidden">
+      <CardHeader className="p-2 pb-1 flex-shrink-0">
         <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-2">
+      <CardContent className="p-2 flex-grow flex flex-col justify-between">
         <div className="flex flex-col">
           <div className="flex items-center">
             <CalendarClock className="h-5 w-5 text-primary mr-2" />
@@ -93,7 +93,7 @@ function AppointmentSummaryCard({
         
         {/* Mini sparkline */}
         {!isLoading && sparklineData.length > 0 && (
-          <div className="h-16 mt-2">
+          <div className="flex-grow mt-1 min-h-[60px]">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={sparklineData}>
                 <Line 
@@ -123,17 +123,17 @@ export function AppointmentAnalytics() {
   const isLoading = loadingState === 'loading' || loadingState === 'idle';
 
   return (
-    <Card className="h-full">
-      <CardHeader className="pb-3">
+    <Card className="h-full flex flex-col">
+      <CardHeader className="pb-2 flex-shrink-0">
         <CardTitle>Appointment Analytics</CardTitle>
         <CardDescription>
           Last 6 periods overview by timeframe
         </CardDescription>
       </CardHeader>
       
-      <CardContent className="p-4">
+      <CardContent className="p-2 flex-grow overflow-auto">
         {/* Four-quadrant view for all time periods */}
-        <div className="grid grid-cols-2 gap-4 h-full">
+        <div className="grid grid-cols-2 gap-3 h-full">
           <AppointmentSummaryCard
             title="Daily Average"
             data={dashboardData?.appointments.daily}
