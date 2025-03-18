@@ -30,6 +30,33 @@ function formatCurrency(value: number): string {
 }
 
 /**
+ * Format date strings based on timeframe
+ */
+function formatDateByTimeframe(dateStr: string, timeframe: 'daily' | 'weekly' | 'monthly' | 'yearly'): string {
+  try {
+    const date = new Date(dateStr);
+    switch (timeframe) {
+      case 'daily':
+        return `${date.getDate()} ${date.toLocaleString('default', { month: 'short' })} ${date.getFullYear()}`;
+      case 'weekly':
+        // Extract week number (simple calculation, may need refinement)
+        const firstDayOfYear = new Date(date.getFullYear(), 0, 1);
+        const pastDaysOfYear = (date.getTime() - firstDayOfYear.getTime()) / 86400000;
+        const weekNum = Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7);
+        return `W${weekNum}-${date.getFullYear()}`;
+      case 'monthly':
+        return `${date.toLocaleString('default', { month: 'short' })} ${date.getFullYear()}`;
+      case 'yearly':
+        return date.getFullYear().toString();
+      default:
+        return dateStr;
+    }
+  } catch (e) {
+    return dateStr;
+  }
+}
+
+/**
  * Helper function to format percent changes
  */
 function formatPercentChange(percentChange?: number): string {
@@ -63,11 +90,14 @@ function getTrendColor(percentChange?: number): string {
 /**
  * Custom tooltip for the line chart
  */
-const CustomTooltip = ({ active, payload, label }: any) => {
+const CustomTooltip = ({ active, payload, label, labelFormatter, selectedTimeFrame }: any) => {
   if (active && payload && payload.length) {
+    // Format date using our custom formatter
+    const formattedDate = labelFormatter ? labelFormatter(label) : formatDateByTimeframe(label, selectedTimeFrame);
+    
     return (
       <div className="bg-background/95 p-2 border rounded-lg shadow-md text-xs">
-        <p className="font-medium">{label}</p>
+        <p className="font-medium">{formattedDate}</p>
         <p className="font-semibold text-primary">
           {formatCurrency(payload[0].value)}
         </p>
@@ -279,7 +309,7 @@ export function AppointmentAnalytics() {
             <ResponsiveContainer width="100%" height="100%">
               <LineChart
                 data={chartData}
-                margin={{ top: 10, right: 10, bottom: 10, left: 10 }}
+                margin={{ top: 10, right: 25, bottom: 10, left: 25 }}
               >
                 <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.1} />
                 <XAxis 
@@ -287,17 +317,15 @@ export function AppointmentAnalytics() {
                   tick={{ fontSize: 10 }}
                   tickLine={false}
                   axisLine={false}
-                  height={20}
+                  height={25}
+                  tickFormatter={(value) => formatDateByTimeframe(value, selectedTimeFrame)}
                 />
-                <YAxis 
-                  width={30}
-                  tickFormatter={formatYAxis}
-                  tick={{ fontSize: 10 }}
-                  tickLine={false}
-                  axisLine={false}
-                  domain={['auto', 'auto']}
+                {/* YAxis removed as requested */}
+                <Tooltip 
+                  content={<CustomTooltip selectedTimeFrame={selectedTimeFrame} />} 
+                  formatter={(value) => formatCurrency(Number(value))}
+                  labelFormatter={(label) => formatDateByTimeframe(String(label), selectedTimeFrame)}
                 />
-                <Tooltip content={<CustomTooltip />} />
                 <Line
                   type="monotone"
                   dataKey={dataKey}
