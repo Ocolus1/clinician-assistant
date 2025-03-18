@@ -336,10 +336,11 @@ export function AppointmentAnalytics() {
                 <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.1} />
                 <XAxis 
                   dataKey="period" 
-                  tick={{ fontSize: 10 }}
+                  tick={{ fontSize: 9, dy: 2 }} // Adjust font size and vertical position
                   tickLine={false}
                   axisLine={false}
-                  height={25}
+                  height={30} // Increase height to accommodate all labels
+                  interval={0} // Force display of all ticks
                   tickFormatter={(value) => formatDateByTimeframe(value, selectedTimeFrame)}
                 />
                 {/* YAxis removed as requested */}
