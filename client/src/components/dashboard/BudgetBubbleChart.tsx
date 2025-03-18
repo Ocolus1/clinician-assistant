@@ -81,6 +81,9 @@ const CustomTooltip = ({ active, payload }: any) => {
         <p className="text-xs font-medium mt-1">
           <span className="text-primary">Budget: {formatCurrency(data.amount)}</span>
         </p>
+        {data.dayOfMonth && (
+          <p className="text-xs">Day: {data.dayOfMonth}</p>
+        )}
         <p className="text-xs">Expires: {data.expiryMonth}</p>
         <p className="text-xs mt-2 text-muted-foreground">
           <span className="inline-flex items-center">
@@ -88,6 +91,11 @@ const CustomTooltip = ({ active, payload }: any) => {
             {data.expiryDate}
           </span>
         </p>
+        {data.x !== undefined && (
+          <p className="text-[10px] text-muted-foreground mt-1">
+            Position: {data.x.toFixed(2)}
+          </p>
+        )}
       </div>
     );
   }
@@ -541,19 +549,19 @@ export function BudgetBubbleChart() {
               <div className="mb-2 px-2 flex items-center justify-end text-xs text-muted-foreground">
                 <div className="mr-4 flex items-center">
                   <CircleDollarSign className="h-3 w-3 mr-1 opacity-70" />
-                  <span>Bubble size represents budget amount</span>
+                  <span>Bubble size = budget amount ($1K = 1 unit)</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="flex items-center">
-                    <div style={{ width: 15, height: 15 }} className="rounded-full bg-primary/50 mr-1"></div>
+                    <div style={{ width: BASE_SIZE, height: BASE_SIZE }} className="rounded-full bg-primary/50 mr-1"></div>
                     <span>$1K</span>
                   </div>
                   <div className="flex items-center">
-                    <div style={{ width: 30, height: 30 }} className="rounded-full bg-primary/50 mr-1"></div>
+                    <div style={{ width: BASE_SIZE * 5, height: BASE_SIZE * 5 }} className="rounded-full bg-primary/50 mr-1"></div>
                     <span>$5K</span>
                   </div>
                   <div className="flex items-center">
-                    <div style={{ width: 45, height: 45 }} className="rounded-full bg-primary/50 mr-1"></div>
+                    <div style={{ width: BASE_SIZE * 10, height: BASE_SIZE * 10 }} className="rounded-full bg-primary/50 mr-1"></div>
                     <span>$10K+</span>
                   </div>
                 </div>
@@ -568,14 +576,16 @@ export function BudgetBubbleChart() {
                   <XAxis 
                     type="number" 
                     dataKey="x" 
-                    name="Month" 
-                    domain={[0, 5]}
+                    name="Timeline" 
+                    domain={[0, 5.99]}
                     ticks={[0, 1, 2, 3, 4, 5]}
                     tickFormatter={(value) => {
-                      return monthLabels[value]?.label || '';
+                      // We're using integer values for month markers
+                      // The actual data points may be positioned anywhere along the continuum
+                      return monthLabels[Math.floor(value)]?.label || '';
                     }}
                     label={{ 
-                      value: 'Expiration Timeline', 
+                      value: 'Expiration Timeline (Day Precision)', 
                       position: 'insideBottom', 
                       offset: -10,
                       fontSize: 12
