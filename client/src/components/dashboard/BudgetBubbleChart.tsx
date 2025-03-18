@@ -409,6 +409,11 @@ export function BudgetBubbleChart() {
     setVisualization(value as VisualizationMethod);
   };
   
+  // Calculate bubble size range based on visualization method
+  const zAxisRange = visualization === 'bubble' 
+    ? [MIN_BUBBLE_SIZE, MAX_BUBBLE_SIZE] 
+    : [5, 5];
+  
   // Customize the legend
   const CustomLegendItem = (props: any) => {
     const { payload } = props;
@@ -481,6 +486,29 @@ export function BudgetBubbleChart() {
           </div>
         ) : (
           <div className="h-full flex flex-col">
+            {/* Legend for bubble sizes */}
+            {visualization === 'bubble' && (
+              <div className="mb-2 px-2 flex items-center justify-end text-xs text-muted-foreground">
+                <div className="mr-4 flex items-center">
+                  <CircleDollarSign className="h-3 w-3 mr-1 opacity-70" />
+                  <span>Bubble size represents budget amount</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center">
+                    <div style={{ width: 6, height: 6 }} className="rounded-full bg-primary/50 mr-1"></div>
+                    <span>$1K</span>
+                  </div>
+                  <div className="flex items-center">
+                    <div style={{ width: 10, height: 10 }} className="rounded-full bg-primary/50 mr-1"></div>
+                    <span>$5K</span>
+                  </div>
+                  <div className="flex items-center">
+                    <div style={{ width: 16, height: 16 }} className="rounded-full bg-primary/50 mr-1"></div>
+                    <span>$10K+</span>
+                  </div>
+                </div>
+              </div>
+            )}
             <div className="flex-grow">
               <ResponsiveContainer width="100%" height="100%">
                 <ScatterChart
@@ -490,10 +518,14 @@ export function BudgetBubbleChart() {
                   <XAxis 
                     type="number" 
                     dataKey="x" 
-                    name="Months Until Expiration" 
-                    domain={[0, dataSource === 'dummy' ? 12 : 'dataMax']}
+                    name="Month" 
+                    domain={[0, 5]}
+                    ticks={[0, 1, 2, 3, 4, 5]}
+                    tickFormatter={(value) => {
+                      return monthLabels[value]?.label || '';
+                    }}
                     label={{ 
-                      value: 'Months Until Expiration', 
+                      value: 'Expiration Timeline', 
                       position: 'insideBottom', 
                       offset: -10,
                       fontSize: 12
@@ -503,21 +535,14 @@ export function BudgetBubbleChart() {
                   <YAxis 
                     type="number" 
                     dataKey="y" 
-                    name="Budget Amount" 
-                    tickFormatter={(value) => formatCurrency(value)}
-                    domain={[0, 'dataMax']}
-                    label={{ 
-                      value: 'Budget Amount', 
-                      angle: -90, 
-                      position: 'insideLeft',
-                      fontSize: 12
-                    }}
-                    tick={{ fontSize: 10 }}
+                    name="Position" 
+                    domain={[0, JITTER_RANGE]}
+                    hide={true} // Hide the Y-axis as it's just for jitter positioning
                   />
                   <ZAxis 
                     type="number" 
                     dataKey="z" 
-                    range={zAxisRange} 
+                    range={visualization === 'bubble' ? [MIN_BUBBLE_SIZE, MAX_BUBBLE_SIZE] : [5, 5]} 
                     name="Budget Size" 
                   />
                   <Tooltip content={<CustomTooltip />} />
