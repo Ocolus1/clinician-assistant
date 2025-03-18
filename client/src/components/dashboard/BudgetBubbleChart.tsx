@@ -544,29 +544,7 @@ export function BudgetBubbleChart() {
           </div>
         ) : (
           <div className="h-full flex flex-col">
-            {/* Legend for bubble sizes */}
-            {visualization === 'bubble' && (
-              <div className="mb-2 px-2 flex items-center justify-end text-xs text-muted-foreground">
-                <div className="mr-4 flex items-center">
-                  <CircleDollarSign className="h-3 w-3 mr-1 opacity-70" />
-                  <span>Bubble size = budget amount ($1K = 1 unit)</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="flex items-center">
-                    <div style={{ width: BASE_SIZE, height: BASE_SIZE }} className="rounded-full bg-primary/50 mr-1"></div>
-                    <span>$1K</span>
-                  </div>
-                  <div className="flex items-center">
-                    <div style={{ width: BASE_SIZE * 5, height: BASE_SIZE * 5 }} className="rounded-full bg-primary/50 mr-1"></div>
-                    <span>$5K</span>
-                  </div>
-                  <div className="flex items-center">
-                    <div style={{ width: BASE_SIZE * 10, height: BASE_SIZE * 10 }} className="rounded-full bg-primary/50 mr-1"></div>
-                    <span>$10K+</span>
-                  </div>
-                </div>
-              </div>
-            )}
+            {/* Size legend removed as requested */}
             <div className="flex-grow">
               <ResponsiveContainer width="100%" height="100%">
                 <ScatterChart
