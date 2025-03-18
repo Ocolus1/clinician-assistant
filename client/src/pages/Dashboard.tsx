@@ -5,8 +5,7 @@ import {
   AppointmentAnalytics,
   BudgetExpirationCard,
   BudgetBubbleChart,
-  UpcomingTasksTimeline,
-  MagicLampChat
+  UpcomingTasksTimeline
 } from "@/components/dashboard";
 import { DummyDataToggle } from "@/components/dashboard/DummyDataToggle";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
@@ -78,20 +77,15 @@ function DashboardContent() {
       {/* Dashboard content area with responsive two-column layout */}
       <div className="p-4 pt-2">
         <div className="flex flex-col md:flex-row gap-4 h-[calc(100vh-6rem)]">
-          {/* Left Column (35%) - Communication and Scheduling */}
+          {/* Left Column (35%) - Analytics and Tasks */}
           <div className="w-full md:w-[35%] flex flex-col gap-4">
-            {/* AI Assistant - Magic Lamp */}
-            <Card className="flex-grow-0 h-1/3 shadow-sm transition-all hover:shadow-md overflow-hidden">
-              <MagicLampChat />
-            </Card>
-            
-            {/* Appointment Analytics */}
-            <Card className="flex-grow-0 h-1/3 shadow-sm transition-all hover:shadow-md overflow-hidden">
+            {/* Appointment Analytics - Now with 50% height */}
+            <Card className="flex-grow-0 h-1/2 shadow-sm transition-all hover:shadow-md overflow-hidden">
               <AppointmentAnalytics />
             </Card>
             
-            {/* Tasks Timeline */}
-            <Card className="flex-grow h-1/3 shadow-sm transition-all hover:shadow-md overflow-hidden">
+            {/* Tasks Timeline - Now with 50% height */}
+            <Card className="flex-grow h-1/2 shadow-sm transition-all hover:shadow-md overflow-hidden">
               <UpcomingTasksTimeline />
             </Card>
           </div>
