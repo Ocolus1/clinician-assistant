@@ -1,21 +1,30 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useDashboard } from './DashboardProvider';
-import { CalendarClock, TrendingUp, TrendingDown, Activity } from 'lucide-react';
+import { DollarSign, TrendingUp, TrendingDown, Activity } from 'lucide-react';
 import {
   ResponsiveContainer,
-  AreaChart,
-  Area,
   LineChart,
   Line,
   XAxis,
-  YAxis,
-  CartesianGrid,
   Tooltip,
   Legend,
 } from 'recharts';
 import { AppointmentStatsEntry } from '@shared/schema';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
+/**
+ * Helper function to format currency
+ */
+function formatCurrency(value: number): string {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(value);
+}
 
 /**
  * Helper function to format percent changes
@@ -49,40 +58,127 @@ function getTrendColor(percentChange?: number): string {
 }
 
 /**
- * Summary card for appointment analytics with mini sparkline
+ * Custom tooltip for the line chart
  */
-function AppointmentSummaryCard({
-  title,
-  data,
-  isLoading,
-  color,
-}: {
-  title: string;
-  data?: AppointmentStatsEntry[];
-  isLoading: boolean;
-  color: string;
-}) {
-  // Get the latest entry
-  const latestEntry = data && data.length > 0 ? data[data.length - 1] : undefined;
-  // Get the last 6 entries for the sparkline
-  const sparklineData = data ? data.slice(Math.max(0, data.length - 6)) : [];
+const CustomTooltip = ({ active, payload, label }: any) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className="bg-background/95 p-2 border rounded-lg shadow-md text-xs">
+        <p className="font-medium">{label}</p>
+        <p className="font-semibold text-primary">
+          {formatCurrency(payload[0].value)}
+        </p>
+      </div>
+    );
+  }
+  return null;
+};
+
+type TimeFrame = 'daily' | 'weekly' | 'monthly' | 'yearly';
+
+/**
+ * Appointment Analytics Component
+ * Redesigned to show a single chart with a timeframe selector
+ */
+export function AppointmentAnalytics() {
+  const { dashboardData, loadingState, timeFrame, setTimeFrame } = useDashboard();
+  const [selectedTimeFrame, setSelectedTimeFrame] = useState<TimeFrame>('daily');
   
+  const isLoading = loadingState === 'loading' || loadingState === 'idle';
+
+  // Get the appropriate data for the selected timeframe
+  const getTimeframeData = () => {
+    if (!dashboardData?.appointments) return [];
+    
+    switch (selectedTimeFrame) {
+      case 'daily':
+        return dashboardData.appointments.daily;
+      case 'weekly':
+        return dashboardData.appointments.weekly;
+      case 'monthly':
+        return dashboardData.appointments.monthly;
+      case 'yearly':
+        return dashboardData.appointments.yearly;
+      default:
+        return dashboardData.appointments.daily;
+    }
+  };
+
+  const timeframeData = getTimeframeData();
+  
+  // Get the last 6 periods for the chart
+  const chartData = timeframeData ? timeframeData.slice(Math.max(0, timeframeData.length - 6)) : [];
+  
+  // Get the latest entry for the summary
+  const latestEntry = timeframeData && timeframeData.length > 0 
+    ? timeframeData[timeframeData.length - 1] 
+    : undefined;
+
+  // Handle timeframe change
+  const handleTimeframeChange = (value: string) => {
+    setSelectedTimeFrame(value as TimeFrame);
+    
+    // Map our UI timeframe to the API timeframe
+    const apiTimeFrame: 'day' | 'week' | 'month' | 'year' = 
+      value === 'daily' ? 'day' : 
+      value === 'weekly' ? 'week' : 
+      value === 'monthly' ? 'month' : 'year';
+    
+    setTimeFrame(apiTimeFrame);
+  };
+
+  // Map timeframe to display value
+  const getTimeframeTitle = (timeframe: TimeFrame): string => {
+    switch (timeframe) {
+      case 'daily': return 'Daily';
+      case 'weekly': return 'Weekly';
+      case 'monthly': return 'Monthly';
+      case 'yearly': return 'Yearly';
+      default: return 'Daily';
+    }
+  };
+
   return (
-    <Card className="w-full flex flex-col overflow-hidden">
-      <CardHeader className="p-2 pb-1 flex-shrink-0">
-        <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
+    <Card className="h-full flex flex-col">
+      <CardHeader className="pb-1 flex-shrink-0">
+        <div className="flex justify-between items-center">
+          <CardTitle>Appointment Analytics</CardTitle>
+          <Select 
+            value={selectedTimeFrame} 
+            onValueChange={handleTimeframeChange}
+          >
+            <SelectTrigger className="w-28 h-7 text-xs">
+              <SelectValue placeholder="Timeframe" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="daily">Daily</SelectItem>
+              <SelectItem value="weekly">Weekly</SelectItem>
+              <SelectItem value="monthly">Monthly</SelectItem>
+              <SelectItem value="yearly">Yearly</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <CardDescription className="mt-1">
+          Total revenue from completed sessions
+        </CardDescription>
       </CardHeader>
-      <CardContent className="p-2 flex-grow flex flex-col justify-between">
-        <div className="flex flex-col">
+      
+      <CardContent className="p-2 flex-grow overflow-hidden flex flex-col">
+        {/* Revenue Summary */}
+        <div className="flex items-center mb-2">
           <div className="flex items-center">
-            <CalendarClock className="h-5 w-5 text-primary mr-2" />
+            <DollarSign className="h-5 w-5 text-primary mr-1" />
             <div className="text-2xl font-bold">
-              {isLoading ? <Skeleton className="h-8 w-16" /> : latestEntry?.count || 0}
+              {isLoading ? (
+                <Skeleton className="h-8 w-16" />
+              ) : (
+                formatCurrency(latestEntry?.count || 0)
+              )}
             </div>
           </div>
           
           {!isLoading && latestEntry?.percentChange !== undefined && (
-            <div className="flex items-center mt-1">
+            <div className="flex items-center ml-2">
               {getTrendIcon(latestEntry.percentChange)}
               <span className={`text-sm ml-1 ${getTrendColor(latestEntry.percentChange)}`}>
                 {formatPercentChange(latestEntry.percentChange)}
@@ -91,73 +187,38 @@ function AppointmentSummaryCard({
           )}
         </div>
         
-        {/* Mini sparkline */}
-        {!isLoading && sparklineData.length > 0 && (
-          <div className="flex-grow mt-1 min-h-[60px]">
+        {/* Line Chart */}
+        <div className="flex-grow overflow-hidden">
+          {isLoading ? (
+            <div className="h-full w-full flex justify-center items-center">
+              <Skeleton className="h-4/5 w-full rounded-lg" />
+            </div>
+          ) : (
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={sparklineData}>
-                <Line 
-                  type="monotone" 
-                  dataKey="count" 
-                  stroke={color} 
-                  strokeWidth={2}
-                  dot={false}
+              <LineChart
+                data={chartData}
+                margin={{ top: 10, right: 0, bottom: 10, left: 0 }}
+              >
+                <XAxis 
+                  dataKey="period" 
+                  tick={{ fontSize: 10 }}
+                  tickLine={false}
+                  axisLine={false}
+                  height={20}
                 />
-                {/* No axes or grid for cleaner sparkline look */}
+                <Tooltip content={<CustomTooltip />} />
+                <Line
+                  type="monotone"
+                  dataKey="count"
+                  name={`${getTimeframeTitle(selectedTimeFrame)} Revenue`}
+                  stroke="#2563EB"
+                  strokeWidth={2}
+                  dot={{ r: 3 }}
+                  activeDot={{ r: 5, strokeWidth: 0 }}
+                />
               </LineChart>
             </ResponsiveContainer>
-          </div>
-        )}
-      </CardContent>
-    </Card>
-  );
-}
-
-/**
- * Appointment Analytics Component
- * Redesigned to show all timeframes at once in a quadrant-based layout
- */
-export function AppointmentAnalytics() {
-  const { dashboardData, loadingState } = useDashboard();
-  
-  const isLoading = loadingState === 'loading' || loadingState === 'idle';
-
-  return (
-    <Card className="h-full flex flex-col">
-      <CardHeader className="pb-2 flex-shrink-0">
-        <CardTitle>Appointment Analytics</CardTitle>
-        <CardDescription>
-          Last 6 periods overview by timeframe
-        </CardDescription>
-      </CardHeader>
-      
-      <CardContent className="p-2 flex-grow overflow-auto">
-        {/* Four-quadrant view for all time periods */}
-        <div className="grid grid-cols-2 gap-3 h-full">
-          <AppointmentSummaryCard
-            title="Daily Average"
-            data={dashboardData?.appointments.daily}
-            isLoading={isLoading}
-            color="#2563EB" // Blue
-          />
-          <AppointmentSummaryCard
-            title="Weekly Average"
-            data={dashboardData?.appointments.weekly}
-            isLoading={isLoading}
-            color="#16A34A" // Green
-          />
-          <AppointmentSummaryCard
-            title="Monthly Average"
-            data={dashboardData?.appointments.monthly}
-            isLoading={isLoading}
-            color="#EA580C" // Orange
-          />
-          <AppointmentSummaryCard
-            title="Yearly Average"
-            data={dashboardData?.appointments.yearly}
-            isLoading={isLoading}
-            color="#8B5CF6" // Purple
-          />
+          )}
         </div>
       </CardContent>
     </Card>
