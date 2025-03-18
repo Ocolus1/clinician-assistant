@@ -34,16 +34,37 @@ function formatCurrency(value: number): string {
  */
 function formatDateByTimeframe(dateStr: string, timeframe: 'daily' | 'weekly' | 'monthly' | 'yearly'): string {
   try {
+    // Handle potential invalid dates
+    if (!dateStr || dateStr === 'undefined' || dateStr === 'null') {
+      return 'Invalid date';
+    }
+    
     const date = new Date(dateStr);
+    
+    // Check if date is valid
+    if (isNaN(date.getTime())) {
+      // For weekly view specifically, attempt to extract month info
+      if (timeframe === 'weekly' && typeof dateStr === 'string') {
+        // Try to extract YYYY-MM from the string if it matches that pattern
+        const matches = dateStr.match(/(\d{4})-(\d{2})/);
+        if (matches && matches.length >= 3) {
+          const year = matches[1];
+          const month = parseInt(matches[2]);
+          const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+          if (month >= 1 && month <= 12) {
+            return `${monthNames[month-1]} ${year}`;
+          }
+        }
+      }
+      return 'Invalid date';
+    }
+    
     switch (timeframe) {
       case 'daily':
         return `${date.getDate()} ${date.toLocaleString('default', { month: 'short' })} ${date.getFullYear()}`;
       case 'weekly':
-        // Extract week number (simple calculation, may need refinement)
-        const firstDayOfYear = new Date(date.getFullYear(), 0, 1);
-        const pastDaysOfYear = (date.getTime() - firstDayOfYear.getTime()) / 86400000;
-        const weekNum = Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7);
-        return `W${weekNum}-${date.getFullYear()}`;
+        // For weekly view, show month and year
+        return `${date.toLocaleString('default', { month: 'short' })} ${date.getFullYear()}`;
       case 'monthly':
         return `${date.toLocaleString('default', { month: 'short' })} ${date.getFullYear()}`;
       case 'yearly':
@@ -52,7 +73,7 @@ function formatDateByTimeframe(dateStr: string, timeframe: 'daily' | 'weekly' | 
         return dateStr;
     }
   } catch (e) {
-    return dateStr;
+    return 'Invalid date';
   }
 }
 
