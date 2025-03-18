@@ -5,7 +5,7 @@ import {
   AppointmentAnalytics,
   BudgetExpirationCard,
   UpcomingTasksTimeline,
-  DashboardAIChat
+  MagicLampChat
 } from "@/components/dashboard";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 
@@ -38,7 +38,7 @@ function DashboardContent() {
       <div className="grid grid-cols-2 grid-rows-2 gap-4 p-4 h-[calc(100vh-1rem)]">
         {/* Top Left - AI Chatbox */}
         <div className="overflow-auto rounded-lg border shadow-sm">
-          <DashboardAIChat />
+          <MagicLampChat />
         </div>
         
         {/* Top Right - Appointment Analytics */}
