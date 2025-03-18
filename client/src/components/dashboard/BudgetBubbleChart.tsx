@@ -122,13 +122,15 @@ export function BudgetBubbleChart() {
   const expiringClients = budgetData?.expiringNextMonth.byClient || [];
   
   // Constants for chart visualization
-  const BUBBLE_SIZE_UNIT = 1000; // $1000 maps to basic bubble size unit
-  const MIN_BUBBLE_SIZE = 15; // Minimum size for very small budgets
-  const MAX_BUBBLE_SIZE = 50; // Maximum size for very large budgets
+  const BUBBLE_SIZE_UNIT = 1000; // $1000 maps to 1 size unit
+  const BASE_SIZE = 10; // Base size for $1000
+  const MIN_BUBBLE_SIZE = BASE_SIZE; // Minimum size (for budgets under $1000)
+  const MAX_BUBBLE_SIZE = BASE_SIZE * 10; // Maximum size (for budgets over $10,000)
   const JITTER_RANGE = 300; // Range for vertical jitter to prevent overlap
   
-  // Max number of bubbles to display per month to prevent overcrowding
-  const MAX_BUBBLES_PER_MONTH = 3;
+  // Day positioning constants (using a continuous day-based timeline)
+  const DAY_UNIT = 1; // 1 day = 1 unit on x-axis
+  const DAYS_PER_MONTH = 30; // Average days per month for visualization
   
   // Generate month labels for X-axis (next 6 months)
   const monthLabels = useMemo(() => {
@@ -170,11 +172,11 @@ export function BudgetBubbleChart() {
         const priority: BudgetPriority = 'critical';
         
         // Calculate bubble size based on amount with min/max constraints
-        // $1000 = 1 size unit, with minimum for visibility
-        const bubbleSize = Math.max(
-          MIN_BUBBLE_SIZE, 
-          Math.min(MAX_BUBBLE_SIZE, Math.sqrt(estimatedAmount / BUBBLE_SIZE_UNIT) * 15)
-        );
+        // $1000 = 1 size unit (BASE_SIZE)
+        // Sizes are directly proportional to dollar amounts
+        // Under $1000 = min size, Over $10,000 = max size
+        const sizeUnits = Math.min(10, Math.max(1, Math.floor(estimatedAmount / BUBBLE_SIZE_UNIT)));
+        const bubbleSize = BASE_SIZE * sizeUnits;
         
         // Apply vertical jitter to prevent overlap
         const jitter = Math.random() * JITTER_RANGE;
@@ -234,10 +236,10 @@ export function BudgetBubbleChart() {
             const planAmount = avgAmount * variance;
             
             // Calculate bubble size based on amount
-            const bubbleSize = Math.max(
-              MIN_BUBBLE_SIZE, 
-              Math.min(MAX_BUBBLE_SIZE, Math.sqrt(planAmount / BUBBLE_SIZE_UNIT) * 15)
-            );
+            // $1000 = 1 size unit (BASE_SIZE)
+            // Sizes are directly proportional to dollar amounts
+            const sizeUnits = Math.min(10, Math.max(1, Math.floor(planAmount / BUBBLE_SIZE_UNIT)));
+            const bubbleSize = BASE_SIZE * sizeUnits;
             
             // Apply vertical jitter to prevent overlap
             const jitter = Math.random() * JITTER_RANGE;
@@ -278,10 +280,10 @@ export function BudgetBubbleChart() {
             : `Expiring ${formattedDate}`;
           
           // Calculate bubble size based on amount
-          const bubbleSize = Math.max(
-            MIN_BUBBLE_SIZE, 
-            Math.min(MAX_BUBBLE_SIZE, Math.sqrt(item.amount / BUBBLE_SIZE_UNIT) * 15)
-          );
+          // $1000 = 1 size unit (BASE_SIZE)
+          // Sizes are directly proportional to dollar amounts
+          const sizeUnits = Math.min(10, Math.max(1, Math.floor(item.amount / BUBBLE_SIZE_UNIT)));
+          const bubbleSize = BASE_SIZE * sizeUnits;
           
           // Apply vertical jitter to prevent overlap
           const jitter = Math.random() * JITTER_RANGE;
@@ -328,21 +330,33 @@ export function BudgetBubbleChart() {
             amount = 12000 + Math.random() * 8000; // Large: $12-20K
           }
           
-          // Calculate bubble size based on amount with square root scaling for more visual difference
-          const bubbleSize = Math.max(
-            MIN_BUBBLE_SIZE, 
-            Math.min(MAX_BUBBLE_SIZE, Math.sqrt(amount / BUBBLE_SIZE_UNIT) * 25)
-          );
+          // Calculate bubble size based on amount
+          // $1000 = 1 size unit (BASE_SIZE)
+          // Sizes are directly proportional to dollar amounts
+          // Under $1000 = min size, Over $10,000 = max size
+          const sizeUnits = Math.min(10, Math.max(1, Math.floor(amount / BUBBLE_SIZE_UNIT)));
+          const bubbleSize = BASE_SIZE * sizeUnits;
           
           // Create evenly distributed jitter positions within the range
           // Use the plan index to assign positions that don't overlap
           const jitterStep = JITTER_RANGE / (planCount + 1);
           const jitter = jitterStep * (i + 1);
           
+          // Calculate day-based position for X-axis
+          // Randomly position the bubble somewhere in this month
+          // Each month has DAYS_PER_MONTH days, so position within that range
+          const dayPosition = monthIndex * DAYS_PER_MONTH + Math.floor(Math.random() * DAYS_PER_MONTH);
+          
+          // Get the actual date (just for display purposes)
           const date = new Date();
           date.setMonth(date.getMonth() + monthIndex);
+          
+          // For more realistic distribution, set the day of month
+          const dayOfMonth = 1 + Math.floor(Math.random() * 28); // Random day between 1-28
+          date.setDate(dayOfMonth);
+          
           const monthName = date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
-          const formattedDate = date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+          const formattedDate = date.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' });
           
           // Determine priority based on timeline
           const priority = getPriorityFromMonths(monthIndex + 1);
@@ -360,7 +374,7 @@ export function BudgetBubbleChart() {
           const globalIndex = monthIndex * 3 + i;
           
           allPlans.push({
-            x: monthIndex,
+            x: dayPosition / DAYS_PER_MONTH, // Convert day position to month scale (0-5 range)
             y: jitter,
             z: bubbleSize,
             amount,
@@ -369,9 +383,10 @@ export function BudgetBubbleChart() {
             clientId: null,
             planId: null,
             expiryMonth: monthName,
-            expiryDate: monthIndex === 0 ? 'This month' : `In ${monthIndex + 1} month${monthIndex > 0 ? 's' : ''}`,
+            expiryDate: `Expires on ${formattedDate}`,
             priority,
             color: PRIORITY_COLORS[priority],
+            dayOfMonth: dayOfMonth, // Include for debugging
           });
         }
       }
