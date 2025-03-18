@@ -17,14 +17,14 @@ import { AppLayout } from "@/components/layout/AppLayout";
 function Router() {
   const [location] = useLocation();
   
-  // Check if the current route is the print summary page (which shouldn't use the layout)
+  // Check if the current route is the print summary page or dashboard (special layouts)
   const isPrintPage = location.startsWith("/print-summary");
+  const isDashboard = location === "/";
   
-  // Routes that should be wrapped in the AppLayout
+  // Routes that should be wrapped in the AppLayout (excludes Dashboard)
   const LayoutRoutes = () => (
     <AppLayout>
       <Switch>
-        <Route path="/" component={Dashboard} />
         <Route path="/clients/new" component={OnboardingForm} />
         <Route path="/clients" component={EnhancedClientList} />
         <Route path="/clients/legacy" component={ClientList} />
@@ -42,6 +42,7 @@ function Router() {
   
   return (
     <Switch>
+      <Route path="/" component={Dashboard} />
       <Route path="/print-summary/:clientId" component={PrintSummary} />
       <Route>
         <LayoutRoutes />

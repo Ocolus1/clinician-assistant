@@ -1,7 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { Button } from "@/components/ui/button";
 import { useLocation } from "wouter";
-import { RefreshCw, Users } from "lucide-react";
 import {
   DashboardProvider,
   AppointmentAnalytics,
@@ -9,6 +7,7 @@ import {
   UpcomingTasksTimeline,
   DashboardAIChat
 } from "@/components/dashboard";
+import { DashboardLayout } from "@/components/layout/DashboardLayout";
 
 /**
  * Dashboard wrapper with shared provider
@@ -24,13 +23,18 @@ function DashboardWithProvider() {
 /**
  * Main dashboard content with analytics and visualization components
  * Redesigned as a fixed-height grid with no scrolling required
+ * Uses a floating menu instead of sidebar to maximize screen space
  */
 function DashboardContent() {
   const [, setLocation] = useLocation();
   
+  // Refresh data
+  const handleRefresh = () => {
+    window.location.reload();
+  };
+  
   return (
-    <div className="min-h-screen flex flex-col">
-      {/* Main dashboard grid - fixed height, no scrolling */}
+    <DashboardLayout onRefreshClick={handleRefresh}>
       <div className="grid grid-cols-2 gap-4 p-4 overflow-hidden h-screen">
         {/* Top Left - AI Chatbox */}
         <div className="h-full">
@@ -52,7 +56,7 @@ function DashboardContent() {
           <UpcomingTasksTimeline />
         </div>
       </div>
-    </div>
+    </DashboardLayout>
   );
 }
 
