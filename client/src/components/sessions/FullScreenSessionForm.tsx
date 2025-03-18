@@ -134,10 +134,10 @@ const sessionProductSchema = z.object({
   budgetItemId: z.number(),
   productCode: z.string(),
   productDescription: z.string(),
-  name: z.string(), // Added name field for display in summary
   quantity: z.number().min(0.01),
   unitPrice: z.number(),
   availableQuantity: z.number(), // For validation only, not sent to server
+  originalQuantity: z.number().optional(), // Original quantity from budget item
 });
 
 // Session notes schema
@@ -1560,7 +1560,8 @@ export function FullScreenSessionForm({
         quantity: quantity,
         unitPrice: product.unitPrice || 0,
         availableQuantity: availableQty, // Store the current available quantity for reference
-        originalQuantity: product.originalQuantity || product.quantity // Keep track of original quantity
+        originalQuantity: product.originalQuantity || product.quantity, // Keep track of original quantity
+        name: product.description || "Unknown product" // Adding name for backward compatibility
       };
 
       form.setValue("sessionNote.products", [...currentProducts, newProduct], { shouldDirty: true, shouldValidate: false });
@@ -2753,8 +2754,12 @@ export function FullScreenSessionForm({
                         <div className="pt-2 border-t">
                           <p className="text-sm font-medium mb-2">Session Notes</p>
                           <div className="bg-accent/50 rounded-md p-3 max-h-20 overflow-hidden relative">
-                            <div className="text-xs" dangerouslySetInnerHTML={{ __html: form.watch("sessionNote.notes").substring(0, 150) }} />
-                            {form.watch("sessionNote.notes").length > 150 && (
+                            <div className="text-xs" dangerouslySetInnerHTML={{ 
+                              __html: form.watch("sessionNote.notes") ? 
+                                form.watch("sessionNote.notes").substring(0, 150) : 
+                                "" 
+                            }} />
+                            {form.watch("sessionNote.notes") && form.watch("sessionNote.notes").length > 150 && (
                               <div className="absolute bottom-0 left-0 right-0 h-6 bg-gradient-to-t from-accent/80 to-transparent" />
                             )}
                           </div>
