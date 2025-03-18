@@ -69,9 +69,11 @@ export function BudgetBubbleChart({
   
   // Transform data for bubble chart
   const chartData = useMemo(() => {
-    if (!budgetItems || !budgetSettings) return [];
+    if (!budgetItems) return [];
+    
+    // We can continue even without budget settings
     return transformBudgetItemsToBubbleChart(budgetItems);
-  }, [budgetItems, budgetSettings]);
+  }, [budgetItems]);
   
   // Group by category
   const categories = useMemo(() => {

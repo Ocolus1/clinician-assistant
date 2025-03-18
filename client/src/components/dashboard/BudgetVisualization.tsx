@@ -63,7 +63,7 @@ export function BudgetVisualization({ className }: BudgetVisualizationProps) {
                   {clients && clients.length > 0 ? (
                     clients.map(client => (
                       <SelectItem key={client.id} value={client.id.toString()}>
-                        {client.firstName} {client.lastName}
+                        {client.name}
                       </SelectItem>
                     ))
                   ) : (
