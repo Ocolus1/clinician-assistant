@@ -100,9 +100,9 @@ export function AIAssistantIcon({ expanded }: AIAssistantIconProps) {
             
             {/* Magical Lamp Content */}
             <div className="z-10 flex flex-col items-center">
-              {/* Smoke animation */}
+              {/* Digital energy animation */}
               <motion.div
-                className="absolute w-40 h-40 rounded-full bg-gradient-to-t from-amber-500/20 via-amber-300/5 to-transparent"
+                className="absolute w-40 h-40 rounded-full bg-gradient-to-t from-blue-500/20 via-blue-300/5 to-transparent"
                 style={{ y: -60 }}
                 animate={{
                   y: [-60, -120],
@@ -136,7 +136,7 @@ export function AIAssistantIcon({ expanded }: AIAssistantIconProps) {
               >
                 <motion.div
                   ref={rubAnimationRef}
-                  className="absolute inset-0 rounded-xl bg-amber-400/30 blur-md"
+                  className="absolute inset-0 rounded-xl bg-blue-400/30 blur-md"
                   initial={{ opacity: 0, scale: 0.8 }}
                   animate={{
                     opacity: 0.7,
@@ -150,9 +150,9 @@ export function AIAssistantIcon({ expanded }: AIAssistantIconProps) {
                   <IgniteLogo className="h-24 w-24 text-white" size={96} />
                 </div>
                 
-                {/* Lamp light beam */}
+                {/* Digital energy beam */}
                 <motion.div
-                  className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-full w-20 h-32 bg-gradient-to-t from-amber-300/40 to-transparent rounded-t-full origin-bottom"
+                  className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-full w-20 h-32 bg-gradient-to-t from-blue-300/40 to-transparent rounded-t-full origin-bottom"
                   animate={{
                     opacity: [0.3, 0.5, 0.3],
                     scaleY: [0.8, 1, 0.8],
@@ -165,22 +165,22 @@ export function AIAssistantIcon({ expanded }: AIAssistantIconProps) {
                 />
               </motion.div>
               
-              {/* Genie message */}
+              {/* Assistant message */}
               <motion.div
                 className="mt-12 text-center max-w-xs"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3, duration: 0.5 }}
               >
-                <h3 className="text-2xl font-bold text-amber-300 mb-2">
-                  Your Wish Is My Command!
+                <h3 className="text-2xl font-bold text-blue-300 mb-2">
+                  How Can I Help You Today?
                 </h3>
-                <p className="text-amber-100/80 mb-6">
-                  I'm your magical therapy assistant. I can help with budget planning, session notes, and more.
+                <p className="text-blue-100/80 mb-6">
+                  I'm your Ignite therapy assistant. I can help with budget planning, session notes, and analytics.
                 </p>
                 <Button
                   onClick={handleChatOpen}
-                  className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-white border-none shadow-lg shadow-amber-900/30"
+                  className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-400 hover:to-blue-500 text-white border-none shadow-lg shadow-blue-900/30"
                 >
                   <motion.span
                     animate={{
@@ -216,7 +216,7 @@ export function AIAssistantIcon({ expanded }: AIAssistantIconProps) {
         size="icon"
         onClick={() => setLampDialogOpen(true)}
         className={cn(
-          "relative z-10 rounded-full transition-all duration-300 bg-amber-600 hover:bg-amber-500 text-white hover:text-white",
+          "relative z-10 rounded-full transition-all duration-300 bg-blue-600 hover:bg-blue-500 text-white hover:text-white",
           expanded ? "h-14 w-14 mx-2" : "h-12 w-12 mx-1"
         )}
       >
@@ -241,7 +241,7 @@ export function AIAssistantIcon({ expanded }: AIAssistantIconProps) {
         
         {/* Sparkle effects */}
         <motion.div 
-          className="absolute top-0 right-0 text-yellow-300/70"
+          className="absolute top-0 right-0 text-blue-300/70"
           animate={{ 
             scale: [0.8, 1.2, 0.8], 
             opacity: [0.5, 1, 0.5],
