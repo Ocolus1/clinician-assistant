@@ -45,8 +45,26 @@ export function BudgetExpirationCard() {
   const expiringCount = budgetData?.expiringNextMonth.count || 0;
   const expiringClients = budgetData?.expiringNextMonth.byClient || [];
   
-  // Prepare data for the funds chart
-  const fundsChartData = budgetData?.remainingFunds || [];
+  // Prepare data for the funds chart, starting from current month (March 2025)
+  let fundsChartData = budgetData?.remainingFunds || [];
+  
+  // Process the data to ensure it starts from current month (March 2025)
+  const currentDate = new Date();
+  const currentYear = currentDate.getFullYear();
+  const currentMonth = currentDate.getMonth() + 1; // 0-indexed to 1-indexed
+  
+  // Filter data to start from current month or use the first available month
+  if (fundsChartData.length > 0) {
+    // Find current month data or closest available
+    const currentMonthFormat = `${currentYear}-${currentMonth.toString().padStart(2, '0')}`;
+    
+    // Try to find the exact month or use original data
+    const startingIndex = fundsChartData.findIndex(item => item.month === currentMonthFormat);
+    
+    if (startingIndex >= 0) {
+      fundsChartData = fundsChartData.slice(startingIndex);
+    }
+  }
   
   // Colors for bar chart
   const COLORS = ['#16A34A', '#2563EB', '#EA580C', '#8B5CF6', '#EC4899', '#6B7280'];
@@ -134,20 +152,35 @@ export function BudgetExpirationCard() {
                       >
                         <XAxis 
                           dataKey="month" 
+                          tickFormatter={(value) => {
+                            const [year, month] = value.split('-');
+                            const date = new Date(parseInt(year), parseInt(month) - 1, 1);
+                            return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+                          }}
                           tick={{ fontSize: 10 }}
                           tickLine={false}
                           axisLine={false}
+                          interval={0}
                         />
                         <YAxis 
-                          tickFormatter={(value) => formatCurrency(value)}
-                          tick={{ fontSize: 10 }}
-                          width={60}
-                          tickLine={false}
-                          axisLine={false}
+                          hide={true}
                         />
                         <Tooltip 
                           formatter={(value) => formatCurrency(Number(value))}
-                          labelFormatter={(value) => `Month: ${value}`}
+                          labelFormatter={(value) => {
+                            const [year, month] = value.split('-');
+                            const date = new Date(parseInt(year), parseInt(month) - 1, 1);
+                            return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+                          }}
+                          contentStyle={{ 
+                            backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                            border: '1px solid #e2e8f0',
+                            borderRadius: '6px',
+                            padding: '10px',
+                            boxShadow: '0 2px 10px rgba(0, 0, 0, 0.1)',
+                          }}
+                          itemStyle={{ color: '#2563EB' }}
+                          cursor={{ stroke: '#2563EB', strokeWidth: 1, strokeDasharray: '5 5' }}
                         />
                         <Area
                           type="monotone"
@@ -172,14 +205,34 @@ export function BudgetExpirationCard() {
                       >
                         <XAxis 
                           dataKey="month"
+                          tickFormatter={(value) => {
+                            const [year, month] = value.split('-');
+                            const date = new Date(parseInt(year), parseInt(month) - 1, 1);
+                            return date.toLocaleDateString('en-US', { month: 'short' });
+                          }}
                           tick={{ fontSize: 8 }}
                           tickLine={false}
                           axisLine={false}
+                          interval={0}
                         />
                         <YAxis 
                           hide={true}
                         />
-                        <Tooltip />
+                        <Tooltip 
+                          labelFormatter={(value) => {
+                            const [year, month] = value.split('-');
+                            const date = new Date(parseInt(year), parseInt(month) - 1, 1);
+                            return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+                          }}
+                          contentStyle={{ 
+                            backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                            border: '1px solid #e2e8f0',
+                            borderRadius: '6px',
+                            padding: '10px',
+                            boxShadow: '0 2px 10px rgba(0, 0, 0, 0.1)',
+                          }}
+                          cursor={{ stroke: '#6B7280', strokeWidth: 1, strokeDasharray: '5 5' }}
+                        />
                         <Bar
                           dataKey="planCount"
                           name="Active Plans"
