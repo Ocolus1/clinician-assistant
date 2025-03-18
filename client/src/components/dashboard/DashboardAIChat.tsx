@@ -5,8 +5,7 @@ import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { toast } from '@/hooks/use-toast';
-import { Send, Bot, User, X, Maximize2, Minimize2, MoreHorizontal } from 'lucide-react';
+import { Send, Bot, User, Maximize2, Minimize2 } from 'lucide-react';
 import { useDashboard } from './DashboardProvider';
 
 // Types for chat messages
@@ -34,9 +33,8 @@ function generateId(): string {
 
 /**
  * Dashboard AI Chat Component
- * 
  * Provides an AI chatbot interface for quick queries and actions
- * Note: Actual AI functionality would require integration with an AI service
+ * Redesigned to fit in the fixed dashboard grid layout
  */
 export function DashboardAIChat() {
   const [messages, setMessages] = useState<ChatMessage[]>([
@@ -49,7 +47,6 @@ export function DashboardAIChat() {
   ]);
   const [input, setInput] = useState('');
   const [isMinimized, setIsMinimized] = useState(false);
-  const [isExpanded, setIsExpanded] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   
@@ -149,23 +146,15 @@ export function DashboardAIChat() {
 
   const toggleMinimized = () => {
     setIsMinimized(prev => !prev);
-    setIsExpanded(false);
-  };
-
-  const toggleExpanded = () => {
-    setIsExpanded(prev => !prev);
-    setIsMinimized(false);
   };
 
   return (
-    <Card className={`transition-all duration-300 ${
-      isMinimized ? 'h-14' : isExpanded ? 'h-[80vh] w-[80vw] fixed inset-0 m-auto z-50' : 'h-[400px]'
-    }`}>
+    <Card className="h-full">
       <CardHeader className="p-3 border-b flex flex-row items-center space-y-0 gap-2">
         <Avatar className="h-8 w-8 bg-primary">
           <Bot className="h-4 w-4 text-white" />
         </Avatar>
-        <CardTitle className="text-base">Therapy Assistant</CardTitle>
+        <CardTitle className="text-base">Practice Assistant</CardTitle>
         <Badge variant="outline" className="ml-2 bg-primary/10">AI</Badge>
         
         <div className="flex-grow"></div>
@@ -173,13 +162,9 @@ export function DashboardAIChat() {
         <Button variant="ghost" size="icon" onClick={toggleMinimized} className="h-8 w-8">
           {isMinimized ? <Maximize2 className="h-4 w-4" /> : <Minimize2 className="h-4 w-4" />}
         </Button>
-        
-        <Button variant="ghost" size="icon" onClick={toggleExpanded} className="h-8 w-8">
-          {isExpanded ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
-        </Button>
       </CardHeader>
       
-      {!isMinimized && (
+      {!isMinimized ? (
         <>
           <ScrollArea ref={scrollAreaRef} className="flex-1 p-4 h-[calc(100%-110px)]">
             <div className="space-y-4">
@@ -189,11 +174,11 @@ export function DashboardAIChat() {
                   className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
                 >
                   <div className={`max-w-[80%] flex ${message.role === 'user' ? 'flex-row-reverse' : 'flex-row'} items-start gap-2`}>
-                    <Avatar className={`h-8 w-8 ${message.role === 'user' ? 'bg-blue-500' : 'bg-primary'}`}>
+                    <Avatar className={`h-6 w-6 ${message.role === 'user' ? 'bg-blue-500' : 'bg-primary'}`}>
                       {message.role === 'user' ? (
-                        <User className="h-4 w-4 text-white" />
+                        <User className="h-3 w-3 text-white" />
                       ) : (
-                        <Bot className="h-4 w-4 text-white" />
+                        <Bot className="h-3 w-3 text-white" />
                       )}
                     </Avatar>
                     
@@ -223,7 +208,7 @@ export function DashboardAIChat() {
                   <Badge
                     key={suggestion}
                     variant="outline"
-                    className="cursor-pointer hover:bg-primary/10"
+                    className="cursor-pointer hover:bg-primary/10 text-xs"
                     onClick={() => handleSuggestionClick(suggestion)}
                   >
                     {suggestion}
@@ -243,12 +228,16 @@ export function DashboardAIChat() {
                 placeholder="Type a message..."
                 className="flex-1"
               />
-              <Button size="icon" onClick={handleSendMessage} disabled={!input.trim()}>
+              <Button size="icon" onClick={handleSendMessage} disabled={!input.trim()} className="h-8 w-8">
                 <Send className="h-4 w-4" />
               </Button>
             </div>
           </CardContent>
         </>
+      ) : (
+        <CardContent className="p-3 flex items-center justify-center h-[calc(100%-56px)] text-muted-foreground">
+          Chat minimized
+        </CardContent>
       )}
     </Card>
   );

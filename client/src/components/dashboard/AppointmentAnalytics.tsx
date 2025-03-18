@@ -1,16 +1,14 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useDashboard } from './DashboardProvider';
-import { Badge } from '@/components/ui/badge';
 import { CalendarClock, TrendingUp, TrendingDown, Activity } from 'lucide-react';
 import {
   ResponsiveContainer,
   AreaChart,
   Area,
-  BarChart,
-  Bar,
+  LineChart,
+  Line,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -51,26 +49,30 @@ function getTrendColor(percentChange?: number): string {
 }
 
 /**
- * Summary card for appointment analytics
+ * Summary card for appointment analytics with mini sparkline
  */
 function AppointmentSummaryCard({
   title,
   data,
   isLoading,
+  color,
 }: {
   title: string;
   data?: AppointmentStatsEntry[];
   isLoading: boolean;
+  color: string;
 }) {
   // Get the latest entry
   const latestEntry = data && data.length > 0 ? data[data.length - 1] : undefined;
+  // Get the last 6 entries for the sparkline
+  const sparklineData = data ? data.slice(Math.max(0, data.length - 6)) : [];
   
   return (
-    <Card className="w-full">
+    <Card className="w-full h-full">
       <CardHeader className="pb-2">
         <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
       </CardHeader>
-      <CardContent>
+      <CardContent className="space-y-2">
         <div className="flex flex-col">
           <div className="flex items-center">
             <CalendarClock className="h-5 w-5 text-primary mr-2" />
@@ -80,168 +82,83 @@ function AppointmentSummaryCard({
           </div>
           
           {!isLoading && latestEntry?.percentChange !== undefined && (
-            <div className="flex items-center mt-2">
+            <div className="flex items-center mt-1">
               {getTrendIcon(latestEntry.percentChange)}
               <span className={`text-sm ml-1 ${getTrendColor(latestEntry.percentChange)}`}>
                 {formatPercentChange(latestEntry.percentChange)}
               </span>
-              <span className="text-xs text-muted-foreground ml-1">vs previous period</span>
             </div>
           )}
         </div>
+        
+        {/* Mini sparkline */}
+        {!isLoading && sparklineData.length > 0 && (
+          <div className="h-16 mt-2">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={sparklineData}>
+                <Line 
+                  type="monotone" 
+                  dataKey="count" 
+                  stroke={color} 
+                  strokeWidth={2}
+                  dot={false}
+                />
+                {/* No axes or grid for cleaner sparkline look */}
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
 }
 
 /**
- * Appointment Analytics Component 
- * 
- * Displays visualizations for appointment data over time
- * Allows switching between different time frames
+ * Appointment Analytics Component
+ * Redesigned to show all timeframes at once in a quadrant-based layout
  */
 export function AppointmentAnalytics() {
-  const { dashboardData, loadingState, timeFrame, setTimeFrame } = useDashboard();
+  const { dashboardData, loadingState } = useDashboard();
   
   const isLoading = loadingState === 'loading' || loadingState === 'idle';
-  
-  // Extract the relevant data based on the current timeframe
-  const currentData = dashboardData?.appointments ? (
-    timeFrame === 'day' ? dashboardData.appointments.daily :
-    timeFrame === 'week' ? dashboardData.appointments.weekly :
-    timeFrame === 'month' ? dashboardData.appointments.monthly :
-    dashboardData.appointments.yearly
-  ) : [];
 
   return (
-    <Card className="col-span-1 md:col-span-2">
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle>Appointment Analytics</CardTitle>
-            <CardDescription>
-              Track appointment trends over time
-            </CardDescription>
-          </div>
-          
-          <div className="flex space-x-2">
-            <Badge 
-              variant={timeFrame === 'day' ? 'default' : 'outline'} 
-              className="cursor-pointer"
-              onClick={() => setTimeFrame('day')}
-            >
-              Daily
-            </Badge>
-            <Badge 
-              variant={timeFrame === 'week' ? 'default' : 'outline'} 
-              className="cursor-pointer"
-              onClick={() => setTimeFrame('week')}
-            >
-              Weekly
-            </Badge>
-            <Badge 
-              variant={timeFrame === 'month' ? 'default' : 'outline'} 
-              className="cursor-pointer"
-              onClick={() => setTimeFrame('month')}
-            >
-              Monthly
-            </Badge>
-            <Badge 
-              variant={timeFrame === 'year' ? 'default' : 'outline'} 
-              className="cursor-pointer"
-              onClick={() => setTimeFrame('year')}
-            >
-              Yearly
-            </Badge>
-          </div>
-        </div>
+    <Card className="h-full">
+      <CardHeader className="pb-3">
+        <CardTitle>Appointment Analytics</CardTitle>
+        <CardDescription>
+          Last 6 periods overview by timeframe
+        </CardDescription>
       </CardHeader>
       
-      <CardContent>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+      <CardContent className="p-4">
+        {/* Four-quadrant view for all time periods */}
+        <div className="grid grid-cols-2 gap-4 h-full">
           <AppointmentSummaryCard
             title="Daily Average"
             data={dashboardData?.appointments.daily}
             isLoading={isLoading}
+            color="#2563EB" // Blue
           />
           <AppointmentSummaryCard
             title="Weekly Average"
             data={dashboardData?.appointments.weekly}
             isLoading={isLoading}
+            color="#16A34A" // Green
           />
           <AppointmentSummaryCard
             title="Monthly Average"
             data={dashboardData?.appointments.monthly}
             isLoading={isLoading}
+            color="#EA580C" // Orange
           />
           <AppointmentSummaryCard
             title="Yearly Average"
             data={dashboardData?.appointments.yearly}
             isLoading={isLoading}
+            color="#8B5CF6" // Purple
           />
         </div>
-        
-        <Tabs defaultValue="area">
-          <TabsList className="mb-4">
-            <TabsTrigger value="area">Area Chart</TabsTrigger>
-            <TabsTrigger value="bar">Bar Chart</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="area" className="w-full h-80">
-            {isLoading ? (
-              <div className="w-full h-full flex items-center justify-center">
-                <Skeleton className="w-full h-64" />
-              </div>
-            ) : (
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart
-                  data={currentData}
-                  margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="period" />
-                  <YAxis />
-                  <Tooltip />
-                  <Area
-                    type="monotone"
-                    dataKey="count"
-                    name="Appointments"
-                    stroke="#1E4E8C"
-                    fill="#1E4E8C"
-                    fillOpacity={0.2}
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            )}
-          </TabsContent>
-          
-          <TabsContent value="bar" className="w-full h-80">
-            {isLoading ? (
-              <div className="w-full h-full flex items-center justify-center">
-                <Skeleton className="w-full h-64" />
-              </div>
-            ) : (
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={currentData}
-                  margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="period" />
-                  <YAxis />
-                  <Tooltip />
-                  <Legend />
-                  <Bar
-                    dataKey="count"
-                    name="Appointments"
-                    fill="#1E4E8C"
-                    radius={[4, 4, 0, 0]}
-                  />
-                </BarChart>
-              </ResponsiveContainer>
-            )}
-          </TabsContent>
-        </Tabs>
       </CardContent>
     </Card>
   );

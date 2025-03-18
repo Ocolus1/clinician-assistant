@@ -2,34 +2,17 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useDashboard } from './DashboardProvider';
-import { FileText, MailOpen, ClipboardCheck, MoreHorizontal, CalendarDays } from 'lucide-react';
+import { FileText, MailOpen, ClipboardCheck, MoreHorizontal } from 'lucide-react';
 import {
   ResponsiveContainer,
   BarChart,
   Bar,
   XAxis,
   YAxis,
-  CartesianGrid,
   Tooltip,
   Legend,
   Cell,
 } from 'recharts';
-
-/**
- * Helper component for task category icon
- */
-function TaskIcon({ type }: { type: 'reports' | 'letters' | 'assessments' | 'other' }) {
-  switch (type) {
-    case 'reports':
-      return <FileText className="h-4 w-4" />;
-    case 'letters':
-      return <MailOpen className="h-4 w-4" />;
-    case 'assessments':
-      return <ClipboardCheck className="h-4 w-4" />;
-    case 'other':
-      return <MoreHorizontal className="h-4 w-4" />;
-  }
-}
 
 /**
  * Colors for task categories in charts
@@ -42,9 +25,60 @@ const COLORS = {
 };
 
 /**
+ * Task category summary component
+ */
+function TaskCategorySummary({ 
+  type, 
+  count, 
+  isLoading 
+}: { 
+  type: 'reports' | 'letters' | 'assessments' | 'other'; 
+  count: number;
+  isLoading: boolean;
+}) {
+  const icons = {
+    reports: <FileText className="h-4 w-4" />,
+    letters: <MailOpen className="h-4 w-4" />,
+    assessments: <ClipboardCheck className="h-4 w-4" />,
+    other: <MoreHorizontal className="h-4 w-4" />
+  };
+  
+  const colors = {
+    reports: 'bg-blue-50 border-blue-200 text-blue-700',
+    letters: 'bg-pink-50 border-pink-200 text-pink-700',
+    assessments: 'bg-green-50 border-green-200 text-green-700',
+    other: 'bg-gray-50 border-gray-200 text-gray-700'
+  };
+  
+  const iconColors = {
+    reports: 'text-blue-600',
+    letters: 'text-pink-600',
+    assessments: 'text-green-600',
+    other: 'text-gray-600'
+  };
+  
+  const label = type.charAt(0).toUpperCase() + type.slice(1);
+  
+  return (
+    <Card className={colors[type]}>
+      <CardContent className="p-2">
+        <div className="flex justify-between items-center">
+          <div className={iconColors[type]}>
+            {icons[type]}
+          </div>
+          <div className="text-lg font-bold">
+            {isLoading ? <Skeleton className="h-5 w-6" /> : count}
+          </div>
+        </div>
+        <div className="text-xs mt-1">{label}</div>
+      </CardContent>
+    </Card>
+  );
+}
+
+/**
  * Upcoming Tasks Timeline Component
- * 
- * Displays a timeline of upcoming tasks categorized by type
+ * Redesigned to fit in the fixed dashboard grid layout
  */
 export function UpcomingTasksTimeline() {
   const { dashboardData, loadingState } = useDashboard();
@@ -52,143 +86,114 @@ export function UpcomingTasksTimeline() {
   const isLoading = loadingState === 'loading' || loadingState === 'idle';
   const tasksData = dashboardData?.tasks;
   
-  // Transform data for the stacked bar chart
+  // Get data for the stacked bar chart
   const stackedData = tasksData?.byMonth || [];
-
-  // Calculate total tasks for the next month
-  const nextMonth = stackedData[0];
-  const nextMonthTotal = nextMonth 
-    ? nextMonth.reports + nextMonth.letters + nextMonth.assessments + nextMonth.other
-    : 0;
+  
+  // Calculate totals across all months for each category
+  const getTotalTasks = (key: string) => {
+    if (!stackedData.length) return 0;
+    return stackedData.reduce((sum, month) => sum + (month[key as keyof typeof month] as number || 0), 0);
+  };
+  
+  const totalReports = getTotalTasks('reports');
+  const totalLetters = getTotalTasks('letters');
+  const totalAssessments = getTotalTasks('assessments');
+  const totalOther = getTotalTasks('other');
 
   return (
-    <Card>
-      <CardHeader>
+    <Card className="h-full">
+      <CardHeader className="pb-3">
         <CardTitle>Upcoming Tasks</CardTitle>
         <CardDescription>
-          Timeline of scheduled reports, letters, and assessments
+          6-month forecast of scheduled tasks
         </CardDescription>
       </CardHeader>
       
-      <CardContent>
-        {/* Next month summary */}
-        <div className="mb-6">
-          <h3 className="text-sm font-semibold mb-2 text-muted-foreground flex items-center">
-            <CalendarDays className="mr-1 h-4 w-4" />
-            Next Month at a Glance
-          </h3>
+      <CardContent className="p-4">
+        <div className="grid grid-rows-[auto_1fr] gap-4 h-full">
+          {/* Task categories summary */}
+          <div className="grid grid-cols-4 gap-2">
+            <TaskCategorySummary 
+              type="reports"
+              count={totalReports}
+              isLoading={isLoading}
+            />
+            <TaskCategorySummary 
+              type="letters"
+              count={totalLetters}
+              isLoading={isLoading}
+            />
+            <TaskCategorySummary 
+              type="assessments"
+              count={totalAssessments}
+              isLoading={isLoading}
+            />
+            <TaskCategorySummary 
+              type="other"
+              count={totalOther}
+              isLoading={isLoading}
+            />
+          </div>
           
-          {isLoading ? (
-            <div className="grid grid-cols-4 gap-2">
-              {[1, 2, 3, 4].map((i) => (
-                <Skeleton key={i} className="h-16 w-full" />
-              ))}
-            </div>
-          ) : nextMonthTotal > 0 ? (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-              <Card className="bg-blue-50 border-blue-200">
-                <CardContent className="p-3">
-                  <div className="flex items-center justify-between">
-                    <FileText className="h-5 w-5 text-blue-600" />
-                    <span className="text-lg font-bold text-blue-700">{nextMonth?.reports || 0}</span>
-                  </div>
-                  <p className="text-xs text-blue-700 mt-1">Reports</p>
-                </CardContent>
-              </Card>
-              
-              <Card className="bg-pink-50 border-pink-200">
-                <CardContent className="p-3">
-                  <div className="flex items-center justify-between">
-                    <MailOpen className="h-5 w-5 text-pink-600" />
-                    <span className="text-lg font-bold text-pink-700">{nextMonth?.letters || 0}</span>
-                  </div>
-                  <p className="text-xs text-pink-700 mt-1">Letters</p>
-                </CardContent>
-              </Card>
-              
-              <Card className="bg-green-50 border-green-200">
-                <CardContent className="p-3">
-                  <div className="flex items-center justify-between">
-                    <ClipboardCheck className="h-5 w-5 text-green-600" />
-                    <span className="text-lg font-bold text-green-700">{nextMonth?.assessments || 0}</span>
-                  </div>
-                  <p className="text-xs text-green-700 mt-1">Assessments</p>
-                </CardContent>
-              </Card>
-              
-              <Card className="bg-gray-50 border-gray-200">
-                <CardContent className="p-3">
-                  <div className="flex items-center justify-between">
-                    <MoreHorizontal className="h-5 w-5 text-gray-600" />
-                    <span className="text-lg font-bold text-gray-700">{nextMonth?.other || 0}</span>
-                  </div>
-                  <p className="text-xs text-gray-700 mt-1">Other</p>
-                </CardContent>
-              </Card>
-            </div>
-          ) : (
-            <div className="text-center py-3 text-muted-foreground">
-              No tasks scheduled for next month
-            </div>
-          )}
-        </div>
-        
-        {/* Tasks timeline chart */}
-        <div className="h-64">
-          <h3 className="text-sm font-semibold mb-2 text-muted-foreground">
-            6-Month Task Forecast
-          </h3>
-          
-          {isLoading ? (
-            <Skeleton className="w-full h-full" />
-          ) : (
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart
-                data={stackedData}
-                margin={{ top: 20, right: 30, left: 0, bottom: 20 }}
-              >
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis 
-                  dataKey="month"
-                  angle={-45} 
-                  textAnchor="end"
-                  height={40}
-                  minTickGap={10}
-                />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-                <Bar 
-                  dataKey="reports" 
-                  name="Reports" 
-                  stackId="tasks" 
-                  fill={COLORS.reports} 
-                  radius={[0, 0, 0, 0]}
-                />
-                <Bar 
-                  dataKey="letters" 
-                  name="Letters" 
-                  stackId="tasks" 
-                  fill={COLORS.letters} 
-                  radius={[0, 0, 0, 0]}
-                />
-                <Bar 
-                  dataKey="assessments" 
-                  name="Assessments" 
-                  stackId="tasks" 
-                  fill={COLORS.assessments} 
-                  radius={[0, 0, 0, 0]}
-                />
-                <Bar 
-                  dataKey="other" 
-                  name="Other" 
-                  stackId="tasks" 
-                  fill={COLORS.other} 
-                  radius={[0, 0, 0, 0]}
-                />
-              </BarChart>
-            </ResponsiveContainer>
-          )}
+          {/* Tasks timeline chart */}
+          <Card>
+            <CardContent className="p-3">
+              {isLoading ? (
+                <Skeleton className="w-full h-full" />
+              ) : (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    data={stackedData}
+                    margin={{ top: 5, right: 0, left: 0, bottom: 15 }}
+                    barSize={14}
+                  >
+                    <XAxis 
+                      dataKey="month" 
+                      tick={{ fontSize: 10 }}
+                      tickLine={false}
+                      axisLine={false}
+                    />
+                    <YAxis
+                      tick={{ fontSize: 10 }}
+                      width={25}
+                      tickLine={false}
+                      axisLine={false}
+                    />
+                    <Tooltip />
+                    <Legend 
+                      iconSize={8}
+                      iconType="circle"
+                      wrapperStyle={{ fontSize: '10px' }}
+                    />
+                    <Bar 
+                      dataKey="reports" 
+                      name="Reports" 
+                      stackId="tasks" 
+                      fill={COLORS.reports}
+                    />
+                    <Bar 
+                      dataKey="letters" 
+                      name="Letters" 
+                      stackId="tasks" 
+                      fill={COLORS.letters}
+                    />
+                    <Bar 
+                      dataKey="assessments" 
+                      name="Assessments" 
+                      stackId="tasks" 
+                      fill={COLORS.assessments}
+                    />
+                    <Bar 
+                      dataKey="other" 
+                      name="Other" 
+                      stackId="tasks" 
+                      fill={COLORS.other}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
+            </CardContent>
+          </Card>
         </div>
       </CardContent>
     </Card>
