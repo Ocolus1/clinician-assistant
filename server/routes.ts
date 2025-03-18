@@ -617,25 +617,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
           await client.query(
             `UPDATE budget_settings SET 
               is_active = $1,
-              plan_name = $2,
-              plan_serial_number = $3,
-              plan_code = $4,
-              ndis_funds = $5,
-              funds_management = $6,
-              start_date = $7,
-              end_date = $8,
-              notes = $9
-            WHERE id = $10`,
+              plan_serial_number = $2,
+              plan_code = $3,
+              ndis_funds = $4,
+              end_of_plan = $5
+            WHERE id = $6`,
             [
               result.data.isActive,
-              result.data.planName,
               result.data.planSerialNumber,
               result.data.planCode,
               result.data.ndisFunds,
-              result.data.fundsManagement,
-              result.data.startDate,
-              result.data.endDate,
-              result.data.notes,
+              result.data.endOfPlan,
               budgetSettingsId
             ]
           );

@@ -2754,12 +2754,15 @@ export function FullScreenSessionForm({
                         <div className="pt-2 border-t">
                           <p className="text-sm font-medium mb-2">Session Notes</p>
                           <div className="bg-accent/50 rounded-md p-3 max-h-20 overflow-hidden relative">
-                            <div className="text-xs" dangerouslySetInnerHTML={{ 
-                              __html: form.watch("sessionNote.notes") ? 
-                                form.watch("sessionNote.notes").substring(0, 150) : 
-                                "" 
-                            }} />
-                            {form.watch("sessionNote.notes") && form.watch("sessionNote.notes").length > 150 && (
+                            <div 
+                              className="text-xs" 
+                              dangerouslySetInnerHTML={{ 
+                                __html: form.watch("sessionNote.notes") ? 
+                                  String(form.watch("sessionNote.notes")).substring(0, 150) : 
+                                  "" 
+                              }} 
+                            />
+                            {form.watch("sessionNote.notes") && (
                               <div className="absolute bottom-0 left-0 right-0 h-6 bg-gradient-to-t from-accent/80 to-transparent" />
                             )}
                           </div>
