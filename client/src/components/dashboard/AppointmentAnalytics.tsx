@@ -12,7 +12,6 @@ import {
   Tooltip,
   Legend,
   CartesianGrid,
-  Area
 } from 'recharts';
 import { AppointmentStatsEntry } from '@shared/schema';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -20,16 +19,8 @@ import { Badge } from '@/components/ui/badge';
 
 /**
  * Helper function to format currency
- * For larger numbers (>1000), we can optionally use the k suffix for thousands
  */
-function formatCurrency(value: number, useKSuffix = false): string {
-  // For compact display on charts
-  if (useKSuffix && value >= 1000) {
-    const inThousands = value / 1000;
-    return `$${inThousands.toFixed(inThousands < 10 ? 1 : 0)}k`;
-  }
-  
-  // Standard currency format
+function formatCurrency(value: number): string {
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: 'USD',
@@ -43,73 +34,16 @@ function formatCurrency(value: number, useKSuffix = false): string {
  */
 function formatDateByTimeframe(dateStr: string, timeframe: 'daily' | 'weekly' | 'monthly' | 'yearly'): string {
   try {
-    // First check if the date string is valid
-    if (!dateStr || dateStr === 'Invalid Date' || dateStr === 'NaN') {
-      return 'N/A';
-    }
-    
-    // Special handling for weekly periods which come in "YYYY-MM-DD to YYYY-MM-DD" format
-    if (timeframe === 'weekly' && dateStr.includes('to')) {
-      try {
-        // Extract the start date of the week
-        const [startDateStr] = dateStr.split(' to ');
-        const startDate = new Date(startDateStr);
-        
-        if (!isNaN(startDate.getTime())) {
-          // Get the week number 
-          const firstDayOfYear = new Date(startDate.getFullYear(), 0, 1);
-          const pastDaysOfYear = Math.floor((startDate.getTime() - firstDayOfYear.getTime()) / 86400000);
-          const weekNum = Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7);
-          
-          if (!isNaN(weekNum) && weekNum >= 1 && weekNum <= 53) {
-            return `W${weekNum}-${startDate.getFullYear()}`;
-          }
-          
-          // Alternatively, format as "Week of Month Day"
-          return `Week of ${startDate.getDate()} ${startDate.toLocaleString('default', { month: 'short' })}`;
-        }
-        
-        // Just return the date range in a more readable format
-        return dateStr.replace('to', '-');
-      } catch (e) {
-        // Return a cleaner version of the date range
-        return dateStr.replace('to', '-');
-      }
-    }
-    
     const date = new Date(dateStr);
-    
-    // Check if the date is valid after parsing
-    if (isNaN(date.getTime())) {
-      return 'N/A';
-    }
-    
     switch (timeframe) {
       case 'daily':
         return `${date.getDate()} ${date.toLocaleString('default', { month: 'short' })} ${date.getFullYear()}`;
       case 'weekly':
-        try {
-          // Extract week number using a safer calculation
-          const firstDayOfYear = new Date(date.getFullYear(), 0, 1);
-          const pastDaysOfYear = Math.floor((date.getTime() - firstDayOfYear.getTime()) / 86400000);
-          
-          // Guard against invalid calculations
-          if (isNaN(pastDaysOfYear)) {
-            return `Week of ${date.toLocaleString('default', { month: 'short' })} ${date.getFullYear()}`;
-          }
-          
-          const weekNum = Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7);
-          
-          // Additional validation
-          if (isNaN(weekNum) || weekNum < 1 || weekNum > 53) {
-            return `Week of ${date.toLocaleString('default', { month: 'short' })} ${date.getFullYear()}`;
-          }
-          
-          return `W${weekNum}-${date.getFullYear()}`;
-        } catch (weekError) {
-          // Fallback for weekly format
-          return `Week of ${date.toLocaleString('default', { month: 'short' })} ${date.getFullYear()}`;
-        }
+        // Extract week number (simple calculation, may need refinement)
+        const firstDayOfYear = new Date(date.getFullYear(), 0, 1);
+        const pastDaysOfYear = (date.getTime() - firstDayOfYear.getTime()) / 86400000;
+        const weekNum = Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7);
+        return `W${weekNum}-${date.getFullYear()}`;
       case 'monthly':
         return `${date.toLocaleString('default', { month: 'short' })} ${date.getFullYear()}`;
       case 'yearly':
@@ -118,8 +52,7 @@ function formatDateByTimeframe(dateStr: string, timeframe: 'daily' | 'weekly' | 
         return dateStr;
     }
   } catch (e) {
-    // Return a nicer fallback
-    return 'N/A';
+    return dateStr;
   }
 }
 
@@ -172,44 +105,17 @@ const CustomTooltip = ({ active, payload, label, labelFormatter, selectedTimeFra
   if (active && payload && payload.length) {
     // Format date using our custom formatter
     const formattedDate = labelFormatter ? labelFormatter(label) : formatDateByTimeframe(label, selectedTimeFrame);
-    const data = payload[0].payload;
-    const isRevenue = payload[0].dataKey === 'revenue';
-    
-    // Get the relevant values
-    const value = isRevenue 
-      ? formatCurrency(payload[0].value)
-      : formatNumberWithCommas(payload[0].value);
-    
-    const sessionCount = data.count !== undefined 
-      ? formatNumberWithCommas(data.count)
-      : '0';
-    
-    // Get comparison with previous period if available
-    const percentChange = data.percentChange;
     
     return (
-      <div className="bg-background/95 p-2.5 border rounded-lg shadow-md text-xs">
-        <div className="mb-1 font-medium text-muted-foreground">{formattedDate}</div>
-        
-        {/* Main value (revenue or sessions) */}
-        <div className="font-bold text-sm text-primary flex items-center gap-1.5">
-          {isRevenue ? <DollarSign className="h-3.5 w-3.5" /> : <BarChart4 className="h-3.5 w-3.5" />}
-          {value} {!isRevenue && <span className="font-normal text-xs text-muted-foreground">sessions</span>}
-        </div>
-        
-        {/* Secondary value */}
-        {isRevenue && data.count !== undefined && (
-          <div className="mt-1 text-xs text-muted-foreground">
-            {sessionCount} session{data.count !== 1 ? 's' : ''}
-          </div>
-        )}
-        
-        {/* Percentage change if available */}
-        {percentChange !== undefined && (
-          <div className={`mt-1.5 text-xs flex items-center ${getTrendColor(percentChange)}`}>
-            {getTrendIcon(percentChange)}
-            <span className="ml-1">{formatPercentChange(percentChange)} from previous period</span>
-          </div>
+      <div className="bg-background/95 p-2 border rounded-lg shadow-md text-xs">
+        <p className="font-medium">{formattedDate}</p>
+        <p className="font-semibold text-primary">
+          {formatCurrency(payload[0].value)}
+        </p>
+        {payload[0].payload.count !== undefined && (
+          <p className="text-xs text-muted-foreground">
+            {formatNumberWithCommas(payload[0].payload.count)} session{payload[0].payload.count !== 1 ? 's' : ''}
+          </p>
         )}
       </div>
     );
@@ -330,9 +236,9 @@ export function AppointmentAnalytics() {
   const formatYAxis = (value: any, index: number): string => {
     const numValue = Number(value);
     if (displayType === 'revenue') {
-      return formatCurrency(numValue, true); // Use our enhanced currency format with k suffix
+      return numValue > 1000 ? `$${Math.round(numValue/1000)}k` : `$${numValue}`;
     }
-    return formatNumberWithCommas(numValue); // Use comma formatting for session counts
+    return String(value);
   };
   
   // Get title based on display type
@@ -444,68 +350,24 @@ export function AppointmentAnalytics() {
                   tick={{ fontSize: 9, dy: 2 }} // Adjust font size and vertical position
                   tickLine={false}
                   axisLine={false}
-                  height={35} // Increase height to accommodate all labels
-                  interval={selectedTimeFrame === 'weekly' ? 1 : 0} // Show fewer ticks for weekly data
-                  angle={selectedTimeFrame === 'weekly' ? -15 : 0} // Angle text for weekly views
+                  height={30} // Increase height to accommodate all labels
+                  interval={0} // Force display of all ticks
                   tickFormatter={(value) => formatDateByTimeframe(value, selectedTimeFrame)}
                 />
-                <YAxis 
-                  width={40}
-                  tickLine={false}
-                  axisLine={false}
-                  tick={{ fontSize: 9 }}
-                  tickFormatter={formatYAxis}
-                  tickCount={5}
-                  domain={['auto', 'auto']}
-                />
+                {/* YAxis removed as requested */}
                 <Tooltip 
                   content={<CustomTooltip selectedTimeFrame={selectedTimeFrame} />} 
-                  formatter={(value) => {
-                    if (displayType === 'revenue') {
-                      return formatCurrency(Number(value));
-                    }
-                    return formatNumberWithCommas(Number(value));
-                  }}
+                  formatter={(value) => formatCurrency(Number(value))}
                   labelFormatter={(label) => formatDateByTimeframe(String(label), selectedTimeFrame)}
                 />
-                {/* Add area fill for better visual appeal */}
-                <defs>
-                  <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#2563EB" stopOpacity={0.2}/>
-                    <stop offset="95%" stopColor="#2563EB" stopOpacity={0}/>
-                  </linearGradient>
-                </defs>
-                
-                {/* Use area under the line for revenue charts */}
-                {displayType === 'revenue' && (
-                  <Area
-                    type="monotone"
-                    dataKey={dataKey}
-                    stroke="none"
-                    fillOpacity={1}
-                    fill="url(#colorRevenue)"
-                    activeDot={false}
-                  />
-                )}
-                
-                {/* Main data line */}
                 <Line
                   type="monotone"
                   dataKey={dataKey}
                   name={`${getTimeframeTitle(selectedTimeFrame)} ${displayType === 'revenue' ? 'Revenue' : 'Sessions'}`}
                   stroke="#2563EB"
                   strokeWidth={2}
-                  dot={{ 
-                    r: 3,
-                    fill: "#ffffff",
-                    strokeWidth: 1.5
-                  }}
-                  activeDot={{ 
-                    r: 5, 
-                    stroke: "#ffffff", 
-                    strokeWidth: 1.5,
-                    fill: "#2563EB"
-                  }}
+                  dot={{ r: 3 }}
+                  activeDot={{ r: 5, strokeWidth: 0 }}
                 />
               </LineChart>
             </ResponsiveContainer>
