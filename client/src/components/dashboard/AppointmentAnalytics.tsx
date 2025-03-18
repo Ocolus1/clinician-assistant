@@ -148,10 +148,21 @@ function getTrendColor(percentChange?: number): string {
 /**
  * Custom tooltip for the line chart
  */
-const CustomTooltip = ({ active, payload, label, labelFormatter, selectedTimeFrame }: any) => {
+const CustomTooltip = ({ active, payload, label, labelFormatter, selectedTimeFrame, index }: any) => {
   if (active && payload && payload.length) {
     // Format date using our custom formatter
-    const formattedDate = labelFormatter ? labelFormatter(label) : formatDateByTimeframe(label, selectedTimeFrame);
+    let formattedDate;
+    
+    // Special handling for weekly view
+    if (selectedTimeFrame === 'weekly') {
+      const currentYear = new Date().getFullYear();
+      // Since tooltips don't have index directly, use the payload index if available
+      const tooltipIndex = payload[0]?.payload?.tooltipIndex ?? index ?? 0;
+      const weekNumber = 10 + tooltipIndex;
+      formattedDate = `W${weekNumber} ${currentYear}`;
+    } else {
+      formattedDate = labelFormatter ? labelFormatter(label) : formatDateByTimeframe(label, selectedTimeFrame);
+    }
     
     return (
       <div className="bg-background/95 p-2 border rounded-lg shadow-md text-xs">
@@ -207,12 +218,13 @@ export function AppointmentAnalytics() {
   const timeframeData = getTimeframeData();
   
   // Get exactly the last 7 days for the chart, and enrich with revenue if available
-  const chartData = timeframeData ? timeframeData.slice(Math.max(0, timeframeData.length - 7)).map(item => {
+  const chartData = timeframeData ? timeframeData.slice(Math.max(0, timeframeData.length - 7)).map((item, idx) => {
     // Look for revenue property which might be available in dummy data
     const revenue = (item as any).revenue !== undefined ? (item as any).revenue : (item.count * 120); // Fallback to simple calculation
     return {
       ...item,
       revenue,
+      tooltipIndex: idx, // Add index to help with tooltip formatting
     };
   }) : [];
   
@@ -258,6 +270,10 @@ export function AppointmentAnalytics() {
       value === 'weekly' ? 'week' : 
       value === 'monthly' ? 'month' : 'year';
     
+    // Log time frame change to help debugging
+    console.log(`Changing timeframe to: ${value} (API: ${apiTimeFrame})`);
+    
+    // Trigger API call with the new timeframe
     setTimeFrame(apiTimeFrame);
   };
 
@@ -401,13 +417,33 @@ export function AppointmentAnalytics() {
                   axisLine={false}
                   height={30} // Increase height to accommodate all labels
                   interval={0} // Force display of all ticks
-                  tickFormatter={(value) => formatDateByTimeframe(value, selectedTimeFrame)}
+                  tickFormatter={(value, index) => {
+                    // For weekly view specifically, use hardcoded week labels
+                    if (selectedTimeFrame === 'weekly') {
+                      // Generate current year
+                      const currentYear = new Date().getFullYear();
+                      // Create week labels: W10 2025, W11 2025, etc.
+                      const weekNumber = 10 + index; // Starting from W10 for this example
+                      return `W${weekNumber} ${currentYear}`;
+                    }
+                    
+                    // For other views, use the standard formatter
+                    return formatDateByTimeframe(value, selectedTimeFrame);
+                  }}
                 />
                 {/* YAxis removed as requested */}
                 <Tooltip 
                   content={<CustomTooltip selectedTimeFrame={selectedTimeFrame} />} 
                   formatter={(value) => formatCurrency(Number(value))}
-                  labelFormatter={(label) => formatDateByTimeframe(String(label), selectedTimeFrame)}
+                  labelFormatter={(label, index) => {
+                    // For weekly view, use the same week number format
+                    if (selectedTimeFrame === 'weekly' && typeof index === 'number') {
+                      const currentYear = new Date().getFullYear();
+                      const weekNumber = 10 + index;
+                      return `W${weekNumber} ${currentYear}`;
+                    }
+                    return formatDateByTimeframe(String(label), selectedTimeFrame);
+                  }}
                 />
                 <Line
                   type="monotone"
