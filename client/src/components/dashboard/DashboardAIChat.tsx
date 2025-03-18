@@ -149,93 +149,95 @@ export function DashboardAIChat() {
   };
 
   return (
-    <Card className="h-full">
-      <CardHeader className="p-3 border-b flex flex-row items-center space-y-0 gap-2">
-        <Avatar className="h-8 w-8 bg-primary">
+    <Card className="h-full flex flex-col">
+      <CardHeader className="p-2 border-b flex flex-row items-center space-y-0 gap-2 flex-shrink-0">
+        <Avatar className="h-7 w-7 bg-primary">
           <Bot className="h-4 w-4 text-white" />
         </Avatar>
         <CardTitle className="text-base">Practice Assistant</CardTitle>
-        <Badge variant="outline" className="ml-2 bg-primary/10">AI</Badge>
+        <Badge variant="outline" className="ml-1 bg-primary/10 text-xs">AI</Badge>
         
         <div className="flex-grow"></div>
         
-        <Button variant="ghost" size="icon" onClick={toggleMinimized} className="h-8 w-8">
+        <Button variant="ghost" size="icon" onClick={toggleMinimized} className="h-7 w-7">
           {isMinimized ? <Maximize2 className="h-4 w-4" /> : <Minimize2 className="h-4 w-4" />}
         </Button>
       </CardHeader>
       
       {!isMinimized ? (
         <>
-          <ScrollArea ref={scrollAreaRef} className="flex-1 p-4 h-[calc(100%-110px)]">
-            <div className="space-y-4">
-              {messages.map((message) => (
-                <div
-                  key={message.id}
-                  className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                >
-                  <div className={`max-w-[80%] flex ${message.role === 'user' ? 'flex-row-reverse' : 'flex-row'} items-start gap-2`}>
-                    <Avatar className={`h-6 w-6 ${message.role === 'user' ? 'bg-blue-500' : 'bg-primary'}`}>
-                      {message.role === 'user' ? (
-                        <User className="h-3 w-3 text-white" />
-                      ) : (
-                        <Bot className="h-3 w-3 text-white" />
-                      )}
-                    </Avatar>
-                    
-                    <div
-                      className={`rounded-lg px-3 py-2 ${
-                        message.role === 'user'
-                          ? 'bg-primary text-primary-foreground'
-                          : 'bg-muted'
-                      }`}
-                    >
-                      <p className="text-sm">{message.content}</p>
-                      <span className="text-xs opacity-70 block mt-1">
-                        {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </span>
+          <div className="flex-grow overflow-hidden flex flex-col">
+            <ScrollArea ref={scrollAreaRef} className="flex-grow px-3 py-2">
+              <div className="space-y-3">
+                {messages.map((message) => (
+                  <div
+                    key={message.id}
+                    className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                  >
+                    <div className={`max-w-[85%] flex ${message.role === 'user' ? 'flex-row-reverse' : 'flex-row'} items-start gap-1.5`}>
+                      <Avatar className={`h-5 w-5 ${message.role === 'user' ? 'bg-blue-500' : 'bg-primary'}`}>
+                        {message.role === 'user' ? (
+                          <User className="h-3 w-3 text-white" />
+                        ) : (
+                          <Bot className="h-3 w-3 text-white" />
+                        )}
+                      </Avatar>
+                      
+                      <div
+                        className={`rounded-lg px-2.5 py-1.5 ${
+                          message.role === 'user'
+                            ? 'bg-primary text-primary-foreground'
+                            : 'bg-muted'
+                        }`}
+                      >
+                        <p className="text-xs leading-normal">{message.content}</p>
+                        <span className="text-[10px] opacity-70 block mt-0.5">
+                          {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          </ScrollArea>
-          
-          {messages.length === 1 && (
-            <div className="px-4 py-2">
-              <p className="text-xs text-muted-foreground mb-2">Suggested questions:</p>
-              <div className="flex flex-wrap gap-2">
-                {SUGGESTIONS.map((suggestion) => (
-                  <Badge
-                    key={suggestion}
-                    variant="outline"
-                    className="cursor-pointer hover:bg-primary/10 text-xs"
-                    onClick={() => handleSuggestionClick(suggestion)}
-                  >
-                    {suggestion}
-                  </Badge>
                 ))}
               </div>
-            </div>
-          )}
+            </ScrollArea>
+            
+            {messages.length === 1 && (
+              <div className="px-3 py-1.5 flex-shrink-0 border-t">
+                <p className="text-[10px] text-muted-foreground mb-1.5">Suggested questions:</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {SUGGESTIONS.map((suggestion) => (
+                    <Badge
+                      key={suggestion}
+                      variant="outline"
+                      className="cursor-pointer hover:bg-primary/10 text-[10px] py-0.5"
+                      onClick={() => handleSuggestionClick(suggestion)}
+                    >
+                      {suggestion}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
           
-          <CardContent className="p-3 pt-2 border-t mt-auto">
-            <div className="flex items-center gap-2">
+          <CardContent className="p-2 border-t flex-shrink-0">
+            <div className="flex items-center gap-1.5">
               <Input
                 ref={inputRef}
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
                 placeholder="Type a message..."
-                className="flex-1"
+                className="flex-1 h-8 text-xs"
               />
               <Button size="icon" onClick={handleSendMessage} disabled={!input.trim()} className="h-8 w-8">
-                <Send className="h-4 w-4" />
+                <Send className="h-3.5 w-3.5" />
               </Button>
             </div>
           </CardContent>
         </>
       ) : (
-        <CardContent className="p-3 flex items-center justify-center h-[calc(100%-56px)] text-muted-foreground">
+        <CardContent className="p-2 flex items-center justify-center flex-grow text-muted-foreground text-xs">
           Chat minimized
         </CardContent>
       )}

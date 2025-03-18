@@ -101,18 +101,18 @@ export function UpcomingTasksTimeline() {
   const totalOther = getTotalTasks('other');
 
   return (
-    <Card className="h-full">
-      <CardHeader className="pb-3">
+    <Card className="h-full flex flex-col">
+      <CardHeader className="pb-2 flex-shrink-0">
         <CardTitle>Upcoming Tasks</CardTitle>
         <CardDescription>
           6-month forecast of scheduled tasks
         </CardDescription>
       </CardHeader>
       
-      <CardContent className="p-4">
-        <div className="grid grid-rows-[auto_1fr] gap-4 h-full">
+      <CardContent className="p-2 flex-grow overflow-auto">
+        <div className="flex flex-col h-full gap-2">
           {/* Task categories summary */}
-          <div className="grid grid-cols-4 gap-2">
+          <div className="grid grid-cols-4 gap-1 flex-shrink-0">
             <TaskCategorySummary 
               type="reports"
               count={totalReports}
@@ -136,34 +136,34 @@ export function UpcomingTasksTimeline() {
           </div>
           
           {/* Tasks timeline chart */}
-          <Card>
-            <CardContent className="p-3">
+          <Card className="flex-grow flex flex-col">
+            <CardContent className="p-1 flex-grow overflow-hidden">
               {isLoading ? (
                 <Skeleton className="w-full h-full" />
               ) : (
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart
                     data={stackedData}
-                    margin={{ top: 5, right: 0, left: 0, bottom: 15 }}
-                    barSize={14}
+                    margin={{ top: 5, right: 5, left: 0, bottom: 10 }}
+                    barSize={10}
                   >
                     <XAxis 
                       dataKey="month" 
-                      tick={{ fontSize: 10 }}
+                      tick={{ fontSize: 9 }}
                       tickLine={false}
                       axisLine={false}
                     />
                     <YAxis
-                      tick={{ fontSize: 10 }}
-                      width={25}
+                      tick={{ fontSize: 9 }}
+                      width={20}
                       tickLine={false}
                       axisLine={false}
                     />
                     <Tooltip />
                     <Legend 
-                      iconSize={8}
+                      iconSize={6}
                       iconType="circle"
-                      wrapperStyle={{ fontSize: '10px' }}
+                      wrapperStyle={{ fontSize: '9px', marginTop: '2px' }}
                     />
                     <Bar 
                       dataKey="reports" 
