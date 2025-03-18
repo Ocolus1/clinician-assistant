@@ -140,8 +140,10 @@ export function MagicLampChat() {
   };
   
   // Handler for sending a message
-  const handleSendMessage = (customMessage?: string) => {
-    const messageText = customMessage || input;
+  const handleSendMessage = (customMessage?: string | React.MouseEvent<HTMLButtonElement>) => {
+    // If we received a MouseEvent, ignore it and use the input field value
+    let messageText = typeof customMessage === 'string' ? customMessage : input;
+    
     if (!messageText.trim()) return;
     
     // Add the user message
@@ -366,7 +368,10 @@ export function MagicLampChat() {
                               <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={() => handleQuickAction(action)}
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  handleQuickAction(action);
+                                }}
                                 className="bg-gradient-to-r from-amber-900/30 to-amber-800/20 border border-amber-500/30 
                                            text-amber-100 hover:text-white hover:bg-amber-700/30 hover:border-amber-400/40
                                            transition-all duration-200"
@@ -432,7 +437,7 @@ export function MagicLampChat() {
                 />
                 <Button 
                   size="icon" 
-                  onClick={handleSendMessage} 
+                  onClick={() => handleSendMessage()} 
                   disabled={!input.trim()} 
                   className={`h-10 w-10 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-white shadow-md shadow-amber-900/20 transition-all duration-300 disabled:opacity-50 ${!input.trim() ? 'opacity-50' : 'opacity-100'}`}
                 >
