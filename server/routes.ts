@@ -13,7 +13,8 @@ import {
   insertSessionSchema,
   insertSessionNoteSchema,
   insertPerformanceAssessmentSchema,
-  insertMilestoneAssessmentSchema
+  insertMilestoneAssessmentSchema,
+  insertStrategySchema
 } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -1234,6 +1235,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error(`Error getting strategy ${req.params.id}:`, error);
       res.status(500).json({ error: "Failed to get strategy" });
+    }
+  });
+  
+  app.post("/api/strategies", async (req, res) => {
+    console.log("POST /api/strategies - Creating a new strategy");
+    try {
+      const validatedData = insertStrategySchema.parse(req.body);
+      const newStrategy = await storage.createStrategy(validatedData);
+      res.status(201).json(newStrategy);
+    } catch (error) {
+      console.error("Error creating strategy:", error);
+      res.status(400).json({ error: "Failed to create strategy", details: error.message });
+    }
+  });
+  
+  app.put("/api/strategies/:id", async (req, res) => {
+    console.log(`PUT /api/strategies/${req.params.id} - Updating strategy`);
+    try {
+      const strategyId = parseInt(req.params.id);
+      const validatedData = insertStrategySchema.parse(req.body);
+      const updatedStrategy = await storage.updateStrategy(strategyId, validatedData);
+      res.json(updatedStrategy);
+    } catch (error) {
+      console.error(`Error updating strategy ${req.params.id}:`, error);
+      res.status(400).json({ error: "Failed to update strategy", details: error.message });
+    }
+  });
+  
+  app.delete("/api/strategies/:id", async (req, res) => {
+    console.log(`DELETE /api/strategies/${req.params.id} - Deleting strategy`);
+    try {
+      const strategyId = parseInt(req.params.id);
+      await storage.deleteStrategy(strategyId);
+      res.json({ success: true, message: "Strategy deleted successfully" });
+    } catch (error) {
+      console.error(`Error deleting strategy ${req.params.id}:`, error);
+      res.status(500).json({ error: "Failed to delete strategy" });
     }
   });
 

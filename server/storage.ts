@@ -10,7 +10,7 @@ import {
   SessionNote, InsertSessionNote,
   PerformanceAssessment, InsertPerformanceAssessment,
   MilestoneAssessment, InsertMilestoneAssessment,
-  Strategy,
+  Strategy, InsertStrategy,
   clients, allies, goals, subgoals, budgetItems, budgetSettings, budgetItemCatalog, sessions,
   sessionNotes, performanceAssessments, milestoneAssessments, strategies
 } from "@shared/schema";
@@ -30,6 +30,14 @@ export interface IStorage {
   getAlliesByClient(clientId: number): Promise<Ally[]>;
   updateAlly(id: number, ally: InsertAlly): Promise<Ally>; // Added updateAlly function
   deleteAlly(id: number): Promise<void>; // Added deleteAlly function
+  
+  // Strategies
+  getAllStrategies(): Promise<Strategy[]>;
+  getStrategyById(id: number): Promise<Strategy | undefined>;
+  getStrategiesByCategory(category: string): Promise<Strategy[]>;
+  createStrategy(strategy: InsertStrategy): Promise<Strategy>;
+  updateStrategy(id: number, strategy: Partial<InsertStrategy>): Promise<Strategy>;
+  deleteStrategy(id: number): Promise<void>;
 
   // Goals
   createGoal(clientId: number, goal: InsertGoal): Promise<Goal>;
@@ -1117,6 +1125,54 @@ export class DBStorage implements IStorage {
       return categoryStrategies;
     } catch (error) {
       console.error(`Error getting strategies for category ${category}:`, error);
+      throw error;
+    }
+  }
+  
+  async createStrategy(strategy: InsertStrategy): Promise<Strategy> {
+    console.log(`Creating strategy:`, JSON.stringify(strategy));
+    try {
+      const [newStrategy] = await db.insert(strategies)
+        .values(strategy)
+        .returning();
+      
+      console.log(`Successfully created strategy with ID ${newStrategy.id}`);
+      return newStrategy;
+    } catch (error) {
+      console.error("Error creating strategy:", error);
+      throw error;
+    }
+  }
+  
+  async updateStrategy(id: number, strategy: Partial<InsertStrategy>): Promise<Strategy> {
+    console.log(`Updating strategy with ID ${id}:`, JSON.stringify(strategy));
+    try {
+      const [updatedStrategy] = await db.update(strategies)
+        .set(strategy)
+        .where(eq(strategies.id, id))
+        .returning();
+      
+      if (!updatedStrategy) {
+        console.error(`Strategy with ID ${id} not found`);
+        throw new Error("Strategy not found");
+      }
+      
+      console.log(`Successfully updated strategy with ID ${id}`);
+      return updatedStrategy;
+    } catch (error) {
+      console.error(`Error updating strategy with ID ${id}:`, error);
+      throw error;
+    }
+  }
+  
+  async deleteStrategy(id: number): Promise<void> {
+    console.log(`Deleting strategy with ID ${id}`);
+    try {
+      await db.delete(strategies)
+        .where(eq(strategies.id, id));
+      console.log(`Successfully deleted strategy with ID ${id}`);
+    } catch (error) {
+      console.error(`Error deleting strategy with ID ${id}:`, error);
       throw error;
     }
   }
