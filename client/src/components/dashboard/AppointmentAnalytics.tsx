@@ -19,8 +19,16 @@ import { Badge } from '@/components/ui/badge';
 
 /**
  * Helper function to format currency
+ * For larger numbers (>1000), we can optionally use the k suffix for thousands
  */
-function formatCurrency(value: number): string {
+function formatCurrency(value: number, useKSuffix = false): string {
+  // For compact display on charts
+  if (useKSuffix && value >= 1000) {
+    const inThousands = value / 1000;
+    return `$${inThousands.toFixed(inThousands < 10 ? 1 : 0)}k`;
+  }
+  
+  // Standard currency format
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: 'USD',
@@ -34,16 +42,73 @@ function formatCurrency(value: number): string {
  */
 function formatDateByTimeframe(dateStr: string, timeframe: 'daily' | 'weekly' | 'monthly' | 'yearly'): string {
   try {
+    // First check if the date string is valid
+    if (!dateStr || dateStr === 'Invalid Date' || dateStr === 'NaN') {
+      return 'N/A';
+    }
+    
+    // Special handling for weekly periods which come in "YYYY-MM-DD to YYYY-MM-DD" format
+    if (timeframe === 'weekly' && dateStr.includes('to')) {
+      try {
+        // Extract the start date of the week
+        const [startDateStr] = dateStr.split(' to ');
+        const startDate = new Date(startDateStr);
+        
+        if (!isNaN(startDate.getTime())) {
+          // Get the week number 
+          const firstDayOfYear = new Date(startDate.getFullYear(), 0, 1);
+          const pastDaysOfYear = Math.floor((startDate.getTime() - firstDayOfYear.getTime()) / 86400000);
+          const weekNum = Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7);
+          
+          if (!isNaN(weekNum) && weekNum >= 1 && weekNum <= 53) {
+            return `W${weekNum}-${startDate.getFullYear()}`;
+          }
+          
+          // Alternatively, format as "Week of Month Day"
+          return `Week of ${startDate.getDate()} ${startDate.toLocaleString('default', { month: 'short' })}`;
+        }
+        
+        // Just return the date range in a more readable format
+        return dateStr.replace('to', '-');
+      } catch (e) {
+        // Return a cleaner version of the date range
+        return dateStr.replace('to', '-');
+      }
+    }
+    
     const date = new Date(dateStr);
+    
+    // Check if the date is valid after parsing
+    if (isNaN(date.getTime())) {
+      return 'N/A';
+    }
+    
     switch (timeframe) {
       case 'daily':
         return `${date.getDate()} ${date.toLocaleString('default', { month: 'short' })} ${date.getFullYear()}`;
       case 'weekly':
-        // Extract week number (simple calculation, may need refinement)
-        const firstDayOfYear = new Date(date.getFullYear(), 0, 1);
-        const pastDaysOfYear = (date.getTime() - firstDayOfYear.getTime()) / 86400000;
-        const weekNum = Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7);
-        return `W${weekNum}-${date.getFullYear()}`;
+        try {
+          // Extract week number using a safer calculation
+          const firstDayOfYear = new Date(date.getFullYear(), 0, 1);
+          const pastDaysOfYear = Math.floor((date.getTime() - firstDayOfYear.getTime()) / 86400000);
+          
+          // Guard against invalid calculations
+          if (isNaN(pastDaysOfYear)) {
+            return `Week of ${date.toLocaleString('default', { month: 'short' })} ${date.getFullYear()}`;
+          }
+          
+          const weekNum = Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7);
+          
+          // Additional validation
+          if (isNaN(weekNum) || weekNum < 1 || weekNum > 53) {
+            return `Week of ${date.toLocaleString('default', { month: 'short' })} ${date.getFullYear()}`;
+          }
+          
+          return `W${weekNum}-${date.getFullYear()}`;
+        } catch (weekError) {
+          // Fallback for weekly format
+          return `Week of ${date.toLocaleString('default', { month: 'short' })} ${date.getFullYear()}`;
+        }
       case 'monthly':
         return `${date.toLocaleString('default', { month: 'short' })} ${date.getFullYear()}`;
       case 'yearly':
@@ -52,7 +117,8 @@ function formatDateByTimeframe(dateStr: string, timeframe: 'daily' | 'weekly' | 
         return dateStr;
     }
   } catch (e) {
-    return dateStr;
+    // Return a nicer fallback
+    return 'N/A';
   }
 }
 
@@ -350,8 +416,9 @@ export function AppointmentAnalytics() {
                   tick={{ fontSize: 9, dy: 2 }} // Adjust font size and vertical position
                   tickLine={false}
                   axisLine={false}
-                  height={30} // Increase height to accommodate all labels
-                  interval={0} // Force display of all ticks
+                  height={35} // Increase height to accommodate all labels
+                  interval={selectedTimeFrame === 'weekly' ? 1 : 0} // Show fewer ticks for weekly data
+                  angle={selectedTimeFrame === 'weekly' ? -15 : 0} // Angle text for weekly views
                   tickFormatter={(value) => formatDateByTimeframe(value, selectedTimeFrame)}
                 />
                 {/* YAxis removed as requested */}
