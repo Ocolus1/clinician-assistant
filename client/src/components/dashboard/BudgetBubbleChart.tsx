@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
-import { AlertCircle, DollarSign, Banknote, Hourglass, CalendarRange, Filter } from 'lucide-react';
+import { AlertCircle, DollarSign, Banknote, Hourglass, CalendarRange, Filter, CircleDollarSign } from 'lucide-react';
 import { useDashboard } from './DashboardProvider';
 import { Button } from '@/components/ui/button';
 import { useLocation } from 'wouter';
@@ -21,6 +21,7 @@ import {
   Legend,
   CartesianGrid,
   Cell,
+  ReferenceLine,
 } from 'recharts';
 
 /**
@@ -56,6 +57,7 @@ function getPriorityFromMonths(months: number): BudgetPriority {
 
 /**
  * Custom tooltip component for the bubble chart
+ * Enhanced to show more detailed information about budget plans
  */
 const CustomTooltip = ({ active, payload }: any) => {
   if (active && payload && payload.length) {
@@ -77,13 +79,13 @@ const CustomTooltip = ({ active, payload }: any) => {
         </div>
         <p className="text-xs text-muted-foreground">Plan: {data.planName}</p>
         <p className="text-xs font-medium mt-1">
-          <span className="text-primary">Amount: {formatCurrency(data.amount)}</span>
+          <span className="text-primary">Budget: {formatCurrency(data.amount)}</span>
         </p>
-        <p className="text-xs">Expires: {data.expiryDate}</p>
+        <p className="text-xs">Expires: {data.expiryMonth}</p>
         <p className="text-xs mt-2 text-muted-foreground">
           <span className="inline-flex items-center">
             <CalendarRange className="h-3 w-3 mr-1 opacity-70" />
-            {data.x <= 1 ? 'This month' : `In ${data.x} months`}
+            {data.expiryDate}
           </span>
         </p>
       </div>
@@ -100,10 +102,12 @@ type VisualizationMethod = 'bubble' | 'scatter';
 
 /**
  * Budget Bubble Chart Component
- * Displays budget information as an interactive bubble chart
- * - X-axis: Date/Time (months until expiration)
- * - Y-axis: Dollar amount
- * - Bubble size: Budget value
+ * 
+ * ENHANCED VISUALIZATION:
+ * - X-axis: Calendar months (Mar 2025, Apr 2025, etc.)
+ * - Bubble size: Represents budget amount ($1000 as base unit)
+ * - Y-axis: Vertical jitter to prevent overlap
+ * - Color coding: Maintains existing priority colors
  */
 export function BudgetBubbleChart() {
   const { dashboardData, loadingState, dataSource } = useDashboard();
@@ -116,6 +120,29 @@ export function BudgetBubbleChart() {
   
   const expiringCount = budgetData?.expiringNextMonth.count || 0;
   const expiringClients = budgetData?.expiringNextMonth.byClient || [];
+  
+  // Constants for chart visualization
+  const BUBBLE_SIZE_UNIT = 1000; // $1000 maps to basic bubble size unit
+  const MIN_BUBBLE_SIZE = 30; // Minimum size for very small budgets
+  const MAX_BUBBLE_SIZE = 300; // Maximum size for very large budgets
+  const JITTER_RANGE = 50; // Range for vertical jitter to prevent overlap
+  
+  // Generate month labels for X-axis (next 6 months)
+  const monthLabels = useMemo(() => {
+    const labels = [];
+    const now = new Date();
+    
+    for (let i = 0; i < 6; i++) {
+      const date = new Date(now);
+      date.setMonth(now.getMonth() + i);
+      labels.push({
+        value: i,
+        label: date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+      });
+    }
+    
+    return labels;
+  }, []);
   
   // Transform the data into a format suitable for a bubble chart
   const bubbleChartData = useMemo(() => {
@@ -133,23 +160,37 @@ export function BudgetBubbleChart() {
           : null;
         
         // Calculate an estimated amount for this client based on total first month amount
-        // This distributes the total amount across plans proportionally
         const estimatedAmount = firstMonthData 
           ? firstMonthData.amount / Math.max(firstMonthData.planCount, 1) 
           : 10000; // Fallback value if no data
         
         const priority: BudgetPriority = 'critical';
-          
+        
+        // Calculate bubble size based on amount with min/max constraints
+        // $1000 = 1 size unit, with minimum for visibility
+        const bubbleSize = Math.max(
+          MIN_BUBBLE_SIZE, 
+          Math.min(MAX_BUBBLE_SIZE, (estimatedAmount / BUBBLE_SIZE_UNIT) * 40)
+        );
+        
+        // Apply vertical jitter to prevent overlap
+        const jitter = Math.random() * JITTER_RANGE;
+        
+        // Current month's formatted name
+        const now = new Date();
+        const monthName = now.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+        
         allPlans.push({
-          x: 1, // Position on the x-axis (1 month until expiration)
-          y: estimatedAmount, // Budget amount on y-axis
-          z: estimatedAmount, // Size of the bubble (represents budget value)
+          x: 0, // Position on the x-axis (first month)
+          y: jitter, // Random vertical position for jitter
+          z: bubbleSize, // Size of the bubble (represents budget value)
           amount: estimatedAmount, // The actual budget amount
           clientName: client.clientName,
           planName: client.planName || 'Default Plan',
           clientId: client.clientId,
           planId: client.planId,
-          expiryDate: 'Next Month',
+          expiryMonth: monthName,
+          expiryDate: 'This month',
           priority,
           color: PRIORITY_COLORS[priority],
         });
@@ -160,18 +201,21 @@ export function BudgetBubbleChart() {
     if (budgetData.remainingFunds && budgetData.remainingFunds.length > 0) {
       // Use server-provided data about plans expiring in future months
       budgetData.remainingFunds.forEach((item, index) => {
-        // For months beyond the first month, we add bubbles based on the aggregate data
-        const monthsFromNow = index + 1;
+        // Skip if beyond our 6-month display window
+        if (index >= 6) return;
+        
+        // Get month name for this data point
         const date = new Date();
-        date.setMonth(date.getMonth() + monthsFromNow);
+        date.setMonth(date.getMonth() + index);
+        const monthName = date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
         const formattedDate = date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
         
-        // If this is month 1 and we've already processed expiring clients, skip
+        // If this is month 0 and we've already processed expiring clients, skip
         // Otherwise we'd double-count the first month
         if (index === 0 && expiringClients.length > 0) return;
         
         // Determine priority based on timeline
-        const priority = getPriorityFromMonths(monthsFromNow);
+        const priority = getPriorityFromMonths(index + 1);
         
         // Calculate average amount per plan for this month
         const avgAmount = item.amount / Math.max(item.planCount, 1);
@@ -179,12 +223,21 @@ export function BudgetBubbleChart() {
         // Create bubbles representing plans for this month
         // If we have multiple plans in a month, create separate bubbles
         if (item.planCount > 1) {
-          // Create individual bubbles for each plan, with varying sizes around the average
+          // Create individual bubbles for each plan
           for (let i = 0; i < item.planCount; i++) {
             // Vary bubble sizes slightly around the average to create visual interest
             // Uses a variance of ±20% around the average
             const variance = 0.8 + (Math.random() * 0.4); // 0.8 to 1.2
             const planAmount = avgAmount * variance;
+            
+            // Calculate bubble size based on amount
+            const bubbleSize = Math.max(
+              MIN_BUBBLE_SIZE, 
+              Math.min(MAX_BUBBLE_SIZE, (planAmount / BUBBLE_SIZE_UNIT) * 40)
+            );
+            
+            // Apply vertical jitter to prevent overlap
+            const jitter = Math.random() * JITTER_RANGE;
             
             // For dummy data mode, generate some actual client names
             const clientName = dataSource === 'dummy' 
@@ -197,20 +250,21 @@ export function BudgetBubbleChart() {
               : `Expiring ${formattedDate}`;
             
             allPlans.push({
-              x: monthsFromNow, // Months from now (x-axis position)
-              y: planAmount, // Dollar amount (y-axis position)
-              z: planAmount, // Budget size (controls bubble size)
+              x: index, // Month index (x-axis position)
+              y: jitter, // Vertical jitter position
+              z: bubbleSize, // Bubble size (proportional to budget amount)
               amount: planAmount, 
               clientName: clientName, 
               planName: planType,
               clientId: null, // We don't have specific client IDs here
               planId: null, // We don't have specific plan IDs here
-              expiryDate: formattedDate,
+              expiryMonth: monthName,
+              expiryDate: index === 0 ? 'This month' : `In ${index + 1} month${index > 0 ? 's' : ''}`,
               priority,
               color: PRIORITY_COLORS[priority],
             });
           }
-        } else {
+        } else if (item.planCount === 1) {
           // Just one plan this month, create a single bubble
           const clientName = dataSource === 'dummy'
             ? ['Edwards Family', 'Garcia Support', 'Miller Care', 'Davis Plan', 'Wilson Therapy'][index % 5]
@@ -219,17 +273,27 @@ export function BudgetBubbleChart() {
           const planType = dataSource === 'dummy'
             ? ['Annual Care Plan', 'Quarterly Support', 'Family Package', 'Standard Plan', 'Premium Care'][Math.floor(Math.random() * 5)]
             : `Expiring ${formattedDate}`;
+          
+          // Calculate bubble size based on amount
+          const bubbleSize = Math.max(
+            MIN_BUBBLE_SIZE, 
+            Math.min(MAX_BUBBLE_SIZE, (item.amount / BUBBLE_SIZE_UNIT) * 40)
+          );
+          
+          // Apply vertical jitter to prevent overlap
+          const jitter = Math.random() * JITTER_RANGE;
             
           allPlans.push({
-            x: monthsFromNow,
-            y: item.amount,
-            z: item.amount,
+            x: index,
+            y: jitter,
+            z: bubbleSize,
             amount: item.amount,
             clientName,
             planName: planType,
             clientId: null,
             planId: null,
-            expiryDate: formattedDate,
+            expiryMonth: monthName,
+            expiryDate: index === 0 ? 'This month' : `In ${index + 1} month${index > 0 ? 's' : ''}`,
             priority,
             color: PRIORITY_COLORS[priority],
           });
@@ -242,23 +306,35 @@ export function BudgetBubbleChart() {
       // Add a few more plans with varying sizes and dates if we don't have enough
       const additionalPlans = [];
       for (let i = 0; i < 10; i++) {
-        const monthsFromNow = Math.floor(Math.random() * 12) + 1;
+        const monthIndex = Math.floor(Math.random() * 6); // 0-5 months
         const amount = 5000 + Math.random() * 20000;
+        
+        // Calculate bubble size based on amount
+        const bubbleSize = Math.max(
+          MIN_BUBBLE_SIZE, 
+          Math.min(MAX_BUBBLE_SIZE, (amount / BUBBLE_SIZE_UNIT) * 40)
+        );
+        
+        // Apply vertical jitter to prevent overlap
+        const jitter = Math.random() * JITTER_RANGE;
+        
         const date = new Date();
-        date.setMonth(date.getMonth() + monthsFromNow);
+        date.setMonth(date.getMonth() + monthIndex);
+        const monthName = date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
         const formattedDate = date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-        const priority = getPriorityFromMonths(monthsFromNow);
+        const priority = getPriorityFromMonths(monthIndex + 1);
         
         additionalPlans.push({
-          x: monthsFromNow,
-          y: amount,
-          z: amount,
+          x: monthIndex,
+          y: jitter,
+          z: bubbleSize,
           amount,
           clientName: ['Thompson Family', 'Lee Support', 'Walker Plan', 'Hall Care', 'Young Family'][i % 5],
           planName: ['Basic Package', 'Enhanced Care', 'Standard Support', 'Premium Plan', 'Child Development'][i % 5],
           clientId: null,
           planId: null,
-          expiryDate: formattedDate,
+          expiryMonth: monthName,
+          expiryDate: monthIndex === 0 ? 'This month' : `In ${monthIndex + 1} month${monthIndex > 0 ? 's' : ''}`,
           priority,
           color: PRIORITY_COLORS[priority],
         });
@@ -332,9 +408,6 @@ export function BudgetBubbleChart() {
   const handleVisualizationChange = (value: string) => {
     setVisualization(value as VisualizationMethod);
   };
-  
-  // Calculate Z axis range based on visualization method
-  const zAxisRange = visualization === 'bubble' ? [50, 400] : [5, 5];
   
   // Customize the legend
   const CustomLegendItem = (props: any) => {
