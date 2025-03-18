@@ -147,7 +147,7 @@ export function AIAssistantIcon({ expanded }: AIAssistantIconProps) {
                   }}
                 />
                 <div className="relative bg-gradient-to-br from-blue-400 to-blue-600 p-3 rounded-2xl shadow-xl shadow-blue-900/50 border border-blue-300">
-                  <IgniteLogo className="h-24 w-24 text-white" size={96} />
+                  <IgniteLogo className="h-24 w-24" size={96} />
                 </div>
                 
                 {/* Digital energy beam */}
@@ -232,7 +232,7 @@ export function AIAssistantIcon({ expanded }: AIAssistantIconProps) {
               ease: "easeInOut" 
             }}
           >
-            <IgniteLogo className="text-white" size={expanded ? 26 : 22} />
+            <IgniteLogo size={expanded ? 26 : 22} />
           </motion.div>
           {expanded && (
             <span className="text-xs mt-1 font-medium">Assistant</span>
