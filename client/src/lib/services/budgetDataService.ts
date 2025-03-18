@@ -12,13 +12,13 @@ export const budgetDataService = {
   async getBudgetAnalysis(clientId: number): Promise<BudgetAnalysis> {
     try {
       // Get budget settings
-      const budgetSettings = await apiRequest('GET', `/api/budget-settings/active/${clientId}`);
+      const budgetSettings = await apiRequest<BudgetSettings>('GET', `/api/budget-settings/active/${clientId}`);
       
       // Get budget items
-      const budgetItems = await apiRequest('GET', `/api/budget-items/client/${clientId}`);
+      const budgetItems = await apiRequest<BudgetItem[]>('GET', `/api/budget-items/client/${clientId}`);
       
       // Get sessions to calculate spending
-      const sessions = await apiRequest('GET', `/api/sessions/client/${clientId}`);
+      const sessions = await apiRequest<Session[]>('GET', `/api/sessions/client/${clientId}`);
       
       // Calculate metrics
       const totalBudget = budgetSettings?.ndisFunds || 0;
@@ -110,7 +110,7 @@ export const budgetDataService = {
     }
     
     // Calculate daily spending rate
-    const firstSessionDate = new Date(Math.min(...sessions.map(s => new Date(s.date).getTime())));
+    const firstSessionDate = new Date(Math.min(...sessions.map(s => new Date(s.sessionDate).getTime())));
     const today = new Date();
     
     // Number of days since first session
