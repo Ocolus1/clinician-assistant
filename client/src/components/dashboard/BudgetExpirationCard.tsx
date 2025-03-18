@@ -48,11 +48,9 @@ export function BudgetExpirationCard() {
   // Prepare data for the funds chart, starting from current month (March 2025)
   let fundsChartData = budgetData?.remainingFunds || [];
   
-  // Process the data to ensure it starts from current month (March 2025)
-  const currentDate = new Date();
-  // In a real app we'd use the actual date, for demo we're setting to March 2025
-  const currentYear = 2025;
-  const currentMonth = 3; // March = 3 (1-indexed)
+  // Hard-code March 2025 as the starting month for this demo
+  const startingYear = 2025;
+  const startingMonth = 3; // March = 3 (1-indexed)
   
   // Transform the monthly data into daily data for more precise hovering
   let dailyFundsData: Array<{
@@ -62,21 +60,23 @@ export function BudgetExpirationCard() {
     month: string;  // Keep the original month format for backward compatibility
   }> = [];
   
-  // Filter data to start from current month
+  // Ensure data starts from March 2025 (for this demo)
   if (fundsChartData.length > 0) {
-    // Find current month data or closest available
-    const currentMonthFormat = `${currentYear}-${currentMonth.toString().padStart(2, '0')}`;
+    // Format the starting month as "2025-03"
+    const startMonthFormat = `${startingYear}-${startingMonth.toString().padStart(2, '0')}`;
     
-    // Try to find the exact month or use original data
-    const startingIndex = fundsChartData.findIndex(item => item.month === currentMonthFormat);
+    // Original data is in YYYY-MM format, we need to find March 2025 or use all data
+    const dataWithMarch = [...fundsChartData]; // Make a copy to avoid modifying original
     
-    if (startingIndex >= 0) {
-      fundsChartData = fundsChartData.slice(startingIndex);
+    // Create daily data points for each month
+    dataWithMarch.forEach(monthData => {
+      const [year, month] = monthData.month.split('-');
+      const monthNum = parseInt(month);
+      const yearNum = parseInt(year);
       
-      // Create daily data points for each month
-      fundsChartData.forEach(monthData => {
-        const [year, month] = monthData.month.split('-');
-        const daysInMonth = new Date(parseInt(year), parseInt(month), 0).getDate();
+      // Only include months starting from March 2025
+      if (yearNum > startingYear || (yearNum === startingYear && monthNum >= startingMonth)) {
+        const daysInMonth = new Date(yearNum, monthNum, 0).getDate();
         
         // For each day in the month, create a data point
         for (let day = 1; day <= daysInMonth; day++) {
@@ -88,8 +88,16 @@ export function BudgetExpirationCard() {
             month: monthData.month
           });
         }
-      });
-    }
+      }
+    });
+    
+    // Filter the funds chart data to start from March 2025
+    fundsChartData = fundsChartData.filter(item => {
+      const [year, month] = item.month.split('-');
+      const monthNum = parseInt(month);
+      const yearNum = parseInt(year);
+      return yearNum > startingYear || (yearNum === startingYear && monthNum >= startingMonth);
+    });
   }
   
   // Colors for bar chart
@@ -179,18 +187,39 @@ export function BudgetExpirationCard() {
                         <XAxis 
                           dataKey={dailyFundsData.length > 0 ? "date" : "month"}
                           tickFormatter={(value) => {
-                            // For both daily and monthly data, we use the month format
-                            const parts = value.split('-');
-                            const year = parseInt(parts[0]);
-                            const month = parseInt(parts[1]) - 1;
+                            // Format: YYYY-MM or YYYY-MM-DD to "Month YYYY"
+                            if (!value || typeof value !== 'string') return '';
                             
-                            const date = new Date(year, month, 1);
-                            return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+                            try {
+                              // Handle both daily and monthly formats
+                              const parts = value.split('-');
+                              let date;
+                              
+                              if (parts.length === 3) {
+                                // Daily format: YYYY-MM-DD
+                                const [year, month, day] = parts;
+                                // Only show the 1st of each month for tick marks
+                                if (day !== '01') return '';
+                                date = new Date(parseInt(year), parseInt(month) - 1, 1);
+                              } else {
+                                // Monthly format: YYYY-MM
+                                const [year, month] = parts;
+                                date = new Date(parseInt(year), parseInt(month) - 1, 1);
+                              }
+                              
+                              // Format as "March 2025"
+                              return new Intl.DateTimeFormat('en-US', { 
+                                month: 'long', 
+                                year: 'numeric' 
+                              }).format(date);
+                            } catch (e) {
+                              return value; // Fallback to original value
+                            }
                           }}
                           tick={{ fontSize: 10 }}
                           tickLine={false}
                           axisLine={false}
-                          interval={dailyFundsData.length > 0 ? 30 : 0} // Skip many ticks for daily data
+                          interval={0} // Show all months
                         />
                         <YAxis 
                           hide={true}
@@ -253,9 +282,19 @@ export function BudgetExpirationCard() {
                         <XAxis 
                           dataKey="month"
                           tickFormatter={(value) => {
-                            const [year, month] = value.split('-');
-                            const date = new Date(parseInt(year), parseInt(month) - 1, 1);
-                            return date.toLocaleDateString('en-US', { month: 'short' });
+                            // Format: YYYY-MM to "Short Month"
+                            if (!value || typeof value !== 'string') return '';
+                            
+                            try {
+                              const [year, month] = value.split('-');
+                              const date = new Date(parseInt(year), parseInt(month) - 1, 1);
+                              // Format as "Mar" (short month name only)
+                              return new Intl.DateTimeFormat('en-US', { 
+                                month: 'short'
+                              }).format(date);
+                            } catch (e) {
+                              return value; // Fallback to original value
+                            }
                           }}
                           tick={{ fontSize: 8 }}
                           tickLine={false}
