@@ -12,6 +12,7 @@ import {
   Tooltip,
   Legend,
   CartesianGrid,
+  Area
 } from 'recharts';
 import { AppointmentStatsEntry } from '@shared/schema';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -171,17 +172,44 @@ const CustomTooltip = ({ active, payload, label, labelFormatter, selectedTimeFra
   if (active && payload && payload.length) {
     // Format date using our custom formatter
     const formattedDate = labelFormatter ? labelFormatter(label) : formatDateByTimeframe(label, selectedTimeFrame);
+    const data = payload[0].payload;
+    const isRevenue = payload[0].dataKey === 'revenue';
+    
+    // Get the relevant values
+    const value = isRevenue 
+      ? formatCurrency(payload[0].value)
+      : formatNumberWithCommas(payload[0].value);
+    
+    const sessionCount = data.count !== undefined 
+      ? formatNumberWithCommas(data.count)
+      : '0';
+    
+    // Get comparison with previous period if available
+    const percentChange = data.percentChange;
     
     return (
-      <div className="bg-background/95 p-2 border rounded-lg shadow-md text-xs">
-        <p className="font-medium">{formattedDate}</p>
-        <p className="font-semibold text-primary">
-          {formatCurrency(payload[0].value)}
-        </p>
-        {payload[0].payload.count !== undefined && (
-          <p className="text-xs text-muted-foreground">
-            {formatNumberWithCommas(payload[0].payload.count)} session{payload[0].payload.count !== 1 ? 's' : ''}
-          </p>
+      <div className="bg-background/95 p-2.5 border rounded-lg shadow-md text-xs">
+        <div className="mb-1 font-medium text-muted-foreground">{formattedDate}</div>
+        
+        {/* Main value (revenue or sessions) */}
+        <div className="font-bold text-sm text-primary flex items-center gap-1.5">
+          {isRevenue ? <DollarSign className="h-3.5 w-3.5" /> : <BarChart4 className="h-3.5 w-3.5" />}
+          {value} {!isRevenue && <span className="font-normal text-xs text-muted-foreground">sessions</span>}
+        </div>
+        
+        {/* Secondary value */}
+        {isRevenue && data.count !== undefined && (
+          <div className="mt-1 text-xs text-muted-foreground">
+            {sessionCount} session{data.count !== 1 ? 's' : ''}
+          </div>
+        )}
+        
+        {/* Percentage change if available */}
+        {percentChange !== undefined && (
+          <div className={`mt-1.5 text-xs flex items-center ${getTrendColor(percentChange)}`}>
+            {getTrendIcon(percentChange)}
+            <span className="ml-1">{formatPercentChange(percentChange)} from previous period</span>
+          </div>
         )}
       </div>
     );
@@ -302,9 +330,9 @@ export function AppointmentAnalytics() {
   const formatYAxis = (value: any, index: number): string => {
     const numValue = Number(value);
     if (displayType === 'revenue') {
-      return numValue > 1000 ? `$${Math.round(numValue/1000)}k` : `$${numValue}`;
+      return formatCurrency(numValue, true); // Use our enhanced currency format with k suffix
     }
-    return String(value);
+    return formatNumberWithCommas(numValue); // Use comma formatting for session counts
   };
   
   // Get title based on display type
@@ -421,20 +449,63 @@ export function AppointmentAnalytics() {
                   angle={selectedTimeFrame === 'weekly' ? -15 : 0} // Angle text for weekly views
                   tickFormatter={(value) => formatDateByTimeframe(value, selectedTimeFrame)}
                 />
-                {/* YAxis removed as requested */}
+                <YAxis 
+                  width={40}
+                  tickLine={false}
+                  axisLine={false}
+                  tick={{ fontSize: 9 }}
+                  tickFormatter={formatYAxis}
+                  tickCount={5}
+                  domain={['auto', 'auto']}
+                />
                 <Tooltip 
                   content={<CustomTooltip selectedTimeFrame={selectedTimeFrame} />} 
-                  formatter={(value) => formatCurrency(Number(value))}
+                  formatter={(value) => {
+                    if (displayType === 'revenue') {
+                      return formatCurrency(Number(value));
+                    }
+                    return formatNumberWithCommas(Number(value));
+                  }}
                   labelFormatter={(label) => formatDateByTimeframe(String(label), selectedTimeFrame)}
                 />
+                {/* Add area fill for better visual appeal */}
+                <defs>
+                  <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#2563EB" stopOpacity={0.2}/>
+                    <stop offset="95%" stopColor="#2563EB" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                
+                {/* Use area under the line for revenue charts */}
+                {displayType === 'revenue' && (
+                  <Area
+                    type="monotone"
+                    dataKey={dataKey}
+                    stroke="none"
+                    fillOpacity={1}
+                    fill="url(#colorRevenue)"
+                    activeDot={false}
+                  />
+                )}
+                
+                {/* Main data line */}
                 <Line
                   type="monotone"
                   dataKey={dataKey}
                   name={`${getTimeframeTitle(selectedTimeFrame)} ${displayType === 'revenue' ? 'Revenue' : 'Sessions'}`}
                   stroke="#2563EB"
                   strokeWidth={2}
-                  dot={{ r: 3 }}
-                  activeDot={{ r: 5, strokeWidth: 0 }}
+                  dot={{ 
+                    r: 3,
+                    fill: "#ffffff",
+                    strokeWidth: 1.5
+                  }}
+                  activeDot={{ 
+                    r: 5, 
+                    stroke: "#ffffff", 
+                    strokeWidth: 1.5,
+                    fill: "#2563EB"
+                  }}
                 />
               </LineChart>
             </ResponsiveContainer>
