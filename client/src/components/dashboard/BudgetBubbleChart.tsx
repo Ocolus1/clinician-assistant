@@ -74,14 +74,25 @@ export function BudgetBubbleChart() {
     // Start with an empty array to collect all budget plans
     let allPlans: any[] = [];
     
-    // First, get data from expiring clients
+    // First, get data from expiring clients (next month)
     if (expiringClients && expiringClients.length > 0) {
       expiringClients.forEach(client => {
+        // Get month data for the first month
+        const firstMonthData = budgetData.remainingFunds && budgetData.remainingFunds.length > 0 
+          ? budgetData.remainingFunds[0] 
+          : null;
+        
+        // Calculate an estimated amount for this client based on total first month amount
+        // This distributes the total amount across plans proportionally
+        const estimatedAmount = firstMonthData 
+          ? firstMonthData.amount / Math.max(firstMonthData.planCount, 1) 
+          : 10000; // Fallback value if no data
+          
         allPlans.push({
           x: 1, // Position on the x-axis (1 month until expiration)
-          y: 5000, // Mock value for the y-axis - this would be replaced with real data
-          z: 5000, // Size of the bubble (represents budget value)
-          amount: 5000, // The actual budget amount
+          y: estimatedAmount, // Budget amount on y-axis
+          z: estimatedAmount, // Size of the bubble (represents budget value)
+          amount: estimatedAmount, // The actual budget amount
           clientName: client.clientName,
           planName: client.planName || 'Default Plan',
           clientId: client.clientId,
@@ -94,31 +105,58 @@ export function BudgetBubbleChart() {
     
     // Then add projected funds from the remaining funds data
     if (budgetData.remainingFunds && budgetData.remainingFunds.length > 0) {
+      // Use server-provided data about plans expiring in future months
       budgetData.remainingFunds.forEach((item, index) => {
-        // Skip the first month as it's already covered by expiringClients
-        if (index === 0 && expiringClients.length > 0) return;
-        
-        // Create mock plan entries for each month
-        // In a real implementation, this would use actual client plan data
+        // For months beyond the first month, we add bubbles based on the aggregate data
         const monthsFromNow = index + 1;
         const date = new Date();
         date.setMonth(date.getMonth() + monthsFromNow);
+        const formattedDate = date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
         
-        // Create 1-3 random sized bubbles for each month to represent different plans
-        const planCount = Math.min(item.planCount, 3);
-        for (let i = 0; i < planCount; i++) {
-          const amount = item.amount / planCount * (0.5 + Math.random());
+        // If this is month 1 and we've already processed expiring clients, skip
+        // Otherwise we'd double-count the first month
+        if (index === 0 && expiringClients.length > 0) return;
+        
+        // Calculate average amount per plan for this month
+        const avgAmount = item.amount / Math.max(item.planCount, 1);
+        
+        // Create bubbles representing plans for this month
+        // If we have multiple plans in a month, create separate bubbles
+        if (item.planCount > 1) {
+          // Create individual bubbles for each plan, with varying sizes around the average
+          for (let i = 0; i < item.planCount; i++) {
+            // Vary bubble sizes slightly around the average to create visual interest
+            // Uses a variance of ±20% around the average
+            const variance = 0.8 + (Math.random() * 0.4); // 0.8 to 1.2
+            const planAmount = avgAmount * variance;
+            
+            allPlans.push({
+              x: monthsFromNow, // Months from now (x-axis position)
+              y: planAmount, // Dollar amount (y-axis position)
+              z: planAmount, // Budget size (controls bubble size)
+              amount: planAmount, 
+              clientName: `Plan ${i+1} of ${item.planCount}`, // Generic name
+              planName: `Expiring ${formattedDate}`,
+              clientId: null, // We don't have specific client IDs here
+              planId: null, // We don't have specific plan IDs here
+              expiryDate: formattedDate,
+              // Color coding: orange for months 2-3, blue for later months
+              color: index < 3 ? '#FB923C' : '#2563EB'
+            });
+          }
+        } else {
+          // Just one plan this month, create a single bubble
           allPlans.push({
-            x: monthsFromNow, // Months from now (x-axis position)
-            y: amount, // Dollar amount (y-axis position)
-            z: amount, // Budget size (controls bubble size)
-            amount: amount,
-            clientName: `Client ${i + 1}`, // In real data, this would be the client name
-            planName: `Plan ${String.fromCharCode(65 + i)}`, // In real data, this would be the plan name
-            clientId: 1000 + i, // Mock client ID
-            planId: 2000 + i, // Mock plan ID
-            expiryDate: date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
-            color: index < 2 ? '#FB923C' : '#2563EB' // Orange for soon, blue for later
+            x: monthsFromNow,
+            y: item.amount,
+            z: item.amount,
+            amount: item.amount,
+            clientName: `${item.planCount} Plan`,
+            planName: `Expiring ${formattedDate}`,
+            clientId: null,
+            planId: null,
+            expiryDate: formattedDate,
+            color: index < 3 ? '#FB923C' : '#2563EB'
           });
         }
       });

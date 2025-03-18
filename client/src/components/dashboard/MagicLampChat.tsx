@@ -1,6 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Card } from '@/components/ui/card';
 import { Avatar } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -121,7 +120,7 @@ export function MagicLampChat() {
 
   // Magical Lamp component - shown in the dashboard
   return (
-    <Card className="h-full flex flex-col justify-center items-center bg-black/90 text-white border-white/20 shadow-lg overflow-hidden">
+    <div className="h-full flex flex-col justify-center items-center bg-black/90 text-white rounded-md overflow-hidden">
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <motion.div 
           className="relative flex flex-col items-center justify-center w-full h-full cursor-pointer"
@@ -335,6 +334,6 @@ export function MagicLampChat() {
           </div>
         </DialogContent>
       </Dialog>
-    </Card>
+    </div>
   );
 }
