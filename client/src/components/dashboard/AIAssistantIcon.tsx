@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { MagicLampChat } from "./MagicLampChat";
+import { IgniteLogo } from "./IgniteLogo";
 import { Dialog, DialogContent, DialogClose } from "@/components/ui/dialog";
 
 interface AIAssistantIconProps {
@@ -32,9 +33,9 @@ export function AIAssistantIcon({ expanded }: AIAssistantIconProps) {
   
   return (
     <div className="relative">
-      {/* Gold/amber glow effect behind the button */}
+      {/* Blue glow effect behind the button */}
       <motion.div 
-        className="absolute inset-0 rounded-full bg-amber-500/30 blur-md"
+        className="absolute inset-0 rounded-full bg-blue-500/30 blur-md"
         animate={{ 
           scale: [0.8, 1.2, 0.8], 
           opacity: [0.3, 0.6, 0.3] 
@@ -48,7 +49,7 @@ export function AIAssistantIcon({ expanded }: AIAssistantIconProps) {
       
       {/* First Dialog - Magical Lamp Animation */}
       <Dialog open={lampDialogOpen} onOpenChange={setLampDialogOpen}>
-        <DialogContent className="sm:max-w-[500px] p-0 bg-gradient-to-b from-black/95 to-amber-950/90 border border-amber-500/20 text-white overflow-hidden rounded-xl shadow-xl">
+        <DialogContent className="sm:max-w-[500px] p-0 bg-gradient-to-b from-black/95 to-blue-950/90 border border-blue-500/20 text-white overflow-hidden rounded-xl shadow-xl">
           <div className="relative h-[500px] flex flex-col items-center justify-center overflow-hidden">
             {/* Close button */}
             <DialogClose asChild className="absolute top-3 right-3 z-50">
@@ -83,7 +84,7 @@ export function AIAssistantIcon({ expanded }: AIAssistantIconProps) {
               
               {/* Cosmic dust */}
               <motion.div
-                className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-amber-500/5 via-transparent to-transparent"
+                className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-blue-500/5 via-transparent to-transparent"
                 style={{ transform: 'translate(-50%, -50%)', left: '50%', top: '50%', width: '200%', height: '200%' }}
                 animate={{
                   scale: [1, 1.1, 1],
@@ -145,8 +146,8 @@ export function AIAssistantIcon({ expanded }: AIAssistantIconProps) {
                     duration: 0.3,
                   }}
                 />
-                <div className="relative bg-gradient-to-br from-amber-400 to-amber-600 p-3 rounded-2xl shadow-xl shadow-amber-900/50 border border-amber-300">
-                  <Lamp className="h-24 w-24 text-amber-900" />
+                <div className="relative bg-gradient-to-br from-blue-400 to-blue-600 p-3 rounded-2xl shadow-xl shadow-blue-900/50 border border-blue-300">
+                  <IgniteLogo className="h-24 w-24 text-white" size={96} />
                 </div>
                 
                 {/* Lamp light beam */}
@@ -231,7 +232,7 @@ export function AIAssistantIcon({ expanded }: AIAssistantIconProps) {
               ease: "easeInOut" 
             }}
           >
-            <Lamp className={expanded ? "h-6 w-6" : "h-5 w-5"} />
+            <IgniteLogo className="text-white" size={expanded ? 26 : 22} />
           </motion.div>
           {expanded && (
             <span className="text-xs mt-1 font-medium">Assistant</span>
