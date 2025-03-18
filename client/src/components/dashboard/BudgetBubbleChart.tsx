@@ -79,7 +79,7 @@ const CustomTooltip = ({ active, payload }: any) => {
         </div>
         <p className="text-xs text-muted-foreground">Plan: {data.planName}</p>
         <p className="text-xs font-medium mt-1">
-          <span className="text-primary">Budget: {formatCurrency(data.amount)}</span>
+          <span className="text-primary">Balance: {formatCurrency(data.amount)}</span>
         </p>
         {data.dayOfMonth && (
           <p className="text-xs">Day: {data.dayOfMonth}</p>
@@ -131,7 +131,7 @@ export function BudgetBubbleChart() {
   
   // Constants for chart visualization
   const BUBBLE_SIZE_UNIT = 1000; // $1000 maps to 1 size unit
-  const BASE_SIZE = 10; // Base size for $1000
+  const BASE_SIZE = 15; // Base size for $1000 (in pixels)
   const MIN_BUBBLE_SIZE = BASE_SIZE; // Minimum size (for budgets under $1000)
   const MAX_BUBBLE_SIZE = BASE_SIZE * 10; // Maximum size (for budgets over $10,000)
   const JITTER_RANGE = 300; // Range for vertical jitter to prevent overlap
