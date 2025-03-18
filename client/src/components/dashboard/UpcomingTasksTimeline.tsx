@@ -152,13 +152,19 @@ export function UpcomingTasksTimeline() {
                       tick={{ fontSize: 9 }}
                       tickLine={false}
                       axisLine={false}
+                      tickFormatter={(value) => {
+                        // Convert from "2025-04" to "Apr 2025"
+                        if (value && typeof value === 'string') {
+                          const [year, month] = value.split('-');
+                          if (year && month) {
+                            const date = new Date(parseInt(year), parseInt(month) - 1, 1);
+                            return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+                          }
+                        }
+                        return value;
+                      }}
                     />
-                    <YAxis
-                      tick={{ fontSize: 9 }}
-                      width={20}
-                      tickLine={false}
-                      axisLine={false}
-                    />
+                    {/* Y-axis removed as requested */}
                     <Tooltip />
                     <Legend 
                       iconSize={6}
