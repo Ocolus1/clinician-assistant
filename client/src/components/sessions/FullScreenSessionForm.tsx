@@ -34,7 +34,7 @@ import { NumericRating } from "@/components/sessions/NumericRating";
 import { apiRequest } from "@/lib/queryClient";
 import { useSafeForm } from "@/hooks/use-safe-hooks";
 import { useToast } from "@/hooks/use-toast";
-import { cn } from "@/lib/utils";
+import { cn, formatCurrency } from "@/lib/utils";
 import { borderStyles } from "@/lib/border-styles";
 import { StrategySelectionDialog } from "./StrategySelectionDialog";
 import { InlineStrategySelector } from "./InlineStrategySelector";
@@ -134,6 +134,7 @@ const sessionProductSchema = z.object({
   budgetItemId: z.number(),
   productCode: z.string(),
   productDescription: z.string(),
+  name: z.string(), // Added name field for display in summary
   quantity: z.number().min(0.01),
   unitPrice: z.number(),
   availableQuantity: z.number(), // For validation only, not sent to server
@@ -2606,9 +2607,38 @@ export function FullScreenSessionForm({
                           <p className="text-sm text-muted-foreground">No attendees added</p>
                         )}
                       </div>
+                      
+                      {/* Products Used Section */}
+                      <div className="pt-2 border-t">
+                        <p className="text-sm font-medium mb-2">Products Used</p>
+                        {form.watch("sessionNote.products")?.length > 0 ? (
+                          <div className="space-y-2">
+                            {form.watch("sessionNote.products").map((product, index) => (
+                              <div key={index} className="flex justify-between items-center">
+                                <div className="flex-1">
+                                  <p className="text-sm">{product.productDescription}</p>
+                                  <p className="text-xs text-muted-foreground">Qty: {product.quantity}</p>
+                                </div>
+                                <Badge variant="outline">
+                                  {formatCurrency(product.unitPrice * product.quantity)}
+                                </Badge>
+                              </div>
+                            ))}
+                            <div className="flex justify-between items-center border-t pt-2 mt-2">
+                              <p className="text-sm font-medium">Total</p>
+                              <Badge variant="default">
+                                {formatCurrency(form.watch("sessionNote.products")?.reduce(
+                                  (sum, product) => sum + (product.unitPrice * product.quantity), 0
+                                ) || 0)}
+                              </Badge>
+                            </div>
+                          </div>
+                        ) : (
+                          <p className="text-sm text-muted-foreground">No products added</p>
+                        )}
+                      </div>
 
-
-
+                      {/* Session Ratings Section */}
                       <div className="pt-2 border-t">
                         <p className="text-sm font-medium mb-2">Session Ratings</p>
                         <div className="space-y-2">
@@ -2654,6 +2684,82 @@ export function FullScreenSessionForm({
                           </div>
                         </div>
                       </div>
+                      
+                      {/* Performance Assessments Summary */}
+                      {selectedPerformanceAssessments.length > 0 && (
+                        <div className="pt-2 border-t">
+                          <p className="text-sm font-medium mb-2">Goals Assessment</p>
+                          <div className="space-y-3">
+                            {selectedPerformanceAssessments.map((assessment, index) => (
+                              <div key={assessment.goalId} className="border rounded-md p-3">
+                                <div className="flex justify-between items-center mb-2">
+                                  <h5 className="text-sm font-medium">{assessment.goalTitle}</h5>
+                                  <Badge variant="outline" className="text-xs">
+                                    {assessment.milestones.length} milestones
+                                  </Badge>
+                                </div>
+                                
+                                {assessment.milestones.length > 0 ? (
+                                  <div className="space-y-2">
+                                    {assessment.milestones.slice(0, 2).map((milestone) => (
+                                      <div key={milestone.milestoneId} className="bg-accent/50 rounded-md p-2">
+                                        <div className="flex justify-between items-center">
+                                          <p className="text-xs truncate max-w-[70%]">{milestone.milestoneTitle}</p>
+                                          <Badge className={
+                                            (milestone.rating || 0) <= 3 ? "bg-red-100 text-red-800" :
+                                            (milestone.rating || 0) <= 6 ? "bg-amber-100 text-amber-800" :
+                                            "bg-green-100 text-green-800"
+                                          }>
+                                            {milestone.rating || 0}/10
+                                          </Badge>
+                                        </div>
+                                        
+                                        {milestone.strategies.length > 0 && (
+                                          <div className="mt-1.5">
+                                            <div className="flex flex-wrap gap-1">
+                                              {milestone.strategies.slice(0, 3).map((strategy, i) => (
+                                                <Badge key={i} variant="secondary" className="text-xs">
+                                                  {strategy}
+                                                </Badge>
+                                              ))}
+                                              {milestone.strategies.length > 3 && (
+                                                <Badge variant="outline" className="text-xs">
+                                                  +{milestone.strategies.length - 3} more
+                                                </Badge>
+                                              )}
+                                            </div>
+                                          </div>
+                                        )}
+                                      </div>
+                                    ))}
+                                    
+                                    {assessment.milestones.length > 2 && (
+                                      <div className="text-center text-xs text-muted-foreground">
+                                        +{assessment.milestones.length - 2} more milestones
+                                      </div>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <p className="text-xs text-muted-foreground">No milestones assessed</p>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* Session Notes Preview */}
+                      {form.watch("sessionNote.notes") && (
+                        <div className="pt-2 border-t">
+                          <p className="text-sm font-medium mb-2">Session Notes</p>
+                          <div className="bg-accent/50 rounded-md p-3 max-h-20 overflow-hidden relative">
+                            <div className="text-xs" dangerouslySetInnerHTML={{ __html: form.watch("sessionNote.notes").substring(0, 150) }} />
+                            {form.watch("sessionNote.notes").length > 150 && (
+                              <div className="absolute bottom-0 left-0 right-0 h-6 bg-gradient-to-t from-accent/80 to-transparent" />
+                            )}
+                          </div>
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
                 </div>
