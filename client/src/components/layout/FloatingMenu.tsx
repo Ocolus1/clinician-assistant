@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import {
   Home,
@@ -6,7 +6,9 @@ import {
   Mic,
   FileText,
   Settings,
-  RefreshCw
+  Minimize2,
+  ChevronUp,
+  Menu
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -17,7 +19,16 @@ interface FloatingMenuProps {
 
 export function FloatingMenu({ onRefreshClick }: FloatingMenuProps) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [isMinimized, setIsMinimized] = useState(false);
   const [location] = useLocation();
+
+  // This effect helps ensure the dock doesn't start minimized on first load
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsMinimized(false);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, []);
 
   // Define the navigation items
   const navigationItems = [
@@ -52,6 +63,25 @@ export function FloatingMenu({ onRefreshClick }: FloatingMenuProps) {
   const navigate = (path: string) => {
     window.location.href = path;
   };
+
+  // Handle dock minimization
+  const toggleMinimized = () => {
+    setIsMinimized(prev => !prev);
+    setIsExpanded(false);
+  };
+
+  if (isMinimized) {
+    return (
+      <Button
+        variant="ghost"
+        size="icon"
+        className="fixed bottom-6 left-6 z-50 h-12 w-12 rounded-full bg-black/80 backdrop-blur-xl shadow-lg border border-white/20 text-white hover:bg-black/90 transition-all duration-300"
+        onClick={toggleMinimized}
+      >
+        <Menu className="h-5 w-5" />
+      </Button>
+    );
+  }
 
   return (
     <>
@@ -106,30 +136,28 @@ export function FloatingMenu({ onRefreshClick }: FloatingMenuProps) {
             );
           })}
           
-          {/* Refresh button */}
-          {onRefreshClick && (
-            <div className="relative pl-1.5">
-              {/* Divider */}
-              <div className="absolute left-0 top-1/2 transform -translate-y-1/2 h-8 w-px bg-white/20" />
-              
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={onRefreshClick}
-                className={cn(
-                  "rounded-full transition-all duration-300 text-white/70 hover:bg-white/10 hover:text-white",
-                  isExpanded ? "h-14 w-14 mx-2" : "h-12 w-12 mx-1"
+          {/* Minimize button */}
+          <div className="relative pl-1.5">
+            {/* Divider */}
+            <div className="absolute left-0 top-1/2 transform -translate-y-1/2 h-8 w-px bg-white/20" />
+            
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={toggleMinimized}
+              className={cn(
+                "rounded-full transition-all duration-300 text-white/70 hover:bg-white/10 hover:text-white",
+                isExpanded ? "h-14 w-14 mx-2" : "h-12 w-12 mx-1"
+              )}
+            >
+              <div className="flex flex-col items-center">
+                <Minimize2 className={isExpanded ? "h-6 w-6" : "h-5 w-5"} />
+                {isExpanded && (
+                  <span className="text-xs mt-1 font-medium">Minimize</span>
                 )}
-              >
-                <div className="flex flex-col items-center">
-                  <RefreshCw className={isExpanded ? "h-6 w-6" : "h-5 w-5"} />
-                  {isExpanded && (
-                    <span className="text-xs mt-1 font-medium">Refresh</span>
-                  )}
-                </div>
-              </Button>
-            </div>
-          )}
+              </div>
+            </Button>
+          </div>
         </div>
       </div>
     </>
