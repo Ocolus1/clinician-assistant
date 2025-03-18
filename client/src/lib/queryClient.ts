@@ -135,15 +135,36 @@ export const getQueryFn: <T>(options: {
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
     const url = queryKey[0] as string;
-    console.log(`Query request: ${url}`, queryKey.slice(1));
+    // Construct the query string for any parameters in queryKey[1]
+    let fullUrl = url;
+    const params = queryKey[1] as Record<string, any> | undefined;
+    
+    if (params) {
+      const queryParams = new URLSearchParams();
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          queryParams.append(key, String(value));
+        }
+      });
+      
+      const queryString = queryParams.toString();
+      if (queryString) {
+        fullUrl = `${url}?${queryString}`;
+      }
+    }
+    
+    console.log(`Query request: ${fullUrl}`, queryKey.slice(1));
     
     try {
-      const res = await fetch(url, {
+      const res = await fetch(fullUrl, {
         credentials: "include",
+        headers: {
+          "Accept": "application/json"
+        }
       });
 
       if (unauthorizedBehavior === "returnNull" && res.status === 401) {
-        console.log(`Unauthorized access to ${url}, returning null as configured`);
+        console.log(`Unauthorized access to ${fullUrl}, returning null as configured`);
         return null;
       }
 

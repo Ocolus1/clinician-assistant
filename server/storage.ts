@@ -11,6 +11,8 @@ import {
   PerformanceAssessment, InsertPerformanceAssessment,
   MilestoneAssessment, InsertMilestoneAssessment,
   Strategy, InsertStrategy,
+  // Import dashboard data types
+  AppointmentStats, BudgetExpirationStats, UpcomingTaskStats, 
   clients, allies, goals, subgoals, budgetItems, budgetSettings, budgetItemCatalog, sessions,
   sessionNotes, performanceAssessments, milestoneAssessments, strategies
 } from "@shared/schema";
@@ -97,10 +99,10 @@ export interface IStorage {
   updateMilestoneAssessment(id: number, assessment: InsertMilestoneAssessment): Promise<MilestoneAssessment>;
   deleteMilestoneAssessment(id: number): Promise<void>;
   
-  // Strategies
-  getAllStrategies(): Promise<Strategy[]>;
-  getStrategyById(id: number): Promise<Strategy | undefined>;
-  getStrategiesByCategory(category: string): Promise<Strategy[]>;
+  // Dashboard Data
+  getDashboardAppointmentStats(timeframe: 'day' | 'week' | 'month' | 'year'): Promise<AppointmentStats>;
+  getBudgetExpirationStats(months: number): Promise<BudgetExpirationStats>;
+  getUpcomingTaskStats(months: number): Promise<UpcomingTaskStats>;
 }
 
 /**
@@ -1173,6 +1175,350 @@ export class DBStorage implements IStorage {
       console.log(`Successfully deleted strategy with ID ${id}`);
     } catch (error) {
       console.error(`Error deleting strategy with ID ${id}:`, error);
+      throw error;
+    }
+  }
+
+  // Dashboard Data Methods
+  async getDashboardAppointmentStats(timeframe: 'day' | 'week' | 'month' | 'year'): Promise<AppointmentStats> {
+    console.log(`Getting dashboard appointment stats with timeframe: ${timeframe}`);
+    try {
+      // Get session data from the database
+      const allSessions = await db.select().from(sessions);
+      console.log(`Found ${allSessions.length} sessions in database`);
+      
+      // Initialize stats with empty arrays
+      const stats: AppointmentStats = {
+        daily: [],
+        weekly: [],
+        monthly: [],
+        yearly: []
+      };
+      
+      if (allSessions.length === 0) {
+        return stats;
+      }
+      
+      // Group sessions by day, week, month, and year
+      const today = new Date();
+      const oneYearAgo = new Date();
+      oneYearAgo.setFullYear(today.getFullYear() - 1);
+      
+      // Filter to sessions within the last year
+      const recentSessions = allSessions.filter(session => {
+        const sessionDate = new Date(session.sessionDate);
+        return sessionDate >= oneYearAgo && sessionDate <= today;
+      });
+      
+      // Process stats based on timeframe
+      const dailyStats = this.processDailyStats(recentSessions);
+      const weeklyStats = this.processWeeklyStats(recentSessions);
+      const monthlyStats = this.processMonthlyStats(recentSessions);
+      const yearlyStats = this.processYearlyStats(recentSessions);
+      
+      return {
+        daily: dailyStats,
+        weekly: weeklyStats,
+        monthly: monthlyStats,
+        yearly: yearlyStats
+      };
+    } catch (error) {
+      console.error("Error getting dashboard appointment stats:", error);
+      throw error;
+    }
+  }
+  
+  // Helper methods for processing appointment stats
+  private processDailyStats(sessions: Session[]): Array<{ period: string, count: number, percentChange?: number }> {
+    const last30Days = Array.from({ length: 30 }, (_, i) => {
+      const date = new Date();
+      date.setDate(date.getDate() - i);
+      return date.toISOString().split('T')[0]; // Format as YYYY-MM-DD
+    }).reverse();
+    
+    const dailyCounts = last30Days.map(day => {
+      const count = sessions.filter(session => {
+        const sessionDate = new Date(session.sessionDate);
+        return sessionDate.toISOString().split('T')[0] === day;
+      }).length;
+      
+      return { period: day, count, percentChange: undefined as number | undefined };
+    });
+    
+    // Calculate percent changes
+    for (let i = 1; i < dailyCounts.length; i++) {
+      const prevCount = dailyCounts[i - 1].count;
+      const currCount = dailyCounts[i].count;
+      
+      if (prevCount > 0) {
+        dailyCounts[i].percentChange = ((currCount - prevCount) / prevCount) * 100;
+      }
+    }
+    
+    return dailyCounts;
+  }
+  
+  private processWeeklyStats(sessions: Session[]): Array<{ period: string, count: number, percentChange?: number }> {
+    // Group by week for the last 12 weeks
+    const last12Weeks = Array.from({ length: 12 }, (_, i) => {
+      const date = new Date();
+      date.setDate(date.getDate() - (i * 7));
+      const weekStart = new Date(date);
+      weekStart.setDate(date.getDate() - date.getDay()); // Sunday of week
+      const weekEnd = new Date(weekStart);
+      weekEnd.setDate(weekStart.getDate() + 6); // Saturday of week
+      
+      return {
+        start: weekStart,
+        end: weekEnd,
+        label: `${weekStart.toISOString().split('T')[0]} to ${weekEnd.toISOString().split('T')[0]}`
+      };
+    }).reverse();
+    
+    const weeklyCounts = last12Weeks.map(week => {
+      const count = sessions.filter(session => {
+        const sessionDate = new Date(session.sessionDate);
+        return sessionDate >= week.start && sessionDate <= week.end;
+      }).length;
+      
+      return { period: week.label, count, percentChange: undefined as number | undefined };
+    });
+    
+    // Calculate percent changes
+    for (let i = 1; i < weeklyCounts.length; i++) {
+      const prevCount = weeklyCounts[i - 1].count;
+      const currCount = weeklyCounts[i].count;
+      
+      if (prevCount > 0) {
+        weeklyCounts[i].percentChange = ((currCount - prevCount) / prevCount) * 100;
+      }
+    }
+    
+    return weeklyCounts;
+  }
+  
+  private processMonthlyStats(sessions: Session[]): Array<{ period: string, count: number, percentChange?: number }> {
+    // Group by month for the last 12 months
+    const last12Months = Array.from({ length: 12 }, (_, i) => {
+      const date = new Date();
+      date.setMonth(date.getMonth() - i);
+      const year = date.getFullYear();
+      const month = date.getMonth();
+      
+      const monthStart = new Date(year, month, 1);
+      const monthEnd = new Date(year, month + 1, 0);
+      
+      const monthName = monthStart.toLocaleString('default', { month: 'long' });
+      return {
+        start: monthStart,
+        end: monthEnd,
+        label: `${monthName} ${year}`
+      };
+    }).reverse();
+    
+    const monthlyCounts = last12Months.map(month => {
+      const count = sessions.filter(session => {
+        const sessionDate = new Date(session.sessionDate);
+        return sessionDate >= month.start && sessionDate <= month.end;
+      }).length;
+      
+      return { period: month.label, count, percentChange: undefined as number | undefined };
+    });
+    
+    // Calculate percent changes
+    for (let i = 1; i < monthlyCounts.length; i++) {
+      const prevCount = monthlyCounts[i - 1].count;
+      const currCount = monthlyCounts[i].count;
+      
+      if (prevCount > 0) {
+        monthlyCounts[i].percentChange = ((currCount - prevCount) / prevCount) * 100;
+      }
+    }
+    
+    return monthlyCounts;
+  }
+  
+  private processYearlyStats(sessions: Session[]): Array<{ period: string, count: number, percentChange?: number }> {
+    // Group by year for the last 3 years
+    const last3Years = Array.from({ length: 3 }, (_, i) => {
+      const year = new Date().getFullYear() - i;
+      const yearStart = new Date(year, 0, 1);
+      const yearEnd = new Date(year, 11, 31);
+      
+      return {
+        start: yearStart,
+        end: yearEnd,
+        label: `${year}`
+      };
+    }).reverse();
+    
+    const yearlyCounts = last3Years.map(year => {
+      const count = sessions.filter(session => {
+        const sessionDate = new Date(session.sessionDate);
+        return sessionDate >= year.start && sessionDate <= year.end;
+      }).length;
+      
+      return { period: year.label, count, percentChange: undefined as number | undefined };
+    });
+    
+    // Calculate percent changes
+    for (let i = 1; i < yearlyCounts.length; i++) {
+      const prevCount = yearlyCounts[i - 1].count;
+      const currCount = yearlyCounts[i].count;
+      
+      if (prevCount > 0) {
+        yearlyCounts[i].percentChange = ((currCount - prevCount) / prevCount) * 100;
+      }
+    }
+    
+    return yearlyCounts;
+  }
+  
+  async getBudgetExpirationStats(months: number): Promise<BudgetExpirationStats> {
+    console.log(`Getting budget expiration stats for the next ${months} months`);
+    try {
+      // Get all budget settings and join with clients
+      const allBudgetSettings = await db.select().from(budgetSettings);
+      const allClients = await db.select().from(clients);
+      
+      // Get all budget items for calculating used funds
+      const allBudgetItems = await db.select().from(budgetItems);
+      
+      // Identify which plans expire next month
+      const today = new Date();
+      const nextMonthStart = new Date(today.getFullYear(), today.getMonth() + 1, 1);
+      const nextMonthEnd = new Date(today.getFullYear(), today.getMonth() + 2, 0);
+      
+      // Find plans expiring next month
+      const expiringPlans = allBudgetSettings.filter(plan => {
+        if (!plan.endOfPlan) return false;
+        
+        const endDate = new Date(plan.endOfPlan);
+        return endDate >= nextMonthStart && endDate <= nextMonthEnd;
+      });
+      
+      // Format client info for expiring plans
+      const expiringClientsInfo = expiringPlans.map(plan => {
+        const client = allClients.find(c => c.id === plan.clientId);
+        return {
+          clientId: plan.clientId,
+          clientName: client ? client.name : `Client ${plan.clientId}`,
+          planId: plan.id,
+          planName: plan.planCode || `Plan ${plan.id}`
+        };
+      });
+      
+      // Calculate remaining funds by month for the requested number of months
+      const monthlyData = Array.from({ length: months }, (_, i) => {
+        const month = new Date(today.getFullYear(), today.getMonth() + i, 1);
+        const monthEnd = new Date(month.getFullYear(), month.getMonth() + 1, 0);
+        
+        // Format for display: MMM YYYY
+        const monthLabel = month.toISOString().split('T')[0].substring(0, 7);
+        
+        // Find plans active during this month
+        const activePlans = allBudgetSettings.filter(plan => {
+          if (!plan.endOfPlan) return true; // Plans with no end date are considered active
+          
+          const endDate = new Date(plan.endOfPlan);
+          return endDate >= month;
+        });
+        
+        // Calculate total funds and remaining funds
+        let totalRemainingAmount = 0;
+        
+        activePlans.forEach(plan => {
+          // Calculate used funds for this plan
+          const planItems = allBudgetItems.filter(item => 
+            item.budgetSettingsId === plan.id
+          );
+          
+          const usedFunds = planItems.reduce((sum, item) => 
+            sum + (Number(item.unitPrice) * Number(item.quantity)), 0);
+          
+          // Add remaining funds to total
+          const planRemainingFunds = Number(plan.ndisFunds) - usedFunds;
+          if (planRemainingFunds > 0) {
+            totalRemainingAmount += planRemainingFunds;
+          }
+        });
+        
+        return {
+          month: monthLabel,
+          amount: totalRemainingAmount,
+          planCount: activePlans.length
+        };
+      });
+      
+      return {
+        expiringNextMonth: {
+          count: expiringPlans.length,
+          byClient: expiringClientsInfo
+        },
+        remainingFunds: monthlyData
+      };
+    } catch (error) {
+      console.error("Error getting budget expiration stats:", error);
+      throw error;
+    }
+  }
+  
+  async getUpcomingTaskStats(months: number): Promise<UpcomingTaskStats> {
+    console.log(`Getting upcoming task stats for the next ${months} months`);
+    try {
+      // Get all sessions to calculate future tasks
+      const allSessions = await db.select().from(sessions);
+      
+      // Generate data for the next X months
+      const today = new Date();
+      const monthlyData = Array.from({ length: months }, (_, i) => {
+        const month = new Date(today.getFullYear(), today.getMonth() + i, 1);
+        const monthEnd = new Date(month.getFullYear(), month.getMonth() + 1, 0);
+        
+        // Format for display: YYYY-MM
+        const monthLabel = month.toISOString().split('T')[0].substring(0, 7);
+        
+        // Calculate upcoming sessions for different task types
+        const monthSessions = allSessions.filter(session => {
+          const sessionDate = new Date(session.sessionDate);
+          return sessionDate >= month && sessionDate <= monthEnd;
+        });
+        
+        // Categorize sessions based on title/description
+        // This is a simplification - in a real system, you'd have actual task types
+        const reports = monthSessions.filter(s => 
+          s.title.toLowerCase().includes('report') || 
+          (s.description && s.description.toLowerCase().includes('report'))
+        ).length;
+        
+        const letters = monthSessions.filter(s => 
+          s.title.toLowerCase().includes('letter') || 
+          (s.description && s.description.toLowerCase().includes('letter'))
+        ).length;
+        
+        const assessments = monthSessions.filter(s => 
+          s.title.toLowerCase().includes('assessment') || 
+          (s.description && s.description.toLowerCase().includes('assessment'))
+        ).length;
+        
+        // Count other sessions (those not in above categories)
+        const categorizedCount = reports + letters + assessments;
+        const other = Math.max(0, monthSessions.length - categorizedCount);
+        
+        return {
+          month: monthLabel,
+          reports,
+          letters,
+          assessments,
+          other
+        };
+      });
+      
+      return {
+        byMonth: monthlyData
+      };
+    } catch (error) {
+      console.error("Error getting upcoming task stats:", error);
       throw error;
     }
   }

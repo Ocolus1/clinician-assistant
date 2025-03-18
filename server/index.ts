@@ -58,6 +58,22 @@ app.use((req, res, next) => {
     // throw err;
   });
 
+  // Add a specific API prefix-checking middleware to ensure API routes are never 
+  // handled by the catch-all route in vite.ts
+  app.use((req, res, next) => {
+    // If this is an API request that reached this middleware, it means
+    // it wasn't handled by any of our API routes - return 404
+    if (req.path.startsWith('/api/')) {
+      console.error(`API route not found: ${req.method} ${req.path}`);
+      return res.status(404).json({ 
+        error: `API endpoint not found: ${req.path}`,
+        message: "The requested API endpoint does not exist"
+      });
+    }
+    // Otherwise continue to the catch-all route for client-side routing
+    next();
+  });
+
   // importantly only setup vite in development and after
   // setting up all the other routes so the catch-all route
   // doesn't interfere with the other routes

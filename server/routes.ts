@@ -1299,6 +1299,124 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Dashboard consolidated endpoint - regular API path
+  app.get("/api/dashboard", async (req, res) => {
+    console.log("GET /api/dashboard - Retrieving consolidated dashboard data");
+    try {
+      // Default to 6 months of data if not specified
+      const months = req.query.months ? parseInt(req.query.months as string) : 6;
+      
+      // Fetch all required dashboard data in parallel
+      const [appointmentStats, budgetStats, taskStats] = await Promise.all([
+        storage.getDashboardAppointmentStats('day'), // Default to daily view
+        storage.getBudgetExpirationStats(months),
+        storage.getUpcomingTaskStats(months)
+      ]);
+      
+      // Consolidate all data into a single response
+      const dashboardData = {
+        appointments: appointmentStats,
+        budgets: budgetStats,
+        tasks: taskStats,
+        lastUpdated: new Date().toISOString()
+      };
+      
+      console.log("Dashboard data retrieved successfully");
+      res.json(dashboardData);
+    } catch (error) {
+      console.error("Error retrieving dashboard data:", error);
+      res.status(500).json({ 
+        error: "Failed to retrieve dashboard data",
+        details: formatError(error)
+      });
+    }
+  });
+  
+  // Alternative dashboard endpoint that bypasses the Vite catch-all route
+  app.get("/dashboard-api", async (req, res) => {
+    console.log("GET /dashboard-api - Retrieving consolidated dashboard data (direct route)");
+    try {
+      // Default to 6 months of data if not specified
+      const months = req.query.months ? parseInt(req.query.months as string) : 6;
+      
+      // Fetch all required dashboard data in parallel
+      const [appointmentStats, budgetStats, taskStats] = await Promise.all([
+        storage.getDashboardAppointmentStats('day'), // Default to daily view
+        storage.getBudgetExpirationStats(months),
+        storage.getUpcomingTaskStats(months)
+      ]);
+      
+      // Consolidate all data into a single response
+      const dashboardData = {
+        appointments: appointmentStats,
+        budgets: budgetStats,
+        tasks: taskStats,
+        lastUpdated: new Date().toISOString()
+      };
+      
+      console.log("Dashboard data (direct route) retrieved successfully");
+      res.json({ data: dashboardData });
+    } catch (error) {
+      console.error("Error retrieving dashboard data (direct route):", error);
+      res.status(500).json({ 
+        error: "Failed to retrieve dashboard data",
+        details: formatError(error)
+      });
+    }
+  });
+  
+  // Dashboard appointment stats endpoint with timeframe parameter
+  app.get("/api/dashboard/appointments", async (req, res) => {
+    console.log("GET /api/dashboard/appointments - Retrieving appointment statistics");
+    try {
+      // Parse the timeframe parameter
+      const timeframe = (req.query.timeframe as string || 'day') as 'day' | 'week' | 'month' | 'year';
+      
+      // Validate timeframe
+      if (!['day', 'week', 'month', 'year'].includes(timeframe)) {
+        return res.status(400).json({ 
+          error: "Invalid timeframe. Must be one of: day, week, month, year" 
+        });
+      }
+      
+      const stats = await storage.getDashboardAppointmentStats(timeframe);
+      console.log(`Appointment stats retrieved successfully for timeframe: ${timeframe}`);
+      res.json(stats);
+    } catch (error) {
+      console.error("Error retrieving appointment statistics:", error);
+      res.status(500).json({ 
+        error: "Failed to retrieve appointment statistics",
+        details: formatError(error)
+      });
+    }
+  });
+  
+  // Alternative appointment stats endpoint that bypasses the Vite catch-all route
+  app.get("/dashboard-api/appointments", async (req, res) => {
+    console.log("GET /dashboard-api/appointments - Retrieving appointment statistics (direct route)");
+    try {
+      // Parse the timeframe parameter
+      const timeframe = (req.query.timeframe as string || 'day') as 'day' | 'week' | 'month' | 'year';
+      
+      // Validate timeframe
+      if (!['day', 'week', 'month', 'year'].includes(timeframe)) {
+        return res.status(400).json({ 
+          error: "Invalid timeframe. Must be one of: day, week, month, year" 
+        });
+      }
+      
+      const stats = await storage.getDashboardAppointmentStats(timeframe);
+      console.log(`Appointment stats (direct route) retrieved successfully for timeframe: ${timeframe}`);
+      res.json({ data: stats });
+    } catch (error) {
+      console.error("Error retrieving appointment statistics (direct route):", error);
+      res.status(500).json({ 
+        error: "Failed to retrieve appointment statistics",
+        details: formatError(error)
+      });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

@@ -258,3 +258,46 @@ export type SessionNote = typeof sessionNotes.$inferSelect;
 export type PerformanceAssessment = typeof performanceAssessments.$inferSelect;
 export type MilestoneAssessment = typeof milestoneAssessments.$inferSelect;
 export type Strategy = typeof strategies.$inferSelect;
+
+// Dashboard data types
+export type AppointmentStatsEntry = {
+  period: string;
+  count: number;
+  percentChange?: number;
+};
+
+export type AppointmentStats = {
+  daily: AppointmentStatsEntry[];
+  weekly: AppointmentStatsEntry[];
+  monthly: AppointmentStatsEntry[];
+  yearly: AppointmentStatsEntry[];
+};
+
+export type BudgetExpirationStats = {
+  expiringNextMonth: {
+    count: number;
+    byClient: Array<{ clientId: number, clientName: string, planId: number, planName: string }>;
+  };
+  remainingFunds: Array<{
+    month: string; // Format: YYYY-MM
+    amount: number;
+    planCount: number;
+  }>;
+};
+
+export type UpcomingTaskStats = {
+  byMonth: Array<{
+    month: string; // Format: YYYY-MM
+    reports: number;
+    letters: number;
+    assessments: number;
+    other: number;
+  }>;
+};
+
+export type DashboardData = {
+  appointments: AppointmentStats;
+  budgets: BudgetExpirationStats;
+  tasks: UpcomingTaskStats;
+  lastUpdated: string;
+};
