@@ -184,7 +184,17 @@ export function DashboardAIChat() {
   // Show initialization animation
   if (isInitializing) {
     return (
-      <Card className="h-full flex flex-col justify-center items-center bg-black/90 text-white border-white/20 shadow-lg overflow-hidden">
+      <Card className="h-full flex flex-col justify-center items-center bg-black/90 text-white border-white/20 shadow-lg overflow-hidden relative">
+        {/* Minimize button in top-right corner */}
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          onClick={toggleMinimized} 
+          className="absolute top-2 right-2 z-10 h-7 w-7 text-white/70 hover:text-white hover:bg-white/10"
+        >
+          {isMinimized ? <Maximize2 className="h-4 w-4" /> : <Minimize2 className="h-4 w-4" />}
+        </Button>
+        
         <motion.div 
           className="relative flex flex-col items-center justify-center w-full h-full"
           initial={{ opacity: 0 }}
@@ -278,60 +288,16 @@ export function DashboardAIChat() {
   }
 
   return (
-    <Card className="h-full flex flex-col bg-black/90 text-white border-white/20 shadow-lg overflow-hidden backdrop-blur-xl">
-      <CardHeader className="p-2 border-b border-white/10 flex flex-row items-center space-y-0 gap-2 flex-shrink-0 bg-black/80">
-        <motion.div
-          initial={{ scale: 0.8, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ type: "spring", duration: 0.5 }}
-        >
-          <Avatar className="h-7 w-7 bg-black/80 shadow-md shadow-black/40 border border-white/20">
-            <motion.div
-              animate={{ rotate: [0, 360] }}
-              transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-              className="absolute inset-0 rounded-full border border-white/10"
-            />
-            <Brain className="h-4 w-4 text-white" />
-          </Avatar>
-        </motion.div>
-        
-        <motion.div
-          initial={{ x: -20, opacity: 0 }}
-          animate={{ x: 0, opacity: 1 }}
-          transition={{ duration: 0.3, delay: 0.1 }}
-        >
-          <CardTitle className="text-base text-white flex items-center gap-1.5">
-            Practice Assistant
-            <motion.div
-              animate={{ opacity: [0.7, 1, 0.7] }}
-              transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-            >
-              <Sparkles className="h-3.5 w-3.5 text-white/70" />
-            </motion.div>
-          </CardTitle>
-        </motion.div>
-        
-        <motion.div
-          initial={{ scale: 0, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ type: "spring", duration: 0.5, delay: 0.2 }}
-        >
-          <Badge variant="outline" className="ml-1 bg-white/10 text-white text-xs border-white/20">
-            AI
-          </Badge>
-        </motion.div>
-        
-        <div className="flex-grow"></div>
-        
-        <Button 
-          variant="ghost" 
-          size="icon" 
-          onClick={toggleMinimized} 
-          className="h-7 w-7 text-white/70 hover:text-white hover:bg-white/10"
-        >
-          {isMinimized ? <Maximize2 className="h-4 w-4" /> : <Minimize2 className="h-4 w-4" />}
-        </Button>
-      </CardHeader>
+    <Card className="h-full flex flex-col bg-black/90 text-white border-white/20 shadow-lg overflow-hidden backdrop-blur-xl relative">
+      {/* Minimize button in top-right corner */}
+      <Button 
+        variant="ghost" 
+        size="icon" 
+        onClick={toggleMinimized} 
+        className="absolute top-2 right-2 z-10 h-7 w-7 text-white/70 hover:text-white hover:bg-white/10"
+      >
+        {isMinimized ? <Maximize2 className="h-4 w-4" /> : <Minimize2 className="h-4 w-4" />}
+      </Button>
       
       {!isMinimized ? (
         <AnimatePresence mode="wait">
@@ -341,7 +307,7 @@ export function DashboardAIChat() {
             animate={{ opacity: 1 }}
             transition={{ duration: 0.3 }}
           >
-            <ScrollArea ref={scrollAreaRef} className="flex-grow px-3 py-2">
+            <ScrollArea ref={scrollAreaRef} className="flex-grow px-3 py-2 mt-2">
               <div className="space-y-3">
                 <AnimatePresence initial={false}>
                   {messages.map((message) => (
@@ -415,35 +381,6 @@ export function DashboardAIChat() {
                 </AnimatePresence>
               </div>
             </ScrollArea>
-            
-            {messages.length === 1 && (
-              <motion.div 
-                className="px-3 py-1.5 flex-shrink-0 border-t border-white/10"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3, duration: 0.4 }}
-              >
-                <p className="text-[10px] text-white/60 mb-1.5">Try asking me about:</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {SUGGESTIONS.map((suggestion, index) => (
-                    <motion.div
-                      key={suggestion}
-                      initial={{ opacity: 0, scale: 0.8 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      transition={{ delay: 0.4 + (index * 0.1), duration: 0.3 }}
-                    >
-                      <Badge
-                        variant="outline"
-                        className="cursor-pointer border-white/20 text-white bg-black/30 hover:bg-white/10 text-[10px] py-0.5 transition-colors duration-150"
-                        onClick={() => handleSuggestionClick(suggestion)}
-                      >
-                        {suggestion}
-                      </Badge>
-                    </motion.div>
-                  ))}
-                </div>
-              </motion.div>
-            )}
             
             <motion.div
               className="p-2 border-t border-white/10 flex-shrink-0"
