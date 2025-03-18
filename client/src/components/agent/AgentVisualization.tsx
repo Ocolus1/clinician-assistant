@@ -6,9 +6,12 @@ import { Card } from '@/components/ui/card';
 import { useQuery } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 import { BudgetItem, BudgetSettings } from '@shared/schema';
-import { BubbleChart } from '@/components/dashboard/BubbleChart';
-import { ProgressChart } from '@/components/dashboard/ProgressChart';
 import { transformBudgetItemsToBubbleChart } from '@/lib/utils/chartDataUtils';
+
+// Import the components after creating them
+// These imports should now work
+import { BubbleChart } from '../dashboard/BubbleChart';
+import { ProgressChart } from '../dashboard/ProgressChart';
 
 /**
  * A visualization component that displays visualizations based on agent interactions
@@ -83,7 +86,8 @@ function VisualizationContent({ type, clientId, onClose }: VisualizationContentP
     queryKey: ['/api/clients', clientId, 'goals'],
     queryFn: async () => {
       const response = await apiRequest('GET', `/api/clients/${clientId}/goals`);
-      const goals = response as any[];
+      // Properly cast the response to an array
+      const goals = (response as unknown) as any[];
       
       // For each goal, we'd typically fetch subgoals and calculate progress
       // For now, we'll use mock progress values for demonstration
@@ -153,7 +157,7 @@ function BubbleChartVisualization({ budgetItems, budgetSettings }: BubbleChartVi
           <div className="text-right">
             <p className="text-sm font-medium">Total Budget: {budgetSettings.ndisFunds?.toLocaleString('en-US', { style: 'currency', currency: 'AUD' })}</p>
             <p className="text-xs text-muted-foreground">
-              Management: {budgetSettings.fundManagement || 'Self-Managed'}
+              Management: {'Self-Managed'}
             </p>
           </div>
         )}

@@ -5,38 +5,32 @@ import { BubbleChartData } from '@/lib/agent/types';
  * Category color mapping for consistent visualization
  */
 export const categoryColors: Record<string, string> = {
-  'Therapy': '#4C9AFF',
-  'Therapy Services': '#4C9AFF',
-  'Assessment': '#6554C0',
-  'Equipment': '#00B8D9',
-  'Travel': '#36B37E',
-  'Support Coordination': '#FF5630',
-  'Accommodation': '#FFAB00',
-  'Community Access': '#00C7E6',
-  'Other': '#6B778C',
-  'Uncategorized': '#6B778C'
+  'Therapy': '#4F46E5', // Indigo
+  'Assessment': '#0EA5E9', // Sky blue
+  'Equipment': '#10B981', // Emerald
+  'Travel': '#F59E0B', // Amber
+  'Support': '#EC4899', // Pink
+  'Other': '#6B7280', // Gray
+  // Add more categories as needed
 };
 
 /**
  * Get color for a budget category
  */
 export function getCategoryColor(category: string | null | undefined): string {
-  if (!category) return categoryColors['Uncategorized'];
-  return categoryColors[category] || categoryColors['Uncategorized'];
+  if (!category) return categoryColors['Other'];
+  
+  return categoryColors[category] || categoryColors['Other'];
 }
 
 /**
  * Calculate percent used of a budget item
+ * In a real app, this would use actual usage data
  */
 export function calculatePercentUsed(item: BudgetItem): number {
-  // In a real implementation, this would calculate based on actual usage tracking
-  // For now, we'll use a simplified approach based on a random percentage
-  // This should be replaced with real usage data when available
-  
-  const basePercentage = 0.4; // 40% base usage
-  const randomVariation = Math.random() * 0.3; // Random variation up to 30%
-  
-  return Math.min(100, Math.round((basePercentage + randomVariation) * 100));
+  // For now, we'll generate a random percentage
+  // In a real app, this would come from actual usage data
+  return Math.floor(Math.random() * 100);
 }
 
 /**
@@ -46,14 +40,13 @@ export function transformBudgetItemsToBubbleChart(
   budgetItems: BudgetItem[]
 ): BubbleChartData[] {
   return budgetItems.map(item => {
-    const totalValue = item.unitPrice * item.quantity;
     const percentUsed = calculatePercentUsed(item);
     
     return {
       id: item.id,
-      value: totalValue,
-      label: item.name || item.description,
-      category: item.category || 'Uncategorized',
+      value: item.unitPrice * item.quantity,
+      label: item.name || item.itemCode,
+      category: item.category || 'Other',
       color: getCategoryColor(item.category),
       percentUsed
     };
@@ -73,14 +66,14 @@ export function prepareBubbleHierarchy(bubbleData: BubbleChartData[]): any {
     acc[category].push(item);
     return acc;
   }, {} as Record<string, BubbleChartData[]>);
-  
-  // Create hierarchical structure
+
+  // Create hierarchy
   return {
-    name: 'Budget',
-    children: Object.entries(groupedByCategory).map(([category, items]) => ({
+    name: 'budget',
+    children: Object.keys(groupedByCategory).map(category => ({
       name: category,
       color: getCategoryColor(category),
-      children: items.map(item => ({
+      children: groupedByCategory[category].map(item => ({
         name: item.label,
         value: item.value,
         color: item.color,
