@@ -4,6 +4,7 @@ import {
   DashboardProvider,
   AppointmentAnalytics,
   BudgetExpirationCard,
+  BudgetBubbleChart,
   UpcomingTasksTimeline,
   MagicLampChat
 } from "@/components/dashboard";
@@ -50,26 +51,29 @@ function DashboardContent() {
         </Button>
       </div>
       
-      {/* Fixed-height grid with no scrolling required */}
-      <div className="grid grid-cols-2 grid-rows-2 gap-6 p-4 pt-2 h-[calc(100vh-5rem)]">
-        {/* Top Left - Magic Lamp AI Chatbox */}
-        <div className="rounded-xl overflow-hidden shadow-md border border-black/5 bg-card transition-all hover:shadow-lg">
-          <MagicLampChat />
+      {/* Two-column layout with 35%/65% split */}
+      <div className="flex gap-6 p-4 pt-2 h-[calc(100vh-5rem)]">
+        {/* Left Column (35%) - Communication and Scheduling */}
+        <div className="w-[35%] flex flex-col gap-6">
+          {/* AI Assistant - Magic Lamp */}
+          <div className="flex-grow-0 h-1/3 rounded-xl overflow-hidden shadow-md border border-black/5 bg-card transition-all hover:shadow-lg">
+            <MagicLampChat />
+          </div>
+          
+          {/* Appointment Analytics */}
+          <div className="flex-grow-0 h-1/3 rounded-xl overflow-hidden shadow-md border border-black/5 bg-card transition-all hover:shadow-lg">
+            <AppointmentAnalytics />
+          </div>
+          
+          {/* Tasks Timeline */}
+          <div className="flex-grow h-1/3 rounded-xl overflow-hidden shadow-md border border-black/5 bg-card transition-all hover:shadow-lg">
+            <UpcomingTasksTimeline />
+          </div>
         </div>
         
-        {/* Top Right - Appointment Analytics */}
-        <div className="rounded-xl overflow-hidden shadow-md border border-black/5 bg-card transition-all hover:shadow-lg">
-          <AppointmentAnalytics />
-        </div>
-        
-        {/* Bottom Left - Budget Expiration */}
-        <div className="rounded-xl overflow-hidden shadow-md border border-black/5 bg-card transition-all hover:shadow-lg">
-          <BudgetExpirationCard />
-        </div>
-        
-        {/* Bottom Right - Tasks Timeline */}
-        <div className="rounded-xl overflow-hidden shadow-md border border-black/5 bg-card transition-all hover:shadow-lg">
-          <UpcomingTasksTimeline />
+        {/* Right Column (65%) - Financial Visualization */}
+        <div className="w-[65%] rounded-xl overflow-hidden shadow-md border border-black/5 bg-card transition-all hover:shadow-lg">
+          <BudgetBubbleChart />
         </div>
       </div>
     </DashboardLayout>
