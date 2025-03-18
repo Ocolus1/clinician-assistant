@@ -62,7 +62,7 @@ export function NumericRating({
       
       <div className="flex items-center">
         {/* Rating buttons in a single row */}
-        <div className="flex gap-0.5">
+        <div className="flex gap-1.5">
           {ratingNumbers.map(num => (
             <button
               key={num}
