@@ -1041,6 +1041,49 @@ export function useBudgetForm() {
 ```tsx
 // SessionForm.tsx - Main form container
 
+```
+
+## Rich Text Management
+
+### Rich Text Editor Implementation
+
+#### Component Integration
+- **Editor Component**: Use the `RichTextEditor` component from `@/components/ui/rich-text-editor.tsx`
+- **Value Handling**: Store HTML string content in form state and database
+- **Context Isolation**: Ensure editor instances have isolated contexts to prevent content leakage between instances
+
+#### Display Considerations
+- **Content Security**: Always sanitize HTML content when displaying user-generated rich text
+- **Styling in Display**: Use the `prose` class from Tailwind Typography for consistent rich text display
+- **Overflow Handling**: Apply fade effects or truncation for long content with `max-h-[value]` and appropriate gradient masks
+
+```tsx
+// Example of properly displaying rich text content
+<div className="prose prose-sm max-h-48 overflow-hidden relative">
+  <div dangerouslySetInnerHTML={{ __html: sanitizedHtml }} />
+  {content.length > 200 && (
+    <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-white to-transparent" />
+  )}
+</div>
+```
+
+#### Common Issues and Solutions
+- **Empty Content Handling**: Check for empty strings before rendering HTML content
+- **Form Reset Issues**: Ensure editor state is properly reset when form is cleared or submitted
+- **DOM Nesting Errors**: Avoid placing rich text content inside HTML elements that cannot contain block elements
+
+### Displaying Rich Text in Reports and Summaries
+
+#### Print Optimization
+- **Page Breaks**: Use CSS `page-break-inside: avoid` for important content blocks in print views
+- **Print-specific Styling**: Add print-specific CSS in a `@media print` query
+- **Content Preparation**: Pre-process rich text content for print by removing interactive elements
+
+#### Accessibility Considerations
+- **Screen Reader Support**: Ensure rich text content is properly accessible to screen readers
+- **Contrast Ratios**: Maintain adequate contrast in displayed text content
+- **Focus Indicators**: Provide visible focus indicators in rich text editing interfaces
+
 ## Schema Changes and Data Evolution
 
 ### Schema Evolution Process
@@ -1093,6 +1136,10 @@ const modifiedClientSchema = insertClientSchema
 4. **Update API Routes**: Ensure API routes handle new field names
 5. **Update UI Components**: Update any UI components that display or interact with changed fields
 6. **Test Workflows**: Test all affected user workflows end-to-end
+
+### ✅ Good Example of Form Component Structure
+
+```tsx
 export function SessionForm({ clientId, onComplete }) {
   const [step, setStep] = useState(0);
   const formMethods = useForm({
