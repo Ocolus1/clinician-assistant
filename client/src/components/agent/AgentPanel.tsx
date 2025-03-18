@@ -1,237 +1,182 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useAgent } from './AgentContext';
-import {
-  MessageSquare,
-  Send,
-  X,
-  RefreshCw,
-  User,
-  Sparkles,
-  BarChart3,
-  PieChart
-} from 'lucide-react';
+import { X, Send, ArrowUpFromLine, RotateCcw } from 'lucide-react';
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Card } from "@/components/ui/card";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
 import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { 
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
 
 /**
- * Panel that contains the agent conversation interface
+ * Chat interface panel for interacting with the agent assistant
  */
 export function AgentPanel() {
   const {
     isAgentVisible,
     toggleAgentVisibility,
+    activeClient,
     conversationHistory,
     clearConversation,
     processQuery,
-    isProcessingQuery,
-    queryConfidence,
-    latestVisualization
+    isProcessingQuery
   } = useAgent();
   
-  const [inputValue, setInputValue] = useState('');
-  const scrollAreaRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const [userInput, setUserInput] = useState('');
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
   
-  // Auto-scroll to bottom when conversation updates
+  // Scroll to bottom of messages when conversation updates
   useEffect(() => {
-    if (scrollAreaRef.current) {
-      scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight;
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [conversationHistory]);
   
-  // Focus input when panel opens
+  // Focus input when panel becomes visible
   useEffect(() => {
     if (isAgentVisible && inputRef.current) {
-      inputRef.current.focus();
+      setTimeout(() => {
+        inputRef.current?.focus();
+      }, 100);
     }
   }, [isAgentVisible]);
   
-  // Handle input submission
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // Handle query submission
+  const handleSubmit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     
-    if (!inputValue.trim() || isProcessingQuery) return;
+    if (!userInput.trim() || isProcessingQuery) return;
     
-    // Process query
-    await processQuery(inputValue);
-    
-    // Clear input
-    setInputValue('');
+    try {
+      await processQuery(userInput);
+      setUserInput('');
+    } catch (error) {
+      console.error('Error submitting query:', error);
+    }
   };
   
-  // If panel is not visible, don't render anything
+  // Handle input change
+  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setUserInput(e.target.value);
+  };
+  
+  // Handle key press
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSubmit();
+    }
+  };
+  
   if (!isAgentVisible) return null;
   
   return (
-    <div className="fixed bottom-20 right-4 w-96 h-[70vh] max-h-[600px] bg-white dark:bg-gray-900 rounded-lg shadow-xl z-40 flex flex-col border border-gray-200 dark:border-gray-800">
-      {/* Header */}
-      <div className="flex items-center justify-between p-3 border-b border-gray-200 dark:border-gray-800">
-        <div className="flex items-center gap-2">
-          <div className="relative">
-            <MessageSquare className="w-5 h-5 text-primary" />
-            <Sparkles className="w-3 h-3 absolute -top-1 -right-1 text-yellow-300" />
+    <div className="fixed bottom-20 right-4 z-50 w-[380px] h-[500px] shadow-2xl rounded-xl bg-card overflow-hidden">
+      <Card className="flex flex-col h-full border">
+        {/* Header */}
+        <div className="flex items-center justify-between p-3 border-b">
+          <div className="flex items-center gap-2">
+            <div className="relative w-8 h-8 rounded-full flex items-center justify-center bg-primary-100">
+              <span className="text-primary text-sm font-medium">
+                AI
+              </span>
+            </div>
+            <div className="flex flex-col">
+              <h3 className="text-sm font-semibold">Ignite Assistant</h3>
+              {activeClient && (
+                <p className="text-xs text-muted-foreground">Analyzing data for {activeClient.name}</p>
+              )}
+            </div>
           </div>
-          <h3 className="font-medium">Therapy Assistant</h3>
+          <div className="flex gap-1">
+            <Button 
+              variant="ghost" 
+              size="icon"
+              className="h-7 w-7"
+              onClick={clearConversation}
+              title="Clear conversation"
+            >
+              <RotateCcw className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7"
+              onClick={toggleAgentVisibility}
+              title="Close assistant"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
         
-        <div className="flex items-center gap-1">
-          {/* Confidence indicator */}
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div className={cn(
-                  "w-2 h-2 rounded-full",
-                  queryConfidence > 0.8 ? "bg-green-500" :
-                  queryConfidence > 0.5 ? "bg-yellow-500" : "bg-red-500"
-                )} />
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Confidence level: {Math.round(queryConfidence * 100)}%</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-          
-          {/* Visualization indicator */}
-          {latestVisualization !== 'NONE' && (
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <div className="text-primary">
-                    {latestVisualization === 'BUBBLE_CHART' ? (
-                      <PieChart className="w-4 h-4" />
-                    ) : (
-                      <BarChart3 className="w-4 h-4" />
-                    )}
-                  </div>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Visualization available</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          )}
-          
-          {/* Clear conversation button */}
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            onClick={clearConversation} 
-            className="h-8 w-8"
-            aria-label="Clear conversation"
-          >
-            <RefreshCw className="w-4 h-4" />
-          </Button>
-          
-          {/* Close button */}
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            onClick={toggleAgentVisibility} 
-            className="h-8 w-8"
-            aria-label="Close panel"
-          >
-            <X className="w-4 h-4" />
-          </Button>
-        </div>
-      </div>
-      
-      {/* Conversation area */}
-      <ScrollArea className="flex-1 p-3" ref={scrollAreaRef}>
-        <div className="flex flex-col gap-4">
+        {/* Messages */}
+        <ScrollArea className="flex-1 p-3 bg-background/60">
           {conversationHistory.length === 0 ? (
-            <div className="text-center text-gray-500 dark:text-gray-400 py-8">
-              <Sparkles className="w-10 h-10 mx-auto mb-2 text-primary/50" />
-              <p className="text-sm">
-                Ask me about client budgets, progress tracking, or therapy strategies.
-              </p>
+            <div className="h-full flex flex-col items-center justify-center text-center px-4 py-8 space-y-3">
+              <div className="relative rounded-full bg-primary/10 p-3">
+                <div className="absolute inset-0 rounded-full bg-primary/5 animate-ping"></div>
+                <ArrowUpFromLine className="h-6 w-6 text-primary" />
+              </div>
+              <div className="space-y-1">
+                <h3 className="text-sm font-medium">Ask anything about your client's data</h3>
+                <p className="text-xs text-muted-foreground">
+                  Try "Show me budget utilization" or "What progress has {activeClient?.name} made?"
+                </p>
+              </div>
             </div>
           ) : (
-            conversationHistory.map((message) => (
-              <div 
-                key={message.id}
-                className={cn(
-                  "flex gap-2 max-w-[90%]",
-                  message.role === 'user' ? "ml-auto" : "mr-auto"
-                )}
-              >
-                {message.role === 'assistant' && (
-                  <div className="relative mt-1 flex-shrink-0">
-                    <MessageSquare className="w-5 h-5 text-primary" />
-                    <Sparkles className="w-2 h-2 absolute -top-1 -right-1 text-yellow-300" />
-                  </div>
-                )}
-                
-                <div 
+            <div className="space-y-4">
+              {conversationHistory.map((message) => (
+                <div
+                  key={message.id}
                   className={cn(
-                    "rounded-lg px-3 py-2 text-sm",
-                    message.role === 'user' 
-                      ? "bg-primary text-white" 
-                      : "bg-gray-100 dark:bg-gray-800"
+                    "flex flex-col max-w-[85%] rounded-lg p-3 mb-2",
+                    message.role === "user"
+                      ? "bg-primary text-primary-foreground ml-auto"
+                      : "bg-muted"
                   )}
-                  style={{ whiteSpace: 'pre-wrap' }}
                 >
-                  {message.content}
+                  <p className="text-sm">{message.content}</p>
+                  <time className="text-xs mt-1 opacity-70 self-end">
+                    {message.timestamp.toLocaleTimeString([], {
+                      hour: "2-digit",
+                      minute: "2-digit"
+                    })}
+                  </time>
                 </div>
-                
-                {message.role === 'user' && (
-                  <div className="mt-1 flex-shrink-0">
-                    <User className="w-5 h-5 text-primary" />
-                  </div>
-                )}
-              </div>
-            ))
-          )}
-          
-          {/* Loading indicator */}
-          {isProcessingQuery && (
-            <div className="flex gap-2 max-w-[90%] mr-auto">
-              <div className="relative mt-1">
-                <MessageSquare className="w-5 h-5 text-primary" />
-                <Sparkles className="w-2 h-2 absolute -top-1 -right-1 text-yellow-300" />
-              </div>
-              
-              <div className="rounded-lg px-3 py-2 text-sm bg-gray-100 dark:bg-gray-800">
-                <div className="flex items-center gap-1">
-                  <div className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                  <div className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                  <div className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
-                </div>
-              </div>
+              ))}
+              <div ref={messagesEndRef} />
             </div>
           )}
-        </div>
-      </ScrollArea>
-      
-      {/* Input area */}
-      <form onSubmit={handleSubmit} className="p-3 border-t border-gray-200 dark:border-gray-800">
-        <div className="flex gap-2">
-          <Input
-            ref={inputRef}
-            value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
-            placeholder="Ask about budgets, progress, or strategies..."
-            className="flex-1"
-            disabled={isProcessingQuery}
-          />
-          
-          <Button 
-            type="submit" 
-            size="icon" 
-            disabled={!inputValue.trim() || isProcessingQuery}
-            aria-label="Send message"
-          >
-            <Send className="w-4 h-4" />
-          </Button>
-        </div>
-      </form>
+        </ScrollArea>
+        
+        <Separator />
+        
+        {/* Input form */}
+        <form onSubmit={handleSubmit} className="p-3 bg-background">
+          <div className="flex items-end gap-2">
+            <Textarea
+              ref={inputRef}
+              placeholder="Ask a question..."
+              value={userInput}
+              onChange={handleInputChange}
+              onKeyDown={handleKeyPress}
+              className="min-h-[60px] resize-none rounded-lg"
+              disabled={isProcessingQuery}
+            />
+            <Button
+              type="submit"
+              size="icon"
+              disabled={!userInput.trim() || isProcessingQuery}
+              className="shrink-0 h-10 w-10"
+            >
+              <Send className="h-4 w-4" />
+            </Button>
+          </div>
+        </form>
+      </Card>
     </div>
   );
 }
