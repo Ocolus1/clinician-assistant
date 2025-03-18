@@ -65,30 +65,23 @@ function formatNumberWithCommas(value: number): string {
 
 /**
  * Helper function to format percent changes
- * Note: We invert the sign since the trend calculation in our API is inverted (negative when it should be positive)
  */
 function formatPercentChange(percentChange?: number): string {
   if (percentChange === undefined || isNaN(percentChange)) return '0%';
   
-  // Invert the sign to fix the percentage calculation bug
-  const correctedPercentChange = percentChange * -1;
-  
-  return `${correctedPercentChange > 0 ? '+' : ''}${correctedPercentChange.toFixed(1)}%`;
+  // Round to 1 decimal place and format with + sign for positive values
+  return `${percentChange > 0 ? '+' : ''}${percentChange.toFixed(1)}%`;
 }
 
 /**
  * Helper function to determine trend direction based on percent change
- * Note: Also inverting the sign for this function to match the fix in formatPercentChange
  */
 function getTrendIcon(percentChange?: number) {
   if (!percentChange || isNaN(percentChange)) return null;
   
-  // Invert the sign to fix the percentage calculation bug
-  const correctedPercentChange = percentChange * -1;
-  
-  if (correctedPercentChange > 0) {
+  if (percentChange > 0) {
     return <TrendingUp className="h-4 w-4 text-green-500" />;
-  } else if (correctedPercentChange < 0) {
+  } else if (percentChange < 0) {
     return <TrendingDown className="h-4 w-4 text-red-500" />;
   }
   return <Activity className="h-4 w-4 text-gray-400" />;
@@ -96,16 +89,12 @@ function getTrendIcon(percentChange?: number) {
 
 /**
  * Helper function to get the appropriate color for percent change
- * Note: Also inverting the sign for this function to match the fix in formatPercentChange
  */
 function getTrendColor(percentChange?: number): string {
   if (!percentChange || isNaN(percentChange)) return 'text-gray-500';
   
-  // Invert the sign to fix the percentage calculation bug
-  const correctedPercentChange = percentChange * -1;
-  
-  if (correctedPercentChange > 0) return 'text-green-500';
-  if (correctedPercentChange < 0) return 'text-red-500';
+  if (percentChange > 0) return 'text-green-500';
+  if (percentChange < 0) return 'text-red-500';
   return 'text-gray-500';
 }
 
@@ -183,10 +172,32 @@ export function AppointmentAnalytics() {
     ? timeframeData[timeframeData.length - 1] 
     : undefined;
   
+  // Get second-to-last entry for percentage calculation  
+  const secondToLastEntry = timeframeData && timeframeData.length > 1
+    ? timeframeData[timeframeData.length - 2]
+    : undefined;
+    
   // Calculate the total revenue for the current timeframe
   const totalRevenue = latestEntry 
     ? ((latestEntry as any).revenue !== undefined ? (latestEntry as any).revenue : (latestEntry.count * 120))
     : 0;
+    
+  // Calculate percentage change between last day and second-to-last day
+  let calculatedPercentChange: number | undefined = undefined;
+  
+  if (latestEntry && secondToLastEntry) {
+    const latestRevenue = (latestEntry as any).revenue !== undefined 
+      ? (latestEntry as any).revenue 
+      : (latestEntry.count * 120);
+      
+    const previousRevenue = (secondToLastEntry as any).revenue !== undefined 
+      ? (secondToLastEntry as any).revenue 
+      : (secondToLastEntry.count * 120);
+      
+    if (previousRevenue !== 0) {
+      calculatedPercentChange = ((latestRevenue - previousRevenue) / previousRevenue) * 100;
+    }
+  }
 
   // Handle timeframe change
   const handleTimeframeChange = (value: string) => {
@@ -311,11 +322,11 @@ export function AppointmentAnalytics() {
             )}
           </div>
           
-          {!isLoading && latestEntry?.percentChange !== undefined && (
+          {!isLoading && calculatedPercentChange !== undefined && (
             <div className="flex items-center">
-              {getTrendIcon(latestEntry.percentChange)}
-              <span className={`text-sm ml-1 ${getTrendColor(latestEntry.percentChange)}`}>
-                {formatPercentChange(latestEntry.percentChange)}
+              {getTrendIcon(calculatedPercentChange)}
+              <span className={`text-sm ml-1 ${getTrendColor(calculatedPercentChange)}`}>
+                {formatPercentChange(calculatedPercentChange)}
               </span>
             </div>
           )}
