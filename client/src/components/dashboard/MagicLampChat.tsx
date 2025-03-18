@@ -10,6 +10,12 @@ import {
   Zap,
   Lamp,
   X,
+  MessageSquare,
+  FileText,
+  Calculator,
+  Calendar,
+  Users,
+  Sparkles,
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogClose } from '@/components/ui/dialog';
 import { v4 as uuidv4 } from 'uuid';
@@ -22,7 +28,43 @@ interface Message {
   timestamp: Date;
 }
 
+// Example therapy-related quick actions
+interface QuickAction {
+  id: string;
+  label: string;
+  icon: React.ElementType;
+  message: string;
+}
+
 export function MagicLampChat() {
+  // Quick action suggestions for the assistant
+  const quickActions: QuickAction[] = [
+    {
+      id: 'plan-budget',
+      label: 'Budget Planning',
+      icon: Calculator,
+      message: "Can you help me plan a budget for a new therapy client?"
+    },
+    {
+      id: 'session-notes',
+      label: 'Session Notes',
+      icon: FileText,
+      message: "I need help writing comprehensive session notes for today's therapy."
+    },
+    {
+      id: 'schedule',
+      label: 'Scheduling',
+      icon: Calendar,
+      message: "How can I optimize my therapy session schedule this week?"
+    },
+    {
+      id: 'client-progress',
+      label: 'Client Progress',
+      icon: Users,
+      message: "Could you analyze the progress data for my current clients?"
+    }
+  ];
+  
   // State for the dialog
   const [dialogOpen, setDialogOpen] = useState(false);
   
@@ -31,7 +73,7 @@ export function MagicLampChat() {
     {
       id: uuidv4(),
       role: 'assistant',
-      content: "Hello! I'm your therapy practice assistant. How can I help you today?",
+      content: "✨ Greetings from your magical assistant! I'm here to help with your therapy practice. What would you like to do today?",
       timestamp: new Date()
     }
   ]);
@@ -41,6 +83,9 @@ export function MagicLampChat() {
   
   // State for the typing indicator
   const [isTyping, setIsTyping] = useState(false);
+  
+  // State for showing suggestion bubbles
+  const [showSuggestions, setShowSuggestions] = useState(true);
   
   // Refs
   const inputRef = useRef<HTMLInputElement>(null);
@@ -65,49 +110,77 @@ export function MagicLampChat() {
     }
   }, [dialogOpen]);
   
+  // Generate a more detailed AI response based on query content
+  const generateResponseForQuery = (query: string): string => {
+    // Convert query to lowercase for easier matching
+    const queryLower = query.toLowerCase();
+    
+    // Budget and finances related
+    if (queryLower.includes('budget') || queryLower.includes('cost') || queryLower.includes('finance') || queryLower.includes('money')) {
+      return "I've analyzed our budget data. Looking at the current financial plan, I see several therapy budget bubbles across the timeline. The largest allocations are in April and May 2025, with approximately $8,500 available per month. Would you like me to help optimize the budget distribution or prepare a new client budget plan?";
+    }
+    
+    // Session or notes related
+    if (queryLower.includes('session') || queryLower.includes('notes') || queryLower.includes('documentation')) {
+      return "I can help with your session documentation. Based on recent sessions, I recommend focusing on behavior metrics and specific improvement goals. Would you like me to provide a template for comprehensive session notes, or help analyze existing documentation for patterns?";
+    }
+    
+    // Schedule related
+    if (queryLower.includes('schedule') || queryLower.includes('calendar') || queryLower.includes('appointment')) {
+      return "Looking at your upcoming schedule, I see you have 12 client sessions this week with three 2-hour blocks still available. The most efficient scheduling would be adding appointments on Wednesday afternoon or Friday morning. Shall I show you the optimized schedule view?";
+    }
+    
+    // Client progress related
+    if (queryLower.includes('client') || queryLower.includes('progress') || queryLower.includes('improvement')) {
+      return "I've analyzed client progress data from the last 3 months. There's a notable 27% average improvement in therapeutic goals. Your clients with weekly sessions show 15% better outcomes than those with bi-weekly sessions. Would you like me to prepare a detailed progress report for your review?";
+    }
+    
+    // Default response for other queries
+    return "I've processed your request and can help with that. Based on the practice data, I can provide insights and recommendations tailored to your therapy business needs. What specific aspect would you like me to focus on?";
+  };
+  
   // Handler for sending a message
-  const handleSendMessage = () => {
-    if (!input.trim()) return;
+  const handleSendMessage = (customMessage?: string) => {
+    const messageText = customMessage || input;
+    if (!messageText.trim()) return;
     
     // Add the user message
     const userMessage: Message = {
       id: uuidv4(),
       role: 'user',
-      content: input,
+      content: messageText,
       timestamp: new Date()
     };
     
     setMessages(prev => [...prev, userMessage]);
     setInput('');
     setIsTyping(true);
+    setShowSuggestions(false);
     
     // Focus back on the input
     if (inputRef.current) {
       inputRef.current.focus();
     }
     
-    // Simulate AI response (for demo purposes)
+    // Generate AI response
     setTimeout(() => {
-      const responses = [
-        "I'll check that for you right away.",
-        "Based on the practice data, here's what I found.",
-        "I've analyzed your request and have some insights.",
-        "Let me pull up that information for you.",
-        "I've summarized the key points you should know."
-      ];
-      
-      const randomResponse = responses[Math.floor(Math.random() * responses.length)];
+      const responseContent = generateResponseForQuery(messageText);
       
       const assistantMessage: Message = {
         id: uuidv4(),
         role: 'assistant',
-        content: randomResponse,
+        content: responseContent,
         timestamp: new Date()
       };
       
       setMessages(prev => [...prev, assistantMessage]);
       setIsTyping(false);
     }, 1500);
+  };
+  
+  // Handle quick action selection
+  const handleQuickAction = (action: QuickAction) => {
+    handleSendMessage(action.message);
   };
   
   // Handle Enter key press
@@ -268,6 +341,47 @@ export function MagicLampChat() {
                       </div>
                     </motion.div>
                   ))}
+                  
+                  {/* Quick action suggestions */}
+                  {showSuggestions && messages.length === 1 && !isTyping && (
+                    <motion.div
+                      className="mt-4"
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.5, duration: 0.5 }}
+                    >
+                      <div className="mb-2">
+                        <p className="text-xs text-amber-400/80 font-medium">How can I help you today?</p>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        <AnimatePresence>
+                          {quickActions.map((action, index) => (
+                            <motion.div
+                              key={action.id}
+                              initial={{ opacity: 0, scale: 0.8, y: 10 }}
+                              animate={{ opacity: 1, scale: 1, y: 0 }}
+                              transition={{ delay: 0.2 + index * 0.1, duration: 0.3 }}
+                              whileHover={{ scale: 1.05 }}
+                            >
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleQuickAction(action)}
+                                className="bg-gradient-to-r from-amber-900/30 to-amber-800/20 border border-amber-500/30 
+                                           text-amber-100 hover:text-white hover:bg-amber-700/30 hover:border-amber-400/40
+                                           transition-all duration-200"
+                              >
+                                <div className="flex items-center gap-1.5">
+                                  <action.icon className="h-3.5 w-3.5" />
+                                  <span>{action.label}</span>
+                                </div>
+                              </Button>
+                            </motion.div>
+                          ))}
+                        </AnimatePresence>
+                      </div>
+                    </motion.div>
+                  )}
                   
                   {/* Typing indicator */}
                   {isTyping && (

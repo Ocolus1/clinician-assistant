@@ -1,10 +1,10 @@
-import { useState } from "react";
-import { Sparkles, Wand2, Zap } from "lucide-react";
+import { useState, useRef } from "react";
+import { Sparkles, Wand2, Zap, Lamp, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { MagicLampChat } from "./MagicLampChat";
-import { Dialog } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogClose } from "@/components/ui/dialog";
 
 interface AIAssistantIconProps {
   expanded: boolean;
@@ -13,15 +13,28 @@ interface AIAssistantIconProps {
 /**
  * AI Assistant Icon component for the dock
  * Provides access to the Magic Lamp Chat through a floating button in the dock
+ * Implements a two-step interaction:
+ * 1. First click opens a lamp animation with a welcome message
+ * 2. Second click (or "Let's chat" button) opens the full chat interface
  */
 export function AIAssistantIcon({ expanded }: AIAssistantIconProps) {
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const [lampDialogOpen, setLampDialogOpen] = useState(false);
+  const [chatDialogOpen, setChatDialogOpen] = useState(false);
+  const rubAnimationRef = useRef<any>(null);
+  
+  // Handle the transition from lamp dialog to chat dialog
+  const handleChatOpen = () => {
+    setLampDialogOpen(false);
+    setTimeout(() => {
+      setChatDialogOpen(true);
+    }, 100);
+  };
   
   return (
     <div className="relative">
-      {/* Blue glow effect behind the button */}
+      {/* Gold/amber glow effect behind the button */}
       <motion.div 
-        className="absolute inset-0 rounded-full bg-blue-500/30 blur-md"
+        className="absolute inset-0 rounded-full bg-amber-500/30 blur-md"
         animate={{ 
           scale: [0.8, 1.2, 0.8], 
           opacity: [0.3, 0.6, 0.3] 
@@ -33,58 +46,213 @@ export function AIAssistantIcon({ expanded }: AIAssistantIconProps) {
         }}
       />
       
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => setDialogOpen(true)}
-          className={cn(
-            "relative z-10 rounded-full transition-all duration-300 bg-blue-600 hover:bg-blue-500 text-white hover:text-white",
-            expanded ? "h-14 w-14 mx-2" : "h-12 w-12 mx-1"
-          )}
-        >
-          <div className="flex flex-col items-center">
-            <motion.div
-              animate={{ 
-                rotate: [0, 10, -10, 0],
-                scale: [1, 1.1, 1]
-              }}
-              transition={{ 
-                duration: 2.5, 
-                repeat: Infinity, 
-                ease: "easeInOut" 
-              }}
-            >
-              <Wand2 className={expanded ? "h-6 w-6" : "h-5 w-5"} />
-            </motion.div>
-            {expanded && (
-              <span className="text-xs mt-1 font-medium">Assistant</span>
-            )}
+      {/* First Dialog - Magical Lamp Animation */}
+      <Dialog open={lampDialogOpen} onOpenChange={setLampDialogOpen}>
+        <DialogContent className="sm:max-w-[500px] p-0 bg-gradient-to-b from-black/95 to-amber-950/90 border border-amber-500/20 text-white overflow-hidden rounded-xl shadow-xl">
+          <div className="relative h-[500px] flex flex-col items-center justify-center overflow-hidden">
+            {/* Close button */}
+            <DialogClose asChild className="absolute top-3 right-3 z-50">
+              <Button variant="ghost" size="icon" className="h-8 w-8 text-white/70 hover:text-white hover:bg-white/10 rounded-full">
+                <X className="h-4 w-4" />
+              </Button>
+            </DialogClose>
+            
+            {/* Background effects */}
+            <div className="absolute inset-0 overflow-hidden">
+              {/* Stars */}
+              {Array.from({ length: 20 }).map((_, i) => (
+                <motion.div
+                  key={i}
+                  className="absolute w-1 h-1 rounded-full bg-white"
+                  style={{
+                    top: `${Math.random() * 100}%`,
+                    left: `${Math.random() * 100}%`,
+                  }}
+                  animate={{
+                    opacity: [0.1, 0.8, 0.1],
+                    scale: [0.8, 1.2, 0.8],
+                  }}
+                  transition={{
+                    duration: 2 + Math.random() * 3,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                    delay: Math.random() * 2,
+                  }}
+                />
+              ))}
+              
+              {/* Cosmic dust */}
+              <motion.div
+                className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-amber-500/5 via-transparent to-transparent"
+                style={{ transform: 'translate(-50%, -50%)', left: '50%', top: '50%', width: '200%', height: '200%' }}
+                animate={{
+                  scale: [1, 1.1, 1],
+                  rotate: [0, 5, 0, -5, 0],
+                }}
+                transition={{
+                  duration: 20,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                }}
+              />
+            </div>
+            
+            {/* Magical Lamp Content */}
+            <div className="z-10 flex flex-col items-center">
+              {/* Smoke animation */}
+              <motion.div
+                className="absolute w-40 h-40 rounded-full bg-gradient-to-t from-amber-500/20 via-amber-300/5 to-transparent"
+                style={{ y: -60 }}
+                animate={{
+                  y: [-60, -120],
+                  opacity: [0.2, 0],
+                  scale: [1, 2],
+                }}
+                transition={{
+                  duration: 3,
+                  repeat: Infinity,
+                  ease: "easeOut",
+                }}
+              />
+              
+              {/* The lamp */}
+              <motion.div
+                className="relative cursor-pointer"
+                whileHover={{ scale: 1.05 }}
+                animate={{
+                  rotate: [-2, 2, -2],
+                }}
+                transition={{
+                  duration: 4,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                }}
+                onHoverStart={() => {
+                  if (rubAnimationRef.current) {
+                    rubAnimationRef.current.start();
+                  }
+                }}
+              >
+                <motion.div
+                  ref={rubAnimationRef}
+                  className="absolute inset-0 rounded-xl bg-amber-400/30 blur-md"
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{
+                    opacity: 0.7,
+                    scale: 1.2,
+                  }}
+                  transition={{
+                    duration: 0.3,
+                  }}
+                />
+                <div className="relative bg-gradient-to-br from-amber-400 to-amber-600 p-3 rounded-2xl shadow-xl shadow-amber-900/50 border border-amber-300">
+                  <Lamp className="h-24 w-24 text-amber-900" />
+                </div>
+                
+                {/* Lamp light beam */}
+                <motion.div
+                  className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-full w-20 h-32 bg-gradient-to-t from-amber-300/40 to-transparent rounded-t-full origin-bottom"
+                  animate={{
+                    opacity: [0.3, 0.5, 0.3],
+                    scaleY: [0.8, 1, 0.8],
+                  }}
+                  transition={{
+                    duration: 3,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                  }}
+                />
+              </motion.div>
+              
+              {/* Genie message */}
+              <motion.div
+                className="mt-12 text-center max-w-xs"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3, duration: 0.5 }}
+              >
+                <h3 className="text-2xl font-bold text-amber-300 mb-2">
+                  Your Wish Is My Command!
+                </h3>
+                <p className="text-amber-100/80 mb-6">
+                  I'm your magical therapy assistant. I can help with budget planning, session notes, and more.
+                </p>
+                <Button
+                  onClick={handleChatOpen}
+                  className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-white border-none shadow-lg shadow-amber-900/30"
+                >
+                  <motion.span
+                    animate={{
+                      scale: [1, 1.05, 1],
+                    }}
+                    transition={{
+                      duration: 2,
+                      repeat: Infinity,
+                      ease: "easeInOut",
+                    }}
+                    className="flex items-center gap-2"
+                  >
+                    <Wand2 className="h-4 w-4" />
+                    Let's Chat
+                  </motion.span>
+                </Button>
+              </motion.div>
+            </div>
           </div>
-          
-          {/* Sparkle effects */}
-          <motion.div 
-            className="absolute top-0 right-0 text-yellow-300/70"
+        </DialogContent>
+      </Dialog>
+      
+      {/* Second Dialog - Full Chat Interface */}
+      <Dialog open={chatDialogOpen} onOpenChange={setChatDialogOpen}>
+        <MagicLampChat />
+      </Dialog>
+      
+      {/* Dock Icon Button */}
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={() => setLampDialogOpen(true)}
+        className={cn(
+          "relative z-10 rounded-full transition-all duration-300 bg-amber-600 hover:bg-amber-500 text-white hover:text-white",
+          expanded ? "h-14 w-14 mx-2" : "h-12 w-12 mx-1"
+        )}
+      >
+        <div className="flex flex-col items-center">
+          <motion.div
             animate={{ 
-              scale: [0.8, 1.2, 0.8], 
-              opacity: [0.5, 1, 0.5],
-              rotate: [0, 20, 0] 
+              rotate: [0, 10, -10, 0],
+              scale: [1, 1.1, 1]
             }}
             transition={{ 
-              duration: 2, 
+              duration: 2.5, 
               repeat: Infinity, 
               ease: "easeInOut" 
             }}
           >
-            <Sparkles className="h-3 w-3" />
+            <Lamp className={expanded ? "h-6 w-6" : "h-5 w-5"} />
           </motion.div>
-        </Button>
-        
-        {/* The dialog will be handled by the MagicLampChat component */}
-        <div className="hidden">
-          <MagicLampChat />
+          {expanded && (
+            <span className="text-xs mt-1 font-medium">Assistant</span>
+          )}
         </div>
-      </Dialog>
+        
+        {/* Sparkle effects */}
+        <motion.div 
+          className="absolute top-0 right-0 text-yellow-300/70"
+          animate={{ 
+            scale: [0.8, 1.2, 0.8], 
+            opacity: [0.5, 1, 0.5],
+            rotate: [0, 20, 0] 
+          }}
+          transition={{ 
+            duration: 2, 
+            repeat: Infinity, 
+            ease: "easeInOut" 
+          }}
+        >
+          <Sparkles className="h-3 w-3" />
+        </motion.div>
+      </Button>
     </div>
   );
 }
