@@ -1,7 +1,6 @@
-import React from "react";
+import * as React from "react";
+import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
-import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 
 interface NumericRatingProps {
   value: number;
@@ -22,61 +21,70 @@ export function NumericRating({
   onChange,
   label,
   description,
-  min = 1,
+  min = 0,
   max = 10
 }: NumericRatingProps) {
-  // Generate a badge color class based on value
-  const getBadgeClass = () => {
-    if (value <= 3) return 'bg-red-100 border-red-200 text-red-700';
-    if (value <= 6) return 'bg-amber-100 border-amber-200 text-amber-700';
-    return 'bg-green-100 border-green-200 text-green-700';
+  const [hoveredValue, setHoveredValue] = useState<number | null>(null);
+  
+  // Generate numbers array between min and max
+  const numbers = React.useMemo(() => {
+    return Array.from({ length: max - min + 1 }, (_, i) => i + min);
+  }, [min, max]);
+
+  // Determine appropriate color for a rating value
+  const getColorClass = (num: number): string => {
+    if (num <= 3) return "bg-red-100 hover:bg-red-200 text-red-800 border-red-300";
+    if (num <= 6) return "bg-amber-100 hover:bg-amber-200 text-amber-800 border-amber-300";
+    return "bg-green-100 hover:bg-green-200 text-green-800 border-green-300";
   };
   
-  // Generate all rating numbers
-  const ratingNumbers = Array.from({ length: max - min + 1 }, (_, i) => min + i);
-  
-  // Get color for individual number button
-  const getNumberColor = (num: number) => {
-    if (num === value) {
-      // Selected value
-      if (num <= 3) return "bg-red-500 text-white border-red-600";
-      if (num <= 6) return "bg-amber-500 text-white border-amber-600";
-      return "bg-green-500 text-white border-green-600";
-    } else {
-      // Unselected values with appropriate color intensity
-      if (num <= 3) return "bg-red-50 text-red-600 hover:bg-red-100 border-red-200";
-      if (num <= 6) return "bg-amber-50 text-amber-600 hover:bg-amber-100 border-amber-200";
-      return "bg-green-50 text-green-600 hover:bg-green-100 border-green-200";
+  // Get appearance class for selected/hovered state
+  const getAppearanceClass = (num: number): string => {
+    const isSelected = num === value;
+    const isHovered = num === hoveredValue;
+    
+    if (isSelected) {
+      return cn(
+        getColorClass(num),
+        "border-2 shadow-sm font-bold"
+      );
     }
+    
+    if (isHovered) {
+      return cn(
+        getColorClass(num),
+        "border shadow-sm"
+      );
+    }
+    
+    return "bg-muted/50 text-muted-foreground hover:bg-muted border border-transparent";
   };
-  
+
   return (
-    <div className="w-full">
-      {/* Only show label area if there's a label */}
-      {label && (
-        <div className="flex justify-between items-center mb-1.5">
-          <Label className="font-medium text-sm">{label}</Label>
-          {description && <p className="text-xs text-muted-foreground">{description}</p>}
-        </div>
-      )}
+    <div className="space-y-1.5">
+      <div className="flex flex-col">
+        <span className="text-xs text-muted-foreground">{label}</span>
+        {description && (
+          <span className="text-xs text-muted-foreground/70 mt-0.5">{description}</span>
+        )}
+      </div>
       
-      <div className="flex items-center">
-        {/* Rating buttons in a single row */}
-        <div className="flex gap-1.5">
-          {ratingNumbers.map(num => (
-            <button
-              key={num}
-              type="button"
-              onClick={() => onChange(num)}
-              className={cn(
-                "h-5 w-5 rounded-full flex items-center justify-center text-xs font-medium transition-colors border",
-                getNumberColor(num)
-              )}
-            >
-              {num}
-            </button>
-          ))}
-        </div>
+      <div className="flex flex-wrap gap-1.5">
+        {numbers.map(num => (
+          <button
+            key={num}
+            type="button"
+            className={cn(
+              "w-7 h-7 flex items-center justify-center rounded-full text-xs transition-colors",
+              getAppearanceClass(num)
+            )}
+            onClick={() => onChange(num)}
+            onMouseEnter={() => setHoveredValue(num)}
+            onMouseLeave={() => setHoveredValue(null)}
+          >
+            {num}
+          </button>
+        ))}
       </div>
     </div>
   );

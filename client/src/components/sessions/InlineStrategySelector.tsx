@@ -34,7 +34,7 @@ export function InlineStrategySelector({
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   
   // Fetch strategies
-  const { data: strategies = [] } = useQuery({
+  const { data: strategies = [] } = useQuery<Strategy[]>({
     queryKey: ["/api/strategies"],
     staleTime: 60 * 1000, // 1 minute cache
   });
@@ -42,16 +42,20 @@ export function InlineStrategySelector({
   // Get unique categories from strategies
   const categories = React.useMemo(() => {
     const uniqueCategories = new Set<string>();
-    strategies.forEach((strategy: Strategy) => {
-      if (strategy.category) {
-        uniqueCategories.add(strategy.category);
-      }
-    });
+    if (Array.isArray(strategies)) {
+      strategies.forEach((strategy: Strategy) => {
+        if (strategy.category) {
+          uniqueCategories.add(strategy.category);
+        }
+      });
+    }
     return Array.from(uniqueCategories).sort();
   }, [strategies]);
 
   // Filter strategies based on search and category
   const filteredStrategies = React.useMemo(() => {
+    if (!Array.isArray(strategies)) return [];
+    
     return strategies.filter((strategy: Strategy) => {
       const matchesSearch = !searchValue || 
         strategy.name.toLowerCase().includes(searchValue.toLowerCase()) ||

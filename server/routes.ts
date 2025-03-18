@@ -1056,6 +1056,100 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Strategy routes
+  app.get("/api/strategies", async (req, res) => {
+    console.log("GET /api/strategies - Retrieving all strategies");
+    try {
+      const category = req.query.category as string | undefined;
+      
+      let strategies;
+      if (category) {
+        console.log(`Filtering strategies by category: ${category}`);
+        strategies = await storage.getStrategiesByCategory(category);
+      } else {
+        strategies = await storage.getAllStrategies();
+      }
+      
+      console.log(`Returning ${strategies.length} strategies`);
+      res.json(strategies);
+    } catch (error) {
+      console.error("Error retrieving strategies:", formatError(error));
+      res.status(500).json({ error: "Failed to retrieve strategies" });
+    }
+  });
+  
+  app.get("/api/strategies/:id", async (req, res) => {
+    console.log(`GET /api/strategies/${req.params.id} - Retrieving strategy by ID`);
+    try {
+      const strategyId = parseInt(req.params.id);
+      
+      if (isNaN(strategyId)) {
+        return res.status(400).json({ error: "Invalid strategy ID" });
+      }
+      
+      const strategy = await storage.getStrategyById(strategyId);
+      
+      if (!strategy) {
+        return res.status(404).json({ error: "Strategy not found" });
+      }
+      
+      res.json(strategy);
+    } catch (error) {
+      console.error(`Error retrieving strategy ${req.params.id}:`, formatError(error));
+      res.status(500).json({ error: "Failed to retrieve strategy" });
+    }
+  });
+  
+  app.post("/api/strategies", async (req, res) => {
+    console.log("POST /api/strategies - Creating new strategy");
+    try {
+      const validatedData = insertStrategySchema.parse(req.body);
+      const newStrategy = await storage.createStrategy(validatedData);
+      console.log(`Successfully created strategy with ID ${newStrategy.id}`);
+      res.status(201).json(newStrategy);
+    } catch (error) {
+      console.error("Error creating strategy:", formatError(error));
+      res.status(400).json({ error: "Failed to create strategy" });
+    }
+  });
+  
+  app.put("/api/strategies/:id", async (req, res) => {
+    console.log(`PUT /api/strategies/${req.params.id} - Updating strategy`);
+    try {
+      const strategyId = parseInt(req.params.id);
+      const validatedData = insertStrategySchema.parse(req.body);
+      const updatedStrategy = await storage.updateStrategy(strategyId, validatedData);
+      res.json(updatedStrategy);
+    } catch (error) {
+      console.error(`Error updating strategy ${req.params.id}:`, formatError(error));
+      res.status(400).json({ error: "Failed to update strategy" });
+    }
+  });
+  
+  app.delete("/api/strategies/:id", async (req, res) => {
+    console.log(`DELETE /api/strategies/${req.params.id} - Deleting strategy`);
+    try {
+      const strategyId = parseInt(req.params.id);
+      
+      if (isNaN(strategyId)) {
+        return res.status(400).json({ error: "Invalid strategy ID" });
+      }
+      
+      // Check if strategy exists
+      const strategy = await storage.getStrategyById(strategyId);
+      
+      if (!strategy) {
+        return res.status(404).json({ error: "Strategy not found" });
+      }
+      
+      await storage.deleteStrategy(strategyId);
+      res.json({ success: true, message: "Strategy deleted successfully" });
+    } catch (error) {
+      console.error(`Error deleting strategy ${req.params.id}:`, formatError(error));
+      res.status(500).json({ error: "Failed to delete strategy" });
+    }
+  });
+
   // Performance Assessment routes
   app.post("/api/session-notes/:sessionNoteId/performance", async (req, res) => {
     console.log(`POST /api/session-notes/${req.params.sessionNoteId}/performance - Creating performance assessment`);
@@ -1210,80 +1304,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error(`Error deleting milestone assessment ${req.params.id}:`, error);
       res.status(500).json({ error: "Failed to delete milestone assessment" });
-    }
-  });
-  
-  // Strategies routes
-  app.get("/api/strategies", async (req, res) => {
-    console.log("GET /api/strategies - Getting all strategies");
-    try {
-      const category = req.query.category as string | undefined;
-      
-      if (category) {
-        console.log(`Filtering strategies by category: ${category}`);
-        const filteredStrategies = await storage.getStrategiesByCategory(category);
-        return res.json(filteredStrategies);
-      }
-      
-      const strategies = await storage.getAllStrategies();
-      res.json(strategies);
-    } catch (error) {
-      console.error("Error getting strategies:", error);
-      res.status(500).json({ error: "Failed to get strategies" });
-    }
-  });
-  
-  app.get("/api/strategies/:id", async (req, res) => {
-    console.log(`GET /api/strategies/${req.params.id} - Getting strategy by ID`);
-    try {
-      const strategyId = parseInt(req.params.id);
-      const strategy = await storage.getStrategyById(strategyId);
-      
-      if (!strategy) {
-        return res.status(404).json({ error: "Strategy not found" });
-      }
-      
-      res.json(strategy);
-    } catch (error) {
-      console.error(`Error getting strategy ${req.params.id}:`, error);
-      res.status(500).json({ error: "Failed to get strategy" });
-    }
-  });
-  
-  app.post("/api/strategies", async (req, res) => {
-    console.log("POST /api/strategies - Creating a new strategy");
-    try {
-      const validatedData = insertStrategySchema.parse(req.body);
-      const newStrategy = await storage.createStrategy(validatedData);
-      res.status(201).json(newStrategy);
-    } catch (error) {
-      console.error("Error creating strategy:", error);
-      res.status(400).json({ error: "Failed to create strategy", details: error.message });
-    }
-  });
-  
-  app.put("/api/strategies/:id", async (req, res) => {
-    console.log(`PUT /api/strategies/${req.params.id} - Updating strategy`);
-    try {
-      const strategyId = parseInt(req.params.id);
-      const validatedData = insertStrategySchema.parse(req.body);
-      const updatedStrategy = await storage.updateStrategy(strategyId, validatedData);
-      res.json(updatedStrategy);
-    } catch (error) {
-      console.error(`Error updating strategy ${req.params.id}:`, error);
-      res.status(400).json({ error: "Failed to update strategy", details: error.message });
-    }
-  });
-  
-  app.delete("/api/strategies/:id", async (req, res) => {
-    console.log(`DELETE /api/strategies/${req.params.id} - Deleting strategy`);
-    try {
-      const strategyId = parseInt(req.params.id);
-      await storage.deleteStrategy(strategyId);
-      res.json({ success: true, message: "Strategy deleted successfully" });
-    } catch (error) {
-      console.error(`Error deleting strategy ${req.params.id}:`, error);
-      res.status(500).json({ error: "Failed to delete strategy" });
     }
   });
 
