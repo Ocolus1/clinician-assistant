@@ -8,11 +8,14 @@ import {
   UpcomingTasksTimeline,
   MagicLampChat
 } from "@/components/dashboard";
+import { DummyDataToggle } from "@/components/dashboard/DummyDataToggle";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { RefreshCw, LayoutDashboard, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { useDashboard } from "@/components/dashboard/DashboardProvider";
+import { Separator } from "@/components/ui/separator";
 
 /**
  * Dashboard wrapper with shared provider
@@ -32,11 +35,19 @@ function DashboardWithProvider() {
  */
 function DashboardContent() {
   const [, setLocation] = useLocation();
+  const { refreshData } = useDashboard();
   
   // Refresh data
   const handleRefresh = () => {
-    window.location.reload();
+    refreshData();
   };
+  
+  // Get current date for the header badge
+  const currentDate = new Date();
+  const currentMonthYear = currentDate.toLocaleDateString('en-US', { 
+    month: 'long',
+    year: 'numeric'
+  });
   
   return (
     <DashboardLayout>
@@ -46,10 +57,13 @@ function DashboardContent() {
           <LayoutDashboard className="h-6 w-6 mr-2 text-primary" />
           <h1 className="text-2xl font-semibold">Dashboard</h1>
           <Badge variant="outline" className="ml-3 px-2 py-0 h-6">
-            <span className="text-xs font-normal text-muted-foreground">March 2025</span>
+            <span className="text-xs font-normal text-muted-foreground">{currentMonthYear}</span>
           </Badge>
         </div>
         <div className="flex items-center gap-2">
+          {/* Dummy data toggle */}
+          <DummyDataToggle />
+          
           <Button 
             variant="ghost" 
             size="icon" 
