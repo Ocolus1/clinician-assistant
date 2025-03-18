@@ -21,7 +21,7 @@ export function BudgetVisualization({ className }: BudgetVisualizationProps) {
     queryKey: ['/api/clients'],
     queryFn: async () => {
       const response = await apiRequest('GET', '/api/clients');
-      return response as Client[];
+      return response as unknown as Client[];
     }
   });
 

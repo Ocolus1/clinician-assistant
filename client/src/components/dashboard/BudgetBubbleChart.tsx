@@ -53,7 +53,7 @@ export function BudgetBubbleChart({
     queryKey: ['/api/budget-items/client', clientId],
     queryFn: async () => {
       const response = await apiRequest('GET', `/api/budget-items/client/${clientId}`);
-      return response as BudgetItem[];
+      return response as unknown as BudgetItem[];
     },
     enabled: !!clientId // Only run query if clientId is valid
   });
@@ -62,7 +62,7 @@ export function BudgetBubbleChart({
     queryKey: ['/api/budget-settings/active', clientId],
     queryFn: async () => {
       const response = await apiRequest('GET', `/api/budget-settings/active/${clientId}`);
-      return response as BudgetSettings;
+      return response as unknown as BudgetSettings;
     },
     enabled: !!clientId // Only run query if clientId is valid
   });
