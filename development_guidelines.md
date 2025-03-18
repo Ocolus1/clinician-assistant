@@ -7,20 +7,21 @@ This document outlines the development standards and best practices for our Spee
 1. [Component Architecture](#component-architecture)
 2. [State Management](#state-management) 
 3. [Complex State Management](#complex-state-management)
-4. [Feature Management Patterns](#feature-management-patterns) *(New)*
+4. [Feature Management Patterns](#feature-management-patterns)
 5. [Concurrency Handling](#concurrency-handling)
 6. [Data Integrity](#data-integrity)
 7. [Performance Optimization](#performance-optimization)
 8. [Page Structure Organization](#page-structure-organization)
 9. [File Naming and Organization](#file-naming-and-organization)
 10. [Form Implementation](#form-implementation)
-11. [Schema Changes and Data Evolution](#schema-changes-and-data-evolution)
-12. [Data Fetching](#data-fetching)
-13. [Code Style](#code-style)
-14. [Testing](#testing)
-15. [User Experience Considerations](#user-experience-considerations)
-16. [Troubleshooting Common Issues](#troubleshooting-common-issues)
-17. [Examples](#examples)
+11. [Rich Text Management](#rich-text-management) *(New)*
+12. [Schema Changes and Data Evolution](#schema-changes-and-data-evolution)
+13. [Data Fetching](#data-fetching)
+14. [Code Style](#code-style)
+15. [Testing](#testing)
+16. [User Experience Considerations](#user-experience-considerations)
+17. [Troubleshooting Common Issues](#troubleshooting-common-issues)
+18. [Examples](#examples)
 
 ## Component Architecture
 
