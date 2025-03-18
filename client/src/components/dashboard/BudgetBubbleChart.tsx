@@ -11,6 +11,7 @@ import {
   ResponsiveContainer
 } from 'recharts';
 import { BudgetItem, BudgetSettings } from '@shared/schema';
+import type { BubbleChartData } from '@/lib/agent/types';
 import { useQuery } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 import { transformBudgetItemsToBubbleChart, getCategoryColor } from '@/lib/utils/chartDataUtils';
@@ -39,7 +40,7 @@ const BudgetBubbleTooltip = ({ active, payload }: BudgetBubbleTooltipProps) => {
 
 interface BudgetBubbleChartProps {
   clientId: number;
-  onBubbleClick?: (bubbleData: any) => void;
+  onBubbleClick?: (bubbleData: BubbleChartData) => void;
   className?: string;
 }
 
@@ -50,12 +51,20 @@ export function BudgetBubbleChart({
 }: BudgetBubbleChartProps) {
   const { data: budgetItems, isLoading: isLoadingItems } = useQuery({
     queryKey: ['/api/budget-items/client', clientId],
-    queryFn: () => apiRequest('GET', `/api/budget-items/client/${clientId}`)
+    queryFn: async () => {
+      const response = await apiRequest('GET', `/api/budget-items/client/${clientId}`);
+      return response as BudgetItem[];
+    },
+    enabled: !!clientId // Only run query if clientId is valid
   });
   
   const { data: budgetSettings, isLoading: isLoadingSettings } = useQuery({
     queryKey: ['/api/budget-settings/active', clientId],
-    queryFn: () => apiRequest('GET', `/api/budget-settings/active/${clientId}`)
+    queryFn: async () => {
+      const response = await apiRequest('GET', `/api/budget-settings/active/${clientId}`);
+      return response as BudgetSettings;
+    },
+    enabled: !!clientId // Only run query if clientId is valid
   });
   
   // Transform data for bubble chart
@@ -68,7 +77,8 @@ export function BudgetBubbleChart({
   const categories = useMemo(() => {
     if (!chartData.length) return [];
     
-    const uniqueCategories = [...new Set(chartData.map(item => item.category))];
+    // Use Array.from instead of [...new Set()] for better compatibility
+    const uniqueCategories = Array.from(new Set(chartData.map(item => item.category)));
     return uniqueCategories;
   }, [chartData]);
   

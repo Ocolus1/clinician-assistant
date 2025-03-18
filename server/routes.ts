@@ -1417,6 +1417,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Budget Settings Active Route
+  app.get("/api/budget-settings/active/:clientId", async (req, res) => {
+    try {
+      const clientId = parseInt(req.params.clientId);
+      if (isNaN(clientId)) {
+        return res.status(400).json({ error: 'Invalid client ID' });
+      }
+      
+      console.log(`GET /api/budget-settings/active/${clientId} - Getting active budget setting`);
+      const settings = await storage.getBudgetSettingsByClient(clientId);
+      
+      if (!settings) {
+        console.log(`No active budget setting found for client ${clientId}`);
+        return res.status(404).json({ error: "Budget settings not found" });
+      }
+      
+      console.log(`Found active budget settings for client ${clientId}`);
+      res.json(settings);
+    } catch (error) {
+      console.error('Error fetching active budget settings:', error);
+      return res.status(500).json({ error: formatError(error) });
+    }
+  });
+  
+  // Budget Items by Client Route
+  app.get("/api/budget-items/client/:clientId", async (req, res) => {
+    try {
+      const clientId = parseInt(req.params.clientId);
+      if (isNaN(clientId)) {
+        return res.status(400).json({ error: 'Invalid client ID' });
+      }
+      
+      console.log(`GET /api/budget-items/client/${clientId} - Getting budget items for client`);
+      const budgetItems = await storage.getBudgetItemsByClient(clientId);
+      
+      console.log(`Found ${budgetItems.length} budget items for client ${clientId}`);
+      return res.json(budgetItems);
+    } catch (error) {
+      console.error('Error fetching budget items for client:', error);
+      return res.status(500).json({ error: formatError(error) });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

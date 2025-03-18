@@ -4,7 +4,7 @@ import {
   DashboardProvider,
   AppointmentAnalytics,
   BudgetExpirationCard,
-  BudgetBubbleChart,
+  BudgetVisualization,
   UpcomingTasksTimeline
 } from "@/components/dashboard";
 import { DummyDataToggle } from "@/components/dashboard/DummyDataToggle";
@@ -91,9 +91,7 @@ function DashboardContent() {
           </div>
           
           {/* Right Column (65%) - Financial Visualization */}
-          <Card className="w-full md:w-[65%] shadow-sm transition-all hover:shadow-md overflow-hidden">
-            <BudgetBubbleChart />
-          </Card>
+          <BudgetVisualization className="w-full md:w-[65%] shadow-sm transition-all hover:shadow-md overflow-hidden" />
         </div>
       </div>
     </DashboardLayout>
