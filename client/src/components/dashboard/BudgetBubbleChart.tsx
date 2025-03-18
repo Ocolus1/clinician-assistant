@@ -123,9 +123,12 @@ export function BudgetBubbleChart() {
   
   // Constants for chart visualization
   const BUBBLE_SIZE_UNIT = 1000; // $1000 maps to basic bubble size unit
-  const MIN_BUBBLE_SIZE = 20; // Minimum size for very small budgets
-  const MAX_BUBBLE_SIZE = 100; // Maximum size for very large budgets
-  const JITTER_RANGE = 100; // Range for vertical jitter to prevent overlap
+  const MIN_BUBBLE_SIZE = 15; // Minimum size for very small budgets
+  const MAX_BUBBLE_SIZE = 50; // Maximum size for very large budgets
+  const JITTER_RANGE = 300; // Range for vertical jitter to prevent overlap
+  
+  // Max number of bubbles to display per month to prevent overcrowding
+  const MAX_BUBBLES_PER_MONTH = 3;
   
   // Generate month labels for X-axis (next 6 months)
   const monthLabels = useMemo(() => {
@@ -301,45 +304,77 @@ export function BudgetBubbleChart() {
       });
     }
     
-    // If we're in dummy data mode, make the bubbles more realistic
-    if (dataSource === 'dummy' && allPlans.length < 15) {
-      // Add a few more plans with varying sizes and dates if we don't have enough
-      const additionalPlans = [];
-      for (let i = 0; i < 10; i++) {
-        const monthIndex = Math.floor(Math.random() * 6); // 0-5 months
-        const amount = 5000 + Math.random() * 20000;
+    // If we're in dummy data mode, create exactly 15 plans distributed across months
+    if (dataSource === 'dummy') {
+      // First clear existing plans if we're in dummy mode to maintain control over the total count
+      allPlans = [];
+      
+      // Define a controlled distribution of plans across the 6 months
+      // Create 2-3 bubbles per month (15 total) with varying sizes
+      const planDistribution = [2, 3, 3, 3, 2, 2]; // Total: 15 plans
+      
+      // Create plans for each month according to the distribution
+      for (let monthIndex = 0; monthIndex < 6; monthIndex++) {
+        const planCount = planDistribution[monthIndex];
         
-        // Calculate bubble size based on amount
-        const bubbleSize = Math.max(
-          MIN_BUBBLE_SIZE, 
-          Math.min(MAX_BUBBLE_SIZE, Math.sqrt(amount / BUBBLE_SIZE_UNIT) * 15)
-        );
-        
-        // Apply vertical jitter to prevent overlap
-        const jitter = Math.random() * JITTER_RANGE;
-        
-        const date = new Date();
-        date.setMonth(date.getMonth() + monthIndex);
-        const monthName = date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
-        const formattedDate = date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-        const priority = getPriorityFromMonths(monthIndex + 1);
-        
-        additionalPlans.push({
-          x: monthIndex,
-          y: jitter,
-          z: bubbleSize,
-          amount,
-          clientName: ['Thompson Family', 'Lee Support', 'Walker Plan', 'Hall Care', 'Young Family'][i % 5],
-          planName: ['Basic Package', 'Enhanced Care', 'Standard Support', 'Premium Plan', 'Child Development'][i % 5],
-          clientId: null,
-          planId: null,
-          expiryMonth: monthName,
-          expiryDate: monthIndex === 0 ? 'This month' : `In ${monthIndex + 1} month${monthIndex > 0 ? 's' : ''}`,
-          priority,
-          color: PRIORITY_COLORS[priority],
-        });
+        for (let i = 0; i < planCount; i++) {
+          // Vary amounts to create different sized bubbles: small, medium, large
+          let amount;
+          if (i === 0) {
+            amount = 2000 + Math.random() * 3000; // Small: $2-5K
+          } else if (i === 1) {
+            amount = 6000 + Math.random() * 4000; // Medium: $6-10K
+          } else {
+            amount = 12000 + Math.random() * 8000; // Large: $12-20K
+          }
+          
+          // Calculate bubble size based on amount with square root scaling for more visual difference
+          const bubbleSize = Math.max(
+            MIN_BUBBLE_SIZE, 
+            Math.min(MAX_BUBBLE_SIZE, Math.sqrt(amount / BUBBLE_SIZE_UNIT) * 25)
+          );
+          
+          // Create evenly distributed jitter positions within the range
+          // Use the plan index to assign positions that don't overlap
+          const jitterStep = JITTER_RANGE / (planCount + 1);
+          const jitter = jitterStep * (i + 1);
+          
+          const date = new Date();
+          date.setMonth(date.getMonth() + monthIndex);
+          const monthName = date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+          const formattedDate = date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+          
+          // Determine priority based on timeline
+          const priority = getPriorityFromMonths(monthIndex + 1);
+          
+          // Client and plan names
+          const clientNames = ['Thompson Family', 'Lee Support', 'Walker Plan', 'Hall Care', 'Young Family', 
+                              'Smith Family', 'Johnson Care', 'Rodriguez Therapy', 'Williams Support', 'Brown Plan',
+                              'Edwards Family', 'Garcia Support', 'Miller Care', 'Davis Plan', 'Wilson Therapy'];
+          
+          const planTypes = ['Basic Package', 'Enhanced Care', 'Standard Support', 'Premium Plan', 'Child Development',
+                            'NDIS Plan', 'Private Care', 'Medicare Plus', 'Family Support', 'Early Intervention',
+                            'Annual Care Plan', 'Quarterly Support', 'Family Package', 'Standard Plan', 'Premium Care'];
+          
+          // Calculate a unique index for each bubble across all months
+          const globalIndex = monthIndex * 3 + i;
+          
+          allPlans.push({
+            x: monthIndex,
+            y: jitter,
+            z: bubbleSize,
+            amount,
+            clientName: clientNames[globalIndex % clientNames.length],
+            planName: planTypes[globalIndex % planTypes.length],
+            clientId: null,
+            planId: null,
+            expiryMonth: monthName,
+            expiryDate: monthIndex === 0 ? 'This month' : `In ${monthIndex + 1} month${monthIndex > 0 ? 's' : ''}`,
+            priority,
+            color: PRIORITY_COLORS[priority],
+          });
+        }
       }
-      allPlans = [...allPlans, ...additionalPlans];
     }
     
     // Filter plans based on view mode
@@ -495,15 +530,15 @@ export function BudgetBubbleChart() {
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="flex items-center">
-                    <div style={{ width: 10, height: 10 }} className="rounded-full bg-primary/50 mr-1"></div>
+                    <div style={{ width: 15, height: 15 }} className="rounded-full bg-primary/50 mr-1"></div>
                     <span>$1K</span>
                   </div>
                   <div className="flex items-center">
-                    <div style={{ width: 18, height: 18 }} className="rounded-full bg-primary/50 mr-1"></div>
+                    <div style={{ width: 30, height: 30 }} className="rounded-full bg-primary/50 mr-1"></div>
                     <span>$5K</span>
                   </div>
                   <div className="flex items-center">
-                    <div style={{ width: 26, height: 26 }} className="rounded-full bg-primary/50 mr-1"></div>
+                    <div style={{ width: 45, height: 45 }} className="rounded-full bg-primary/50 mr-1"></div>
                     <span>$10K+</span>
                   </div>
                 </div>
