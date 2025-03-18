@@ -61,41 +61,43 @@ export function BudgetExpirationCard() {
               Track expiring plans and remaining funds
             </CardDescription>
           </div>
-          {expiringCount > 0 && (
-            <Badge variant="destructive" className="flex items-center">
-              <AlertCircle className="mr-1 h-3 w-3" />
-              {expiringCount} Plan{expiringCount !== 1 ? 's' : ''} Expiring
-            </Badge>
-          )}
         </div>
       </CardHeader>
       
       <CardContent className="p-2 flex-grow overflow-auto">
-        <div className="grid grid-rows-2 gap-3 h-full">
-          {/* Top row - Expiring plans and total funds visualization */}
+        <div className="grid grid-rows-[auto_1fr] gap-3 h-full">
+          {/* Top row - Expiring plans visualization - compact height */}
           <Card className="flex flex-col">
             <CardHeader className="p-2 pb-1 flex-shrink-0">
-              <CardTitle className="text-sm">Expiring Next Month</CardTitle>
+              <CardTitle className="text-sm flex justify-between items-center">
+                <span>Expiring Next Month</span>
+                {expiringCount > 0 && (
+                  <Badge variant="destructive" className="ml-2">
+                    {expiringCount} Plan{expiringCount !== 1 ? 's' : ''}
+                  </Badge>
+                )}
+              </CardTitle>
             </CardHeader>
-            <CardContent className="p-2 pt-0 flex-grow overflow-auto">
+            <CardContent className="p-2 pt-0">
               {isLoading ? (
                 <div className="space-y-2">
                   <Skeleton className="h-8 w-full" />
                   <Skeleton className="h-8 w-full" />
                 </div>
               ) : expiringCount > 0 ? (
-                <div className="space-y-2 overflow-auto pr-1 max-h-24">
+                <div className="flex flex-wrap gap-2">
                   {expiringClients.map((client) => (
                     <div key={`${client.clientId}-${client.planId}`} 
-                      className="flex justify-between items-center p-2 border rounded-md bg-red-50 border-red-200">
-                      <div>
-                        <p className="font-medium text-sm">{client.clientName}</p>
-                        <p className="text-xs text-muted-foreground">Plan: {client.planName}</p>
+                      className="flex-1 min-w-[180px] flex justify-between items-center p-2 border rounded-md bg-red-50 border-red-200">
+                      <div className="overflow-hidden">
+                        <p className="font-medium text-sm truncate">{client.clientName}</p>
+                        <p className="text-xs text-muted-foreground truncate">Plan: {client.planName}</p>
                       </div>
                       <Button 
                         variant="ghost" 
                         size="sm" 
                         onClick={() => setLocation(`/client/${client.clientId}/budget`)}
+                        className="ml-1 flex-shrink-0"
                       >
                         <ArrowRight className="h-4 w-4" />
                       </Button>
@@ -103,15 +105,15 @@ export function BudgetExpirationCard() {
                   ))}
                 </div>
               ) : (
-                <div className="flex items-center justify-center h-16 text-muted-foreground">
+                <div className="flex items-center justify-center h-8 text-muted-foreground text-sm">
                   No plans expiring next month
                 </div>
               )}
             </CardContent>
           </Card>
           
-          {/* Bottom row - Funds visualization over time */}
-          <Card className="flex flex-col">
+          {/* Bottom row - Funds visualization over time - expanded height */}
+          <Card className="flex flex-col flex-grow">
             <CardHeader className="p-2 pb-1 flex-shrink-0">
               <CardTitle className="text-sm flex items-center">
                 <DollarSign className="mr-1 h-4 w-4" />
@@ -119,75 +121,78 @@ export function BudgetExpirationCard() {
               </CardTitle>
             </CardHeader>
             <CardContent className="p-2 pt-0 flex-grow overflow-hidden">
-              <div className="h-3/4">
-                {isLoading ? (
-                  <Skeleton className="w-full h-full" />
-                ) : (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart
-                      data={fundsChartData}
-                      margin={{ top: 10, right: 0, left: 0, bottom: 0 }}
-                    >
-                      <XAxis 
-                        dataKey="month" 
-                        tick={{ fontSize: 10 }}
-                        tickLine={false}
-                        axisLine={false}
-                      />
-                      <YAxis 
-                        tickFormatter={(value) => formatCurrency(value)}
-                        tick={{ fontSize: 10 }}
-                        width={60}
-                        tickLine={false}
-                        axisLine={false}
-                      />
-                      <Tooltip 
-                        formatter={(value) => formatCurrency(Number(value))}
-                        labelFormatter={(value) => `Month: ${value}`}
-                      />
-                      <Area
-                        type="monotone"
-                        dataKey="amount"
-                        name="Remaining Funds"
-                        stroke="#2563EB"
-                        fill="#2563EB"
-                        fillOpacity={0.2}
-                      />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                )}
-              </div>
-              
-              {/* Plan counts as small bar chart */}
-              <div className="h-1/4">
-                {!isLoading && (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart
-                      data={fundsChartData}
-                      margin={{ top: 5, right: 0, left: 0, bottom: 0 }}
-                    >
-                      <XAxis 
-                        dataKey="month"
-                        tick={{ fontSize: 8 }}
-                        tickLine={false}
-                        axisLine={false}
-                      />
-                      <YAxis 
-                        hide={true}
-                      />
-                      <Tooltip />
-                      <Bar
-                        dataKey="planCount"
-                        name="Active Plans"
-                        radius={[2, 2, 0, 0]}
+              <div className="grid grid-rows-[3fr_1fr] h-full">
+                {/* Main area chart */}
+                <div className="w-full h-full">
+                  {isLoading ? (
+                    <Skeleton className="w-full h-full" />
+                  ) : (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart
+                        data={fundsChartData}
+                        margin={{ top: 10, right: 0, left: 0, bottom: 0 }}
                       >
-                        {fundsChartData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                        ))}
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
-                )}
+                        <XAxis 
+                          dataKey="month" 
+                          tick={{ fontSize: 10 }}
+                          tickLine={false}
+                          axisLine={false}
+                        />
+                        <YAxis 
+                          tickFormatter={(value) => formatCurrency(value)}
+                          tick={{ fontSize: 10 }}
+                          width={60}
+                          tickLine={false}
+                          axisLine={false}
+                        />
+                        <Tooltip 
+                          formatter={(value) => formatCurrency(Number(value))}
+                          labelFormatter={(value) => `Month: ${value}`}
+                        />
+                        <Area
+                          type="monotone"
+                          dataKey="amount"
+                          name="Remaining Funds"
+                          stroke="#2563EB"
+                          fill="#2563EB"
+                          fillOpacity={0.2}
+                        />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  )}
+                </div>
+                
+                {/* Plan counts as small bar chart */}
+                <div className="w-full">
+                  {!isLoading && (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart
+                        data={fundsChartData}
+                        margin={{ top: 5, right: 0, left: 0, bottom: 0 }}
+                      >
+                        <XAxis 
+                          dataKey="month"
+                          tick={{ fontSize: 8 }}
+                          tickLine={false}
+                          axisLine={false}
+                        />
+                        <YAxis 
+                          hide={true}
+                        />
+                        <Tooltip />
+                        <Bar
+                          dataKey="planCount"
+                          name="Active Plans"
+                          radius={[2, 2, 0, 0]}
+                        >
+                          {fundsChartData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  )}
+                </div>
               </div>
             </CardContent>
           </Card>
