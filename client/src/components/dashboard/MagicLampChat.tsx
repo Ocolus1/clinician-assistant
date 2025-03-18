@@ -19,6 +19,17 @@ import {
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogClose } from '@/components/ui/dialog';
 import { v4 as uuidv4 } from 'uuid';
+import { IgniteLogo } from './IgniteLogo';
+
+// Ignite brand colors
+const IGNITE_COLORS = {
+  blue: {
+    light: '#3b82f6', // Blue 500
+    medium: '#2563eb', // Blue 600
+    dark: '#1d4ed8', // Blue 700
+    darkest: '#1e40af', // Blue 800
+  }
+};
 
 // Define the message type
 interface Message {
@@ -70,7 +81,7 @@ export function MagicLampChat() {
     {
       id: uuidv4(),
       role: 'assistant',
-      content: "✨ Greetings from your magical assistant! I'm here to help with your therapy practice. What would you like to do today?",
+      content: "✨ Welcome to Ignite Assistant! I'm here to help with your therapy practice budgeting and visualization needs. How can I assist you today?",
       timestamp: new Date()
     }
   ]);
@@ -196,10 +207,10 @@ export function MagicLampChat() {
       {/* Fixed header with proper alignment */}
       <div className="flex items-center justify-between p-3 border-b border-white/10">
         <div className="flex items-center gap-2">
-          <Avatar className="h-8 w-8 bg-black/80 border border-white/20">
-            <Wand2 className="h-4 w-4 text-amber-300" />
+          <Avatar className="h-8 w-8 bg-black/80 border border-blue-500/40">
+            <IgniteLogo className="h-4 w-4" size={16} />
           </Avatar>
-          <h2 className="text-md font-medium">Magic Assistant</h2>
+          <h2 className="text-md font-medium">Ignite Assistant</h2>
         </div>
         <DialogClose asChild>
           <Button variant="ghost" size="icon" className="h-7 w-7 text-white/70 hover:text-white hover:bg-white/10">
@@ -220,11 +231,11 @@ export function MagicLampChat() {
                 transition={{ type: "spring", damping: 25, stiffness: 300 }}
               >
                 <div className={`max-w-[85%] flex ${message.role === 'user' ? 'flex-row-reverse' : 'flex-row'} items-start gap-1.5`}>
-                  <Avatar className={`h-6 w-6 ${message.role === 'user' ? 'bg-black border border-white/30' : 'bg-black/80 border border-amber-500/40'}`}>
+                  <Avatar className={`h-6 w-6 ${message.role === 'user' ? 'bg-black border border-white/30' : 'bg-black/80 border border-blue-500/40'}`}>
                     {message.role === 'user' ? (
                       <User className="h-4 w-4 text-white" />
                     ) : (
-                      <Wand2 className="h-4 w-4 text-amber-300" />
+                      <IgniteLogo className="h-4 w-4" size={16} />
                     )}
                   </Avatar>
                   
@@ -232,12 +243,12 @@ export function MagicLampChat() {
                     className={`rounded-lg px-3 py-2 ${
                       message.role === 'user'
                         ? 'bg-white/20 text-white shadow-sm'
-                        : 'bg-gradient-to-r from-amber-500/20 to-amber-700/20 text-white border border-amber-500/30 shadow-sm'
+                        : 'bg-gradient-to-r from-blue-500/20 to-blue-700/20 text-white border border-blue-500/30 shadow-sm'
                     }`}
                   >
                     <p className="text-sm leading-normal">{message.content}</p>
                     <span className={`text-[10px] block mt-1 ${
-                      message.role === 'user' ? 'text-white/60' : 'text-amber-300/70'
+                      message.role === 'user' ? 'text-white/60' : 'text-blue-300/70'
                     }`}>
                       {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </span>
@@ -255,7 +266,7 @@ export function MagicLampChat() {
                 transition={{ delay: 0.5, duration: 0.5 }}
               >
                 <div className="mb-2">
-                  <p className="text-xs text-amber-400/80 font-medium">How can I help you today?</p>
+                  <p className="text-xs text-blue-400/80 font-medium">How can I help you today?</p>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <AnimatePresence>
@@ -274,8 +285,8 @@ export function MagicLampChat() {
                             e.preventDefault();
                             handleQuickAction(action);
                           }}
-                          className="bg-gradient-to-r from-amber-900/30 to-amber-800/20 border border-amber-500/30 
-                                     text-amber-100 hover:text-white hover:bg-amber-700/30 hover:border-amber-400/40
+                          className="bg-gradient-to-r from-blue-900/30 to-blue-800/20 border border-blue-500/30 
+                                     text-blue-100 hover:text-white hover:bg-blue-700/30 hover:border-blue-400/40
                                      transition-all duration-200"
                         >
                           <div className="flex items-center gap-1.5">
@@ -299,16 +310,16 @@ export function MagicLampChat() {
                 exit={{ opacity: 0, y: 10 }}
               >
                 <div className="max-w-[85%] flex flex-row items-start gap-1.5">
-                  <Avatar className="h-6 w-6 bg-black/80 border border-amber-500/40">
-                    <Wand2 className="h-4 w-4 text-amber-300" />
+                  <Avatar className="h-6 w-6 bg-black/80 border border-blue-500/40">
+                    <IgniteLogo className="h-4 w-4" size={16} />
                   </Avatar>
                   
-                  <div className="rounded-lg px-3 py-2 bg-gradient-to-r from-amber-500/20 to-amber-700/20 text-white border border-amber-500/30 shadow-sm">
+                  <div className="rounded-lg px-3 py-2 bg-gradient-to-r from-blue-500/20 to-blue-700/20 text-white border border-blue-500/30 shadow-sm">
                     <div className="flex space-x-1.5 items-center h-4">
                       {[0, 1, 2].map((i) => (
                         <motion.div
                           key={i}
-                          className="w-1.5 h-1.5 rounded-full bg-amber-300"
+                          className="w-1.5 h-1.5 rounded-full bg-blue-300"
                           animate={{ y: [0, -4, 0] }}
                           transition={{ 
                             duration: 0.6, 
@@ -335,13 +346,13 @@ export function MagicLampChat() {
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Ask me anything..."
-            className="flex-1 h-10 bg-white/10 border-white/20 text-white placeholder:text-white/50 focus:border-amber-500/50 focus:ring-amber-500/20"
+            className="flex-1 h-10 bg-white/10 border-white/20 text-white placeholder:text-white/50 focus:border-blue-500/50 focus:ring-blue-500/20"
           />
           <Button 
             size="icon" 
             onClick={() => handleSendMessage()} 
             disabled={!input.trim()} 
-            className={`h-10 w-10 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-white shadow-md shadow-amber-900/20 transition-all duration-300 disabled:opacity-50 ${!input.trim() ? 'opacity-50' : 'opacity-100'}`}
+            className={`h-10 w-10 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-400 hover:to-blue-500 text-white shadow-md shadow-blue-900/20 transition-all duration-300 disabled:opacity-50 ${!input.trim() ? 'opacity-50' : 'opacity-100'}`}
           >
             <motion.div
               animate={{ scale: input.trim() ? [1, 1.15, 1] : 1 }}
