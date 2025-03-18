@@ -123,9 +123,9 @@ export function BudgetBubbleChart() {
   
   // Constants for chart visualization
   const BUBBLE_SIZE_UNIT = 1000; // $1000 maps to basic bubble size unit
-  const MIN_BUBBLE_SIZE = 30; // Minimum size for very small budgets
-  const MAX_BUBBLE_SIZE = 300; // Maximum size for very large budgets
-  const JITTER_RANGE = 50; // Range for vertical jitter to prevent overlap
+  const MIN_BUBBLE_SIZE = 20; // Minimum size for very small budgets
+  const MAX_BUBBLE_SIZE = 100; // Maximum size for very large budgets
+  const JITTER_RANGE = 100; // Range for vertical jitter to prevent overlap
   
   // Generate month labels for X-axis (next 6 months)
   const monthLabels = useMemo(() => {
@@ -170,7 +170,7 @@ export function BudgetBubbleChart() {
         // $1000 = 1 size unit, with minimum for visibility
         const bubbleSize = Math.max(
           MIN_BUBBLE_SIZE, 
-          Math.min(MAX_BUBBLE_SIZE, (estimatedAmount / BUBBLE_SIZE_UNIT) * 40)
+          Math.min(MAX_BUBBLE_SIZE, Math.sqrt(estimatedAmount / BUBBLE_SIZE_UNIT) * 15)
         );
         
         // Apply vertical jitter to prevent overlap
@@ -233,7 +233,7 @@ export function BudgetBubbleChart() {
             // Calculate bubble size based on amount
             const bubbleSize = Math.max(
               MIN_BUBBLE_SIZE, 
-              Math.min(MAX_BUBBLE_SIZE, (planAmount / BUBBLE_SIZE_UNIT) * 40)
+              Math.min(MAX_BUBBLE_SIZE, Math.sqrt(planAmount / BUBBLE_SIZE_UNIT) * 15)
             );
             
             // Apply vertical jitter to prevent overlap
@@ -277,7 +277,7 @@ export function BudgetBubbleChart() {
           // Calculate bubble size based on amount
           const bubbleSize = Math.max(
             MIN_BUBBLE_SIZE, 
-            Math.min(MAX_BUBBLE_SIZE, (item.amount / BUBBLE_SIZE_UNIT) * 40)
+            Math.min(MAX_BUBBLE_SIZE, Math.sqrt(item.amount / BUBBLE_SIZE_UNIT) * 15)
           );
           
           // Apply vertical jitter to prevent overlap
@@ -312,7 +312,7 @@ export function BudgetBubbleChart() {
         // Calculate bubble size based on amount
         const bubbleSize = Math.max(
           MIN_BUBBLE_SIZE, 
-          Math.min(MAX_BUBBLE_SIZE, (amount / BUBBLE_SIZE_UNIT) * 40)
+          Math.min(MAX_BUBBLE_SIZE, Math.sqrt(amount / BUBBLE_SIZE_UNIT) * 15)
         );
         
         // Apply vertical jitter to prevent overlap
@@ -495,15 +495,15 @@ export function BudgetBubbleChart() {
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="flex items-center">
-                    <div style={{ width: 6, height: 6 }} className="rounded-full bg-primary/50 mr-1"></div>
+                    <div style={{ width: 10, height: 10 }} className="rounded-full bg-primary/50 mr-1"></div>
                     <span>$1K</span>
                   </div>
                   <div className="flex items-center">
-                    <div style={{ width: 10, height: 10 }} className="rounded-full bg-primary/50 mr-1"></div>
+                    <div style={{ width: 18, height: 18 }} className="rounded-full bg-primary/50 mr-1"></div>
                     <span>$5K</span>
                   </div>
                   <div className="flex items-center">
-                    <div style={{ width: 16, height: 16 }} className="rounded-full bg-primary/50 mr-1"></div>
+                    <div style={{ width: 26, height: 26 }} className="rounded-full bg-primary/50 mr-1"></div>
                     <span>$10K+</span>
                   </div>
                 </div>
