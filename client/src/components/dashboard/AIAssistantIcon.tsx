@@ -204,7 +204,9 @@ export function AIAssistantIcon({ expanded }: AIAssistantIconProps) {
       
       {/* Second Dialog - Full Chat Interface */}
       <Dialog open={chatDialogOpen} onOpenChange={setChatDialogOpen}>
-        <MagicLampChat />
+        <DialogContent className="sm:max-w-[500px] max-h-[80vh] p-0 bg-black/95 border border-white/20 text-white overflow-hidden">
+          <MagicLampChat />
+        </DialogContent>
       </Dialog>
       
       {/* Dock Icon Button */}
