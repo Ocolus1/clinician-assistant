@@ -147,7 +147,11 @@ export function AIAssistantIcon({ expanded }: AIAssistantIconProps) {
                   }}
                 />
                 <div className="relative bg-gradient-to-br from-blue-400 to-blue-600 p-3 rounded-2xl shadow-xl shadow-blue-900/50 border border-blue-300">
-                  <IgniteLogo className="h-24 w-24" size={96} />
+                  <svg width="96" height="96" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="h-24 w-24">
+                    <path d="M18.7102 4.00004H16.2L12.7001 11H15.2102L18.7102 4.00004Z" fill="white"/>
+                    <path d="M22.9999 1L14.9999 16H8.99986L12.9999 8L8.99986 1H14.9999L22.9999 1Z" stroke="white" strokeWidth="1.5"/>
+                    <path d="M1 1V23H6V8L1 1Z" stroke="white" strokeWidth="1.5"/>
+                  </svg>
                 </div>
                 
                 {/* Digital energy beam */}
@@ -232,7 +236,11 @@ export function AIAssistantIcon({ expanded }: AIAssistantIconProps) {
               ease: "easeInOut" 
             }}
           >
-            <IgniteLogo size={expanded ? 26 : 22} />
+            <svg width={expanded ? 26 : 22} height={expanded ? 26 : 22} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M18.7102 4.00004H16.2L12.7001 11H15.2102L18.7102 4.00004Z" fill="white"/>
+              <path d="M22.9999 1L14.9999 16H8.99986L12.9999 8L8.99986 1H14.9999L22.9999 1Z" stroke="white" strokeWidth="1.5"/>
+              <path d="M1 1V23H6V8L1 1Z" stroke="white" strokeWidth="1.5"/>
+            </svg>
           </motion.div>
           {expanded && (
             <span className="text-xs mt-1 font-medium">Assistant</span>
