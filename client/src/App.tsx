@@ -13,6 +13,12 @@ import ClientProfile from "@/pages/ClientProfile";
 import Sessions from "@/pages/Sessions";
 import Settings from "@/pages/Settings";
 import { AppLayout } from "@/components/layout/AppLayout";
+import { 
+  AgentProvider, 
+  AgentBubble, 
+  AgentPanel, 
+  AgentVisualization 
+} from "@/components/agent";
 
 function Router() {
   const [location] = useLocation();
@@ -54,8 +60,13 @@ function Router() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <Router />
-      <Toaster />
+      <AgentProvider>
+        <Router />
+        <AgentBubble />
+        <AgentPanel />
+        <AgentVisualization />
+        <Toaster />
+      </AgentProvider>
     </QueryClientProvider>
   );
 }

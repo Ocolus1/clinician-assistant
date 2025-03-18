@@ -15,6 +15,10 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { useDashboard } from "@/components/dashboard/DashboardProvider";
 import { Separator } from "@/components/ui/separator";
+import { useAgent } from "@/components/agent";
+import { useEffect } from "react";
+import { apiRequest } from "@/lib/queryClient";
+import { Client } from "@shared/schema";
 
 /**
  * Dashboard wrapper with shared provider
@@ -35,6 +39,23 @@ function DashboardWithProvider() {
 function DashboardContent() {
   const [, setLocation] = useLocation();
   const { refreshData } = useDashboard();
+  const { setActiveClient } = useAgent();
+  
+  // Fetch default client for agent context
+  const { data: clients } = useQuery({
+    queryKey: ['/api/clients'],
+    queryFn: async () => {
+      const response = await apiRequest('GET', '/api/clients');
+      return response as unknown as Client[];
+    }
+  });
+  
+  // Set active client when data is available
+  useEffect(() => {
+    if (clients && clients.length > 0) {
+      setActiveClient(clients[0]);
+    }
+  }, [clients, setActiveClient]);
   
   // Refresh data
   const handleRefresh = () => {

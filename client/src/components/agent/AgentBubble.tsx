@@ -47,7 +47,8 @@ export function AgentBubble() {
       </button>
       
       {/* Pulse animation and confidence styling */}
-      <style jsx>{`
+      <style dangerouslySetInnerHTML={{
+        __html: `
         .agent-bubble-high-confidence {
           animation: pulse 2s infinite;
         }
@@ -71,7 +72,7 @@ export function AgentBubble() {
             box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
           }
         }
-      `}</style>
+      `}} />
     </div>
   );
 }

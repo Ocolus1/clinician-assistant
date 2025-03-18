@@ -1,62 +1,68 @@
-import React, { createContext, useState, useContext, useCallback, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
 import { v4 as uuidv4 } from 'uuid';
+import { processQuery } from '@/lib/agent/queryProcessor';
+import { Message, AgentResponse, AgentContextType } from '@/lib/agent/types';
 import { Client } from '@shared/schema';
-import { 
-  AgentContextType, 
-  Message, 
-  QueryContext, 
-  AgentResponse
-} from '@/lib/agent/types';
-import { processQuery as processQueryRequest } from '@/lib/agent/queryProcessor';
-import { useToast } from '@/hooks/use-toast';
 
-// Create context
-const AgentContext = createContext<AgentContextType | null>(null);
+// Create context with default values
+const AgentContext = createContext<AgentContextType>({
+  conversationHistory: [],
+  activeClient: null,
+  queryConfidence: 0,
+  isAgentVisible: false,
+  isProcessingQuery: false,
+  latestVisualization: 'NONE',
+  processQuery: async () => ({ content: '', confidence: 0 }),
+  setActiveClient: () => {},
+  toggleAgentVisibility: () => {},
+  clearConversation: () => {},
+});
 
-// Provider component
+// Agent provider component
 export function AgentProvider({ children }: { children: ReactNode }) {
-  const { toast } = useToast();
-  
-  // Agent state
+  // State management
   const [conversationHistory, setConversationHistory] = useState<Message[]>([]);
   const [activeClient, setActiveClient] = useState<Client | null>(null);
   const [queryConfidence, setQueryConfidence] = useState<number>(0);
   const [isAgentVisible, setIsAgentVisible] = useState<boolean>(false);
   const [isProcessingQuery, setIsProcessingQuery] = useState<boolean>(false);
   const [latestVisualization, setLatestVisualization] = useState<'BUBBLE_CHART' | 'PROGRESS_CHART' | 'NONE'>('NONE');
-  
-  // Process a user query
-  const processQuery = useCallback(async (query: string): Promise<AgentResponse> => {
+
+  // Toggle agent visibility
+  const toggleAgentVisibility = useCallback(() => {
+    setIsAgentVisible(prev => !prev);
+  }, []);
+
+  // Clear conversation history
+  const clearConversation = useCallback(() => {
+    setConversationHistory([]);
+    setQueryConfidence(0);
+    setLatestVisualization('NONE');
+  }, []);
+
+  // Process a query and update state
+  const processUserQuery = useCallback(async (query: string): Promise<AgentResponse> => {
+    setIsProcessingQuery(true);
+    
+    // Add user message to history
+    const userMessage: Message = {
+      id: uuidv4(),
+      role: 'user',
+      content: query,
+      timestamp: new Date()
+    };
+    
+    setConversationHistory(prev => [...prev, userMessage]);
+    
     try {
-      // Set processing state
-      setIsProcessingQuery(true);
-      
-      // Add user message to history
-      const userMessage: Message = {
-        id: uuidv4(),
-        role: 'user',
-        content: query,
-        timestamp: new Date()
-      };
-      
-      setConversationHistory(prev => [...prev, userMessage]);
-      
-      // Prepare context for query processing
-      const queryContext: QueryContext = {
+      // Get context for query processing
+      const context = {
         activeClientId: activeClient?.id,
-        conversationHistory: [...conversationHistory, userMessage]
+        conversationHistory
       };
       
       // Process the query
-      const response = await processQueryRequest(query, queryContext);
-      
-      // Update confidence score
-      setQueryConfidence(response.confidence);
-      
-      // Set visualization type if provided
-      if (response.visualizationHint) {
-        setLatestVisualization(response.visualizationHint);
-      }
+      const response = await processQuery(query, context);
       
       // Add assistant response to history
       const assistantMessage: Message = {
@@ -68,6 +74,12 @@ export function AgentProvider({ children }: { children: ReactNode }) {
       };
       
       setConversationHistory(prev => [...prev, assistantMessage]);
+      setQueryConfidence(response.confidence);
+      
+      // Update visualization state if the response includes visualization hint
+      if (response.visualizationHint) {
+        setLatestVisualization(response.visualizationHint);
+      }
       
       return response;
     } catch (error) {
@@ -77,55 +89,37 @@ export function AgentProvider({ children }: { children: ReactNode }) {
       const errorMessage: Message = {
         id: uuidv4(),
         role: 'assistant',
-        content: "I'm sorry, I encountered an error processing your request. Please try again.",
+        content: 'I encountered an error while processing your request. Please try again.',
         timestamp: new Date(),
-        confidence: 0.5
+        confidence: 0
       };
       
       setConversationHistory(prev => [...prev, errorMessage]);
-      
-      toast({
-        title: "Error",
-        description: "Unable to process your request. Please try again.",
-        variant: "destructive"
-      });
+      setQueryConfidence(0);
       
       return {
         content: errorMessage.content,
-        confidence: 0.5,
-        visualizationHint: 'NONE'
+        confidence: 0
       };
     } finally {
       setIsProcessingQuery(false);
     }
-  }, [activeClient, conversationHistory, toast]);
-  
-  // Toggle agent visibility
-  const toggleAgentVisibility = useCallback(() => {
-    setIsAgentVisible(prev => !prev);
-  }, []);
-  
-  // Clear conversation history
-  const clearConversation = useCallback(() => {
-    setConversationHistory([]);
-    setQueryConfidence(0);
-    setLatestVisualization('NONE');
-  }, []);
-  
-  // Prepare context value
-  const value = {
+  }, [activeClient, conversationHistory]);
+
+  // Context value
+  const value: AgentContextType = {
     conversationHistory,
     activeClient,
     queryConfidence,
     isAgentVisible,
     isProcessingQuery,
     latestVisualization,
-    processQuery,
+    processQuery: processUserQuery,
     setActiveClient,
     toggleAgentVisibility,
     clearConversation
   };
-  
+
   return (
     <AgentContext.Provider value={value}>
       {children}
@@ -133,7 +127,7 @@ export function AgentProvider({ children }: { children: ReactNode }) {
   );
 }
 
-// Custom hook for using the agent context
+// Hook for using the agent context
 export function useAgent() {
   const context = useContext(AgentContext);
   
@@ -143,3 +137,8 @@ export function useAgent() {
   
   return context;
 }
+
+// Export index for easier imports
+export * from './AgentBubble';
+export * from './AgentPanel';
+export * from './AgentVisualization';
