@@ -1245,39 +1245,146 @@ function ClientSessions({ clientId }) {
 ## Troubleshooting Common Issues
 
 ### Performance Issues
-- Check for unnecessary re-renders using React DevTools
-- Look for missing dependency arrays in useEffect, useMemo, or useCallback
-- Ensure proper memoization of expensive calculations
-- Verify that large lists are properly virtualized
-- Check form re-renders caused by frequent state updates
+- **Unnecessary Re-renders**: Use React DevTools Profiler to identify and fix components that re-render too frequently
+- **Missing Dependency Arrays**: Check for incomplete dependency arrays in useEffect, useMemo, or useCallback
+- **Expensive Calculations**: Memoize calculations that might be performance-intensive with useMemo
+- **Large List Rendering**: Virtualize long lists with libraries like react-window or react-virtualized
+- **Form Performance**: Watch for frequent form state updates causing cascading re-renders
 
 ### State Management Problems
 - **Context Interference**: Check for nested contexts that might interfere with each other 
 - **Form Context Isolation**: Verify form contexts are properly isolated to prevent state interference
+  - Use separate FormProvider instances for independent forms
+  - Avoid nesting form contexts unless specifically designed for it
+  - Consider using unique form IDs when multiple instances exist
 - **Read-Only State Propagation**: Ensure read-only state is consistently propagated to all components
 - **Race Conditions**: Look for race conditions in asynchronous state updates
+  - Use cleanup functions in useEffect to cancel pending operations
+  - Consider using AbortController for fetch operations
 - **Initial State Handling**: Verify that form state is properly initialized with defaultValues
+  - Always provide complete defaultValues to useForm
+  - Handle loading states while fetching initial values
 - **State Reset Issues**: Check for incomplete state resets when switching between entities
+  - Use form.reset() to fully reset React Hook Form state
+  - Clear all local state when switching between primary entities
+
+### Rich Text Editing Problems
+- **Content Leakage**: Verify that rich text content doesn't leak between different editor instances
+  - Ensure each editor has its own isolated state
+  - Reset editor content when switching between entities
+- **HTML Content Issues**: Check how HTML content is handled in the database and UI
+  - Always sanitize HTML content before displaying
+  - Handle null or undefined content gracefully
+- **Formatting Inconsistencies**: Look for inconsistent formatting of rich text
+  - Use common styling with the prose class from Typography plugin
+  - Implement consistent truncation patterns for long content
+- **Editor Initialization Problems**: Verify the editor initializes correctly with existing content
+  - Check that initial content is properly loaded and displayed
+  - Handle loading states appropriately
+
+### ✅ Good Example: Rich Text Editor Integration with React Hook Form
+
+```tsx
+// Good implementation - Rich text editor properly integrated with React Hook Form
+function SessionNoteForm({ defaultValues }) {
+  // Form setup with proper defaultValues including HTML content
+  const form = useForm({
+    resolver: zodResolver(noteFormSchema),
+    defaultValues: {
+      notes: defaultValues?.notes || "", // Empty string fallback prevents null errors
+    }
+  });
+  
+  // Safe content renderer with proper sanitization
+  const renderContent = useCallback((content: string | null | undefined) => {
+    if (!content) return null;
+    
+    // Using DOMPurify for sanitization
+    const sanitized = DOMPurify.sanitize(content);
+    return (
+      <div className="prose prose-sm max-h-48 overflow-hidden relative">
+        <div dangerouslySetInnerHTML={{ __html: sanitized }} />
+      </div>
+    );
+  }, []);
+  
+  return (
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)}>
+        <FormField
+          control={form.control}
+          name="notes"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Session Notes</FormLabel>
+              <FormControl>
+                {/* RichTextEditor wrapped with Controller pattern */}
+                <RichTextEditor 
+                  value={field.value}
+                  onChange={field.onChange}
+                  placeholder="Enter detailed session notes..."
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        
+        <Button type="submit">Save Notes</Button>
+      </form>
+    </Form>
+  );
+}
+```
 
 ### Component Rendering Issues
 - **Conditional Rendering Bugs**: Check complex conditional rendering logic for edge cases
+  - Test empty states, loading states, and error states
+  - Verify that transitions between states work as expected
 - **Form Components Not Updating**: Verify form field components are correctly watching form state
+  - Use form.watch() to debug field updates
+  - Verify that field components are properly connected to form context
 - **Component Unmounting During Data Fetch**: Ensure components handle unmounting during async operations
+  - Implement proper cleanup in useEffect hooks
+  - Cancel pending requests when components unmount
 - **Missing Key Props**: Check that list items have appropriate key props to prevent re-render issues
+  - Use stable, unique keys for list items
+  - Avoid using index as key when items can be reordered
 - **Ref Stability**: Ensure refs are stable across renders when needed
+  - Use useCallback for ref callbacks if they contain dependencies
+  - Verify ref.current is not null before accessing properties
 
 ### Form Implementation Issues
 - **Field Control Issues**: Verify that form fields are properly connected to form control
+  - Check that field names match exactly in form registration and access
+  - Verify that useFormContext is used within the context of FormProvider
 - **Validation Timing**: Check validation timing for fields with interdependencies
+  - Use watch() to trigger validation based on other field values
+  - Consider using custom validators for complex interdependencies
 - **Form Reset Logic**: Ensure form reset logic resets all fields and derived state
-- **Formik vs. React Hook Form**: Ensure consistent form library usage across components
-- **Controlled vs. Uncontrolled**: Verify consistent approach to controlled/uncontrolled components
+  - Reset both form state and any local state
+  - Handle side effects that might need to run after reset
+- **Form Library Consistency**: Ensure consistent form library usage across components
+  - Stick to React Hook Form throughout the application
+  - Follow consistent patterns for form setup and validation
+- **Controlled vs. Uncontrolled Components**: Verify consistent approach to controlled/uncontrolled components
+  - Use controller components from React Hook Form for consistency
+  - Avoid mixing controlled and uncontrolled approaches within the same form
 
 ### Data Flow Problems
 - **Data Transformation Inconsistency**: Check for inconsistent data transformation between API and UI
+  - Create centralized utility functions for data transformation
+  - Verify that data is transformed consistently throughout the application
 - **Missing Query Invalidation**: Verify that mutations properly invalidate related queries
+  - Use consistent query key structure to enable proper invalidation
+  - Invalidate all affected queries after mutations
 - **Stale Data**: Look for components using stale data due to missing refetching
+  - Set appropriate stale times for different types of data
+  - Implement refetch triggers for time-sensitive data
 - **Error Handling Gaps**: Ensure comprehensive error handling in data fetching operations
+  - Handle both network errors and application errors
+  - Provide clear error messages to users
+  - Log errors for debugging purposes
 
 ### ✅ Good Example: Debugging Context Issues
 ```tsx
