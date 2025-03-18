@@ -2785,15 +2785,26 @@ export function FullScreenSessionForm({
                                                 <X className="h-3 w-3" />
                                               </Button>
                                             </div>
-                                            <div className="flex flex-col mt-2">
-                                              <span className="text-xs text-muted-foreground mb-1">Rating:</span>
-                                              <NumericRating
-                                                label=""
-                                                value={milestone.rating || 0}
-                                                onChange={(value) => updateMilestoneRating(assessment.goalId, milestone.milestoneId, value)}
-                                                min={1}
-                                                max={10}
-                                              />
+                                            <div className="mt-2">
+                                              <div className="flex items-center justify-between">
+                                                <div className="flex items-center gap-2">
+                                                  <span className="text-xs text-muted-foreground">Rating:</span>
+                                                  <NumericRating
+                                                    label=""
+                                                    value={milestone.rating || 0}
+                                                    onChange={(value) => updateMilestoneRating(assessment.goalId, milestone.milestoneId, value)}
+                                                    min={1}
+                                                    max={10}
+                                                  />
+                                                </div>
+                                                <Badge className={
+                                                  (milestone.rating || 0) <= 3 ? "bg-red-100 text-red-800" :
+                                                  (milestone.rating || 0) <= 6 ? "bg-amber-100 text-amber-800" :
+                                                  "bg-green-100 text-green-800"
+                                                }>
+                                                  {milestone.rating || 0}/10
+                                                </Badge>
+                                              </div>
                                             </div>
 
                                             <div className="mt-2">

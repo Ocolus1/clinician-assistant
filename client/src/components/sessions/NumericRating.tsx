@@ -13,7 +13,9 @@ interface NumericRatingProps {
 }
 
 /**
- * A numeric rating component with clickable buttons from 1-10
+ * A compact numeric rating component with clickable buttons from 1-10
+ * Displays a single row of circular numbers with color coding
+ * Red: 1-3, Amber: 4-6, Green: 7-10
  */
 export function NumericRating({
   value,
@@ -37,42 +39,44 @@ export function NumericRating({
   const getNumberColor = (num: number) => {
     if (num === value) {
       // Selected value
-      if (num <= 3) return "bg-red-500 text-white";
-      if (num <= 6) return "bg-amber-500 text-white";
-      return "bg-green-500 text-white";
+      if (num <= 3) return "bg-red-500 text-white border-red-600";
+      if (num <= 6) return "bg-amber-500 text-white border-amber-600";
+      return "bg-green-500 text-white border-green-600";
     } else {
       // Unselected values with appropriate color intensity
-      if (num <= 3) return "bg-red-50 text-red-600 hover:bg-red-100";
-      if (num <= 6) return "bg-amber-50 text-amber-600 hover:bg-amber-100";
-      return "bg-green-50 text-green-600 hover:bg-green-100";
+      if (num <= 3) return "bg-red-50 text-red-600 hover:bg-red-100 border-red-200";
+      if (num <= 6) return "bg-amber-50 text-amber-600 hover:bg-amber-100 border-amber-200";
+      return "bg-green-50 text-green-600 hover:bg-green-100 border-green-200";
     }
   };
   
   return (
-    <div className="space-y-3">
-      <div className="flex justify-between items-center">
-        <Label className="font-medium text-sm">{label}</Label>
-        <Badge variant="outline" className={`font-medium ${getBadgeClass()}`}>
-          {value}/{max}
-        </Badge>
-      </div>
+    <div className="w-full">
+      {/* Only show label area if there's a label */}
+      {label && (
+        <div className="flex justify-between items-center mb-1.5">
+          <Label className="font-medium text-sm">{label}</Label>
+          {description && <p className="text-xs text-muted-foreground">{description}</p>}
+        </div>
+      )}
       
-      {description && <p className="text-sm text-muted-foreground mt-1">{description}</p>}
-      
-      <div className="flex flex-wrap gap-1.5 justify-center">
-        {ratingNumbers.map(num => (
-          <button
-            key={num}
-            type="button"
-            onClick={() => onChange(num)}
-            className={cn(
-              "h-9 w-9 rounded-full flex items-center justify-center text-sm font-medium transition-colors",
-              getNumberColor(num)
-            )}
-          >
-            {num}
-          </button>
-        ))}
+      <div className="flex items-center">
+        {/* Rating buttons in a single row */}
+        <div className="flex gap-0.5">
+          {ratingNumbers.map(num => (
+            <button
+              key={num}
+              type="button"
+              onClick={() => onChange(num)}
+              className={cn(
+                "h-5 w-5 rounded-full flex items-center justify-center text-xs font-medium transition-colors border",
+                getNumberColor(num)
+              )}
+            >
+              {num}
+            </button>
+          ))}
+        </div>
       </div>
     </div>
   );
