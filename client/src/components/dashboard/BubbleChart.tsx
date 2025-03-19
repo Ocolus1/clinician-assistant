@@ -44,17 +44,15 @@ export function BubbleChart({ data }: BubbleChartProps) {
         borderWidth={1}
         borderColor={{ from: 'color', modifiers: [['darker', 0.5]] }}
         animate={true}
-        motionStiffness={90}
-        motionDamping={12}
-        tooltip={(node: any) => {
+        tooltip={({ id, value, color, data }: any) => {
           // Don't show tooltip for the root node
-          if (node.id === 'budget') return null;
+          if (id === 'budget') return <></>;
           
           // For category nodes, show simple tooltip
-          if (!node.data.value && node.children?.length) {
+          if (!data.value && data.children?.length) {
             return (
               <div className="bg-background p-2 rounded shadow-md border">
-                <strong>{node.id}</strong>
+                <strong>{id}</strong>
               </div>
             );
           }
@@ -62,13 +60,13 @@ export function BubbleChart({ data }: BubbleChartProps) {
           // For leaf nodes, show detailed tooltip
           return (
             <div className="bg-background p-2 rounded shadow-md border">
-              <div className="font-medium">{node.id}</div>
+              <div className="font-medium">{id}</div>
               <div className="text-sm text-muted-foreground">
-                Amount: ${node.value.toLocaleString()}
+                Amount: ${value.toLocaleString()}
               </div>
-              {node.data.percentUsed !== undefined && (
+              {data.percentUsed !== undefined && (
                 <div className="text-sm">
-                  Used: {node.data.percentUsed}%
+                  Used: {data.percentUsed}%
                 </div>
               )}
             </div>

@@ -1,105 +1,72 @@
-import { QueryIntent, QueryContext } from './types';
+import { QueryContext, QueryIntent } from './types';
 
-// Common terms related to budget analysis
+// Term dictionaries for intent classification
 const BUDGET_TERMS = [
   'budget', 'funds', 'money', 'spending', 'cost', 'expense', 'financial', 
-  'allocation', 'afford', 'spend', 'pay', 'payment', 'dollars', 'ndis', 
-  'remaining', 'left', 'balance', 'forecast', 'predict', 'run out', 'depleted'
+  'allocation', 'remaining', 'balance', 'plan', 'available', 'afford'
 ];
 
-// Common terms related to progress tracking
+const BUDGET_REMAINING_TERMS = [
+  'remaining', 'left', 'available', 'balance', 'how much', 'current'
+];
+
+const BUDGET_FORECAST_TERMS = [
+  'forecast', 'prediction', 'estimate', 'projected', 'when', 'depletion',
+  'run out', 'exhaust', 'future'
+];
+
+const BUDGET_UTILIZATION_TERMS = [
+  'utilization', 'usage', 'spent', 'spending', 'used', 'allocation', 'category'
+];
+
 const PROGRESS_TERMS = [
-  'progress', 'improvement', 'development', 'growth', 'advance', 'milestone', 
-  'goal', 'achievement', 'objective', 'target', 'outcome', 'result', 'success',
-  'measure', 'track', 'monitor', 'rate', 'score', 'assessment', 'evaluation',
-  'performance', 'how well', 'improved', 'better', 'worse', 'change'
+  'progress', 'improvement', 'growth', 'development', 'advancement', 
+  'achievement', 'goal', 'milestone', 'performance', 'assessment'
 ];
 
-// Common terms related to strategy recommendations
 const STRATEGY_TERMS = [
-  'strategy', 'approach', 'technique', 'method', 'practice', 'intervention',
-  'therapy', 'treatment', 'plan', 'recommendation', 'suggest', 'advise', 
-  'guidance', 'help', 'assist', 'support', 'improve', 'enhance', 'optimize',
-  'best practice', 'effective', 'evidence-based', 'proven', 'recommended',
-  'what should', 'how to', 'how should', 'what works'
+  'strategy', 'approach', 'technique', 'method', 'recommendation', 'suggest',
+  'idea', 'advice', 'therapy', 'intervention', 'activity', 'exercise'
 ];
 
 /**
  * Parse user query to determine intent
  */
 export function parseQueryIntent(query: string, context: QueryContext): QueryIntent {
-  // Convert to lowercase for easier matching
-  const lowerQuery = query.toLowerCase();
+  const normalizedQuery = query.toLowerCase();
   
-  // Count occurrences of terms in each category
-  const budgetCount = countTerms(lowerQuery, BUDGET_TERMS);
-  const progressCount = countTerms(lowerQuery, PROGRESS_TERMS);
-  const strategyCount = countTerms(lowerQuery, STRATEGY_TERMS);
-  
-  // Determine the dominant category
-  const maxCount = Math.max(budgetCount, progressCount, strategyCount);
-  
-  // Detect specific sub-intents
-  if (maxCount === 0) {
-    // No clear intent detected
-    return { type: 'GENERAL_QUESTION', topic: 'unknown' };
-  }
-  
-  // Budget analysis intent
-  if (budgetCount === maxCount) {
+  // Check for budget-related terms
+  if (containsAny(normalizedQuery, BUDGET_TERMS)) {
+    // Check for specific budget queries
+    if (containsAny(normalizedQuery, BUDGET_REMAINING_TERMS)) {
+      return { type: 'BUDGET_ANALYSIS', clientId: context.activeClientId, specificQuery: 'REMAINING' };
+    } else if (containsAny(normalizedQuery, BUDGET_FORECAST_TERMS)) {
+      return { type: 'BUDGET_ANALYSIS', clientId: context.activeClientId, specificQuery: 'FORECAST' };
+    } else if (containsAny(normalizedQuery, BUDGET_UTILIZATION_TERMS)) {
+      return { type: 'BUDGET_ANALYSIS', clientId: context.activeClientId, specificQuery: 'UTILIZATION' };
+    }
+    
+    // General budget query
     const intent: QueryIntent = { type: 'BUDGET_ANALYSIS', clientId: context.activeClientId };
-    
-    // Detect specific queries
-    if (containsAny(lowerQuery, ['remaining', 'left', 'available', 'balance'])) {
-      intent.specificQuery = 'REMAINING';
-    } else if (containsAny(lowerQuery, ['forecast', 'predict', 'run out', 'when will', 'how long'])) {
-      intent.specificQuery = 'FORECAST';
-    } else if (containsAny(lowerQuery, ['utilization', 'spending', 'rate', 'using', 'spent'])) {
-      intent.specificQuery = 'UTILIZATION';
-    }
-    
     return intent;
   }
   
-  // Progress tracking intent
-  if (progressCount === maxCount) {
+  // Check for progress-related terms
+  if (containsAny(normalizedQuery, PROGRESS_TERMS)) {
+    // TODO: Add more specific progress query detection
     const intent: QueryIntent = { type: 'PROGRESS_TRACKING', clientId: context.activeClientId };
-    
-    // Detect specific queries
-    if (containsAny(lowerQuery, ['goal', 'specific', 'objective'])) {
-      intent.specificQuery = 'GOAL_SPECIFIC';
-      
-      // Try to extract goal ID from query
-      intent.goalId = context.activeGoalId;
-    } else if (containsAny(lowerQuery, ['attendance', 'show up', 'cancel', 'reschedule'])) {
-      intent.specificQuery = 'ATTENDANCE';
-    } else {
-      intent.specificQuery = 'OVERALL';
-    }
-    
     return intent;
   }
   
-  // Strategy recommendation intent
-  if (strategyCount === maxCount) {
+  // Check for strategy-related terms
+  if (containsAny(normalizedQuery, STRATEGY_TERMS)) {
+    // TODO: Add more specific strategy query detection
     const intent: QueryIntent = { type: 'STRATEGY_RECOMMENDATION', clientId: context.activeClientId };
-    
-    // Detect specific queries
-    if (containsAny(lowerQuery, ['goal', 'specific', 'objective'])) {
-      intent.specificQuery = 'GOAL_SPECIFIC';
-      intent.goalId = context.activeGoalId;
-    } else {
-      intent.specificQuery = 'GENERAL';
-    }
-    
     return intent;
   }
   
   // Default to general question
-  return { 
-    type: 'GENERAL_QUESTION',
-    topic: budgetCount > 0 ? 'budget' : progressCount > 0 ? 'progress' : 'strategy'
-  };
+  return { type: 'GENERAL_QUESTION' };
 }
 
 /**
@@ -107,7 +74,7 @@ export function parseQueryIntent(query: string, context: QueryContext): QueryInt
  */
 function countTerms(text: string, terms: string[]): number {
   return terms.reduce((count, term) => {
-    return text.includes(term) ? count + 1 : count;
+    return count + (text.includes(term) ? 1 : 0);
   }, 0);
 }
 
