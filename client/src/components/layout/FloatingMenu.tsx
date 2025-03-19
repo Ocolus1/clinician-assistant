@@ -12,7 +12,6 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { AIAssistantIcon } from "@/components/dashboard/AIAssistantIcon";
 
 interface FloatingMenuProps {
   onRefreshClick?: () => void;
@@ -137,13 +136,7 @@ export function FloatingMenu({ onRefreshClick }: FloatingMenuProps) {
             );
           })}
           
-          {/* AI Assistant Icon */}
-          <div className="relative pl-1.5">
-            {/* Divider */}
-            <div className="absolute left-0 top-1/2 transform -translate-y-1/2 h-8 w-px bg-white/20" />
-            
-            <AIAssistantIcon expanded={isExpanded} />
-          </div>
+          {/* AI Assistant Icon removed - now using unified AgentPanel */}
           
           {/* Minimize button */}
           <div className="relative pl-1.5">
