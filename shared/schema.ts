@@ -276,7 +276,15 @@ export type AppointmentStats = {
 export type BudgetExpirationStats = {
   expiringNextMonth: {
     count: number;
-    byClient: Array<{ clientId: number, clientName: string, planId: number, planName: string }>;
+    byClient: Array<{ 
+      clientId: number, 
+      clientName: string, 
+      planId: number, 
+      planName: string, 
+      daysLeft?: number,            // Days remaining until expiration
+      unutilizedAmount?: number,    // Amount of funds not yet utilized
+      unutilizedPercentage?: number // Percentage of funds not yet utilized
+    }>;
   };
   remainingFunds: Array<{
     month: string; // Format: YYYY-MM

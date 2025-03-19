@@ -143,23 +143,36 @@ export function BudgetExpirationCard() {
                 </div>
               ) : expiringCount > 0 ? (
                 <div className="flex flex-wrap gap-2">
-                  {expiringClients.map((client) => (
-                    <div key={`${client.clientId}-${client.planId}`} 
-                      className="flex-1 min-w-[180px] flex justify-between items-center p-2 border rounded-md bg-red-50 border-red-200">
-                      <div className="overflow-hidden">
-                        <p className="font-medium text-sm truncate">{client.clientName}</p>
-                        <p className="text-xs text-muted-foreground truncate">Plan: {client.planName}</p>
+                  {expiringClients.map((client) => {
+                    // Get values from the client data
+                    const daysLeft = client.daysLeft || 30; // Use 30 days as fallback
+                    const unutilizedAmount = client.unutilizedAmount || 0; 
+                    const unutilizedPercentage = client.unutilizedPercentage || 0;
+                    
+                    return (
+                      <div key={`${client.clientId}-${client.planId}`} 
+                        className="flex-1 min-w-[220px] flex justify-between items-center p-2 border rounded-md bg-red-50 border-red-200">
+                        <div className="overflow-hidden flex-grow">
+                          <p className="font-medium text-sm truncate">
+                            {client.clientName} - <span className="text-red-600">{daysLeft} days left</span>
+                          </p>
+                          <p className="text-xs text-muted-foreground flex items-center justify-between pr-2">
+                            <span className="font-medium">{formatCurrency(unutilizedAmount)}</span>
+                            <span>-</span>
+                            <span className="font-medium">{unutilizedPercentage}% Unutilized</span>
+                          </p>
+                        </div>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          onClick={() => setLocation(`/client/${client.clientId}/budget`)}
+                          className="ml-1 flex-shrink-0"
+                        >
+                          <ArrowRight className="h-4 w-4" />
+                        </Button>
                       </div>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        onClick={() => setLocation(`/client/${client.clientId}/budget`)}
-                        className="ml-1 flex-shrink-0"
-                      >
-                        <ArrowRight className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               ) : (
                 <div className="flex items-center justify-center h-8 text-muted-foreground text-sm">

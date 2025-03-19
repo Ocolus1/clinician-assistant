@@ -246,12 +246,23 @@ function getPlanName() {
 export const dummyBudgetExpirationData: BudgetExpirationStats = {
   expiringNextMonth: {
     count: 7,
-    byClient: Array.from({ length: 7 }, (_, i) => ({
-      clientId: 1000 + i,
-      clientName: getClientName(),
-      planId: 2000 + i,
-      planName: getPlanName()
-    }))
+    byClient: Array.from({ length: 7 }, (_, i) => {
+      // Generate realistic budget data with varying degrees of urgency
+      const daysLeft = Math.floor(Math.random() * 28) + 1; // 1-28 days left
+      const totalBudget = (Math.random() * 15000) + 5000; // $5,000-$20,000 total budget
+      const percentUnused = Math.floor(Math.random() * 75) + 15; // 15-90% unutilized
+      const unutilizedAmount = Math.round(totalBudget * (percentUnused / 100)); // Calculate amount based on percentage
+      
+      return {
+        clientId: 1000 + i,
+        clientName: getClientName(),
+        planId: 2000 + i,
+        planName: getPlanName(),
+        daysLeft: daysLeft,
+        unutilizedAmount: unutilizedAmount,
+        unutilizedPercentage: percentUnused
+      }
+    })
   },
   remainingFunds: [
     { month: '2025-04', amount: 48500, planCount: 7 },
