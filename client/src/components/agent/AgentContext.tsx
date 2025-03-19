@@ -1,8 +1,8 @@
-import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
-import { v4 as uuidv4 } from 'uuid';
-import { processQuery } from '@/lib/agent/queryProcessor';
-import { Message, AgentResponse, AgentContextType } from '@/lib/agent/types';
+import React, { createContext, useState, useCallback, useContext } from 'react';
 import { Client } from '@shared/schema';
+import { AgentContextType, Message, AgentResponse } from '@/lib/agent/types';
+import { processQuery } from '@/lib/agent/queryProcessor';
+import { v4 as uuidv4 } from 'uuid';
 
 // Create context with default values
 const AgentContext = createContext<AgentContextType>({
@@ -12,21 +12,104 @@ const AgentContext = createContext<AgentContextType>({
   isAgentVisible: false,
   isProcessingQuery: false,
   latestVisualization: 'NONE',
-  processQuery: async () => ({ content: '', confidence: 0 }),
+  
+  processQuery: async () => ({ 
+    content: '', 
+    confidence: 0,
+    visualizationHint: 'NONE'
+  }),
   setActiveClient: () => {},
   toggleAgentVisibility: () => {},
   clearConversation: () => {},
 });
 
-// Agent provider component
-export function AgentProvider({ children }: { children: ReactNode }) {
-  // State management
+// Provider component
+export const AgentProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [conversationHistory, setConversationHistory] = useState<Message[]>([]);
   const [activeClient, setActiveClient] = useState<Client | null>(null);
   const [queryConfidence, setQueryConfidence] = useState<number>(0);
   const [isAgentVisible, setIsAgentVisible] = useState<boolean>(false);
   const [isProcessingQuery, setIsProcessingQuery] = useState<boolean>(false);
   const [latestVisualization, setLatestVisualization] = useState<'BUBBLE_CHART' | 'PROGRESS_CHART' | 'NONE'>('NONE');
+
+  // Process a query and update state
+  const handleProcessQuery = useCallback(async (query: string): Promise<AgentResponse> => {
+    try {
+      // Create user message
+      const userMessage: Message = {
+        id: uuidv4(),
+        role: 'user',
+        content: query,
+        timestamp: new Date(),
+      };
+      
+      // Update conversation history with user message
+      setConversationHistory(prev => [...prev, userMessage]);
+      
+      // Show processing state
+      setIsProcessingQuery(true);
+      
+      // Create context for query processing
+      const context = {
+        activeClientId: activeClient?.id,
+        conversationHistory,
+      };
+      
+      // Process the query
+      const response = await processQuery(query, context);
+      
+      // Create assistant message
+      const assistantMessage: Message = {
+        id: uuidv4(),
+        role: 'assistant',
+        content: response.content,
+        timestamp: new Date(),
+        confidence: response.confidence,
+      };
+      
+      // Update conversation history with assistant message
+      setConversationHistory(prev => [...prev, assistantMessage]);
+      
+      // Update confidence and visualization state
+      setQueryConfidence(response.confidence);
+      if (response.visualizationHint) {
+        setLatestVisualization(response.visualizationHint);
+      }
+      
+      return response;
+    } catch (error) {
+      console.error('Error processing query:', error);
+      
+      // Create error message
+      const errorMessage: Message = {
+        id: uuidv4(),
+        role: 'assistant',
+        content: 'I encountered an error processing your request. Please try again.',
+        timestamp: new Date(),
+        confidence: 0.1,
+      };
+      
+      // Update conversation history with error message
+      setConversationHistory(prev => [...prev, errorMessage]);
+      
+      // Update confidence
+      setQueryConfidence(0.1);
+      
+      return {
+        content: 'Error processing query',
+        confidence: 0.1,
+        visualizationHint: 'NONE',
+      };
+    } finally {
+      // End processing state
+      setIsProcessingQuery(false);
+    }
+  }, [activeClient, conversationHistory]);
+
+  // Set active client
+  const handleSetActiveClient = useCallback((client: Client | null) => {
+    setActiveClient(client);
+  }, []);
 
   // Toggle agent visibility
   const toggleAgentVisibility = useCallback(() => {
@@ -40,84 +123,19 @@ export function AgentProvider({ children }: { children: ReactNode }) {
     setLatestVisualization('NONE');
   }, []);
 
-  // Process a query and update state
-  const processUserQuery = useCallback(async (query: string): Promise<AgentResponse> => {
-    setIsProcessingQuery(true);
-    
-    // Add user message to history
-    const userMessage: Message = {
-      id: uuidv4(),
-      role: 'user',
-      content: query,
-      timestamp: new Date()
-    };
-    
-    setConversationHistory(prev => [...prev, userMessage]);
-    
-    try {
-      // Get context for query processing
-      const context = {
-        activeClientId: activeClient?.id,
-        conversationHistory
-      };
-      
-      // Process the query
-      const response = await processQuery(query, context);
-      
-      // Add assistant response to history
-      const assistantMessage: Message = {
-        id: uuidv4(),
-        role: 'assistant',
-        content: response.content,
-        timestamp: new Date(),
-        confidence: response.confidence
-      };
-      
-      setConversationHistory(prev => [...prev, assistantMessage]);
-      setQueryConfidence(response.confidence);
-      
-      // Update visualization state if the response includes visualization hint
-      if (response.visualizationHint) {
-        setLatestVisualization(response.visualizationHint);
-      }
-      
-      return response;
-    } catch (error) {
-      console.error('Error processing query:', error);
-      
-      // Add error message to history
-      const errorMessage: Message = {
-        id: uuidv4(),
-        role: 'assistant',
-        content: 'I encountered an error while processing your request. Please try again.',
-        timestamp: new Date(),
-        confidence: 0
-      };
-      
-      setConversationHistory(prev => [...prev, errorMessage]);
-      setQueryConfidence(0);
-      
-      return {
-        content: errorMessage.content,
-        confidence: 0
-      };
-    } finally {
-      setIsProcessingQuery(false);
-    }
-  }, [activeClient, conversationHistory]);
-
   // Context value
-  const value: AgentContextType = {
+  const value = {
     conversationHistory,
     activeClient,
     queryConfidence,
     isAgentVisible,
     isProcessingQuery,
     latestVisualization,
-    processQuery: processUserQuery,
-    setActiveClient,
+    
+    processQuery: handleProcessQuery,
+    setActiveClient: handleSetActiveClient,
     toggleAgentVisibility,
-    clearConversation
+    clearConversation,
   };
 
   return (
@@ -125,20 +143,7 @@ export function AgentProvider({ children }: { children: ReactNode }) {
       {children}
     </AgentContext.Provider>
   );
-}
+};
 
-// Hook for using the agent context
-export function useAgent() {
-  const context = useContext(AgentContext);
-  
-  if (!context) {
-    throw new Error('useAgent must be used within an AgentProvider');
-  }
-  
-  return context;
-}
-
-// Export index for easier imports
-export * from './AgentBubble';
-export * from './AgentPanel';
-export * from './AgentVisualization';
+// Custom hook for using the agent context
+export const useAgent = () => useContext(AgentContext);

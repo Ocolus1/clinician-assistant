@@ -1,44 +1,35 @@
-import React, { useMemo } from 'react';
-import { BubbleChartData } from '@/lib/agent/types';
-import { prepareBubbleHierarchy } from '@/lib/utils/chartDataUtils';
+import React from 'react';
 import { ResponsiveCirclePacking } from '@nivo/circle-packing';
-import { Skeleton } from '@/components/ui/skeleton';
-
-interface BubbleChartProps {
-  data: BubbleChartData[];
-}
+import { Skeleton } from "@/components/ui/skeleton";
 
 /**
- * Bubble chart component for visualizing budget items
- * Uses Nivo's circle packing visualization
+ * BubbleChart component for visualizing hierarchical budget data
+ * Uses Nivo's circle packing chart with custom styling
  */
+interface BubbleChartProps {
+  data: any;
+}
+
 export function BubbleChart({ data }: BubbleChartProps) {
-  // If no data, render placeholder
-  if (!data || data.length === 0) {
-    return (
-      <div className="flex items-center justify-center h-full bg-background/30 rounded-lg">
-        <p className="text-muted-foreground">No budget data available</p>
-      </div>
-    );
-  }
-
-  // Transform data to hierarchical structure for circle packing
-  const hierarchicalData = useMemo(() => {
-    return prepareBubbleHierarchy(data);
-  }, [data]);
-
+  if (!data) return <BubbleChartSkeleton />;
+  
+  const getChildColor = (parent: any) => {
+    return parent.color || '#3498db';
+  };
+  
   return (
-    <div className="h-full w-full min-h-[400px]">
+    <div className="w-full h-[400px]">
       <ResponsiveCirclePacking
-        data={hierarchicalData}
+        data={data}
         margin={{ top: 20, right: 20, bottom: 20, left: 20 }}
         id="name"
         value="value"
-        colors={(node: any) => node.data.color || '#A1A1AA'}
+        colors={(node: any) => node.color || '#3498db'}
         colorBy="id"
-        childColor={(parent: any) => parent.data.color || '#A1A1AA'}
+        childColor={getChildColor}
         padding={4}
         enableLabels={true}
+        labelsFilter={n => n.node.height === 0}
         labelsSkipRadius={16}
         labelTextColor={{ from: 'color', modifiers: [['darker', 2]] }}
         borderWidth={1}

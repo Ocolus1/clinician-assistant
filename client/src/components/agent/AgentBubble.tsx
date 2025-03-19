@@ -1,78 +1,85 @@
-import React from 'react';
+import React, { useEffect } from 'react';
+import { motion, useAnimationControls } from 'framer-motion';
 import { useAgent } from './AgentContext';
-import {
-  MessageSquareText,
-  X,
-  ChevronUp,
-  ChevronDown,
-  Sparkles
-} from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
+import { Bot, X } from 'lucide-react';
 
 /**
- * A floating bubble that provides access to the agent assistant
+ * Floating bubble for accessing the agent
+ * Features:
+ * - Animated reactions based on confidence
+ * - Click to open/close agent panel
+ * - Hover effects for better UX
  */
 export function AgentBubble() {
-  const {
-    isAgentVisible,
-    toggleAgentVisibility,
-    queryConfidence
+  const { 
+    isAgentVisible, 
+    toggleAgentVisibility, 
+    queryConfidence, 
+    isProcessingQuery
   } = useAgent();
   
-  // Change animation based on confidence (more sparkles/pulse for higher confidence)
-  const confidenceClass = 
-    queryConfidence > 0.8 ? 'agent-bubble-high-confidence' :
-    queryConfidence > 0.5 ? 'agent-bubble-medium-confidence' :
-    'agent-bubble-low-confidence';
+  const controls = useAnimationControls();
+  
+  // Animate the bubble based on query confidence
+  useEffect(() => {
+    if (isProcessingQuery) {
+      // Pulsing animation while processing
+      controls.start({
+        scale: [1, 1.05, 1],
+        transition: { 
+          repeat: Infinity, 
+          duration: 1.5 
+        }
+      });
+    } else if (queryConfidence > 0) {
+      // Reaction animation based on confidence
+      const animationScale = queryConfidence >= 0.8 
+        ? 1.3  // High confidence
+        : queryConfidence >= 0.5 
+          ? 1.2  // Medium confidence
+          : 1.1;  // Low confidence
+      
+      controls.start({
+        scale: [1, animationScale, 1],
+        transition: { 
+          duration: 0.5, 
+          times: [0, 0.5, 1] 
+        }
+      });
+    } else {
+      // Reset animation
+      controls.start({ scale: 1 });
+    }
+  }, [queryConfidence, isProcessingQuery, controls]);
+  
+  // Show enlarged bubble when agent panel is open
+  const baseScale = isAgentVisible ? 1.2 : 1;
   
   return (
-    <div className="fixed bottom-4 right-4 z-50">
-      <button
-        onClick={toggleAgentVisibility}
-        className={cn(
-          'flex items-center justify-center w-14 h-14 rounded-full bg-primary shadow-lg hover:shadow-xl transition-all duration-300',
-          'text-white focus:outline-none focus:ring-2 focus:ring-primary-100 focus:ring-offset-2',
-          confidenceClass
-        )}
-        aria-label={isAgentVisible ? "Close assistant" : "Open assistant"}
+    <div className="fixed bottom-6 right-6 z-50">
+      <motion.div
+        animate={controls}
+        initial={{ scale: baseScale }}
+        className="relative"
       >
-        {isAgentVisible ? (
-          <X className="w-6 h-6" />
-        ) : (
-          <div className="relative">
-            <MessageSquareText className="w-6 h-6" />
-            <Sparkles className="w-3 h-3 absolute -top-1 -right-1 text-yellow-300" />
-          </div>
+        <Button
+          onClick={toggleAgentVisibility}
+          className={`rounded-full p-3 w-14 h-14 flex items-center justify-center shadow-lg ${
+            isAgentVisible ? 'bg-primary text-primary-foreground' : 'bg-background text-foreground hover:bg-muted'
+          }`}
+        >
+          {isAgentVisible ? (
+            <X size={24} />
+          ) : (
+            <Bot size={24} />
+          )}
+        </Button>
+        
+        {isProcessingQuery && (
+          <div className="absolute -top-1 -right-1 w-4 h-4 bg-amber-500 rounded-full animate-pulse" />
         )}
-      </button>
-      
-      {/* Pulse animation and confidence styling */}
-      <style dangerouslySetInnerHTML={{
-        __html: `
-        .agent-bubble-high-confidence {
-          animation: pulse 2s infinite;
-        }
-        
-        .agent-bubble-medium-confidence {
-          animation: pulse 3s infinite;
-        }
-        
-        .agent-bubble-low-confidence {
-          animation: none;
-        }
-        
-        @keyframes pulse {
-          0% {
-            box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7);
-          }
-          70% {
-            box-shadow: 0 0 0 10px rgba(59, 130, 246, 0);
-          }
-          100% {
-            box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
-          }
-        }
-      `}} />
+      </motion.div>
     </div>
   );
 }

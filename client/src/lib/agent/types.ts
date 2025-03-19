@@ -1,4 +1,4 @@
-import { Client, Goal, Subgoal, BudgetSettings, BudgetItem, Session } from '@shared/schema';
+import { Client, BudgetItem } from '@shared/schema';
 
 export interface Message {
   id: string;

@@ -1,182 +1,171 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import { useAgent } from './AgentContext';
-import { X, Send, ArrowUpFromLine, RotateCcw } from 'lucide-react';
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { Card } from "@/components/ui/card";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Separator } from "@/components/ui/separator";
-import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Send, RefreshCw, Zap } from 'lucide-react';
 
 /**
- * Chat interface panel for interacting with the agent assistant
+ * Agent conversation panel
+ * Features:
+ * - Chat interface for interacting with the agent
+ * - Animated message display
+ * - Message history with auto-scroll
+ * - Input field with submit button
  */
 export function AgentPanel() {
-  const {
-    isAgentVisible,
-    toggleAgentVisibility,
-    activeClient,
-    conversationHistory,
-    clearConversation,
-    processQuery,
-    isProcessingQuery
+  const { 
+    isAgentVisible, 
+    conversationHistory, 
+    processQuery, 
+    isProcessingQuery,
+    clearConversation 
   } = useAgent();
   
-  const [userInput, setUserInput] = useState('');
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLTextAreaElement>(null);
+  const [inputValue, setInputValue] = useState('');
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
   
-  // Scroll to bottom of messages when conversation updates
+  // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
-    if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    if (scrollAreaRef.current) {
+      const scrollElement = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
+      if (scrollElement) {
+        scrollElement.scrollTop = scrollElement.scrollHeight;
+      }
     }
   }, [conversationHistory]);
   
-  // Focus input when panel becomes visible
-  useEffect(() => {
-    if (isAgentVisible && inputRef.current) {
-      setTimeout(() => {
-        inputRef.current?.focus();
-      }, 100);
-    }
-  }, [isAgentVisible]);
-  
   // Handle query submission
-  const handleSubmit = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     
-    if (!userInput.trim() || isProcessingQuery) return;
+    if (!inputValue.trim() || isProcessingQuery) return;
     
     try {
-      await processQuery(userInput);
-      setUserInput('');
+      await processQuery(inputValue);
+      setInputValue('');
     } catch (error) {
       console.error('Error submitting query:', error);
     }
   };
   
-  // Handle input change
-  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setUserInput(e.target.value);
-  };
-  
-  // Handle key press
-  const handleKeyPress = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSubmit();
+  // Panel animation variants
+  const panelVariants = {
+    hidden: { 
+      opacity: 0, 
+      y: 20, 
+      scale: 0.95 
+    },
+    visible: { 
+      opacity: 1, 
+      y: 0, 
+      scale: 1,
+      transition: { 
+        type: 'spring', 
+        stiffness: 500, 
+        damping: 30 
+      }
     }
   };
   
+  // If the panel shouldn't be visible, don't render it
   if (!isAgentVisible) return null;
   
   return (
-    <div className="fixed bottom-20 right-4 z-50 w-[380px] h-[500px] shadow-2xl rounded-xl bg-card overflow-hidden">
-      <Card className="flex flex-col h-full border">
-        {/* Header */}
-        <div className="flex items-center justify-between p-3 border-b">
-          <div className="flex items-center gap-2">
-            <div className="relative w-8 h-8 rounded-full flex items-center justify-center bg-primary-100">
-              <span className="text-primary text-sm font-medium">
-                AI
-              </span>
-            </div>
-            <div className="flex flex-col">
-              <h3 className="text-sm font-semibold">Ignite Assistant</h3>
-              {activeClient && (
-                <p className="text-xs text-muted-foreground">Analyzing data for {activeClient.name}</p>
-              )}
-            </div>
-          </div>
-          <div className="flex gap-1">
-            <Button 
-              variant="ghost" 
-              size="icon"
-              className="h-7 w-7"
-              onClick={clearConversation}
-              title="Clear conversation"
-            >
-              <RotateCcw className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7"
-              onClick={toggleAgentVisibility}
-              title="Close assistant"
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
+    <motion.div
+      initial="hidden"
+      animate="visible"
+      exit="hidden"
+      variants={panelVariants}
+      className="fixed bottom-24 right-6 w-80 md:w-96 h-[500px] bg-background border rounded-lg shadow-lg overflow-hidden z-40 flex flex-col"
+    >
+      {/* Header */}
+      <div className="p-3 border-b flex justify-between items-center bg-muted/30">
+        <div className="flex items-center gap-2">
+          <Zap size={18} className="text-primary" />
+          <h3 className="font-medium">Practice Assistant</h3>
         </div>
-        
-        {/* Messages */}
-        <ScrollArea className="flex-1 p-3 bg-background/60">
-          {conversationHistory.length === 0 ? (
-            <div className="h-full flex flex-col items-center justify-center text-center px-4 py-8 space-y-3">
-              <div className="relative rounded-full bg-primary/10 p-3">
-                <div className="absolute inset-0 rounded-full bg-primary/5 animate-ping"></div>
-                <ArrowUpFromLine className="h-6 w-6 text-primary" />
-              </div>
-              <div className="space-y-1">
-                <h3 className="text-sm font-medium">Ask anything about your client's data</h3>
-                <p className="text-xs text-muted-foreground">
-                  Try "Show me budget utilization" or "What progress has {activeClient?.name} made?"
-                </p>
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {conversationHistory.map((message) => (
-                <div
-                  key={message.id}
-                  className={cn(
-                    "flex flex-col max-w-[85%] rounded-lg p-3 mb-2",
-                    message.role === "user"
-                      ? "bg-primary text-primary-foreground ml-auto"
-                      : "bg-muted"
-                  )}
-                >
-                  <p className="text-sm">{message.content}</p>
-                  <time className="text-xs mt-1 opacity-70 self-end">
-                    {message.timestamp.toLocaleTimeString([], {
-                      hour: "2-digit",
-                      minute: "2-digit"
-                    })}
-                  </time>
-                </div>
-              ))}
-              <div ref={messagesEndRef} />
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={clearConversation}
+          title="Clear conversation"
+        >
+          <RefreshCw size={16} />
+        </Button>
+      </div>
+      
+      {/* Messages area */}
+      <ScrollArea ref={scrollAreaRef} className="flex-1 p-3">
+        <div className="space-y-4">
+          {/* Welcome message if no conversation history */}
+          {conversationHistory.length === 0 && (
+            <div className="bg-muted/30 p-3 rounded-lg">
+              <p className="text-sm">
+                Hi there! I'm your practice assistant. I can help you analyze budgets, 
+                track progress, and recommend strategies. How can I help you today?
+              </p>
             </div>
           )}
-        </ScrollArea>
-        
-        <Separator />
-        
-        {/* Input form */}
-        <form onSubmit={handleSubmit} className="p-3 bg-background">
-          <div className="flex items-end gap-2">
-            <Textarea
-              ref={inputRef}
-              placeholder="Ask a question..."
-              value={userInput}
-              onChange={handleInputChange}
-              onKeyDown={handleKeyPress}
-              className="min-h-[60px] resize-none rounded-lg"
-              disabled={isProcessingQuery}
-            />
-            <Button
-              type="submit"
-              size="icon"
-              disabled={!userInput.trim() || isProcessingQuery}
-              className="shrink-0 h-10 w-10"
+          
+          {/* Conversation messages */}
+          {conversationHistory.map((message) => (
+            <div
+              key={message.id}
+              className={`${
+                message.role === 'user' 
+                  ? 'ml-auto bg-primary text-primary-foreground' 
+                  : 'mr-auto bg-muted'
+              } max-w-[85%] rounded-lg p-3`}
             >
-              <Send className="h-4 w-4" />
-            </Button>
-          </div>
-        </form>
-      </Card>
-    </div>
+              <p className="text-sm">{message.content}</p>
+              {message.role === 'assistant' && message.confidence && (
+                <div className="mt-1 flex items-center gap-1">
+                  <div 
+                    className="h-1.5 rounded-full bg-background/30 w-16 overflow-hidden"
+                    title={`Confidence: ${Math.round(message.confidence * 100)}%`}
+                  >
+                    <div 
+                      className="h-full bg-background"
+                      style={{ width: `${message.confidence * 100}%` }}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+          
+          {/* Processing indicator */}
+          {isProcessingQuery && (
+            <div className="mr-auto bg-muted max-w-[85%] rounded-lg p-3">
+              <div className="flex gap-1">
+                <span className="animate-bounce">•</span>
+                <span className="animate-bounce" style={{ animationDelay: '0.2s' }}>•</span>
+                <span className="animate-bounce" style={{ animationDelay: '0.4s' }}>•</span>
+              </div>
+            </div>
+          )}
+        </div>
+      </ScrollArea>
+      
+      {/* Input area */}
+      <form onSubmit={handleSubmit} className="p-3 border-t flex gap-2">
+        <Input
+          value={inputValue}
+          onChange={(e) => setInputValue(e.target.value)}
+          placeholder="Ask a question..."
+          disabled={isProcessingQuery}
+          className="flex-1"
+        />
+        <Button 
+          type="submit" 
+          size="icon" 
+          disabled={!inputValue.trim() || isProcessingQuery}
+        >
+          <Send size={16} />
+        </Button>
+      </form>
+    </motion.div>
   );
 }

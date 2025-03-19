@@ -1,90 +1,148 @@
-import React from 'react';
-import { Skeleton } from '@/components/ui/skeleton';
+import React, { useState } from 'react';
 import { ResponsiveBar } from '@nivo/bar';
 import { ResponsiveLine } from '@nivo/line';
-
-interface ProgressDataPoint {
-  date: string;
-  value: number;
-  goal: string;
-}
-
-interface ProgressChartProps {
-  data: ProgressDataPoint[];
-  type?: 'bar' | 'line';
-  height?: number;
-}
+import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
+import { BarChart, LineChart } from "lucide-react";
 
 /**
- * Chart component for visualizing client progress over time
+ * ProgressChart component for visualizing goal progress over time
+ * Features:
+ * - Switchable between bar and line chart
+ * - Custom styling and tooltip
+ * - Responsive design
  */
-export function ProgressChart({ 
-  data, 
-  type = 'line',
-  height = 400 
-}: ProgressChartProps) {
-  // If no data, render placeholder
-  if (!data || data.length === 0) {
-    return (
-      <div className="flex items-center justify-center h-full bg-background/30 rounded-lg">
-        <p className="text-muted-foreground">No progress data available</p>
+interface ProgressChartProps {
+  data: any[];
+  keys: string[];
+}
+
+type ChartType = 'bar' | 'line';
+
+export function ProgressChart({ data, keys }: ProgressChartProps) {
+  const [chartType, setChartType] = useState<ChartType>('bar');
+  
+  if (!data || !keys || keys.length === 0) return <ProgressChartSkeleton />;
+  
+  // Generate colors based on index
+  const colors = keys.map((_, i) => {
+    const baseColors = ['#3498db', '#2ecc71', '#e74c3c', '#9b59b6', '#f1c40f', '#1abc9c'];
+    return baseColors[i % baseColors.length];
+  });
+  
+  // Convert data for line chart if needed
+  const lineData = keys.map(key => ({
+    id: key,
+    data: data.map(d => ({
+      x: d.date,
+      y: d[key]
+    }))
+  }));
+  
+  return (
+    <div className="w-full h-[400px]">
+      <div className="flex justify-end mb-2">
+        <div className="flex gap-1">
+          <Button
+            size="icon"
+            variant={chartType === 'bar' ? 'default' : 'outline'}
+            onClick={() => setChartType('bar')}
+            className="h-8 w-8"
+          >
+            <BarChart size={16} />
+          </Button>
+          <Button
+            size="icon"
+            variant={chartType === 'line' ? 'default' : 'outline'}
+            onClick={() => setChartType('line')}
+            className="h-8 w-8"
+          >
+            <LineChart size={16} />
+          </Button>
+        </div>
       </div>
-    );
-  }
-
-  // Group data by goal
-  const groupedData = data.reduce((acc, item) => {
-    const { goal, date, value } = item;
-    
-    if (!acc[goal]) {
-      acc[goal] = [];
-    }
-    
-    acc[goal].push({
-      x: date,
-      y: value
-    });
-    
-    return acc;
-  }, {} as Record<string, { x: string, y: number }[]>);
-
-  // Transform for line chart
-  const lineData = Object.keys(groupedData).map(goal => ({
-    id: goal,
-    data: groupedData[goal].sort((a, b) => a.x.localeCompare(b.x))
-  }));
-
-  // Transform for bar chart
-  const barData = data.map(item => ({
-    date: item.date,
-    [item.goal]: item.value
-  }));
-
-  // Colors for different goals
-  const colors = ['#4F46E5', '#0EA5E9', '#10B981', '#F59E0B', '#EC4899'];
-
-  if (type === 'line') {
-    return (
-      <div style={{ height }} className="w-full">
-        <ResponsiveLine
-          data={lineData}
-          margin={{ top: 50, right: 110, bottom: 50, left: 60 }}
-          xScale={{ type: 'point' }}
-          yScale={{
-            type: 'linear',
-            min: 0,
-            max: 100,
-            stacked: false,
-            reverse: false
-          }}
-          yFormat=" >-.1f"
+      
+      {chartType === 'bar' && (
+        <ResponsiveBar
+          data={data}
+          keys={keys}
+          indexBy="date"
+          margin={{ top: 20, right: 20, bottom: 50, left: 60 }}
+          padding={0.3}
+          groupMode="grouped"
+          valueScale={{ type: 'linear' }}
+          indexScale={{ type: 'band', round: true }}
+          colors={colors}
+          borderColor={{ from: 'color', modifiers: [['darker', 1.6]] }}
           axisTop={null}
           axisRight={null}
           axisBottom={{
             tickSize: 5,
             tickPadding: 5,
             tickRotation: 0,
-            legend: 'Date',
+            legend: 'Period',
+            legendPosition: 'middle',
+            legendOffset: 40
+          }}
+          axisLeft={{
+            tickSize: 5,
+            tickPadding: 5,
+            tickRotation: 0,
+            legend: 'Progress Score',
+            legendPosition: 'middle',
+            legendOffset: -50
+          }}
+          labelSkipWidth={12}
+          labelSkipHeight={12}
+          labelTextColor={{ from: 'color', modifiers: [['darker', 1.6]] }}
+          legends={[
+            {
+              dataFrom: 'keys',
+              anchor: 'bottom',
+              direction: 'row',
+              justify: false,
+              translateX: 0,
+              translateY: 50,
+              itemsSpacing: 2,
+              itemWidth: 100,
+              itemHeight: 20,
+              itemDirection: 'left-to-right',
+              itemOpacity: 0.85,
+              symbolSize: 20,
+              effects: [
+                {
+                  on: 'hover',
+                  style: {
+                    itemOpacity: 1
+                  }
+                }
+              ]
+            }
+          ]}
+          animate={true}
+        />
+      )}
+      
+      {chartType === 'line' && (
+        <ResponsiveLine
+          data={lineData}
+          margin={{ top: 20, right: 20, bottom: 50, left: 60 }}
+          xScale={{ type: 'point' }}
+          yScale={{
+            type: 'linear',
+            min: 'auto',
+            max: 'auto',
+            stacked: false,
+            reverse: false
+          }}
+          yFormat=" >-.2f"
+          axisTop={null}
+          axisRight={null}
+          axisBottom={{
+            tickSize: 5,
+            tickPadding: 5,
+            tickRotation: 0,
+            legend: 'Period',
             legendOffset: 36,
             legendPosition: 'middle'
           }}
@@ -92,10 +150,11 @@ export function ProgressChart({
             tickSize: 5,
             tickPadding: 5,
             tickRotation: 0,
-            legend: 'Progress (%)',
+            legend: 'Progress Score',
             legendOffset: -40,
             legendPosition: 'middle'
           }}
+          enableGridX={false}
           colors={colors}
           pointSize={10}
           pointColor={{ theme: 'background' }}
@@ -105,11 +164,11 @@ export function ProgressChart({
           useMesh={true}
           legends={[
             {
-              anchor: 'bottom-right',
-              direction: 'column',
+              anchor: 'bottom',
+              direction: 'row',
               justify: false,
-              translateX: 100,
-              translateY: 0,
+              translateX: 0,
+              translateY: 50,
               itemsSpacing: 0,
               itemDirection: 'left-to-right',
               itemWidth: 80,
@@ -129,71 +188,9 @@ export function ProgressChart({
               ]
             }
           ]}
+          animate={true}
         />
-      </div>
-    );
-  }
-
-  return (
-    <div style={{ height }} className="w-full">
-      <ResponsiveBar
-        data={barData}
-        keys={Object.keys(groupedData)}
-        indexBy="date"
-        margin={{ top: 50, right: 130, bottom: 50, left: 60 }}
-        padding={0.3}
-        groupMode="grouped"
-        valueScale={{ type: 'linear' }}
-        indexScale={{ type: 'band', round: true }}
-        colors={colors}
-        borderColor={{ from: 'color', modifiers: [['darker', 1.6]] }}
-        axisTop={null}
-        axisRight={null}
-        axisBottom={{
-          tickSize: 5,
-          tickPadding: 5,
-          tickRotation: 0,
-          legend: 'Date',
-          legendPosition: 'middle',
-          legendOffset: 32
-        }}
-        axisLeft={{
-          tickSize: 5,
-          tickPadding: 5,
-          tickRotation: 0,
-          legend: 'Progress (%)',
-          legendPosition: 'middle',
-          legendOffset: -40
-        }}
-        labelSkipWidth={12}
-        labelSkipHeight={12}
-        labelTextColor={{ from: 'color', modifiers: [['darker', 1.6]] }}
-        legends={[
-          {
-            dataFrom: 'keys',
-            anchor: 'bottom-right',
-            direction: 'column',
-            justify: false,
-            translateX: 120,
-            translateY: 0,
-            itemsSpacing: 2,
-            itemWidth: 100,
-            itemHeight: 20,
-            itemDirection: 'left-to-right',
-            itemOpacity: 0.85,
-            symbolSize: 20,
-            effects: [
-              {
-                on: 'hover',
-                style: {
-                  itemOpacity: 1
-                }
-              }
-            ]
-          }
-        ]}
-        animate={true}
-      />
+      )}
     </div>
   );
 }
