@@ -67,7 +67,7 @@ export type QueryIntent =
 /**
  * Types of visualizations that can be displayed to the user
  */
-export type VisualizationHint = 'BUBBLE_CHART' | 'PROGRESS_CHART' | 'COMBINED_INSIGHTS' | 'PIE_CHART' | 'NONE';
+export type VisualizationHint = 'BUBBLE_CHART' | 'PROGRESS_CHART' | 'COMBINED_INSIGHTS' | 'PIE_CHART' | 'DATABASE_STATS' | 'NONE';
 
 /**
  * Response from agent query processing

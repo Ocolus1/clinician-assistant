@@ -4,7 +4,7 @@ import { ResponsivePie } from '@nivo/pie';
 import { ResponsiveBar } from '@nivo/bar';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Info } from 'lucide-react';
+import { Info, Users, BarChart } from 'lucide-react';
 import { CombinedInsights } from './CombinedInsights';
 import { BudgetAnalysis, ProgressAnalysis, VisualizationHint } from '@/lib/agent/types';
 
@@ -44,6 +44,8 @@ export default function AgentVisualization({ type, clientName }: AgentVisualizat
       return <BudgetVisualization data={latestMessageWithData.data} />;
     case 'PROGRESS_CHART':
       return <ProgressVisualization data={latestMessageWithData.data} />;
+    case 'DATABASE_STATS':
+      return <DatabaseStatisticsVisualization data={latestMessageWithData.data} />;
     case 'COMBINED_INSIGHTS':
       return (
         <CombinedInsights 
@@ -375,6 +377,134 @@ function ProgressVisualization({ data }: { data: any }) {
         {attendanceRate !== undefined && attendanceRate < 70 && (
           <div className="text-xs text-amber-600 font-medium w-full">
             ⚠️ Attendance rate is below target. Consider discussing attendance challenges with the client.
+          </div>
+        )}
+      </CardFooter>
+    </Card>
+  );
+}
+
+// Database Statistics visualization component
+function DatabaseStatisticsVisualization({ data }: { data: any }) {
+  // Extract data for visualization
+  const {
+    totalClients,
+    activeClients,
+    avgAge,
+    demographics,
+    recentTrends
+  } = data;
+  
+  if (!demographics) {
+    return (
+      <Alert>
+        <Info className="h-4 w-4" />
+        <AlertDescription>
+          Database statistics data is not available for visualization.
+        </AlertDescription>
+      </Alert>
+    );
+  }
+  
+  // Prepare data for visualizations
+  
+  // Age group data for pie chart
+  const ageGroups = demographics.ageGroups || {};
+  const pieData = Object.entries(ageGroups)
+    .filter(([_, count]) => Number(count) > 0)
+    .map(([groupName, count]) => ({
+      id: groupName,
+      label: groupName,
+      value: Number(count),
+      color: getRandomColor(groupName)
+    }));
+  
+  return (
+    <Card className="w-full">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-lg flex items-center justify-between">
+          <span>Client Demographics</span>
+          <span className="text-sm font-normal px-2 py-1 rounded bg-slate-100 dark:bg-slate-800">
+            Total Clients: {totalClients}
+          </span>
+        </CardTitle>
+        <CardDescription>
+          Client age distribution and demographic insights
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="h-64">
+        {pieData.length > 0 ? (
+          <ResponsivePie
+            data={pieData}
+            margin={{ top: 10, right: 10, bottom: 10, left: 10 }}
+            innerRadius={0.5}
+            padAngle={0.7}
+            cornerRadius={3}
+            activeOuterRadiusOffset={8}
+            colors={{ scheme: 'category10' }}
+            borderWidth={1}
+            borderColor={{ from: 'color', modifiers: [['darker', 0.2]] }}
+            arcLinkLabelsSkipAngle={10}
+            arcLinkLabelsTextColor="#333333"
+            arcLinkLabelsThickness={2}
+            arcLinkLabelsColor={{ from: 'color' }}
+            arcLabelsSkipAngle={10}
+            arcLabelsTextColor={{ from: 'color', modifiers: [['darker', 2]] }}
+            tooltip={(props) => {
+              const { datum } = props;
+              return (
+                <div
+                  style={{
+                    padding: 12,
+                    background: '#fff',
+                    border: '1px solid #ccc',
+                    borderRadius: 4
+                  }}
+                >
+                  <strong>{String(datum.id)}: </strong>
+                  {Number(datum.value)} clients
+                  <div className="text-xs mt-1">
+                    {Math.round((Number(datum.value) / totalClients) * 100)}% of total clients
+                  </div>
+                </div>
+              );
+            }}
+          />
+        ) : (
+          <div className="h-full flex items-center justify-center text-slate-500">
+            <Users className="h-12 w-12 mr-3 opacity-30" />
+            <div>
+              <p className="text-lg font-medium">No demographic data available</p>
+              <p className="text-sm">Add client demographic information to see insights</p>
+            </div>
+          </div>
+        )}
+      </CardContent>
+      <CardFooter className="flex flex-col space-y-2">
+        <div className="flex justify-between text-sm w-full">
+          <div>Total Clients: <span className="font-medium">{totalClients || 0}</span></div>
+          <div>Active Clients: <span className="font-medium">{activeClients || 0}</span></div>
+          <div>Average Age: <span className="font-medium">{avgAge || 'N/A'}</span></div>
+        </div>
+        
+        {/* Add client insights section */}
+        {recentTrends && (
+          <div className="text-xs text-slate-600 dark:text-slate-400 w-full">
+            <div>
+              <span className="font-medium">Client Growth:</span> {recentTrends.clientGrowth || 'Stable'}
+            </div>
+            
+            {recentTrends.serviceUtilization && (
+              <div>
+                <span className="font-medium">Service Utilization:</span> {recentTrends.serviceUtilization}
+              </div>
+            )}
+            
+            {recentTrends.clientRetention && (
+              <div>
+                <span className="font-medium">Client Retention:</span> {recentTrends.clientRetention}
+              </div>
+            )}
           </div>
         )}
       </CardFooter>

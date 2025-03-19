@@ -241,7 +241,7 @@ export function registerKnowledgeRoutes(app: Express) {
     try {
       // Get actual client data from the database
       const allClients = await db.select().from(schema.clients);
-      const activeClients = allClients.filter(client => client.status === 'active' || !client.status);
+      const activeClients = allClients.filter(client => client.onboardingStatus === 'complete');
       
       // Calculate age distribution if dateOfBirth is available
       const ageGroups = {
