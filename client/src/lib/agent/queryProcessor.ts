@@ -3,7 +3,9 @@ import {
   QueryIntent, 
   AgentResponse, 
   BudgetAnalysis, 
-  ProgressAnalysis 
+  ProgressAnalysis,
+  ExtractedEntity,
+  ConversationMemory
 } from './types';
 import { parseQueryIntent } from './queryParser';
 import { budgetDataService } from '@/lib/services/budgetDataService';
@@ -11,12 +13,126 @@ import { progressDataService } from '@/lib/services/progressDataService';
 import { strategyDataService } from '@/lib/services/strategyDataService';
 
 /**
+ * Extract entities from the user query for better context understanding
+ */
+function extractEntitiesFromQuery(query: string): ExtractedEntity[] {
+  const entities: ExtractedEntity[] = [];
+  
+  // Client name pattern (simple capitalized words)
+  const clientNameRegex = /\b([A-Z][a-z]+(?:\s[A-Z][a-z]+)*)\b/g;
+  let match;
+  while ((match = clientNameRegex.exec(query)) !== null) {
+    entities.push({
+      text: match[0],
+      type: 'ClientName',
+      value: match[0],
+      position: {
+        start: match.index,
+        end: match.index + match[0].length
+      }
+    });
+  }
+  
+  // Goal name pattern (typically in quotes)
+  const goalNameRegex = /"([^"]+)"/g;
+  while ((match = goalNameRegex.exec(query)) !== null) {
+    entities.push({
+      text: match[1],
+      type: 'GoalName',
+      value: match[1],
+      position: {
+        start: match.index + 1, // +1 to skip the opening quote
+        end: match.index + match[0].length - 1 // -1 to exclude the closing quote
+      }
+    });
+  }
+  
+  // Date pattern (various formats)
+  const dateRegex = /\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]* \d{1,2}(?:st|nd|rd|th)?,? \d{4}\b|\b\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}\b/g;
+  while ((match = dateRegex.exec(query)) !== null) {
+    entities.push({
+      text: match[0],
+      type: 'Date',
+      value: new Date(match[0]),
+      position: {
+        start: match.index,
+        end: match.index + match[0].length
+      }
+    });
+  }
+  
+  // Amount pattern (dollar values)
+  const amountRegex = /\$\d+(?:\.\d{2})?|\d+(?:\.\d{2})? dollars/g;
+  while ((match = amountRegex.exec(query)) !== null) {
+    const value = parseFloat(match[0].replace(/[^\d.]/g, ''));
+    entities.push({
+      text: match[0],
+      type: 'Amount',
+      value: value,
+      position: {
+        start: match.index,
+        end: match.index + match[0].length
+      }
+    });
+  }
+  
+  // Category pattern (therapy categories are often specific therapy areas)
+  const categoryKeywords = ['speech', 'language', 'motor', 'cognitive', 'sensory', 'behavioral', 'social'];
+  categoryKeywords.forEach(category => {
+    const regex = new RegExp(`\\b${category}\\b`, 'gi');
+    while ((match = regex.exec(query)) !== null) {
+      entities.push({
+        text: match[0],
+        type: 'Category',
+        value: match[0].toLowerCase(),
+        position: {
+          start: match.index,
+          end: match.index + match[0].length
+        }
+      });
+    }
+  });
+  
+  return entities;
+}
+
+/**
  * Process a natural language query and generate a response
  */
 export async function processQuery(query: string, context: QueryContext): Promise<AgentResponse> {
   try {
-    // Parse the query intent
-    const intent = parseQueryIntent(query, context);
+    // Extract entities for better context understanding
+    const detectedEntities = extractEntitiesFromQuery(query);
+    console.log('Detected entities:', detectedEntities);
+    
+    // Update conversation memory with detected entities
+    const memoryUpdates: Partial<ConversationMemory> = {
+      lastQuery: query
+    };
+    
+    // Combine previous entities with new ones, removing duplicates
+    if (context.conversationMemory?.recentEntities) {
+      // Keep the last 5 entities and add new ones (avoiding duplicates)
+      const existingEntities = context.conversationMemory.recentEntities.slice(-5);
+      const newEntities = detectedEntities.filter(newEntity => 
+        !existingEntities.some(existing => 
+          existing.text === newEntity.text && existing.type === newEntity.type
+        )
+      );
+      
+      memoryUpdates.recentEntities = [...existingEntities, ...newEntities];
+    } else {
+      memoryUpdates.recentEntities = detectedEntities;
+    }
+    
+    // Parse the query intent with enhanced context
+    const intent = parseQueryIntent(query, {
+      ...context,
+      conversationMemory: {
+        ...context.conversationMemory,
+        ...memoryUpdates
+      }
+    });
     console.log('Detected intent:', intent);
     
     // Check if query requires client context
@@ -24,29 +140,56 @@ export async function processQuery(query: string, context: QueryContext): Promis
       return {
         content: "I'd need to know which client you're asking about. Please select a client first, or ask a general question.",
         confidence: 0.8,
+        detectedEntities,
+        memoryUpdates,
+        suggestedFollowUps: [
+          "Show me all clients",
+          "What can you help me with?",
+          "Tell me about general budget trends"
+        ]
       };
     }
     
+    // Store the topic based on intent for future context
+    memoryUpdates.lastTopic = intent.type.toLowerCase();
+    
     // Generate a response based on the intent
+    let response: AgentResponse;
+    
     switch (intent.type) {
       case 'BUDGET_ANALYSIS':
-        return await processBudgetQuery(intent, context);
+        response = await processBudgetQuery(intent, context);
+        break;
       
       case 'PROGRESS_TRACKING':
-        return await processProgressQuery(intent, context);
+        response = await processProgressQuery(intent, context);
+        break;
       
       case 'STRATEGY_RECOMMENDATION':
-        return await processStrategyQuery(intent, context);
+        response = await processStrategyQuery(intent, context);
+        break;
         
       case 'COMBINED_INSIGHTS':
-        return await processCombinedInsightsQuery(intent, context);
+        response = await processCombinedInsightsQuery(intent, context);
+        break;
       
       case 'GENERAL_QUESTION':
-        return processGeneralQuery(intent, context, query);
+        response = processGeneralQuery(intent, context, query);
+        break;
       
       default:
-        return defaultResponse();
+        response = defaultResponse();
     }
+    
+    // Enhance response with entity and memory information
+    return {
+      ...response,
+      detectedEntities,
+      memoryUpdates: {
+        ...memoryUpdates,
+        ...(response.memoryUpdates || {})
+      }
+    };
   } catch (error) {
     console.error('Error processing query:', error);
     return errorResponse(error);
@@ -198,11 +341,41 @@ async function processBudgetQuery(intent: QueryIntent, context: QueryContext): P
         }
     }
     
+    // Generate suggested follow-up questions based on analysis
+    const suggestedFollowUps = [];
+    
+    // Add follow-ups based on the specific query to encourage exploration
+    if (intent.specificQuery !== 'FORECAST') {
+      suggestedFollowUps.push(`When will the budget be depleted?`);
+    }
+    
+    if (intent.specificQuery !== 'UTILIZATION') {
+      suggestedFollowUps.push(`What's the budget utilization rate?`);
+    }
+    
+    if (intent.specificQuery !== 'REMAINING') {
+      suggestedFollowUps.push(`How much budget is remaining?`);
+    }
+    
+    // Add specific follow-ups based on the analysis data
+    if (analysis.spendingPatterns?.highUsageCategories.length) {
+      suggestedFollowUps.push(`Tell me more about the ${analysis.spendingPatterns.highUsageCategories[0]} category spending`);
+    }
+    
+    if (analysis.spendingPatterns?.projectedOverages.length) {
+      suggestedFollowUps.push(`Why is ${analysis.spendingPatterns.projectedOverages[0]} projected to exceed the budget?`);
+    }
+    
+    if (analysis.spendingVelocity && analysis.spendingVelocity > 0.3) {
+      suggestedFollowUps.push(`Why is spending accelerating?`);
+    }
+    
     return {
       content: response,
       confidence,
       data: analysis,
       visualizationHint: 'BUBBLE_CHART',
+      suggestedFollowUps: suggestedFollowUps.slice(0, 3) // Limit to 3 follow-ups
     };
   } catch (error) {
     console.error('Error processing budget query:', error);
@@ -309,11 +482,44 @@ async function processProgressQuery(intent: QueryIntent, context: QueryContext):
         }
     }
     
+    // Generate suggested follow-up questions based on analysis
+    const suggestedFollowUps = [];
+    
+    // Add follow-ups based on the specific query to encourage exploration
+    if (intent.specificQuery !== 'OVERALL') {
+      suggestedFollowUps.push(`What's the overall progress on all goals?`);
+    }
+    
+    if (intent.specificQuery !== 'ATTENDANCE') {
+      suggestedFollowUps.push(`Tell me about the attendance rate`);
+    }
+    
+    // Add specific follow-ups based on the analysis data
+    if (analysis.goalProgress.length > 0) {
+      const sortedGoals = [...analysis.goalProgress].sort((a, b) => b.progress - a.progress);
+      
+      // Ask about the most successful goal
+      if (sortedGoals[0] && sortedGoals[0].progress > 70) {
+        suggestedFollowUps.push(`Why is the goal "${sortedGoals[0].goalTitle}" progressing so well?`);
+      }
+      
+      // Ask about the least successful goal
+      if (sortedGoals.length > 1 && sortedGoals[sortedGoals.length - 1].progress < 50) {
+        suggestedFollowUps.push(`What strategies could help with "${sortedGoals[sortedGoals.length - 1].goalTitle}"?`);
+      }
+    }
+    
+    // Ask about how progress relates to budget if attendance is low
+    if (analysis.attendanceRate < 70) {
+      suggestedFollowUps.push(`How is the low attendance affecting the budget?`);
+    }
+    
     return {
       content: response,
       confidence,
       data: analysis,
       visualizationHint: 'PROGRESS_CHART',
+      suggestedFollowUps: suggestedFollowUps.slice(0, 3) // Limit to 3 follow-ups
     };
   } catch (error) {
     console.error('Error processing progress query:', error);
@@ -432,10 +638,28 @@ async function processStrategyQuery(intent: QueryIntent, context: QueryContext):
       }
     }
     
+    // Generate suggested follow-up questions
+    const suggestedFollowUps = [];
+    
+    if (intent.specificQuery === 'GOAL_SPECIFIC' && intent.goalId && data?.strategies?.length > 0) {
+      suggestedFollowUps.push(`Can you explain more about the first strategy?`);
+      suggestedFollowUps.push(`How do I implement these strategies in therapy sessions?`);
+      suggestedFollowUps.push(`Are there any resources for these strategies?`);
+    } else if (intent.clientId && data?.recommendationsByGoal) {
+      suggestedFollowUps.push(`What's the client's progress on these goals?`);
+      suggestedFollowUps.push(`How do these strategies align with the budget?`);
+      suggestedFollowUps.push(`Can you recommend specific activities for these strategies?`);
+    } else {
+      suggestedFollowUps.push(`What strategies work best for speech development?`);
+      suggestedFollowUps.push(`How do I choose the right strategies for a client?`);
+      suggestedFollowUps.push(`Tell me about evidence-based therapy approaches`);
+    }
+    
     return {
       content: response,
       confidence,
       data,
+      suggestedFollowUps: suggestedFollowUps.slice(0, 3)
     };
   } catch (error) {
     console.error('Error processing strategy query:', error);
@@ -548,11 +772,47 @@ async function processCombinedInsightsQuery(intent: QueryIntent, context: QueryC
         }
     }
     
+    // Generate suggested follow-up questions
+    const suggestedFollowUps = [];
+    
+    switch (intent.specificQuery) {
+      case 'BUDGET_FOCUS':
+        suggestedFollowUps.push(`How does the progress rate compare to budget utilization?`);
+        suggestedFollowUps.push(`What strategies can improve progress while maintaining the budget?`);
+        suggestedFollowUps.push(`How will the spending trend affect future therapy?`);
+        break;
+        
+      case 'PROGRESS_FOCUS':
+        suggestedFollowUps.push(`Which budget items are contributing most to progress?`);
+        suggestedFollowUps.push(`How can we optimize the cost-to-progress ratio?`);
+        suggestedFollowUps.push(`What's causing the variation in goal progress?`);
+        break;
+        
+      default: // OVERALL
+        if (progressData.overallProgress < 50 && budgetData.utilizationRate > 60) {
+          suggestedFollowUps.push(`Why is progress low despite significant budget utilization?`);
+        }
+        
+        if (progressData.attendanceRate < 75) {
+          suggestedFollowUps.push(`How can we improve the attendance rate?`);
+        }
+        
+        if (budgetData.spendingPatterns?.trend === 'increasing') {
+          suggestedFollowUps.push(`Why is spending accelerating?`);
+        }
+        
+        if (suggestedFollowUps.length < 3) {
+          suggestedFollowUps.push(`What's the most efficient allocation of the remaining budget?`);
+          suggestedFollowUps.push(`Which goals should we prioritize for maximum progress?`);
+        }
+    }
+    
     return {
       content: response,
       confidence,
       data: combinedData,
       visualizationHint: 'COMBINED_INSIGHTS',
+      suggestedFollowUps: suggestedFollowUps.slice(0, 3)
     };
   } catch (error) {
     console.error('Error processing combined insights query:', error);
@@ -640,12 +900,23 @@ function generatePatternInsights(analysis: BudgetAnalysis): string {
 }
 
 /**
- * Generate default response
+ * Generate default response with helpful suggestions
  */
 function defaultResponse(): AgentResponse {
+  const suggestedFollowUps = [
+    "How is my client's budget utilization?",
+    "What's the progress on current therapy goals?",
+    "Can you recommend strategies for speech development?",
+    "Show me a summary of upcoming sessions"
+  ];
+  
   return {
     content: "I can help you manage client information, track therapy goals, analyze budgets, and suggest therapy strategies. How can I assist you today?",
     confidence: 0.5,
+    suggestedFollowUps,
+    memoryUpdates: {
+      lastTopic: 'general_help'
+    }
   };
 }
 
