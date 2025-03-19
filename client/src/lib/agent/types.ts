@@ -1,5 +1,8 @@
-import { Client, BudgetItem } from '@shared/schema';
+import { Client, BudgetItem, Goal, Subgoal, Strategy } from '@shared/schema';
 
+/**
+ * Message type for conversation history
+ */
 export interface Message {
   id: string;
   role: 'user' | 'assistant';
@@ -8,6 +11,9 @@ export interface Message {
   confidence?: number;
 }
 
+/**
+ * Context for query processing
+ */
 export interface QueryContext {
   activeClientId?: number;
   activeBudgetId?: number;
@@ -15,12 +21,18 @@ export interface QueryContext {
   conversationHistory: Message[];
 }
 
+/**
+ * Query intent types to categorize user queries
+ */
 export type QueryIntent = 
   | { type: 'BUDGET_ANALYSIS'; clientId?: number; specificQuery?: 'REMAINING' | 'FORECAST' | 'UTILIZATION' }
   | { type: 'PROGRESS_TRACKING'; clientId?: number; goalId?: number; specificQuery?: 'OVERALL' | 'GOAL_SPECIFIC' | 'ATTENDANCE' }
   | { type: 'STRATEGY_RECOMMENDATION'; clientId?: number; goalId?: number; specificQuery?: 'GENERAL' | 'GOAL_SPECIFIC' }
   | { type: 'GENERAL_QUESTION'; topic?: string };
 
+/**
+ * Response from agent query processing
+ */
 export interface AgentResponse {
   content: string;
   confidence: number;
@@ -28,6 +40,9 @@ export interface AgentResponse {
   visualizationHint?: 'BUBBLE_CHART' | 'PROGRESS_CHART' | 'NONE';
 }
 
+/**
+ * Budget analysis result structure
+ */
 export interface BudgetAnalysis {
   totalBudget: number;
   totalAllocated: number;
@@ -39,6 +54,9 @@ export interface BudgetAnalysis {
   spendingByCategory?: Record<string, number>;
 }
 
+/**
+ * Progress analysis result structure
+ */
 export interface ProgressAnalysis {
   overallProgress: number;
   attendanceRate: number;
@@ -57,6 +75,9 @@ export interface ProgressAnalysis {
   }>;
 }
 
+/**
+ * Bubble chart data structure for visualization
+ */
 export interface BubbleChartData {
   id: number;
   value: number;
@@ -66,6 +87,9 @@ export interface BubbleChartData {
   percentUsed: number;
 }
 
+/**
+ * Agent context provider interface
+ */
 export interface AgentContextType {
   conversationHistory: Message[];
   activeClient: Client | null;

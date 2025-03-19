@@ -71,11 +71,11 @@ export function AgentVisualization() {
           {latestVisualization === 'PROGRESS_CHART' && (
             <ProgressChart
               data={[
-                { date: 'Jan', Goal1: 30, Goal2: 40, Goal3: 20 },
-                { date: 'Feb', Goal1: 40, Goal2: 45, Goal3: 25 },
-                { date: 'Mar', Goal1: 45, Goal2: 50, Goal3: 35 },
-                { date: 'Apr', Goal1: 55, Goal2: 60, Goal3: 45 },
-                { date: 'May', Goal1: 65, Goal2: 70, Goal3: 55 }
+                { date: 'Jan', Goal1: 30, Goal2: 40, Goal3: 20 } as any,
+                { date: 'Feb', Goal1: 40, Goal2: 45, Goal3: 25 } as any,
+                { date: 'Mar', Goal1: 45, Goal2: 50, Goal3: 35 } as any,
+                { date: 'Apr', Goal1: 55, Goal2: 60, Goal3: 45 } as any,
+                { date: 'May', Goal1: 65, Goal2: 70, Goal3: 55 } as any
               ]}
               keys={['Goal1', 'Goal2', 'Goal3']}
             />

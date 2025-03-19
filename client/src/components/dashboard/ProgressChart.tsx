@@ -6,8 +6,13 @@ import { Skeleton } from "@/components/ui/skeleton";
  * ProgressChart component for visualizing goal progress over time
  * Uses Nivo's line chart with custom styling
  */
+interface ChartDataPoint {
+  date: string;
+  [key: string]: string | number;
+}
+
 interface ProgressChartProps {
-  data: Array<{ date: string } & Record<string, number>>;
+  data: ChartDataPoint[];
   keys: string[];
 }
 
