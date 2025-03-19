@@ -1,5 +1,8 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { BubbleChartData } from '@/lib/agent/types';
+import { prepareBubbleHierarchy } from '@/lib/utils/chartDataUtils';
+import { ResponsiveCirclePacking } from '@nivo/circle-packing';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface BubbleChartProps {
   data: BubbleChartData[];
@@ -20,61 +23,70 @@ export function BubbleChart({ data }: BubbleChartProps) {
   }
 
   // Transform data to hierarchical structure for circle packing
-  const hierarchicalData = {
-    name: 'budget',
-    children: data.map(item => ({
-      name: item.label,
-      value: item.value,
-      id: item.id,
-      color: item.color,
-      category: item.category,
-      percentUsed: item.percentUsed || 0
-    }))
-  };
+  const hierarchicalData = useMemo(() => {
+    return prepareBubbleHierarchy(data);
+  }, [data]);
 
   return (
-    <div className="w-full h-full min-h-[400px]">
-      {/* For now, we'll use a placeholder to avoid importing Nivo */}
-      <div className="w-full h-full flex items-center justify-center bg-background/30 rounded-lg">
-        <div className="flex flex-col items-center">
-          <div className="text-center max-w-md mb-4">
-            <h3 className="font-medium mb-1">Budget Allocation Visualization</h3>
-            <p className="text-sm text-muted-foreground">
-              {data.length} items found across {new Set(data.map(item => item.category)).size} categories
-            </p>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            {data.map(item => (
-              <div 
-                key={item.id}
-                className="relative p-4 rounded-lg border border-border"
-                style={{ 
-                  backgroundColor: `${item.color}20`,
-                  borderColor: item.color 
-                }}
-              >
-                <h4 className="font-medium mb-1">{item.label}</h4>
-                <p className="text-sm text-muted-foreground">
-                  Category: {item.category}
-                </p>
-                <p className="text-sm">
-                  Value: ${item.value.toLocaleString()}
-                </p>
-                <div className="mt-2 bg-background/50 rounded-full h-2 overflow-hidden">
-                  <div 
-                    className="h-full rounded-full" 
-                    style={{ 
-                      width: `${item.percentUsed}%`,
-                      backgroundColor: item.color
-                    }}
-                  />
-                </div>
-                <p className="text-xs mt-1 text-right">{item.percentUsed}% used</p>
+    <div className="h-full w-full min-h-[400px]">
+      <ResponsiveCirclePacking
+        data={hierarchicalData}
+        margin={{ top: 20, right: 20, bottom: 20, left: 20 }}
+        id="name"
+        value="value"
+        colors={(node: any) => node.data.color || '#A1A1AA'}
+        colorBy="id"
+        childColor={(parent: any) => parent.data.color || '#A1A1AA'}
+        padding={4}
+        enableLabels={true}
+        labelsSkipRadius={16}
+        labelTextColor={{ from: 'color', modifiers: [['darker', 2]] }}
+        borderWidth={1}
+        borderColor={{ from: 'color', modifiers: [['darker', 0.5]] }}
+        animate={true}
+        motionStiffness={90}
+        motionDamping={12}
+        tooltip={(node: any) => {
+          // Don't show tooltip for the root node
+          if (node.id === 'budget') return null;
+          
+          // For category nodes, show simple tooltip
+          if (!node.data.value && node.children?.length) {
+            return (
+              <div className="bg-background p-2 rounded shadow-md border">
+                <strong>{node.id}</strong>
               </div>
-            ))}
-          </div>
-        </div>
-      </div>
+            );
+          }
+          
+          // For leaf nodes, show detailed tooltip
+          return (
+            <div className="bg-background p-2 rounded shadow-md border">
+              <div className="font-medium">{node.id}</div>
+              <div className="text-sm text-muted-foreground">
+                Amount: ${node.value.toLocaleString()}
+              </div>
+              {node.data.percentUsed !== undefined && (
+                <div className="text-sm">
+                  Used: {node.data.percentUsed}%
+                </div>
+              )}
+            </div>
+          );
+        }}
+      />
+    </div>
+  );
+}
+
+/**
+ * Skeleton for loading state
+ */
+export function BubbleChartSkeleton() {
+  return (
+    <div className="w-full h-[400px] p-4 space-y-4">
+      <Skeleton className="h-8 w-3/4" />
+      <Skeleton className="h-full w-full rounded-md" />
     </div>
   );
 }
