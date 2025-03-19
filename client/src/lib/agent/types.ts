@@ -45,9 +45,12 @@ export interface AgentResponse {
  * Enhanced budget item with additional data for visualization
  */
 export interface EnhancedBudgetItem extends BudgetItem {
-  amount?: number;        // Total amount allocated (quantity * unitPrice)
-  totalSpent?: number;    // Amount spent so far
-  percentUsed?: number;   // Percentage of budget utilized
+  amount?: number;                 // Total amount allocated (quantity * unitPrice)
+  totalSpent?: number;             // Amount spent so far
+  percentUsed?: number;            // Percentage of budget utilized
+  isHighUsage?: boolean;           // Whether this item has high usage relative to others
+  isLowUtilization?: boolean;      // Whether this item has low utilization
+  isProjectedOverage?: boolean;    // Whether this item is projected to exceed its budget
 }
 
 /**
@@ -62,6 +65,12 @@ export interface BudgetAnalysis {
   forecastedDepletion: Date;
   budgetItems?: EnhancedBudgetItem[];
   spendingByCategory?: Record<string, number>;
+  spendingPatterns?: {
+    trend: 'increasing' | 'decreasing' | 'stable' | 'fluctuating';
+    highUsageCategories: string[];
+    projectedOverages: string[];
+  };
+  spendingVelocity?: number; // A measure of rate of change: positive = accelerating, negative = decelerating
 }
 
 /**

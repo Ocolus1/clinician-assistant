@@ -51,7 +51,15 @@ export default function AgentVisualization({ type }: AgentVisualizationProps) {
 // Budget visualization component
 function BudgetVisualization({ data }: { data: any }) {
   // Extract data for visualization
-  const { spendingByCategory, totalBudget, totalSpent, remaining } = data;
+  const { 
+    spendingByCategory, 
+    totalBudget, 
+    totalSpent, 
+    remaining, 
+    utilizationRate,
+    spendingPatterns,
+    spendingVelocity
+  } = data;
   
   if (!spendingByCategory) {
     return (
@@ -64,18 +72,48 @@ function BudgetVisualization({ data }: { data: any }) {
     );
   }
   
-  // Prepare data for pie chart
-  const pieData = Object.entries(spendingByCategory).map(([category, amount]: [string, any]) => ({
-    id: category,
-    label: category,
-    value: amount,
-    color: getRandomColor(category),
-  }));
+  // Prepare data for pie chart with enhanced visuals
+  const pieData = Object.entries(spendingByCategory).map(([category, amount]: [string, any]) => {
+    // Check if this is a high usage or projected overage category
+    const isHighUsage = spendingPatterns?.highUsageCategories.includes(category);
+    const isProjectedOverage = spendingPatterns?.projectedOverages.includes(category);
+    
+    // Adjust color based on category status
+    let baseColor = getRandomColor(category);
+    if (isProjectedOverage) {
+      // Use red tint for categories projected to exceed budget
+      baseColor = '#ff6b6b';
+    } else if (isHighUsage) {
+      // Use amber tint for high usage categories
+      baseColor = '#ffb347';
+    }
+    
+    return {
+      id: category,
+      label: category,
+      value: amount,
+      color: baseColor,
+      isHighUsage,
+      isProjectedOverage
+    };
+  });
+  
+  // Get trend information and format for display
+  const trendInfo = spendingPatterns?.trend || 'stable';
+  const trendEmoji = 
+    trendInfo === 'increasing' ? '↗️' :
+    trendInfo === 'decreasing' ? '↘️' :
+    trendInfo === 'fluctuating' ? '↔️' : '→';
   
   return (
     <Card className="w-full">
       <CardHeader className="pb-2">
-        <CardTitle className="text-lg">Budget Utilization</CardTitle>
+        <CardTitle className="text-lg flex items-center justify-between">
+          <span>Budget Utilization</span>
+          <span className="text-sm font-normal px-2 py-1 rounded bg-slate-100 dark:bg-slate-800">
+            Trend: {trendEmoji} {trendInfo.charAt(0).toUpperCase() + trendInfo.slice(1)}
+          </span>
+        </CardTitle>
         <CardDescription>
           Spending breakdown by category
         </CardDescription>
@@ -99,6 +137,9 @@ function BudgetVisualization({ data }: { data: any }) {
           arcLabelsTextColor={{ from: 'color', modifiers: [['darker', 2]] }}
           tooltip={(props) => {
             const { datum } = props;
+            const isHighUsage = datum.data.isHighUsage;
+            const isProjectedOverage = datum.data.isProjectedOverage;
+            
             return (
               <div
                 style={{
@@ -110,15 +151,31 @@ function BudgetVisualization({ data }: { data: any }) {
               >
                 <strong>{String(datum.id)}: </strong>
                 ${Number(datum.value).toFixed(2)}
+                {isHighUsage && <div className="text-amber-600 text-xs mt-1">High usage category</div>}
+                {isProjectedOverage && <div className="text-red-600 text-xs mt-1">⚠️ Projected to exceed budget</div>}
               </div>
             );
           }}
         />
       </CardContent>
-      <CardFooter className="flex justify-between text-sm text-muted-foreground">
-        <div>Total Budget: ${totalBudget?.toFixed(2) || 0}</div>
-        <div>Spent: ${totalSpent?.toFixed(2) || 0}</div>
-        <div>Remaining: ${remaining?.toFixed(2) || 0}</div>
+      <CardFooter className="flex flex-col space-y-2">
+        <div className="flex justify-between text-sm w-full">
+          <div>Total Budget: ${totalBudget?.toFixed(2) || 0}</div>
+          <div>Spent: ${totalSpent?.toFixed(2) || 0}</div>
+          <div>Remaining: ${remaining?.toFixed(2) || 0}</div>
+        </div>
+        
+        {/* Add insights section */}
+        {spendingPatterns && spendingPatterns.projectedOverages.length > 0 && (
+          <div className="text-xs text-red-600 font-medium w-full">
+            ⚠️ Attention: {spendingPatterns.projectedOverages.join(', ')} {spendingPatterns.projectedOverages.length === 1 ? 'is' : 'are'} projected to exceed budget allocation.
+          </div>
+        )}
+        
+        {/* Budget depletion prediction */}
+        <div className="text-xs text-slate-600 dark:text-slate-400 w-full">
+          At current spending rate ({trendEmoji}), budget will be depleted by {data.forecastedDepletion?.toLocaleDateString() || 'unknown date'}.
+        </div>
       </CardFooter>
     </Card>
   );
