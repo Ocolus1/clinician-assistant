@@ -183,7 +183,7 @@ function BudgetVisualization({ data }: { data: any }) {
 
 // Progress visualization component
 function ProgressVisualization({ data }: { data: any }) {
-  const { goalProgress, overallProgress, attendanceRate } = data;
+  const { goalProgress, overallProgress, attendanceRate, sessionsCompleted, sessionsCancelled } = data;
   
   if (!goalProgress || goalProgress.length === 0) {
     return (
@@ -196,32 +196,76 @@ function ProgressVisualization({ data }: { data: any }) {
     );
   }
   
-  // Prepare data for bar chart
-  const barData = goalProgress.map((goal: any) => ({
-    goal: goal.goalTitle.length > 20 
-      ? goal.goalTitle.substring(0, 20) + '...' 
-      : goal.goalTitle,
-    progress: goal.progress,
-  }));
+  // Prepare data for bar chart with enhanced insights
+  const barData = goalProgress.map((goal: any) => {
+    // Calculate milestone completion rate
+    const completedMilestones = goal.milestones ? 
+      goal.milestones.filter((m: any) => m.completed).length : 0;
+    const totalMilestones = goal.milestones ? goal.milestones.length : 0;
+    const milestoneRate = totalMilestones > 0 ? (completedMilestones / totalMilestones) * 100 : 0;
+    
+    // Get average rating for milestones if available
+    const ratingsAvailable = goal.milestones && goal.milestones.some((m: any) => m.lastRating !== undefined);
+    let avgRating = 0;
+    
+    if (ratingsAvailable) {
+      const ratedMilestones = goal.milestones.filter((m: any) => m.lastRating !== undefined);
+      const sumRatings = ratedMilestones.reduce((sum: number, m: any) => sum + (m.lastRating || 0), 0);
+      avgRating = ratedMilestones.length > 0 ? sumRatings / ratedMilestones.length : 0;
+    }
+    
+    // Determine if progress is on track
+    const isOnTrack = goal.progress >= 50;
+    
+    return {
+      goal: goal.goalTitle.length > 20 
+        ? goal.goalTitle.substring(0, 20) + '...' 
+        : goal.goalTitle,
+      progress: goal.progress,
+      milestoneRate,
+      avgRating: avgRating > 0 ? avgRating : null,
+      isOnTrack,
+      color: isOnTrack ? '#4caf50' : '#ff9800',
+      goalId: goal.goalId
+    };
+  });
+  
+  // Sort goals by progress to highlight top and bottom performers
+  const sortedBarData = [...barData].sort((a, b) => b.progress - a.progress);
+  
+  // Calculate session metrics
+  const totalSessions = sessionsCompleted + sessionsCancelled;
+  const attendanceRateColor = 
+    attendanceRate >= 80 ? 'text-green-600' :
+    attendanceRate >= 60 ? 'text-amber-600' : 'text-red-600';
+  
+  // Calculate progress trend (if we had historical data, this would be more dynamic)
+  const progressTrend = "steady"; // Placeholder - in a real app this would be calculated from historical data
   
   return (
     <Card className="w-full">
       <CardHeader className="pb-2">
-        <CardTitle className="text-lg">Goal Progress</CardTitle>
+        <CardTitle className="text-lg flex items-center justify-between">
+          <span>Client Goal Progress</span>
+          <span className="text-sm font-normal px-2 py-1 rounded bg-slate-100 dark:bg-slate-800">
+            Overall: {overallProgress?.toFixed(1) || 0}%
+          </span>
+        </CardTitle>
         <CardDescription>
-          Progress across different goals
+          Progress across different therapy goals
         </CardDescription>
       </CardHeader>
       <CardContent className="h-64">
         <ResponsiveBar
-          data={barData}
+          data={sortedBarData}
           keys={['progress']}
           indexBy="goal"
           margin={{ top: 10, right: 10, bottom: 50, left: 60 }}
           padding={0.3}
-          valueScale={{ type: 'linear' }}
+          valueScale={{ type: 'linear', max: 100 }}
           indexScale={{ type: 'band', round: true }}
-          colors={{ scheme: 'nivo' }}
+          colors={d => d.data.color || '#3b82f6'}
+          borderColor={{ from: 'color', modifiers: [['darker', 1.6]] }}
           axisTop={null}
           axisRight={null}
           axisBottom={{
@@ -242,7 +286,7 @@ function ProgressVisualization({ data }: { data: any }) {
           }}
           labelSkipWidth={12}
           labelSkipHeight={12}
-          labelTextColor={{ from: 'color', modifiers: [['darker', 1.6]] }}
+          labelTextColor={{ from: 'color', modifiers: [['darker', 3]] }}
           animate={true}
           tooltip={({ data, value }) => (
             <div
@@ -255,13 +299,53 @@ function ProgressVisualization({ data }: { data: any }) {
             >
               <strong>{data.goal}: </strong>
               {value.toFixed(1)}% complete
+              {data.milestoneRate !== undefined && (
+                <div className="text-xs mt-1">
+                  Milestone completion: {data.milestoneRate.toFixed(1)}%
+                </div>
+              )}
+              {data.avgRating !== null && (
+                <div className="text-xs mt-1">
+                  Average rating: {data.avgRating.toFixed(1)}/5
+                </div>
+              )}
+              <div className={`text-xs mt-1 ${data.isOnTrack ? 'text-green-600' : 'text-amber-600'}`}>
+                {data.isOnTrack ? '✓ On track' : '⚠️ Needs attention'}
+              </div>
             </div>
           )}
         />
       </CardContent>
-      <CardFooter className="flex justify-between text-sm text-muted-foreground">
-        <div>Overall Progress: {overallProgress?.toFixed(1) || 0}%</div>
-        <div>Attendance Rate: {attendanceRate?.toFixed(1) || 0}%</div>
+      <CardFooter className="flex flex-col space-y-2">
+        <div className="flex justify-between text-sm w-full">
+          <div>Sessions Completed: <span className="font-medium">{sessionsCompleted || 0}</span></div>
+          <div>Sessions Cancelled: <span className="font-medium">{sessionsCancelled || 0}</span></div>
+          <div>Attendance Rate: <span className={`font-medium ${attendanceRateColor}`}>{attendanceRate?.toFixed(1) || 0}%</span></div>
+        </div>
+        
+        {/* Goal insights */}
+        {sortedBarData.length > 0 && (
+          <div className="text-xs text-slate-600 dark:text-slate-400 w-full">
+            {sortedBarData[0].progress > 70 && (
+              <div className="text-green-600">
+                ✓ Excellent progress on "{sortedBarData[0].goal}" at {sortedBarData[0].progress.toFixed(1)}%.
+              </div>
+            )}
+            
+            {sortedBarData.length > 1 && sortedBarData[sortedBarData.length-1].progress < 30 && (
+              <div className="text-amber-600">
+                ⚠️ Goal "{sortedBarData[sortedBarData.length-1].goal}" may need additional attention ({sortedBarData[sortedBarData.length-1].progress.toFixed(1)}%).
+              </div>
+            )}
+          </div>
+        )}
+        
+        {/* Attendance insight */}
+        {attendanceRate !== undefined && attendanceRate < 70 && (
+          <div className="text-xs text-amber-600 font-medium w-full">
+            ⚠️ Attendance rate is below target. Consider discussing attendance challenges with the client.
+          </div>
+        )}
       </CardFooter>
     </Card>
   );
