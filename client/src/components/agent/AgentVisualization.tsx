@@ -40,6 +40,8 @@ export default function AgentVisualization({ type, clientName }: AgentVisualizat
   switch (type) {
     case 'BUBBLE_CHART':
       return <BudgetVisualization data={latestMessageWithData.data} />;
+    case 'PIE_CHART':
+      return <BudgetVisualization data={latestMessageWithData.data} />;
     case 'PROGRESS_CHART':
       return <ProgressVisualization data={latestMessageWithData.data} />;
     case 'COMBINED_INSIGHTS':
