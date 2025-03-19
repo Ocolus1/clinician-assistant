@@ -297,6 +297,9 @@ function getIntentDescription(intent: QueryIntent): string {
     
     case 'STRATEGY_RECOMMENDATION':
       return 'therapy strategy recommendations';
+      
+    case 'DATABASE_STATISTICS':
+      return 'database statistics and client metrics';
     
     case 'GENERAL_QUESTION':
       return intent.topic ? `information about ${intent.topic}` : 'general information';
@@ -744,9 +747,6 @@ async function processStrategyQuery(intent: QueryIntent, context: QueryContext):
 }
 
 /**
- * Process combined insights queries
- */
-/**
  * Process database statistics queries
  */
 async function processDatabaseStatisticsQuery(intent: QueryIntent, context: QueryContext): Promise<AgentResponse> {
@@ -801,8 +801,8 @@ async function processDatabaseStatisticsQuery(intent: QueryIntent, context: Quer
         if (clientStats.demographics?.ageGroups) {
           const ageGroups = clientStats.demographics.ageGroups;
           const ageGroupsText = Object.entries(ageGroups)
-            .filter(([_, count]) => count > 0)
-            .map(([group, count]) => `${count} in ${group}`)
+            .filter(([_, count]) => Number(count) > 0)
+            .map(([group, count]) => `${Number(count)} in ${group}`)
             .join(', ');
             
           if (ageGroupsText) {
