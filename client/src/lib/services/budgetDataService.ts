@@ -1,6 +1,7 @@
-import { BudgetAnalysis } from '@/lib/agent/types';
-import { BudgetItem, BudgetSettings, Session } from '@shared/schema';
 import { apiRequest } from '@/lib/queryClient';
+import { BudgetItem, BudgetSettings, Session } from '@shared/schema';
+import { BudgetAnalysis, EnhancedBudgetItem } from '@/lib/agent/types';
+import { formatCurrency } from '@/lib/utils';
 
 /**
  * Service for fetching and analyzing budget data
@@ -11,28 +12,36 @@ export const budgetDataService = {
    */
   async getBudgetAnalysis(clientId: number): Promise<BudgetAnalysis> {
     try {
-      // Fetch budget data
+      // Fetch budget settings, budget items, and sessions
       const budgetSettings = await this.fetchBudgetSettings(clientId);
       const budgetItems = await this.fetchBudgetItems(clientId);
       const sessions = await this.fetchSessions(clientId);
       
-      // Calculate total budget
+      // Calculate key metrics
       const totalBudget = budgetSettings?.ndisFunds || 0;
-      
-      // Calculate allocated amount
       const totalAllocated = this.calculateAllocatedAmount(budgetItems);
-      
-      // Calculate spent amount
       const totalSpent = this.calculateSpentAmount(sessions, budgetItems);
-      
-      // Calculate remaining amount
       const remaining = totalBudget - totalSpent;
-      
-      // Calculate utilization rate
       const utilizationRate = totalBudget > 0 ? (totalSpent / totalBudget) * 100 : 0;
       
-      // Get spending by category
+      // Calculate spending by category
       const spendingByCategory = this.calculateSpendingByCategory(sessions, budgetItems);
+      
+      // Enhance budget items with additional data for visualization
+      const enhancedBudgetItems: EnhancedBudgetItem[] = budgetItems.map(item => {
+        const amount = item.quantity * item.unitPrice;
+        // Calculate a simulated spent amount based on the utilization rate
+        // In a production environment, this would use actual usage data
+        const totalSpent = Math.min(amount * (utilizationRate / 100), amount);
+        const percentUsed = amount > 0 ? (totalSpent / amount) * 100 : 0;
+        
+        return {
+          ...item,
+          amount,
+          totalSpent,
+          percentUsed
+        };
+      });
       
       // Forecast depletion date
       const forecastedDepletion = this.forecastDepletion(totalBudget, totalSpent, sessions);
@@ -44,147 +53,172 @@ export const budgetDataService = {
         remaining,
         utilizationRate,
         forecastedDepletion,
-        budgetItems,
+        budgetItems: enhancedBudgetItems,
         spendingByCategory
       };
     } catch (error) {
-      console.error('Error analyzing budget data:', error);
-      throw new Error('Failed to analyze budget data');
+      console.error('Error in getBudgetAnalysis:', error);
+      throw error;
     }
   },
-  
+
   /**
    * Fetch budget settings for a client
    */
   async fetchBudgetSettings(clientId: number): Promise<BudgetSettings | null> {
     try {
-      const response = await apiRequest('GET', `/api/clients/${clientId}/budget-settings`);
+      const response = await apiRequest('GET', `/api/budget-settings/client/${clientId}`);
       return response as unknown as BudgetSettings;
     } catch (error) {
       console.error('Error fetching budget settings:', error);
       return null;
     }
   },
-  
+
   /**
    * Fetch budget items for a client
    */
   async fetchBudgetItems(clientId: number): Promise<BudgetItem[]> {
     try {
-      const response = await apiRequest('GET', `/api/clients/${clientId}/budget-items`);
+      const response = await apiRequest('GET', `/api/budget-items/client/${clientId}`);
       return response as unknown as BudgetItem[];
     } catch (error) {
       console.error('Error fetching budget items:', error);
       return [];
     }
   },
-  
+
   /**
    * Fetch sessions for a client
    */
   async fetchSessions(clientId: number): Promise<Session[]> {
     try {
-      const response = await apiRequest('GET', `/api/clients/${clientId}/sessions`);
+      const response = await apiRequest('GET', `/api/sessions/client/${clientId}`);
       return response as unknown as Session[];
     } catch (error) {
       console.error('Error fetching sessions:', error);
       return [];
     }
   },
-  
+
   /**
    * Calculate total allocated amount from budget items
    */
   calculateAllocatedAmount(budgetItems: BudgetItem[]): number {
     return budgetItems.reduce((total, item) => {
-      const totalItemAmount = (item.quantity || 0) * (item.unitPrice || 0);
-      return total + totalItemAmount;
+      return total + (item.quantity * item.unitPrice);
     }, 0);
   },
-  
+
   /**
    * Calculate amount spent based on sessions and associated products
+   * In a real application, this would parse actual session products/charges
    */
   calculateSpentAmount(sessions: Session[], budgetItems: BudgetItem[]): number {
-    // In a real implementation, this would calculate actual spending
-    // from session products and quantities
+    // Calculate total possible budget
+    const totalBudget = this.calculateAllocatedAmount(budgetItems);
     
-    // For now, use a simple heuristic based on completed sessions
+    // If no sessions, return 0 spent
+    if (sessions.length === 0) return 0;
+    
+    // Calculate spent amount based on session attendance
+    // This is a simplified calculation - in production, would use actual product usage data
     const completedSessions = sessions.filter(session => 
       session.status === 'completed' || session.status === 'billed'
     );
     
-    // Let's assume each completed session uses one unit of a service
-    const averageServiceCost = budgetItems.length > 0 
-      ? budgetItems.reduce((sum, item) => sum + (item.unitPrice || 0), 0) / budgetItems.length
-      : 100; // Default value if no budget items
-    
-    return completedSessions.length * averageServiceCost;
+    // Extract products from session notes if available
+    // For demo, we'll use a simpler calculation based on completed sessions
+    return totalBudget * (completedSessions.length / Math.max(sessions.length, 1)) * 0.7;
   },
-  
+
   /**
    * Group spending by budget item category
    */
   calculateSpendingByCategory(sessions: Session[], budgetItems: BudgetItem[]): Record<string, number> {
-    const categorySpending: Record<string, number> = {};
+    // Create a map of categories to total allocated amounts
+    const categoryAllocations: Record<string, number> = {};
     
-    // Group budget items by category
-    const itemsByCategory = budgetItems.reduce((acc, item) => {
-      const category = item.category || 'Other';
-      if (!acc[category]) {
-        acc[category] = [];
+    // Calculate allocated amount per category
+    budgetItems.forEach(item => {
+      const category = item.category || 'Uncategorized';
+      const amount = item.quantity * item.unitPrice;
+      
+      if (!categoryAllocations[category]) {
+        categoryAllocations[category] = 0;
       }
-      acc[category].push(item);
-      return acc;
-    }, {} as Record<string, BudgetItem[]>);
-    
-    // For this mock implementation, distribute spending across categories
-    // based on the number of items in each category
-    const totalSpent = this.calculateSpentAmount(sessions, budgetItems);
-    
-    Object.entries(itemsByCategory).forEach(([category, items]) => {
-      const categoryRatio = items.length / budgetItems.length;
-      categorySpending[category] = totalSpent * categoryRatio;
+      
+      categoryAllocations[category] += amount;
     });
     
-    return categorySpending;
+    // Calculate total allocated
+    const totalAllocated = Object.values(categoryAllocations).reduce((sum, amount) => sum + amount, 0);
+    
+    // Calculate total spent
+    const totalSpent = this.calculateSpentAmount(sessions, budgetItems);
+    
+    // Calculate spending by category based on allocated proportions
+    const result: Record<string, number> = {};
+    
+    if (totalAllocated > 0) {
+      Object.entries(categoryAllocations).forEach(([category, amount]) => {
+        // Calculate spent amount proportionally
+        const proportion = amount / totalAllocated;
+        result[category] = totalSpent * proportion;
+      });
+    }
+    
+    return result;
   },
-  
+
   /**
    * Forecast budget depletion date based on current spending rate
    */
   forecastDepletion(totalBudget: number, totalSpent: number, sessions: Session[]): Date {
-    // Calculate spending rate ($ per day)
+    // If no spending or no budget, return a default date (1 year from now)
+    if (totalSpent === 0 || totalBudget === 0) {
+      const defaultDate = new Date();
+      defaultDate.setFullYear(defaultDate.getFullYear() + 1);
+      return defaultDate;
+    }
+    
+    // Get completed sessions and their dates
     const completedSessions = sessions.filter(session => 
       session.status === 'completed' || session.status === 'billed'
     );
     
-    if (completedSessions.length < 2) {
-      // Not enough data for accurate forecast, return a date 6 months from now
-      const result = new Date();
-      result.setMonth(result.getMonth() + 6);
-      return result;
+    // If no completed sessions, return a default date
+    if (completedSessions.length === 0) {
+      const defaultDate = new Date();
+      defaultDate.setFullYear(defaultDate.getFullYear() + 1);
+      return defaultDate;
     }
     
-    // Find date range
-    const sessionDates = completedSessions.map(s => new Date(s.sessionDate).getTime());
-    const oldestDate = new Date(Math.min(...sessionDates));
-    const newestDate = new Date(Math.max(...sessionDates));
+    // Sort sessions by date
+    completedSessions.sort((a, b) => {
+      return new Date(a.sessionDate).getTime() - new Date(b.sessionDate).getTime();
+    });
+    
+    // Calculate average spend per day
+    const firstSessionDate = new Date(completedSessions[0].sessionDate);
+    const lastSessionDate = new Date(completedSessions[completedSessions.length - 1].sessionDate);
     
     // Calculate days between first and last session
-    const daysDiff = Math.max(1, (newestDate.getTime() - oldestDate.getTime()) / (1000 * 60 * 60 * 24));
+    const daysBetween = Math.max(
+      1, 
+      (lastSessionDate.getTime() - firstSessionDate.getTime()) / (1000 * 60 * 60 * 24)
+    );
     
-    // Calculate spending rate
-    const spendingRate = totalSpent / daysDiff;
+    // Calculate daily spend rate
+    const dailySpendRate = totalSpent / daysBetween;
     
     // Calculate days until depletion
-    const remainingAmount = totalBudget - totalSpent;
-    const daysUntilDepletion = remainingAmount / spendingRate;
+    const remainingBudget = totalBudget - totalSpent;
+    const daysUntilDepletion = dailySpendRate > 0 ? remainingBudget / dailySpendRate : 365;
     
     // Calculate depletion date
-    const today = new Date();
-    const depletionDate = new Date(today);
-    depletionDate.setDate(today.getDate() + Math.max(30, daysUntilDepletion)); // Minimum 30 days
+    const depletionDate = new Date();
+    depletionDate.setDate(depletionDate.getDate() + daysUntilDepletion);
     
     return depletionDate;
   }

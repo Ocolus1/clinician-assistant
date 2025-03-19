@@ -1,5 +1,5 @@
-import { Goal, Strategy, Subgoal } from '@shared/schema';
 import { apiRequest } from '@/lib/queryClient';
+import { Goal, Subgoal, Strategy } from '@shared/schema';
 
 /**
  * Service for therapy strategy recommendations
@@ -17,7 +17,7 @@ export const strategyDataService = {
       return [];
     }
   },
-  
+
   /**
    * Get strategies by category
    */
@@ -30,137 +30,126 @@ export const strategyDataService = {
       return [];
     }
   },
-  
+
   /**
    * Get recommended strategies for a specific goal
    */
   async getRecommendedStrategiesForGoal(goalId: number): Promise<Strategy[]> {
     try {
-      // Get goal details
-      const goal = await apiRequest('GET', `/api/goals/${goalId}`) as unknown as Goal;
-      if (!goal) {
-        return [];
-      }
+      // First, get the goal and its subgoals
+      const goalResponse = await apiRequest('GET', `/api/goals/${goalId}`);
+      const goal = goalResponse as unknown as Goal;
       
-      // Get subgoals for this goal
-      const subgoals = await apiRequest('GET', `/api/goals/${goalId}/subgoals`) as unknown as Subgoal[];
+      const subgoalsResponse = await apiRequest('GET', `/api/subgoals/goal/${goalId}`);
+      const subgoals = subgoalsResponse as unknown as Subgoal[];
       
-      // Get all available strategies
-      const allStrategies = await this.getAllStrategies();
+      // Get all strategies
+      const strategies = await this.getAllStrategies();
       
       // Extract key terms from goal and subgoals
       const keyTerms = this.extractKeyTerms(goal, subgoals);
       
-      // Score strategies by relevance
-      return this.scoreStrategiesByRelevance(allStrategies, keyTerms);
+      // Score and sort strategies by relevance to the key terms
+      return this.scoreStrategiesByRelevance(strategies, keyTerms);
     } catch (error) {
       console.error(`Error getting recommended strategies for goal ${goalId}:`, error);
       return [];
     }
   },
-  
+
   /**
    * Get recommended strategies for client based on their goals and progress
    */
   async getRecommendedStrategiesForClient(clientId: number): Promise<Record<string, Strategy[]>> {
     try {
-      // Get client's goals
-      const goals = await apiRequest('GET', `/api/clients/${clientId}/goals`) as unknown as Goal[];
+      // Get the client's goals
+      const goalsResponse = await apiRequest('GET', `/api/goals/client/${clientId}`);
+      const goals = goalsResponse as unknown as Goal[];
       
-      if (!goals || goals.length === 0) {
-        return {};
-      }
-      
-      // For each goal, get recommended strategies
-      const recommendations: Record<string, Strategy[]> = {};
+      // Get recommendations for each goal
+      const recommendationsByGoal: Record<string, Strategy[]> = {};
       
       for (const goal of goals) {
         const strategies = await this.getRecommendedStrategiesForGoal(goal.id);
-        if (strategies.length > 0) {
-          recommendations[goal.title] = strategies;
-        }
+        recommendationsByGoal[goal.title] = strategies.slice(0, 3); // Top 3 strategies per goal
       }
       
-      return recommendations;
+      return recommendationsByGoal;
     } catch (error) {
-      console.error(`Error getting strategy recommendations for client ${clientId}:`, error);
+      console.error(`Error getting recommendations for client ${clientId}:`, error);
       return {};
     }
   },
-  
+
   /**
    * Extract key terms from goal and subgoals for strategy matching
    */
   extractKeyTerms(goal: Goal, subgoals: Subgoal[] = []): string[] {
-    const terms: Set<string> = new Set();
+    const terms = new Set<string>();
     
-    // Process goal title and description
+    // Extract terms from goal title and description
     if (goal.title) {
       goal.title.toLowerCase().split(/\s+/).forEach(term => {
-        if (term.length > 3) {
-          terms.add(term);
-        }
+        if (term.length > 3) terms.add(term);
       });
     }
     
     if (goal.description) {
       goal.description.toLowerCase().split(/\s+/).forEach(term => {
-        if (term.length > 3) {
-          terms.add(term);
-        }
+        if (term.length > 3) terms.add(term);
       });
     }
     
-    // Process subgoal titles and descriptions
+    // Extract terms from subgoals
     subgoals.forEach(subgoal => {
       if (subgoal.title) {
         subgoal.title.toLowerCase().split(/\s+/).forEach(term => {
-          if (term.length > 3) {
-            terms.add(term);
-          }
+          if (term.length > 3) terms.add(term);
         });
       }
       
       if (subgoal.description) {
         subgoal.description.toLowerCase().split(/\s+/).forEach(term => {
-          if (term.length > 3) {
-            terms.add(term);
-          }
+          if (term.length > 3) terms.add(term);
         });
       }
     });
     
-    return Array.from(terms);
+    // Filter out common words and very short terms
+    const commonWords = ['the', 'and', 'for', 'with', 'this', 'that', 'will', 'able', 'have', 'from'];
+    return Array.from(terms).filter(term => !commonWords.includes(term));
   },
-  
+
   /**
    * Score strategies by relevance to extracted key terms
    */
   scoreStrategiesByRelevance(strategies: Strategy[], keyTerms: string[]): Strategy[] {
-    if (keyTerms.length === 0 || strategies.length === 0) {
-      return strategies;
-    }
+    if (keyTerms.length === 0 || strategies.length === 0) return strategies;
     
-    // Score each strategy based on how many key terms it contains
+    // Calculate a relevance score for each strategy
     const scoredStrategies = strategies.map(strategy => {
       let score = 0;
-      const strategyText = `${strategy.name} ${strategy.description} ${strategy.category}`.toLowerCase();
+      
+      // Check strategy name and description for key terms
+      const strategyText = `${strategy.name} ${strategy.description}`.toLowerCase();
       
       keyTerms.forEach(term => {
-        if (strategyText.includes(term)) {
-          score += 1;
+        // Count occurrences of the term
+        const regex = new RegExp(`\\b${term}\\b`, 'gi');
+        const matches = strategyText.match(regex);
+        
+        if (matches) {
+          // Add to score based on number of matches
+          score += matches.length * 2;
         }
       });
       
       return { strategy, score };
     });
     
-    // Sort by score (descending)
-    scoredStrategies.sort((a, b) => b.score - a.score);
-    
-    // Return top strategies (those with at least one matching term)
+    // Sort by score (highest first) and return just the strategies
     return scoredStrategies
-      .filter(item => item.score > 0)
+      .sort((a, b) => b.score - a.score)
       .map(item => item.strategy);
   }
 };

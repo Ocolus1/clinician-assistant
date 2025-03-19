@@ -1,4 +1,12 @@
-export { AgentProvider, useAgent } from './AgentContext';
-export { AgentBubble } from './AgentBubble';
-export { AgentPanel } from './AgentPanel';
-export { AgentVisualization } from './AgentVisualization';
+import { AgentProvider, useAgent } from './AgentContext';
+import AgentBubble from './AgentBubble';
+import AgentPanel from './AgentPanel';
+import AgentVisualization from './AgentVisualization';
+
+export { 
+  AgentProvider, 
+  useAgent,
+  AgentBubble, 
+  AgentPanel, 
+  AgentVisualization 
+};

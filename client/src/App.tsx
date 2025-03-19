@@ -13,12 +13,11 @@ import ClientProfile from "@/pages/ClientProfile";
 import Sessions from "@/pages/Sessions";
 import Settings from "@/pages/Settings";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { 
-  AgentProvider, 
-  AgentBubble, 
-  AgentPanel, 
-  AgentVisualization 
-} from "@/components/agent";
+// Agent components
+import { AgentProvider } from '@/components/agent/AgentContext';
+import AgentBubble from '@/components/agent/AgentBubble';
+import AgentPanel from '@/components/agent/AgentPanel';
+import AgentVisualization from '@/components/agent/AgentVisualization';
 
 function Router() {
   const [location] = useLocation();

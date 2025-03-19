@@ -1,6 +1,6 @@
-import { ProgressAnalysis } from '@/lib/agent/types';
-import { Goal, Session, PerformanceAssessment, Subgoal } from '@shared/schema';
 import { apiRequest } from '@/lib/queryClient';
+import { Goal, Subgoal, Session, PerformanceAssessment, MilestoneAssessment } from '@shared/schema';
+import { ProgressAnalysis } from '@/lib/agent/types';
 
 /**
  * Service for client progress tracking and analysis
@@ -11,13 +11,11 @@ export const progressDataService = {
    */
   async getProgressAnalysis(clientId: number): Promise<ProgressAnalysis> {
     try {
-      // Get client data
-      const [sessions, goals] = await Promise.all([
-        this.fetchSessions(clientId),
-        this.fetchGoals(clientId)
-      ]);
+      // Fetch client sessions, goals, and subgoals
+      const sessions = await this.fetchSessions(clientId);
+      const goals = await this.fetchGoals(clientId);
       
-      // Get subgoals for each goal
+      // Get detailed data for goals with subgoals
       const goalsWithSubgoals = await Promise.all(
         (goals || []).map(async (goal: Goal) => {
           const subgoals = await this.fetchSubgoals(goal.id);
@@ -25,21 +23,17 @@ export const progressDataService = {
         })
       );
       
-      // Get session notes and assessments
+      // Get session notes with performance assessments
       const sessionNotes = await this.getSessionNotesForClient(clientId, sessions);
       
-      // Calculate attendance rate
+      // Calculate key metrics
       const attendanceRate = this.calculateAttendanceRate(sessions);
-      
-      // Count completed and cancelled sessions
-      const sessionsCompleted = sessions.filter(s => s.status === 'completed' || s.status === 'billed').length;
-      const sessionsCancelled = sessions.filter(s => s.status === 'cancelled').length;
-      
-      // Calculate progress for each goal
       const goalProgress = this.calculateGoalProgress(goalsWithSubgoals, sessionNotes);
-      
-      // Calculate overall progress
       const overallProgress = this.calculateOverallProgress(goalProgress);
+      
+      // Filter session status
+      const sessionsCompleted = sessions.filter(s => s.status === 'completed' || s.status === 'billed').length;
+      const sessionsCancelled = sessions.filter(s => s.status === 'cancelled' || s.status === 'no-show').length;
       
       return {
         overallProgress,
@@ -49,204 +43,205 @@ export const progressDataService = {
         goalProgress
       };
     } catch (error) {
-      console.error('Error analyzing progress data:', error);
-      throw new Error('Failed to analyze progress data');
+      console.error('Error in getProgressAnalysis:', error);
+      throw error;
     }
   },
-  
+
   /**
    * Fetch sessions for a client
    */
   async fetchSessions(clientId: number): Promise<Session[]> {
     try {
-      const response = await apiRequest('GET', `/api/clients/${clientId}/sessions`);
+      const response = await apiRequest('GET', `/api/sessions/client/${clientId}`);
       return response as unknown as Session[];
     } catch (error) {
       console.error('Error fetching sessions:', error);
       return [];
     }
   },
-  
+
   /**
    * Fetch goals for a client
    */
   async fetchGoals(clientId: number): Promise<Goal[]> {
     try {
-      const response = await apiRequest('GET', `/api/clients/${clientId}/goals`);
+      const response = await apiRequest('GET', `/api/goals/client/${clientId}`);
       return response as unknown as Goal[];
     } catch (error) {
       console.error('Error fetching goals:', error);
       return [];
     }
   },
-  
+
   /**
    * Fetch subgoals for a goal
    */
   async fetchSubgoals(goalId: number): Promise<Subgoal[]> {
     try {
-      const response = await apiRequest('GET', `/api/goals/${goalId}/subgoals`);
+      const response = await apiRequest('GET', `/api/subgoals/goal/${goalId}`);
       return response as unknown as Subgoal[];
     } catch (error) {
       console.error('Error fetching subgoals:', error);
       return [];
     }
   },
-  
+
   /**
    * Get session notes and assessments for a client
    */
   async getSessionNotesForClient(clientId: number, sessions: Session[] = []): Promise<any[]> {
-    try {
-      // For each session, get session notes and performance assessments
-      const sessionIds = sessions.map(s => s.id);
-      
-      // If no sessions, return empty array
-      if (sessionIds.length === 0) {
-        return [];
+    const sessionIds = sessions.map(s => s.id);
+    const sessionNotes = [];
+    
+    // For each session, fetch notes and assessments
+    for (const sessionId of sessionIds) {
+      try {
+        // Fetch session note
+        const noteResponse = await apiRequest('GET', `/api/session-notes/session/${sessionId}`);
+        if (!noteResponse) continue;
+        
+        const note = noteResponse as any;
+        
+        // Fetch performance assessments for this note
+        const assessmentsResponse = await apiRequest(
+          'GET', 
+          `/api/performance-assessments/session-note/${note.id}`
+        );
+        const performanceAssessments = assessmentsResponse as unknown as PerformanceAssessment[];
+        
+        // Fetch milestone assessments for each performance assessment
+        const enhancedAssessments = await Promise.all(
+          (performanceAssessments || []).map(async (assessment: PerformanceAssessment) => {
+            const milestonesResponse = await apiRequest(
+              'GET',
+              `/api/milestone-assessments/performance-assessment/${assessment.id}`
+            );
+            const milestones = milestonesResponse as unknown as MilestoneAssessment[];
+            return { ...assessment, milestones };
+          })
+        );
+        
+        // Add note with assessments to the result
+        sessionNotes.push({
+          ...note,
+          performanceAssessments: enhancedAssessments
+        });
+      } catch (error) {
+        console.error(`Error fetching data for session ${sessionId}:`, error);
       }
-      
-      // Fetch all session notes for these sessions
-      const sessionNotesPromises = sessionIds.map(async (sessionId) => {
-        try {
-          const sessionNote = await apiRequest('GET', `/api/sessions/${sessionId}/notes`) as unknown as any;
-          
-          if (!sessionNote) {
-            return null;
-          }
-          
-          // Fetch performance assessments for this session note
-          const performanceAssessments = await apiRequest('GET', `/api/session-notes/${sessionNote.id}/performance-assessments`) as unknown as PerformanceAssessment[];
-          
-          // For each performance assessment, get milestone assessments
-          const assessmentsWithMilestones = await Promise.all(
-            (performanceAssessments || []).map(async (assessment: PerformanceAssessment) => {
-              const milestoneAssessments = await apiRequest('GET', `/api/performance-assessments/${assessment.id}/milestone-assessments`) as unknown as any[];
-              return {
-                ...assessment,
-                milestoneAssessments
-              };
-            })
-          );
-          
-          return {
-            ...sessionNote,
-            performanceAssessments: assessmentsWithMilestones
-          };
-        } catch (error) {
-          console.error(`Error fetching notes for session ${sessionId}:`, error);
-          return null;
-        }
-      });
-      
-      const sessionNotes = await Promise.all(sessionNotesPromises);
-      return sessionNotes.filter(note => note !== null);
-    } catch (error) {
-      console.error('Error fetching session notes:', error);
-      return [];
     }
+    
+    return sessionNotes;
   },
-  
+
   /**
    * Calculate attendance rate from sessions
    */
   calculateAttendanceRate(sessions: Session[]): number {
-    if (sessions.length === 0) {
-      return 0;
-    }
+    if (sessions.length === 0) return 0;
     
-    const completedSessions = sessions.filter(s => 
+    // Count attended sessions (completed or billed)
+    const attendedSessions = sessions.filter(s => 
       s.status === 'completed' || s.status === 'billed'
     ).length;
     
-    const cancelledSessions = sessions.filter(s => 
-      s.status === 'cancelled'
+    // Count total scheduled sessions (excluding cancelled)
+    const scheduledSessions = sessions.filter(s => 
+      s.status !== 'cancelled'
     ).length;
     
-    const scheduledSessions = completedSessions + cancelledSessions;
-    
-    if (scheduledSessions === 0) {
-      return 0;
-    }
-    
-    return (completedSessions / scheduledSessions) * 100;
+    return scheduledSessions > 0 
+      ? (attendedSessions / scheduledSessions) * 100 
+      : 0;
   },
-  
+
   /**
    * Calculate progress for each goal based on assessments
    */
   calculateGoalProgress(goalsWithSubgoals: any[], sessionNotes: any[]): any[] {
-    // If no goals or session notes, return empty array
-    if (goalsWithSubgoals.length === 0 || sessionNotes.length === 0) {
-      return goalsWithSubgoals.map(goal => ({
-        goalId: goal.id,
-        goalTitle: goal.title,
-        progress: 0,
-        milestones: (goal.subgoals || []).map((subgoal: Subgoal) => ({
-          milestoneId: subgoal.id,
-          milestoneTitle: subgoal.title,
-          completed: false
-        }))
-      }));
-    }
-    
-    // For each goal, calculate progress based on the assessments
     return goalsWithSubgoals.map(goal => {
-      // Find subgoals for this goal
-      const subgoals = goal.subgoals || [];
+      // Find all performance assessments for this goal
+      const goalAssessments = sessionNotes
+        .flatMap(note => note.performanceAssessments || [])
+        .filter(assessment => assessment.goalId === goal.id);
       
-      // Calculate progress for each subgoal
-      const subgoalProgress = subgoals.map((subgoal: Subgoal) => {
-        // Find assessments for this subgoal across all session notes
-        const assessments = sessionNotes.flatMap(note => 
-          (note.performanceAssessments || []).flatMap((assessment: any) => 
-            (assessment.milestoneAssessments || []).filter((m: any) => 
-              m.subgoalId === subgoal.id
-            )
-          )
-        );
-        
-        // Calculate progress for this subgoal based on assessments
-        const lastAssessment = assessments.sort((a: any, b: any) => 
-          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-        )[0];
-        
-        // Completed if last rating is >= 4 out of 5, or if marked as completed
-        const completed = (lastAssessment?.rating >= 4) || subgoal.status === 'complete';
-        
+      // Calculate completed milestones
+      const subgoals = goal.subgoals || [];
+      const subgoalIds = subgoals.map((s: Subgoal) => s.id);
+      
+      // Get latest milestone assessments for each subgoal
+      const latestMilestoneAssessments = new Map();
+      
+      // Process all milestone assessments to find the latest for each subgoal
+      goalAssessments.forEach(assessment => {
+        (assessment.milestones || []).forEach((milestone: any) => {
+          if (subgoalIds.includes(milestone.milestoneId)) {
+            // Check if we have a more recent assessment for this milestone
+            const existing = latestMilestoneAssessments.get(milestone.milestoneId);
+            if (!existing || new Date(assessment.date) > new Date(existing.date)) {
+              latestMilestoneAssessments.set(milestone.milestoneId, {
+                ...milestone,
+                date: assessment.date
+              });
+            }
+          }
+        });
+      });
+      
+      // Count completed milestones (rating >= 4)
+      let completedCount = 0;
+      latestMilestoneAssessments.forEach(milestone => {
+        if (milestone.rating >= 4) {
+          completedCount++;
+        }
+      });
+      
+      // Calculate progress percentage
+      const progress = subgoals.length > 0 
+        ? (completedCount / subgoals.length) * 100 
+        : 0;
+      
+      // Prepare milestone data for the response
+      const milestones = subgoals.map((subgoal: Subgoal) => {
+        const assessment = latestMilestoneAssessments.get(subgoal.id);
         return {
           milestoneId: subgoal.id,
           milestoneTitle: subgoal.title,
-          completed,
-          lastRating: lastAssessment?.rating
+          completed: assessment ? assessment.rating >= 4 : false,
+          lastRating: assessment ? assessment.rating : undefined
         };
       });
-      
-      // Calculate overall progress for this goal (percentage of completed subgoals)
-      const completedSubgoals = subgoalProgress.filter((s: {completed: boolean}) => s.completed).length;
-      const progress = subgoals.length > 0 
-        ? (completedSubgoals / subgoals.length) * 100
-        : 0;
       
       return {
         goalId: goal.id,
         goalTitle: goal.title,
         progress,
-        milestones: subgoalProgress
+        milestones
       };
     });
   },
-  
+
   /**
    * Calculate overall progress across all goals
    */
   calculateOverallProgress(goalProgress: any[]): number {
-    if (goalProgress.length === 0) {
-      return 0;
-    }
+    if (goalProgress.length === 0) return 0;
     
-    // Calculate average progress across all goals
-    const totalProgress = goalProgress.reduce((sum, goal) => sum + goal.progress, 0);
-    return totalProgress / goalProgress.length;
+    // Calculate weighted average based on the number of milestones
+    let totalMilestones = 0;
+    let totalCompleted = 0;
+    
+    goalProgress.forEach(goal => {
+      const milestonesCount = goal.milestones.length;
+      const completedCount = goal.milestones.filter((m: any) => m.completed).length;
+      
+      totalMilestones += milestonesCount;
+      totalCompleted += completedCount;
+    });
+    
+    return totalMilestones > 0 
+      ? (totalCompleted / totalMilestones) * 100 
+      : 0;
   }
 };

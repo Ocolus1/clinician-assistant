@@ -1,4 +1,4 @@
-import { Client, BudgetItem, Goal, Subgoal, Strategy } from '@shared/schema';
+import { Client, BudgetItem, Goal, Session, Strategy, Subgoal } from '@shared/schema';
 
 /**
  * Message type for conversation history
@@ -114,3 +114,6 @@ export interface AgentContextType {
   toggleAgentVisibility: () => void;
   clearConversation: () => void;
 }
+
+// Re-export Client from schema for convenience
+export type { Client, Goal, Subgoal, Strategy, Session };
