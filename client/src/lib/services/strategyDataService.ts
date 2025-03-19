@@ -1,5 +1,5 @@
+import { Goal, Strategy, Subgoal } from '@shared/schema';
 import { apiRequest } from '@/lib/queryClient';
-import { Strategy, Goal, Subgoal, SessionNote, PerformanceAssessment } from '@shared/schema';
 
 /**
  * Service for therapy strategy recommendations
@@ -10,7 +10,8 @@ export const strategyDataService = {
    */
   async getAllStrategies(): Promise<Strategy[]> {
     try {
-      return await apiRequest('GET', '/api/strategies');
+      const response = await apiRequest('GET', '/api/strategies');
+      return response as unknown as Strategy[];
     } catch (error) {
       console.error('Error fetching strategies:', error);
       return [];
@@ -22,7 +23,8 @@ export const strategyDataService = {
    */
   async getStrategiesByCategory(category: string): Promise<Strategy[]> {
     try {
-      return await apiRequest('GET', `/api/strategies/category/${category}`);
+      const response = await apiRequest('GET', `/api/strategies/category/${category}`);
+      return response as unknown as Strategy[];
     } catch (error) {
       console.error(`Error fetching strategies for category ${category}:`, error);
       return [];
@@ -34,24 +36,23 @@ export const strategyDataService = {
    */
   async getRecommendedStrategiesForGoal(goalId: number): Promise<Strategy[]> {
     try {
-      // Get the goal to understand its focus
-      const goal = await apiRequest('GET', `/api/goals/${goalId}`);
-      if (!goal) return [];
+      // Get goal details
+      const goal = await apiRequest('GET', `/api/goals/${goalId}`) as unknown as Goal;
+      if (!goal) {
+        return [];
+      }
       
-      // Get subgoals to understand specific areas
-      const subgoals = await apiRequest('GET', `/api/subgoals/goal/${goalId}`);
+      // Get subgoals for this goal
+      const subgoals = await apiRequest('GET', `/api/goals/${goalId}/subgoals`) as unknown as Subgoal[];
       
-      // Get all strategies
+      // Get all available strategies
       const allStrategies = await this.getAllStrategies();
       
-      // Extract key terms from goal and subgoals for matching
+      // Extract key terms from goal and subgoals
       const keyTerms = this.extractKeyTerms(goal, subgoals);
       
-      // Score and rank strategies based on relevance to goal/subgoals
-      const scoredStrategies = this.scoreStrategiesByRelevance(allStrategies, keyTerms);
-      
-      // Return top strategies (up to 5)
-      return scoredStrategies.slice(0, 5);
+      // Score strategies by relevance
+      return this.scoreStrategiesByRelevance(allStrategies, keyTerms);
     } catch (error) {
       console.error(`Error getting recommended strategies for goal ${goalId}:`, error);
       return [];
@@ -64,10 +65,13 @@ export const strategyDataService = {
   async getRecommendedStrategiesForClient(clientId: number): Promise<Record<string, Strategy[]>> {
     try {
       // Get client's goals
-      const goals = await apiRequest('GET', `/api/goals/client/${clientId}`);
-      if (!goals || goals.length === 0) return {};
+      const goals = await apiRequest('GET', `/api/clients/${clientId}/goals`) as unknown as Goal[];
       
-      // Get recommendations for each goal
+      if (!goals || goals.length === 0) {
+        return {};
+      }
+      
+      // For each goal, get recommended strategies
       const recommendations: Record<string, Strategy[]> = {};
       
       for (const goal of goals) {
@@ -79,7 +83,7 @@ export const strategyDataService = {
       
       return recommendations;
     } catch (error) {
-      console.error(`Error getting recommended strategies for client ${clientId}:`, error);
+      console.error(`Error getting strategy recommendations for client ${clientId}:`, error);
       return {};
     }
   },
@@ -88,61 +92,75 @@ export const strategyDataService = {
    * Extract key terms from goal and subgoals for strategy matching
    */
   extractKeyTerms(goal: Goal, subgoals: Subgoal[] = []): string[] {
-    const terms: string[] = [];
+    const terms: Set<string> = new Set();
     
-    // Extract terms from goal title and description
+    // Process goal title and description
     if (goal.title) {
-      terms.push(...goal.title.toLowerCase().split(/\s+/));
+      goal.title.toLowerCase().split(/\s+/).forEach(term => {
+        if (term.length > 3) {
+          terms.add(term);
+        }
+      });
     }
     
     if (goal.description) {
-      terms.push(...goal.description.toLowerCase().split(/\s+/));
+      goal.description.toLowerCase().split(/\s+/).forEach(term => {
+        if (term.length > 3) {
+          terms.add(term);
+        }
+      });
     }
     
-    // Extract terms from subgoals
+    // Process subgoal titles and descriptions
     subgoals.forEach(subgoal => {
       if (subgoal.title) {
-        terms.push(...subgoal.title.toLowerCase().split(/\s+/));
+        subgoal.title.toLowerCase().split(/\s+/).forEach(term => {
+          if (term.length > 3) {
+            terms.add(term);
+          }
+        });
       }
       
       if (subgoal.description) {
-        terms.push(...subgoal.description.toLowerCase().split(/\s+/));
+        subgoal.description.toLowerCase().split(/\s+/).forEach(term => {
+          if (term.length > 3) {
+            terms.add(term);
+          }
+        });
       }
     });
     
-    // Filter out common words and short terms
-    return terms
-      .filter(term => term.length > 3)
-      .filter(term => !['this', 'that', 'with', 'from', 'have', 'will'].includes(term));
+    return Array.from(terms);
   },
   
   /**
    * Score strategies by relevance to extracted key terms
    */
   scoreStrategiesByRelevance(strategies: Strategy[], keyTerms: string[]): Strategy[] {
-    // No scoring needed if no key terms
-    if (keyTerms.length === 0) return strategies;
+    if (keyTerms.length === 0 || strategies.length === 0) {
+      return strategies;
+    }
     
-    // Score each strategy based on term matches
+    // Score each strategy based on how many key terms it contains
     const scoredStrategies = strategies.map(strategy => {
-      // Combine strategy name and description for matching
-      const strategyText = `${strategy.name} ${strategy.description}`.toLowerCase();
+      let score = 0;
+      const strategyText = `${strategy.name} ${strategy.description} ${strategy.category}`.toLowerCase();
       
-      // Count matches
-      const matchCount = keyTerms.reduce((count, term) => {
-        return strategyText.includes(term) ? count + 1 : count;
-      }, 0);
+      keyTerms.forEach(term => {
+        if (strategyText.includes(term)) {
+          score += 1;
+        }
+      });
       
-      return {
-        strategy,
-        score: matchCount
-      };
+      return { strategy, score };
     });
     
     // Sort by score (descending)
     scoredStrategies.sort((a, b) => b.score - a.score);
     
-    // Return strategies in ranked order
-    return scoredStrategies.map(item => item.strategy);
+    // Return top strategies (those with at least one matching term)
+    return scoredStrategies
+      .filter(item => item.score > 0)
+      .map(item => item.strategy);
   }
 };

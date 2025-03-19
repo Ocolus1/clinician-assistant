@@ -60,7 +60,7 @@ export const progressDataService = {
   async fetchSessions(clientId: number): Promise<Session[]> {
     try {
       const response = await apiRequest('GET', `/api/clients/${clientId}/sessions`);
-      return response as Session[];
+      return response as unknown as Session[];
     } catch (error) {
       console.error('Error fetching sessions:', error);
       return [];
@@ -73,7 +73,7 @@ export const progressDataService = {
   async fetchGoals(clientId: number): Promise<Goal[]> {
     try {
       const response = await apiRequest('GET', `/api/clients/${clientId}/goals`);
-      return response as Goal[];
+      return response as unknown as Goal[];
     } catch (error) {
       console.error('Error fetching goals:', error);
       return [];
@@ -86,7 +86,7 @@ export const progressDataService = {
   async fetchSubgoals(goalId: number): Promise<Subgoal[]> {
     try {
       const response = await apiRequest('GET', `/api/goals/${goalId}/subgoals`);
-      return response as Subgoal[];
+      return response as unknown as Subgoal[];
     } catch (error) {
       console.error('Error fetching subgoals:', error);
       return [];
@@ -109,19 +109,19 @@ export const progressDataService = {
       // Fetch all session notes for these sessions
       const sessionNotesPromises = sessionIds.map(async (sessionId) => {
         try {
-          const sessionNote = await apiRequest('GET', `/api/sessions/${sessionId}/notes`);
+          const sessionNote = await apiRequest('GET', `/api/sessions/${sessionId}/notes`) as unknown as any;
           
           if (!sessionNote) {
             return null;
           }
           
           // Fetch performance assessments for this session note
-          const performanceAssessments = await apiRequest('GET', `/api/session-notes/${sessionNote.id}/performance-assessments`);
+          const performanceAssessments = await apiRequest('GET', `/api/session-notes/${sessionNote.id}/performance-assessments`) as unknown as PerformanceAssessment[];
           
           // For each performance assessment, get milestone assessments
           const assessmentsWithMilestones = await Promise.all(
             (performanceAssessments || []).map(async (assessment: PerformanceAssessment) => {
-              const milestoneAssessments = await apiRequest('GET', `/api/performance-assessments/${assessment.id}/milestone-assessments`);
+              const milestoneAssessments = await apiRequest('GET', `/api/performance-assessments/${assessment.id}/milestone-assessments`) as unknown as any[];
               return {
                 ...assessment,
                 milestoneAssessments
@@ -223,7 +223,7 @@ export const progressDataService = {
       });
       
       // Calculate overall progress for this goal (percentage of completed subgoals)
-      const completedSubgoals = subgoalProgress.filter(s => s.completed).length;
+      const completedSubgoals = subgoalProgress.filter((s: {completed: boolean}) => s.completed).length;
       const progress = subgoals.length > 0 
         ? (completedSubgoals / subgoals.length) * 100
         : 0;

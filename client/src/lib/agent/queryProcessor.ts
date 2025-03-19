@@ -1,4 +1,4 @@
-import { QueryContext, QueryIntent, AgentResponse } from './types';
+import { AgentResponse, QueryContext, QueryIntent } from './types';
 import { parseQueryIntent } from './queryParser';
 import { budgetDataService } from '@/lib/services/budgetDataService';
 import { progressDataService } from '@/lib/services/progressDataService';
@@ -9,9 +9,9 @@ import { strategyDataService } from '@/lib/services/strategyDataService';
  */
 export async function processQuery(query: string, context: QueryContext): Promise<AgentResponse> {
   try {
-    // Parse the intent from the query
+    // Parse the query to determine intent
     const intent = parseQueryIntent(query, context);
-    console.log('Query intent:', intent);
+    console.log('Detected query intent:', intent);
     
     // Process the query based on the detected intent
     switch (intent.type) {
@@ -36,12 +36,11 @@ export async function processQuery(query: string, context: QueryContext): Promis
  * Format a date in a human-readable format
  */
 function formatDate(date: Date): string {
-  const options: Intl.DateTimeFormatOptions = {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
+  const options: Intl.DateTimeFormatOptions = { 
+    year: 'numeric', 
+    month: 'long', 
+    day: 'numeric' 
   };
-  
   return date.toLocaleDateString('en-US', options);
 }
 
@@ -49,50 +48,58 @@ function formatDate(date: Date): string {
  * Process budget-related queries
  */
 async function processBudgetQuery(intent: QueryIntent, context: QueryContext): Promise<AgentResponse> {
-  if (intent.type !== 'BUDGET_ANALYSIS' || !intent.clientId) {
+  if (intent.type !== 'BUDGET_ANALYSIS') {
+    throw new Error('Invalid intent type for budget query');
+  }
+  
+  // Validate client ID
+  if (!intent.clientId) {
     return {
-      content: "I need client information to analyze the budget. Please select a client first.",
-      confidence: 0.7,
-      visualizationHint: 'NONE',
+      content: 'To analyze budget information, I need to know which client you\'re referring to. Please select a client first.',
+      confidence: 0.9,
+      visualizationHint: 'NONE'
     };
   }
   
-  try {
-    // Get budget analysis data
-    const analysis = await budgetDataService.getBudgetAnalysis(intent.clientId);
-    
-    // Build response based on specific query type
-    let response: string;
-    let confidence = 0.9;
-    
-    if (intent.specificQuery === 'REMAINING') {
-      response = `The client has $${analysis.remaining.toLocaleString()} remaining out of a total budget of $${analysis.totalBudget.toLocaleString()}. This represents about ${Math.round(100 - analysis.utilizationRate)}% of their total budget.`;
-    } else if (intent.specificQuery === 'FORECAST') {
-      response = `Based on current spending patterns, the budget is projected to be depleted by ${formatDate(analysis.forecastedDepletion)}. This is based on an average utilization rate of ${Math.round(analysis.utilizationRate)}%.`;
-    } else if (intent.specificQuery === 'UTILIZATION') {
-      // Get most utilized category
-      const mostUtilizedCategory = getMostUtilizedCategory(analysis.spendingByCategory);
+  // Get budget analysis
+  const analysis = await budgetDataService.getBudgetAnalysis(intent.clientId);
+  
+  // Generate response based on specific query type
+  let content = '';
+  let visualizationHint: 'BUBBLE_CHART' | 'NONE' = 'BUBBLE_CHART';
+  
+  switch (intent.specificQuery) {
+    case 'REMAINING':
+      content = `The client has $${analysis.remaining.toFixed(2)} remaining out of a total budget of $${analysis.totalBudget.toFixed(2)}. This represents ${(100 - analysis.utilizationRate).toFixed(1)}% of the total budget still available for use.`;
+      break;
+    case 'FORECAST':
+      content = `Based on current spending patterns, the budget is projected to be depleted by ${formatDate(analysis.forecastedDepletion)}. The client has been using funds at a rate that suggests careful planning for the remaining period.`;
+      break;
+    case 'UTILIZATION':
+      content = `The client has utilized ${analysis.utilizationRate.toFixed(1)}% of their total budget ($${analysis.totalSpent.toFixed(2)} out of $${analysis.totalBudget.toFixed(2)}). `;
       
-      response = `The current utilization rate is ${Math.round(analysis.utilizationRate)}% of the total budget. The most utilized category is ${mostUtilizedCategory}, accounting for a significant portion of the spending.`;
-    } else {
-      // General budget query
-      response = `The client has a total budget of $${analysis.totalBudget.toLocaleString()}, with $${analysis.totalSpent.toLocaleString()} spent so far (${Math.round(analysis.utilizationRate)}% utilization). $${analysis.remaining.toLocaleString()} remains, and at the current rate, funds are projected to last until ${formatDate(analysis.forecastedDepletion)}.`;
-    }
-    
-    return {
-      content: response,
-      confidence,
-      data: analysis,
-      visualizationHint: 'BUBBLE_CHART',
-    };
-  } catch (error) {
-    console.error('Error processing budget query:', error);
-    return {
-      content: `I encountered an error analyzing the budget information: ${error}`,
-      confidence: 0.4,
-      visualizationHint: 'NONE',
-    };
+      if (analysis.spendingByCategory) {
+        const topCategory = getMostUtilizedCategory(analysis.spendingByCategory);
+        if (topCategory) {
+          content += `The most utilized category is "${topCategory}", which represents a significant portion of the spending.`;
+        }
+      }
+      break;
+    default:
+      // General budget overview
+      content = `Budget overview for the client:\n`;
+      content += `• Total budget: $${analysis.totalBudget.toFixed(2)}\n`;
+      content += `• Spent so far: $${analysis.totalSpent.toFixed(2)} (${analysis.utilizationRate.toFixed(1)}%)\n`;
+      content += `• Remaining funds: $${analysis.remaining.toFixed(2)}\n`;
+      content += `• Projected depletion date: ${formatDate(analysis.forecastedDepletion)}`;
   }
+  
+  return {
+    content,
+    confidence: 0.95,
+    data: analysis,
+    visualizationHint
+  };
 }
 
 /**
@@ -100,175 +107,207 @@ async function processBudgetQuery(intent: QueryIntent, context: QueryContext): P
  */
 function getMostUtilizedCategory(spendingByCategory?: Record<string, number>): string {
   if (!spendingByCategory || Object.keys(spendingByCategory).length === 0) {
-    return 'Unknown';
+    return '';
   }
   
   let maxCategory = '';
-  let maxSpending = 0;
+  let maxAmount = 0;
   
   for (const [category, amount] of Object.entries(spendingByCategory)) {
-    if (amount > maxSpending) {
-      maxSpending = amount;
+    if (amount > maxAmount) {
+      maxAmount = amount;
       maxCategory = category;
     }
   }
   
-  return maxCategory || 'Unknown';
+  return maxCategory;
 }
 
 /**
  * Process progress-related queries
  */
 async function processProgressQuery(intent: QueryIntent, context: QueryContext): Promise<AgentResponse> {
-  if (intent.type !== 'PROGRESS_TRACKING' || !intent.clientId) {
+  if (intent.type !== 'PROGRESS_TRACKING') {
+    throw new Error('Invalid intent type for progress query');
+  }
+  
+  // Validate client ID
+  if (!intent.clientId) {
     return {
-      content: "I need client information to analyze progress. Please select a client first.",
-      confidence: 0.7,
-      visualizationHint: 'NONE',
+      content: 'To analyze progress information, I need to know which client you\'re referring to. Please select a client first.',
+      confidence: 0.9,
+      visualizationHint: 'NONE'
     };
   }
   
-  try {
-    // Get progress analysis data
-    const analysis = await progressDataService.getProgressAnalysis(intent.clientId);
-    
-    // Build response based on specific query type
-    let response: string;
-    let confidence = 0.85;
-    
-    if (intent.specificQuery === 'OVERALL') {
-      const progressAssessment = getProgressQualitativeAssessment(analysis.overallProgress);
-      
-      response = `The client is showing ${progressAssessment} with an overall progress rate of ${Math.round(analysis.overallProgress)}% across all goals. They have completed ${analysis.sessionsCompleted} sessions so far.`;
-    } else if (intent.specificQuery === 'ATTENDANCE') {
-      response = `The client has an attendance rate of ${Math.round(analysis.attendanceRate)}%, having completed ${analysis.sessionsCompleted} sessions and cancelled ${analysis.sessionsCancelled} sessions.`;
-    } else if (intent.specificQuery === 'GOAL_SPECIFIC' && intent.goalId) {
-      // Find specific goal progress
-      const goalProgress = analysis.goalProgress.find(g => g.goalId === intent.goalId);
-      
-      if (goalProgress) {
-        const progressAssessment = getProgressQualitativeAssessment(goalProgress.progress);
-        
-        response = `For the goal "${goalProgress.goalTitle}", the client is showing ${progressAssessment} with a progress rate of ${Math.round(goalProgress.progress)}%. They have completed ${goalProgress.milestones.filter(m => m.completed).length} out of ${goalProgress.milestones.length} milestones.`;
+  // Get progress analysis
+  const analysis = await progressDataService.getProgressAnalysis(intent.clientId);
+  
+  // Generate response based on specific query type
+  let content = '';
+  let visualizationHint: 'PROGRESS_CHART' | 'NONE' = 'PROGRESS_CHART';
+  
+  switch (intent.specificQuery) {
+    case 'OVERALL':
+      content = `Overall progress for the client is ${analysis.overallProgress.toFixed(1)}%. `;
+      content += getProgressQualitativeAssessment(analysis.overallProgress);
+      break;
+    case 'GOAL_SPECIFIC':
+      // If specific goal ID is provided, focus on that goal
+      if (intent.goalId) {
+        const goalProgress = analysis.goalProgress.find(g => g.goalId === intent.goalId);
+        if (goalProgress) {
+          content = `Progress for goal "${goalProgress.goalTitle}" is ${goalProgress.progress.toFixed(1)}%. `;
+          content += `This goal has ${goalProgress.milestones.filter(m => m.completed).length} completed milestones out of ${goalProgress.milestones.length} total milestones.`;
+        } else {
+          content = 'I couldn\'t find information about the specific goal you\'re asking about.';
+          visualizationHint = 'NONE';
+        }
       } else {
-        response = `I couldn't find specific progress information for the requested goal.`;
-        confidence = 0.6;
+        // Summarize all goals
+        content = 'Here\'s a summary of progress for each goal:\n';
+        analysis.goalProgress.forEach(goal => {
+          content += `• ${goal.goalTitle}: ${goal.progress.toFixed(1)}% complete (${goal.milestones.filter(m => m.completed).length}/${goal.milestones.length} milestones)\n`;
+        });
       }
-    } else {
+      break;
+    case 'ATTENDANCE':
+      content = `The client's attendance rate is ${analysis.attendanceRate.toFixed(1)}%. `;
+      content += `They have completed ${analysis.sessionsCompleted} sessions and cancelled ${analysis.sessionsCancelled} sessions.`;
+      visualizationHint = 'NONE';
+      break;
+    default:
       // General progress overview
-      const overallAssessment = getOverallProgressAssessment(
-        analysis.overallProgress,
-        analysis.attendanceRate
-      );
-      
-      response = `${overallAssessment} The overall progress rate is ${Math.round(analysis.overallProgress)}% across ${analysis.goalProgress.length} goals, with an attendance rate of ${Math.round(analysis.attendanceRate)}%.`;
-    }
-    
-    return {
-      content: response,
-      confidence,
-      data: analysis,
-      visualizationHint: 'PROGRESS_CHART',
-    };
-  } catch (error) {
-    console.error('Error processing progress query:', error);
-    return {
-      content: `I encountered an error analyzing the progress information: ${error}`,
-      confidence: 0.4,
-      visualizationHint: 'NONE',
-    };
+      content = getOverallProgressAssessment(analysis.overallProgress, analysis.attendanceRate);
+      content += `\n\nProgress details:\n`;
+      content += `• Overall progress: ${analysis.overallProgress.toFixed(1)}%\n`;
+      content += `• Attendance rate: ${analysis.attendanceRate.toFixed(1)}%\n`;
+      content += `• Sessions completed: ${analysis.sessionsCompleted}\n`;
+      content += `• Goals in progress: ${analysis.goalProgress.length}`;
   }
+  
+  return {
+    content,
+    confidence: 0.9,
+    data: analysis,
+    visualizationHint
+  };
 }
 
 /**
  * Get a qualitative assessment of progress
  */
 function getProgressQualitativeAssessment(progress: number): string {
-  if (progress >= 80) return 'excellent progress';
-  if (progress >= 60) return 'good progress';
-  if (progress >= 40) return 'moderate progress';
-  if (progress >= 20) return 'some progress';
-  return 'limited progress';
+  if (progress >= 90) {
+    return 'This represents excellent progress, with most goals and milestones achieved.';
+  } else if (progress >= 75) {
+    return 'This shows very good progress toward achieving therapy goals.';
+  } else if (progress >= 50) {
+    return 'This indicates moderate progress, with good advancement toward goals.';
+  } else if (progress >= 25) {
+    return 'This shows initial progress, with opportunities for continued improvement.';
+  } else {
+    return 'This indicates early-stage progress with plenty of room for improvement.';
+  }
 }
 
 /**
  * Get an assessment of overall progress and attendance
  */
 function getOverallProgressAssessment(progress: number, attendance: number): string {
-  if (progress >= 70 && attendance >= 80) {
-    return 'The client is making excellent progress and has a very consistent attendance record.';
-  } else if (progress >= 50 && attendance >= 70) {
-    return 'The client is making good progress with a generally consistent attendance.';
-  } else if (progress >= 30 && attendance >= 50) {
-    return 'The client is making moderate progress with somewhat inconsistent attendance.';
-  } else if (attendance < 50) {
-    return "The client's progress is affected by inconsistent attendance, which may be worth discussing.";
+  let assessment = '';
+  
+  // Progress assessment
+  if (progress >= 75) {
+    assessment += 'The client is making excellent progress toward their therapy goals. ';
+  } else if (progress >= 50) {
+    assessment += 'The client is making good progress toward their therapy goals. ';
+  } else if (progress >= 25) {
+    assessment += 'The client is making moderate progress toward their therapy goals. ';
   } else {
-    return 'The client is showing some progress, though there may be opportunities for improvement.';
+    assessment += 'The client is in the early stages of progress toward their therapy goals. ';
   }
+  
+  // Attendance correlation
+  if (attendance >= 90) {
+    assessment += 'Their excellent attendance is supporting consistent progress.';
+  } else if (attendance >= 75) {
+    assessment += 'Their good attendance is helping maintain steady progress.';
+  } else if (attendance >= 50) {
+    assessment += 'Improved attendance could help accelerate their progress.';
+  } else {
+    assessment += 'Low attendance may be affecting their ability to make progress.';
+  }
+  
+  return assessment;
 }
 
 /**
  * Process strategy recommendation queries
  */
 async function processStrategyQuery(intent: QueryIntent, context: QueryContext): Promise<AgentResponse> {
-  if (intent.type !== 'STRATEGY_RECOMMENDATION' || !intent.clientId) {
+  if (intent.type !== 'STRATEGY_RECOMMENDATION') {
+    throw new Error('Invalid intent type for strategy query');
+  }
+  
+  // Validate client ID
+  if (!intent.clientId) {
     return {
-      content: "I need client information to recommend strategies. Please select a client first.",
-      confidence: 0.7,
-      visualizationHint: 'NONE',
+      content: 'To recommend strategies, I need to know which client you\'re referring to. Please select a client first.',
+      confidence: 0.85,
+      visualizationHint: 'NONE'
     };
   }
   
-  try {
-    let response: string;
-    let confidence = 0.8;
+  let content = '';
+  let data = null;
+  
+  // Handle specific query types
+  if (intent.specificQuery === 'GOAL_SPECIFIC' && intent.goalId) {
+    // Get strategies for a specific goal
+    const strategies = await strategyDataService.getRecommendedStrategiesForGoal(intent.goalId);
     
-    if (intent.specificQuery === 'GOAL_SPECIFIC' && intent.goalId) {
-      // Get strategies for specific goal
-      const strategies = await strategyDataService.getRecommendedStrategiesForGoal(intent.goalId);
+    if (strategies.length > 0) {
+      content = `Here are recommended strategies for this specific goal:\n\n`;
+      strategies.slice(0, 3).forEach((strategy, index) => {
+        content += `${index + 1}. **${strategy.name}** - ${strategy.description || 'No description available'}\n`;
+      });
       
-      if (strategies.length > 0) {
-        const topStrategies = strategies.slice(0, 3);
-        
-        response = `For this specific goal, I recommend the following strategies:\n\n${
-          topStrategies.map((s, i) => `${i+1}. **${s.name}**: ${s.description}`).join('\n\n')
-        }`;
-      } else {
-        response = `I don't have specific strategy recommendations for this goal. Consider reviewing the general therapy approaches for this client.`;
-        confidence = 0.6;
+      if (strategies.length > 3) {
+        content += `\nThere are ${strategies.length - 3} more strategies available.`;
       }
+      
+      data = strategies;
     } else {
-      // Get general strategies for client
-      const strategiesByCategory = await strategyDataService.getRecommendedStrategiesForClient(intent.clientId);
-      
-      if (Object.keys(strategiesByCategory).length > 0) {
-        const categories = Object.keys(strategiesByCategory);
-        const primaryCategory = categories[0];
-        const topStrategies = strategiesByCategory[primaryCategory].slice(0, 2);
-        
-        response = `Based on the client's goals, I recommend focusing on ${primaryCategory} strategies such as:\n\n${
-          topStrategies.map((s, i) => `${i+1}. **${s.name}**: ${s.description}`).join('\n\n')
-        }`;
-      } else {
-        response = `I don't have enough information to make specific strategy recommendations for this client. Consider setting more detailed goals to receive better recommendations.`;
-        confidence = 0.5;
-      }
+      content = `I don't have specific strategy recommendations for this goal yet. Consider therapist expertise and clinical judgment for appropriate approaches.`;
     }
+  } else {
+    // Get strategies for all client goals
+    const recommendations = await strategyDataService.getRecommendedStrategiesForClient(intent.clientId);
     
-    return {
-      content: response,
-      confidence,
-      visualizationHint: 'NONE',
-    };
-  } catch (error) {
-    console.error('Error processing strategy query:', error);
-    return {
-      content: `I encountered an error finding strategy recommendations: ${error}`,
-      confidence: 0.4,
-      visualizationHint: 'NONE',
-    };
+    if (Object.keys(recommendations).length > 0) {
+      content = `Here are recommended strategies based on the client's goals:\n\n`;
+      
+      for (const [goalTitle, strategies] of Object.entries(recommendations)) {
+        content += `For "${goalTitle}":\n`;
+        strategies.slice(0, 2).forEach((strategy, index) => {
+          content += `${index + 1}. **${strategy.name}** - ${strategy.category}\n`;
+        });
+        content += '\n';
+      }
+      
+      data = recommendations;
+    } else {
+      content = `I don't have specific strategy recommendations for this client yet. Consider reviewing their goals and progress to develop appropriate therapy approaches.`;
+    }
   }
+  
+  return {
+    content,
+    confidence: 0.85,
+    data,
+    visualizationHint: 'NONE'
+  };
 }
 
 /**
@@ -276,34 +315,45 @@ async function processStrategyQuery(intent: QueryIntent, context: QueryContext):
  */
 function processGeneralQuery(intent: QueryIntent, context: QueryContext, originalQuery: string): AgentResponse {
   if (intent.type !== 'GENERAL_QUESTION') {
-    return defaultResponse();
+    throw new Error('Invalid intent type for general query');
   }
   
-  let response = '';
+  let content = '';
   let confidence = 0.7;
   
-  if (intent.topic === 'HELP') {
-    response = `I can help you with several aspects of client management:
-    
-1. **Budget Analysis** - Ask about remaining funds, spending forecasts, or budget utilization
-2. **Progress Tracking** - Inquire about overall progress, attendance, or specific goal achievements
-3. **Strategy Recommendations** - Get suggested therapy approaches based on client goals
-
-Try asking questions like "What's the remaining budget?", "How is the client progressing?", or "What strategies do you recommend?"`;
-    confidence = 0.95;
-  } else if (intent.topic === 'GREETING') {
-    response = `Hello! I'm your speech therapy practice assistant. I can help with budget analysis, progress tracking, and strategy recommendations for your clients. What would you like to know about the current client?`;
-    confidence = 0.95;
+  if (intent.topic) {
+    switch (intent.topic) {
+      case 'billing':
+        content = 'I can help you understand billing aspects such as invoices, claims, and payments for therapy services. For specific client billing, please navigate to their profile and check the Budget tab.';
+        break;
+      case 'scheduling':
+        content = 'For scheduling information, you can check the client\'s session history or create new appointments through the Sessions interface.';
+        break;
+      case 'reporting':
+        content = 'You can generate various reports from the client data, including progress reports, session summaries, and budget utilization reports. These can be accessed through the reporting interface.';
+        break;
+      case 'client':
+        content = 'You can view and manage client information through the client list or individual client profiles. Each profile contains personal information, goals, budget details, and session history.';
+        break;
+      case 'therapy':
+        content = 'The system helps you track therapy sessions, goals, and progress. You can record session notes, assessments, and track milestone achievements for each client.';
+        break;
+      case 'communication':
+        content = 'You can manage communication with clients and their families through the system. This includes contact information, preferred communication methods, and session reminders.';
+        break;
+      default:
+        content = `I'll try to help you with that question. Can you provide more details about what specific information you're looking for?`;
+        confidence = 0.6;
+    }
   } else {
-    // Unknown general question
-    response = `I'm not sure I understand your question. I can help with budget analysis, progress tracking, and therapy strategy recommendations. Try asking about one of these areas, or type "help" for more information.`;
-    confidence = 0.6;
+    content = `I'm not sure I understand what you're asking about. I can help with budget analysis, progress tracking, therapy strategies, and general information about clients, billing, or scheduling.`;
+    confidence = 0.5;
   }
   
   return {
-    content: response,
+    content,
     confidence,
-    visualizationHint: 'NONE',
+    visualizationHint: 'NONE'
   };
 }
 
@@ -312,9 +362,9 @@ Try asking questions like "What's the remaining budget?", "How is the client pro
  */
 function defaultResponse(): AgentResponse {
   return {
-    content: "I'm sorry, I'm not sure how to help with that. I can provide information about client budgets, progress tracking, and therapy strategies. Try asking a question about one of these topics.",
+    content: 'I can help you understand client budgets, track progress, or recommend therapy strategies. What would you like to know?',
     confidence: 0.5,
-    visualizationHint: 'NONE',
+    visualizationHint: 'NONE'
   };
 }
 
@@ -323,8 +373,8 @@ function defaultResponse(): AgentResponse {
  */
 function errorResponse(error: any): AgentResponse {
   return {
-    content: `I encountered an error and couldn't process your request. Please try again or ask a different question. (Error: ${error})`,
+    content: `I'm sorry, I encountered an error while processing your query. ${error.message || 'Please try again with a different question.'}`,
     confidence: 0.3,
-    visualizationHint: 'NONE',
+    visualizationHint: 'NONE'
   };
 }

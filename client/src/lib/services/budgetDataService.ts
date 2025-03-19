@@ -59,7 +59,7 @@ export const budgetDataService = {
   async fetchBudgetSettings(clientId: number): Promise<BudgetSettings | null> {
     try {
       const response = await apiRequest('GET', `/api/clients/${clientId}/budget-settings`);
-      return response as BudgetSettings;
+      return response as unknown as BudgetSettings;
     } catch (error) {
       console.error('Error fetching budget settings:', error);
       return null;
@@ -72,7 +72,7 @@ export const budgetDataService = {
   async fetchBudgetItems(clientId: number): Promise<BudgetItem[]> {
     try {
       const response = await apiRequest('GET', `/api/clients/${clientId}/budget-items`);
-      return response as BudgetItem[];
+      return response as unknown as BudgetItem[];
     } catch (error) {
       console.error('Error fetching budget items:', error);
       return [];
@@ -85,7 +85,7 @@ export const budgetDataService = {
   async fetchSessions(clientId: number): Promise<Session[]> {
     try {
       const response = await apiRequest('GET', `/api/clients/${clientId}/sessions`);
-      return response as Session[];
+      return response as unknown as Session[];
     } catch (error) {
       console.error('Error fetching sessions:', error);
       return [];
@@ -167,7 +167,7 @@ export const budgetDataService = {
     }
     
     // Find date range
-    const sessionDates = completedSessions.map(s => new Date(s.date).getTime());
+    const sessionDates = completedSessions.map(s => new Date(s.sessionDate).getTime());
     const oldestDate = new Date(Math.min(...sessionDates));
     const newestDate = new Date(Math.max(...sessionDates));
     
