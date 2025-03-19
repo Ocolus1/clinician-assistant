@@ -327,7 +327,8 @@ async function processStrategyQuery(intent: QueryIntent, context: QueryContext):
       if (strategies.length > 0) {
         response = `Here are some recommended strategies that may be helpful:`;
         strategies.slice(0, 3).forEach((strategy, index) => {
-          response += `\n\n${index + 1}. **${strategy.name}**: ${strategy.description}`;
+          const description = strategy.description || '';
+          response += `\n\n${index + 1}. **${strategy.name}**: ${description}`;
         });
         
         if (strategies.length > 3) {
