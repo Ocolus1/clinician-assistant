@@ -868,7 +868,7 @@ async function processDatabaseStatisticsQuery(intent: QueryIntent, context: Quer
       content: response,
       confidence,
       data: clientStats,
-      visualizationHint: 'PIE_CHART', // Use PIE_CHART for demographic data
+      visualizationHint: 'DATABASE_STATS', // Use specialized database stats visualization
       suggestedFollowUps
     };
   } catch (error) {
