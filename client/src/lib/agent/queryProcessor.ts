@@ -11,6 +11,16 @@ import { parseQueryIntent } from './queryParser';
 import { budgetDataService } from '@/lib/services/budgetDataService';
 import { progressDataService } from '@/lib/services/progressDataService';
 import { strategyDataService } from '@/lib/services/strategyDataService';
+import { knowledgeService } from '@/lib/services/knowledgeService';
+import { 
+  selectTemplate, 
+  renderTemplate, 
+  budgetTemplates, 
+  progressTemplates, 
+  strategyTemplates, 
+  generalTemplates 
+} from './responseTemplates';
+import { resolveReferences, updateConversationMemory } from './conversationManager';
 
 /**
  * Extract entities from the user query for better context understanding
