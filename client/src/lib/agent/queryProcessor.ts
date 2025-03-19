@@ -111,12 +111,22 @@ async function processBudgetQuery(intent: QueryIntent, context: QueryContext): P
   }
   
   try {
-    // Get budget analysis for the client
+    // Get enhanced budget analysis with forecasting and pattern detection
     const analysis = await budgetDataService.getBudgetAnalysis(intent.clientId);
     
     // Generate response based on the specific query
     let response: string;
-    let confidence = 0.9;
+    let confidence = 0.95; // Increased confidence with enhanced analysis
+    
+    // Get trend information for more accurate responses
+    const trendInfo = analysis.spendingPatterns?.trend || 'stable';
+    const trendDescription = 
+      trendInfo === 'increasing' ? 'accelerating' :
+      trendInfo === 'decreasing' ? 'decelerating' :
+      trendInfo === 'fluctuating' ? 'fluctuating' : 'stable';
+      
+    // Generate insights from spending patterns
+    const patternInsights = generatePatternInsights(analysis);
     
     switch (intent.specificQuery) {
       case 'REMAINING':
@@ -124,26 +134,61 @@ async function processBudgetQuery(intent: QueryIntent, context: QueryContext): P
         if (analysis.utilizationRate > 0) {
           response += ` That's about ${(100 - analysis.utilizationRate).toFixed(1)}% of the budget remaining.`;
         }
+        
+        // Add pattern insights if available
+        if (patternInsights) {
+          response += ` ${patternInsights}`;
+        }
         break;
       
       case 'FORECAST':
-        response = `Based on current spending patterns, the budget will be depleted by ${formatDate(analysis.forecastedDepletion)}.`;
+        response = `Based on ${trendDescription} spending patterns, the budget will be depleted by ${formatDate(analysis.forecastedDepletion)}.`;
         response += ` The client has spent $${analysis.totalSpent.toFixed(2)} so far out of a total budget of $${analysis.totalBudget.toFixed(2)}.`;
+        
+        // Add velocity information
+        if (analysis.spendingVelocity !== undefined) {
+          if (analysis.spendingVelocity > 0.3) {
+            response += ` Note that spending is accelerating, which may shorten the budget lifespan.`;
+          } else if (analysis.spendingVelocity < -0.3) {
+            response += ` Positively, spending is decelerating, which may extend the budget lifespan.`;
+          }
+        }
         break;
       
       case 'UTILIZATION':
         response = `The client has utilized ${analysis.utilizationRate.toFixed(1)}% of their budget.`;
         
-        if (analysis.spendingByCategory) {
+        // Include high usage categories information
+        if (analysis.spendingPatterns?.highUsageCategories.length) {
+          const highUsageCategories = analysis.spendingPatterns.highUsageCategories;
+          response += ` The highest usage ${highUsageCategories.length > 1 ? 'categories are' : 'category is'} "${highUsageCategories.join(', ')}".`;
+        } else if (analysis.spendingByCategory) {
           const topCategory = getMostUtilizedCategory(analysis.spendingByCategory);
           response += ` The highest spending is in the ${topCategory} category.`;
+        }
+        
+        // Add projected overage warnings
+        if (analysis.spendingPatterns?.projectedOverages.length) {
+          const overages = analysis.spendingPatterns.projectedOverages;
+          response += ` Warning: ${overages.join(', ')} ${overages.length > 1 ? 'are' : 'is'} projected to exceed their budget allocations.`;
         }
         break;
       
       default:
         response = `The client has a total budget of $${analysis.totalBudget.toFixed(2)}, with $${analysis.totalSpent.toFixed(2)} spent so far.`;
         response += ` That leaves $${analysis.remaining.toFixed(2)} remaining (${(100 - analysis.utilizationRate).toFixed(1)}%).`;
+        
+        // Add trend information
+        if (trendInfo !== 'stable') {
+          response += ` Spending is currently ${trendDescription}.`;
+        }
+        
         response += ` At the current rate, the budget will be depleted by ${formatDate(analysis.forecastedDepletion)}.`;
+        
+        // Add pattern insights
+        if (patternInsights) {
+          response += ` ${patternInsights}`;
+        }
     }
     
     return {
@@ -441,6 +486,33 @@ function processGeneralQuery(intent: QueryIntent, context: QueryContext, origina
     content: response,
     confidence,
   };
+}
+
+/**
+ * Generate insights based on budget analysis patterns
+ */
+function generatePatternInsights(analysis: BudgetAnalysis): string {
+  // Skip if no pattern data
+  if (!analysis.spendingPatterns) return '';
+  
+  const insights: string[] = [];
+  
+  // Add trend insight
+  if (analysis.spendingPatterns.trend === 'increasing') {
+    insights.push("Spending is accelerating compared to previous periods.");
+  } else if (analysis.spendingPatterns.trend === 'decreasing') {
+    insights.push("Spending is decelerating compared to previous periods, which is positive for budget longevity.");
+  } else if (analysis.spendingPatterns.trend === 'fluctuating') {
+    insights.push("Spending patterns are fluctuating, which may make forecasting less predictable.");
+  }
+  
+  // Add projected overage warnings
+  if (analysis.spendingPatterns.projectedOverages.length > 0) {
+    insights.push(`Warning: ${analysis.spendingPatterns.projectedOverages.join(', ')} ${analysis.spendingPatterns.projectedOverages.length > 1 ? 'are' : 'is'} projected to exceed budget allocation.`);
+  }
+  
+  // Format the insights with spacing
+  return insights.length > 0 ? insights.join(' ') : '';
 }
 
 /**
