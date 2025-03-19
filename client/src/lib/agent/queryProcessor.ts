@@ -443,7 +443,7 @@ async function processBudgetQuery(intent: QueryIntent, context: QueryContext): P
       content: response,
       confidence,
       data: analysis,
-      visualizationHint: 'BUBBLE_CHART',
+      visualizationHint: 'PIE_CHART',
       suggestedFollowUps: suggestedFollowUps.slice(0, 3) // Limit to 3 follow-ups
     };
   } catch (error) {
