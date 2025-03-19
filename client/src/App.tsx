@@ -63,7 +63,7 @@ function App() {
         <Router />
         <AgentBubble />
         <AgentPanel />
-        <AgentVisualization />
+        <AgentVisualization type="NONE" />
         <Toaster />
       </AgentProvider>
     </QueryClientProvider>

@@ -98,6 +98,11 @@ function formatDate(date: Date): string {
  * Process budget-related queries
  */
 async function processBudgetQuery(intent: QueryIntent, context: QueryContext): Promise<AgentResponse> {
+  // Type guard to check if this is a budget analysis intent
+  if (intent.type !== 'BUDGET_ANALYSIS') {
+    return defaultResponse();
+  }
+  
   if (!intent.clientId) {
     return {
       content: "I'd need to know which client's budget you're asking about. Please select a client first.",
@@ -179,6 +184,11 @@ function getMostUtilizedCategory(spendingByCategory?: Record<string, number>): s
  * Process progress-related queries
  */
 async function processProgressQuery(intent: QueryIntent, context: QueryContext): Promise<AgentResponse> {
+  // Type guard to check if this is a progress tracking intent
+  if (intent.type !== 'PROGRESS_TRACKING') {
+    return defaultResponse();
+  }
+  
   if (!intent.clientId) {
     return {
       content: "I'd need to know which client's progress you're asking about. Please select a client first.",
@@ -300,6 +310,11 @@ function getOverallProgressAssessment(progress: number, attendance: number): str
  * Process strategy recommendation queries
  */
 async function processStrategyQuery(intent: QueryIntent, context: QueryContext): Promise<AgentResponse> {
+  // Type guard to check if this is a strategy recommendation intent
+  if (intent.type !== 'STRATEGY_RECOMMENDATION') {
+    return defaultResponse();
+  }
+  
   try {
     let response: string;
     let confidence = 0.85;
@@ -335,7 +350,8 @@ async function processStrategyQuery(intent: QueryIntent, context: QueryContext):
           if (index < 2 && strategies.length > 0) { // Limit to 2 goals to keep response concise
             response += `\n\nFor goal "${goalTitle}":`;
             strategies.slice(0, 2).forEach((strategy, i) => { // Limit to 2 strategies per goal
-              response += `\n- **${strategy.name}**: ${strategy.description.substring(0, 100)}${strategy.description.length > 100 ? '...' : ''}`;
+              const description = strategy.description || '';
+              response += `\n- **${strategy.name}**: ${description.substring(0, 100)}${description.length > 100 ? '...' : ''}`;
             });
           }
         });
@@ -381,6 +397,11 @@ async function processStrategyQuery(intent: QueryIntent, context: QueryContext):
  * Process general questions
  */
 function processGeneralQuery(intent: QueryIntent, context: QueryContext, originalQuery: string): AgentResponse {
+  // Type guard to check if this is a general question intent
+  if (intent.type !== 'GENERAL_QUESTION') {
+    return defaultResponse();
+  }
+  
   const topic = intent.topic;
   let response = '';
   let confidence = 0.7;

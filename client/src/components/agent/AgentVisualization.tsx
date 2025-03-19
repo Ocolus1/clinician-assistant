@@ -7,7 +7,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Info } from 'lucide-react';
 
 interface AgentVisualizationProps {
-  type: 'BUBBLE_CHART' | 'PROGRESS_CHART' | 'NONE';
+  type?: 'BUBBLE_CHART' | 'PROGRESS_CHART' | 'NONE';
 }
 
 export default function AgentVisualization({ type }: AgentVisualizationProps) {
