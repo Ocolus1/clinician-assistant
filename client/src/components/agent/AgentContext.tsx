@@ -1,7 +1,14 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { processQuery } from '@/lib/agent/queryProcessor';
-import type { AgentContextType, Message, QueryContext, AgentResponse, Client } from '@/lib/agent/types';
+import type { 
+  AgentContextType, 
+  Message, 
+  QueryContext, 
+  AgentResponse, 
+  Client, 
+  ConversationMemory 
+} from '@/lib/agent/types';
 
 // Create context with default values
 const AgentContext = createContext<AgentContextType>({

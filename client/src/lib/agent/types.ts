@@ -10,6 +10,36 @@ export interface Message {
   timestamp: Date;
   confidence?: number;
   data?: any; // Response data for visualization or further processing
+  suggestedFollowUps?: string[]; // Suggested follow-up questions
+  entities?: ExtractedEntity[]; // Entities extracted from the message
+}
+
+/**
+ * Entity extracted from a query
+ */
+export interface ExtractedEntity {
+  text: string;
+  type: 'ClientName' | 'ClientID' | 'GoalName' | 'GoalID' | 'Date' | 'Category' | 'Amount' | 'Concept';
+  value?: string | number | Date;
+  position: {
+    start: number;
+    end: number;
+  };
+}
+
+/**
+ * Conversation memory for maintaining context across interactions
+ */
+export interface ConversationMemory {
+  lastQuery?: string;
+  lastTopic?: string;
+  recentEntities?: ExtractedEntity[];
+  activeFilters?: Record<string, any>;
+  contextCarryover?: {
+    subject?: string;
+    timeframe?: string;
+    category?: string;
+  };
 }
 
 /**
@@ -20,6 +50,7 @@ export interface QueryContext {
   activeBudgetId?: number;
   activeGoalId?: number;
   conversationHistory: Message[];
+  conversationMemory?: ConversationMemory;
 }
 
 /**
@@ -40,6 +71,9 @@ export interface AgentResponse {
   confidence: number;
   data?: any;
   visualizationHint?: 'BUBBLE_CHART' | 'PROGRESS_CHART' | 'COMBINED_INSIGHTS' | 'NONE';
+  suggestedFollowUps?: string[]; // Suggested follow-up questions
+  detectedEntities?: ExtractedEntity[]; // Entities detected in the query
+  memoryUpdates?: Partial<ConversationMemory>; // Updates to conversation memory
 }
 
 /**
