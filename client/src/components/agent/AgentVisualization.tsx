@@ -6,10 +6,10 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Info } from 'lucide-react';
 import { CombinedInsights } from './CombinedInsights';
-import { BudgetAnalysis, ProgressAnalysis } from '@/lib/agent/types';
+import { BudgetAnalysis, ProgressAnalysis, VisualizationHint } from '@/lib/agent/types';
 
 interface AgentVisualizationProps {
-  type?: 'BUBBLE_CHART' | 'PROGRESS_CHART' | 'COMBINED_INSIGHTS' | 'NONE';
+  type?: VisualizationHint;
   clientName?: string;
 }
 

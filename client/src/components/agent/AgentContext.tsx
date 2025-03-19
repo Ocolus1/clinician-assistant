@@ -7,7 +7,8 @@ import type {
   QueryContext, 
   AgentResponse, 
   Client, 
-  ConversationMemory 
+  ConversationMemory,
+  VisualizationHint
 } from '@/lib/agent/types';
 
 // Create context with default values
