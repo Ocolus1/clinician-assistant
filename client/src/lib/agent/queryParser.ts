@@ -74,6 +74,44 @@ export function parseQueryIntent(query: string, context: QueryContext): QueryInt
     return intent;
   }
   
+  // Combined Insights Intent
+  if (
+    (containsAny(lowercaseQuery, ['analysis', 'insights', 'overview', 'summary', 'report', 'dashboard']) &&
+    (containsAny(lowercaseQuery, ['comprehensive', 'combined', 'complete', 'full', 'both', 'all', 'together', 'overall']))) ||
+    (containsAny(lowercaseQuery, ['budget', 'spending', 'funds']) && 
+     containsAny(lowercaseQuery, ['progress', 'goals', 'achievement'])) ||
+    containsAny(lowercaseQuery, ['big picture', 'full picture', 'overall status', 'return on investment', 'roi', 'cost effectiveness', 'value for money', 'cost per progress', 'therapy value'])
+  ) {
+    // Specific combined insight queries
+    if (containsAny(lowercaseQuery, ['budget', 'fund', 'spending', 'cost', 'money', 'financial', 'roi', 'value for money']) && 
+        !containsAny(lowercaseQuery, ['goal', 'progress', 'achievement', 'milestone'])) {
+      const intent: QueryIntent = { 
+        type: 'COMBINED_INSIGHTS', 
+        clientId: context.activeClientId,
+        specificQuery: 'BUDGET_FOCUS' 
+      };
+      return intent;
+    }
+    
+    if (containsAny(lowercaseQuery, ['progress', 'goal', 'achievement', 'milestone', 'improvement']) && 
+        !containsAny(lowercaseQuery, ['budget', 'fund', 'spending', 'cost', 'money'])) {
+      const intent: QueryIntent = { 
+        type: 'COMBINED_INSIGHTS', 
+        clientId: context.activeClientId,
+        specificQuery: 'PROGRESS_FOCUS' 
+      };
+      return intent;
+    }
+    
+    // General combined insight query
+    const intent: QueryIntent = { 
+      type: 'COMBINED_INSIGHTS', 
+      clientId: context.activeClientId,
+      specificQuery: 'OVERALL' 
+    };
+    return intent;
+  }
+  
   // Strategy Recommendation Intent
   if (
     containsAny(lowercaseQuery, ['strategy', 'strategies', 'approach', 'technique', 'method', 'intervention', 'therapy']) ||

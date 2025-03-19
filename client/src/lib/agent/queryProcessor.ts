@@ -447,6 +447,123 @@ async function processStrategyQuery(intent: QueryIntent, context: QueryContext):
 }
 
 /**
+ * Process combined insights queries
+ */
+async function processCombinedInsightsQuery(intent: QueryIntent, context: QueryContext): Promise<AgentResponse> {
+  // Type guard to check if this is a combined insights intent
+  if (intent.type !== 'COMBINED_INSIGHTS') {
+    return defaultResponse();
+  }
+  
+  if (!intent.clientId) {
+    return {
+      content: "I'd need to know which client you're asking about. Please select a client first.",
+      confidence: 0.9,
+    };
+  }
+  
+  try {
+    // Get both budget and progress analysis for comprehensive insights
+    const budgetData = await budgetDataService.getBudgetAnalysis(intent.clientId);
+    const progressData = await progressDataService.getProgressAnalysis(intent.clientId);
+    
+    // Prepare combined data for visualization
+    const combinedData = {
+      budgetData,
+      progressData
+    };
+    
+    // Generate response based on the specific query
+    let response: string;
+    let confidence = 0.95; // High confidence with comprehensive data
+    
+    switch (intent.specificQuery) {
+      case 'BUDGET_FOCUS':
+        response = `The client has a total budget of $${budgetData.totalBudget.toFixed(2)}, with $${budgetData.totalSpent.toFixed(2)} spent so far (${budgetData.utilizationRate.toFixed(1)}% utilized).`;
+        response += ` At the current rate, the budget will last until ${formatDate(budgetData.forecastedDepletion)}.`;
+        
+        // Add correlation with progress
+        response += ` Looking at the client's progress (${progressData.overallProgress.toFixed(1)}% overall), `;
+        
+        if (progressData.overallProgress > 60 && budgetData.utilizationRate < 50) {
+          response += `I notice excellent progress despite moderate budget utilization, suggesting efficient therapy delivery.`;
+        } else if (progressData.overallProgress < 40 && budgetData.utilizationRate > 60) {
+          response += `I notice the budget utilization is higher than the progress rate, which may indicate a need to review therapy effectiveness.`;
+        } else if (progressData.attendanceRate < 75 && budgetData.utilizationRate > 50) {
+          response += `I notice the attendance rate (${progressData.attendanceRate.toFixed(1)}%) is affecting optimal budget utilization.`;
+        } else {
+          response += `the budget utilization and progress appear to be appropriately balanced.`;
+        }
+        break;
+        
+      case 'PROGRESS_FOCUS':
+        response = `The client has achieved ${progressData.overallProgress.toFixed(1)}% overall progress toward therapy goals with an attendance rate of ${progressData.attendanceRate.toFixed(1)}%.`;
+        
+        // Add correlation with budget
+        response += ` In relation to the budget, $${budgetData.totalSpent.toFixed(2)} has been spent out of $${budgetData.totalBudget.toFixed(2)}.`;
+        
+        // Cost per progress point analysis
+        const costPerProgressPoint = budgetData.totalSpent / Math.max(progressData.overallProgress, 1);
+        response += ` The approximate cost per percentage point of progress is $${costPerProgressPoint.toFixed(2)}.`;
+        
+        if (costPerProgressPoint > 100 && progressData.overallProgress < 50) {
+          response += ` This cost-to-progress ratio suggests a review of the therapy approach might be beneficial.`;
+        } else if (costPerProgressPoint < 50 && progressData.overallProgress > 50) {
+          response += ` This represents a very efficient cost-to-progress ratio.`;
+        }
+        break;
+        
+      default: // OVERALL or not specified
+        // High-level combined overview
+        response = `I've analyzed both budget and progress data for this client.`;
+        
+        // Budget snapshot
+        response += ` Budget: $${budgetData.remaining.toFixed(2)} remaining (${(100 - budgetData.utilizationRate).toFixed(1)}% left) with depletion projected by ${formatDate(budgetData.forecastedDepletion)}.`;
+        
+        // Progress snapshot
+        response += ` Progress: ${progressData.overallProgress.toFixed(1)}% overall goal achievement with ${progressData.attendanceRate.toFixed(1)}% attendance rate.`;
+        
+        // Correlation insights
+        if (progressData.overallProgress < 30 && budgetData.utilizationRate > 70) {
+          response += ` Important observation: High budget utilization with limited progress suggests therapy approach review may be needed.`;
+        } else if (progressData.overallProgress > 70 && budgetData.utilizationRate < 50) {
+          response += ` Positive observation: Strong progress with efficient budget utilization indicates excellent therapy effectiveness.`;
+        } else if (progressData.attendanceRate < 70 && budgetData.utilizationRate > 60) {
+          response += ` Note: Attendance challenges (${progressData.attendanceRate.toFixed(1)}%) may be affecting the return on therapy investment.`;
+        }
+        
+        // Additional insights on spending patterns and goal performance
+        if (budgetData.spendingPatterns?.trend === 'increasing') {
+          response += ` The accelerating spending pattern should be monitored closely.`;
+        }
+        
+        if (progressData.goalProgress.length > 0) {
+          const sortedGoals = [...progressData.goalProgress].sort((a, b) => b.progress - a.progress);
+          const highestGoal = sortedGoals[0];
+          const lowestGoal = sortedGoals[sortedGoals.length - 1];
+          
+          if (highestGoal.progress - lowestGoal.progress > 40) {
+            response += ` There's significant variation in goal progress, with "${highestGoal.goalTitle}" at ${highestGoal.progress.toFixed(1)}% and "${lowestGoal.goalTitle}" at ${lowestGoal.progress.toFixed(1)}%.`;
+          }
+        }
+    }
+    
+    return {
+      content: response,
+      confidence,
+      data: combinedData,
+      visualizationHint: 'COMBINED_INSIGHTS',
+    };
+  } catch (error) {
+    console.error('Error processing combined insights query:', error);
+    return {
+      content: "I'm having trouble analyzing the combined budget and progress data. Please try again later.",
+      confidence: 0.5,
+    };
+  }
+}
+
+/**
  * Process general questions
  */
 function processGeneralQuery(intent: QueryIntent, context: QueryContext, originalQuery: string): AgentResponse {

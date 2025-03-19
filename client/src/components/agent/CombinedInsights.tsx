@@ -1,420 +1,502 @@
 import React from 'react';
-import { 
-  Card, 
-  CardContent, 
-  CardDescription, 
-  CardFooter, 
-  CardHeader, 
-  CardTitle 
-} from '@/components/ui/card';
-import { 
-  Tabs, 
-  TabsContent, 
-  TabsList, 
-  TabsTrigger 
-} from '@/components/ui/tabs';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { ResponsiveBar } from '@nivo/bar';
+import { ResponsivePie } from '@nivo/pie';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { CircleCheck, CircleAlert, TrendingUp, TrendingDown, AlertTriangle, Gem, DollarSign, BarChart } from 'lucide-react';
 import { BudgetAnalysis, ProgressAnalysis } from '@/lib/agent/types';
-import { Info, AlertTriangle, TrendingDown, TrendingUp, Check, CheckCircle2, AlertCircle } from 'lucide-react';
 
 interface CombinedInsightsProps {
-  budgetData?: BudgetAnalysis;
-  progressData?: ProgressAnalysis;
+  budgetData: BudgetAnalysis;
+  progressData: ProgressAnalysis;
   clientName?: string;
 }
 
-/**
- * Component for displaying combined insights from budget and progress data
- * This provides a holistic view of client status with actionable insights
- */
-export function CombinedInsights({ budgetData, progressData, clientName }: CombinedInsightsProps) {
-  // Check if we have data
-  if (!budgetData && !progressData) {
+export function CombinedInsights({ budgetData, progressData, clientName = 'Client' }: CombinedInsightsProps) {
+  // Validate that we have both datasets
+  if (!budgetData || !progressData) {
     return (
       <Alert>
-        <Info className="h-4 w-4" />
+        <AlertTriangle className="h-4 w-4" />
         <AlertDescription>
-          Data is not available for insights generation.
+          Complete data is not available for combined insights visualization.
         </AlertDescription>
       </Alert>
     );
   }
+
+  // Calculate key metrics for visualization
+  const utilizationRate = budgetData.utilizationRate;
+  const progressRate = progressData.overallProgress;
+  const attendanceRate = progressData.attendanceRate;
+  const remainingBudgetPercent = 100 - utilizationRate;
   
-  const clientNameDisplay = clientName || 'this client';
+  // Calculate ROI metrics
+  const costPerProgressPoint = progressRate > 0 
+    ? budgetData.totalSpent / progressRate
+    : budgetData.totalSpent;
   
-  // Generate key insights from the data
-  const insights = generateCombinedInsights(budgetData, progressData, clientNameDisplay);
+  // Determine trend indicators
+  const budgetTrend = budgetData.spendingPatterns?.trend || 'stable';
+  const budgetTrendIndicator = 
+    budgetTrend === 'increasing' ? <TrendingUp className="h-4 w-4 text-amber-500" /> :
+    budgetTrend === 'decreasing' ? <TrendingDown className="h-4 w-4 text-green-500" /> :
+    null;
+  
+  // Calculate therapy efficiency and generate status indicators
+  const isEfficient = costPerProgressPoint < 100 && progressRate > 50;
+  const isInefficient = costPerProgressPoint > 200 || (progressRate < 30 && utilizationRate > 50);
+  const hasAttendanceChallenges = attendanceRate < 70;
+  
+  // Prepare combined comparison data for visualization
+  const comparisonData = [
+    {
+      metric: 'Budget Utilization',
+      value: utilizationRate,
+      target: 100,
+      color: utilizationRate > 90 ? '#ff6b6b' : 
+             utilizationRate > 70 ? '#ffb347' : '#4caf50'
+    },
+    {
+      metric: 'Goal Progress',
+      value: progressRate,
+      target: 100,
+      color: progressRate > 70 ? '#4caf50' : 
+             progressRate > 40 ? '#ffb347' : '#ff6b6b'
+    },
+    {
+      metric: 'Attendance Rate',
+      value: attendanceRate,
+      target: 90,
+      color: attendanceRate > 80 ? '#4caf50' : 
+             attendanceRate > 60 ? '#ffb347' : '#ff6b6b'
+    }
+  ];
+  
+  // Prepare efficiency data for visualization
+  const efficiencyData = [
+    {
+      id: 'Budget',
+      label: 'Budget',
+      value: utilizationRate,
+      color: '#3b82f6'
+    },
+    {
+      id: 'Progress',
+      label: 'Progress',
+      value: progressRate,
+      color: '#4caf50'
+    }
+  ];
+  
+  // Prepare goal data by progress
+  const goalProgressData = progressData.goalProgress
+    .map(goal => ({
+      goalId: goal.goalId,
+      goal: goal.goalTitle.length > 15 
+        ? goal.goalTitle.substring(0, 15) + '...' 
+        : goal.goalTitle,
+      progress: goal.progress,
+      color: goal.progress > 70 ? '#4caf50' : 
+             goal.progress > 40 ? '#ffb347' : '#ff6b6b'
+    }))
+    .sort((a, b) => b.progress - a.progress)
+    .slice(0, 5); // Limit to top 5 goals
+  
+  // Prepare spending data by category
+  const spendingData = budgetData.spendingByCategory 
+    ? Object.entries(budgetData.spendingByCategory)
+      .map(([category, amount]: [string, number]) => {
+        // Check if this is a high usage or projected overage category
+        const isHighUsage = budgetData.spendingPatterns?.highUsageCategories.includes(category);
+        const isProjectedOverage = budgetData.spendingPatterns?.projectedOverages.includes(category);
+        
+        return {
+          id: category,
+          label: category,
+          value: amount,
+          color: isProjectedOverage ? '#ff6b6b' : 
+                isHighUsage ? '#ffb347' : '#3b82f6',
+          isHighUsage,
+          isProjectedOverage
+        };
+      })
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 4) // Limit to top 4 categories
+    : [];
   
   return (
-    <Card className="w-full">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-lg">Actionable Insights</CardTitle>
-        <CardDescription>
-          Combined analysis of budget and progress data
-        </CardDescription>
-      </CardHeader>
+    <div className="space-y-4">
+      {/* Header Card with Key Metrics */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Combined Insights for {clientName}</CardTitle>
+          <CardDescription>
+            Budget-to-Progress relationship analysis
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {/* Budget Status */}
+            <div className="flex flex-col p-3 bg-slate-50 dark:bg-slate-900 rounded-md">
+              <div className="text-sm text-slate-500 dark:text-slate-400 flex items-center gap-1 mb-1">
+                <DollarSign className="h-3.5 w-3.5" />
+                Budget Status
+              </div>
+              <div className="text-lg font-semibold">${budgetData.remaining.toFixed(2)} remaining</div>
+              <div className="text-sm">
+                {remainingBudgetPercent.toFixed(1)}% of ${budgetData.totalBudget.toFixed(2)}
+                {budgetTrendIndicator && <span className="ml-1">{budgetTrendIndicator}</span>}
+              </div>
+              <div className="text-xs text-slate-500 mt-1">
+                Est. depletion: {new Date(budgetData.forecastedDepletion).toLocaleDateString()}
+              </div>
+            </div>
+            
+            {/* Progress Status */}
+            <div className="flex flex-col p-3 bg-slate-50 dark:bg-slate-900 rounded-md">
+              <div className="text-sm text-slate-500 dark:text-slate-400 flex items-center gap-1 mb-1">
+                <BarChart className="h-3.5 w-3.5" />
+                Progress Status
+              </div>
+              <div className="text-lg font-semibold">{progressRate.toFixed(1)}% overall progress</div>
+              <div className="text-sm">
+                {progressData.goalProgress.length} goals tracked
+              </div>
+              <div className="text-xs text-slate-500 mt-1">
+                Sessions: {progressData.sessionsCompleted} completed
+                {progressData.sessionsCancelled > 0 && `, ${progressData.sessionsCancelled} cancelled`}
+              </div>
+            </div>
+            
+            {/* Therapy ROI */}
+            <div className="flex flex-col p-3 bg-slate-50 dark:bg-slate-900 rounded-md">
+              <div className="text-sm text-slate-500 dark:text-slate-400 flex items-center gap-1 mb-1">
+                <Gem className="h-3.5 w-3.5" />
+                Therapy Efficiency
+              </div>
+              <div className="text-lg font-semibold">${costPerProgressPoint.toFixed(2)} per progress point</div>
+              <div className="text-sm flex items-center gap-1">
+                {isEfficient && <CircleCheck className="h-3.5 w-3.5 text-green-500" />}
+                {isInefficient && <AlertTriangle className="h-3.5 w-3.5 text-amber-500" />}
+                {isEfficient ? 'Highly efficient therapy' : 
+                 isInefficient ? 'Efficiency improvements possible' : 'Average efficiency'}
+              </div>
+              <div className="text-xs text-slate-500 mt-1">
+                {attendanceRate.toFixed(1)}% attendance rate
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
       
-      <Tabs defaultValue="summary">
-        <div className="px-6">
-          <TabsList className="grid grid-cols-3">
-            <TabsTrigger value="summary">Summary</TabsTrigger>
-            <TabsTrigger value="budget">Budget</TabsTrigger>
-            <TabsTrigger value="progress">Progress</TabsTrigger>
-          </TabsList>
-        </div>
-        
-        <TabsContent value="summary" className="px-1">
-          <CardContent className="space-y-4 pt-4">
-            {insights.summary.length > 0 ? (
-              <div className="space-y-3">
-                {insights.summary.map((insight, i) => (
-                  <div key={i} className={`flex items-start space-x-2 ${getInsightColorClass(insight.type)}`}>
-                    {getInsightIcon(insight.type)}
-                    <div className="text-sm">
-                      <p>{insight.message}</p>
-                      {insight.recommendation && (
-                        <p className="text-xs mt-1 opacity-90 font-medium">
-                          Recommendation: {insight.recommendation}
-                        </p>
-                      )}
+      {/* Visualization Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Budget vs Progress Comparison */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Budget to Progress Comparison</CardTitle>
+            <CardDescription>
+              Relationship between budget utilization and goal achievement
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="h-64">
+            <ResponsiveBar
+              data={comparisonData}
+              keys={['value']}
+              indexBy="metric"
+              margin={{ top: 10, right: 10, bottom: 40, left: 60 }}
+              padding={0.3}
+              valueScale={{ type: 'linear', max: 100 }}
+              indexScale={{ type: 'band', round: true }}
+              colors={d => d.data.color}
+              borderColor={{ from: 'color', modifiers: [['darker', 1.6]] }}
+              axisTop={null}
+              axisRight={null}
+              axisBottom={{
+                tickSize: 5,
+                tickPadding: 5,
+                tickRotation: 0,
+                legend: 'Metrics',
+                legendPosition: 'middle',
+                legendOffset: 32
+              }}
+              axisLeft={{
+                tickSize: 5,
+                tickPadding: 5,
+                tickRotation: 0,
+                legend: 'Percentage (%)',
+                legendPosition: 'middle',
+                legendOffset: -50
+              }}
+              labelSkipWidth={12}
+              labelSkipHeight={12}
+              labelTextColor={{ from: 'color', modifiers: [['darker', 3]] }}
+              animate={true}
+              tooltip={({ data, value }) => (
+                <div style={{
+                  padding: 12,
+                  background: '#fff',
+                  border: '1px solid #ccc',
+                  borderRadius: 4
+                }}>
+                  <strong>{data.metric}: </strong>
+                  {value.toFixed(1)}%
+                  {data.metric === 'Budget Utilization' && (
+                    <div className="text-xs mt-1">
+                      ${budgetData.totalSpent.toFixed(2)} spent of ${budgetData.totalBudget.toFixed(2)}
                     </div>
-                  </div>
-                ))}
+                  )}
+                  {data.metric === 'Goal Progress' && (
+                    <div className="text-xs mt-1">
+                      {progressData.goalProgress.length} goals tracked
+                    </div>
+                  )}
+                  {data.metric === 'Attendance Rate' && (
+                    <div className="text-xs mt-1">
+                      {progressData.sessionsCompleted} sessions completed
+                    </div>
+                  )}
+                </div>
+              )}
+            />
+          </CardContent>
+          <CardFooter className="text-xs text-slate-600 dark:text-slate-400">
+            {utilizationRate > progressRate + 20 ? (
+              <div className="text-amber-600">
+                <AlertTriangle className="h-3.5 w-3.5 inline mr-1" />
+                Budget utilization exceeds progress rate by {(utilizationRate - progressRate).toFixed(1)}%. 
+                Consider reviewing therapy effectiveness.
+              </div>
+            ) : progressRate > utilizationRate + 20 ? (
+              <div className="text-green-600">
+                <CircleCheck className="h-3.5 w-3.5 inline mr-1" />
+                Progress rate exceeds budget utilization by {(progressRate - utilizationRate).toFixed(1)}%, 
+                indicating highly efficient therapy.
               </div>
             ) : (
-              <div className="text-center text-muted-foreground py-6">
-                <p>Not enough data to generate summary insights.</p>
+              <div>
+                Budget utilization and progress rate are well-balanced, 
+                indicating appropriate resource allocation.
+              </div>
+            )}
+          </CardFooter>
+        </Card>
+        
+        {/* Top Goals by Progress */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Top Goals Progress</CardTitle>
+            <CardDescription>
+              Progress across major therapy goals
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="h-64">
+            <ResponsiveBar
+              data={goalProgressData}
+              keys={['progress']}
+              indexBy="goal"
+              margin={{ top: 10, right: 10, bottom: 40, left: 60 }}
+              padding={0.3}
+              valueScale={{ type: 'linear', max: 100 }}
+              indexScale={{ type: 'band', round: true }}
+              colors={d => d.data.color}
+              borderColor={{ from: 'color', modifiers: [['darker', 1.6]] }}
+              axisTop={null}
+              axisRight={null}
+              axisBottom={{
+                tickSize: 5,
+                tickPadding: 5,
+                tickRotation: -45,
+                legend: 'Goal',
+                legendPosition: 'middle',
+                legendOffset: 32
+              }}
+              axisLeft={{
+                tickSize: 5,
+                tickPadding: 5,
+                tickRotation: 0,
+                legend: 'Progress (%)',
+                legendPosition: 'middle',
+                legendOffset: -50
+              }}
+              labelSkipWidth={12}
+              labelSkipHeight={12}
+              labelTextColor="#ffffff"
+              animate={true}
+            />
+          </CardContent>
+          <CardFooter className="text-xs text-slate-600 dark:text-slate-400">
+            {goalProgressData.length > 0 && goalProgressData[0].progress - goalProgressData[goalProgressData.length - 1].progress > 30 && (
+              <div>
+                <AlertTriangle className="h-3.5 w-3.5 inline mr-1 text-amber-500" />
+                Significant variation in goal progress indicates potential areas for 
+                attention distribution review.
+              </div>
+            )}
+          </CardFooter>
+        </Card>
+        
+        {/* Spending Categories */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Budget Allocation</CardTitle>
+            <CardDescription>
+              Top spending categories
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="h-64">
+            {spendingData.length > 0 ? (
+              <ResponsivePie
+                data={spendingData}
+                margin={{ top: 10, right: 10, bottom: 10, left: 10 }}
+                innerRadius={0.5}
+                padAngle={0.7}
+                cornerRadius={3}
+                activeOuterRadiusOffset={8}
+                borderWidth={1}
+                borderColor={{ from: 'color', modifiers: [['darker', 0.2]] }}
+                arcLinkLabelsSkipAngle={10}
+                arcLinkLabelsTextColor="#333333"
+                arcLinkLabelsThickness={2}
+                arcLinkLabelsColor={{ from: 'color' }}
+                arcLabelsSkipAngle={10}
+                arcLabelsTextColor="#ffffff"
+                tooltip={(props) => {
+                  const { datum } = props;
+                  const isHighUsage = datum.data.isHighUsage;
+                  const isProjectedOverage = datum.data.isProjectedOverage;
+                  
+                  return (
+                    <div style={{
+                      padding: 12,
+                      background: '#fff',
+                      border: '1px solid #ccc',
+                      borderRadius: 4
+                    }}>
+                      <strong>{String(datum.id)}: </strong>
+                      ${Number(datum.value).toFixed(2)}
+                      {isHighUsage && (
+                        <div className="text-amber-600 text-xs mt-1">
+                          High usage category
+                        </div>
+                      )}
+                      {isProjectedOverage && (
+                        <div className="text-red-600 text-xs mt-1">
+                          ⚠️ Projected to exceed budget
+                        </div>
+                      )}
+                    </div>
+                  );
+                }}
+              />
+            ) : (
+              <div className="flex items-center justify-center h-full text-sm text-slate-500">
+                No spending data available by category
               </div>
             )}
           </CardContent>
-        </TabsContent>
-        
-        <TabsContent value="budget" className="px-1">
-          <CardContent className="space-y-4 pt-4">
-            {insights.budget.length > 0 ? (
-              <div className="space-y-3">
-                {insights.budget.map((insight, i) => (
-                  <div key={i} className={`flex items-start space-x-2 ${getInsightColorClass(insight.type)}`}>
-                    {getInsightIcon(insight.type)}
-                    <div className="text-sm">
-                      <p>{insight.message}</p>
-                      {insight.recommendation && (
-                        <p className="text-xs mt-1 opacity-90 font-medium">
-                          Recommendation: {insight.recommendation}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center text-muted-foreground py-6">
-                <p>Not enough budget data to generate insights.</p>
+          <CardFooter className="text-xs text-slate-600 dark:text-slate-400">
+            {budgetData.spendingPatterns?.projectedOverages.length > 0 && (
+              <div className="text-amber-600">
+                <AlertTriangle className="h-3.5 w-3.5 inline mr-1" />
+                {budgetData.spendingPatterns.projectedOverages.join(', ')} {budgetData.spendingPatterns.projectedOverages.length === 1 ? 'is' : 'are'} projected to exceed allocation.
               </div>
             )}
-          </CardContent>
-        </TabsContent>
+          </CardFooter>
+        </Card>
         
-        <TabsContent value="progress" className="px-1">
-          <CardContent className="space-y-4 pt-4">
-            {insights.progress.length > 0 ? (
-              <div className="space-y-3">
-                {insights.progress.map((insight, i) => (
-                  <div key={i} className={`flex items-start space-x-2 ${getInsightColorClass(insight.type)}`}>
-                    {getInsightIcon(insight.type)}
-                    <div className="text-sm">
-                      <p>{insight.message}</p>
-                      {insight.recommendation && (
-                        <p className="text-xs mt-1 opacity-90 font-medium">
-                          Recommendation: {insight.recommendation}
-                        </p>
-                      )}
-                    </div>
+        {/* Efficiency Metrics */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Therapy Efficiency Analysis</CardTitle>
+            <CardDescription>
+              Budget utilization relative to progress achieved
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="h-64">
+            <div className="grid grid-cols-2 h-full">
+              <div className="flex flex-col justify-center items-center">
+                <div className="text-2xl font-bold">
+                  ${costPerProgressPoint.toFixed(2)}
+                </div>
+                <div className="text-sm text-slate-500 text-center">
+                  Cost per progress percentage point
+                </div>
+                
+                <div className={`mt-2 text-sm ${
+                  isEfficient ? 'text-green-600' : 
+                  isInefficient ? 'text-amber-600' : 'text-slate-600'
+                }`}>
+                  {isEfficient ? (
+                    <span className="flex items-center">
+                      <CircleCheck className="h-4 w-4 mr-1" />
+                      Highly efficient
+                    </span>
+                  ) : isInefficient ? (
+                    <span className="flex items-center">
+                      <CircleAlert className="h-4 w-4 mr-1" />
+                      Needs optimization
+                    </span>
+                  ) : (
+                    <span>Average efficiency</span>
+                  )}
+                </div>
+                
+                {hasAttendanceChallenges && (
+                  <div className="mt-2 text-xs text-amber-600 flex items-center">
+                    <AlertTriangle className="h-3.5 w-3.5 mr-1" />
+                    Low attendance affecting efficiency
                   </div>
-                ))}
+                )}
               </div>
-            ) : (
-              <div className="text-center text-muted-foreground py-6">
-                <p>Not enough progress data to generate insights.</p>
+              
+              <div>
+                <ResponsivePie
+                  data={efficiencyData}
+                  margin={{ top: 10, right: 10, bottom: 10, left: 10 }}
+                  innerRadius={0.5}
+                  padAngle={0.7}
+                  cornerRadius={3}
+                  activeOuterRadiusOffset={8}
+                  borderWidth={1}
+                  borderColor={{ from: 'color', modifiers: [['darker', 0.2]] }}
+                  enableArcLabels={false}
+                  arcLinkLabelsSkipAngle={10}
+                  arcLinkLabelsTextColor="#333333"
+                  arcLinkLabelsThickness={2}
+                  arcLinkLabelsColor={{ from: 'color' }}
+                  legends={[
+                    {
+                      anchor: 'bottom',
+                      direction: 'row',
+                      justify: false,
+                      translateX: 0,
+                      translateY: 30,
+                      itemsSpacing: 0,
+                      itemWidth: 60,
+                      itemHeight: 20,
+                      itemTextColor: '#999',
+                      itemDirection: 'left-to-right',
+                      itemOpacity: 1,
+                      symbolSize: 10,
+                      symbolShape: 'circle'
+                    }
+                  ]}
+                />
               </div>
-            )}
+            </div>
           </CardContent>
-        </TabsContent>
-      </Tabs>
-      
-      <CardFooter className="pt-0 text-xs text-muted-foreground">
-        <div>
-          Insights generated from combined analysis of budget utilization and progress data.
-        </div>
-      </CardFooter>
-    </Card>
+          <CardFooter className="text-xs text-slate-600 dark:text-slate-400">
+            Ideal therapy shows balanced budget utilization and progress achievement.
+            {budgetData.spendingVelocity && budgetData.spendingVelocity > 0.3 && (
+              <span className="ml-1 text-amber-600">
+                Accelerating spending may affect long-term efficiency.
+              </span>
+            )}
+          </CardFooter>
+        </Card>
+      </div>
+    </div>
   );
-}
-
-// Helper types for insights
-type InsightType = 'success' | 'warning' | 'danger' | 'info';
-
-interface Insight {
-  message: string;
-  type: InsightType;
-  recommendation?: string;
-}
-
-interface InsightGroups {
-  summary: Insight[];
-  budget: Insight[];
-  progress: Insight[];
-}
-
-// Helper function to get appropriate icon for insight type
-function getInsightIcon(type: InsightType) {
-  switch (type) {
-    case 'success':
-      return <CheckCircle2 className="h-5 w-5 text-green-500 flex-shrink-0" />;
-    case 'warning':
-      return <AlertCircle className="h-5 w-5 text-amber-500 flex-shrink-0" />;
-    case 'danger':
-      return <AlertTriangle className="h-5 w-5 text-red-500 flex-shrink-0" />;
-    case 'info':
-    default:
-      return <Info className="h-5 w-5 text-blue-500 flex-shrink-0" />;
-  }
-}
-
-// Get color class for insight
-function getInsightColorClass(type: InsightType): string {
-  switch (type) {
-    case 'success': return 'text-green-700 dark:text-green-500';
-    case 'warning': return 'text-amber-700 dark:text-amber-500';
-    case 'danger': return 'text-red-700 dark:text-red-500';
-    case 'info':
-    default: return 'text-blue-700 dark:text-blue-500';
-  }
-}
-
-// Generate combined insights from both data sources
-function generateCombinedInsights(
-  budgetData?: BudgetAnalysis,
-  progressData?: ProgressAnalysis,
-  clientName: string = 'this client'
-): InsightGroups {
-  const insights: InsightGroups = {
-    summary: [],
-    budget: [],
-    progress: []
-  };
-  
-  // Add budget insights
-  if (budgetData) {
-    // Budget utilization
-    if (budgetData.utilizationRate > 80) {
-      insights.budget.push({
-        message: `Budget utilization is high at ${budgetData.utilizationRate.toFixed(1)}%, with $${budgetData.remaining.toFixed(2)} remaining.`,
-        type: 'warning',
-        recommendation: 'Review budget allocation and consider additional funding sources.'
-      });
-    } else if (budgetData.utilizationRate < 20) {
-      insights.budget.push({
-        message: `Budget utilization is low at ${budgetData.utilizationRate.toFixed(1)}%, with $${budgetData.remaining.toFixed(2)} remaining.`,
-        type: 'info',
-        recommendation: 'Consider allocating resources to additional therapy interventions.'
-      });
-    } else {
-      insights.budget.push({
-        message: `Budget utilization is ${budgetData.utilizationRate.toFixed(1)}%, with $${budgetData.remaining.toFixed(2)} remaining.`,
-        type: 'success'
-      });
-    }
-    
-    // Check for spending patterns
-    if (budgetData.spendingPatterns?.trend === 'increasing') {
-      insights.budget.push({
-        message: 'Spending rate is accelerating compared to previous periods.',
-        type: 'warning',
-        recommendation: 'Monitor budget closely to avoid premature depletion.'
-      });
-    } else if (budgetData.spendingPatterns?.trend === 'decreasing') {
-      insights.budget.push({
-        message: 'Spending rate is decelerating compared to previous periods.',
-        type: 'success',
-        recommendation: 'Consider if current therapy intensity is sufficient.'
-      });
-    }
-    
-    // Check for projected overages
-    if (budgetData.spendingPatterns?.projectedOverages.length) {
-      const categories = budgetData.spendingPatterns.projectedOverages.join(', ');
-      insights.budget.push({
-        message: `${categories} ${budgetData.spendingPatterns.projectedOverages.length === 1 ? 'is' : 'are'} projected to exceed budget allocation.`,
-        type: 'danger',
-        recommendation: 'Adjust service delivery or increase allocation for these categories.'
-      });
-    }
-    
-    // Forecast depletion insight
-    const today = new Date();
-    const depletionDate = new Date(budgetData.forecastedDepletion);
-    const monthsRemaining = Math.round((depletionDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24 * 30));
-    
-    if (monthsRemaining < 2) {
-      insights.budget.push({
-        message: `Budget is projected to be depleted in ${monthsRemaining} month${monthsRemaining === 1 ? '' : 's'}.`,
-        type: 'danger',
-        recommendation: 'Urgent review of budget and funding sources needed.'
-      });
-    } else if (monthsRemaining < 6) {
-      insights.budget.push({
-        message: `Budget is projected to last approximately ${monthsRemaining} more months.`,
-        type: 'warning',
-        recommendation: 'Begin planning for budget renewal or additional funding.'
-      });
-    } else {
-      insights.budget.push({
-        message: `Budget is projected to last approximately ${monthsRemaining} more months.`,
-        type: 'success'
-      });
-    }
-  }
-  
-  // Add progress insights
-  if (progressData) {
-    // Overall progress
-    if (progressData.overallProgress > 75) {
-      insights.progress.push({
-        message: `${clientName} is making excellent progress (${progressData.overallProgress.toFixed(1)}%) toward therapy goals.`,
-        type: 'success',
-        recommendation: 'Consider setting more advanced goals based on current progress.'
-      });
-    } else if (progressData.overallProgress < 30) {
-      insights.progress.push({
-        message: `${clientName} is making limited progress (${progressData.overallProgress.toFixed(1)}%) toward therapy goals.`,
-        type: 'warning',
-        recommendation: 'Review therapy approach and goals for appropriate level of challenge.'
-      });
-    } else {
-      insights.progress.push({
-        message: `${clientName} is making steady progress (${progressData.overallProgress.toFixed(1)}%) toward therapy goals.`,
-        type: 'info'
-      });
-    }
-    
-    // Attendance rate
-    if (progressData.attendanceRate < 70) {
-      insights.progress.push({
-        message: `Attendance rate is low at ${progressData.attendanceRate.toFixed(1)}% (${progressData.sessionsCancelled} cancelled sessions).`,
-        type: 'danger',
-        recommendation: 'Discuss attendance challenges with client/caregivers.'
-      });
-    } else if (progressData.attendanceRate > 90) {
-      insights.progress.push({
-        message: `Attendance rate is excellent at ${progressData.attendanceRate.toFixed(1)}%.`,
-        type: 'success'
-      });
-    }
-    
-    // Goal-specific insights
-    if (progressData.goalProgress?.length > 0) {
-      // Find highest and lowest performing goals
-      const sortedGoals = [...progressData.goalProgress].sort((a, b) => b.progress - a.progress);
-      const highestGoal = sortedGoals[0];
-      const lowestGoal = sortedGoals[sortedGoals.length - 1];
-      
-      if (highestGoal.progress > 80) {
-        insights.progress.push({
-          message: `"${highestGoal.goalTitle}" is advancing well at ${highestGoal.progress.toFixed(1)}% progress.`,
-          type: 'success',
-          recommendation: 'Consider advancing to more complex skills in this area.'
-        });
-      }
-      
-      if (lowestGoal.progress < 40 && progressData.goalProgress.length > 1) {
-        insights.progress.push({
-          message: `"${lowestGoal.goalTitle}" shows slower progress at ${lowestGoal.progress.toFixed(1)}%.`,
-          type: 'warning',
-          recommendation: 'Review approach and consider adjusting strategy or objectives.'
-        });
-      }
-    }
-  }
-  
-  // Generate combined summary insights
-  if (budgetData && progressData) {
-    // Budget-to-progress efficiency
-    const costPerProgressPoint = budgetData.totalSpent / Math.max(progressData.overallProgress, 1);
-    const averageSessionCost = budgetData.totalSpent / Math.max(progressData.sessionsCompleted, 1);
-    
-    // Check budget-to-progress efficiency
-    if (progressData.overallProgress > 60 && budgetData.utilizationRate < 50) {
-      insights.summary.push({
-        message: `${clientName} is achieving strong progress with efficient budget utilization.`,
-        type: 'success',
-        recommendation: 'Current therapy approach appears to be working well.'
-      });
-    } else if (progressData.overallProgress < 30 && budgetData.utilizationRate > 60) {
-      insights.summary.push({
-        message: `High budget utilization with limited progress suggests intervention adjustments may be needed.`,
-        type: 'warning',
-        recommendation: 'Review therapy approach and service mix for effectiveness.'
-      });
-    }
-    
-    // Attendance and budget insight
-    if (progressData.attendanceRate < 70 && budgetData.utilizationRate > 50) {
-      insights.summary.push({
-        message: `Low attendance rate is affecting therapy outcomes while still consuming budget.`,
-        type: 'danger',
-        recommendation: 'Address attendance issues to maximize budget effectiveness.'
-      });
-    }
-    
-    // Most critical insight based on combined data
-    const hasBudgetConcern = budgetData.utilizationRate > 80 || 
-                             (budgetData.spendingPatterns?.projectedOverages.length || 0) > 0;
-    const hasProgressConcern = progressData.overallProgress < 30 || 
-                               progressData.attendanceRate < 70;
-    
-    if (hasBudgetConcern && hasProgressConcern) {
-      insights.summary.push({
-        message: `Critical intervention needed: Budget concerns combined with progress challenges.`,
-        type: 'danger',
-        recommendation: 'Comprehensive review of therapy plan and budget allocation required.'
-      });
-    } else if (hasBudgetConcern) {
-      insights.summary.push({
-        message: `Budget management should be prioritized based on current utilization.`,
-        type: 'warning',
-        recommendation: 'Review budget allocation and service delivery approach.'
-      });
-    } else if (hasProgressConcern) {
-      insights.summary.push({
-        message: `Progress improvement should be the focus of intervention.`,
-        type: 'warning',
-        recommendation: 'Review current therapy approach and goals for appropriate challenge level.'
-      });
-    } else {
-      insights.summary.push({
-        message: `${clientName}'s therapy plan is on track with good progress and budget management.`,
-        type: 'success',
-        recommendation: 'Continue current approach with regular monitoring.'
-      });
-    }
-  } else {
-    // Add basic summary insights based on available data
-    if (budgetData) {
-      insights.summary.push({
-        message: `Budget is ${budgetData.utilizationRate > 70 ? 'highly' : 'moderately'} utilized at ${budgetData.utilizationRate.toFixed(1)}%.`,
-        type: budgetData.utilizationRate > 80 ? 'warning' : 'info'
-      });
-    }
-    
-    if (progressData) {
-      insights.summary.push({
-        message: `Overall therapy progress is at ${progressData.overallProgress.toFixed(1)}%.`,
-        type: progressData.overallProgress > 70 ? 'success' : 
-              progressData.overallProgress < 30 ? 'warning' : 'info'
-      });
-    }
-  }
-  
-  return insights;
 }
