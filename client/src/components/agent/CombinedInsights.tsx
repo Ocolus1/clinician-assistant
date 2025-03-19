@@ -108,8 +108,8 @@ export function CombinedInsights({ budgetData, progressData, clientName = 'Clien
     ? Object.entries(budgetData.spendingByCategory)
       .map(([category, amount]: [string, number]) => {
         // Check if this is a high usage or projected overage category
-        const isHighUsage = budgetData.spendingPatterns?.highUsageCategories.includes(category);
-        const isProjectedOverage = budgetData.spendingPatterns?.projectedOverages.includes(category);
+        const isHighUsage = budgetData.spendingPatterns?.highUsageCategories?.includes(category) || false;
+        const isProjectedOverage = budgetData.spendingPatterns?.projectedOverages?.includes(category) || false;
         
         return {
           id: category,
@@ -397,10 +397,10 @@ export function CombinedInsights({ budgetData, progressData, clientName = 'Clien
             )}
           </CardContent>
           <CardFooter className="text-xs text-slate-600 dark:text-slate-400">
-            {budgetData.spendingPatterns?.projectedOverages.length > 0 && (
+            {budgetData.spendingPatterns?.projectedOverages && budgetData.spendingPatterns.projectedOverages.length > 0 && (
               <div className="text-amber-600">
                 <AlertTriangle className="h-3.5 w-3.5 inline mr-1" />
-                {budgetData.spendingPatterns.projectedOverages.join(', ')} {budgetData.spendingPatterns.projectedOverages.length === 1 ? 'is' : 'are'} projected to exceed allocation.
+                {budgetData.spendingPatterns?.projectedOverages?.join(', ')} {budgetData.spendingPatterns?.projectedOverages?.length === 1 ? 'is' : 'are'} projected to exceed allocation.
               </div>
             )}
           </CardFooter>

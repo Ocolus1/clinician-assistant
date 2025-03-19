@@ -641,7 +641,7 @@ async function processStrategyQuery(intent: QueryIntent, context: QueryContext):
     // Generate suggested follow-up questions
     const suggestedFollowUps = [];
     
-    if (intent.specificQuery === 'GOAL_SPECIFIC' && intent.goalId && data?.strategies?.length > 0) {
+    if (intent.specificQuery === 'GOAL_SPECIFIC' && intent.goalId && data?.strategies && data.strategies.length > 0) {
       suggestedFollowUps.push(`Can you explain more about the first strategy?`);
       suggestedFollowUps.push(`How do I implement these strategies in therapy sessions?`);
       suggestedFollowUps.push(`Are there any resources for these strategies?`);
@@ -866,9 +866,48 @@ function processGeneralQuery(intent: QueryIntent, context: QueryContext, origina
     confidence = 0.6;
   }
   
+  // Generate suggested follow-up questions based on the topic
+  const suggestedFollowUps = [];
+  
+  if (topic) {
+    switch (topic) {
+      case 'session planning':
+        suggestedFollowUps.push("How do I add a new session?");
+        suggestedFollowUps.push("Can you show me upcoming sessions?");
+        suggestedFollowUps.push("What data should I track in a session?");
+        break;
+        
+      case 'report writing':
+        suggestedFollowUps.push("How do I generate a progress report?");
+        suggestedFollowUps.push("What should I include in my reports?");
+        suggestedFollowUps.push("Can reports be customized for funding bodies?");
+        break;
+        
+      case 'billing':
+        suggestedFollowUps.push("How do I track billable hours?");
+        suggestedFollowUps.push("Can you show me budget utilization?");
+        suggestedFollowUps.push("How do I link sessions to budget items?");
+        break;
+        
+      default:
+        suggestedFollowUps.push("How do I track client progress?");
+        suggestedFollowUps.push("Can you help with budget management?");
+        suggestedFollowUps.push("What reports can I generate?");
+    }
+  } else {
+    // Generic follow-ups for general questions
+    suggestedFollowUps.push("What can you help me with?");
+    suggestedFollowUps.push("How do I add a new client?");
+    suggestedFollowUps.push("Show me budget utilization");
+  }
+  
   return {
     content: response,
     confidence,
+    suggestedFollowUps: suggestedFollowUps.slice(0, 3),
+    memoryUpdates: {
+      lastTopic: topic || 'general_information'
+    }
   };
 }
 

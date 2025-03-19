@@ -148,6 +148,32 @@ export default function AgentPanel() {
                 )}
               </div>
               <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+              
+              {/* Suggested follow-up questions */}
+              {message.role === 'assistant' && message.suggestedFollowUps && message.suggestedFollowUps.length > 0 && (
+                <div className="mt-3 space-y-2">
+                  <p className="text-xs text-muted-foreground">Suggested questions:</p>
+                  <div className="flex flex-wrap gap-2">
+                    {message.suggestedFollowUps.map((suggestion, index) => (
+                      <Button 
+                        key={index} 
+                        variant="outline" 
+                        size="sm" 
+                        className="text-xs py-1 h-auto"
+                        onClick={() => {
+                          setInputValue(suggestion);
+                          // Auto-send the follow-up question
+                          setTimeout(() => {
+                            processQuery(suggestion);
+                          }, 100);
+                        }}
+                      >
+                        {suggestion}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           ))}
           <div ref={messageEndRef} />
