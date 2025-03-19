@@ -109,6 +109,64 @@ function extractEntitiesFromQuery(query: string): ExtractedEntity[] {
 /**
  * Process a natural language query and generate a response
  */
+/**
+ * Determine the subtopic from a query and main topic 
+ */
+function determineSubtopic(query: string, topic?: string): string {
+  // Default subtopic is 'overview'
+  let subtopic = 'overview';
+  
+  // Check for statistics/metrics keywords
+  if (query.match(/\b(stat(istic)?s|metrics|numbers|figures|data|dashboard)\b/i)) {
+    subtopic = 'statistics';
+  }
+  
+  // Check for process/methodology keywords
+  else if (query.match(/\b(process|how|methodology|method|approach|procedure|steps)\b/i)) {
+    subtopic = 'process';
+  }
+  
+  // Check for utilization/tracking keywords
+  else if (query.match(/\b(utiliz(e|ation)|track(ing)?|monitor(ing)?|usage|using|spend(ing)?)\b/i)) {
+    subtopic = 'utilization';
+  }
+  
+  // Topic-specific subtopics
+  if (topic) {
+    // Budget-specific subtopics
+    if (['budget', 'budgeting', 'funding', 'finances'].includes(topic)) {
+      if (query.match(/\b(allocat(e|ion)|distribut(e|ion)|split|divid(e|ing))\b/i)) {
+        subtopic = 'allocation';
+      }
+      else if (query.match(/\b(forecast|predict|future|trend|projection|deplet(e|ion)|run out)\b/i)) {
+        subtopic = 'forecast';
+      }
+    }
+    
+    // Progress-specific subtopics
+    else if (['progress', 'goals', 'outcomes'].includes(topic)) {
+      if (query.match(/\b(milestone|achiev(e|ement)|complete|finish)\b/i)) {
+        subtopic = 'milestones';
+      }
+      else if (query.match(/\b(trend|pattern|rate|speed|velocity|pace)\b/i)) {
+        subtopic = 'trends';
+      }
+    }
+    
+    // Strategy-specific subtopics
+    else if (['strategies', 'therapy', 'interventions', 'techniques'].includes(topic)) {
+      if (query.match(/\b(effective(ness)?|success(ful)?|work(ing)?|best)\b/i)) {
+        subtopic = 'effectiveness';
+      }
+      else if (query.match(/\b(recommend(ation)?|suggest(ion)?|advise|advice)\b/i)) {
+        subtopic = 'recommendations';
+      }
+    }
+  }
+  
+  return subtopic;
+}
+
 export async function processQuery(query: string, context: QueryContext): Promise<AgentResponse> {
   try {
     // Extract entities for better context understanding
@@ -184,7 +242,7 @@ export async function processQuery(query: string, context: QueryContext): Promis
         break;
       
       case 'GENERAL_QUESTION':
-        response = processGeneralQuery(intent, context, query);
+        response = await processGeneralQuery(intent, context, query);
         break;
       
       default:
@@ -834,88 +892,226 @@ async function processCombinedInsightsQuery(intent: QueryIntent, context: QueryC
 }
 
 /**
- * Process general questions
+ * Process general questions with enhanced knowledge integration
  */
-function processGeneralQuery(intent: QueryIntent, context: QueryContext, originalQuery: string): AgentResponse {
+async function processGeneralQuery(intent: QueryIntent, context: QueryContext, originalQuery: string): Promise<AgentResponse> {
   // Type guard to check if this is a general question intent
   if (intent.type !== 'GENERAL_QUESTION') {
     return defaultResponse();
   }
   
   const topic = intent.topic;
-  let response = '';
   let confidence = 0.7;
+  let responseContent = '';
+  let suggestedFollowUps: string[] = [];
+  let visualizationHint: string | undefined;
+  let data: any = undefined;
   
-  if (topic) {
-    switch (topic) {
-      case 'session planning':
-        response = "Session planning is a critical part of effective therapy. Consider using the calendar to schedule upcoming sessions and reviewing past session notes for continuity.";
-        break;
+  try {
+    // If we have a specific topic, use the knowledge service to get relevant data
+    if (topic) {
+      let templateData: Record<string, any> = { isGeneral: true };
       
-      case 'report writing':
-        response = "Efficient report writing is important for documentation. You can create comprehensive reports using the session notes feature, which lets you track performance assessments and milestone achievements.";
-        break;
+      // Determine subtopic from the query
+      const subtopic = determineSubtopic(originalQuery, topic);
       
-      case 'billing':
-        response = "For billing inquiries, you can review budget utilization in client profiles. Each therapy session can be linked to specific budget items for accurate tracking.";
-        break;
-      
-      case 'autism':
-      case 'child development':
-      case 'speech therapy':
-      case 'occupational therapy':
-        response = `Our system supports managing therapy for clients with ${topic} needs. You can track goals, monitor progress, and get strategy recommendations specific to this area.`;
-        break;
-      
-      default:
-        response = `I can help you manage client information, track goals and progress, analyze budgets, and provide therapy strategy recommendations. What specific information about ${topic} do you need?`;
-        confidence = 0.6;
+      switch (topic) {
+        case 'budget':
+        case 'budgeting':
+        case 'funding':
+        case 'finances':
+          // Get budget knowledge data
+          const budgetInfo = await knowledgeService.getGeneralBudgetInfo(subtopic);
+          
+          // Prepare template data
+          templateData = {
+            ...templateData,
+            ...budgetInfo,
+            subtopic,
+            topic,
+            categories: budgetInfo.categories?.join(', ') || 'therapy sessions, equipment, and resources',
+            avgAllocation: budgetInfo.avgAllocationByCategory ? 
+              Object.entries(budgetInfo.avgAllocationByCategory)
+                .map(([cat, amount]) => `${cat}: $${amount.toFixed(2)}`)
+                .join(', ') : 
+              'varies by therapy needs',
+            topCategory: budgetInfo.highUsageCategories?.[0] || 'therapy sessions',
+            formattedAvgBudgetSize: budgetInfo.avgBudgetSize ? 
+              `$${budgetInfo.avgBudgetSize.toFixed(2)}` : 
+              'dependent on individual needs'
+          };
+          
+          // Select and render a template based on the data
+          const template = selectTemplate(budgetTemplates, templateData);
+          responseContent = renderTemplate(template.template, templateData);
+          suggestedFollowUps = template.followUps || [];
+          
+          // Set visualization hint if appropriate
+          if (subtopic === 'statistics' || subtopic === 'overview') {
+            visualizationHint = 'PIE_CHART';
+            data = budgetInfo;
+          }
+          
+          confidence = 0.85;
+          break;
+          
+        case 'progress':
+        case 'goals':
+        case 'outcomes':
+          // Get progress knowledge data
+          const progressInfo = await knowledgeService.getGeneralProgressInfo(subtopic);
+          
+          // Prepare template data
+          templateData = {
+            ...templateData,
+            ...progressInfo,
+            subtopic,
+            topic,
+            formattedAvgProgress: progressInfo.avgOverallProgress ? 
+              `${progressInfo.avgOverallProgress.toFixed(1)}%` : 
+              'varies by client needs'
+          };
+          
+          // Select and render a template based on the data
+          const progressTemplate = selectTemplate(progressTemplates, templateData);
+          responseContent = renderTemplate(progressTemplate.template, templateData);
+          suggestedFollowUps = progressTemplate.followUps || [];
+          
+          // Set visualization hint if appropriate
+          if (subtopic === 'statistics' || subtopic === 'overview') {
+            visualizationHint = 'PROGRESS_CHART';
+            data = progressInfo;
+          }
+          
+          confidence = 0.85;
+          break;
+          
+        case 'strategies':
+        case 'therapy':
+        case 'interventions':
+        case 'techniques':
+          // Get strategy knowledge data
+          const strategyInfo = await knowledgeService.getGeneralStrategyInfo(subtopic);
+          
+          // Prepare template data
+          templateData = {
+            ...templateData,
+            ...strategyInfo,
+            subtopic,
+            topic,
+            strategyCount: strategyInfo.strategyCount ? 
+              Object.entries(strategyInfo.strategyCount)
+                .map(([cat, count]) => `${cat}: ${count}`)
+                .join(', ') : 
+              'varies by therapy domain'
+          };
+          
+          // Select and render a template based on the data
+          const strategyTemplate = selectTemplate(strategyTemplates, templateData);
+          responseContent = renderTemplate(strategyTemplate.template, templateData);
+          suggestedFollowUps = strategyTemplate.followUps || [];
+          
+          confidence = 0.85;
+          break;
+          
+        // Handle other predefined topics with basic responses
+        case 'session planning':
+          responseContent = "Session planning is a critical part of effective therapy. Consider using the calendar to schedule upcoming sessions and reviewing past session notes for continuity.";
+          suggestedFollowUps = [
+            "How do I add a new session?",
+            "Can you show me upcoming sessions?",
+            "What data should I track in a session?"
+          ];
+          break;
+        
+        case 'report writing':
+          responseContent = "Efficient report writing is important for documentation. You can create comprehensive reports using the session notes feature, which lets you track performance assessments and milestone achievements.";
+          suggestedFollowUps = [
+            "How do I create a progress report?",
+            "Can I export reports for sharing?",
+            "What should I include in a therapy report?"
+          ];
+          break;
+        
+        case 'billing':
+          responseContent = "For billing inquiries, you can review budget utilization in client profiles. Each therapy session can be linked to specific budget items for accurate tracking.";
+          suggestedFollowUps = [
+            "How do I link a session to a budget item?",
+            "Can I generate invoices?",
+            "How do I track NDIS funding usage?"
+          ];
+          break;
+        
+        case 'autism':
+        case 'child development':
+        case 'speech therapy':
+        case 'occupational therapy':
+          responseContent = `Our system supports managing therapy for clients with ${topic} needs. You can track goals, monitor progress, and get strategy recommendations specific to this area.`;
+          suggestedFollowUps = [
+            `What are common goals for ${topic} clients?`,
+            `What strategies work well for ${topic}?`,
+            `How do I track progress for ${topic} interventions?`
+          ];
+          break;
+        
+        default:
+          // For unknown topics, use a general template
+          templateData = {
+            ...templateData,
+            topic
+          };
+          
+          const generalTemplate = selectTemplate(generalTemplates, templateData);
+          responseContent = renderTemplate(generalTemplate.template, templateData);
+          suggestedFollowUps = generalTemplate.followUps || [
+            `What metrics can I track for ${topic}?`,
+            `How does ${topic} relate to client progress?`,
+            `Can you recommend resources about ${topic}?`
+          ];
+          confidence = 0.6;
+      }
+    } else {
+      // No specific topic - provide a general response
+      responseContent = "I can help you manage client information, track goals and progress, analyze budgets, and provide therapy strategy recommendations. How can I assist you today?";
+      suggestedFollowUps = [
+        "Show me budget utilization stats",
+        "What's the average client progress?",
+        "Tell me about therapy strategies"
+      ];
+      confidence = 0.6;
     }
-  } else {
-    response = "I can help you manage client information, track goals and progress, analyze budgets, and provide therapy strategy recommendations. How can I assist you today?";
+  } catch (error) {
+    console.error('Error processing general query with knowledge service:', error);
+    
+    // Fallback to basic responses if knowledge service fails
+    if (topic) {
+      responseContent = `I can help you manage client information, track goals and progress, analyze budgets, and provide therapy strategy recommendations. What specific information about ${topic} do you need?`;
+    } else {
+      responseContent = "I can help you manage client information, track goals and progress, analyze budgets, and provide therapy strategy recommendations. How can I assist you today?";
+    }
     confidence = 0.6;
   }
   
-  // Generate suggested follow-up questions based on the topic
-  const suggestedFollowUps = [];
-  
-  if (topic) {
-    switch (topic) {
-      case 'session planning':
-        suggestedFollowUps.push("How do I add a new session?");
-        suggestedFollowUps.push("Can you show me upcoming sessions?");
-        suggestedFollowUps.push("What data should I track in a session?");
-        break;
-        
-      case 'report writing':
-        suggestedFollowUps.push("How do I generate a progress report?");
-        suggestedFollowUps.push("What should I include in my reports?");
-        suggestedFollowUps.push("Can reports be customized for funding bodies?");
-        break;
-        
-      case 'billing':
-        suggestedFollowUps.push("How do I track billable hours?");
-        suggestedFollowUps.push("Can you show me budget utilization?");
-        suggestedFollowUps.push("How do I link sessions to budget items?");
-        break;
-        
-      default:
-        suggestedFollowUps.push("How do I track client progress?");
-        suggestedFollowUps.push("Can you help with budget management?");
-        suggestedFollowUps.push("What reports can I generate?");
+  // Update conversation memory based on this interaction
+  const memoryUpdates = {
+    lastQuery: originalQuery,
+    lastTopic: topic || 'general_information',
+    contextCarryover: {
+      subject: topic
     }
-  } else {
-    // Generic follow-ups for general questions
-    suggestedFollowUps.push("What can you help me with?");
-    suggestedFollowUps.push("How do I add a new client?");
-    suggestedFollowUps.push("Show me budget utilization");
-  }
+  };
+  
+  // Select the top 3 suggested follow-ups (remove duplicates if any)
+  const uniqueFollowUps = Array.from(new Set(suggestedFollowUps));
   
   return {
-    content: response,
+    content: responseContent,
     confidence,
-    suggestedFollowUps: suggestedFollowUps.slice(0, 3),
+    suggestedFollowUps: uniqueFollowUps.slice(0, 3),
+    data,
+    visualizationHint,
     memoryUpdates: {
+      ...memoryUpdates,
       lastTopic: topic || 'general_information'
     }
   };
