@@ -1,55 +1,31 @@
 import React from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useAgent } from './AgentContext';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { BubbleChart } from '@/components/dashboard/BubbleChart';
 import { ProgressChart } from '@/components/dashboard/ProgressChart';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 
 /**
- * Visualization component for agent responses
- * Features:
- * - Dynamic visualization based on query content
- * - Animations for smooth transitions
- * - Support for different chart types
+ * Visualization component for displaying agent-generated charts and data visualizations
+ * Shows different visualizations based on the query type and agent's analysis
  */
 export function AgentVisualization() {
-  const { 
-    latestVisualization, 
-    isAgentVisible 
-  } = useAgent();
+  const { latestVisualization } = useAgent();
   
-  // If no visualization is needed, don't render anything
-  if (latestVisualization === 'NONE' || !isAgentVisible) return null;
-  
-  // Card animation variants
-  const cardVariants = {
-    hidden: { 
-      opacity: 0, 
-      y: 20, 
-      scale: 0.95 
-    },
-    visible: { 
-      opacity: 1, 
-      y: 0, 
-      scale: 1,
-      transition: { 
-        type: 'spring', 
-        stiffness: 500, 
-        damping: 30,
-        delay: 0.1 // Slight delay after the panel appears
-      }
-    }
-  };
+  // If no visualization, don't render anything
+  if (latestVisualization === 'NONE') {
+    return null;
+  }
   
   return (
     <motion.div
-      initial="hidden"
-      animate="visible"
-      exit="hidden"
-      variants={cardVariants}
-      className="fixed bottom-24 right-[420px] w-[500px] bg-background border rounded-lg shadow-lg overflow-hidden z-30"
+      className="fixed bottom-24 right-24 sm:right-[400px] w-[600px] max-w-[calc(100vw-4rem)] bg-background z-40"
+      initial={{ opacity: 0, y: 20, scale: 0.95 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, y: 20, scale: 0.95 }}
+      transition={{ type: 'spring', damping: 25, stiffness: 300 }}
     >
-      <Card className="border-0 shadow-none">
+      <Card className="overflow-hidden border shadow-lg">
         <CardHeader className="pb-2">
           <CardTitle className="text-lg">
             {latestVisualization === 'BUBBLE_CHART' && 'Budget Allocation'}
@@ -67,24 +43,24 @@ export function AgentVisualization() {
                     name: 'Speech Therapy',
                     color: '#3498db',
                     children: [
-                      { name: 'Individual Sessions', value: 5000, color: '#3498db' },
-                      { name: 'Group Sessions', value: 3000, color: '#3498db' }
+                      { name: 'Individual Sessions', value: 5000, color: '#3498db', percentUsed: 45 },
+                      { name: 'Group Sessions', value: 3000, color: '#3498db', percentUsed: 30 }
                     ]
                   },
                   {
                     name: 'Assessments',
                     color: '#f1c40f',
                     children: [
-                      { name: 'Initial Assessment', value: 2000, color: '#f1c40f' },
-                      { name: 'Progress Review', value: 1500, color: '#f1c40f' }
+                      { name: 'Initial Assessment', value: 2000, color: '#f1c40f', percentUsed: 100 },
+                      { name: 'Progress Review', value: 1500, color: '#f1c40f', percentUsed: 75 }
                     ]
                   },
                   {
                     name: 'Materials',
                     color: '#2ecc71',
                     children: [
-                      { name: 'Therapy Tools', value: 1200, color: '#2ecc71' },
-                      { name: 'Communication Aids', value: 800, color: '#2ecc71' }
+                      { name: 'Therapy Tools', value: 1200, color: '#2ecc71', percentUsed: 60 },
+                      { name: 'Communication Aids', value: 800, color: '#2ecc71', percentUsed: 25 }
                     ]
                   }
                 ]

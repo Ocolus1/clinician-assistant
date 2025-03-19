@@ -1,171 +1,194 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
+import { X, Send, Trash2, Info } from 'lucide-react';
 import { useAgent } from './AgentContext';
+import { Message } from '@/lib/agent/types';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Send, RefreshCw, Zap } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 /**
- * Agent conversation panel
- * Features:
- * - Chat interface for interacting with the agent
- * - Animated message display
- * - Message history with auto-scroll
- * - Input field with submit button
+ * Agent message panel component
+ * Displays conversation history with the intelligent agent
+ * Allows for sending messages and viewing responses
  */
 export function AgentPanel() {
   const { 
     isAgentVisible, 
+    toggleAgentVisibility, 
     conversationHistory, 
-    processQuery, 
+    processQuery,
+    clearConversation,
     isProcessingQuery,
-    clearConversation 
+    activeClient,
+    queryConfidence
   } = useAgent();
   
   const [inputValue, setInputValue] = useState('');
-  const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
   
-  // Auto-scroll to bottom when new messages arrive
+  // Auto-scroll to bottom of messages
   useEffect(() => {
-    if (scrollAreaRef.current) {
-      const scrollElement = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
-      if (scrollElement) {
-        scrollElement.scrollTop = scrollElement.scrollHeight;
-      }
-    }
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [conversationHistory]);
   
-  // Handle query submission
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // Focus input when panel opens
+  useEffect(() => {
+    if (isAgentVisible) {
+      setTimeout(() => {
+        inputRef.current?.focus();
+      }, 300);
+    }
+  }, [isAgentVisible]);
+  
+  // Handle sending a message
+  const handleSendMessage = async () => {
+    if (inputValue.trim() === '' || isProcessingQuery) return;
     
-    if (!inputValue.trim() || isProcessingQuery) return;
+    const query = inputValue;
+    setInputValue('');
     
-    try {
-      await processQuery(inputValue);
-      setInputValue('');
-    } catch (error) {
-      console.error('Error submitting query:', error);
+    await processQuery(query);
+  };
+  
+  // Handle pressing enter
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleSendMessage();
     }
   };
   
-  // Panel animation variants
-  const panelVariants = {
-    hidden: { 
-      opacity: 0, 
-      y: 20, 
-      scale: 0.95 
-    },
-    visible: { 
-      opacity: 1, 
-      y: 0, 
-      scale: 1,
-      transition: { 
-        type: 'spring', 
-        stiffness: 500, 
-        damping: 30 
-      }
-    }
+  // Get confidence level label
+  const getConfidenceLabel = (confidence: number | undefined) => {
+    if (!confidence) return null;
+    if (confidence >= 0.8) return { label: 'High Confidence', color: 'bg-green-100 text-green-800 border-green-200' };
+    if (confidence >= 0.6) return { label: 'Moderate Confidence', color: 'bg-blue-100 text-blue-800 border-blue-200' };
+    if (confidence >= 0.4) return { label: 'Low Confidence', color: 'bg-yellow-100 text-yellow-800 border-yellow-200' };
+    return { label: 'Very Low Confidence', color: 'bg-red-100 text-red-800 border-red-200' };
   };
-  
-  // If the panel shouldn't be visible, don't render it
-  if (!isAgentVisible) return null;
   
   return (
-    <motion.div
-      initial="hidden"
-      animate="visible"
-      exit="hidden"
-      variants={panelVariants}
-      className="fixed bottom-24 right-6 w-80 md:w-96 h-[500px] bg-background border rounded-lg shadow-lg overflow-hidden z-40 flex flex-col"
-    >
-      {/* Header */}
-      <div className="p-3 border-b flex justify-between items-center bg-muted/30">
-        <div className="flex items-center gap-2">
-          <Zap size={18} className="text-primary" />
-          <h3 className="font-medium">Practice Assistant</h3>
-        </div>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={clearConversation}
-          title="Clear conversation"
+    <AnimatePresence>
+      {isAgentVisible && (
+        <motion.div
+          className="fixed bottom-24 right-6 w-80 sm:w-96 h-[500px] max-h-[80vh] rounded-lg bg-background shadow-xl border z-50 flex flex-col overflow-hidden"
+          initial={{ opacity: 0, y: 20, scale: 0.95 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: 20, scale: 0.95 }}
+          transition={{ type: 'spring', damping: 25, stiffness: 300 }}
         >
-          <RefreshCw size={16} />
-        </Button>
-      </div>
-      
-      {/* Messages area */}
-      <ScrollArea ref={scrollAreaRef} className="flex-1 p-3">
-        <div className="space-y-4">
-          {/* Welcome message if no conversation history */}
-          {conversationHistory.length === 0 && (
-            <div className="bg-muted/30 p-3 rounded-lg">
-              <p className="text-sm">
-                Hi there! I'm your practice assistant. I can help you analyze budgets, 
-                track progress, and recommend strategies. How can I help you today?
-              </p>
-            </div>
-          )}
-          
-          {/* Conversation messages */}
-          {conversationHistory.map((message) => (
-            <div
-              key={message.id}
-              className={`${
-                message.role === 'user' 
-                  ? 'ml-auto bg-primary text-primary-foreground' 
-                  : 'mr-auto bg-muted'
-              } max-w-[85%] rounded-lg p-3`}
-            >
-              <p className="text-sm">{message.content}</p>
-              {message.role === 'assistant' && message.confidence && (
-                <div className="mt-1 flex items-center gap-1">
-                  <div 
-                    className="h-1.5 rounded-full bg-background/30 w-16 overflow-hidden"
-                    title={`Confidence: ${Math.round(message.confidence * 100)}%`}
-                  >
-                    <div 
-                      className="h-full bg-background"
-                      style={{ width: `${message.confidence * 100}%` }}
-                    />
-                  </div>
-                </div>
+          {/* Header */}
+          <div className="flex items-center justify-between p-4 border-b">
+            <div className="flex items-center">
+              <h3 className="font-medium text-lg">Assistant</h3>
+              {activeClient && (
+                <Badge variant="outline" className="ml-2">
+                  Client: {activeClient.name}
+                </Badge>
               )}
             </div>
-          ))}
-          
-          {/* Processing indicator */}
-          {isProcessingQuery && (
-            <div className="mr-auto bg-muted max-w-[85%] rounded-lg p-3">
-              <div className="flex gap-1">
-                <span className="animate-bounce">•</span>
-                <span className="animate-bounce" style={{ animationDelay: '0.2s' }}>•</span>
-                <span className="animate-bounce" style={{ animationDelay: '0.4s' }}>•</span>
-              </div>
+            <div className="flex items-center gap-1">
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-8 w-8 rounded-full"
+                      onClick={clearConversation}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Clear conversation</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+              
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="h-8 w-8 rounded-full" 
+                onClick={toggleAgentVisibility}
+              >
+                <X className="h-5 w-5" />
+              </Button>
             </div>
-          )}
-        </div>
-      </ScrollArea>
-      
-      {/* Input area */}
-      <form onSubmit={handleSubmit} className="p-3 border-t flex gap-2">
-        <Input
-          value={inputValue}
-          onChange={(e) => setInputValue(e.target.value)}
-          placeholder="Ask a question..."
-          disabled={isProcessingQuery}
-          className="flex-1"
-        />
-        <Button 
-          type="submit" 
-          size="icon" 
-          disabled={!inputValue.trim() || isProcessingQuery}
-        >
-          <Send size={16} />
-        </Button>
-      </form>
-    </motion.div>
+          </div>
+          
+          {/* Messages */}
+          <ScrollArea className="flex-grow p-4">
+            {conversationHistory.length === 0 ? (
+              <div className="h-full flex flex-col items-center justify-center text-center p-4 text-muted-foreground">
+                <Info className="h-12 w-12 mb-2 opacity-50" />
+                <p className="max-w-[250px]">
+                  Ask me about budget details, client progress, or therapy strategies for this client.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {conversationHistory.map((message: Message) => (
+                  <div 
+                    key={message.id}
+                    className={`flex flex-col ${message.role === 'user' ? 'items-end' : 'items-start'}`}
+                  >
+                    <div 
+                      className={`
+                        max-w-[85%] px-3 py-2 rounded-lg
+                        ${message.role === 'user' 
+                          ? 'bg-primary text-primary-foreground' 
+                          : 'bg-muted text-foreground'}
+                      `}
+                    >
+                      {message.content}
+                    </div>
+                    
+                    {message.role === 'assistant' && message.confidence !== undefined && (
+                      <div className="mt-1 flex items-center">
+                        <Badge 
+                          variant="outline" 
+                          className={`text-[10px] h-4 ${getConfidenceLabel(message.confidence)?.color}`}
+                        >
+                          {getConfidenceLabel(message.confidence)?.label}
+                        </Badge>
+                      </div>
+                    )}
+                  </div>
+                ))}
+                <div ref={messagesEndRef} />
+              </div>
+            )}
+          </ScrollArea>
+          
+          <Separator />
+          
+          {/* Input */}
+          <div className="p-3 flex items-center gap-2">
+            <Input
+              ref={inputRef}
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Ask about budget, progress, or strategies..."
+              className="flex-grow"
+              disabled={isProcessingQuery}
+            />
+            <Button 
+              size="icon" 
+              onClick={handleSendMessage}
+              disabled={inputValue.trim() === '' || isProcessingQuery}
+              className={isProcessingQuery ? 'opacity-50' : ''}
+            >
+              <Send className="h-4 w-4" />
+            </Button>
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }
