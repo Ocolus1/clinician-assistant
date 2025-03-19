@@ -61,6 +61,7 @@ export type QueryIntent =
   | { type: 'PROGRESS_TRACKING'; clientId?: number; goalId?: number; specificQuery?: 'OVERALL' | 'GOAL_SPECIFIC' | 'ATTENDANCE' }
   | { type: 'STRATEGY_RECOMMENDATION'; clientId?: number; goalId?: number; specificQuery?: 'GENERAL' | 'GOAL_SPECIFIC' }
   | { type: 'COMBINED_INSIGHTS'; clientId?: number; specificQuery?: 'OVERALL' | 'BUDGET_FOCUS' | 'PROGRESS_FOCUS' }
+  | { type: 'DATABASE_STATISTICS'; specificQuery?: 'CLIENT_COUNT' | 'CLIENT_DEMOGRAPHICS' | 'GENERAL_STATS' }
   | { type: 'GENERAL_QUESTION'; topic?: string };
   
 /**

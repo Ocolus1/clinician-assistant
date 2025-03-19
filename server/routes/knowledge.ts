@@ -6,6 +6,8 @@
  */
 import { Express, Request, Response } from 'express';
 import { knowledgeService } from '../services/knowledgeService';
+import { db } from '../db';
+import * as schema from '../../shared/schema';
 
 /**
  * Register knowledge API routes
@@ -233,28 +235,57 @@ export function registerKnowledgeRoutes(app: Express) {
   });
   
   /**
-   * Client statistics (placeholder for future implementation)
+   * Client statistics from the actual database
    */
   app.get('/api/knowledge/clients/stats', async (req: Request, res: Response) => {
     try {
-      // This would be a more sophisticated implementation in a real application
-      // For now, we return a basic response with client statistics
+      // Get actual client data from the database
+      const allClients = await db.select().from(schema.clients);
+      const activeClients = allClients.filter(client => client.status === 'active' || !client.status);
+      
+      // Calculate age distribution if dateOfBirth is available
+      const ageGroups = {
+        'Early Childhood (0-5)': 0,
+        'School Age (6-12)': 0,
+        'Adolescent (13-17)': 0,
+        'Adult (18+)': 0
+      };
+      
+      // Calculate actual demographics from client data
+      let totalAge = 0;
+      let clientsWithAge = 0;
+      
+      allClients.forEach(client => {
+        if (client.dateOfBirth) {
+          const today = new Date();
+          const birthDate = new Date(client.dateOfBirth);
+          const age = today.getFullYear() - birthDate.getFullYear();
+          
+          totalAge += age;
+          clientsWithAge++;
+          
+          // Categorize into age groups
+          if (age <= 5) ageGroups['Early Childhood (0-5)']++;
+          else if (age <= 12) ageGroups['School Age (6-12)']++;
+          else if (age <= 17) ageGroups['Adolescent (13-17)']++;
+          else ageGroups['Adult (18+)']++;
+        }
+      });
+      
+      const avgAge = clientsWithAge > 0 ? totalAge / clientsWithAge : 0;
+      
       res.json({
-        totalClients: 150,
-        activeClients: 87,
-        avgAge: 11.2,
+        totalClients: allClients.length,
+        activeClients: activeClients.length,
+        avgAge: avgAge.toFixed(1),
         demographics: {
-          ageGroups: {
-            'Early Childhood (0-5)': 28,
-            'School Age (6-12)': 45,
-            'Adolescent (13-17)': 18,
-            'Adult (18+)': 9
-          },
+          ageGroups,
+          // We'd need additional schema fields for these statistics
           primaryConditions: {
-            'Developmental Delay': 24,
-            'Autism Spectrum Disorder': 32,
-            'Speech Sound Disorders': 30,
-            'Language Disorders': 14
+            'Developmental Delay': 0,
+            'Autism Spectrum Disorder': 0,
+            'Speech Sound Disorders': 0,
+            'Language Disorders': 0
           }
         },
         recentTrends: {
