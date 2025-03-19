@@ -5,7 +5,8 @@ import {
   BudgetAnalysis, 
   ProgressAnalysis,
   ExtractedEntity,
-  ConversationMemory
+  ConversationMemory,
+  VisualizationHint
 } from './types';
 import { parseQueryIntent } from './queryParser';
 import { budgetDataService } from '@/lib/services/budgetDataService';
@@ -904,7 +905,7 @@ async function processGeneralQuery(intent: QueryIntent, context: QueryContext, o
   let confidence = 0.7;
   let responseContent = '';
   let suggestedFollowUps: string[] = [];
-  let visualizationHint: string | undefined;
+  let visualizationHint: VisualizationHint | undefined;
   let data: any = undefined;
   
   try {
