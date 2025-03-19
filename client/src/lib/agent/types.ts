@@ -62,6 +62,11 @@ export type QueryIntent =
   | { type: 'STRATEGY_RECOMMENDATION'; clientId?: number; goalId?: number; specificQuery?: 'GENERAL' | 'GOAL_SPECIFIC' }
   | { type: 'COMBINED_INSIGHTS'; clientId?: number; specificQuery?: 'OVERALL' | 'BUDGET_FOCUS' | 'PROGRESS_FOCUS' }
   | { type: 'GENERAL_QUESTION'; topic?: string };
+  
+/**
+ * Types of visualizations that can be displayed to the user
+ */
+export type VisualizationHint = 'BUBBLE_CHART' | 'PROGRESS_CHART' | 'COMBINED_INSIGHTS' | 'NONE';
 
 /**
  * Response from agent query processing
@@ -70,7 +75,7 @@ export interface AgentResponse {
   content: string;
   confidence: number;
   data?: any;
-  visualizationHint?: 'BUBBLE_CHART' | 'PROGRESS_CHART' | 'COMBINED_INSIGHTS' | 'NONE';
+  visualizationHint?: VisualizationHint;
   suggestedFollowUps?: string[]; // Suggested follow-up questions
   detectedEntities?: ExtractedEntity[]; // Entities detected in the query
   memoryUpdates?: Partial<ConversationMemory>; // Updates to conversation memory
@@ -150,7 +155,7 @@ export interface AgentContextType {
   queryConfidence: number;
   isAgentVisible: boolean;
   isProcessingQuery: boolean;
-  latestVisualization: 'BUBBLE_CHART' | 'PROGRESS_CHART' | 'COMBINED_INSIGHTS' | 'NONE';
+  latestVisualization: VisualizationHint;
   
   // Methods
   processQuery: (query: string) => Promise<AgentResponse>;
