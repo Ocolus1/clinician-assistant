@@ -25,7 +25,7 @@ export const AgentProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [queryConfidence, setQueryConfidence] = useState<number>(0);
   const [isAgentVisible, setIsAgentVisible] = useState<boolean>(false);
   const [isProcessingQuery, setIsProcessingQuery] = useState<boolean>(false);
-  const [latestVisualization, setLatestVisualization] = useState<'BUBBLE_CHART' | 'PROGRESS_CHART' | 'NONE'>('NONE');
+  const [latestVisualization, setLatestVisualization] = useState<'BUBBLE_CHART' | 'PROGRESS_CHART' | 'COMBINED_INSIGHTS' | 'NONE'>('NONE');
 
   // Toggle the agent visibility
   const toggleAgentVisibility = useCallback(() => {

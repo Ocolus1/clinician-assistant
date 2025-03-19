@@ -37,6 +37,9 @@ export async function processQuery(query: string, context: QueryContext): Promis
       
       case 'STRATEGY_RECOMMENDATION':
         return await processStrategyQuery(intent, context);
+        
+      case 'COMBINED_INSIGHTS':
+        return await processCombinedInsightsQuery(intent, context);
       
       case 'GENERAL_QUESTION':
         return processGeneralQuery(intent, context, query);
@@ -57,6 +60,7 @@ function needsClientContext(intent: QueryIntent): boolean {
   return (
     intent.type === 'BUDGET_ANALYSIS' ||
     intent.type === 'PROGRESS_TRACKING' ||
+    intent.type === 'COMBINED_INSIGHTS' ||
     (intent.type === 'STRATEGY_RECOMMENDATION' && intent.specificQuery !== 'GENERAL')
   );
 }
@@ -71,6 +75,9 @@ function getIntentDescription(intent: QueryIntent): string {
     
     case 'PROGRESS_TRACKING':
       return 'progress tracking';
+      
+    case 'COMBINED_INSIGHTS':
+      return 'combined budget and progress insights';
     
     case 'STRATEGY_RECOMMENDATION':
       return 'therapy strategy recommendations';

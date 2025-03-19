@@ -29,6 +29,7 @@ export type QueryIntent =
   | { type: 'BUDGET_ANALYSIS'; clientId?: number; specificQuery?: 'REMAINING' | 'FORECAST' | 'UTILIZATION' }
   | { type: 'PROGRESS_TRACKING'; clientId?: number; goalId?: number; specificQuery?: 'OVERALL' | 'GOAL_SPECIFIC' | 'ATTENDANCE' }
   | { type: 'STRATEGY_RECOMMENDATION'; clientId?: number; goalId?: number; specificQuery?: 'GENERAL' | 'GOAL_SPECIFIC' }
+  | { type: 'COMBINED_INSIGHTS'; clientId?: number; specificQuery?: 'OVERALL' | 'BUDGET_FOCUS' | 'PROGRESS_FOCUS' }
   | { type: 'GENERAL_QUESTION'; topic?: string };
 
 /**
@@ -38,7 +39,7 @@ export interface AgentResponse {
   content: string;
   confidence: number;
   data?: any;
-  visualizationHint?: 'BUBBLE_CHART' | 'PROGRESS_CHART' | 'NONE';
+  visualizationHint?: 'BUBBLE_CHART' | 'PROGRESS_CHART' | 'COMBINED_INSIGHTS' | 'NONE';
 }
 
 /**
@@ -115,7 +116,7 @@ export interface AgentContextType {
   queryConfidence: number;
   isAgentVisible: boolean;
   isProcessingQuery: boolean;
-  latestVisualization: 'BUBBLE_CHART' | 'PROGRESS_CHART' | 'NONE';
+  latestVisualization: 'BUBBLE_CHART' | 'PROGRESS_CHART' | 'COMBINED_INSIGHTS' | 'NONE';
   
   // Methods
   processQuery: (query: string) => Promise<AgentResponse>;
