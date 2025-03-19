@@ -6,6 +6,41 @@ import { QueryContext, QueryIntent } from './types';
 export function parseQueryIntent(query: string, context: QueryContext): QueryIntent {
   const lowercaseQuery = query.toLowerCase();
   
+  // Database Statistics Intent - Added for general database queries
+  if (
+    (containsAny(lowercaseQuery, ['how many', 'count', 'total', 'number of']) && 
+     containsAny(lowercaseQuery, ['client', 'clients', 'patient', 'patients', 'database', 'record', 'records', 'person', 'people'])) ||
+    (containsAny(lowercaseQuery, ['statistics', 'stats', 'demographic', 'demographics', 'distribution', 'analyze data', 'analyse data'])) ||
+    (containsAny(lowercaseQuery, ['database', 'data']) && 
+     containsAny(lowercaseQuery, ['overview', 'summary', 'analysis', 'report']))
+  ) {
+    // Client count queries
+    if (containsAny(lowercaseQuery, ['count', 'total', 'how many']) && 
+        containsAny(lowercaseQuery, ['client', 'clients', 'patient', 'patients'])) {
+      const intent: QueryIntent = { 
+        type: 'DATABASE_STATISTICS', 
+        specificQuery: 'CLIENT_COUNT' 
+      };
+      return intent;
+    }
+    
+    // Demographic queries
+    if (containsAny(lowercaseQuery, ['age', 'demographic', 'gender', 'location', 'distribution'])) {
+      const intent: QueryIntent = { 
+        type: 'DATABASE_STATISTICS', 
+        specificQuery: 'CLIENT_DEMOGRAPHICS' 
+      };
+      return intent;
+    }
+    
+    // General database statistics
+    const intent: QueryIntent = { 
+      type: 'DATABASE_STATISTICS', 
+      specificQuery: 'GENERAL_STATS' 
+    };
+    return intent;
+  }
+  
   // Budget Analysis Intent
   if (
     containsAny(lowercaseQuery, ['budget', 'funding', 'expense', 'spending', 'cost', 'money', 'financial', 'funds']) ||

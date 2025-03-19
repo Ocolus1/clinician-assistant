@@ -238,6 +238,10 @@ export async function processQuery(query: string, context: QueryContext): Promis
         response = await processStrategyQuery(intent, context);
         break;
         
+      case 'DATABASE_STATISTICS':
+        response = await processDatabaseStatisticsQuery(intent, context);
+        break;
+        
       case 'COMBINED_INSIGHTS':
         response = await processCombinedInsightsQuery(intent, context);
         break;
@@ -734,6 +738,143 @@ async function processStrategyQuery(intent: QueryIntent, context: QueryContext):
     console.error('Error processing strategy query:', error);
     return {
       content: "I'm having trouble finding appropriate therapy strategies. Please try again later.",
+      confidence: 0.5,
+    };
+  }
+}
+
+/**
+ * Process combined insights queries
+ */
+/**
+ * Process database statistics queries
+ */
+async function processDatabaseStatisticsQuery(intent: QueryIntent, context: QueryContext): Promise<AgentResponse> {
+  // Type guard to check if this is a database statistics intent
+  if (intent.type !== 'DATABASE_STATISTICS') {
+    return defaultResponse();
+  }
+  
+  try {
+    let response: string;
+    let confidence = 0.85;
+    let data = null;
+    let suggestedFollowUps: string[] = [];
+    
+    // Get client statistics from the knowledge service
+    const clientStats = await knowledgeService.getClientStatistics();
+    
+    switch (intent.specificQuery) {
+      case 'CLIENT_COUNT':
+        // Total client count information
+        response = `There are currently ${clientStats.totalClients} clients in the database`;
+        
+        if (clientStats.activeClients !== undefined) {
+          response += `, with ${clientStats.activeClients} active clients`;
+        }
+        
+        response += '.';
+        
+        // Add recent trend information if available
+        if (clientStats.recentTrends?.clientGrowth) {
+          response += ` Client growth is ${clientStats.recentTrends.clientGrowth}.`;
+          confidence = 0.9;
+        }
+        
+        // Add suggested follow-ups
+        suggestedFollowUps = [
+          'What are the client demographics?',
+          'Tell me about client retention',
+          'What is the age distribution of clients?'
+        ];
+        break;
+        
+      case 'CLIENT_DEMOGRAPHICS':
+        // Client demographic information
+        response = `Based on the database records, `;
+        
+        if (clientStats.avgAge) {
+          response += `the average client age is ${clientStats.avgAge} years. `;
+        }
+        
+        // Include age group distribution if available
+        if (clientStats.demographics?.ageGroups) {
+          const ageGroups = clientStats.demographics.ageGroups;
+          const ageGroupsText = Object.entries(ageGroups)
+            .filter(([_, count]) => count > 0)
+            .map(([group, count]) => `${count} in ${group}`)
+            .join(', ');
+            
+          if (ageGroupsText) {
+            response += `The age distribution is: ${ageGroupsText}. `;
+            confidence = 0.92;
+          }
+        }
+        
+        // Add retention information if available
+        if (clientStats.recentTrends?.clientRetention) {
+          response += `The practice has a ${clientStats.recentTrends.clientRetention}.`;
+          confidence = 0.9;
+        } else {
+          response += `Demographics tracking could be enhanced with additional data collection.`;
+        }
+        
+        // Add suggested follow-ups
+        suggestedFollowUps = [
+          'How many clients do we have in total?',
+          'How has client growth changed over time?',
+          'What service has the highest utilization?'
+        ];
+        break;
+        
+      case 'GENERAL_STATS':
+      default:
+        // General statistics overview
+        response = `Based on the database, we have ${clientStats.totalClients} total clients`;
+        
+        if (clientStats.activeClients !== undefined) {
+          response += ` with ${clientStats.activeClients} currently active`;
+        }
+        
+        response += '.';
+        
+        // Add age information if available
+        if (clientStats.avgAge) {
+          response += ` The average client age is ${clientStats.avgAge} years.`;
+        }
+        
+        // Add trending information if available
+        if (clientStats.recentTrends) {
+          const trends = clientStats.recentTrends;
+          response += ` Recent trends show ${trends.clientGrowth || 'stable client growth'}`;
+          
+          if (trends.serviceUtilization) {
+            response += ` and ${trends.serviceUtilization}`;
+          }
+          
+          response += '.';
+          confidence = 0.93;
+        }
+        
+        // Add suggested follow-ups
+        suggestedFollowUps = [
+          'What are the client demographics?',
+          'How many active clients do we have?',
+          'What is the client retention rate?'
+        ];
+    }
+    
+    return {
+      content: response,
+      confidence,
+      data: clientStats,
+      visualizationHint: 'PIE_CHART', // Use PIE_CHART for demographic data
+      suggestedFollowUps
+    };
+  } catch (error) {
+    console.error('Error processing database statistics query:', error);
+    return {
+      content: "I'm having trouble retrieving database statistics at the moment. Please try again later.",
       confidence: 0.5,
     };
   }
