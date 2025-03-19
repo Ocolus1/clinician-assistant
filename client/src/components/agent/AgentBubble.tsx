@@ -1,76 +1,154 @@
-import React from 'react';
-import { motion, Variants } from 'framer-motion';
-import { MessageSquare } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Sparkles, Bot, X } from 'lucide-react';
 import { useAgent } from './AgentContext';
+import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+
+interface AgentBubbleProps {
+  className?: string;
+}
 
 /**
- * Floating bubble component for accessing the virtual assistant
- * Provides a clean, modern UI element that follows Material Design principles
+ * A floating bubble component for interacting with the agent
  */
-export function AgentBubble() {
-  const { toggleAgentVisibility, isAgentVisible, queryConfidence } = useAgent();
+export function AgentBubble({ className }: AgentBubbleProps) {
+  const { 
+    queryConfidence, 
+    isAgentVisible, 
+    isProcessingQuery,
+    toggleAgentVisibility, 
+    processQuery 
+  } = useAgent();
   
-  // Animation variants based on confidence level
-  const pulseVariants: Variants = {
-    idle: {
-      scale: 1,
-      boxShadow: '0 0 0 0 rgba(52, 152, 219, 0)',
-    },
-    pulse: {
-      scale: [1, 1.05, 1],
-      boxShadow: [
-        '0 0 0 0 rgba(52, 152, 219, 0)',
-        '0 0 0 10px rgba(52, 152, 219, 0.2)',
-        '0 0 0 0 rgba(52, 152, 219, 0)',
-      ],
-      transition: {
-        duration: 2,
-        repeat: Infinity,
-        repeatType: 'loop' as const,
-      },
-    },
-    confident: {
-      scale: [1, 1.1, 1],
-      boxShadow: [
-        '0 0 0 0 rgba(46, 204, 113, 0)',
-        '0 0 0 10px rgba(46, 204, 113, 0.3)',
-        '0 0 0 0 rgba(46, 204, 113, 0)',
-      ],
-      transition: {
-        duration: 2,
-        repeat: Infinity,
-        repeatType: 'loop' as const,
-      },
-    },
+  const [userQuery, setUserQuery] = useState('');
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [isPulsing, setIsPulsing] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Focus input when expanded
+  useEffect(() => {
+    if (isExpanded && inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [isExpanded]);
+
+  // Show pulsing animation based on confidence level
+  useEffect(() => {
+    if (queryConfidence > 0.7) {
+      setIsPulsing(true);
+      const timer = setTimeout(() => {
+        setIsPulsing(false);
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [queryConfidence]);
+
+  // Handle query submission
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!userQuery.trim() || isProcessingQuery) return;
+    
+    try {
+      await processQuery(userQuery);
+      setUserQuery('');
+      setIsExpanded(false);
+      // Show the full agent panel
+      if (!isAgentVisible) {
+        toggleAgentVisibility();
+      }
+    } catch (error) {
+      console.error('Error processing query:', error);
+    }
   };
-  
-  // Determine animation variant based on confidence
-  const getAnimationVariant = () => {
-    if (queryConfidence >= 0.8) return 'confident';
-    if (queryConfidence >= 0.4) return 'pulse';
-    return 'idle';
+
+  // Handle escape key to close
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Escape') {
+      setIsExpanded(false);
+    }
   };
-  
+
   return (
-    <motion.div
-      className="fixed bottom-6 right-6 z-50"
-      initial={{ y: 100, opacity: 0 }}
-      animate={{ y: 0, opacity: 1 }}
-      transition={{ type: 'spring', stiffness: 260, damping: 20 }}
+    <div 
+      className={cn(
+        'fixed bottom-6 right-6 z-50 flex flex-col items-end',
+        className
+      )}
     >
-      <motion.button
-        className={`flex items-center justify-center w-14 h-14 rounded-full ${
-          isAgentVisible ? 'bg-primary/90' : 'bg-primary'
-        } text-primary-foreground shadow-lg hover:shadow-xl transition-shadow`}
-        onClick={toggleAgentVisibility}
+      {/* Search input for quick queries */}
+      <AnimatePresence>
+        {isExpanded && (
+          <motion.form
+            initial={{ opacity: 0, y: 10, width: '40px' }}
+            animate={{ opacity: 1, y: 0, width: '300px' }}
+            exit={{ opacity: 0, y: 10, width: '40px' }}
+            transition={{ duration: 0.2 }}
+            className="mb-3 flex w-full"
+            onSubmit={handleSubmit}
+          >
+            <Input
+              ref={inputRef}
+              type="text"
+              placeholder="Ask a question about budgets, progress, etc."
+              className="pr-12 shadow-lg"
+              value={userQuery}
+              onChange={(e) => setUserQuery(e.target.value)}
+              onKeyDown={handleKeyDown}
+              disabled={isProcessingQuery}
+            />
+            <Button 
+              size="sm" 
+              type="submit" 
+              className="ml-2 px-2" 
+              disabled={isProcessingQuery || !userQuery.trim()}
+            >
+              {isProcessingQuery ? (
+                <motion.div 
+                  animate={{ rotate: 360 }} 
+                  transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                >
+                  <Sparkles className="h-4 w-4" />
+                </motion.div>
+              ) : (
+                <Sparkles className="h-4 w-4" />
+              )}
+            </Button>
+          </motion.form>
+        )}
+      </AnimatePresence>
+
+      {/* Agent bubble */}
+      <motion.div
+        className={cn(
+          'flex h-12 w-12 cursor-pointer items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg',
+          isPulsing && 'ring-4 ring-primary/30 transition-all duration-500'
+        )}
+        onClick={() => {
+          if (isExpanded) {
+            setIsExpanded(false);
+          } else if (isAgentVisible) {
+            toggleAgentVisibility();
+          } else {
+            setIsExpanded(true);
+          }
+        }}
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
-        variants={pulseVariants}
-        animate={getAnimationVariant()}
-        aria-label="Toggle Assistant"
+        animate={isPulsing ? { scale: [1, 1.05, 1] } : {}}
+        transition={isPulsing ? { 
+          duration: 1, 
+          repeat: 2, 
+          repeatType: 'reverse'
+        } : {}}
       >
-        <MessageSquare className="w-6 h-6" />
-      </motion.button>
-    </motion.div>
+        {isAgentVisible ? (
+          <X className="h-5 w-5" />
+        ) : (
+          <Bot className="h-5 w-5" />
+        )}
+      </motion.div>
+    </div>
   );
 }
