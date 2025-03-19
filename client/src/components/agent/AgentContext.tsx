@@ -27,21 +27,40 @@ const AgentContext = createContext<AgentContextType>({
 
 // Provider component
 export const AgentProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  // State for conversation and UI
   const [conversationHistory, setConversationHistory] = useState<Message[]>([]);
   const [activeClient, setActiveClient] = useState<Client | null>(null);
   const [queryConfidence, setQueryConfidence] = useState<number>(0);
   const [isAgentVisible, setIsAgentVisible] = useState<boolean>(false);
   const [isProcessingQuery, setIsProcessingQuery] = useState<boolean>(false);
   const [latestVisualization, setLatestVisualization] = useState<'BUBBLE_CHART' | 'PROGRESS_CHART' | 'COMBINED_INSIGHTS' | 'NONE'>('NONE');
+  
+  // Conversation memory for context retention across interactions
+  const conversationMemoryRef = useRef<ConversationMemory>({
+    lastQuery: undefined,
+    lastTopic: undefined,
+    recentEntities: [],
+    activeFilters: {},
+    contextCarryover: {}
+  });
 
   // Toggle the agent visibility
   const toggleAgentVisibility = useCallback(() => {
     setIsAgentVisible(prev => !prev);
   }, []);
 
-  // Clear the conversation history
+  // Clear the conversation history and memory
   const clearConversation = useCallback(() => {
     setConversationHistory([]);
+    
+    // Reset conversation memory
+    conversationMemoryRef.current = {
+      lastQuery: undefined,
+      lastTopic: undefined,
+      recentEntities: [],
+      activeFilters: {},
+      contextCarryover: {}
+    };
   }, []);
 
   // Process a user query
@@ -54,6 +73,9 @@ export const AgentProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setIsProcessingQuery(true);
 
     try {
+      // Update memory with the new query
+      conversationMemoryRef.current.lastQuery = query;
+      
       // Add user message to conversation
       const userMessage: Message = {
         id: uuidv4(),
@@ -68,6 +90,7 @@ export const AgentProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       const context: QueryContext = {
         activeClientId: activeClient?.id,
         conversationHistory: [...conversationHistory, userMessage],
+        conversationMemory: conversationMemoryRef.current
       };
 
       // Process the query
@@ -78,8 +101,16 @@ export const AgentProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       if (response.visualizationHint) {
         setLatestVisualization(response.visualizationHint);
       }
+      
+      // Update conversation memory if there are updates
+      if (response.memoryUpdates) {
+        conversationMemoryRef.current = {
+          ...conversationMemoryRef.current,
+          ...response.memoryUpdates
+        };
+      }
 
-      // Add assistant response to conversation
+      // Add assistant response to conversation with enhanced metadata
       const assistantMessage: Message = {
         id: uuidv4(),
         role: 'assistant',
@@ -87,6 +118,8 @@ export const AgentProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         timestamp: new Date(),
         confidence: response.confidence,
         data: response.data,
+        suggestedFollowUps: response.suggestedFollowUps,
+        entities: response.detectedEntities
       };
       
       setConversationHistory(prev => [...prev, assistantMessage]);
@@ -134,12 +167,40 @@ export const AgentProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   // Update context when active client changes
   useEffect(() => {
     if (activeClient) {
+      // Update conversation memory with client context
+      if (conversationMemoryRef.current) {
+        conversationMemoryRef.current.recentEntities = [
+          ...(conversationMemoryRef.current.recentEntities || []),
+          {
+            text: activeClient.name,
+            type: 'ClientName',
+            value: activeClient.name,
+            position: { start: 0, end: 0 } // Position not relevant for context changes
+          }
+        ];
+        
+        // Store client ID in contextCarryover for referencing in subsequent queries
+        conversationMemoryRef.current.contextCarryover = {
+          ...conversationMemoryRef.current.contextCarryover,
+          subject: activeClient.name
+        };
+      }
+      
+      // Add client context message to conversation
       const clientUpdateMessage: Message = {
         id: uuidv4(),
         role: 'assistant',
         content: `I'm now focused on client: ${activeClient.name}. How can I help with this client?`,
         timestamp: new Date(),
         confidence: 1,
+        entities: [
+          {
+            text: activeClient.name,
+            type: 'ClientName',
+            value: activeClient.name,
+            position: { start: 0, end: 0 }
+          }
+        ]
       };
       
       setConversationHistory(prev => [...prev, clientUpdateMessage]);

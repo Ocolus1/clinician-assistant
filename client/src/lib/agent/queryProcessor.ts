@@ -674,8 +674,21 @@ function errorResponse(error: any): AgentResponse {
     confidence = 0.4;
   }
   
+  // Provide helpful follow-up suggestions based on the error type
+  const suggestedFollowUps = [
+    "Can you check my budget plans?",
+    "How is my client progressing?",
+    "Show me a summary of available strategies"
+  ];
+  
   return {
     content: response,
     confidence,
+    suggestedFollowUps,
+    // Reset memory updates to help recover from errors
+    memoryUpdates: {
+      lastQuery: undefined,
+      lastTopic: 'error_recovery'
+    }
   };
 }
