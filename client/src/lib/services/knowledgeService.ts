@@ -4,7 +4,7 @@
  * This service provides methods to access database information in a way that's
  * useful for generating intelligent responses in the agent system.
  */
-import { apiRequest } from '@/lib/queryClient';
+import { apiRequest } from '../../lib/queryClient';
 import { 
   BudgetSettings, 
   BudgetItem, 
@@ -12,8 +12,8 @@ import {
   Subgoal,
   Strategy,
   Session
-} from '@/shared/schema';
-import { formatCurrency } from '@/lib/utils';
+} from '../../../shared/schema';
+import { formatCurrency } from '../../lib/utils';
 
 /**
  * Interface for general budget information
