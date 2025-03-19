@@ -9,6 +9,7 @@ export interface Message {
   content: string;
   timestamp: Date;
   confidence?: number;
+  data?: any; // Response data for visualization or further processing
 }
 
 /**
@@ -41,6 +42,15 @@ export interface AgentResponse {
 }
 
 /**
+ * Enhanced budget item with additional data for visualization
+ */
+export interface EnhancedBudgetItem extends BudgetItem {
+  amount?: number;        // Total amount allocated (quantity * unitPrice)
+  totalSpent?: number;    // Amount spent so far
+  percentUsed?: number;   // Percentage of budget utilized
+}
+
+/**
  * Budget analysis result structure
  */
 export interface BudgetAnalysis {
@@ -50,7 +60,7 @@ export interface BudgetAnalysis {
   remaining: number;
   utilizationRate: number;
   forecastedDepletion: Date;
-  budgetItems?: BudgetItem[];
+  budgetItems?: EnhancedBudgetItem[];
   spendingByCategory?: Record<string, number>;
 }
 

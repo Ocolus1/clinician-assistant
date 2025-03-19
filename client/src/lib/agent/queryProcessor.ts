@@ -9,9 +9,34 @@ import { strategyDataService } from '@/lib/services/strategyDataService';
  */
 export async function processQuery(query: string, context: QueryContext): Promise<AgentResponse> {
   try {
+    // Check if query is empty or too short
+    if (!query || query.trim().length < 2) {
+      return {
+        content: "I didn't catch that. Could you please provide more details about what you'd like to know?",
+        confidence: 0.5,
+        visualizationHint: 'NONE'
+      };
+    }
+    
+    // Log conversation context
+    console.log('Processing query with context:', {
+      activeClientId: context.activeClientId,
+      activeGoalId: context.activeGoalId,
+      conversationHistoryLength: context.conversationHistory.length
+    });
+    
     // Parse the query to determine intent
     const intent = parseQueryIntent(query, context);
     console.log('Detected query intent:', intent);
+    
+    // Check if client context is required but not available
+    if (needsClientContext(intent) && !context.activeClientId) {
+      return {
+        content: "To answer your question about " + getIntentDescription(intent) + ", I need to know which client you're referring to. Please select a client first.",
+        confidence: 0.9,
+        visualizationHint: 'NONE'
+      };
+    }
     
     // Process the query based on the detected intent
     switch (intent.type) {
@@ -29,6 +54,33 @@ export async function processQuery(query: string, context: QueryContext): Promis
   } catch (error) {
     console.error('Error processing query:', error);
     return errorResponse(error);
+  }
+}
+
+/**
+ * Check if the intent requires client context
+ */
+function needsClientContext(intent: QueryIntent): boolean {
+  return intent.type === 'BUDGET_ANALYSIS' || 
+         intent.type === 'PROGRESS_TRACKING' || 
+         intent.type === 'STRATEGY_RECOMMENDATION';
+}
+
+/**
+ * Get a human-readable description of the intent
+ */
+function getIntentDescription(intent: QueryIntent): string {
+  switch (intent.type) {
+    case 'BUDGET_ANALYSIS':
+      return 'budgets or financial information';
+    case 'PROGRESS_TRACKING':
+      return 'progress or goals';
+    case 'STRATEGY_RECOMMENDATION':
+      return 'therapy strategies or recommendations';
+    case 'GENERAL_QUESTION':
+      return intent.topic ? intent.topic : 'this topic';
+    default:
+      return 'this topic';
   }
 }
 
@@ -369,12 +421,108 @@ function defaultResponse(): AgentResponse {
 }
 
 /**
- * Generate error response
+ * Generate error response with helpful suggestions
+ * Enhanced with detailed error classification and actionable guidance
  */
 function errorResponse(error: any): AgentResponse {
+  // Get the error message or a default one
+  const errorMessage = error.message || 'Something unexpected occurred.';
+  
+  // Log detailed error for debugging
+  console.error('Agent error details:', {
+    message: errorMessage,
+    stack: error.stack,
+    name: error.name,
+    code: error.code || 'unknown'
+  });
+  
+  // Enhanced error classification system
+  // This helps provide more specific and actionable responses to users
+  let content = '';
+  let errorType = 'UNKNOWN';
+  
+  // Network and connectivity errors
+  if (errorMessage.includes('network') || 
+      errorMessage.includes('fetch') || 
+      errorMessage.includes('connection') || 
+      errorMessage.includes('ECONNREFUSED') ||
+      errorMessage.includes('Failed to fetch')) {
+    errorType = 'CONNECTIVITY';
+    content = "I'm having trouble connecting to the data source. This could be due to a network issue. Please check your connection and try again in a moment.";
+  } 
+  // Authentication and permission errors
+  else if (errorMessage.includes('permission') || 
+           errorMessage.includes('access') || 
+           errorMessage.includes('authorize') ||
+           errorMessage.includes('forbidden') ||
+           errorMessage.includes('authentication') ||
+           errorMessage.includes('401') ||
+           errorMessage.includes('403')) {
+    errorType = 'AUTHENTICATION';
+    content = "I don't have permission to access the requested information. This might be related to account permissions or data access controls.";
+  } 
+  // Resource not found errors
+  else if (errorMessage.includes('not found') || 
+           errorMessage.includes('404') || 
+           errorMessage.includes('missing') ||
+           errorMessage.includes('undefined') ||
+           errorMessage.includes('null')) {
+    errorType = 'NOT_FOUND';
+    content = "I couldn't find the information you're looking for. It might not exist in the current database or could have been moved.";
+  } 
+  // Timeout and performance errors
+  else if (errorMessage.includes('timeout') || 
+           errorMessage.includes('timed out') ||
+           errorMessage.includes('too long') ||
+           errorMessage.includes('aborted')) {
+    errorType = 'TIMEOUT';
+    content = "The request took too long to process. This might be due to high system load or complex data processing. Please try a simpler query or try again later.";
+  }
+  // Data parsing and validation errors
+  else if (errorMessage.includes('parse') || 
+           errorMessage.includes('invalid JSON') ||
+           errorMessage.includes('syntax') ||
+           errorMessage.includes('malformed') ||
+           errorMessage.includes('validation') ||
+           errorMessage.includes('schema')) {
+    errorType = 'DATA_FORMAT';
+    content = "I had trouble interpreting the data. There might be an issue with data formatting or validation. Try asking about a different aspect of the data.";
+  }
+  // API limit or quota errors
+  else if (errorMessage.includes('limit') || 
+           errorMessage.includes('quota') ||
+           errorMessage.includes('rate') ||
+           errorMessage.includes('too many') ||
+           errorMessage.includes('429')) {
+    errorType = 'RATE_LIMIT';
+    content = "I've reached the limit of requests I can make at the moment. Please wait a few moments and try again.";
+  }
+  // Default error case
+  else {
+    content = `I encountered an error while processing your query. Please try rephrasing your question or asking about something else.`;
+  }
+  
+  // Add suggestions for recovery
+  let suggestions = "";
+  if (errorType === 'CONNECTIVITY' || errorType === 'TIMEOUT') {
+    suggestions = "You could try: \n1. Checking if you're connected to the internet\n2. Refreshing the page\n3. Simplifying your question";
+  } else if (errorType === 'AUTHENTICATION') {
+    suggestions = "You could try: \n1. Making sure you're logged in\n2. Asking about information you have access to";
+  } else if (errorType === 'NOT_FOUND') {
+    suggestions = "You could try: \n1. Checking if the client exists in the system\n2. Verifying the spelling of names\n3. Looking for similar information";
+  } else if (errorType === 'DATA_FORMAT') {
+    suggestions = "You could try: \n1. Asking about a specific client by name\n2. Using simpler, more direct questions";
+  } else {
+    suggestions = "You could try: \n1. Asking a different question\n2. Being more specific\n3. Using simpler language";
+  }
+  
+  // Add suggestions to the content
+  content += "\n\n" + suggestions;
+  
   return {
-    content: `I'm sorry, I encountered an error while processing your query. ${error.message || 'Please try again with a different question.'}`,
+    content,
     confidence: 0.3,
-    visualizationHint: 'NONE'
+    visualizationHint: 'NONE',
+    data: { errorType }
   };
 }

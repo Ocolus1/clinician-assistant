@@ -54,13 +54,14 @@ export function AgentProvider({ children }: AgentProviderProps) {
       // Process the query
       const response = await processQuery(query, queryContext);
       
-      // Add assistant response to history
+      // Add assistant response to history with data for visualization if available
       const assistantMessage: Message = {
         id: uuidv4(),
         role: 'assistant',
         content: response.content,
         timestamp: new Date(),
-        confidence: response.confidence
+        confidence: response.confidence,
+        data: response.data // Include data for visualization
       };
       
       setConversationHistory(prev => [...prev, assistantMessage]);

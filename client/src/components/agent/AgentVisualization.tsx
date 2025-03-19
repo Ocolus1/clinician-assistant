@@ -1,11 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ResponsiveCirclePacking } from '@nivo/circle-packing';
 import { ResponsiveBar } from '@nivo/bar';
-import { X, Maximize2, Minimize2 } from 'lucide-react';
+import { X, Maximize2, Minimize2, Info } from 'lucide-react';
 import { useAgent } from './AgentContext';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { prepareBubbleHierarchy } from '@/lib/utils/chartDataUtils';
+import { BudgetAnalysis, ProgressAnalysis } from '@/lib/agent/types';
 
 interface AgentVisualizationProps {
   className?: string;
@@ -77,73 +80,116 @@ export function AgentVisualization({ className }: AgentVisualizationProps) {
 
 // Budget visualization using bubble chart
 function BubbleChartVisualization() {
-  // This will be replaced with real data from the agent response
-  // For now we use sample structure matching our system's schema
-  const data = {
-    name: 'budget',
-    color: 'hsl(210, 70%, 50%)',
-    children: [
-      {
-        name: 'Therapy Services',
-        color: 'hsl(10, 70%, 50%)',
-        children: [
-          {
-            name: 'Speech Therapy',
-            color: 'hsl(10, 70%, 50%)',
-            loc: 5000,
-            percentUsed: 65
-          },
-          {
-            name: 'Occupational Therapy',
-            color: 'hsl(30, 70%, 50%)',
-            loc: 3500,
-            percentUsed: 40
-          }
-        ]
-      },
-      {
-        name: 'Assistive Equipment',
-        color: 'hsl(120, 70%, 50%)',
-        children: [
-          {
-            name: 'Communication Devices',
-            color: 'hsl(120, 70%, 50%)',
-            loc: 1200,
-            percentUsed: 90
-          },
-          {
-            name: 'Sensory Tools',
-            color: 'hsl(150, 70%, 50%)',
-            loc: 800,
-            percentUsed: 25
-          }
-        ]
-      },
-      {
-        name: 'Family Support',
-        color: 'hsl(200, 70%, 50%)',
-        children: [
-          {
-            name: 'Respite Care',
-            color: 'hsl(200, 70%, 50%)',
-            loc: 2000,
-            percentUsed: 50
-          },
-          {
-            name: 'Parent Training',
-            color: 'hsl(230, 70%, 50%)',
-            loc: 1500,
-            percentUsed: 10
-          }
-        ]
+  const { conversationHistory } = useAgent();
+  
+  // Process the most recent agent response with budget data
+  const budgetData = useMemo(() => {
+    // Find the latest assistant message with budget data
+    const lastBudgetMessage = [...conversationHistory]
+      .reverse()
+      .find(msg => 
+        msg.role === 'assistant' && 
+        msg.data && 
+        (msg.data as any).totalBudget !== undefined
+      );
+    
+    if (lastBudgetMessage?.data) {
+      // Cast to BudgetAnalysis type
+      return lastBudgetMessage.data as BudgetAnalysis;
+    }
+    
+    // If no budget data found, return null
+    return null;
+  }, [conversationHistory]);
+  
+  // Prepare hierarchical data for the bubble chart
+  const chartData = useMemo(() => {
+    if (!budgetData || !budgetData.budgetItems || budgetData.budgetItems.length === 0) {
+      // Fallback to an empty structure if no data available
+      return {
+        name: 'No Budget Data',
+        color: 'hsl(210, 70%, 50%)',
+        children: [] as Array<{
+          name: string;
+          color: string;
+          children: Array<{
+            name: string;
+            color: string;
+            loc: number;
+            percentUsed: number;
+          }>;
+        }>
+      };
+    }
+    
+    // Group budget items by category and transform to the format expected by the chart
+    const bubbleData: {
+      name: string;
+      color: string;
+      children: Array<{
+        name: string;
+        color: string;
+        children: Array<{
+          name: string;
+          color: string;
+          loc: number;
+          percentUsed: number;
+        }>;
+      }>;
+    } = {
+      name: 'Budget Allocation',
+      color: 'hsl(210, 70%, 50%)',
+      children: []
+    };
+    
+    // Group items by category
+    const categories: Record<string, Array<{
+      name: string;
+      color: string;
+      loc: number;
+      percentUsed: number;
+    }>> = {};
+    
+    // Process budget items
+    budgetData.budgetItems.forEach(item => {
+      const category = item.category || 'Uncategorized';
+      if (!categories[category]) {
+        categories[category] = [];
       }
-    ]
-  };
-
+      
+      // Calculate the budget item amount and percent used
+      const amount = item.quantity * item.unitPrice;
+      
+      // Calculate percent used (use the enhanced properties if available)
+      const percentUsed = 
+        (item as any).totalSpent !== undefined && (item as any).amount !== undefined
+          ? Math.round(((item as any).totalSpent / (item as any).amount) * 100)
+          : 0;
+      
+      categories[category].push({
+        name: item.description,
+        color: `hsl(${Math.random() * 360}, 70%, 50%)`,
+        loc: (item as any).amount || amount,
+        percentUsed
+      });
+    });
+    
+    // Convert categories to children array with proper type
+    bubbleData.children = Object.entries(categories).map(([category, items]) => {
+      return {
+        name: category,
+        color: `hsl(${Math.random() * 360}, 70%, 50%)`,
+        children: items
+      };
+    });
+    
+    return bubbleData;
+  }, [budgetData]);
+  
   return (
     <div className="h-full w-full p-4">
       <ResponsiveCirclePacking
-        data={data}
+        data={chartData}
         margin={{ top: 10, right: 10, bottom: 10, left: 10 }}
         id="name"
         value="loc"
@@ -165,12 +211,32 @@ function BubbleChartVisualization() {
             }}
           >
             <strong style={{ color }}>{id}</strong>
-            <div>${value}</div>
+            <div>${value.toLocaleString()}</div>
+            {/* Display percent used if available */}
+            {(chartData as any).percentUsed !== undefined && (
+              <div>Used: {(chartData as any).percentUsed}%</div>
+            )}
           </div>
         )}
       />
-      <div className="mt-2 text-center text-xs text-muted-foreground">
-        Bubble size represents budget allocation amount
+      
+      <div className="mt-2 flex items-center justify-center space-x-1 text-xs text-muted-foreground">
+        <span>Bubble size represents budget allocation amount</span>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span>
+                <Info className="h-3 w-3 cursor-help opacity-70" />
+              </span>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p className="max-w-xs text-xs">
+                This visualization shows budget items grouped by category. 
+                Larger bubbles represent higher budget allocations.
+              </p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       </div>
     </div>
   );
@@ -178,52 +244,82 @@ function BubbleChartVisualization() {
 
 // Progress visualization using bar chart
 function ProgressChartVisualization() {
-  // Sample data for progress bar chart
-  const data = [
-    {
-      goal: "Communication",
-      progress: 75,
-      progressColor: "hsl(210, 70%, 50%)",
-    },
-    {
-      goal: "Motor Skills",
-      progress: 60,
-      progressColor: "hsl(160, 70%, 50%)",
-    },
-    {
-      goal: "Social Interaction",
-      progress: 40,
-      progressColor: "hsl(40, 70%, 50%)",
-    },
-    {
-      goal: "Independence",
-      progress: 85,
-      progressColor: "hsl(320, 70%, 50%)",
-    },
-    {
-      goal: "Emotional Regulation",
-      progress: 30,
-      progressColor: "hsl(280, 70%, 50%)",
+  const { conversationHistory } = useAgent();
+  
+  // Process the most recent agent response with progress data
+  const progressData = useMemo(() => {
+    // Find the latest assistant message with progress data
+    const lastProgressMessage = [...conversationHistory]
+      .reverse()
+      .find(msg => 
+        msg.role === 'assistant' && 
+        msg.data && 
+        (msg.data as any).overallProgress !== undefined
+      );
+    
+    if (lastProgressMessage?.data) {
+      // Cast to ProgressAnalysis type
+      return lastProgressMessage.data as ProgressAnalysis;
     }
-  ];
-
+    
+    // If no progress data found, return null
+    return null;
+  }, [conversationHistory]);
+  
+  // Transform progress data for the bar chart
+  const chartData = useMemo(() => {
+    if (!progressData || !progressData.goalProgress || progressData.goalProgress.length === 0) {
+      // Default empty structure
+      return [];
+    }
+    
+    // Map goal progress to chart format
+    return progressData.goalProgress.map((goal, index) => {
+      // Generate a color based on index
+      const hue = (index * 60) % 360;
+      return {
+        goal: goal.goalTitle,
+        progress: Math.round(goal.progress), // Ensure we have whole numbers
+        progressColor: `hsl(${hue}, 70%, 50%)`,
+        milestones: goal.milestones.length,
+        completedMilestones: goal.milestones.filter(m => m.completed).length
+      };
+    }).slice(0, 8); // Limit to 8 goals for visual clarity
+  }, [progressData]);
+  
+  // If we have no data to display, show a message
+  if (chartData.length === 0) {
+    return (
+      <div className="flex h-full w-full items-center justify-center p-4">
+        <div className="text-center text-muted-foreground">
+          <p className="mb-2 text-sm">No progress data available</p>
+          <p className="text-xs">Ask a question about client progress to see visualization</p>
+        </div>
+      </div>
+    );
+  }
+  
   return (
     <div className="h-full w-full p-4">
       <ResponsiveBar
-        data={data}
+        data={chartData}
         keys={['progress']}
         indexBy="goal"
         margin={{ top: 10, right: 30, bottom: 50, left: 100 }}
         padding={0.3}
         layout="horizontal"
-        valueScale={{ type: 'linear' }}
+        valueScale={{ type: 'linear', max: 100 }} // Always use 100% as max
         indexScale={{ type: 'band', round: true }}
         colors={(bar) => {
           // Type safe way to access the color
-          const d = bar.data as { progressColor: string };
-          return d.progressColor || '#aaaaaa';
+          const d = bar.data as { progressColor: string; progress: number };
+          
+          // Color based on progress value
+          if (d.progress >= 75) return 'hsl(142, 76%, 36%)'; // Green for high progress
+          if (d.progress >= 50) return 'hsl(48, 96%, 53%)';  // Yellow for medium progress
+          return 'hsl(358, 75%, 59%)'; // Red for low progress
         }}
-        borderColor={{ from: 'color', modifiers: [['darker', 1.6]] }}
+        borderColor={{ from: 'color', modifiers: [['darker', 0.3]] }}
         axisTop={null}
         axisRight={null}
         axisBottom={{
@@ -241,7 +337,7 @@ function ProgressChartVisualization() {
         }}
         labelSkipWidth={12}
         labelSkipHeight={12}
-        labelTextColor={{ from: 'color', modifiers: [['darker', 1.6]] }}
+        labelTextColor={{ from: 'color', modifiers: [['darker', 1.8]] }}
         markers={[
           {
             axis: 'x',
@@ -252,9 +348,40 @@ function ProgressChartVisualization() {
           }
         ]}
         animate={true}
+        tooltip={({ data, value, color }) => (
+          <div
+            style={{
+              padding: '12px',
+              background: 'white',
+              border: '1px solid #ccc',
+              borderRadius: '4px',
+              boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+            }}
+          >
+            <strong style={{ color }}>{data.goal}</strong>
+            <div>Progress: {value}%</div>
+            <div>Milestones: {data.completedMilestones}/{data.milestones}</div>
+          </div>
+        )}
       />
-      <div className="mt-2 text-center text-xs text-muted-foreground">
-        Goal progress compared to 50% target threshold
+      
+      <div className="mt-2 flex items-center justify-center space-x-1 text-xs text-muted-foreground">
+        <span>Goal progress compared to 50% target threshold</span>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span>
+                <Info className="h-3 w-3 cursor-help opacity-70" />
+              </span>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p className="max-w-xs text-xs">
+                This chart shows progress toward each therapy goal. 
+                The dotted line at 50% represents the target threshold.
+              </p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       </div>
     </div>
   );

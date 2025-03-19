@@ -15,7 +15,12 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { useDashboard } from "@/components/dashboard/DashboardProvider";
 import { Separator } from "@/components/ui/separator";
-import { useAgent } from "@/components/agent";
+import { 
+  useAgent, 
+  AgentPanel, 
+  AgentBubble, 
+  AgentVisualization 
+} from "@/components/agent";
 import { useEffect } from "react";
 import { apiRequest } from "@/lib/queryClient";
 import { Client } from "@shared/schema";
@@ -115,6 +120,11 @@ function DashboardContent() {
           <BudgetVisualization className="w-full md:w-[65%] shadow-sm transition-all hover:shadow-md overflow-hidden" />
         </div>
       </div>
+      
+      {/* Agent components */}
+      <AgentBubble />
+      <AgentPanel />
+      <AgentVisualization />
     </DashboardLayout>
   );
 }
