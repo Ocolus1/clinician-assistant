@@ -104,8 +104,8 @@ function BudgetVisualization({ data }: { data: any }) {
   // Prepare data for pie chart with enhanced visuals
   const pieData = Object.entries(spendingByCategory).map(([category, amount]: [string, any]) => {
     // Check if this is a high usage or projected overage category
-    const isHighUsage = spendingPatterns?.highUsageCategories.includes(category);
-    const isProjectedOverage = spendingPatterns?.projectedOverages.includes(category);
+    const isHighUsage = spendingPatterns?.highUsageCategories?.includes(category) || false;
+    const isProjectedOverage = spendingPatterns?.projectedOverages?.includes(category) || false;
     
     // Adjust color based on category status
     let baseColor = getRandomColor(category);
@@ -195,7 +195,7 @@ function BudgetVisualization({ data }: { data: any }) {
         </div>
         
         {/* Add insights section */}
-        {spendingPatterns && spendingPatterns.projectedOverages.length > 0 && (
+        {spendingPatterns?.projectedOverages && spendingPatterns.projectedOverages.length > 0 && (
           <div className="text-xs text-red-600 font-medium w-full">
             ⚠️ Attention: {spendingPatterns.projectedOverages.join(', ')} {spendingPatterns.projectedOverages.length === 1 ? 'is' : 'are'} projected to exceed budget allocation.
           </div>
