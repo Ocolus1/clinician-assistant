@@ -5,13 +5,16 @@ import { ResponsiveBar } from '@nivo/bar';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Info } from 'lucide-react';
+import { CombinedInsights } from './CombinedInsights';
+import { BudgetAnalysis, ProgressAnalysis } from '@/lib/agent/types';
 
 interface AgentVisualizationProps {
-  type?: 'BUBBLE_CHART' | 'PROGRESS_CHART' | 'NONE';
+  type?: 'BUBBLE_CHART' | 'PROGRESS_CHART' | 'COMBINED_INSIGHTS' | 'NONE';
+  clientName?: string;
 }
 
-export default function AgentVisualization({ type }: AgentVisualizationProps) {
-  const { conversationHistory } = useAgent();
+export default function AgentVisualization({ type, clientName }: AgentVisualizationProps) {
+  const { conversationHistory, activeClient } = useAgent();
   
   // Get the latest message with data
   const latestMessageWithData = [...conversationHistory]
@@ -30,21 +33,47 @@ export default function AgentVisualization({ type }: AgentVisualizationProps) {
     );
   }
   
+  // Use client name from props or from active client
+  const displayClientName = clientName || activeClient?.name || 'this client';
+  
   // Render different visualizations based on type
   switch (type) {
     case 'BUBBLE_CHART':
       return <BudgetVisualization data={latestMessageWithData.data} />;
     case 'PROGRESS_CHART':
       return <ProgressVisualization data={latestMessageWithData.data} />;
-    default:
+    case 'COMBINED_INSIGHTS':
       return (
-        <Alert>
-          <Info className="h-4 w-4" />
-          <AlertDescription>
-            Ask a question about budget utilization or client progress to see visualizations.
-          </AlertDescription>
-        </Alert>
+        <CombinedInsights 
+          budgetData={latestMessageWithData.data.budgetData as BudgetAnalysis} 
+          progressData={latestMessageWithData.data.progressData as ProgressAnalysis}
+          clientName={displayClientName}
+        />
       );
+    default:
+      // Auto-select visualization based on data type
+      if (latestMessageWithData.data.budgetData && latestMessageWithData.data.progressData) {
+        return (
+          <CombinedInsights 
+            budgetData={latestMessageWithData.data.budgetData as BudgetAnalysis} 
+            progressData={latestMessageWithData.data.progressData as ProgressAnalysis}
+            clientName={displayClientName}
+          />
+        );
+      } else if (latestMessageWithData.data.totalBudget !== undefined) {
+        return <BudgetVisualization data={latestMessageWithData.data} />;
+      } else if (latestMessageWithData.data.overallProgress !== undefined) {
+        return <ProgressVisualization data={latestMessageWithData.data} />;
+      } else {
+        return (
+          <Alert>
+            <Info className="h-4 w-4" />
+            <AlertDescription>
+              Ask a question about budget utilization or client progress to see visualizations.
+            </AlertDescription>
+          </Alert>
+        );
+      }
   }
 }
 

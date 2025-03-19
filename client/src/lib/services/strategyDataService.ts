@@ -231,8 +231,8 @@ export const strategyDataService = {
       }
       
       // Consider language preferences if available
-      if (client.primaryLanguage && strategy.description) {
-        if (strategy.description.toLowerCase().includes(client.primaryLanguage.toLowerCase())) {
+      if (client.preferredLanguage && strategy.description) {
+        if (strategy.description.toLowerCase().includes(client.preferredLanguage.toLowerCase())) {
           score += 2;
         }
       }
