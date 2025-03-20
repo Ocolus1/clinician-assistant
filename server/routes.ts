@@ -1475,6 +1475,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
   } catch (error) {
     console.error("Error registering knowledge routes:", error);
   }
+  
+  // Register report API routes
+  try {
+    console.log("Registering report API routes");
+    
+    // Import and register report routes
+    import('./routes/reports').then(module => {
+      const { registerReportRoutes } = module;
+      registerReportRoutes(app);
+      console.log("Successfully registered report API routes");
+    }).catch(error => {
+      console.error("Error importing report routes:", error);
+    });
+  } catch (error) {
+    console.error("Error registering report routes:", error);
+  }
 
   const httpServer = createServer(app);
   return httpServer;
