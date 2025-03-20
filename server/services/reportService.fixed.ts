@@ -483,7 +483,6 @@ async function getStrategyStats(
       LIMIT 5
     `;
     
-    // Note: We removed the sessionIds parameter as it's not needed for the simplified query
     const strategyResult = await pool.query(strategyQuery);
     
     // Format strategy results
