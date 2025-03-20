@@ -94,13 +94,16 @@ function SessionCard({ session, onClick }: SessionCardProps) {
 
 export default function ClientSessions() {
   const params = useParams();
-  const clientId = parseInt(params.id);
+  const clientId = params.id ? parseInt(params.id) : undefined;
   const [selectedSession, setSelectedSession] = useState<Session | null>(null);
   
   // Fetch sessions for this client
   const { data: sessions = [], isLoading } = useQuery<Session[]>({
     queryKey: ['/api/clients', clientId, 'sessions'],
     queryFn: async () => {
+      if (!clientId) {
+        return [];
+      }
       const response = await fetch(`/api/clients/${clientId}/sessions`);
       if (!response.ok) {
         throw new Error(`Error fetching sessions: ${response.status} ${response.statusText}`);

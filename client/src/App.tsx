@@ -34,6 +34,7 @@ function Router() {
         <Route path="/clients/new" component={OnboardingForm} />
         <Route path="/clients" component={EnhancedClientList} />
         <Route path="/clients/legacy" component={ClientList} />
+        <Route path="/clients/:id" component={ClientProfile} />
         <Route path="/summary/:clientId" component={Summary} />
         <Route path="/client/:clientId/summary" component={Summary} />
         <Route path="/client/:id/profile" component={ClientProfile} />
