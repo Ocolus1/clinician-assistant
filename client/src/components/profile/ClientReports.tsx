@@ -32,7 +32,7 @@ import {
   Legend,
   PieChart,
   Pie,
-  Cell,
+  Cell
 } from "recharts";
 
 // API and Utils
@@ -494,47 +494,28 @@ function GoalsSection({ data }: { data?: ClientReportData }) {
   // Get client goals directly from the parent ClientReports component props
   const clientId = data?.clientDetails?.id || null;
   
-  // Sample client goals for testing (in real app, these would come from an API)
-  const sampleGoals = [
-    { id: 44, title: "Enhancing Social Communication Skills" },
-    { id: 45, title: "Developing Emotional Regulation" },
-    { id: 46, title: "Enhancing Functional Independence" }
-  ];
+  // Fetch the actual client goals from the API
+  const { data: clientGoals = [] } = useQuery({
+    queryKey: ['/api/clients', clientId, 'goals'],
+    enabled: !!clientId,
+    queryFn: async ({ queryKey }) => {
+      const response = await apiRequest('GET', `/api/clients/${clientId}/goals`);
+      return response || [];
+    }
+  });
   
-  // Hard-code Radwan's goals from the API since we've seen them in the API response
-  const clientGoals = sampleGoals;
-  
-  // Assign random scores for demonstration (in real app this would be from assessments)
-  // Using these specific scores to match the mockup: 6.0, 5.0, 5.0, 7.0, 4.0, 9.0
-  const mockScores = [6.0, 5.0, 5.0, 7.0, 4.0, 9.0];
+  // Assign appropriate scores for demonstration (in real app this would be from assessments)
+  const mockScores = [6.0, 5.0, 8.0]; // Match to our 3 actual goals
   
   // Create a list of goals with real titles and scores
-  const goalsWithScores = clientGoals.map((goal: any, index: number) => ({
+  const goalsWithScores = Array.isArray(clientGoals) ? clientGoals.map((goal: any, index: number) => ({
     id: goal.id,
     title: goal.title,
     score: mockScores[index % mockScores.length] // Use mockScores in a circular pattern
-  }));
+  })) : [];
   
-  // Limit to 5 goals and add placeholders if needed
-  const goalTitles = [
-    "Improve my language and communication skills",
-    "Improve my social development skills",
-    "Improve my physical development (motor skills)",
-    "Improve my daily self-care skills",
-    "Improve my emotional development skills",
-    "Improve my cognitive development"
-  ];
-  
-  // Ensure we have exactly 5 goals
-  let displayGoals = [...goalsWithScores].slice(0, 5);
-  while (displayGoals.length < 5) {
-    const index = displayGoals.length;
-    displayGoals.push({
-      id: -index, // Negative ID to indicate placeholder
-      title: goalTitles[index % goalTitles.length],
-      score: mockScores[index % mockScores.length]
-    });
-  }
+  // Only use the actual goals from the client's profile
+  const displayGoals = [...goalsWithScores];
   
   return (
     <Card className="overflow-hidden border border-gray-100 shadow-sm">
@@ -564,7 +545,7 @@ function GoalsSection({ data }: { data?: ClientReportData }) {
   );
 }
 
-// Goal Gauge Component - thick half donut style matching the mockup exactly
+// Goal Gauge Component - using improved SVG implementation for the half donut
 function GoalGauge({ score }: { score: number }) {
   // Determine color based on score
   const getColor = (score: number) => {
@@ -580,11 +561,10 @@ function GoalGauge({ score }: { score: number }) {
   
   return (
     <div className="flex flex-col items-center w-20">
-      {/* Half Donut Gauge */}
-      <div className="relative w-16 h-10">
-        {/* Create the gauge using SVG for more precise control */}
+      {/* Half Donut Gauge using SVG */}
+      <div className="relative w-16 h-11">
         <svg width="100%" height="100%" viewBox="0 0 100 60">
-          {/* This is the background semi-circle - gray track */}
+          {/* Background semi-circle - gray track */}
           <path 
             d="M10,50 A40,40 0 0,1 90,50" 
             fill="none" 
@@ -593,7 +573,7 @@ function GoalGauge({ score }: { score: number }) {
             strokeLinecap="round"
           />
           
-          {/* This is the value arc - colored based on score */}
+          {/* Value arc - colored based on score */}
           <path 
             d={`M10,50 A40,40 0 ${angle > 90 ? 1 : 0},1 ${10 + 80 * (angle / 180)},${50 - 40 * Math.sin((angle * Math.PI) / 180)}`}
             fill="none" 
