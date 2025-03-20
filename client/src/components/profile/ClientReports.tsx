@@ -63,7 +63,6 @@ interface ClientReportsProps {
 export function ClientReports({ clientId }: ClientReportsProps) {
   // State for date range filter
   const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
-  const [activeTab, setActiveTab] = useState<string>("overview");
   
   // Convert date range to string format for the API
   const dateRangeParams = dateRange ? {
@@ -75,6 +74,13 @@ export function ClientReports({ clientId }: ClientReportsProps) {
   const reportQuery = useQuery({
     queryKey: ['/api/clients/reports/performance', clientId, dateRangeParams],
     queryFn: getClientPerformanceReport,
+    refetchOnWindowFocus: false,
+  });
+  
+  // Fetch detailed strategies data (for bubble chart)
+  const strategiesQuery = useQuery({
+    queryKey: ['/api/clients/reports/strategies', clientId, dateRangeParams],
+    queryFn: getClientStrategiesReport,
     refetchOnWindowFocus: false,
   });
   
@@ -92,60 +98,172 @@ export function ClientReports({ clientId }: ClientReportsProps) {
         </div>
         <div className="flex items-center">
           <DateRangePicker
-            dateRange={dateRange}
-            onDateRangeChange={setDateRange}
-            showCompactDropdown={true}
+            value={dateRange}
+            onChange={setDateRange}
+            showAllTime={true}
             className="w-full sm:w-auto"
           />
         </div>
       </div>
       
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-4 md:w-auto md:grid-cols-4">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="observations">Observations</TabsTrigger>
-          <TabsTrigger value="strategies">Strategies</TabsTrigger>
-          <TabsTrigger value="goals">Goals</TabsTrigger>
-        </TabsList>
-        
-        {reportQuery.isLoading ? (
-          <div className="py-10 flex justify-center items-center">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <span className="ml-3 text-muted-foreground">Loading client performance data...</span>
+      {reportQuery.isLoading || strategiesQuery.isLoading ? (
+        <div className="py-10 flex justify-center items-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <span className="ml-3 text-muted-foreground">Loading client performance data...</span>
+        </div>
+      ) : reportQuery.isError || strategiesQuery.isError ? (
+        <div className="py-10 flex justify-center items-center">
+          <AlertCircle className="h-8 w-8 text-destructive" />
+          <div className="ml-3">
+            <p className="font-semibold">Failed to load report data</p>
+            <p className="text-sm text-muted-foreground">
+              {(reportQuery.error instanceof Error 
+                ? reportQuery.error.message 
+                : strategiesQuery.error instanceof Error
+                  ? strategiesQuery.error.message
+                  : "An unknown error occurred")}
+            </p>
           </div>
-        ) : reportQuery.isError ? (
-          <div className="py-10 flex justify-center items-center">
-            <AlertCircle className="h-8 w-8 text-destructive" />
-            <div className="ml-3">
-              <p className="font-semibold">Failed to load report data</p>
-              <p className="text-sm text-muted-foreground">
-                {reportQuery.error instanceof Error 
-                  ? reportQuery.error.message 
-                  : "An unknown error occurred"}
-              </p>
+        </div>
+      ) : (
+        <div className="space-y-8">
+          {/* Client info and key metrics section */}
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+            <ClientInfoCard data={reportData} className="md:col-span-5" />
+            <KeyMetricsCard data={reportData} className="md:col-span-7" />
+          </div>
+          
+          {/* Observations section */}
+          <div className="space-y-4">
+            <h3 className="text-xl font-semibold tracking-tight">Observations</h3>
+            <ObservationsSection data={reportData} />
+          </div>
+          
+          {/* Strategies section - simplified */}
+          <div className="space-y-4">
+            <h3 className="text-xl font-semibold tracking-tight">Strategies</h3>
+            <StrategiesSection data={reportData} strategiesData={strategiesQuery.data} />
+          </div>
+          
+          {/* Goals section - simplified */}
+          <div className="space-y-4">
+            <h3 className="text-xl font-semibold tracking-tight">Goals</h3>
+            <GoalsSection data={reportData} />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Client Info Card Component
+function ClientInfoCard({ data, className }: { 
+  data?: ClientReportData;
+  className?: string;
+}) {
+  if (!data) return null;
+  
+  const { clientDetails } = data;
+  
+  return (
+    <Card className={className}>
+      <CardHeader className="pb-2">
+        <CardTitle>Client Details</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-3">
+          <div className="flex justify-between items-center">
+            <span className="text-muted-foreground">Name:</span>
+            <span className="font-medium">{clientDetails.name}</span>
+          </div>
+          <div className="flex justify-between items-center">
+            <span className="text-muted-foreground">Age:</span>
+            <span className="font-medium">{clientDetails.age} years</span>
+          </div>
+          <div className="flex justify-between items-center">
+            <span className="text-muted-foreground">Funds Management:</span>
+            <span className="font-medium">{clientDetails.fundsManagement}</span>
+          </div>
+          <div className="flex justify-between items-center">
+            <span className="text-muted-foreground">Allied Health Team:</span>
+            <span className="font-medium">{clientDetails.allies.length}</span>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+// Key Metrics Card Component
+function KeyMetricsCard({ data, className }: { 
+  data?: ClientReportData;
+  className?: string;
+}) {
+  if (!data) return null;
+  
+  const { keyMetrics, cancellations } = data;
+  
+  // Format spending deviation as percentage
+  const spendingDeviation = (keyMetrics.spendingDeviation * 100).toFixed(1);
+  const isOverAllocated = keyMetrics.spendingDeviation > 0;
+  
+  return (
+    <Card className={className}>
+      <CardHeader className="pb-2">
+        <CardTitle>Key Performance Indicators</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="space-y-2">
+            <div className="text-muted-foreground text-sm">Spending Variance</div>
+            <div className="flex items-center">
+              <span className={cn(
+                "text-2xl font-bold",
+                isOverAllocated ? "text-destructive" : "text-green-600"
+              )}>
+                {isOverAllocated ? "+" : ""}{spendingDeviation}%
+              </span>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="h-4 w-4 ml-2 text-muted-foreground" />
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-[250px]">
+                    {isOverAllocated 
+                      ? `Budget over-allocated by ${spendingDeviation}%` 
+                      : `Budget under-allocated by ${Math.abs(Number(spendingDeviation))}%`}
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </div>
           </div>
-        ) : (
-          <>
-            <TabsContent value="overview" className="mt-6">
-              <OverviewTab data={reportData} clientId={clientId} />
-            </TabsContent>
-            
-            <TabsContent value="observations" className="mt-6">
-              <ObservationsTab data={reportData} />
-            </TabsContent>
-            
-            <TabsContent value="strategies" className="mt-6">
-              <StrategiesTab data={reportData} clientId={clientId} dateRange={dateRangeParams} />
-            </TabsContent>
-            
-            <TabsContent value="goals" className="mt-6">
-              <GoalsTab data={reportData} />
-            </TabsContent>
-          </>
-        )}
-      </Tabs>
-    </div>
+          
+          <div className="space-y-2">
+            <div className="text-muted-foreground text-sm">Plan Expiration</div>
+            <div className="flex items-center">
+              <span className={cn(
+                "text-2xl font-bold",
+                keyMetrics.planExpiration < 30 ? "text-destructive" : "text-green-600"
+              )}>
+                {keyMetrics.planExpiration} days
+              </span>
+            </div>
+          </div>
+          
+          <div className="space-y-2">
+            <div className="text-muted-foreground text-sm">Cancellation Rate</div>
+            <div className="flex items-center">
+              <span className={cn(
+                "text-2xl font-bold",
+                cancellations.waived > 20 ? "text-destructive" : "text-green-600"
+              )}>
+                {cancellations.waived}%
+              </span>
+            </div>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
