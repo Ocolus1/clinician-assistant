@@ -441,21 +441,30 @@ function ObservationsSection({ data }: { data?: ClientReportData }) {
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <div className="relative flex h-2.5 w-full overflow-hidden rounded-full bg-secondary">
-                        {/* Render 10 segments for each progress bar */}
-                        {Array.from({ length: 10 }).map((_, i) => (
-                          <div 
-                            key={i} 
-                            className={cn(
-                              "h-full w-[10%] border-r border-white/10",
-                              i === 0 ? "rounded-l-full" : "",
-                              i === 9 ? "rounded-r-full border-r-0" : "",
-                            )}
-                            style={{
-                              backgroundColor: i < Math.floor(entry.value) ? entry.color : undefined
-                            }}
-                          />
-                        ))}
+                      <div className="relative h-2.5 w-full overflow-hidden rounded-full">
+                        {/* Background track */}
+                        <div className="absolute inset-0 bg-gray-200"></div>
+                        
+                        {/* Segments */}
+                        <div className="absolute inset-0 flex">
+                          {Array.from({ length: 10 }).map((_, i) => (
+                            <div 
+                              key={i} 
+                              className={cn(
+                                "h-full w-[10%]",
+                                i < Math.floor(entry.value) ? "" : "opacity-0"
+                              )}
+                              style={{
+                                backgroundColor: entry.color,
+                                borderRight: i < 9 ? '1px solid white' : 'none',
+                                borderTopLeftRadius: i === 0 ? '9999px' : '0',
+                                borderBottomLeftRadius: i === 0 ? '9999px' : '0',
+                                borderTopRightRadius: i === 9 ? '9999px' : '0',
+                                borderBottomRightRadius: i === 9 ? '9999px' : '0'
+                              }}
+                            />
+                          ))}
+                        </div>
                       </div>
                     </TooltipTrigger>
                     <TooltipContent className="p-0" side="right" sideOffset={10}>
