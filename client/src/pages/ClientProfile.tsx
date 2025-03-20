@@ -663,11 +663,6 @@ export default function ClientProfile() {
             
             <TabsContent value="reports" className="mt-0">
               <div className={isReportsTab ? 'w-full' : ''}>
-                <h3 className="text-lg font-medium mb-4">Progress Reports</h3>
-                <p className="text-gray-500 mb-6">
-                  Generate, view, and share progress reports and assessments.
-                </p>
-                
                 {/* Use the ClientReports component */}
                 <ClientReports clientId={clientId} />
               </div>

@@ -413,7 +413,7 @@ function ObservationsSection({ data }: { data?: ClientReportData }) {
         <CardDescription className="text-xs">Average scores across all sessions</CardDescription>
       </CardHeader>
       <CardContent className="p-2">
-        <div className="h-[280px]">
+        <div className="h-[200px]">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={observationData} layout="vertical">
               <CartesianGrid strokeDasharray="3 3" />
@@ -423,7 +423,7 @@ function ObservationsSection({ data }: { data?: ClientReportData }) {
                 formatter={(value: number) => [`${value.toFixed(1)}/10`, 'Score']}
                 labelFormatter={() => ''}
               />
-              <Bar dataKey="value" radius={[0, 4, 4, 0]}>
+              <Bar dataKey="value" radius={[0, 4, 4, 0]} barSize={7}>
                 {observationData.map((entry, index) => (
                   <Cell key={`cell-${index}`} fill={entry.color} />
                 ))}
