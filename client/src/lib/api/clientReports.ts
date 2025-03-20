@@ -4,6 +4,10 @@
  * Functions for fetching report data from the server
  */
 import { getQueryFn } from '@/lib/queryClient';
+import { getDummyClientReport, getDummyClientStrategiesReport } from '@/../../shared/dummy-data';
+
+// Flag to control dummy data for development
+const useDummyData = true;
 
 export interface ClientReportData {
   clientDetails: ClientDetailsData;
@@ -70,64 +74,96 @@ export interface DateRangeParams {
 
 /**
  * Get client performance report
+ * Uses dummy data if useDummyData flag is true
  */
-export const getClientPerformanceReport = getQueryFn<ClientReportData>({
-  on401: "throw",
-  getFn: ({ queryKey }) => {
-    const [_base, clientId, dateRange] = queryKey as [
-      string, 
-      number, 
-      DateRangeParams | undefined
-    ];
-    
-    // Build URL
-    const url = `/api/clients/${clientId}/reports/performance`;
-    
-    // Return params instead of building the URL with query string
-    let params: Record<string, string> = {};
-    
-    if (dateRange) {
-      if (dateRange.startDate) {
-        params.startDate = dateRange.startDate;
+export const getClientPerformanceReport = (queryKey: any) => {
+  const [_base, clientId, dateRange] = queryKey as [
+    string, 
+    number, 
+    DateRangeParams | undefined
+  ];
+
+  // If using dummy data, return the dummy report directly
+  if (useDummyData) {
+    console.log("Using dummy client report data for client", clientId);
+    return Promise.resolve(getDummyClientReport(clientId));
+  }
+  
+  // Otherwise use the real API endpoint
+  return getQueryFn<ClientReportData>({
+    on401: "throw",
+    getFn: ({ queryKey }) => {
+      const [_base, clientId, dateRange] = queryKey as [
+        string, 
+        number, 
+        DateRangeParams | undefined
+      ];
+      
+      // Build URL
+      const url = `/api/clients/${clientId}/reports/performance`;
+      
+      // Return params instead of building the URL with query string
+      let params: Record<string, string> = {};
+      
+      if (dateRange) {
+        if (dateRange.startDate) {
+          params.startDate = dateRange.startDate;
+        }
+        
+        if (dateRange.endDate) {
+          params.endDate = dateRange.endDate;
+        }
       }
       
-      if (dateRange.endDate) {
-        params.endDate = dateRange.endDate;
-      }
+      return { url, params: Object.keys(params).length > 0 ? params : undefined };
     }
-    
-    return { url, params: Object.keys(params).length > 0 ? params : undefined };
-  }
-});
+  })(queryKey);
+};
 
 /**
  * Get client strategies data for detailed visualization
+ * Uses dummy data if useDummyData flag is true
  */
-export const getClientStrategiesReport = getQueryFn<StrategiesData>({
-  on401: "throw",
-  getFn: ({ queryKey }) => {
-    const [_base, clientId, dateRange] = queryKey as [
-      string, 
-      number, 
-      DateRangeParams | undefined
-    ];
-    
-    // Build URL
-    const url = `/api/clients/${clientId}/reports/strategies`;
-    
-    // Return params instead of building the URL with query string
-    let params: Record<string, string> = {};
-    
-    if (dateRange) {
-      if (dateRange.startDate) {
-        params.startDate = dateRange.startDate;
+export const getClientStrategiesReport = (queryKey: any) => {
+  const [_base, clientId, dateRange] = queryKey as [
+    string, 
+    number, 
+    DateRangeParams | undefined
+  ];
+
+  // If using dummy data, return the dummy strategies report directly
+  if (useDummyData) {
+    console.log("Using dummy client strategies data for client", clientId);
+    return Promise.resolve(getDummyClientStrategiesReport(clientId));
+  }
+  
+  // Otherwise use the real API endpoint
+  return getQueryFn<StrategiesData>({
+    on401: "throw",
+    getFn: ({ queryKey }) => {
+      const [_base, clientId, dateRange] = queryKey as [
+        string, 
+        number, 
+        DateRangeParams | undefined
+      ];
+      
+      // Build URL
+      const url = `/api/clients/${clientId}/reports/strategies`;
+      
+      // Return params instead of building the URL with query string
+      let params: Record<string, string> = {};
+      
+      if (dateRange) {
+        if (dateRange.startDate) {
+          params.startDate = dateRange.startDate;
+        }
+        
+        if (dateRange.endDate) {
+          params.endDate = dateRange.endDate;
+        }
       }
       
-      if (dateRange.endDate) {
-        params.endDate = dateRange.endDate;
-      }
+      return { url, params: Object.keys(params).length > 0 ? params : undefined };
     }
-    
-    return { url, params: Object.keys(params).length > 0 ? params : undefined };
-  }
-});
+  })(queryKey);
+};

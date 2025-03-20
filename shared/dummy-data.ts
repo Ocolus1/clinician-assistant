@@ -10,6 +10,65 @@
 
 import { DashboardData, AppointmentStats, BudgetExpirationStats, UpcomingTaskStats } from './schema';
 
+// Import client report interfaces
+export interface ClientReportData {
+  clientDetails: ClientDetailsData;
+  keyMetrics: KeyMetricsData;
+  observations: ObservationsData;
+  cancellations: CancellationsData;
+  strategies: StrategiesData;
+  goals: GoalsData;
+}
+
+export interface ClientDetailsData {
+  id: number;
+  name: string;
+  age: number;
+  fundsManagement: string;
+  allies: Array<{
+    name: string;
+    relationship: string;
+    preferredLanguage: string;
+  }>;
+}
+
+export interface KeyMetricsData {
+  spendingDeviation: number;
+  planExpiration: number; // Days until expiration
+  cancellationRate?: number; // Percentage
+}
+
+export interface ObservationsData {
+  physicalActivity: number;
+  cooperation: number;
+  focus: number;
+  mood: number;
+}
+
+export interface CancellationsData {
+  completed: number; // Percentage
+  waived: number; // Percentage
+  changed: number; // Percentage
+  total: number; // Total number of sessions
+}
+
+export interface StrategiesData {
+  strategies: Array<{
+    id: number;
+    name: string;
+    timesUsed: number;
+    averageScore: number;
+  }>;
+}
+
+export interface GoalsData {
+  goals: Array<{
+    id: number;
+    title: string;
+    score: number; // 0-10 scale
+  }>;
+}
+
 // ------------------------------------------------------
 // Appointment Statistics Dummy Data
 // ------------------------------------------------------
@@ -310,6 +369,180 @@ export const dummyDashboardData: DashboardData = {
   tasks: dummyUpcomingTasks,
   lastUpdated: new Date().toISOString()
 };
+
+// ------------------------------------------------------
+// Client Report Dummy Data
+// ------------------------------------------------------
+
+/**
+ * Generate strategy names
+ */
+function getStrategyName() {
+  const strategyTypes = [
+    "Visual Supports", "Social Stories", "Token Economy", "Behavioral Intervention",
+    "Sensory Regulation", "Play Therapy", "Reinforcement System", "Peer Mediation",
+    "Task Analysis", "Prompting Strategy", "Time Delay", "Naturalistic Teaching",
+    "Video Modeling", "Joint Attention", "Self-Monitoring", "Functional Communication"
+  ];
+  
+  return strategyTypes[Math.floor(Math.random() * strategyTypes.length)];
+}
+
+/**
+ * Generate goal titles
+ */
+function getGoalTitle() {
+  const areas = [
+    "Communication", "Social Skills", "Self-Regulation", "Academic", 
+    "Fine Motor", "Gross Motor", "Independence", "Vocational",
+    "Self-Help", "Cognitive", "Literacy", "Executive Functioning"
+  ];
+  
+  const actions = [
+    "Improve", "Develop", "Enhance", "Strengthen", "Build", 
+    "Master", "Acquire", "Increase", "Refine", "Practice"
+  ];
+  
+  const area = areas[Math.floor(Math.random() * areas.length)];
+  const action = actions[Math.floor(Math.random() * actions.length)];
+  
+  return `${action} ${area} Skills`;
+}
+
+/**
+ * Generate relationship types
+ */
+function getRelationshipType() {
+  const relationships = [
+    "Parent", "Guardian", "Sibling", "Grandparent", 
+    "Teacher", "Social Worker", "Support Coordinator", 
+    "Therapist", "Family Friend", "Caregiver"
+  ];
+  
+  return relationships[Math.floor(Math.random() * relationships.length)];
+}
+
+/**
+ * Generate language preferences
+ */
+function getLanguage() {
+  const languages = [
+    "English", "Spanish", "Mandarin", "Arabic", 
+    "Hindi", "French", "German", "Italian",
+    "Japanese", "Korean", "Russian", "Portuguese"
+  ];
+  
+  return languages[Math.floor(Math.random() * languages.length)];
+}
+
+/**
+ * Generate funds management type
+ */
+function getFundsManagementType() {
+  const types = ["Self-Managed", "Advisor-Managed", "Custodian-Managed"];
+  return types[Math.floor(Math.random() * types.length)];
+}
+
+/**
+ * Generate dummy client report data with realistic values
+ * This creates a comprehensive report with all required sections
+ * 
+ * @param clientId The client ID to use in the report
+ * @returns Dummy client report data
+ */
+export function getDummyClientReport(clientId: number = 100): ClientReportData {
+  // Generate client details
+  const clientDetails: ClientDetailsData = {
+    id: clientId,
+    name: getClientName(),
+    age: Math.floor(Math.random() * 15) + 3, // 3-18 years old
+    fundsManagement: getFundsManagementType(),
+    allies: Array.from({ length: Math.floor(Math.random() * 3) + 1 }, () => ({
+      name: getClientName(),
+      relationship: getRelationshipType(),
+      preferredLanguage: getLanguage()
+    }))
+  };
+  
+  // Generate key metrics
+  const keyMetrics: KeyMetricsData = {
+    spendingDeviation: Math.round((Math.random() * 24) - 12), // -12% to +12%
+    planExpiration: Math.floor(Math.random() * 180) + 15, // 15-195 days until expiration
+    cancellationRate: Math.floor(Math.random() * 20) // 0-20% cancellation rate
+  };
+  
+  // Generate observation scores (0-10 scale)
+  const observations: ObservationsData = {
+    physicalActivity: Math.round((Math.random() * 7) + 3), // 3-10 score
+    cooperation: Math.round((Math.random() * 7) + 3), // 3-10 score
+    focus: Math.round((Math.random() * 7) + 3), // 3-10 score
+    mood: Math.round((Math.random() * 7) + 3) // 3-10 score
+  };
+  
+  // Generate cancellation statistics
+  const totalSessions = Math.floor(Math.random() * 15) + 10; // 10-25 total sessions
+  const completedPercent = Math.floor(Math.random() * 30) + 65; // 65-95% completed
+  const waivedPercent = Math.floor(Math.random() * 15); // 0-15% waived
+  const changedPercent = 100 - completedPercent - waivedPercent; // Remainder changed
+  
+  const cancellations: CancellationsData = {
+    completed: completedPercent,
+    waived: waivedPercent,
+    changed: changedPercent,
+    total: totalSessions
+  };
+  
+  // Generate strategy data
+  const strategyCount = Math.floor(Math.random() * 6) + 3; // 3-8 strategies
+  const strategies: StrategiesData = {
+    strategies: Array.from({ length: strategyCount }, (_, i) => ({
+      id: 200 + i,
+      name: getStrategyName(),
+      timesUsed: Math.floor(Math.random() * 12) + 1, // 1-12 times used
+      averageScore: Math.round((Math.random() * 6) + 4) // 4-10 average score
+    }))
+  };
+  
+  // Generate goal data
+  const goalCount = Math.floor(Math.random() * 4) + 2; // 2-5 goals
+  const goals: GoalsData = {
+    goals: Array.from({ length: goalCount }, (_, i) => ({
+      id: 300 + i,
+      title: getGoalTitle(),
+      score: Math.round((Math.random() * 10)) // 0-10 score
+    }))
+  };
+  
+  return {
+    clientDetails,
+    keyMetrics,
+    observations,
+    cancellations,
+    strategies,
+    goals
+  };
+}
+
+/**
+ * Get detailed strategies data for visualization
+ * This is a subset of the full report focused just on strategies
+ * 
+ * @param clientId The client ID to use
+ * @returns Strategies data
+ */
+export function getDummyClientStrategiesReport(clientId: number = 100): StrategiesData {
+  const strategyCount = Math.floor(Math.random() * 10) + 5; // 5-14 strategies
+  
+  // Generate more detailed strategy data
+  return {
+    strategies: Array.from({ length: strategyCount }, (_, i) => ({
+      id: 200 + i,
+      name: getStrategyName(),
+      timesUsed: Math.floor(Math.random() * 20) + 1, // 1-20 times used
+      averageScore: Math.round((Math.random() * 60) + 40) / 10 // 4.0-10.0 average score with decimal
+    }))
+  };
+}
 
 // ------------------------------------------------------
 // Data Enhancement Helper Functions
