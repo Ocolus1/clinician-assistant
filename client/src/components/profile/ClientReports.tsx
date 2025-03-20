@@ -410,10 +410,9 @@ function ObservationsSection({ data }: { data?: ClientReportData }) {
     <Card>
       <CardHeader className="py-3">
         <CardTitle className="text-base">Observation Scores</CardTitle>
-        <CardDescription className="text-xs">Average scores across all sessions</CardDescription>
       </CardHeader>
       <CardContent className="p-2">
-        <div className="h-[200px]">
+        <div className="h-[150px]">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={observationData} layout="vertical">
               {/* Removed CartesianGrid to eliminate dotted lines */}
