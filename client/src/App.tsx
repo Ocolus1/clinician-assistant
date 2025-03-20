@@ -11,6 +11,7 @@ import ClientList from "@/pages/ClientList";
 import EnhancedClientList from "@/pages/EnhancedClientList";
 import ClientProfile from "@/pages/ClientProfile";
 import Sessions from "@/pages/Sessions";
+import Reports from "@/pages/Reports";
 import Settings from "@/pages/Settings";
 import { AppLayout } from "@/components/layout/AppLayout";
 // Agent components
@@ -39,6 +40,7 @@ function Router() {
         <Route path="/clients/:id/profile" component={ClientProfile} />
         <Route path="/client/:id/print" component={PrintSummary} />
         <Route path="/sessions" component={Sessions} />
+        <Route path="/reports" component={Reports} />
         <Route path="/settings" component={Settings} />
         <Route component={NotFound} />
       </Switch>
