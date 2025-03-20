@@ -468,23 +468,40 @@ async function getStrategyStats(
       return { strategies: [] };
     }
     
-    // Get strategies used in sessions
-    // This query needs to be adapted to the actual database structure
-    // We're using a simplified model assuming strategies are linked to performance assessments
-    // Since there's no direct relationship in the schema yet between strategies and performance assessments,
-    // we'll return a simplified result for now
+    // Get strategies used in sessions and their average scores
+    // The strategies are stored as an array in the milestone_assessments table
+    // We need to join multiple tables to get the strategy usage and scores
     const strategyQuery = `
+      WITH strategy_usages AS (
+        -- Unnest the strategies array to get individual strategy uses
+        SELECT 
+          ma.rating,
+          unnest(ma.strategies) as strategy_id
+        FROM milestone_assessments ma
+        JOIN performance_assessments pa ON ma.performance_assessment_id = pa.id
+        JOIN session_notes sn ON pa.session_note_id = sn.id
+        JOIN sessions s ON sn.session_id = s.id
+        WHERE s.client_id = $1
+          ${sessionIds.length > 0 ? `AND s.id IN (${sessionIds.map((_, i) => `$${i + 2}`).join(',')})` : ''}
+      )
       SELECT 
         s.id,
         s.name,
-        0 as times_used,
-        0 as avg_score
+        COUNT(su.strategy_id) as times_used,
+        CASE 
+          WHEN COUNT(su.strategy_id) > 0 THEN AVG(su.rating)::numeric
+          ELSE 0 
+        END as avg_score
       FROM strategies s
-      LIMIT 5
+      LEFT JOIN strategy_usages su ON s.id::text = su.strategy_id
+      GROUP BY s.id, s.name
+      ORDER BY times_used DESC, avg_score DESC
+      LIMIT 10
     `;
     
-    // Note: We removed the sessionIds parameter as it's not needed for the simplified query
-    const strategyResult = await pool.query(strategyQuery);
+    // Add sessionIds to the query parameters if there are any
+    const strategyParams = [clientId, ...sessionIds];
+    const strategyResult = await pool.query(strategyQuery, strategyParams);
     
     // Format strategy results
     const strategies = strategyResult.rows.map(row => ({
