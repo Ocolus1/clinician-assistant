@@ -134,22 +134,23 @@ export function ClientReports({ clientId }: ClientReportsProps) {
             <KeyMetricsCard data={reportData} className="md:col-span-8" />
           </div>
           
-          {/* Observations and strategies in one row with smaller spacing */}
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+          {/* Observations, strategies, and goals in one row with equal width columns */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {/* Observations section */}
-            <div className="space-y-2 md:col-span-6">
+            <div className="space-y-4">
               <h3 className="text-lg font-semibold tracking-tight">Observations</h3>
               <ObservationsSection data={reportData} />
             </div>
             
-            {/* Strategies and goals in one column */}
-            <div className="space-y-2 md:col-span-6">
-              {/* Strategies section */}
+            {/* Strategies section */}
+            <div className="space-y-4">
               <h3 className="text-lg font-semibold tracking-tight">Strategies</h3>
               <StrategiesSection data={reportData} strategiesData={strategiesQuery.data} />
-              
-              {/* Goals section - below strategies */}
-              <h3 className="text-lg font-semibold tracking-tight mt-4">Goals</h3>
+            </div>
+            
+            {/* Goals section */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold tracking-tight">Goals</h3>
               <GoalsSection data={reportData} />
             </div>
           </div>
@@ -293,7 +294,7 @@ function ObservationsSection({ data }: { data?: ClientReportData }) {
           <CardDescription className="text-xs">Average scores across all sessions</CardDescription>
         </CardHeader>
         <CardContent className="p-2">
-          <div className="h-[200px]">
+          <div className="h-[250px]">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={observationData} layout="vertical">
                 <CartesianGrid strokeDasharray="3 3" />
@@ -321,7 +322,7 @@ function ObservationsSection({ data }: { data?: ClientReportData }) {
           <CardDescription className="text-xs">Breakdown of session attendance</CardDescription>
         </CardHeader>
         <CardContent className="p-2">
-          <div className="h-[200px] flex items-center justify-center">
+          <div className="h-[250px] flex items-center justify-center">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie

@@ -377,8 +377,11 @@ export default function ClientProfile() {
     );
   }
 
+  // Determine if we're on the reports tab for full-width layout
+  const isReportsTab = activeTab === 'reports';
+  
   return (
-    <div className="w-full max-w-6xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+    <div className={`w-full mx-auto py-6 px-4 sm:px-6 lg:px-8 ${!isReportsTab ? 'max-w-6xl' : ''}`}>
       <div className="flex items-center mb-6">
         <Button 
           variant="ghost" 
@@ -548,8 +551,8 @@ export default function ClientProfile() {
           </TabsTrigger>
         </TabsList>
         
-        <Card>
-          <CardContent className="p-6">
+        <Card className={isReportsTab ? 'w-full' : ''}>
+          <CardContent className={isReportsTab ? 'p-6 w-full' : 'p-6'}>
             <TabsContent value="personal" className="mt-0">
               <h3 className="text-lg font-medium mb-4">Personal Information</h3>
               <p className="text-gray-500 mb-6">
@@ -659,13 +662,15 @@ export default function ClientProfile() {
             </TabsContent>
             
             <TabsContent value="reports" className="mt-0">
-              <h3 className="text-lg font-medium mb-4">Progress Reports</h3>
-              <p className="text-gray-500 mb-6">
-                Generate, view, and share progress reports and assessments.
-              </p>
-              
-              {/* Use the ClientReports component */}
-              <ClientReports clientId={clientId} />
+              <div className={isReportsTab ? 'w-full' : ''}>
+                <h3 className="text-lg font-medium mb-4">Progress Reports</h3>
+                <p className="text-gray-500 mb-6">
+                  Generate, view, and share progress reports and assessments.
+                </p>
+                
+                {/* Use the ClientReports component */}
+                <ClientReports clientId={clientId} />
+              </div>
             </TabsContent>
           </CardContent>
         </Card>
