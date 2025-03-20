@@ -1758,22 +1758,7 @@ export function FullScreenSessionForm({
                   <ChevronLeft className="h-4 w-4 mr-1" /> Previous
                 </Button>
                 <Button 
-                  onClick={(e) => {
-                    // Extra safety check before form submission
-                    if (isFormSubmitting || createSessionMutation.isPending) {
-                      console.log("Preventing duplicate submission from button click");
-                      e.preventDefault();
-                      e.stopPropagation();
-                      
-                      toast({
-                        title: "Submission in progress",
-                        description: "Please wait while your session is being created",
-                      });
-                      
-                      return;
-                    }
-                    form.handleSubmit(onSubmit)(e);
-                  }}
+                  type="submit"
                   disabled={isFormSubmitting || createSessionMutation.isPending}
                   variant="default"
                 >
