@@ -211,7 +211,7 @@ export function ClientReports({ clientId }: ClientReportsProps) {
                   <CardDescription className="text-xs">Financial plan and spending</CardDescription>
                 </CardHeader>
                 <CardContent className="p-2">
-                  <div className="space-y-3 py-4">
+                  <div className="h-[170px] space-y-3 flex flex-col justify-center">
                     <div className="space-y-1">
                       <div className="flex justify-between text-xs">
                         <span>Spending Variance:</span>
@@ -233,7 +233,7 @@ export function ClientReports({ clientId }: ClientReportsProps) {
                       </div>
                     </div>
                     
-                    <div className="space-y-1 mt-6">
+                    <div className="space-y-1">
                       <div className="flex justify-between text-xs">
                         <span>Plan Expiration:</span>
                         <span className={cn(
@@ -253,7 +253,7 @@ export function ClientReports({ clientId }: ClientReportsProps) {
                       </div>
                     </div>
                     
-                    <div className="space-y-1 mt-6">
+                    <div className="space-y-1">
                       <div className="flex justify-between text-xs">
                         <span>Cancellation Rate:</span>
                         <span className={cn(

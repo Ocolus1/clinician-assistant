@@ -38,6 +38,8 @@ function Router() {
         <Route path="/client/:clientId/summary" component={Summary} />
         <Route path="/client/:id/profile" component={ClientProfile} />
         <Route path="/clients/:id/profile" component={ClientProfile} />
+        <Route path="/clients/:id/reports" component={Reports} />
+        <Route path="/client/:id/reports" component={Reports} />
         <Route path="/client/:id/print" component={PrintSummary} />
         <Route path="/sessions" component={Sessions} />
         <Route path="/reports" component={Reports} />
