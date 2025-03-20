@@ -575,12 +575,12 @@ async function getGoalAchievementScores(
           JOIN session_notes sn ON pa.session_note_id = sn.id
           WHERE 
             sn.session_id = ANY($1) AND
-            pa.subgoal_id = ANY($2)
+            pa.goal_id = $2
         `;
         
         const scoreResult = await pool.query(
           scoreQuery, 
-          [sessionIds, subgoalIds]
+          [sessionIds, goal.id]
         );
         
         if (scoreResult.rows.length > 0 && scoreResult.rows[0].avg_score) {
