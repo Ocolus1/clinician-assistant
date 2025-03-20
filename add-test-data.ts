@@ -498,7 +498,7 @@ async function createSessionNoteWithAssessments(sessionId: number, clientId: num
       const strategy = strategies[Math.floor(Math.random() * strategies.length)];
       
       // Create performance assessment
-      await pool.query(`
+      const performanceResult = await pool.query(`
         INSERT INTO performance_assessments (
           session_note_id,
           goal_id,
@@ -506,12 +506,53 @@ async function createSessionNoteWithAssessments(sessionId: number, clientId: num
           rating
         ) 
         VALUES ($1, $2, $3, $4)
+        RETURNING id
       `, [
         sessionNote.id,
         goalId, // Use the actual goal ID from the goals table
         faker.lorem.sentence(),
         Math.floor(Math.random() * 10) + 1 // Rating 1-10
       ]);
+      
+      // Add milestone assessments with strategies
+      if (performanceResult.rows.length > 0) {
+        // Get the performance assessment ID
+        const performanceAssessmentId = performanceResult.rows[0].id;
+        
+        // Create 1-3 milestone assessments for each performance assessment
+        const milestoneCount = Math.floor(Math.random() * 3) + 1;
+        
+        for (let j = 0; j < milestoneCount; j++) {
+          // Select 1-3 random strategies for this milestone
+          const strategyCount = Math.floor(Math.random() * 3) + 1;
+          const selectedStrategies = [];
+          
+          for (let k = 0; k < strategyCount; k++) {
+            const strategy = strategies[Math.floor(Math.random() * strategies.length)];
+            if (!selectedStrategies.includes(strategy.id.toString())) {
+              selectedStrategies.push(strategy.id.toString());
+            }
+          }
+          
+          // Create the milestone assessment with strategies
+          await pool.query(`
+            INSERT INTO milestone_assessments (
+              performance_assessment_id,
+              milestone_id,
+              rating,
+              strategies,
+              notes
+            )
+            VALUES ($1, $2, $3, $4, $5)
+          `, [
+            performanceAssessmentId,
+            j + 1, // Simple milestone ID (1, 2, 3)
+            Math.floor(Math.random() * 5) + 1, // Rating 1-5
+            selectedStrategies, // Array of strategy IDs
+            faker.lorem.sentence()
+          ]);
+        }
+      }
     }
     
     return sessionNote;
