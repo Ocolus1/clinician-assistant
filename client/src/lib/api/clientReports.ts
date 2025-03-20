@@ -7,7 +7,7 @@ import { getQueryFn } from '@/lib/queryClient';
 import { getDummyClientReport, getDummyClientStrategiesReport } from '@/../../shared/dummy-data';
 
 // Flag to control dummy data for development
-const useDummyData = true;
+const useDummyData = false;
 
 export interface ClientReportData {
   clientDetails: ClientDetailsData;
