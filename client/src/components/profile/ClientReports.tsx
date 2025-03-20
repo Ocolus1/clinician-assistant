@@ -90,21 +90,13 @@ export function ClientReports({ clientId }: ClientReportsProps) {
   return (
     // Make the container full-width and set a max height to avoid scrolling
     <div className="space-y-4 max-w-screen overflow-hidden">
-      <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
-        <div className="space-y-0.5">
-          <h2 className="text-2xl font-bold tracking-tight">Client Performance</h2>
-          <p className="text-muted-foreground">
-            Comprehensive overview of client progress and performance metrics
-          </p>
-        </div>
-        <div className="flex items-center">
-          <DateRangePicker
-            value={dateRange}
-            onChange={setDateRange}
-            showAllTime={true}
-            className="w-full sm:w-auto"
-          />
-        </div>
+      <div className="flex justify-end">
+        <DateRangePicker
+          value={dateRange}
+          onChange={setDateRange}
+          showAllTime={true}
+          className="w-full sm:w-auto"
+        />
       </div>
       
       {reportQuery.isLoading || strategiesQuery.isLoading ? (
@@ -137,20 +129,17 @@ export function ClientReports({ clientId }: ClientReportsProps) {
           {/* Observations, strategies, and goals in one row with equal width columns */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
             {/* Observations section */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold tracking-tight">Observations</h3>
+            <div>
               <ObservationsSection data={reportData} />
             </div>
             
             {/* Strategies section */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold tracking-tight">Strategies</h3>
+            <div>
               <StrategiesSection data={reportData} strategiesData={strategiesQuery.data} />
             </div>
             
             {/* Goals section */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold tracking-tight">Goals</h3>
+            <div>
               <GoalsSection data={reportData} />
             </div>
           </div>
