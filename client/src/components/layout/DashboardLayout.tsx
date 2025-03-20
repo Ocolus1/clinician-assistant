@@ -1,5 +1,5 @@
 import { ReactNode } from "react";
-import { FloatingDock } from "../common/FloatingDock";
+import { FloatingMenu } from "./FloatingMenu";
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -7,17 +7,18 @@ interface DashboardLayoutProps {
 
 /**
  * Special layout component for the Dashboard page
- * Uses the floating dock instead of sidebar to maximize screen space
- * Creates a fully responsive, non-scrollable dashboard
+ * Uses a floating menu instead of sidebar to maximize screen space
+ * Creates a fully responsive, non-scrollable dashboard 
+ * The floating menu can be minimized to a corner icon to maximize screen space
  */
 export function DashboardLayout({ children }: DashboardLayoutProps) {
   return (
     <div className="w-full h-screen overflow-hidden relative">
-      {/* Floating Dock */}
-      <FloatingDock />
+      {/* Floating Menu */}
+      <FloatingMenu />
       
-      {/* Main Content - Responsive Full Screen with space for dock */}
-      <main className="w-full h-full overflow-hidden pl-16">
+      {/* Main Content - Responsive Full Screen */}
+      <main className="w-full h-full overflow-hidden">
         {children}
       </main>
     </div>
