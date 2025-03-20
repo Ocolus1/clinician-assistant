@@ -564,7 +564,7 @@ function GoalsSection({ data }: { data?: ClientReportData }) {
   );
 }
 
-// Goal Gauge Component - half donut style matching the mockup exactly
+// Goal Gauge Component - thick half donut style matching the mockup exactly
 function GoalGauge({ score }: { score: number }) {
   // Determine color based on score
   const getColor = (score: number) => {
@@ -575,27 +575,30 @@ function GoalGauge({ score }: { score: number }) {
   
   const color = getColor(score);
   
+  // Calculate the angle for the gauge (0 to 180 degrees)
+  const angle = (score / 10) * 180;
+  
   return (
     <div className="flex flex-col items-center w-20">
       {/* Half Donut Gauge */}
       <div className="relative w-16 h-10">
-        {/* Create the gauge using SVG for more precise half-donut shape */}
-        <svg width="100%" height="100%" viewBox="0 0 100 50">
-          {/* Background semi-circle */}
+        {/* Create the gauge using SVG for more precise control */}
+        <svg width="100%" height="100%" viewBox="0 0 100 60">
+          {/* This is the background semi-circle - gray track */}
           <path 
-            d="M5,45 A40,40 0 0,1 95,45" 
+            d="M10,50 A40,40 0 0,1 90,50" 
             fill="none" 
             stroke="#e5e7eb" 
-            strokeWidth="10" 
+            strokeWidth="16" 
             strokeLinecap="round"
           />
           
-          {/* Value semi-circle - length based on score */}
+          {/* This is the value arc - colored based on score */}
           <path 
-            d={`M5,45 A40,40 0 0,1 ${5 + (score/10) * 90},${45 - Math.sin(Math.PI * score/10) * 40}`} 
+            d={`M10,50 A40,40 0 ${angle > 90 ? 1 : 0},1 ${10 + 80 * (angle / 180)},${50 - 40 * Math.sin((angle * Math.PI) / 180)}`}
             fill="none" 
             stroke={color} 
-            strokeWidth="10" 
+            strokeWidth="16" 
             strokeLinecap="round"
           />
           
