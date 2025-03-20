@@ -9,7 +9,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Session } from "@shared/schema";
+import { Session, Client } from "@shared/schema";
 import { format } from "date-fns";
 import { FullScreenSessionForm } from '@/components/sessions/FullScreenSessionForm';
 
@@ -100,6 +100,22 @@ export default function ClientSessions() {
   const [selectedSession, setSelectedSession] = useState<Session | null>(null);
   const [createSessionDialogOpen, setCreateSessionDialogOpen] = useState(false);
   
+  // Fetch client details
+  const { data: client } = useQuery<Client>({
+    queryKey: ['/api/clients', clientId],
+    queryFn: async () => {
+      if (!clientId) {
+        return null;
+      }
+      const response = await fetch(`/api/clients/${clientId}`);
+      if (!response.ok) {
+        throw new Error(`Error fetching client: ${response.status} ${response.statusText}`);
+      }
+      return response.json();
+    },
+    enabled: !!clientId,
+  });
+  
   // Fetch sessions for this client
   const { data: sessions = [], isLoading } = useQuery<Session[]>({
     queryKey: ['/api/clients', clientId, 'sessions'],
@@ -159,7 +175,7 @@ export default function ClientSessions() {
       <FullScreenSessionForm 
         open={createSessionDialogOpen} 
         onOpenChange={setCreateSessionDialogOpen}
-        initialClient={clientId}
+        initialClient={client}
       />
       
       <Tabs defaultValue="upcoming" className="w-full">
