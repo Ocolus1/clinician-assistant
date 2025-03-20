@@ -25,6 +25,8 @@ import {
   ResponsiveContainer,
   BarChart,
   Bar,
+  LineChart,
+  Line,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -295,23 +297,26 @@ function ClientInfoCard({ data, className }: {
       <CardHeader className="py-3">
         <CardTitle className="text-base">Client Details</CardTitle>
       </CardHeader>
-      <CardContent className="p-3">
-        <div className="space-y-2">
-          <div className="flex justify-between items-center">
-            <span className="text-muted-foreground text-xs">Name:</span>
-            <span className="font-medium text-sm">{clientDetails.name}</span>
-          </div>
-          <div className="flex justify-between items-center">
-            <span className="text-muted-foreground text-xs">Age:</span>
-            <span className="font-medium text-sm">{clientDetails.age} years</span>
-          </div>
-          <div className="flex justify-between items-center">
-            <span className="text-muted-foreground text-xs">Funds Management:</span>
-            <span className="font-medium text-sm">{clientDetails.fundsManagement}</span>
-          </div>
-          <div className="flex justify-between items-center">
-            <span className="text-muted-foreground text-xs">Allied Health Team:</span>
-            <span className="font-medium text-sm">{clientDetails.allies.length}</span>
+      <CardContent className="p-4">
+        {/* Height matched to match Observations section */}
+        <div className="h-[150px] flex flex-col justify-between py-2">
+          <div className="space-y-6">
+            <div className="flex justify-between items-center">
+              <span className="text-muted-foreground text-sm">Name:</span>
+              <span className="font-medium text-sm">{clientDetails.name}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-muted-foreground text-sm">Age:</span>
+              <span className="font-medium text-sm">{clientDetails.age} years</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-muted-foreground text-sm">Funds Management:</span>
+              <span className="font-medium text-sm">{clientDetails.fundsManagement}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-muted-foreground text-sm">Allied Health Team:</span>
+              <span className="font-medium text-sm">{clientDetails.allies.length}</span>
+            </div>
           </div>
         </div>
       </CardContent>
@@ -398,7 +403,7 @@ function ObservationsSection({ data }: { data?: ClientReportData }) {
   
   const { observations } = data;
   
-  // Prepare data for bar chart
+  // Prepare data for segment display
   const observationData = [
     { name: 'Physical Activity', value: observations.physicalActivity, color: OBSERVATION_COLORS.physicalActivity },
     { name: 'Cooperation', value: observations.cooperation, color: OBSERVATION_COLORS.cooperation },
@@ -406,29 +411,75 @@ function ObservationsSection({ data }: { data?: ClientReportData }) {
     { name: 'Mood', value: observations.mood, color: OBSERVATION_COLORS.mood },
   ];
   
+  // Monthly trend data for tooltips (dummy data for visualization)
+  const getMonthlyTrendData = (value: number) => {
+    // Create 12 months of data for the tooltip chart
+    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    
+    // Create some variation around the current value
+    return months.map(month => ({
+      month,
+      value: Math.max(0, Math.min(10, value + (Math.random() * 2 - 1)))
+    }));
+  };
+  
   return (
     <Card>
       <CardHeader className="py-3">
         <CardTitle className="text-base">Observation Scores</CardTitle>
       </CardHeader>
-      <CardContent className="p-2">
-        <div className="h-[150px]">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={observationData} layout="vertical">
-              {/* Removed CartesianGrid to eliminate dotted lines */}
-              <XAxis type="number" domain={[0, 10]} tick={{ fontSize: 11 }} />
-              <YAxis dataKey="name" type="category" width={180} tick={{ fontSize: 11 }} />
-              <RechartsTooltip 
-                formatter={(value: number) => [`${value.toFixed(1)}/10`, 'Score']}
-                labelFormatter={() => ''}
-              />
-              <Bar dataKey="value" radius={[0, 4, 4, 0]} barSize={14}>
-                {observationData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={entry.color} />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
+      <CardContent className="p-4">
+        <div className="h-[150px] space-y-6">
+          {observationData.map((entry, index) => (
+            <div key={index} className="space-y-1">
+              <div className="flex justify-between items-center">
+                <span className="text-sm">{entry.name}</span>
+                <span className="text-sm font-medium">{entry.value.toFixed(1)}/10</span>
+              </div>
+              
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="relative flex h-2.5 w-full overflow-hidden rounded-full bg-secondary">
+                      {/* Render 10 segments for each progress bar */}
+                      {Array.from({ length: 10 }).map((_, i) => (
+                        <div 
+                          key={i} 
+                          className={cn(
+                            "h-full w-[10%]",
+                            i < Math.floor(entry.value) ? "bg-primary" : "bg-secondary",
+                            i === 0 ? "rounded-l-full" : "",
+                            i === 9 ? "rounded-r-full" : "",
+                            "transition-colors"
+                          )}
+                        />
+                      ))}
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent className="p-0" side="right">
+                    <div className="bg-white rounded-md shadow-lg p-2">
+                      <p className="text-xs font-medium mb-1">{entry.name} - Last 12 Months</p>
+                      <div className="w-[200px] h-[100px]">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <LineChart data={getMonthlyTrendData(entry.value)}>
+                            <XAxis dataKey="month" tick={{ fontSize: 9 }} />
+                            <YAxis domain={[0, 10]} tick={{ fontSize: 9 }} />
+                            <Line 
+                              type="monotone" 
+                              dataKey="value" 
+                              stroke={entry.color} 
+                              strokeWidth={2}
+                              dot={false}
+                            />
+                          </LineChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </div>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+          ))}
         </div>
       </CardContent>
     </Card>
