@@ -487,47 +487,101 @@ function StrategiesSection({ data, strategiesData }: {
   );
 }
 
-// Goals Section Component for the single-page layout
+// Goals Section Component with gauge visualization
 function GoalsSection({ data }: { data?: ClientReportData }) {
   if (!data) return null;
   
-  const { goals } = data;
+  // If we have less than 5 goals, pad the array with placeholder goals
+  const goalsData = data.goals.goals.slice(0, 5);
+  
+  // Sample goal titles to use as placeholders
+  const exampleGoalTitles = [
+    "Improve my language and communication skills",
+    "Improve my social development skills",
+    "Improve my physical development (motor skills)",
+    "Improve my daily self-care skills",
+    "Improve my emotional development skills",
+    "Improve my cognitive development"
+  ];
+  
+  // Ensure we have exactly 5 goals by adding placeholders if needed
+  const fullGoalsList = [...goalsData];
+  while (fullGoalsList.length < 5) {
+    fullGoalsList.push({
+      id: -fullGoalsList.length, // Use negative ID for placeholders
+      title: exampleGoalTitles[fullGoalsList.length],
+      score: 0 // Default score for placeholder goals
+    });
+  }
   
   return (
     <Card>
       <CardHeader className="py-3">
-        <CardTitle className="text-base">Therapy Goals</CardTitle>
-        <CardDescription className="text-xs">Current progress towards goals</CardDescription>
+        <CardTitle className="text-base">GOALS - Average Score</CardTitle>
+        <CardDescription className="text-xs">Current progress towards therapeutic goals</CardDescription>
       </CardHeader>
       <CardContent className="p-2">
-        {!goals.goals.length ? (
-          <div className="text-center py-2">
-            <p className="text-xs text-muted-foreground">No goals data available for this period.</p>
-          </div>
-        ) : (
-          <div className="space-y-3 max-h-[250px] overflow-y-auto">
-            {goals.goals.map((goal) => (
-              <div key={goal.id} className="space-y-1">
-                <div className="flex justify-between items-center">
-                  <div className="font-medium text-xs">{goal.title}</div>
-                  <div className="flex items-center space-x-1">
-                    <span className="text-xs text-muted-foreground">
-                      {goal.score.toFixed(1)}/10
-                    </span>
-                  </div>
+        <div className="w-full overflow-hidden">
+          <div className="grid grid-cols-5 gap-2">
+            {fullGoalsList.map((goal, index) => (
+              <div key={goal.id} className="flex flex-col items-center">
+                <div className="text-xs text-center h-12 px-1 flex items-center justify-center">
+                  {goal.title}
                 </div>
-                <div className="w-full bg-secondary h-1.5 rounded-full overflow-hidden">
-                  <div 
-                    className="bg-primary h-full rounded-full" 
-                    style={{ width: `${(goal.score / 10) * 100}%` }} 
-                  />
-                </div>
+                <GoalGauge score={goal.score} />
               </div>
             ))}
           </div>
-        )}
+        </div>
       </CardContent>
     </Card>
+  );
+}
+
+// Goal Gauge Component
+function GoalGauge({ score }: { score: number }) {
+  const percentage = (score / 10) * 100;
+  // Determine color based on score (red for low, yellow for medium, green for high)
+  const getColor = (score: number) => {
+    if (score < 5) return "#f43f5e"; // red
+    if (score < 7) return "#f59e0b"; // amber
+    return "#10b981"; // green
+  };
+  
+  // Calculate the angle for the gauge arc (0-180 degrees)
+  const angle = (score / 10) * 180;
+  
+  return (
+    <div className="relative w-24 h-16 flex flex-col items-center">
+      {/* Gauge background (gray semi-circle) */}
+      <div className="absolute top-0 w-20 h-10 bg-gray-200 rounded-t-full overflow-hidden"></div>
+      
+      {/* Gauge fill (colored semi-circle using transform rotation) */}
+      <div 
+        className="absolute top-0 w-20 h-10 overflow-hidden"
+        style={{ transformOrigin: 'center bottom' }}
+      >
+        <div 
+          className="absolute top-0 w-20 h-10 rounded-t-full"
+          style={{ 
+            backgroundColor: getColor(score),
+            transformOrigin: 'center bottom',
+            transform: `rotate(${angle - 180}deg)`
+          }}
+        ></div>
+      </div>
+      
+      {/* Score display */}
+      <div className="absolute top-2 text-center font-bold z-10" style={{ color: getColor(score) }}>
+        {score.toFixed(1)}
+      </div>
+      
+      {/* Scale markers */}
+      <div className="absolute bottom-0 w-full flex justify-between px-1 text-[8px] text-gray-500">
+        <span>0</span>
+        <span>10</span>
+      </div>
+    </div>
   );
 }
 
