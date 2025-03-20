@@ -92,15 +92,6 @@ export function ClientReports({ clientId }: ClientReportsProps) {
   return (
     // Make the container full-width and set a max height to avoid scrolling
     <div className="space-y-4 max-w-screen overflow-hidden">
-      <div className="flex justify-end">
-        <DateRangePicker
-          value={dateRange}
-          onChange={setDateRange}
-          showAllTime={true}
-          className="w-full sm:w-auto"
-        />
-      </div>
-      
       {reportQuery.isLoading || strategiesQuery.isLoading ? (
         <div className="py-10 flex justify-center items-center">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -122,10 +113,19 @@ export function ClientReports({ clientId }: ClientReportsProps) {
         </div>
       ) : (
         <Tabs defaultValue="therapeutic" className="space-y-4">
-          <TabsList className="grid grid-cols-2 w-[400px]">
-            <TabsTrigger value="therapeutic">Therapeutic</TabsTrigger>
-            <TabsTrigger value="financial">Financial</TabsTrigger>
-          </TabsList>
+          <div className="flex justify-between items-center">
+            <TabsList className="grid grid-cols-2 w-[400px]">
+              <TabsTrigger value="therapeutic">Therapeutic</TabsTrigger>
+              <TabsTrigger value="financial">Financial</TabsTrigger>
+            </TabsList>
+            
+            <DateRangePicker
+              value={dateRange}
+              onChange={setDateRange}
+              showAllTime={true}
+              className="w-full sm:w-auto"
+            />
+          </div>
           
           {/* Therapeutic Tab */}
           <TabsContent value="therapeutic" className="space-y-5">
@@ -423,7 +423,7 @@ function ObservationsSection({ data }: { data?: ClientReportData }) {
                 formatter={(value: number) => [`${value.toFixed(1)}/10`, 'Score']}
                 labelFormatter={() => ''}
               />
-              <Bar dataKey="value" radius={[0, 4, 4, 0]} barSize={7}>
+              <Bar dataKey="value" radius={[0, 4, 4, 0]} barSize={14}>
                 {observationData.map((entry, index) => (
                   <Cell key={`cell-${index}`} fill={entry.color} />
                 ))}
