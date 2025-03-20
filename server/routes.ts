@@ -1005,6 +1005,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Direct session-notes creation endpoint for compatibility with frontend forms
+  app.post("/api/session-notes", async (req, res) => {
+    console.log(`POST /api/session-notes - Creating session note`);
+    try {
+      const { sessionId, ...noteData } = req.body;
+      
+      // First check if the session exists
+      const session = await storage.getSessionById(sessionId);
+      if (!session) {
+        return res.status(404).json({ error: "Session not found" });
+      }
+      
+      const result = insertSessionNoteSchema.safeParse({
+        ...noteData,
+        sessionId,
+        clientId: session.clientId
+      });
+      
+      if (!result.success) {
+        console.error("Session note validation error:", result.error);
+        return res.status(400).json({ error: result.error });
+      }
+      
+      const note = await storage.createSessionNote(result.data);
+      res.json(note);
+    } catch (error) {
+      console.error(`Error creating session note:`, error);
+      res.status(500).json({ error: "Failed to create session note" });
+    }
+  });
+  
   app.put("/api/session-notes/:id", async (req, res) => {
     console.log(`PUT /api/session-notes/${req.params.id} - Updating session note`);
     try {
