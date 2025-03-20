@@ -11,6 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Session } from "@shared/schema";
 import { format } from "date-fns";
+import { FullScreenSessionForm } from '@/components/sessions/FullScreenSessionForm';
 
 import { 
   Calendar, 
@@ -19,6 +20,7 @@ import {
   User,
   Filter,
   Search,
+  Plus,
   Calendar as CalendarIcon
 } from "lucide-react";
 
@@ -96,6 +98,7 @@ export default function ClientSessions() {
   const params = useParams();
   const clientId = params.id ? parseInt(params.id) : undefined;
   const [selectedSession, setSelectedSession] = useState<Session | null>(null);
+  const [createSessionDialogOpen, setCreateSessionDialogOpen] = useState(false);
   
   // Fetch sessions for this client
   const { data: sessions = [], isLoading } = useQuery<Session[]>({
@@ -144,6 +147,21 @@ export default function ClientSessions() {
   
   return (
     <div className="space-y-6">
+      {/* Add Session button */}
+      <div className="flex justify-between items-center mb-4">
+        <h3 className="text-lg font-medium">Therapy Sessions</h3>
+        <Button onClick={() => setCreateSessionDialogOpen(true)}>
+          <Plus className="h-4 w-4 mr-2" /> Add Session
+        </Button>
+      </div>
+      
+      {/* Session creation form */}
+      <FullScreenSessionForm 
+        open={createSessionDialogOpen} 
+        onOpenChange={setCreateSessionDialogOpen}
+        initialClient={clientId}
+      />
+      
       <Tabs defaultValue="upcoming" className="w-full">
         <TabsList className="mb-4">
           <TabsTrigger value="upcoming">Upcoming</TabsTrigger>
