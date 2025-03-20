@@ -9,24 +9,22 @@
  * - Strategy usage and effectiveness
  * - Goal achievement metrics
  */
-
 import { db } from "../db";
-import { storage } from "../storage";
-import { addDays, isPast, parseISO } from "date-fns";
-import { eq, sql, between, and, desc, gte } from "drizzle-orm";
+import { sql, eq, and, gte, lte, desc, asc } from "drizzle-orm";
+import { pool } from "../db";
 import { 
-  allies, 
   clients, 
-  budgetSettings, 
-  budgetItems, 
-  sessions,
-  sessionNotes,
-  performanceAssessments,
-  milestoneAssessments,
+  allies, 
   goals,
   subgoals,
-  strategies
-} from "../../shared/schema";
+  budgetSettings,
+  budgetItems,
+  sessions,
+  sessionNotes,
+  strategies,
+  performanceAssessments,
+  milestoneAssessments
+} from "@shared/schema";
 
 export interface ClientReportData {
   clientDetails: ClientDetailsData;
@@ -98,16 +96,29 @@ export async function generateClientReport(
   clientId: number,
   dateRange?: DateRangeParams
 ): Promise<ClientReportData> {
-  const startDate = dateRange?.startDate ? new Date(dateRange.startDate) : undefined;
-  const endDate = dateRange?.endDate ? new Date(dateRange.endDate) : undefined;
-
   try {
-    // Fetch all the components in parallel for efficiency
+    console.log(`Generating report for client ${clientId}`);
+    
+    // Convert date strings to Date objects if provided
+    let startDate: Date | undefined;
+    let endDate: Date | undefined;
+    
+    if (dateRange?.startDate) {
+      startDate = new Date(dateRange.startDate);
+      console.log(`Using start date: ${startDate.toISOString()}`);
+    }
+    
+    if (dateRange?.endDate) {
+      endDate = new Date(dateRange.endDate);
+      console.log(`Using end date: ${endDate.toISOString()}`);
+    }
+    
+    // Gather all report sections
     const [
-      clientDetails,
-      keyMetrics,
-      observations,
-      cancellationData,
+      clientDetailsData,
+      keyMetricsData,
+      observationsData,
+      cancellationsData,
       strategiesData,
       goalsData
     ] = await Promise.all([
@@ -118,12 +129,15 @@ export async function generateClientReport(
       getStrategyStats(clientId, startDate, endDate),
       getGoalAchievementScores(clientId, startDate, endDate)
     ]);
-
+    
+    console.log(`Successfully generated report for client ${clientId}`);
+    
+    // Return complete report
     return {
-      clientDetails,
-      keyMetrics,
-      observations,
-      cancellations: cancellationData,
+      clientDetails: clientDetailsData,
+      keyMetrics: keyMetricsData,
+      observations: observationsData,
+      cancellations: cancellationsData,
       strategies: strategiesData,
       goals: goalsData
     };
@@ -137,105 +151,108 @@ export async function generateClientReport(
  * Get client details including age and allies
  */
 async function getClientDetails(clientId: number): Promise<ClientDetailsData> {
-  try {
-    // Get client data
-    const client = await storage.getClient(clientId);
-    
-    if (!client) {
-      throw new Error(`Client with ID ${clientId} not found`);
-    }
-    
-    // Get client allies
-    const clientAllies = await storage.getAlliesByClient(clientId);
-    
-    // Calculate age from date of birth
-    const birthDate = client.dateOfBirth ? new Date(client.dateOfBirth) : new Date();
+  // Query client information
+  const [clientResult] = await db
+    .select()
+    .from(clients)
+    .where(eq(clients.id, clientId));
+  
+  if (!clientResult) {
+    throw new Error(`Client with ID ${clientId} not found`);
+  }
+  
+  // Calculate age from date of birth
+  let age = 0;
+  if (clientResult.dateOfBirth) {
+    const dob = new Date(clientResult.dateOfBirth);
     const today = new Date();
-    let age = today.getFullYear() - birthDate.getFullYear();
-    const monthDiff = today.getMonth() - birthDate.getMonth();
-    
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+    age = today.getFullYear() - dob.getFullYear();
+    // Adjust age if birthday hasn't occurred yet this year
+    const monthDiff = today.getMonth() - dob.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dob.getDate())) {
       age--;
     }
-
-    return {
-      id: clientId,
-      name: client.name,
-      age,
-      fundsManagement: client.fundsManagement || "Self-Managed",
-      allies: clientAllies.map(ally => ({
-        name: ally.name,
-        relationship: ally.relationship,
-        preferredLanguage: ally.preferredLanguage
-      }))
-    };
-  } catch (error) {
-    console.error("Error fetching client details:", error);
-    throw new Error(`Failed to fetch client details: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
+  
+  // Get allies
+  const clientAllies = await db
+    .select()
+    .from(allies)
+    .where(eq(allies.clientId, clientId));
+  
+  // Build allies array with required fields
+  const alliesFormatted = clientAllies.map(ally => ({
+    name: ally.name,
+    relationship: ally.relationship || 'Unknown',
+    preferredLanguage: ally.preferredLanguage || 'English'
+  }));
+  
+  return {
+    id: clientResult.id,
+    name: clientResult.name,
+    age,
+    fundsManagement: clientResult.fundsManagement || 'Unknown',
+    allies: alliesFormatted
+  };
 }
 
 /**
  * Get key metrics: spending deviation and plan expiration
  */
 async function getKeyMetrics(clientId: number): Promise<KeyMetricsData> {
-  try {
-    // Get budget settings
-    const settings = await storage.getBudgetSettingsByClient(clientId);
-    
-    if (!settings) {
-      return {
-        spendingDeviation: 0,
-        planExpiration: 0,
-      };
-    }
-    
-    // Get budget items for the client
-    const items = await storage.getBudgetItemsByClient(clientId);
-    
-    // Calculate planned budget
-    const plannedBudget = items.reduce((sum, item) => {
-      const unitPrice = typeof item.unitPrice === 'number' ? item.unitPrice : parseFloat(item.unitPrice);
-      const quantity = typeof item.quantity === 'number' ? item.quantity : parseFloat(item.quantity);
-      return sum + (unitPrice * quantity);
-    }, 0);
-    
-    // Calculate spent budget based on completed sessions 
-    // (In a real system, this would track actual spending)
-    const sessions = await storage.getSessionsByClient(clientId);
-    
-    const spentBudget = sessions.filter(session => 
-      session.status === 'completed' || session.status === 'billed'
-    ).length * 150; // Simplified: each completed session costs $150
-    
-    // Calculate NDIS funds amount
-    const ndisFunds = typeof settings.ndisFunds === 'number' 
-      ? settings.ndisFunds 
-      : parseFloat(settings.ndisFunds || '0');
-    
-    // Calculate spending deviation (negative means under budget)
-    const spendingDeviation = plannedBudget - ndisFunds;
-    
-    // Calculate days until plan expiration
-    const expiryDate = settings.expiryDate ? new Date(settings.expiryDate) : addDays(new Date(), 365);
-    const today = new Date();
-    const dayDiff = Math.floor((expiryDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-    const planExpiration = Math.max(0, dayDiff);
-
-    return {
-      spendingDeviation,
-      planExpiration,
-      cancellationRate: sessions.length > 0 
-        ? (sessions.filter(s => s.status === 'cancelled').length / sessions.length) * 100 
-        : 0
-    };
-  } catch (error) {
-    console.error("Error calculating key metrics:", error);
+  // Get active budget settings
+  const [budgetResult] = await db
+    .select()
+    .from(budgetSettings)
+    .where(and(
+      eq(budgetSettings.clientId, clientId),
+      eq(budgetSettings.isActive, true)
+    ));
+  
+  // Default values if no budget settings found
+  if (!budgetResult) {
     return {
       spendingDeviation: 0,
-      planExpiration: 0,
+      planExpiration: 0
     };
   }
+  
+  // Get budget items
+  const budgetItemsResult = await db
+    .select()
+    .from(budgetItems)
+    .where(eq(budgetItems.budgetSettingsId, budgetResult.id));
+  
+  // Calculate total budget
+  const totalBudget = budgetResult.ndisFunds || 0;
+  
+  // Calculate allocated amount
+  const allocatedAmount = budgetItemsResult.reduce(
+    (sum, item) => sum + (item.unitPrice * item.quantity),
+    0
+  );
+  
+  // Calculate spending deviation (allocated vs. available)
+  // Negative value means under-allocated, positive means over-allocated
+  const spendingDeviation = allocatedAmount > 0 
+    ? (allocatedAmount - totalBudget) / totalBudget 
+    : 0;
+  
+  // Calculate days until expiration
+  let planExpiration = 365; // Default to 1 year if no end date
+  
+  if (budgetResult.endOfPlan) {
+    const endDate = new Date(budgetResult.endOfPlan);
+    const today = new Date();
+    const diffTime = endDate.getTime() - today.getTime();
+    planExpiration = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    planExpiration = Math.max(0, planExpiration); // Ensure not negative
+  }
+  
+  return {
+    spendingDeviation,
+    planExpiration
+  };
 }
 
 /**
@@ -248,92 +265,80 @@ async function getObservationScores(
 ): Promise<ObservationsData> {
   try {
     // Get sessions for the client
-    let sessionsQuery = db.select()
-      .from(sessions)
-      .where(eq(sessions.clientId, clientId));
+    let sessionsQuery = `
+      SELECT s.id 
+      FROM sessions s
+      WHERE s.client_id = $1
+    `;
     
-    // Apply date filters if provided
-    if (startDate && endDate) {
-      sessionsQuery = sessionsQuery.where(
-        and(
-          gte(sessions.date, startDate.toISOString().split('T')[0]),
-          gte(sessions.date, endDate.toISOString().split('T')[0])
-        )
-      );
-    }
-
-    const clientSessions = await sessionsQuery;
+    const queryParams = [clientId];
     
-    if (clientSessions.length === 0) {
-      return {
-        physicalActivity: 3, // Default values if no sessions
-        cooperation: 3,
-        focus: 3,
-        mood: 3
-      };
+    // Add date filtering if provided
+    if (startDate || endDate) {
+      if (startDate) {
+        sessionsQuery += ` AND s.created_at >= $${queryParams.length + 1}`;
+        queryParams.push(startDate);
+      }
+      
+      if (endDate) {
+        sessionsQuery += ` AND s.created_at <= $${queryParams.length + 1}`;
+        queryParams.push(endDate);
+      }
     }
     
-    // Get session notes with performance assessments
-    const sessionIds = clientSessions.map(s => s.id);
+    const sessionsResult = await pool.query(sessionsQuery, queryParams);
+    const sessionIds = sessionsResult.rows.map(row => row.id);
     
     // If no sessions found, return default values
     if (sessionIds.length === 0) {
       return {
-        physicalActivity: 3,
-        cooperation: 3,
-        focus: 3,
-        mood: 3
+        physicalActivity: 0,
+        cooperation: 0,
+        focus: 0,
+        mood: 0
       };
     }
-
-    // In real implementation would filter sessionNotes by sessionIds
-    const notesWithAssessments = await db
-      .select({
-        sessionNoteId: sessionNotes.id,
-        physicalActivity: sessionNotes.physicalActivity,
-        cooperation: sessionNotes.cooperation,
-        focus: sessionNotes.focus,
-        mood: sessionNotes.mood
-      })
-      .from(sessionNotes)
-      .where(sql`${sessionNotes.sessionId} IN (${sessionIds.join(',')})`);
     
-    // If no notes found, return default values
-    if (notesWithAssessments.length === 0) {
+    // Get observation scores from session notes
+    // Using raw SQL as we need to query observation fields
+    // that may not be in the schema
+    const notesQuery = `
+      SELECT 
+        AVG(COALESCE(physical_activity, 0)) as avg_physical,
+        AVG(COALESCE(cooperation, 0)) as avg_cooperation,
+        AVG(COALESCE(focus, 0)) as avg_focus,
+        AVG(COALESCE(mood, 0)) as avg_mood
+      FROM session_notes
+      WHERE session_id = ANY($1)
+    `;
+    
+    const notesResult = await pool.query(notesQuery, [sessionIds]);
+    
+    if (notesResult.rows.length === 0) {
       return {
-        physicalActivity: 3,
-        cooperation: 3,
-        focus: 3,
-        mood: 3
+        physicalActivity: 0,
+        cooperation: 0,
+        focus: 0,
+        mood: 0
       };
     }
     
-    // Calculate averages
-    const totals = notesWithAssessments.reduce(
-      (acc, note) => {
-        acc.physicalActivity += note.physicalActivity || 0;
-        acc.cooperation += note.cooperation || 0;
-        acc.focus += note.focus || 0;
-        acc.mood += note.mood || 0;
-        acc.count++;
-        return acc;
-      },
-      { physicalActivity: 0, cooperation: 0, focus: 0, mood: 0, count: 0 }
-    );
+    // Format results
+    const row = notesResult.rows[0];
     
     return {
-      physicalActivity: totals.count > 0 ? totals.physicalActivity / totals.count : 3,
-      cooperation: totals.count > 0 ? totals.cooperation / totals.count : 3,
-      focus: totals.count > 0 ? totals.focus / totals.count : 3,
-      mood: totals.count > 0 ? totals.mood / totals.count : 3
+      physicalActivity: parseFloat(row.avg_physical) || 0,
+      cooperation: parseFloat(row.avg_cooperation) || 0,
+      focus: parseFloat(row.avg_focus) || 0,
+      mood: parseFloat(row.avg_mood) || 0
     };
   } catch (error) {
-    console.error("Error calculating observation scores:", error);
+    console.error("Error getting observation scores:", error);
     return {
-      physicalActivity: 3,
-      cooperation: 3,
-      focus: 3,
-      mood: 3
+      physicalActivity: 0,
+      cooperation: 0,
+      focus: 0,
+      mood: 0
     };
   }
 }
@@ -348,62 +353,65 @@ async function getCancellationStats(
 ): Promise<CancellationsData> {
   try {
     // Get sessions for the client
-    let sessionsQuery = db.select()
-      .from(sessions)
-      .where(eq(sessions.clientId, clientId));
+    let sessionsQuery = `
+      SELECT 
+        status,
+        COUNT(*) as count
+      FROM sessions
+      WHERE client_id = $1
+    `;
     
-    // Apply date filters if provided
-    if (startDate && endDate) {
-      sessionsQuery = sessionsQuery.where(
-        and(
-          gte(sessions.date, startDate.toISOString().split('T')[0]),
-          gte(sessions.date, endDate.toISOString().split('T')[0])
-        )
-      );
-    }
-
-    const clientSessions = await sessionsQuery;
+    const queryParams = [clientId];
     
-    if (clientSessions.length === 0) {
-      return {
-        completed: 0,
-        waived: 0,
-        changed: 0,
-        total: 0
-      };
-    }
-    
-    // Count session statuses
-    const counts = {
-      completed: 0,
-      waived: 0,
-      changed: 0,
-      cancelled: 0
-    };
-    
-    clientSessions.forEach(session => {
-      if (session.status === 'completed' || session.status === 'billed') {
-        counts.completed++;
-      } else if (session.status === 'waived') {
-        counts.waived++;
-      } else if (session.status === 'changed') {
-        counts.changed++;
-      } else if (session.status === 'cancelled') {
-        counts.cancelled++;
+    // Add date filtering if provided
+    if (startDate || endDate) {
+      if (startDate) {
+        sessionsQuery += ` AND created_at >= $${queryParams.length + 1}`;
+        queryParams.push(startDate);
       }
-    });
+      
+      if (endDate) {
+        sessionsQuery += ` AND created_at <= $${queryParams.length + 1}`;
+        queryParams.push(endDate);
+      }
+    }
     
-    const total = clientSessions.length;
+    sessionsQuery += ` GROUP BY status`;
+    
+    const result = await pool.query(sessionsQuery, queryParams);
+    
+    // Count totals and calculate percentages
+    let total = 0;
+    let completed = 0;
+    let waived = 0;
+    let changed = 0;
+    
+    for (const row of result.rows) {
+      const count = parseInt(row.count);
+      total += count;
+      
+      if (row.status === 'completed') {
+        completed = count;
+      } else if (row.status === 'waived') {
+        waived = count;
+      } else if (row.status === 'rescheduled') {
+        changed = count;
+      }
+    }
     
     // Convert to percentages
+    const completedPercent = total > 0 ? (completed / total) * 100 : 0;
+    const waivedPercent = total > 0 ? (waived / total) * 100 : 0;
+    const changedPercent = total > 0 ? (changed / total) * 100 : 0;
+    
     return {
-      completed: total > 0 ? (counts.completed / total) * 100 : 0,
-      waived: total > 0 ? (counts.waived / total) * 100 : 0,
-      changed: total > 0 ? (counts.changed / total) * 100 : 0,
+      completed: Math.round(completedPercent),
+      waived: Math.round(waivedPercent),
+      changed: Math.round(changedPercent),
       total
     };
   } catch (error) {
-    console.error("Error calculating cancellation statistics:", error);
+    console.error("Error getting cancellation stats:", error);
     return {
       completed: 0,
       waived: 0,
@@ -423,66 +431,65 @@ async function getStrategyStats(
 ): Promise<StrategiesData> {
   try {
     // Get sessions for the client
-    let sessionsQuery = db.select()
-      .from(sessions)
-      .where(eq(sessions.clientId, clientId));
+    let sessionsQuery = `
+      SELECT id FROM sessions
+      WHERE client_id = $1
+    `;
     
-    // Apply date filters if provided
-    if (startDate && endDate) {
-      sessionsQuery = sessionsQuery.where(
-        and(
-          gte(sessions.date, startDate.toISOString().split('T')[0]),
-          gte(sessions.date, endDate.toISOString().split('T')[0])
-        )
-      );
-    }
-
-    const clientSessions = await sessionsQuery;
+    const queryParams = [clientId];
     
-    if (clientSessions.length === 0) {
-      return {
-        strategies: []
-      };
+    // Add date filtering if provided
+    if (startDate || endDate) {
+      if (startDate) {
+        sessionsQuery += ` AND created_at >= $${queryParams.length + 1}`;
+        queryParams.push(startDate);
+      }
+      
+      if (endDate) {
+        sessionsQuery += ` AND created_at <= $${queryParams.length + 1}`;
+        queryParams.push(endDate);
+      }
     }
     
-    // Get session notes with performance assessments
-    const sessionIds = clientSessions.map(s => s.id);
+    const sessionsResult = await pool.query(sessionsQuery, queryParams);
+    const sessionIds = sessionsResult.rows.map(row => row.id);
     
-    // We would usually join tables to get strategies used in sessions
-    // For simplicity, we'll use a mock approach that gets session notes
-    // and strategies separately
-    const allStrategies = await db.select().from(strategies);
+    // If no sessions found, return empty array
+    if (sessionIds.length === 0) {
+      return { strategies: [] };
+    }
     
-    // Simulate data: assign random usage to each strategy
-    const strategyStats = allStrategies.map(strategy => {
-      // Create a pseudorandom but consistent usage count for each strategy
-      // based on the strategy ID and client ID
-      const hash = (strategy.id * 3 + clientId * 7) % 20;
-      const timesUsed = 1 + Math.floor(hash / 2);
-      
-      // Create a pseudorandom but consistent score for the strategy
-      const scoreHash = (strategy.id * 5 + clientId * 11) % 10;
-      const averageScore = 2.5 + (scoreHash / 4);
-      
-      return {
-        id: strategy.id,
-        name: strategy.name,
-        timesUsed,
-        averageScore: Math.min(5, Math.round(averageScore * 10) / 10)
-      };
-    });
+    // Get strategies used in sessions
+    // This query needs to be adapted to the actual database structure
+    // We're using a simplified model assuming strategies are linked to performance assessments
+    const strategyQuery = `
+      SELECT 
+        s.id,
+        s.name,
+        COUNT(pa.id) as times_used,
+        AVG(COALESCE(pa.score, 0)) as avg_score
+      FROM strategies s
+      JOIN performance_assessments pa ON pa.strategy_id = s.id
+      JOIN session_notes sn ON pa.session_note_id = sn.id
+      WHERE sn.session_id = ANY($1)
+      GROUP BY s.id, s.name
+      ORDER BY times_used DESC
+    `;
     
-    // Sort by usage count (descending)
-    strategyStats.sort((a, b) => b.timesUsed - a.timesUsed);
+    const strategyResult = await pool.query(strategyQuery, [sessionIds]);
     
-    return {
-      strategies: strategyStats
-    };
+    // Format strategy results
+    const strategies = strategyResult.rows.map(row => ({
+      id: row.id,
+      name: row.name,
+      timesUsed: parseInt(row.times_used),
+      averageScore: parseFloat(row.avg_score) || 0
+    }));
+    
+    return { strategies };
   } catch (error) {
-    console.error("Error calculating strategy statistics:", error);
-    return {
-      strategies: []
-    };
+    console.error("Error getting strategy stats:", error);
+    return { strategies: [] };
   }
 }
 
@@ -495,55 +502,94 @@ async function getGoalAchievementScores(
   endDate?: Date
 ): Promise<GoalsData> {
   try {
-    // Get client goals
-    const clientGoals = await storage.getGoalsByClient(clientId);
+    // Get goals for the client
+    const goalsResult = await db
+      .select()
+      .from(goals)
+      .where(eq(goals.clientId, clientId));
     
-    if (clientGoals.length === 0) {
-      return {
-        goals: []
-      };
+    // If no goals found, return empty array
+    if (goalsResult.length === 0) {
+      return { goals: [] };
     }
     
-    // Get subgoals for the goals
-    const goalIds = clientGoals.map(g => g.id);
-    const goalScores = [];
+    // Get sessions in date range
+    let sessionsQuery = `
+      SELECT id FROM sessions
+      WHERE client_id = $1
+    `;
     
-    for (const goal of clientGoals) {
-      // Get subgoals
-      const subgoals = await storage.getSubgoalsByGoal(goal.id);
+    const queryParams = [clientId];
+    
+    // Add date filtering if provided
+    if (startDate || endDate) {
+      if (startDate) {
+        sessionsQuery += ` AND created_at >= $${queryParams.length + 1}`;
+        queryParams.push(startDate);
+      }
       
-      // Calculate pseudo score based on subgoal status
-      const subgoalCount = subgoals.length || 1;
-      let completedCount = 0;
-      
-      subgoals.forEach(subgoal => {
-        if (subgoal.status === 'completed') {
-          completedCount++;
-        } else if (subgoal.status === 'in-progress') {
-          completedCount += 0.5;
+      if (endDate) {
+        sessionsQuery += ` AND created_at <= $${queryParams.length + 1}`;
+        queryParams.push(endDate);
+      }
+    }
+    
+    const sessionsResult = await pool.query(sessionsQuery, queryParams);
+    const sessionIds = sessionsResult.rows.map(row => row.id);
+    
+    // Calculate scores for each goal based on performance assessments
+    const goalScores = await Promise.all(
+      goalsResult.map(async (goal) => {
+        // Get subgoals
+        const subgoals = await db
+          .select()
+          .from(subgoals)
+          .where(eq(subgoals.goalId, goal.id));
+        
+        // If no sessions or no subgoals, use a default score
+        if (sessionIds.length === 0 || subgoals.length === 0) {
+          return {
+            id: goal.id,
+            title: goal.title || `Goal ${goal.id}`,
+            score: 0
+          };
         }
-      });
-      
-      // Calculate goal score (0-10 scale)
-      const score = Math.min(10, Math.round((completedCount / subgoalCount) * 10 * 10) / 10);
-      
-      goalScores.push({
-        id: goal.id,
-        title: goal.title,
-        score
-      });
-    }
+        
+        // Get performance assessments for this goal's subgoals
+        let avgScore = 0;
+        
+        // Use raw query to get performance assessments by subgoal IDs
+        const subgoalIds = subgoals.map(s => s.id);
+        
+        const scoreQuery = `
+          SELECT AVG(COALESCE(pa.score, 0)) as avg_score
+          FROM performance_assessments pa
+          JOIN session_notes sn ON pa.session_note_id = sn.id
+          WHERE 
+            sn.session_id = ANY($1) AND
+            pa.subgoal_id = ANY($2)
+        `;
+        
+        const scoreResult = await pool.query(
+          scoreQuery, 
+          [sessionIds, subgoalIds]
+        );
+        
+        if (scoreResult.rows.length > 0 && scoreResult.rows[0].avg_score) {
+          avgScore = parseFloat(scoreResult.rows[0].avg_score);
+        }
+        
+        return {
+          id: goal.id,
+          title: goal.title || `Goal ${goal.id}`,
+          score: Math.round(avgScore * 10) / 10 // Round to 1 decimal place
+        };
+      })
+    );
     
-    // Sort by score (highest first)
-    goalScores.sort((a, b) => b.score - a.score);
-    
-    return {
-      goals: goalScores
-    };
+    return { goals: goalScores };
   } catch (error) {
-    console.error("Error calculating goal achievement scores:", error);
-    return {
-      goals: []
-    };
+    console.error("Error getting goal scores:", error);
+    return { goals: [] };
   }
 }

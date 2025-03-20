@@ -3,8 +3,7 @@
  * 
  * Functions for fetching report data from the server
  */
-
-import { getQueryFn } from "@/lib/queryClient";
+import { getQueryFn } from '@/lib/queryClient';
 
 export interface ClientReportData {
   clientDetails: ClientDetailsData;
@@ -73,12 +72,68 @@ export interface DateRangeParams {
  * Get client performance report
  */
 export const getClientPerformanceReport = getQueryFn<ClientReportData>({
-  on401: "throw"
+  on401: "throw",
+  getFn: async ({ queryKey }) => {
+    const [_base, clientId, dateRange] = queryKey as [
+      string, 
+      number, 
+      DateRangeParams | undefined
+    ];
+    
+    // Build URL with date range parameters if provided
+    let url = `/api/clients/${clientId}/reports/performance`;
+    
+    if (dateRange) {
+      const params = new URLSearchParams();
+      
+      if (dateRange.startDate) {
+        params.append('startDate', dateRange.startDate);
+      }
+      
+      if (dateRange.endDate) {
+        params.append('endDate', dateRange.endDate);
+      }
+      
+      if (params.toString().length > 0) {
+        url += `?${params.toString()}`;
+      }
+    }
+    
+    return { url };
+  }
 });
 
 /**
  * Get client strategies data for detailed visualization
  */
 export const getClientStrategiesReport = getQueryFn<StrategiesData>({
-  on401: "throw"
+  on401: "throw",
+  getFn: async ({ queryKey }) => {
+    const [_base, clientId, dateRange] = queryKey as [
+      string, 
+      number, 
+      DateRangeParams | undefined
+    ];
+    
+    // Build URL with date range parameters if provided
+    let url = `/api/clients/${clientId}/reports/strategies`;
+    
+    if (dateRange) {
+      const params = new URLSearchParams();
+      
+      if (dateRange.startDate) {
+        params.append('startDate', dateRange.startDate);
+      }
+      
+      if (dateRange.endDate) {
+        params.append('endDate', dateRange.endDate);
+      }
+      
+      if (params.toString().length > 0) {
+        url += `?${params.toString()}`;
+      }
+    }
+    
+    return { url };
+  }
 });
