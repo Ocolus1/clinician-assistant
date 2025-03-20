@@ -129,52 +129,103 @@ export async function apiRequest(
 }
 
 type UnauthorizedBehavior = "returnNull" | "throw";
-export const getQueryFn: <T>(options: {
+
+interface QueryFnOptions {
   on401: UnauthorizedBehavior;
-}) => QueryFunction<T> =
-  ({ on401: unauthorizedBehavior }) =>
+  getFn?: (ctx: { queryKey: unknown[] }) => { url: string; params?: Record<string, any> };
+}
+
+export const getQueryFn: <T>(options: QueryFnOptions) => QueryFunction<T> =
+  ({ on401: unauthorizedBehavior, getFn }) =>
   async ({ queryKey }) => {
-    const url = queryKey[0] as string;
-    // Construct the query string for any parameters in queryKey[1]
-    let fullUrl = url;
-    const params = queryKey[1] as Record<string, any> | undefined;
-    
-    if (params) {
-      const queryParams = new URLSearchParams();
-      Object.entries(params).forEach(([key, value]) => {
-        if (value !== undefined && value !== null) {
-          queryParams.append(key, String(value));
-        }
-      });
+    // If a custom getFn is provided, use it to get the URL and params
+    if (getFn) {
+      const { url, params } = getFn({ queryKey });
       
-      const queryString = queryParams.toString();
-      if (queryString) {
-        fullUrl = `${url}?${queryString}`;
+      // Construct the query string if params are provided
+      let fullUrl = url;
+      if (params) {
+        const queryParams = new URLSearchParams();
+        Object.entries(params).forEach(([key, value]) => {
+          if (value !== undefined && value !== null) {
+            queryParams.append(key, String(value));
+          }
+        });
+        
+        const queryString = queryParams.toString();
+        if (queryString) {
+          fullUrl = `${url}?${queryString}`;
+        }
+      }
+      
+      console.log(`Query request: ${fullUrl}`, queryKey.slice(1));
+      
+      try {
+        const res = await fetch(fullUrl, {
+          credentials: "include",
+          headers: {
+            "Accept": "application/json"
+          }
+        });
+
+        if (unauthorizedBehavior === "returnNull" && res.status === 401) {
+          console.log(`Unauthorized access to ${fullUrl}, returning null as configured`);
+          return null;
+        }
+
+        await throwIfResNotOk(res);
+        const data = await res.json();
+        console.log(`Query response from ${url}:`, data);
+        return data;
+      } catch (error) {
+        console.error(`Query failed for ${url}:`, error);
+        throw error;
       }
     }
-    
-    console.log(`Query request: ${fullUrl}`, queryKey.slice(1));
-    
-    try {
-      const res = await fetch(fullUrl, {
-        credentials: "include",
-        headers: {
-          "Accept": "application/json"
+    // Default behavior (backward compatibility)
+    else {
+      const url = queryKey[0] as string;
+      // Construct the query string for any parameters in queryKey[1]
+      let fullUrl = url;
+      const params = queryKey[1] as Record<string, any> | undefined;
+      
+      if (params) {
+        const queryParams = new URLSearchParams();
+        Object.entries(params).forEach(([key, value]) => {
+          if (value !== undefined && value !== null) {
+            queryParams.append(key, String(value));
+          }
+        });
+        
+        const queryString = queryParams.toString();
+        if (queryString) {
+          fullUrl = `${url}?${queryString}`;
         }
-      });
-
-      if (unauthorizedBehavior === "returnNull" && res.status === 401) {
-        console.log(`Unauthorized access to ${fullUrl}, returning null as configured`);
-        return null;
       }
+      
+      console.log(`Query request: ${fullUrl}`, queryKey.slice(1));
+      
+      try {
+        const res = await fetch(fullUrl, {
+          credentials: "include",
+          headers: {
+            "Accept": "application/json"
+          }
+        });
 
-      await throwIfResNotOk(res);
-      const data = await res.json();
-      console.log(`Query response from ${url}:`, data);
-      return data;
-    } catch (error) {
-      console.error(`Query failed for ${url}:`, error);
-      throw error;
+        if (unauthorizedBehavior === "returnNull" && res.status === 401) {
+          console.log(`Unauthorized access to ${fullUrl}, returning null as configured`);
+          return null;
+        }
+
+        await throwIfResNotOk(res);
+        const data = await res.json();
+        console.log(`Query response from ${url}:`, data);
+        return data;
+      } catch (error) {
+        console.error(`Query failed for ${url}:`, error);
+        throw error;
+      }
     }
   };
 

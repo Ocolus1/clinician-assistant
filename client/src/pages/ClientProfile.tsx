@@ -59,7 +59,7 @@ import ClientAllies from "@/components/profile/ClientAllies";
 import ClientGoals from "@/components/profile/ClientGoals";
 import { BudgetManagerView } from "@/components/budget/BudgetManagerView";
 import ClientSessions from "@/components/profile/ClientSessions";
-import ClientReports from "@/components/profile/ClientReports";
+import { ClientReports } from "@/components/profile/ClientReports";
 import AddAllyDialog from "@/components/profile/AddAllyDialog";
 import AddGoalDialog from "@/components/profile/AddGoalDialog";
 import AddSubgoalDialog from "@/components/profile/AddSubgoalDialog";
@@ -665,7 +665,7 @@ export default function ClientProfile() {
               </p>
               
               {/* Use the ClientReports component */}
-              <ClientReports />
+              <ClientReports clientId={clientId} />
             </TabsContent>
           </CardContent>
         </Card>

@@ -73,33 +73,30 @@ export interface DateRangeParams {
  */
 export const getClientPerformanceReport = getQueryFn<ClientReportData>({
   on401: "throw",
-  getFn: async ({ queryKey }) => {
+  getFn: ({ queryKey }) => {
     const [_base, clientId, dateRange] = queryKey as [
       string, 
       number, 
       DateRangeParams | undefined
     ];
     
-    // Build URL with date range parameters if provided
-    let url = `/api/clients/${clientId}/reports/performance`;
+    // Build URL
+    const url = `/api/clients/${clientId}/reports/performance`;
+    
+    // Return params instead of building the URL with query string
+    let params: Record<string, string> = {};
     
     if (dateRange) {
-      const params = new URLSearchParams();
-      
       if (dateRange.startDate) {
-        params.append('startDate', dateRange.startDate);
+        params.startDate = dateRange.startDate;
       }
       
       if (dateRange.endDate) {
-        params.append('endDate', dateRange.endDate);
-      }
-      
-      if (params.toString().length > 0) {
-        url += `?${params.toString()}`;
+        params.endDate = dateRange.endDate;
       }
     }
     
-    return { url };
+    return { url, params: Object.keys(params).length > 0 ? params : undefined };
   }
 });
 
@@ -108,32 +105,29 @@ export const getClientPerformanceReport = getQueryFn<ClientReportData>({
  */
 export const getClientStrategiesReport = getQueryFn<StrategiesData>({
   on401: "throw",
-  getFn: async ({ queryKey }) => {
+  getFn: ({ queryKey }) => {
     const [_base, clientId, dateRange] = queryKey as [
       string, 
       number, 
       DateRangeParams | undefined
     ];
     
-    // Build URL with date range parameters if provided
-    let url = `/api/clients/${clientId}/reports/strategies`;
+    // Build URL
+    const url = `/api/clients/${clientId}/reports/strategies`;
+    
+    // Return params instead of building the URL with query string
+    let params: Record<string, string> = {};
     
     if (dateRange) {
-      const params = new URLSearchParams();
-      
       if (dateRange.startDate) {
-        params.append('startDate', dateRange.startDate);
+        params.startDate = dateRange.startDate;
       }
       
       if (dateRange.endDate) {
-        params.append('endDate', dateRange.endDate);
-      }
-      
-      if (params.toString().length > 0) {
-        url += `?${params.toString()}`;
+        params.endDate = dateRange.endDate;
       }
     }
     
-    return { url };
+    return { url, params: Object.keys(params).length > 0 ? params : undefined };
   }
 });
