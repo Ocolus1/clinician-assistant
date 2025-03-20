@@ -129,28 +129,28 @@ export function ClientReports({ clientId }: ClientReportsProps) {
           
           {/* Therapeutic Tab */}
           <TabsContent value="therapeutic" className="space-y-5">
-            {/* Row 1: Client info and Observations */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              {/* Client info (therapeutic data) */}
-              <div>
+            {/* Row 1: Client info (25%) and Observations (75%) */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
+              {/* Client info (therapeutic data) - 25% */}
+              <div className="md:col-span-1">
                 <ClientInfoCard data={reportData} />
               </div>
               
-              {/* Observations */}
-              <div>
+              {/* Observations - 75% */}
+              <div className="md:col-span-3">
                 <ObservationsSection data={reportData} />
               </div>
             </div>
             
-            {/* Row 2: Goals and Strategies */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              {/* Goals section */}
-              <div>
+            {/* Row 2: Goals (25%) and Strategies (75%) */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
+              {/* Goals section - 25% */}
+              <div className="md:col-span-1">
                 <GoalsSection data={reportData} />
               </div>
               
-              {/* Strategies */}
-              <div>
+              {/* Strategies - 75% */}
+              <div className="md:col-span-3">
                 <StrategiesSection data={reportData} strategiesData={strategiesQuery.data} />
               </div>
             </div>
