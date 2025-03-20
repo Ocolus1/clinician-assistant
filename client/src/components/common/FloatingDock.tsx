@@ -1,86 +1,117 @@
-import { useState, useEffect } from 'react';
-import { Link, useLocation } from 'wouter';
-import { 
-  LayoutDashboard, 
-  Users, 
-  CalendarClock, 
-  FileText, 
+import React, { useState } from 'react';
+import { useLocation, Link } from 'wouter';
+import {
+  Home,
+  Users,
+  Calendar,
+  BarChart,
   Settings,
-  PanelLeft, 
-  PanelLeftClose
+  Menu,
+  X,
+  HelpCircle,
+  LayoutDashboard,
+  User,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { 
+  Tooltip, 
+  TooltipContent, 
+  TooltipProvider, 
+  TooltipTrigger 
+} from '@/components/ui/tooltip';
+import { Button } from '@/components/ui/button';
+
+interface NavItemProps {
+  href: string;
+  icon: React.ElementType;
+  label: string;
+  active?: boolean;
+  onClick?: () => void;
+}
+
+function NavItem({ href, icon: Icon, label, active, onClick }: NavItemProps) {
+  return (
+    <TooltipProvider delayDuration={0}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Link href={href}>
+            <a
+              className={cn(
+                'flex h-12 w-12 items-center justify-center rounded-full transition-colors hover:bg-primary-100 hover:text-primary-900',
+                active ? 'bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground' : 'text-muted-foreground'
+              )}
+              onClick={onClick}
+            >
+              <Icon className="h-5 w-5" />
+              <span className="sr-only">{label}</span>
+            </a>
+          </Link>
+        </TooltipTrigger>
+        <TooltipContent side="right" className="flex items-center gap-4">
+          {label}
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+}
 
 export function FloatingDock() {
   const [location] = useLocation();
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState<boolean>(false);
 
-  // Check if we're on mobile
-  const [isMobile, setIsMobile] = useState(false);
-  
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-    
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
-
+  // Navigation items
   const navItems = [
-    { href: "/", icon: <LayoutDashboard size={24} />, label: "Dashboard" },
-    { href: "/clients", icon: <Users size={24} />, label: "Clients" },
-    { href: "/sessions", icon: <CalendarClock size={24} />, label: "Sessions" },
-    { href: "/reports", icon: <FileText size={24} />, label: "Reports" },
-    { href: "/settings", icon: <Settings size={24} />, label: "Settings" },
+    { href: '/', icon: LayoutDashboard, label: 'Dashboard' },
+    { href: '/clients', icon: Users, label: 'Clients' },
+    { href: '/sessions', icon: Calendar, label: 'Sessions' },
+    { href: '/reports', icon: BarChart, label: 'Reports' },
+    { href: '/settings', icon: Settings, label: 'Settings' },
+    { href: '/help', icon: HelpCircle, label: 'Help' },
   ];
 
-  // Determine if the dock should be shown at the top for mobile
-  const dockClass = isMobile 
-    ? "fixed bottom-0 left-0 right-0 flex justify-center p-2 bg-background border-t z-50"
-    : expanded
-      ? "fixed left-0 top-0 h-full w-64 p-4 bg-background border-r shadow-md z-50 transition-all duration-300"
-      : "fixed left-0 top-0 h-full w-16 p-2 bg-background border-r shadow-md z-50 transition-all duration-300";
-
-  // Only show the toggle button on desktop
-  const toggleButton = !isMobile && (
-    <button 
-      onClick={() => setExpanded(!expanded)}
-      className="absolute -right-3 top-8 bg-primary text-primary-foreground rounded-full p-1 shadow-md"
-    >
-      {expanded ? <PanelLeftClose size={16} /> : <PanelLeft size={16} />}
-    </button>
-  );
-
   return (
-    <div className={dockClass}>
-      {toggleButton}
+    <div 
+      className={cn(
+        'fixed left-0 top-0 z-40 h-full w-16 flex flex-col items-center justify-between py-4 bg-background border-r border-border transition-all duration-300',
+        expanded ? 'w-64' : 'w-16'
+      )}
+    >
+      {/* Top section with logo/toggle */}
+      <div className="w-full flex flex-col items-center space-y-6">
+        <div className="flex items-center justify-center w-12 h-12 rounded-full bg-primary">
+          <User className="h-6 w-6 text-primary-foreground" />
+        </div>
+        
+        <Button 
+          variant="ghost" 
+          size="icon"
+          className="text-muted-foreground hover:text-foreground"
+          onClick={() => setExpanded(!expanded)}
+        >
+          {expanded ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+        </Button>
+      </div>
       
-      <div className={isMobile ? "flex justify-around w-full" : "flex flex-col space-y-6 mt-6"}>
-        {navItems.map((item) => {
-          const isActive = location === item.href || 
-                          (item.href !== '/' && location.startsWith(item.href));
-                          
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={cn(
-                "flex items-center rounded-md transition-colors",
-                isActive 
-                  ? "bg-primary/10 text-primary" 
-                  : "text-muted-foreground hover:text-foreground hover:bg-accent",
-                expanded && !isMobile
-                  ? "p-2 justify-start space-x-2" 
-                  : "p-2 justify-center"
-              )}
-            >
-              <div>{item.icon}</div>
-              {(expanded && !isMobile) && <span>{item.label}</span>}
-            </Link>
-          );
-        })}
+      {/* Navigation items */}
+      <div className="flex-1 w-full flex flex-col items-center space-y-4 mt-8">
+        {navItems.map((item) => (
+          <NavItem
+            key={item.href}
+            href={item.href}
+            icon={item.icon}
+            label={item.label}
+            active={
+              item.href === '/' 
+                ? location === '/' 
+                : location.startsWith(item.href)
+            }
+          />
+        ))}
+      </div>
+      
+      {/* Bottom section (optional) */}
+      <div className="mt-auto">
+        <NavItem href="/profile" icon={User} label="Profile" />
       </div>
     </div>
   );

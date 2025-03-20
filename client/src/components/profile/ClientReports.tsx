@@ -63,7 +63,6 @@ interface ClientReportsProps {
 export function ClientReports({ clientId }: ClientReportsProps) {
   // State for date range filter
   const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
-  const [activeTab, setActiveTab] = useState<string>("overview");
   
   // Convert date range to string format for the API
   const dateRangeParams = dateRange ? {
@@ -82,7 +81,7 @@ export function ClientReports({ clientId }: ClientReportsProps) {
   const reportData = reportQuery.data;
   
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
         <div className="space-y-0.5">
           <h2 className="text-2xl font-bold tracking-tight">Client Performance</h2>
@@ -92,59 +91,81 @@ export function ClientReports({ clientId }: ClientReportsProps) {
         </div>
         <div className="flex items-center">
           <DateRangePicker
-            dateRange={dateRange}
-            onDateRangeChange={setDateRange}
-            showCompactDropdown={true}
+            value={dateRange}
+            onChange={setDateRange}
             className="w-full sm:w-auto"
           />
         </div>
       </div>
       
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-4 md:w-auto md:grid-cols-4">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="observations">Observations</TabsTrigger>
-          <TabsTrigger value="strategies">Strategies</TabsTrigger>
-          <TabsTrigger value="goals">Goals</TabsTrigger>
-        </TabsList>
-        
-        {reportQuery.isLoading ? (
-          <div className="py-10 flex justify-center items-center">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <span className="ml-3 text-muted-foreground">Loading client performance data...</span>
+      {reportQuery.isLoading ? (
+        <div className="py-10 flex justify-center items-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <span className="ml-3 text-muted-foreground">Loading client performance data...</span>
+        </div>
+      ) : reportQuery.isError ? (
+        <div className="py-10 flex justify-center items-center">
+          <AlertCircle className="h-8 w-8 text-destructive" />
+          <div className="ml-3">
+            <p className="font-semibold">Failed to load report data</p>
+            <p className="text-sm text-muted-foreground">
+              {reportQuery.error instanceof Error 
+                ? reportQuery.error.message 
+                : "An unknown error occurred"}
+            </p>
           </div>
-        ) : reportQuery.isError ? (
-          <div className="py-10 flex justify-center items-center">
-            <AlertCircle className="h-8 w-8 text-destructive" />
-            <div className="ml-3">
-              <p className="font-semibold">Failed to load report data</p>
-              <p className="text-sm text-muted-foreground">
-                {reportQuery.error instanceof Error 
-                  ? reportQuery.error.message 
-                  : "An unknown error occurred"}
-              </p>
+        </div>
+      ) : (
+        <div className="space-y-10">
+          {/* Overview Section */}
+          <section id="overview-section">
+            <div className="mb-4">
+              <h3 className="text-xl font-semibold tracking-tight flex items-center">
+                <Info className="h-5 w-5 mr-2 text-primary" />
+                Client Overview
+              </h3>
+              <Separator className="mt-3" />
             </div>
-          </div>
-        ) : (
-          <>
-            <TabsContent value="overview" className="mt-6">
-              <OverviewTab data={reportData} clientId={clientId} />
-            </TabsContent>
-            
-            <TabsContent value="observations" className="mt-6">
-              <ObservationsTab data={reportData} />
-            </TabsContent>
-            
-            <TabsContent value="strategies" className="mt-6">
-              <StrategiesTab data={reportData} clientId={clientId} dateRange={dateRangeParams} />
-            </TabsContent>
-            
-            <TabsContent value="goals" className="mt-6">
-              <GoalsTab data={reportData} />
-            </TabsContent>
-          </>
-        )}
-      </Tabs>
+            <OverviewTab data={reportData} clientId={clientId} />
+          </section>
+          
+          {/* Observations Section */}
+          <section id="observations-section">
+            <div className="mb-4">
+              <h3 className="text-xl font-semibold tracking-tight flex items-center">
+                <Calendar className="h-5 w-5 mr-2 text-primary" />
+                Observation Metrics
+              </h3>
+              <Separator className="mt-3" />
+            </div>
+            <ObservationsTab data={reportData} />
+          </section>
+          
+          {/* Strategies Section */}
+          <section id="strategies-section">
+            <div className="mb-4">
+              <h3 className="text-xl font-semibold tracking-tight flex items-center">
+                <BarChart4 className="h-5 w-5 mr-2 text-primary" />
+                Strategy Effectiveness
+              </h3>
+              <Separator className="mt-3" />
+            </div>
+            <StrategiesTab data={reportData} clientId={clientId} dateRange={dateRangeParams} />
+          </section>
+          
+          {/* Goals Section */}
+          <section id="goals-section">
+            <div className="mb-4">
+              <h3 className="text-xl font-semibold tracking-tight flex items-center">
+                <CheckCircle className="h-5 w-5 mr-2 text-primary" />
+                Goal Progress
+              </h3>
+              <Separator className="mt-3" />
+            </div>
+            <GoalsTab data={reportData} />
+          </section>
+        </div>
+      )}
     </div>
   );
 }
@@ -278,7 +299,7 @@ function OverviewTab({ data, clientId }: { data?: ClientReportData, clientId: nu
             </div>
           </CardContent>
           <CardFooter>
-            <Button variant="outline" size="sm" className="w-full" onClick={() => document.getElementById('observations-tab')?.click()}>
+            <Button variant="outline" size="sm" className="w-full" onClick={() => document.getElementById('observations-section')?.scrollIntoView({ behavior: 'smooth' })}>
               <Calendar className="h-4 w-4 mr-2" />
               View Timeline
             </Button>
@@ -438,7 +459,7 @@ function StrategiesTab({ data, clientId, dateRange }: {
                     </tr>
                   </thead>
                   <tbody>
-                    {strategies.map((strategy) => (
+                    {strategies.map((strategy: {id: number, name: string, timesUsed: number, averageScore: number}) => (
                       <tr key={strategy.id} className="border-b">
                         <td className="py-3 px-4 font-medium">{strategy.name}</td>
                         <td className="py-3 px-4 text-center">{strategy.timesUsed}</td>
