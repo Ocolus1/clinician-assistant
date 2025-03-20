@@ -129,13 +129,13 @@ export function ClientReports({ clientId }: ClientReportsProps) {
       ) : (
         <div className="space-y-4">
           {/* Client info and key metrics section - all in one row */}
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-5 mb-5">
             <ClientInfoCard data={reportData} className="md:col-span-4" />
             <KeyMetricsCard data={reportData} className="md:col-span-8" />
           </div>
           
           {/* Observations, strategies, and goals in one row with equal width columns */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
             {/* Observations section */}
             <div className="space-y-4">
               <h3 className="text-lg font-semibold tracking-tight">Observations</h3>
@@ -286,7 +286,7 @@ function ObservationsSection({ data }: { data?: ClientReportData }) {
   ];
   
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
       {/* Observations Bar Chart - Reduced height */}
       <Card>
         <CardHeader className="py-3">
@@ -335,7 +335,7 @@ function ObservationsSection({ data }: { data?: ClientReportData }) {
                   cy="50%"
                   labelLine={false}
                   label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                  outerRadius={65}
+                  outerRadius={80}
                   fill="#8884d8"
                   dataKey="value"
                 >
@@ -381,7 +381,7 @@ function StrategiesSection({ data, strategiesData }: {
             <p className="text-xs text-muted-foreground">No strategy data available for this period.</p>
           </div>
         ) : (
-          <div className="overflow-x-auto max-h-[200px]">
+          <div className="overflow-x-auto max-h-[250px]">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b">
@@ -441,7 +441,7 @@ function GoalsSection({ data }: { data?: ClientReportData }) {
             <p className="text-xs text-muted-foreground">No goals data available for this period.</p>
           </div>
         ) : (
-          <div className="space-y-3 max-h-[200px] overflow-y-auto">
+          <div className="space-y-3 max-h-[250px] overflow-y-auto">
             {goals.goals.map((goal) => (
               <div key={goal.id} className="space-y-1">
                 <div className="flex justify-between items-center">
