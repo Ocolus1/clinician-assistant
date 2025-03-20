@@ -171,7 +171,7 @@ export function ClientReports({ clientId }: ClientReportsProps) {
                   <CardDescription className="text-xs">Breakdown of session attendance</CardDescription>
                 </CardHeader>
                 <CardContent className="p-2">
-                  <div className="h-[250px] flex items-center justify-center">
+                  <div className="h-[170px] flex items-center justify-center">
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
                         <Pie
@@ -299,7 +299,7 @@ function ClientInfoCard({ data, className }: {
       </CardHeader>
       <CardContent className="p-4">
         {/* Height matched to match Observations section */}
-        <div className="h-[150px] flex flex-col justify-between py-2">
+        <div className="h-[170px] flex flex-col justify-between py-2">
           <div className="space-y-6">
             <div className="flex justify-between items-center">
               <span className="text-muted-foreground text-sm">Name:</span>
@@ -343,7 +343,7 @@ function KeyMetricsCard({ data, className }: {
         <CardTitle className="text-base">Key Performance Indicators</CardTitle>
       </CardHeader>
       <CardContent className="p-3">
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="h-[170px] grid grid-cols-1 sm:grid-cols-3 gap-3 items-center">
           <div className="space-y-1">
             <div className="text-muted-foreground text-xs">Spending Variance</div>
             <div className="flex items-center">
@@ -423,31 +423,40 @@ function ObservationsSection({ data }: { data?: ClientReportData }) {
               <div className="flex items-center space-x-6">
                 <span className="text-sm w-32 font-medium">{entry.name}:</span>
                 
-                <div className="relative h-3 w-full overflow-hidden rounded-full">
-                  {/* Background track */}
-                  <div className="absolute inset-0 bg-gray-200"></div>
-                  
-                  {/* Segments */}
-                  <div className="absolute inset-0 flex">
-                    {Array.from({ length: 10 }).map((_, i) => (
-                      <div 
-                        key={i} 
-                        className={cn(
-                          "h-full w-[10%]",
-                          i < Math.floor(entry.value) ? "" : "opacity-0"
-                        )}
-                        style={{
-                          backgroundColor: entry.color,
-                          borderRight: i < 9 ? '1px solid white' : 'none',
-                          borderTopLeftRadius: i === 0 ? '9999px' : '0',
-                          borderBottomLeftRadius: i === 0 ? '9999px' : '0',
-                          borderTopRightRadius: i === 9 ? '9999px' : '0',
-                          borderBottomRightRadius: i === 9 ? '9999px' : '0'
-                        }}
-                      />
-                    ))}
-                  </div>
-                </div>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="relative h-3 w-full overflow-hidden rounded-full cursor-pointer">
+                        {/* Background track */}
+                        <div className="absolute inset-0 bg-gray-200"></div>
+                        
+                        {/* Segments */}
+                        <div className="absolute inset-0 flex">
+                          {Array.from({ length: 10 }).map((_, i) => (
+                            <div 
+                              key={i} 
+                              className={cn(
+                                "h-full w-[10%]",
+                                i < Math.floor(entry.value) ? "" : "opacity-0"
+                              )}
+                              style={{
+                                backgroundColor: entry.color,
+                                borderRight: i < 9 ? '1px solid white' : 'none',
+                                borderTopLeftRadius: i === 0 ? '9999px' : '0',
+                                borderBottomLeftRadius: i === 0 ? '9999px' : '0',
+                                borderTopRightRadius: i === 9 ? '9999px' : '0',
+                                borderBottomRightRadius: i === 9 ? '9999px' : '0'
+                              }}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="font-medium">{entry.value.toFixed(1)}/10</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               </div>
             </div>
           ))}
@@ -474,11 +483,11 @@ function StrategiesSection({ data, strategiesData }: {
       </CardHeader>
       <CardContent className="p-2">
         {!strategies.length ? (
-          <div className="text-center py-2">
+          <div className="text-center h-[170px] flex items-center justify-center">
             <p className="text-xs text-muted-foreground">No strategy data available for this period.</p>
           </div>
         ) : (
-          <div className="overflow-x-auto max-h-[250px]">
+          <div className="overflow-x-auto h-[170px]">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b">
@@ -555,7 +564,7 @@ function GoalsSection({ data }: { data?: ClientReportData }) {
       </CardHeader>
       <CardContent className="p-0">
         <div className="w-full bg-white rounded-sm p-6">
-          <div className="flex justify-between items-center">
+          <div className="h-[170px] flex justify-between items-center">
             {displayGoals.map((goal, index) => (
               <div key={goal.id} className="relative flex flex-col items-center">
                 <div className="text-[10px] text-center h-12 px-1 mb-2 flex items-center justify-center max-w-[130px]">
