@@ -416,9 +416,9 @@ function ObservationsSection({ data }: { data?: ClientReportData }) {
         <div className="h-[200px]">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={observationData} layout="vertical">
-              <CartesianGrid strokeDasharray="3 3" />
+              {/* Removed CartesianGrid to eliminate dotted lines */}
               <XAxis type="number" domain={[0, 10]} tick={{ fontSize: 11 }} />
-              <YAxis dataKey="name" type="category" width={90} tick={{ fontSize: 11 }} />
+              <YAxis dataKey="name" type="category" width={180} tick={{ fontSize: 11 }} />
               <RechartsTooltip 
                 formatter={(value: number) => [`${value.toFixed(1)}/10`, 'Score']}
                 labelFormatter={() => ''}
