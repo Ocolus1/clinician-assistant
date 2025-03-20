@@ -267,8 +267,205 @@ function KeyMetricsCard({ data, className }: {
   );
 }
 
+// Observations Section Component for the single-page layout
+function ObservationsSection({ data }: { data?: ClientReportData }) {
+  if (!data) return null;
+  
+  const { observations, cancellations } = data;
+  
+  // Prepare data for bar chart
+  const observationData = [
+    { name: 'Physical Activity', value: observations.physicalActivity, color: OBSERVATION_COLORS.physicalActivity },
+    { name: 'Cooperation', value: observations.cooperation, color: OBSERVATION_COLORS.cooperation },
+    { name: 'Focus', value: observations.focus, color: OBSERVATION_COLORS.focus },
+    { name: 'Mood', value: observations.mood, color: OBSERVATION_COLORS.mood },
+  ];
+  
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      {/* Observations Bar Chart */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Observation Scores</CardTitle>
+          <CardDescription>Average scores across all sessions</CardDescription>
+        </CardHeader>
+        <CardContent className="p-6">
+          <div className="h-[300px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={observationData} layout="vertical">
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis type="number" domain={[0, 10]} />
+                <YAxis dataKey="name" type="category" width={100} />
+                <RechartsTooltip 
+                  formatter={(value: number) => [`${value.toFixed(1)}/10`, 'Score']}
+                  labelFormatter={() => ''}
+                />
+                <Bar dataKey="value" radius={[0, 4, 4, 0]}>
+                  {observationData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Session Breakdown */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Session Attendance</CardTitle>
+          <CardDescription>Breakdown of session attendance</CardDescription>
+        </CardHeader>
+        <CardContent className="p-6">
+          <div className="h-[300px] flex items-center justify-center">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={[
+                    { name: 'Completed', value: cancellations.completed, color: COLORS.green },
+                    { name: 'Waived', value: cancellations.waived, color: COLORS.red },
+                    { name: 'Rescheduled', value: cancellations.changed, color: COLORS.amber },
+                  ]}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                  outerRadius={80}
+                  fill="#8884d8"
+                  dataKey="value"
+                >
+                  {[
+                    { name: 'Completed', value: cancellations.completed, color: COLORS.green },
+                    { name: 'Waived', value: cancellations.waived, color: COLORS.red },
+                    { name: 'Rescheduled', value: cancellations.changed, color: COLORS.amber },
+                  ].map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  ))}
+                </Pie>
+                <RechartsTooltip formatter={(value: number) => [`${value}%`, '']} />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+          <div className="mt-2 text-center text-sm text-muted-foreground">
+            Total sessions: {cancellations.total}
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+// Strategies Section Component for the single-page layout
+function StrategiesSection({ data, strategiesData }: { 
+  data?: ClientReportData; 
+  strategiesData?: StrategiesData;
+}) {
+  if (!data) return null;
+  
+  const strategies = strategiesData?.strategies || data.strategies.strategies || [];
+  
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Therapy Strategies</CardTitle>
+        <CardDescription>Effectiveness of applied strategies</CardDescription>
+      </CardHeader>
+      <CardContent>
+        {!strategies.length ? (
+          <div className="text-center py-8">
+            <p className="text-muted-foreground">No strategy data available for this period.</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b">
+                  <th className="text-left py-3 px-4">Strategy</th>
+                  <th className="text-center py-3 px-4">Times Used</th>
+                  <th className="text-center py-3 px-4">Effectiveness</th>
+                  <th className="text-center py-3 px-4">Rating</th>
+                </tr>
+              </thead>
+              <tbody>
+                {strategies.map((strategy, index) => (
+                  <tr key={strategy.id} className={index % 2 === 0 ? "bg-secondary/20" : ""}>
+                    <td className="py-3 px-4">{strategy.name}</td>
+                    <td className="text-center py-3 px-4">{strategy.timesUsed}</td>
+                    <td className="text-center py-3 px-4">{strategy.averageScore.toFixed(1)}/10</td>
+                    <td className="text-center py-3 px-4">
+                      <div className="flex items-center justify-center">
+                        {Array.from({ length: 5 }).map((_, i) => (
+                          <div 
+                            key={i}
+                            className={cn(
+                              "h-2 w-2 rounded-full mx-0.5",
+                              i < Math.round(strategy.averageScore / 2) 
+                                ? "bg-primary" 
+                                : "bg-muted"
+                            )}
+                          />
+                        ))}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+// Goals Section Component for the single-page layout
+function GoalsSection({ data }: { data?: ClientReportData }) {
+  if (!data) return null;
+  
+  const { goals } = data;
+  
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Therapy Goals</CardTitle>
+        <CardDescription>Current progress towards goals</CardDescription>
+      </CardHeader>
+      <CardContent>
+        {!goals.goals.length ? (
+          <div className="text-center py-8">
+            <p className="text-muted-foreground">No goals data available for this period.</p>
+          </div>
+        ) : (
+          <div className="space-y-6">
+            {goals.goals.map((goal) => (
+              <div key={goal.id} className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <div className="font-medium">{goal.title}</div>
+                  <div className="flex items-center space-x-2">
+                    <span className="text-sm text-muted-foreground">
+                      {goal.score.toFixed(1)}/10
+                    </span>
+                  </div>
+                </div>
+                <div className="w-full bg-secondary h-2 rounded-full overflow-hidden">
+                  <div 
+                    className="bg-primary h-full rounded-full" 
+                    style={{ width: `${(goal.score / 10) * 100}%` }} 
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 // Overview Tab Component
-function OverviewTab({ data, clientId }: { data?: ClientReportData, clientId: number }) {
+// This function is no longer needed - removed for consolidated UI
+function _unused_OverviewTab({ data, clientId }: { data?: ClientReportData, clientId: number }) {
   if (!data) return null;
   
   const { clientDetails, keyMetrics, observations, cancellations } = data;
@@ -407,8 +604,8 @@ function OverviewTab({ data, clientId }: { data?: ClientReportData, clientId: nu
   );
 }
 
-// Observations Tab Component
-function ObservationsTab({ data }: { data?: ClientReportData }) {
+// This function is no longer needed - removed for consolidated UI
+function _unused_ObservationsTab({ data }: { data?: ClientReportData }) {
   if (!data) return null;
   
   const { observations } = data;
@@ -516,8 +713,8 @@ function ObservationsTab({ data }: { data?: ClientReportData }) {
   );
 }
 
-// Strategies Tab Component
-function StrategiesTab({ data, clientId, dateRange }: { 
+// This function is no longer needed - removed for consolidated UI
+function _unused_StrategiesTab({ data, clientId, dateRange }: { 
   data?: ClientReportData, 
   clientId: number,
   dateRange?: { startDate?: string, endDate?: string }
@@ -619,8 +816,8 @@ function StrategiesTab({ data, clientId, dateRange }: {
   );
 }
 
-// Goals Tab Component
-function GoalsTab({ data }: { data?: ClientReportData }) {
+// This function is no longer needed - removed for consolidated UI
+function _unused_GoalsTab({ data }: { data?: ClientReportData }) {
   if (!data) return null;
   
   const { goals } = data;
