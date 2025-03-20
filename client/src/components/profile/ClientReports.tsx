@@ -34,7 +34,7 @@ import {
 } from "recharts";
 
 // API and Utils
-import { getClientPerformanceReport, getClientStrategiesReport, type ClientReportData } from "@/lib/api/clientReports";
+import { getClientPerformanceReport, getClientStrategiesReport, type ClientReportData, type StrategiesData } from "@/lib/api/clientReports";
 import { cn, formatCurrency } from "@/lib/utils";
 
 // Define color constants
@@ -388,7 +388,7 @@ function StrategiesSection({ data, strategiesData }: {
                 </tr>
               </thead>
               <tbody>
-                {strategies.map((strategy, index) => (
+                {strategies.map((strategy: { id: number; name: string; timesUsed: number; averageScore: number }, index: number) => (
                   <tr key={strategy.id} className={index % 2 === 0 ? "bg-secondary/20" : ""}>
                     <td className="py-3 px-4">{strategy.name}</td>
                     <td className="text-center py-3 px-4">{strategy.timesUsed}</td>
@@ -753,7 +753,7 @@ function _unused_StrategiesTab({ data, clientId, dateRange }: {
                     </tr>
                   </thead>
                   <tbody>
-                    {strategies.map((strategy) => (
+                    {strategies.map((strategy: { id: number; name: string; timesUsed: number; averageScore: number }) => (
                       <tr key={strategy.id} className="border-b">
                         <td className="py-3 px-4 font-medium">{strategy.name}</td>
                         <td className="py-3 px-4 text-center">{strategy.timesUsed}</td>
