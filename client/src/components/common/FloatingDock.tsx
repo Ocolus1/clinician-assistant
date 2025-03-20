@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
-import { useLocation, Link } from 'wouter';
+import { useLocation } from 'wouter';
 import {
-  Home,
   Users,
   Calendar,
   BarChart,
@@ -34,18 +33,17 @@ function NavItem({ href, icon: Icon, label, active, onClick }: NavItemProps) {
     <TooltipProvider delayDuration={0}>
       <Tooltip>
         <TooltipTrigger asChild>
-          <Link href={href}>
-            <a
-              className={cn(
-                'flex h-12 w-12 items-center justify-center rounded-full transition-colors hover:bg-primary-100 hover:text-primary-900',
-                active ? 'bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground' : 'text-muted-foreground'
-              )}
-              onClick={onClick}
-            >
-              <Icon className="h-5 w-5" />
-              <span className="sr-only">{label}</span>
-            </a>
-          </Link>
+          <a
+            href={href}
+            className={cn(
+              'flex h-12 w-12 items-center justify-center rounded-full transition-colors hover:bg-primary-100 hover:text-primary-900 cursor-pointer',
+              active ? 'bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground' : 'text-muted-foreground'
+            )}
+            onClick={onClick}
+          >
+            <Icon className="h-5 w-5" />
+            <span className="sr-only">{label}</span>
+          </a>
         </TooltipTrigger>
         <TooltipContent side="right" className="flex items-center gap-4">
           {label}
@@ -58,6 +56,11 @@ function NavItem({ href, icon: Icon, label, active, onClick }: NavItemProps) {
 export function FloatingDock() {
   const [location] = useLocation();
   const [expanded, setExpanded] = useState<boolean>(false);
+  
+  // Log the current location to help with debugging
+  React.useEffect(() => {
+    console.log('Current location:', location);
+  }, [location]);
 
   // Navigation items
   const navItems = [
