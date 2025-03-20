@@ -88,7 +88,8 @@ export function ClientReports({ clientId }: ClientReportsProps) {
   const reportData = reportQuery.data;
   
   return (
-    <div className="space-y-6">
+    // Make the container full-width and set a max height to avoid scrolling
+    <div className="space-y-4 max-w-screen overflow-hidden">
       <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
         <div className="space-y-0.5">
           <h2 className="text-2xl font-bold tracking-tight">Client Performance</h2>
@@ -126,29 +127,31 @@ export function ClientReports({ clientId }: ClientReportsProps) {
           </div>
         </div>
       ) : (
-        <div className="space-y-8">
-          {/* Client info and key metrics section */}
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
-            <ClientInfoCard data={reportData} className="md:col-span-5" />
-            <KeyMetricsCard data={reportData} className="md:col-span-7" />
+        <div className="space-y-4">
+          {/* Client info and key metrics section - all in one row */}
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+            <ClientInfoCard data={reportData} className="md:col-span-4" />
+            <KeyMetricsCard data={reportData} className="md:col-span-8" />
           </div>
           
-          {/* Observations section */}
-          <div className="space-y-4">
-            <h3 className="text-xl font-semibold tracking-tight">Observations</h3>
-            <ObservationsSection data={reportData} />
-          </div>
-          
-          {/* Strategies section - simplified */}
-          <div className="space-y-4">
-            <h3 className="text-xl font-semibold tracking-tight">Strategies</h3>
-            <StrategiesSection data={reportData} strategiesData={strategiesQuery.data} />
-          </div>
-          
-          {/* Goals section - simplified */}
-          <div className="space-y-4">
-            <h3 className="text-xl font-semibold tracking-tight">Goals</h3>
-            <GoalsSection data={reportData} />
+          {/* Observations and strategies in one row with smaller spacing */}
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+            {/* Observations section */}
+            <div className="space-y-2 md:col-span-6">
+              <h3 className="text-lg font-semibold tracking-tight">Observations</h3>
+              <ObservationsSection data={reportData} />
+            </div>
+            
+            {/* Strategies and goals in one column */}
+            <div className="space-y-2 md:col-span-6">
+              {/* Strategies section */}
+              <h3 className="text-lg font-semibold tracking-tight">Strategies</h3>
+              <StrategiesSection data={reportData} strategiesData={strategiesQuery.data} />
+              
+              {/* Goals section - below strategies */}
+              <h3 className="text-lg font-semibold tracking-tight mt-4">Goals</h3>
+              <GoalsSection data={reportData} />
+            </div>
           </div>
         </div>
       )}
@@ -167,26 +170,26 @@ function ClientInfoCard({ data, className }: {
   
   return (
     <Card className={className}>
-      <CardHeader className="pb-2">
-        <CardTitle>Client Details</CardTitle>
+      <CardHeader className="py-3">
+        <CardTitle className="text-base">Client Details</CardTitle>
       </CardHeader>
-      <CardContent>
-        <div className="space-y-3">
+      <CardContent className="p-3">
+        <div className="space-y-2">
           <div className="flex justify-between items-center">
-            <span className="text-muted-foreground">Name:</span>
-            <span className="font-medium">{clientDetails.name}</span>
+            <span className="text-muted-foreground text-xs">Name:</span>
+            <span className="font-medium text-sm">{clientDetails.name}</span>
           </div>
           <div className="flex justify-between items-center">
-            <span className="text-muted-foreground">Age:</span>
-            <span className="font-medium">{clientDetails.age} years</span>
+            <span className="text-muted-foreground text-xs">Age:</span>
+            <span className="font-medium text-sm">{clientDetails.age} years</span>
           </div>
           <div className="flex justify-between items-center">
-            <span className="text-muted-foreground">Funds Management:</span>
-            <span className="font-medium">{clientDetails.fundsManagement}</span>
+            <span className="text-muted-foreground text-xs">Funds Management:</span>
+            <span className="font-medium text-sm">{clientDetails.fundsManagement}</span>
           </div>
           <div className="flex justify-between items-center">
-            <span className="text-muted-foreground">Allied Health Team:</span>
-            <span className="font-medium">{clientDetails.allies.length}</span>
+            <span className="text-muted-foreground text-xs">Allied Health Team:</span>
+            <span className="font-medium text-sm">{clientDetails.allies.length}</span>
           </div>
         </div>
       </CardContent>
@@ -209,16 +212,16 @@ function KeyMetricsCard({ data, className }: {
   
   return (
     <Card className={className}>
-      <CardHeader className="pb-2">
-        <CardTitle>Key Performance Indicators</CardTitle>
+      <CardHeader className="py-3">
+        <CardTitle className="text-base">Key Performance Indicators</CardTitle>
       </CardHeader>
-      <CardContent>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="space-y-2">
-            <div className="text-muted-foreground text-sm">Spending Variance</div>
+      <CardContent className="p-3">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="space-y-1">
+            <div className="text-muted-foreground text-xs">Spending Variance</div>
             <div className="flex items-center">
               <span className={cn(
-                "text-2xl font-bold",
+                "text-lg font-bold",
                 isOverAllocated ? "text-destructive" : "text-green-600"
               )}>
                 {isOverAllocated ? "+" : ""}{spendingDeviation}%
@@ -226,7 +229,7 @@ function KeyMetricsCard({ data, className }: {
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Info className="h-4 w-4 ml-2 text-muted-foreground" />
+                    <Info className="h-3 w-3 ml-1 text-muted-foreground" />
                   </TooltipTrigger>
                   <TooltipContent className="max-w-[250px]">
                     {isOverAllocated 
@@ -238,11 +241,11 @@ function KeyMetricsCard({ data, className }: {
             </div>
           </div>
           
-          <div className="space-y-2">
-            <div className="text-muted-foreground text-sm">Plan Expiration</div>
+          <div className="space-y-1">
+            <div className="text-muted-foreground text-xs">Plan Expiration</div>
             <div className="flex items-center">
               <span className={cn(
-                "text-2xl font-bold",
+                "text-lg font-bold",
                 keyMetrics.planExpiration < 30 ? "text-destructive" : "text-green-600"
               )}>
                 {keyMetrics.planExpiration} days
@@ -250,11 +253,11 @@ function KeyMetricsCard({ data, className }: {
             </div>
           </div>
           
-          <div className="space-y-2">
-            <div className="text-muted-foreground text-sm">Cancellation Rate</div>
+          <div className="space-y-1">
+            <div className="text-muted-foreground text-xs">Cancellation Rate</div>
             <div className="flex items-center">
               <span className={cn(
-                "text-2xl font-bold",
+                "text-lg font-bold",
                 cancellations.waived > 20 ? "text-destructive" : "text-green-600"
               )}>
                 {cancellations.waived}%
@@ -282,20 +285,20 @@ function ObservationsSection({ data }: { data?: ClientReportData }) {
   ];
   
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-      {/* Observations Bar Chart */}
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {/* Observations Bar Chart - Reduced height */}
       <Card>
-        <CardHeader>
-          <CardTitle>Observation Scores</CardTitle>
-          <CardDescription>Average scores across all sessions</CardDescription>
+        <CardHeader className="py-3">
+          <CardTitle className="text-base">Observation Scores</CardTitle>
+          <CardDescription className="text-xs">Average scores across all sessions</CardDescription>
         </CardHeader>
-        <CardContent className="p-6">
-          <div className="h-[300px]">
+        <CardContent className="p-2">
+          <div className="h-[200px]">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={observationData} layout="vertical">
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis type="number" domain={[0, 10]} />
-                <YAxis dataKey="name" type="category" width={100} />
+                <XAxis type="number" domain={[0, 10]} tick={{ fontSize: 11 }} />
+                <YAxis dataKey="name" type="category" width={90} tick={{ fontSize: 11 }} />
                 <RechartsTooltip 
                   formatter={(value: number) => [`${value.toFixed(1)}/10`, 'Score']}
                   labelFormatter={() => ''}
@@ -311,14 +314,14 @@ function ObservationsSection({ data }: { data?: ClientReportData }) {
         </CardContent>
       </Card>
 
-      {/* Session Breakdown */}
+      {/* Session Breakdown - Reduced height */}
       <Card>
-        <CardHeader>
-          <CardTitle>Session Attendance</CardTitle>
-          <CardDescription>Breakdown of session attendance</CardDescription>
+        <CardHeader className="py-3">
+          <CardTitle className="text-base">Session Attendance</CardTitle>
+          <CardDescription className="text-xs">Breakdown of session attendance</CardDescription>
         </CardHeader>
-        <CardContent className="p-6">
-          <div className="h-[300px] flex items-center justify-center">
+        <CardContent className="p-2">
+          <div className="h-[200px] flex items-center justify-center">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
@@ -331,7 +334,7 @@ function ObservationsSection({ data }: { data?: ClientReportData }) {
                   cy="50%"
                   labelLine={false}
                   label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                  outerRadius={80}
+                  outerRadius={65}
                   fill="#8884d8"
                   dataKey="value"
                 >
@@ -347,7 +350,7 @@ function ObservationsSection({ data }: { data?: ClientReportData }) {
               </PieChart>
             </ResponsiveContainer>
           </div>
-          <div className="mt-2 text-center text-sm text-muted-foreground">
+          <div className="text-center text-xs text-muted-foreground">
             Total sessions: {cancellations.total}
           </div>
         </CardContent>
@@ -367,39 +370,39 @@ function StrategiesSection({ data, strategiesData }: {
   
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>Therapy Strategies</CardTitle>
-        <CardDescription>Effectiveness of applied strategies</CardDescription>
+      <CardHeader className="py-3">
+        <CardTitle className="text-base">Therapy Strategies</CardTitle>
+        <CardDescription className="text-xs">Effectiveness of applied strategies</CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="p-2">
         {!strategies.length ? (
-          <div className="text-center py-8">
-            <p className="text-muted-foreground">No strategy data available for this period.</p>
+          <div className="text-center py-2">
+            <p className="text-xs text-muted-foreground">No strategy data available for this period.</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
+          <div className="overflow-x-auto max-h-[200px]">
+            <table className="w-full text-sm">
               <thead>
                 <tr className="border-b">
-                  <th className="text-left py-3 px-4">Strategy</th>
-                  <th className="text-center py-3 px-4">Times Used</th>
-                  <th className="text-center py-3 px-4">Effectiveness</th>
-                  <th className="text-center py-3 px-4">Rating</th>
+                  <th className="text-left py-2 px-2">Strategy</th>
+                  <th className="text-center py-2 px-2">Used</th>
+                  <th className="text-center py-2 px-2">Score</th>
+                  <th className="text-center py-2 px-2">Rating</th>
                 </tr>
               </thead>
               <tbody>
                 {strategies.map((strategy: { id: number; name: string; timesUsed: number; averageScore: number }, index: number) => (
                   <tr key={strategy.id} className={index % 2 === 0 ? "bg-secondary/20" : ""}>
-                    <td className="py-3 px-4">{strategy.name}</td>
-                    <td className="text-center py-3 px-4">{strategy.timesUsed}</td>
-                    <td className="text-center py-3 px-4">{strategy.averageScore.toFixed(1)}/10</td>
-                    <td className="text-center py-3 px-4">
+                    <td className="py-2 px-2 text-xs">{strategy.name}</td>
+                    <td className="text-center py-2 px-2 text-xs">{strategy.timesUsed}</td>
+                    <td className="text-center py-2 px-2 text-xs">{strategy.averageScore.toFixed(1)}/10</td>
+                    <td className="text-center py-2 px-2">
                       <div className="flex items-center justify-center">
                         {Array.from({ length: 5 }).map((_, i) => (
                           <div 
                             key={i}
                             className={cn(
-                              "h-2 w-2 rounded-full mx-0.5",
+                              "h-1.5 w-1.5 rounded-full mx-0.5",
                               i < Math.round(strategy.averageScore / 2) 
                                 ? "bg-primary" 
                                 : "bg-muted"
@@ -427,28 +430,28 @@ function GoalsSection({ data }: { data?: ClientReportData }) {
   
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>Therapy Goals</CardTitle>
-        <CardDescription>Current progress towards goals</CardDescription>
+      <CardHeader className="py-3">
+        <CardTitle className="text-base">Therapy Goals</CardTitle>
+        <CardDescription className="text-xs">Current progress towards goals</CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="p-2">
         {!goals.goals.length ? (
-          <div className="text-center py-8">
-            <p className="text-muted-foreground">No goals data available for this period.</p>
+          <div className="text-center py-2">
+            <p className="text-xs text-muted-foreground">No goals data available for this period.</p>
           </div>
         ) : (
-          <div className="space-y-6">
+          <div className="space-y-3 max-h-[200px] overflow-y-auto">
             {goals.goals.map((goal) => (
-              <div key={goal.id} className="space-y-2">
+              <div key={goal.id} className="space-y-1">
                 <div className="flex justify-between items-center">
-                  <div className="font-medium">{goal.title}</div>
-                  <div className="flex items-center space-x-2">
-                    <span className="text-sm text-muted-foreground">
+                  <div className="font-medium text-xs">{goal.title}</div>
+                  <div className="flex items-center space-x-1">
+                    <span className="text-xs text-muted-foreground">
                       {goal.score.toFixed(1)}/10
                     </span>
                   </div>
                 </div>
-                <div className="w-full bg-secondary h-2 rounded-full overflow-hidden">
+                <div className="w-full bg-secondary h-1.5 rounded-full overflow-hidden">
                   <div 
                     className="bg-primary h-full rounded-full" 
                     style={{ width: `${(goal.score / 10) * 100}%` }} 
