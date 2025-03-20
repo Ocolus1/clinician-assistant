@@ -417,49 +417,61 @@ function ObservationsSection({ data }: { data?: ClientReportData }) {
         <CardTitle className="text-base">Observation Scores</CardTitle>
       </CardHeader>
       <CardContent className="p-4">
-        <div className="h-[170px] space-y-6">
-          {observationData.map((entry, index) => (
-            <div key={index}>
-              <div className="flex items-center space-x-6">
-                <span className="text-sm w-32 font-medium">{entry.name}:</span>
-                
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <div className="relative h-3 w-full overflow-hidden rounded-full cursor-pointer">
-                        {/* Background track */}
-                        <div className="absolute inset-0 bg-gray-200"></div>
-                        
-                        {/* Segments */}
-                        <div className="absolute inset-0 flex">
-                          {Array.from({ length: 10 }).map((_, i) => (
-                            <div 
-                              key={i} 
-                              className={cn(
-                                "h-full w-[10%]",
-                                i < Math.floor(entry.value) ? "" : "opacity-0"
-                              )}
-                              style={{
-                                backgroundColor: entry.color,
-                                borderRight: i < 9 ? '1px solid white' : 'none',
-                                borderTopLeftRadius: i === 0 ? '9999px' : '0',
-                                borderBottomLeftRadius: i === 0 ? '9999px' : '0',
-                                borderTopRightRadius: i === 9 ? '9999px' : '0',
-                                borderBottomRightRadius: i === 9 ? '9999px' : '0'
-                              }}
-                            />
-                          ))}
+        <div className="h-[170px] flex flex-col justify-center">
+          <div className="space-y-6">
+            {observationData.map((entry, index) => (
+              <div key={index}>
+                <div className="flex items-center">
+                  {/* Label positioned to the left */}
+                  <span className="text-sm w-32 font-medium text-right pr-2">{entry.name}:</span>
+                  
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div className="relative h-4 w-full overflow-hidden rounded-full cursor-pointer">
+                          {/* Background track */}
+                          <div className="absolute inset-0 bg-gray-200"></div>
+                          
+                          {/* Segments with increased spacing */}
+                          <div className="absolute inset-0 flex">
+                            {Array.from({ length: 10 }).map((_, i) => (
+                              <div 
+                                key={i} 
+                                className={cn(
+                                  "h-full",
+                                  i < Math.floor(entry.value) ? "" : "opacity-0"
+                                )}
+                                style={{
+                                  width: "9%", // Slightly smaller to allow for spacing
+                                  margin: "0 0.5%", // Add margin for spacing between segments
+                                  backgroundColor: entry.color,
+                                  borderTopLeftRadius: i === 0 ? '9999px' : '0',
+                                  borderBottomLeftRadius: i === 0 ? '9999px' : '0',
+                                  borderTopRightRadius: i === 9 ? '9999px' : '0',
+                                  borderBottomRightRadius: i === 9 ? '9999px' : '0'
+                                }}
+                              />
+                            ))}
+                          </div>
+                          
+                          {/* Score indicator */}
+                          <div 
+                            className="absolute right-1 top-1/2 transform -translate-y-1/2 text-xs font-medium"
+                            style={{ color: entry.color }}
+                          >
+                            {entry.value.toFixed(1)}
+                          </div>
                         </div>
-                      </div>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p className="font-medium">{entry.value.toFixed(1)}/10</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p className="font-medium">{entry.value.toFixed(1)}/10</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       </CardContent>
     </Card>
