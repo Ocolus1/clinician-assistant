@@ -412,15 +412,18 @@ function ObservationsSection({ data }: { data?: ClientReportData }) {
   ];
   
   // Monthly trend data for tooltips (dummy data for visualization)
-  const getMonthlyTrendData = (value: number) => {
+  const getMonthlyTrendData = (value: number, name: string) => {
     // Create 12 months of data for the tooltip chart
     const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
     
     // Create some variation around the current value
-    return months.map(month => ({
-      month,
-      value: Math.max(0, Math.min(10, value + (Math.random() * 2 - 1)))
-    }));
+    return {
+      title: `${name} - Last 12 Months`,
+      data: months.map(month => ({
+        month,
+        value: Math.max(0, Math.min(10, value + (Math.random() * 2 - 1)))
+      }))
+    };
   };
   
   return (
@@ -429,7 +432,7 @@ function ObservationsSection({ data }: { data?: ClientReportData }) {
         <CardTitle className="text-base">Observation Scores</CardTitle>
       </CardHeader>
       <CardContent className="p-4">
-        <div className="h-[150px] space-y-6">
+        <div className="h-[150px] space-y-3">
           {observationData.map((entry, index) => (
             <div key={index} className="space-y-1">
               <div className="flex justify-between items-center">
@@ -440,36 +443,44 @@ function ObservationsSection({ data }: { data?: ClientReportData }) {
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <div className="relative flex h-2.5 w-full overflow-hidden rounded-full bg-secondary">
-                      {/* Render 10 segments for each progress bar */}
-                      {Array.from({ length: 10 }).map((_, i) => (
-                        <div 
-                          key={i} 
-                          className={cn(
-                            "h-full w-[10%]",
-                            i < Math.floor(entry.value) ? "bg-primary" : "bg-secondary",
-                            i === 0 ? "rounded-l-full" : "",
-                            i === 9 ? "rounded-r-full" : "",
-                            "transition-colors"
-                          )}
-                        />
-                      ))}
+                    <div className="relative flex h-3 w-full overflow-hidden rounded-md bg-gray-100">
+                      {/* Single bar with solid color based on score */}
+                      <div 
+                        className="h-full bg-blue-500 rounded-l-md" 
+                        style={{ 
+                          width: `${entry.value * 10}%`,
+                          backgroundColor: entry.color
+                        }}
+                      />
                     </div>
                   </TooltipTrigger>
-                  <TooltipContent className="p-0" side="right">
-                    <div className="bg-white rounded-md shadow-lg p-2">
-                      <p className="text-xs font-medium mb-1">{entry.name} - Last 12 Months</p>
-                      <div className="w-[200px] h-[100px]">
+                  <TooltipContent className="p-0" side="right" sideOffset={10}>
+                    <div className="bg-white rounded shadow-lg p-3 border border-gray-200">
+                      <div className="font-medium text-sm mb-2">{entry.name} - Last 12 Months</div>
+                      <div className="w-[250px] h-[120px]">
                         <ResponsiveContainer width="100%" height="100%">
-                          <LineChart data={getMonthlyTrendData(entry.value)}>
-                            <XAxis dataKey="month" tick={{ fontSize: 9 }} />
-                            <YAxis domain={[0, 10]} tick={{ fontSize: 9 }} />
+                          <LineChart data={getMonthlyTrendData(entry.value, entry.name).data} margin={{ top: 5, right: 5, bottom: 15, left: 0 }}>
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.3} />
+                            <XAxis 
+                              dataKey="month" 
+                              tick={{ fontSize: 10 }} 
+                              axisLine={{ stroke: '#e5e7eb' }}
+                              tickLine={false}
+                            />
+                            <YAxis 
+                              domain={[0, 10]} 
+                              tick={{ fontSize: 10 }} 
+                              axisLine={false}
+                              tickLine={false}
+                              ticks={[0, 2, 4, 6, 8, 10]}
+                            />
                             <Line 
                               type="monotone" 
                               dataKey="value" 
                               stroke={entry.color} 
                               strokeWidth={2}
-                              dot={false}
+                              dot={{ r: 2, fill: entry.color }}
+                              activeDot={{ r: 4 }}
                             />
                           </LineChart>
                         </ResponsiveContainer>
