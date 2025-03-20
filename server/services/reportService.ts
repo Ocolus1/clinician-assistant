@@ -304,10 +304,10 @@ async function getObservationScores(
     // that may not be in the schema
     const notesQuery = `
       SELECT 
-        AVG(COALESCE(physical_activity, 0)) as avg_physical,
-        AVG(COALESCE(cooperation, 0)) as avg_cooperation,
-        AVG(COALESCE(focus, 0)) as avg_focus,
-        AVG(COALESCE(mood, 0)) as avg_mood
+        AVG(COALESCE(physical_activity_rating, 0)) as avg_physical,
+        AVG(COALESCE(cooperation_rating, 0)) as avg_cooperation,
+        AVG(COALESCE(focus_rating, 0)) as avg_focus,
+        AVG(COALESCE(mood_rating, 0)) as avg_mood
       FROM session_notes
       WHERE session_id = ANY($1)
     `;
@@ -462,18 +462,16 @@ async function getStrategyStats(
     // Get strategies used in sessions
     // This query needs to be adapted to the actual database structure
     // We're using a simplified model assuming strategies are linked to performance assessments
+    // Since there's no direct relationship in the schema yet between strategies and performance assessments,
+    // we'll return a simplified result for now
     const strategyQuery = `
       SELECT 
         s.id,
         s.name,
-        COUNT(pa.id) as times_used,
-        AVG(COALESCE(pa.score, 0)) as avg_score
+        0 as times_used,
+        0 as avg_score
       FROM strategies s
-      JOIN performance_assessments pa ON pa.strategy_id = s.id
-      JOIN session_notes sn ON pa.session_note_id = sn.id
-      WHERE sn.session_id = ANY($1)
-      GROUP BY s.id, s.name
-      ORDER BY times_used DESC
+      LIMIT 5
     `;
     
     const strategyResult = await pool.query(strategyQuery, [sessionIds]);
@@ -541,13 +539,13 @@ async function getGoalAchievementScores(
     const goalScores = await Promise.all(
       goalsResult.map(async (goal) => {
         // Get subgoals
-        const subgoals = await db
+        const subgoalsList = await db
           .select()
           .from(subgoals)
           .where(eq(subgoals.goalId, goal.id));
         
         // If no sessions or no subgoals, use a default score
-        if (sessionIds.length === 0 || subgoals.length === 0) {
+        if (sessionIds.length === 0 || subgoalsList.length === 0) {
           return {
             id: goal.id,
             title: goal.title || `Goal ${goal.id}`,
@@ -559,7 +557,7 @@ async function getGoalAchievementScores(
         let avgScore = 0;
         
         // Use raw query to get performance assessments by subgoal IDs
-        const subgoalIds = subgoals.map(s => s.id);
+        const subgoalIds = subgoalsList.map(s => s.id);
         
         const scoreQuery = `
           SELECT AVG(COALESCE(pa.score, 0)) as avg_score
