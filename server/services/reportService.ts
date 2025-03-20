@@ -570,7 +570,7 @@ async function getGoalAchievementScores(
         const subgoalIds = subgoalsList.map(s => s.id);
         
         const scoreQuery = `
-          SELECT AVG(COALESCE(pa.score, 0)) as avg_score
+          SELECT AVG(COALESCE(pa.rating, 0)) as avg_score
           FROM performance_assessments pa
           JOIN session_notes sn ON pa.session_note_id = sn.id
           WHERE 
