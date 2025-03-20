@@ -411,99 +411,43 @@ function ObservationsSection({ data }: { data?: ClientReportData }) {
     { name: 'Mood', value: observations.mood, color: OBSERVATION_COLORS.mood },
   ];
   
-  // Monthly trend data for tooltips (dummy data for visualization)
-  const getMonthlyTrendData = (value: number, name: string) => {
-    // Create 12 months of data for the tooltip chart
-    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-    
-    // Create some variation around the current value
-    return {
-      title: `${name} - Last 12 Months`,
-      data: months.map(month => ({
-        month,
-        value: Math.max(0, Math.min(10, value + (Math.random() * 2 - 1)))
-      }))
-    };
-  };
-  
   return (
     <Card>
       <CardHeader className="py-3">
         <CardTitle className="text-base">Observation Scores</CardTitle>
       </CardHeader>
       <CardContent className="p-4">
-        <div className="h-[150px] space-y-1.5">
+        <div className="h-[170px] space-y-6">
           {observationData.map((entry, index) => (
             <div key={index}>
-              <div className="flex items-center space-x-3 mb-1">
-                <span className="text-sm w-28">{entry.name}</span>
+              <div className="flex items-center space-x-6">
+                <span className="text-sm w-32 font-medium">{entry.name}:</span>
                 
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <div className="relative h-2.5 w-full overflow-hidden rounded-full">
-                        {/* Background track */}
-                        <div className="absolute inset-0 bg-gray-200"></div>
-                        
-                        {/* Segments */}
-                        <div className="absolute inset-0 flex">
-                          {Array.from({ length: 10 }).map((_, i) => (
-                            <div 
-                              key={i} 
-                              className={cn(
-                                "h-full w-[10%]",
-                                i < Math.floor(entry.value) ? "" : "opacity-0"
-                              )}
-                              style={{
-                                backgroundColor: entry.color,
-                                borderRight: i < 9 ? '1px solid white' : 'none',
-                                borderTopLeftRadius: i === 0 ? '9999px' : '0',
-                                borderBottomLeftRadius: i === 0 ? '9999px' : '0',
-                                borderTopRightRadius: i === 9 ? '9999px' : '0',
-                                borderBottomRightRadius: i === 9 ? '9999px' : '0'
-                              }}
-                            />
-                          ))}
-                        </div>
-                      </div>
-                    </TooltipTrigger>
-                    <TooltipContent className="p-0" side="right" sideOffset={10}>
-                      <div className="bg-white rounded shadow-lg p-3 border border-gray-200">
-                        <div className="font-medium text-sm mb-2">{entry.name} - Last 12 Months</div>
-                        <div className="w-[250px] h-[120px]">
-                          <ResponsiveContainer width="100%" height="100%">
-                            <LineChart data={getMonthlyTrendData(entry.value, entry.name).data} margin={{ top: 5, right: 5, bottom: 15, left: 0 }}>
-                              <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.3} />
-                              <XAxis 
-                                dataKey="month" 
-                                tick={{ fontSize: 10 }} 
-                                axisLine={{ stroke: '#e5e7eb' }}
-                                tickLine={false}
-                              />
-                              <YAxis 
-                                domain={[0, 10]} 
-                                tick={{ fontSize: 10 }} 
-                                axisLine={false}
-                                tickLine={false}
-                                ticks={[0, 2, 4, 6, 8, 10]}
-                              />
-                              <Line 
-                                type="monotone" 
-                                dataKey="value" 
-                                stroke={entry.color} 
-                                strokeWidth={2}
-                                dot={{ r: 2, fill: entry.color }}
-                                activeDot={{ r: 4 }}
-                              />
-                            </LineChart>
-                          </ResponsiveContainer>
-                        </div>
-                      </div>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-
-                <span className="text-sm font-medium w-10 text-right">{entry.value.toFixed(1)}/10</span>
+                <div className="relative h-3 w-full overflow-hidden rounded-full">
+                  {/* Background track */}
+                  <div className="absolute inset-0 bg-gray-200"></div>
+                  
+                  {/* Segments */}
+                  <div className="absolute inset-0 flex">
+                    {Array.from({ length: 10 }).map((_, i) => (
+                      <div 
+                        key={i} 
+                        className={cn(
+                          "h-full w-[10%]",
+                          i < Math.floor(entry.value) ? "" : "opacity-0"
+                        )}
+                        style={{
+                          backgroundColor: entry.color,
+                          borderRight: i < 9 ? '1px solid white' : 'none',
+                          borderTopLeftRadius: i === 0 ? '9999px' : '0',
+                          borderBottomLeftRadius: i === 0 ? '9999px' : '0',
+                          borderTopRightRadius: i === 9 ? '9999px' : '0',
+                          borderBottomRightRadius: i === 9 ? '9999px' : '0'
+                        }}
+                      />
+                    ))}
+                  </div>
+                </div>
               </div>
             </div>
           ))}
