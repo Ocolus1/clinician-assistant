@@ -1,10 +1,8 @@
 import { ReactNode, useEffect } from "react";
 import { useLocation } from "wouter";
-import { Menu, Bell, User } from "lucide-react";
+import { Bell, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Sidebar } from "./Sidebar";
-import { useSidebar } from "@/components/ui/sidebar";
-import { SidebarProvider } from "@/components/ui/sidebar";
+import { FloatingMenu } from "./FloatingMenu";
 import { cn } from "@/lib/utils";
 
 interface AppLayoutProps {
@@ -12,7 +10,6 @@ interface AppLayoutProps {
 }
 
 function AppLayoutContent({ children }: AppLayoutProps) {
-  const { state, isMobile, setOpenMobile } = useSidebar();
   const [location] = useLocation();
 
   // Extract page title from location
@@ -36,6 +33,7 @@ function AppLayoutContent({ children }: AppLayoutProps) {
         width: 100%;
         max-width: 100vw;
         display: flex;
+        flex-direction: column;
       }
       .content-area {
         flex: 1;
@@ -51,31 +49,15 @@ function AppLayoutContent({ children }: AppLayoutProps) {
   }, []);
 
   return (
-    <div className="app-container flex w-full min-h-screen bg-gray-50">
-      {/* Sidebar */}
-      <Sidebar />
-
+    <div className="app-container flex flex-col w-full min-h-screen bg-gray-50">
       {/* Main content container */}
       <div
-        className={cn(
-          "content-area flex flex-col flex-1 min-h-screen transition-all duration-300 w-full",
-          state === "expanded" ? "lg:ml-64" : "lg:ml-20"
-        )}
+        className="content-area flex flex-col flex-1 min-h-screen w-full"
         style={{ width: '100%' }}
       >
         {/* Top navigation bar */}
         <header className="bg-white border-b border-gray-200 h-16 flex items-center justify-between px-4 lg:px-6 w-full">
           <div className="flex items-center">
-            {isMobile && (
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setOpenMobile(true)}
-                className="mr-2 lg:hidden"
-              >
-                <Menu className="h-5 w-5" />
-              </Button>
-            )}
             <h1 className="text-xl font-semibold text-gray-800">{getPageTitle()}</h1>
           </div>
 
@@ -101,14 +83,15 @@ function AppLayoutContent({ children }: AppLayoutProps) {
           <p>© 2025 Speech Therapy Clinic. All rights reserved.</p>
         </footer>
       </div>
+      
+      {/* Floating Menu (Dock) */}
+      <FloatingMenu />
     </div>
   );
 }
 
 export function AppLayout({ children }: AppLayoutProps) {
   return (
-    <SidebarProvider>
-      <AppLayoutContent>{children}</AppLayoutContent>
-    </SidebarProvider>
+    <AppLayoutContent>{children}</AppLayoutContent>
   );
 }

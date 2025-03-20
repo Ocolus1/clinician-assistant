@@ -121,10 +121,6 @@ function DashboardContent() {
         </div>
       </div>
       
-      {/* Agent components */}
-      <AgentBubble />
-      <AgentPanel />
-      <AgentVisualization />
     </DashboardLayout>
   );
 }
