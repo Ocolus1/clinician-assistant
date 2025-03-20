@@ -11,153 +11,139 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
 } from "@/components/ui/select";
 
-export interface DateRangePickerProps {
-  dateRange: DateRange | undefined;
-  onDateRangeChange: (range: DateRange | undefined) => void;
+interface DateRangePickerProps {
   className?: string;
-  showCompactDropdown?: boolean;
+  value: DateRange | undefined;
+  onChange: (value: DateRange | undefined) => void;
+  enablePresets?: boolean;
+  align?: "start" | "center" | "end";
+  showAllTime?: boolean;
 }
 
 export function DateRangePicker({
-  dateRange,
-  onDateRangeChange,
   className,
-  showCompactDropdown = false,
+  value,
+  onChange,
+  enablePresets = true,
+  align = "start",
+  showAllTime = false,
 }: DateRangePickerProps) {
-  const [isPopoverOpen, setIsPopoverOpen] = React.useState(false);
+  const [isOpen, setIsOpen] = React.useState(false);
 
-  // Predefined ranges
-  const handleQuickSelect = (value: string) => {
-    const today = new Date();
-    
-    switch (value) {
-      case "last-7-days":
-        onDateRangeChange({
-          from: addDays(today, -7),
-          to: today,
-        });
-        break;
-      case "last-30-days":
-        onDateRangeChange({
-          from: addDays(today, -30),
-          to: today,
-        });
-        break;
-      case "last-90-days":
-        onDateRangeChange({
-          from: addDays(today, -90),
-          to: today,
-        });
-        break;
-      case "all-time":
-        onDateRangeChange(undefined);
-        break;
-      default:
-        break;
-    }
-    
-    if (value !== "custom") {
-      setIsPopoverOpen(false);
-    }
-  };
+  // Predefined date ranges for quick selection
+  const presets = [
+    {
+      label: "Last 7 days",
+      dateRange: {
+        from: addDays(new Date(), -7),
+        to: new Date(),
+      },
+    },
+    {
+      label: "Last 30 days",
+      dateRange: {
+        from: addDays(new Date(), -30),
+        to: new Date(),
+      },
+    },
+    {
+      label: "Last 90 days",
+      dateRange: {
+        from: addDays(new Date(), -90),
+        to: new Date(),
+      },
+    },
+    {
+      label: "Last 180 days",
+      dateRange: {
+        from: addDays(new Date(), -180),
+        to: new Date(),
+      },
+    },
+  ];
 
-  // Format the displayed date range
-  const formatDateRange = () => {
-    if (!dateRange?.from) {
-      return "All Time";
+  // Handle preset selection
+  const handlePresetChange = (preset: string) => {
+    const selectedPreset = presets.find((p) => p.label === preset);
+    if (selectedPreset) {
+      onChange(selectedPreset.dateRange);
+      setIsOpen(false);
+    } else if (preset === "all-time") {
+      onChange(undefined);
+      setIsOpen(false);
     }
-    
-    if (dateRange.from && !dateRange.to) {
-      return `From ${format(dateRange.from, "MMM d, yyyy")}`;
-    }
-    
-    if (dateRange.from && dateRange.to) {
-      if (format(dateRange.from, "MMM yyyy") === format(dateRange.to, "MMM yyyy")) {
-        // Same month, show "May 1-15, 2024"
-        return `${format(dateRange.from, "MMM d")}${dateRange.to ? `-${format(dateRange.to, "d, yyyy")}` : ", " + format(dateRange.from, "yyyy")}`;
-      }
-      
-      // Different months, show "May 1 - Jun 15, 2024"
-      return `${format(dateRange.from, "MMM d")} - ${format(dateRange.to, "MMM d, yyyy")}`;
-    }
-    
-    return "Select date range";
   };
 
   return (
     <div className={cn("grid gap-2", className)}>
-      <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
+      <Popover open={isOpen} onOpenChange={setIsOpen}>
         <PopoverTrigger asChild>
           <Button
-            id="date-range"
+            id="date"
             variant={"outline"}
             className={cn(
-              "justify-start text-left font-normal",
-              !dateRange && "text-muted-foreground",
-              showCompactDropdown ? "h-9 w-[240px]" : "w-[300px]"
+              "w-auto justify-start text-left font-normal",
+              !value && "text-muted-foreground"
             )}
           >
             <CalendarIcon className="mr-2 h-4 w-4" />
-            {formatDateRange()}
+            {value?.from ? (
+              value.to ? (
+                <>
+                  {format(value.from, "LLL dd, y")} -{" "}
+                  {format(value.to, "LLL dd, y")}
+                </>
+              ) : (
+                format(value.from, "LLL dd, y")
+              )
+            ) : (
+              <span>{showAllTime ? "All Time" : "Pick a date range"}</span>
+            )}
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-auto p-0" align="start">
-          <div className="flex items-center border-b border-border p-3">
-            <div className="flex-1 text-sm font-medium">Date Range</div>
-            <Select
-              onValueChange={handleQuickSelect}
-              defaultValue={dateRange ? "custom" : "all-time"}
-            >
-              <SelectTrigger className="h-8 w-[150px]">
-                <SelectValue placeholder="Select" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all-time">All Time</SelectItem>
-                <SelectItem value="last-7-days">Last 7 days</SelectItem>
-                <SelectItem value="last-30-days">Last 30 days</SelectItem>
-                <SelectItem value="last-90-days">Last 90 days</SelectItem>
-                <SelectItem value="custom">Custom Range</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="p-3">
-            <Calendar
-              initialFocus
-              mode="range"
-              defaultMonth={dateRange?.from}
-              selected={dateRange}
-              onSelect={onDateRangeChange}
-              numberOfMonths={2}
-            />
-          </div>
-          <div className="flex items-center justify-end gap-2 border-t border-border p-3">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                onDateRangeChange(undefined);
-                setIsPopoverOpen(false);
-              }}
-            >
-              Reset
-            </Button>
-            <Button
-              size="sm"
-              onClick={() => {
-                setIsPopoverOpen(false);
-              }}
-            >
-              Apply
-            </Button>
-          </div>
+        <PopoverContent className="w-auto p-0" align={align}>
+          {enablePresets && (
+            <div className="flex items-center justify-between space-x-2 p-3 pb-0">
+              <Select
+                onValueChange={handlePresetChange}
+                defaultValue="custom"
+              >
+                <SelectTrigger className="h-8 w-[150px]">
+                  <SelectValue placeholder="Select..." />
+                </SelectTrigger>
+                <SelectContent position="popper">
+                  {showAllTime && (
+                    <SelectItem value="all-time">All Time</SelectItem>
+                  )}
+                  <SelectItem value="custom">Custom Range</SelectItem>
+                  {presets.map((preset) => (
+                    <SelectItem key={preset.label} value={preset.label}>
+                      {preset.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+          <Calendar
+            mode="range"
+            defaultMonth={value?.from}
+            selected={value}
+            onSelect={onChange}
+            numberOfMonths={2}
+            className={cn(
+              "p-3",
+              enablePresets ? "pt-2" : ""
+            )}
+          />
         </PopoverContent>
       </Popover>
     </div>

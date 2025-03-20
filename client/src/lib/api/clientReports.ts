@@ -76,7 +76,7 @@ export interface DateRangeParams {
  * Get client performance report
  * Uses dummy data if useDummyData flag is true
  */
-export const getClientPerformanceReport = (queryKey: any) => {
+export const getClientPerformanceReport = ({ queryKey }: { queryKey: unknown[] }) => {
   const [_base, clientId, dateRange] = queryKey as [
     string, 
     number, 
@@ -90,41 +90,35 @@ export const getClientPerformanceReport = (queryKey: any) => {
   }
   
   // Otherwise use the real API endpoint
-  return getQueryFn<ClientReportData>({
-    on401: "throw",
-    getFn: ({ queryKey }) => {
-      const [_base, clientId, dateRange] = queryKey as [
-        string, 
-        number, 
-        DateRangeParams | undefined
-      ];
-      
-      // Build URL
-      const url = `/api/clients/${clientId}/reports/performance`;
-      
-      // Return params instead of building the URL with query string
-      let params: Record<string, string> = {};
-      
-      if (dateRange) {
-        if (dateRange.startDate) {
-          params.startDate = dateRange.startDate;
-        }
-        
-        if (dateRange.endDate) {
-          params.endDate = dateRange.endDate;
-        }
-      }
-      
-      return { url, params: Object.keys(params).length > 0 ? params : undefined };
+  const url = `/api/clients/${clientId}/reports/performance`;
+  
+  // Return params instead of building the URL with query string
+  let params: Record<string, string> = {};
+  
+  if (dateRange) {
+    if (dateRange.startDate) {
+      params.startDate = dateRange.startDate;
     }
-  })(queryKey);
+    
+    if (dateRange.endDate) {
+      params.endDate = dateRange.endDate;
+    }
+  }
+
+  // Use fetch directly
+  return fetch(url + (Object.keys(params).length > 0 ? 
+    '?' + new URLSearchParams(params).toString() : ''))
+    .then(res => {
+      if (!res.ok) throw new Error('Failed to fetch client report data');
+      return res.json();
+    });
 };
 
 /**
  * Get client strategies data for detailed visualization
  * Uses dummy data if useDummyData flag is true
  */
-export const getClientStrategiesReport = (queryKey: any) => {
+export const getClientStrategiesReport = ({ queryKey }: { queryKey: unknown[] }) => {
   const [_base, clientId, dateRange] = queryKey as [
     string, 
     number, 
@@ -138,32 +132,26 @@ export const getClientStrategiesReport = (queryKey: any) => {
   }
   
   // Otherwise use the real API endpoint
-  return getQueryFn<StrategiesData>({
-    on401: "throw",
-    getFn: ({ queryKey }) => {
-      const [_base, clientId, dateRange] = queryKey as [
-        string, 
-        number, 
-        DateRangeParams | undefined
-      ];
-      
-      // Build URL
-      const url = `/api/clients/${clientId}/reports/strategies`;
-      
-      // Return params instead of building the URL with query string
-      let params: Record<string, string> = {};
-      
-      if (dateRange) {
-        if (dateRange.startDate) {
-          params.startDate = dateRange.startDate;
-        }
-        
-        if (dateRange.endDate) {
-          params.endDate = dateRange.endDate;
-        }
-      }
-      
-      return { url, params: Object.keys(params).length > 0 ? params : undefined };
+  const url = `/api/clients/${clientId}/reports/strategies`;
+  
+  // Return params instead of building the URL with query string
+  let params: Record<string, string> = {};
+  
+  if (dateRange) {
+    if (dateRange.startDate) {
+      params.startDate = dateRange.startDate;
     }
-  })(queryKey);
+    
+    if (dateRange.endDate) {
+      params.endDate = dateRange.endDate;
+    }
+  }
+
+  // Use fetch directly
+  return fetch(url + (Object.keys(params).length > 0 ? 
+    '?' + new URLSearchParams(params).toString() : ''))
+    .then(res => {
+      if (!res.ok) throw new Error('Failed to fetch client strategies data');
+      return res.json();
+    });
 };
