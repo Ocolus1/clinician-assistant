@@ -18,7 +18,8 @@ export default function AgentPanel() {
     clearConversation,
     isProcessingQuery,
     queryConfidence,
-    latestVisualization
+    latestVisualization,
+    isAgentVisible
   } = useAgent();
   
   const [inputValue, setInputValue] = useState('');
@@ -65,6 +66,11 @@ export default function AgentPanel() {
     if (confidence >= 0.5) return 'bg-amber-500';
     return 'bg-red-500';
   };
+
+  // Don't render if the agent is not visible
+  if (!isAgentVisible) {
+    return null;
+  }
 
   return (
     <div className="fixed bottom-0 right-0 w-full md:w-96 h-[600px] bg-card shadow-xl rounded-t-lg border flex flex-col overflow-hidden z-50">
