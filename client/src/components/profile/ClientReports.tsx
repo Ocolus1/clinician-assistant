@@ -537,22 +537,22 @@ function GoalsSection({ data }: { data?: ClientReportData }) {
   }
   
   return (
-    <Card>
-      <CardHeader className="py-3">
-        <CardTitle className="text-base font-bold">GOALS - Average Score</CardTitle>
+    <Card className="overflow-hidden border border-gray-100 shadow-sm">
+      <CardHeader className="p-4 pb-0 border-b-0">
+        <CardTitle className="text-sm font-bold">GOALS - Average Score</CardTitle>
       </CardHeader>
       <CardContent className="p-0">
-        <div className="w-full border border-gray-100 rounded-sm">
-          <div className="flex justify-between items-center px-2">
+        <div className="w-full bg-white rounded-sm p-6">
+          <div className="flex justify-between items-center">
             {displayGoals.map((goal, index) => (
-              <div key={goal.id} className="relative flex flex-col items-center py-2" style={{ width: '19%' }}>
-                <div className="text-[10px] text-center h-14 px-1 flex items-center justify-center">
+              <div key={goal.id} className="relative flex flex-col items-center">
+                <div className="text-[10px] text-center h-12 px-1 mb-2 flex items-center justify-center max-w-[130px]">
                   {goal.title}
                 </div>
                 <GoalGauge score={goal.score} />
                 {index < displayGoals.length - 1 && (
-                  <div className="absolute -right-2 top-1/2 transform -translate-y-1/2 text-gray-400">
-                    <ChevronRight size={12} />
+                  <div className="absolute -right-4 top-1/2 transform -translate-y-1/2 text-gray-400">
+                    <ChevronRight size={16} />
                   </div>
                 )}
               </div>
@@ -564,7 +564,7 @@ function GoalsSection({ data }: { data?: ClientReportData }) {
   );
 }
 
-// Goal Gauge Component matched to the mockup design
+// Goal Gauge Component - half donut style matching the mockup exactly
 function GoalGauge({ score }: { score: number }) {
   // Determine color based on score
   const getColor = (score: number) => {
@@ -573,43 +573,48 @@ function GoalGauge({ score }: { score: number }) {
     return "#10b981"; // green
   };
   
-  // Calculate the angle for the gauge arc (0-180 degrees)
-  const angle = (score / 10) * 180;
   const color = getColor(score);
   
   return (
-    <div className="relative flex flex-col items-center w-[60px]">
-      {/* Gauge container */}
-      <div className="relative h-[40px] w-[60px]">
-        {/* Gauge background (semi-circle) */}
-        <div className="absolute h-[30px] w-[60px] bg-gray-200 rounded-t-full overflow-hidden"></div>
-        
-        {/* Gauge mask for proper arc display */}
-        <div className="absolute h-[30px] w-[60px] overflow-hidden">
-          {/* Colored gauge fill based on score */}
-          <div 
-            className="absolute top-0 w-[60px] h-[30px]"
-            style={{
-              transformOrigin: "center bottom",
-              transform: `rotate(${angle - 180}deg)`,
-              backgroundColor: color,
-              borderTopLeftRadius: "30px",
-              borderTopRightRadius: "30px"
-            }}
-          ></div>
-        </div>
-        
-        {/* Score display */}
-        <div 
-          className="absolute top-2 left-0 right-0 text-center font-bold text-[14px]"
-          style={{ color }}
-        >
-          {score.toFixed(1)}
-        </div>
+    <div className="flex flex-col items-center w-20">
+      {/* Half Donut Gauge */}
+      <div className="relative w-16 h-10">
+        {/* Create the gauge using SVG for more precise half-donut shape */}
+        <svg width="100%" height="100%" viewBox="0 0 100 50">
+          {/* Background semi-circle */}
+          <path 
+            d="M5,45 A40,40 0 0,1 95,45" 
+            fill="none" 
+            stroke="#e5e7eb" 
+            strokeWidth="10" 
+            strokeLinecap="round"
+          />
+          
+          {/* Value semi-circle - length based on score */}
+          <path 
+            d={`M5,45 A40,40 0 0,1 ${5 + (score/10) * 90},${45 - Math.sin(Math.PI * score/10) * 40}`} 
+            fill="none" 
+            stroke={color} 
+            strokeWidth="10" 
+            strokeLinecap="round"
+          />
+          
+          {/* Score text */}
+          <text 
+            x="50" 
+            y="30" 
+            textAnchor="middle" 
+            fontSize="18" 
+            fontWeight="bold" 
+            fill={color}
+          >
+            {score.toFixed(1)}
+          </text>
+        </svg>
       </div>
       
       {/* Scale markers */}
-      <div className="w-full flex justify-between text-[8px] text-gray-500 mt-1 px-1">
+      <div className="w-full flex justify-between text-[9px] text-gray-500 mt-1">
         <span>0</span>
         <span>10</span>
       </div>
