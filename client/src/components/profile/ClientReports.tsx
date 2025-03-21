@@ -519,32 +519,32 @@ function StrategiesSection({ data, strategiesData }: {
       <CardHeader className="py-4 px-5">
         <CardTitle className="text-base font-semibold text-gray-800">Therapy Strategies</CardTitle>
       </CardHeader>
-      <CardContent className="px-5 pb-5 pt-2">
+      <CardContent className="p-5">
         {!strategies.length ? (
-          <div className="text-center h-[170px] flex items-center justify-center">
+          <div className="text-center h-[190px] flex items-center justify-center">
             <p className="text-sm text-gray-500 font-medium">No strategy data available for this period.</p>
           </div>
         ) : (
-          <div className="overflow-x-auto h-[190px]"> {/* Increased height to match goals section */}
+          <div className="overflow-x-auto h-[190px] flex flex-col justify-center">
             <table className="w-full">
               <thead>
                 <tr className="border-b border-gray-200">
-                  <th className="text-left py-3 px-3 text-sm font-semibold text-gray-700 w-[40%]">Strategy</th>
-                  <th className="text-center py-3 px-3 text-sm font-semibold text-gray-700 w-[20%]">Used</th>
-                  <th className="text-center py-3 px-3 text-sm font-semibold text-gray-700 w-[40%]">Effectiveness</th>
+                  <th className="text-left py-2 px-3 text-sm font-semibold text-gray-700 w-[40%]">Strategy</th>
+                  <th className="text-center py-2 px-3 text-sm font-semibold text-gray-700 w-[20%]">Used</th>
+                  <th className="text-center py-2 px-3 text-sm font-semibold text-gray-700 w-[40%]">Effectiveness</th>
                 </tr>
               </thead>
               <tbody>
-                {strategies.map((strategy: { id: number; name: string; timesUsed: number; averageScore: number }, index: number) => (
+                {strategies.slice(0, 5).map((strategy: { id: number; name: string; timesUsed: number; averageScore: number }, index: number) => (
                   <tr key={strategy.id} 
                     className={cn(
                       index % 2 === 0 ? "bg-gray-50" : "bg-white",
                       "hover:bg-gray-100 transition-colors duration-150"
                     )}
                   >
-                    <td className="py-2.5 px-3 text-sm font-medium text-gray-800">{strategy.name}</td>
-                    <td className="text-center py-2.5 px-3 text-sm font-medium text-gray-600">{strategy.timesUsed}</td>
-                    <td className="py-2.5 px-3">
+                    <td className="py-2 px-3 text-sm font-medium text-gray-800 truncate max-w-[150px]">{strategy.name}</td>
+                    <td className="text-center py-2 px-3 text-sm font-medium text-gray-600">{strategy.timesUsed}</td>
+                    <td className="py-2 px-3">
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>
