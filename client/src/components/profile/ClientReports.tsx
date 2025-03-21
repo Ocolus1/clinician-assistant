@@ -154,15 +154,15 @@ export function ClientReports({ clientId }: ClientReportsProps) {
               </div>
             </div>
             
-            {/* Row 2: Goals (25%) and Strategies (75%) */}
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 md:gap-6">
-              {/* Goals section - 25% */}
+            {/* Row 2: Goals (50%) and Strategies (50%) - equally split to accommodate more goals */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
+              {/* Goals section - 50% */}
               <div className="lg:col-span-1">
                 <GoalsSection data={reportData} />
               </div>
               
-              {/* Strategies - 75% */}
-              <div className="lg:col-span-3">
+              {/* Strategies - 50% */}
+              <div className="lg:col-span-1">
                 <StrategiesSection data={reportData} strategiesData={strategiesQuery.data} />
               </div>
             </div>
@@ -616,11 +616,11 @@ function GoalsSection({ data }: { data?: ClientReportData }) {
         <CardTitle className="text-base font-semibold text-gray-800">Goals Progress</CardTitle>
       </CardHeader>
       <CardContent className="p-5">
-        <div className="h-[170px] flex justify-evenly items-center">
+        <div className="h-[190px] flex justify-evenly items-center">
           {displayGoals.map((goal) => (
             <div key={goal.id} className="flex flex-col items-center">
               <GoalVerticalBar score={goal.score} />
-              <div className="text-sm text-center mt-3 px-2 flex items-center justify-center max-w-[130px] font-medium text-gray-700">
+              <div className="text-xs sm:text-sm text-center mt-3 px-1 sm:px-2 flex items-center justify-center max-w-[90px] sm:max-w-[130px] font-medium text-gray-700 line-clamp-2">
                 {goal.title}
               </div>
             </div>
@@ -649,15 +649,15 @@ function GoalVerticalBar({ score }: { score: number }) {
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
-          <div className="flex flex-col items-center w-16 group">
+          <div className="flex flex-col items-center w-12 sm:w-14 group">
             {/* Vertical bar container */}
-            <div className="relative w-14 h-28 flex flex-col justify-end items-center">
+            <div className="relative w-10 sm:w-12 h-24 sm:h-28 flex flex-col justify-end items-center">
               {/* Background track */}
-              <div className="absolute inset-0 w-8 h-full bg-gray-100 rounded-lg mx-auto"></div>
+              <div className="absolute inset-0 w-6 sm:w-7 h-full bg-gray-100 rounded-lg mx-auto"></div>
               
               {/* Filled bar - height determined by score */}
               <div 
-                className="absolute bottom-0 w-8 rounded-lg mx-auto transition-all duration-300 group-hover:brightness-110"
+                className="absolute bottom-0 w-6 sm:w-7 rounded-lg mx-auto transition-all duration-300 group-hover:brightness-110"
                 style={{ 
                   height: `${heightPercentage}%`, 
                   backgroundColor: color,
