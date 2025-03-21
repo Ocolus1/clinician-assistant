@@ -1,186 +1,213 @@
+/**
+ * Enhanced Financial Tab
+ * 
+ * Comprehensive financial visualization component focusing on fund utilization.
+ * This component ties together BudgetItemUtilization and FundUtilizationTimeline
+ * to provide a complete picture of client fund allocation and spending.
+ */
 import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { BudgetItemUtilization } from "./BudgetItemUtilization";
-import { FundUtilizationTimeline } from "./FundUtilizationTimeline";
-import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend } from 'recharts';
-import { ClientReportData } from "@/lib/api/clientReports";
+import { useQuery } from '@tanstack/react-query';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardFooter,
+} from "@/components/ui/card";
+import {
+  TooltipProvider,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
+  PieChart,
+  Pie,
+  Cell,
+  ResponsiveContainer,
+  Tooltip as RechartsTooltip
+} from "recharts";
+import { Info } from "lucide-react";
+import { cn } from "@/lib/utils";
+
+// Import our specialized components
+import { BudgetItemUtilization } from './BudgetItemUtilization';
+import { FundUtilizationTimeline } from './FundUtilizationTimeline';
+
+// Import types
+import { ClientReportData } from '@/lib/api/clientReports';
+
+// Define consistent colors
+const COLORS = {
+  green: "#10b981",
+  blue: "#0284c7",
+  indigo: "#4f46e5",
+  purple: "#8b5cf6",
+  pink: "#ec4899",
+  red: "#f43f5e",
+  orange: "#f97316",
+  amber: "#f59e0b",
+};
 
 interface EnhancedFinancialTabProps {
   clientId: number;
   reportData?: ClientReportData;
 }
 
-const COLORS = {
-  green: '#22c55e',
-  red: '#ef4444',
-  amber: '#f59e0b',
-};
-
 export function EnhancedFinancialTab({ clientId, reportData }: EnhancedFinancialTabProps) {
   if (!reportData) {
     return (
-      <div className="p-8 text-center">
-        <p>Loading financial data...</p>
+      <div className="py-12 flex justify-center items-center">
+        <div className="animate-pulse flex space-x-4">
+          <div className="flex-1 space-y-4 py-1">
+            <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+            <div className="space-y-2">
+              <div className="h-4 bg-gray-200 rounded"></div>
+              <div className="h-4 bg-gray-200 rounded w-5/6"></div>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
 
+  const { keyMetrics, cancellations } = reportData;
+  
+  // Format spending deviation as percentage
+  const spendingDeviation = (keyMetrics.spendingDeviation * 100).toFixed(1);
+  const isOverAllocated = keyMetrics.spendingDeviation > 0;
+
   return (
     <div className="space-y-5">
-      {/* Main enhanced components */}
+      {/* Financial summary card - shows key metrics */}
+      <Card>
+        <CardHeader className="py-3">
+          <CardTitle className="text-base">Financial Summary</CardTitle>
+          <CardDescription>Key financial health indicators</CardDescription>
+        </CardHeader>
+        <CardContent className="p-3">
+          <div className="h-[170px] grid grid-cols-1 sm:grid-cols-3 gap-3 items-center">
+            <div className="space-y-1">
+              <div className="text-muted-foreground text-xs">Spending Variance</div>
+              <div className="flex items-center">
+                <span className={cn(
+                  "text-lg font-bold",
+                  isOverAllocated ? "text-destructive" : "text-green-600"
+                )}>
+                  {isOverAllocated ? "+" : ""}{spendingDeviation}%
+                </span>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="h-3 w-3 ml-1 text-muted-foreground" />
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-[250px]">
+                      {isOverAllocated 
+                        ? `Budget over-allocated by ${spendingDeviation}%` 
+                        : `Budget under-allocated by ${Math.abs(Number(spendingDeviation))}%`}
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
+            </div>
+            
+            <div className="space-y-1">
+              <div className="text-muted-foreground text-xs">Plan Expiration</div>
+              <div className="flex items-center">
+                <span className={cn(
+                  "text-lg font-bold",
+                  keyMetrics.planExpiration < 30 ? "text-destructive" : "text-green-600"
+                )}>
+                  {keyMetrics.planExpiration} days
+                </span>
+              </div>
+            </div>
+            
+            <div className="space-y-1">
+              <div className="text-muted-foreground text-xs">Cancellation Rate</div>
+              <div className="flex items-center">
+                <span className={cn(
+                  "text-lg font-bold",
+                  cancellations.waived > 20 ? "text-destructive" : "text-green-600"
+                )}>
+                  {cancellations.waived}%
+                </span>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+      
+      {/* Row 1: Fund utilization timeline */}
       <FundUtilizationTimeline clientId={clientId} />
-      <BudgetItemUtilization clientId={clientId} />
-
-      {/* Session attendance - retained from original financial tab */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-        <Card>
-          <CardHeader className="py-3">
-            <CardTitle className="text-base">Session Attendance</CardTitle>
-            <CardDescription className="text-xs">Breakdown of session attendance</CardDescription>
-          </CardHeader>
-          <CardContent className="p-2">
-            <div className="h-[170px] flex items-center justify-center">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={[
-                      { name: 'Completed', value: reportData.cancellations.completed, color: COLORS.green },
-                      { name: 'Waived', value: reportData.cancellations.waived, color: COLORS.red },
-                      { name: 'Rescheduled', value: reportData.cancellations.changed, color: COLORS.amber },
-                    ]}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                    outerRadius={80}
-                    fill="#8884d8"
-                    dataKey="value"
-                    nameKey="name"
-                  >
-                    {[
-                      { name: 'Completed', value: reportData.cancellations.completed, color: COLORS.green },
-                      { name: 'Waived', value: reportData.cancellations.waived, color: COLORS.red },
-                      { name: 'Rescheduled', value: reportData.cancellations.changed, color: COLORS.amber },
-                    ].map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                  <Legend />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-            {reportData.cancellations.total > 0 && (
-              <div className="text-center text-xs text-muted-foreground pt-2">
-                Total sessions: {reportData.cancellations.total}
+      
+      {/* Row 2: Budget item utilization grid and Session attendance */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        {/* Budget item utilization */}
+        <div className="lg:col-span-1">
+          <BudgetItemUtilization clientId={clientId} />
+        </div>
+        
+        {/* Session attendance */}
+        <div className="lg:col-span-1">
+          <Card>
+            <CardHeader className="py-3">
+              <CardTitle className="text-base">Session Attendance</CardTitle>
+              <CardDescription className="text-xs">Breakdown of session attendance</CardDescription>
+            </CardHeader>
+            <CardContent className="p-2">
+              <div className="h-[170px] flex items-center justify-center">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={[
+                        { name: 'Completed', value: reportData?.cancellations.completed, color: COLORS.green },
+                        { name: 'Waived', value: reportData?.cancellations.waived, color: COLORS.red },
+                        { name: 'Rescheduled', value: reportData?.cancellations.changed, color: COLORS.amber },
+                      ]}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                      outerRadius={80}
+                      fill="#8884d8"
+                      dataKey="value"
+                    >
+                      {[
+                        { name: 'Completed', value: reportData?.cancellations.completed, color: COLORS.green },
+                        { name: 'Waived', value: reportData?.cancellations.waived, color: COLORS.red },
+                        { name: 'Rescheduled', value: reportData?.cancellations.changed, color: COLORS.amber },
+                      ].map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <RechartsTooltip formatter={(value: number) => [`${value}%`, '']} />
+                  </PieChart>
+                </ResponsiveContainer>
               </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Budget Metrics Overview Card */}
-        <Card>
-          <CardHeader className="py-3">
-            <CardTitle className="text-base">Key Financial Indicators</CardTitle>
-            <CardDescription className="text-xs">Performance against plan goals</CardDescription>
-          </CardHeader>
-          <CardContent className="p-4">
-            <div className="grid grid-rows-3 gap-4 h-[170px]">
-              {/* Spending Variance */}
-              <div className="flex justify-between items-center">
-                <div className="flex flex-col">
-                  <span className="text-sm text-muted-foreground">Spending Variance</span>
-                  <div className="flex items-center space-x-2">
-                    <span className={
-                      reportData.keyMetrics.spendingDeviation > 0 
-                        ? "text-red-600 font-semibold text-xl" 
-                        : "text-green-600 font-semibold text-xl"
-                    }>
-                      {(reportData.keyMetrics.spendingDeviation * 100).toFixed(1)}%
-                    </span>
-                    <span className="text-xs text-muted-foreground">
-                      {reportData.keyMetrics.spendingDeviation > 0 
-                        ? "Over-allocated" 
-                        : "Under-allocated"}
-                    </span>
-                  </div>
-                </div>
-                <div className={
-                  reportData.keyMetrics.spendingDeviation > 0 
-                    ? "h-12 w-12 rounded-full bg-red-100 flex items-center justify-center" 
-                    : "h-12 w-12 rounded-full bg-green-100 flex items-center justify-center"
-                }>
-                  <span className={
-                    reportData.keyMetrics.spendingDeviation > 0 
-                      ? "text-red-600 text-xl font-bold" 
-                      : "text-green-600 text-xl font-bold"
-                  }>
-                    {reportData.keyMetrics.spendingDeviation > 0 ? "+" : "-"}
-                  </span>
-                </div>
+              <div className="text-center text-xs text-muted-foreground">
+                Total sessions: {reportData?.cancellations.total}
               </div>
-              
-              {/* Plan Expiration */}
-              <div className="flex justify-between items-center">
-                <div className="flex flex-col">
-                  <span className="text-sm text-muted-foreground">Plan Expiration</span>
-                  <div className="flex items-center space-x-2">
-                    <span className="text-slate-800 font-semibold text-xl">
-                      {reportData.keyMetrics.planExpiration}
-                    </span>
-                    <span className="text-xs text-muted-foreground">days remaining</span>
-                  </div>
-                </div>
-                <div className="h-12 w-12 rounded-full bg-slate-100 flex items-center justify-center">
-                  <span className="text-slate-600 text-sm font-bold">
-                    {Math.ceil(reportData.keyMetrics.planExpiration / 30)}mo
-                  </span>
-                </div>
-              </div>
-              
-              {/* Cancellation Rate */}
-              <div className="flex justify-between items-center">
-                <div className="flex flex-col">
-                  <span className="text-sm text-muted-foreground">Cancellation Rate</span>
-                  <div className="flex items-center space-x-2">
-                    <span className={
-                      (reportData.keyMetrics.cancellationRate || 0) > 30
-                        ? "text-red-600 font-semibold text-xl" 
-                        : (reportData.keyMetrics.cancellationRate || 0) > 15
-                          ? "text-amber-600 font-semibold text-xl"
-                          : "text-slate-800 font-semibold text-xl"
-                    }>
-                      {reportData.keyMetrics.cancellationRate?.toFixed(0) || "0"}%
-                    </span>
-                    <span className="text-xs text-muted-foreground">of sessions</span>
-                  </div>
-                </div>
-                <div className={
-                  (reportData.keyMetrics.cancellationRate || 0) > 30
-                    ? "h-12 w-12 rounded-full bg-red-100 flex items-center justify-center" 
-                    : (reportData.keyMetrics.cancellationRate || 0) > 15
-                      ? "h-12 w-12 rounded-full bg-amber-100 flex items-center justify-center"
-                      : "h-12 w-12 rounded-full bg-slate-100 flex items-center justify-center"
-                }>
-                  <span className={
-                    (reportData.keyMetrics.cancellationRate || 0) > 30
-                      ? "text-red-600 text-xl font-bold" 
-                      : (reportData.keyMetrics.cancellationRate || 0) > 15
-                        ? "text-amber-600 text-xl font-bold"
-                        : "text-slate-600 text-xl font-bold"
-                  }>
-                    {(reportData.keyMetrics.cancellationRate || 0) > 30
-                      ? "!" 
-                      : (reportData.keyMetrics.cancellationRate || 0) > 15
-                        ? "⚠"
-                        : "✓"}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </div>
       </div>
+      
+      {/* Additional information or explanatory text */}
+      <Card className="bg-muted/50">
+        <CardContent className="p-4 text-sm text-muted-foreground">
+          <p className="font-medium mb-2">Understanding Fund Utilization</p>
+          <p className="mb-2">
+            This enhanced financial tab focuses on tracking fund utilization rates to prevent unused fund loss. 
+            Government allocated funds don't roll over when plans expire, making fund management critical.
+          </p>
+          <p>
+            The visualizations help clinicians proactively manage therapy resources by showing spending patterns, 
+            projected depletion rates, and item-by-item utilization.
+          </p>
+        </CardContent>
+      </Card>
     </div>
   );
 }
