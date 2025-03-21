@@ -618,15 +618,17 @@ function GoalsSection({ data }: { data?: ClientReportData }) {
         <CardTitle className="text-base font-semibold text-gray-800">Goals Progress</CardTitle>
       </CardHeader>
       <CardContent className="p-5">
-        <div className="h-[190px] flex justify-evenly items-center">
-          {displayGoals.map((goal) => (
-            <div key={goal.id} className="flex flex-col items-center">
-              <GoalVerticalBar score={goal.score} />
-              <div className="text-xs sm:text-sm text-center mt-3 px-1 sm:px-2 flex items-center justify-center max-w-[90px] sm:max-w-[130px] font-medium text-gray-700 line-clamp-2">
-                {goal.title}
+        <div className="h-[190px] flex flex-col justify-center">
+          <div className="flex justify-between items-center space-x-4">
+            {displayGoals.map((goal) => (
+              <div key={goal.id} className="flex flex-col items-center w-full">
+                <GoalVerticalBar score={goal.score} />
+                <div className="text-xs text-center mt-2 px-1 flex items-center justify-center w-full font-medium text-gray-700 line-clamp-2 h-8">
+                  {goal.title}
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       </CardContent>
     </Card>
