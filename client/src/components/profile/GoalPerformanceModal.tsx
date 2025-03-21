@@ -96,8 +96,35 @@ function generatePerformanceData(goalId: number, goalTitle: string, subgoals: an
     const currentScore = monthlyScores[monthlyScores.length - 1].score;
     const previousScore = monthlyScores.length > 1 ? monthlyScores[monthlyScores.length - 2].score : currentScore;
     
-    // Enhanced subgoal processing with more robust checks
-    let processedSubgoals = Array.isArray(subgoals) ? subgoals : [];
+    // Enhanced subgoal processing with much more robust checks
+    // Start with a defensive copy
+    let processedSubgoals: any[] = [];
+    
+    // Log the raw input for debugging
+    console.log(`Raw subgoals input type: ${typeof subgoals}, isArray: ${Array.isArray(subgoals)}, length: ${Array.isArray(subgoals) ? subgoals.length : 'N/A'}`);
+    
+    // Ensure we're working with an array
+    if (Array.isArray(subgoals)) {
+      processedSubgoals = [...subgoals]; // safe copy
+    } else if (subgoals && typeof subgoals === 'object') {
+      // Try to extract from object if it's not an array
+      if ('data' in subgoals && Array.isArray(subgoals.data)) {
+        processedSubgoals = subgoals.data;
+        console.log("Extracted subgoals from data property:", processedSubgoals);
+      } else {
+        // Last resort - try to extract any array-like properties
+        const possibleArrayProps = Object.entries(subgoals)
+          .filter(([_, value]) => Array.isArray(value))
+          .map(([key, value]) => ({ key, length: (value as any[]).length }))
+          .sort((a, b) => b.length - a.length); // Sort by array length descending
+        
+        if (possibleArrayProps.length > 0) {
+          const bestProp = possibleArrayProps[0];
+          processedSubgoals = (subgoals as any)[bestProp.key];
+          console.log(`Extracted ${processedSubgoals.length} subgoals from ${bestProp.key} property`);
+        }
+      }
+    }
     
     // Handle edge cases where subgoals might be nested or in unexpected formats
     if (processedSubgoals.length === 1 && Array.isArray(processedSubgoals[0])) {
@@ -106,29 +133,52 @@ function generatePerformanceData(goalId: number, goalTitle: string, subgoals: an
     }
     
     // Special handling for when subgoal data might be in a different format
-    if (processedSubgoals.length === 1 && processedSubgoals[0] && typeof processedSubgoals[0] === 'object' && 'subgoals' in processedSubgoals[0]) {
-      console.log("Detected subgoals nested in 'subgoals' property:", processedSubgoals[0].subgoals);
-      processedSubgoals = processedSubgoals[0].subgoals;
+    if (processedSubgoals.length === 1 && processedSubgoals[0] && typeof processedSubgoals[0] === 'object') {
+      if ('subgoals' in processedSubgoals[0] && Array.isArray(processedSubgoals[0].subgoals)) {
+        console.log("Detected subgoals nested in 'subgoals' property:", processedSubgoals[0].subgoals);
+        processedSubgoals = processedSubgoals[0].subgoals;
+      } else if ('data' in processedSubgoals[0] && Array.isArray(processedSubgoals[0].data)) {
+        console.log("Detected subgoals nested in 'data' property:", processedSubgoals[0].data);
+        processedSubgoals = processedSubgoals[0].data;
+      }
     }
     
-    // Filtered validation to ensure subgoals have required properties
+    // Super robust filtering to ensure subgoals have required properties, with detailed logging
     const validSubgoals = Array.isArray(processedSubgoals) 
       ? processedSubgoals.filter(s => {
-          const isValid = s && typeof s === 'object' && (s.id !== undefined) && s.title;
-          if (!isValid) {
-            console.warn("Invalid subgoal found:", s);
+          // Detailed validity check
+          if (!s) {
+            console.warn("Subgoal is null or undefined");
+            return false;
           }
-          return isValid;
+          
+          if (typeof s !== 'object') {
+            console.warn(`Subgoal is not an object, type: ${typeof s}`);
+            return false;
+          }
+          
+          if (s.id === undefined) {
+            console.warn("Subgoal missing id property:", s);
+            return false;
+          }
+          
+          if (!s.title) {
+            console.warn("Subgoal missing title property:", s);
+            return false;
+          }
+          
+          return true;
         }) as SubgoalData[] 
       : [];
     
-    console.log(`Generating performance data for goal ${goalId}: ${goalTitle} with ${validSubgoals.length} subgoals`);
+    console.log(`Processed ${processedSubgoals.length} raw subgoals into ${validSubgoals.length} valid subgoals for goal ${goalId}: ${goalTitle}`);
     
     // Generate milestone (subgoal) performance data
     let milestones: MilestonePerformance[] = [];
     
     // Add actual subgoals first
     if (validSubgoals.length > 0) {
+      console.log(`Creating milestone visualizations for ${validSubgoals.length} subgoals`);
       milestones = validSubgoals.map(subgoal => {
         // Generate deterministic values based on subgoal.id
         const safeId = typeof subgoal.id === 'number' && !isNaN(subgoal.id) ? subgoal.id : 1;
@@ -139,7 +189,9 @@ function generatePerformanceData(goalId: number, goalTitle: string, subgoals: an
           description: subgoal.description || "",
           isEmpty: false,
           values: months.map((month, index) => {
-            const baseValue = ((safeId % 10) + 1) / 10; // 0.1 to 1.0 range
+            // Use a more reliable formula based on goal ID and subgoal ID
+            const seed = (safeId * 17 + goalId * 13) % 100;
+            const baseValue = (seed % 10 + 1) / 10; // 0.1 to 1.0 range
             const modifier = Math.cos(index * 0.7) * 0.3; // Variation
             const score = Math.min(Math.max(Math.round((baseValue + modifier) * 10), 1), 10);
             
@@ -222,51 +274,44 @@ export function GoalPerformanceModal({
   const [directSubgoals, setDirectSubgoals] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   
-  // Improved function to fetch subgoals directly from the API
+  // Enhanced function to fetch subgoals directly from the API with improved reliability
   const fetchSubgoalsDirectly = async (goalId: number) => {
     try {
       setIsLoading(true);
       console.log(`GoalPerformanceModal: Directly fetching subgoals for goal ${goalId}`);
       
-      // Use dynamic import with a timeout to ensure we don't hang indefinitely
-      const fetchPromise = new Promise(async (resolve, reject) => {
-        try {
-          const { apiRequest } = await import('@/lib/queryClient');
-          const response = await apiRequest('GET', `/api/goals/${goalId}/subgoals`);
-          resolve(response);
-        } catch (error) {
-          reject(error);
-        }
+      // Directly use fetch to avoid any potential issues with dynamic imports
+      const response = await fetch(`/api/goals/${goalId}/subgoals`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' }
       });
       
-      // Set a timeout of 5 seconds to prevent hanging
-      const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error("Fetch timeout after 5 seconds")), 5000);
-      });
+      // Check if the response is ok first
+      if (!response.ok) {
+        throw new Error(`API returned status ${response.status}`);
+      }
       
-      // Race the fetch against the timeout
-      const response = await Promise.race([fetchPromise, timeoutPromise]);
+      // Parse the JSON response
+      const data = await response.json();
       
-      if (Array.isArray(response)) {
-        console.log(`GoalPerformanceModal: Directly fetched ${response.length} subgoals:`, response);
-        if (response.length > 0) {
-          setDirectSubgoals(response);
+      console.log(`GoalPerformanceModal: Directly fetched subgoals:`, data);
+      
+      if (Array.isArray(data)) {
+        if (data.length > 0) {
+          console.log(`GoalPerformanceModal: Successfully fetched ${data.length} subgoals for goal ${goalId}`);
+          setDirectSubgoals(data);
         } else {
           // If no subgoals were found, create placeholder data
-          // This ensures we can at least show the milestone grid
-          console.log(`GoalPerformanceModal: No subgoals found, creating placeholders`);
+          console.log(`GoalPerformanceModal: No subgoals found in API response for goal ${goalId}`);
           setDirectSubgoals([
             { id: -1, title: "No subgoals available", description: "Please add subgoals to this goal to track progress" }
           ]);
         }
-      } else if (response === null || response === undefined) {
-        console.log(`GoalPerformanceModal: API returned null/undefined, creating placeholders`);
+      } else {
+        console.warn(`GoalPerformanceModal: API returned non-array response:`, data);
         setDirectSubgoals([
           { id: -1, title: "No subgoals available", description: "Please add subgoals to this goal to track progress" }
         ]);
-      } else {
-        console.warn(`GoalPerformanceModal: Unexpected API response:`, response);
-        setDirectSubgoals([]);
       }
     } catch (error) {
       console.error(`GoalPerformanceModal: Error fetching subgoals:`, error);
@@ -278,26 +323,41 @@ export function GoalPerformanceModal({
     }
   };
   
-  // When the goal ID changes or modal opens, fetch subgoals and generate new performance data
+  // Enhanced useEffect with more reliable behavior for loading subgoals
   useEffect(() => {
     if (goalId !== null && goalId !== undefined && !isNaN(Number(goalId)) && open) {
       const validGoalId = Number(goalId); // Ensure goalId is a valid number
       
-      // First try with passed subgoals
+      console.log(`GoalPerformanceModal: Modal opened for goal ${validGoalId}`);
+      
+      // First try with passed subgoals, but ALSO double-check directly to ensure we have the latest data
+      let shouldFetchDirectly = true;
+      
       if (Array.isArray(subgoals) && subgoals.length > 0) {
-        console.log(`GoalPerformanceModal: Using ${subgoals.length} passed subgoals`);
+        console.log(`GoalPerformanceModal: Parent passed ${subgoals.length} subgoals`);
+        // Generate UI with the passed subgoals first for faster loading
         const data = generatePerformanceData(validGoalId, goalTitle, subgoals);
         setPerformanceData(data);
-      } else {
-        // If no subgoals passed or empty array, fetch them directly
-        console.log(`GoalPerformanceModal: No passed subgoals, fetching directly`);
+        
+        // But still fetch directly to ensure we have the latest data, just don't show loading state
+        shouldFetchDirectly = true;
+      }
+      
+      // Always fetch directly to ensure we have the most up-to-date data
+      if (shouldFetchDirectly) {
+        // If we already have performance data from passed subgoals, don't show loading state
+        if (!performanceData) {
+          setIsLoading(true);
+        }
+        
+        console.log(`GoalPerformanceModal: Fetching subgoals directly to ensure fresh data`);
         fetchSubgoalsDirectly(validGoalId);
       }
     } else {
       setPerformanceData(null);
       setDirectSubgoals([]);
     }
-  }, [goalId, goalTitle, open]);
+  }, [goalId, goalTitle, open, performanceData]);
   
   // When direct subgoals are fetched, generate performance data with them
   useEffect(() => {

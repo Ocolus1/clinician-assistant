@@ -705,8 +705,8 @@ function GoalsSection({ data }: { data?: ClientReportData }) {
     }
   }, [clientGoals, clientId]);
   
-  // Handle goal click to open the performance modal
-  const handleGoalClick = (goal: any) => {
+  // Enhanced goal click handler with reliable subgoal fetching
+  const handleGoalClick = async (goal: any) => {
     // Ensure goal.id is a valid number before proceeding
     if (!goal || goal.id === undefined || goal.id === null) {
       console.log("Invalid goal object:", goal);
@@ -719,40 +719,57 @@ function GoalsSection({ data }: { data?: ClientReportData }) {
       return;
     }
     
-    // Get the subgoals for this specific goal
-    const goalSpecificSubgoals = goalSubgoals[goalId] || [];
-    console.log(`Clicking goal ${goalId} with ${goalSpecificSubgoals.length} subgoals:`, goalSpecificSubgoals);
+    console.log(`Handling click for goal ${goalId}: ${goal.title}`);
     
-    // Debug log all stored goal subgoals
-    console.log("All goal subgoals:", goalSubgoals);
-    console.log("Keys in goalSubgoals:", Object.keys(goalSubgoals));
-    
-    // Force fetch subgoals for this goal if not found
-    if (!goalSpecificSubgoals.length) {
-      console.log(`No subgoals found for goal ${goalId}, fetching now...`);
-      apiRequest('GET', `/api/goals/${goalId}/subgoals`)
-        .then(response => {
-          if (Array.isArray(response) && response.length > 0) {
-            console.log(`Fetched ${response.length} subgoals for goal ${goalId}:`, response);
-            // Update subgoals state with these new subgoals
-            setGoalSubgoals(prev => ({
-              ...prev,
-              [goalId]: response
-            }));
-          } else {
-            console.log(`No subgoals returned from API for goal ${goalId}`);
-          }
-        })
-        .catch(error => {
-          console.error(`Error fetching subgoals for goal ${goalId}:`, error);
-        });
-    }
-    
-    // Set state with type safety
+    // First, set state with selected goal - do this immediately for better UX
     setSelectedGoalId(goalId);
     setSelectedGoal(goal);
     
-    // Open the modal only after necessary data is set
+    // Check if we already have subgoals for this goal
+    let goalSpecificSubgoals = goalSubgoals[goalId] || [];
+    console.log(`Initial check: Goal ${goalId} has ${goalSpecificSubgoals.length} cached subgoals`);
+    
+    // If no subgoals in cache, fetch them before opening the modal
+    if (goalSpecificSubgoals.length === 0) {
+      console.log(`No cached subgoals for goal ${goalId}, fetching now...`);
+      try {
+        // Use the direct fetch API for more reliability
+        const response = await fetch(`/api/goals/${goalId}/subgoals`, {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json' }
+        });
+        
+        if (!response.ok) {
+          throw new Error(`API returned status ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        if (Array.isArray(data)) {
+          console.log(`Fetched ${data.length} subgoals for goal ${goalId}:`, data);
+          
+          if (data.length > 0) {
+            // Update the goalSubgoals state
+            goalSpecificSubgoals = data; // Update local variable for immediate use
+            setGoalSubgoals(prev => ({
+              ...prev,
+              [goalId]: data
+            }));
+          } else {
+            console.log(`API returned empty array for goal ${goalId} subgoals`);
+          }
+        } else {
+          console.warn(`API returned non-array for goal ${goalId} subgoals:`, data);
+        }
+      } catch (error) {
+        console.error(`Error fetching subgoals for goal ${goalId}:`, error);
+      }
+    }
+    
+    // Log what we're passing to the modal
+    console.log(`Opening modal for goal ${goalId} with ${goalSpecificSubgoals.length} subgoals`);
+    
+    // Open the modal with the data we have (subgoals may be empty array)
     setIsModalOpen(true);
   };
   
