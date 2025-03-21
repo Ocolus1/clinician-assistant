@@ -93,18 +93,18 @@ export function ClientReports({ clientId }: ClientReportsProps) {
   
   return (
     // Make the container full-width and set a max height to avoid scrolling
-    <div className="space-y-4 max-w-screen overflow-hidden">
+    <div className="space-y-6 max-w-screen overflow-hidden px-1 py-2">
       {reportQuery.isLoading || strategiesQuery.isLoading ? (
-        <div className="py-10 flex justify-center items-center">
+        <div className="py-12 flex justify-center items-center">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <span className="ml-3 text-muted-foreground">Loading client performance data...</span>
+          <span className="ml-4 font-medium text-base text-muted-foreground">Loading client performance data...</span>
         </div>
       ) : reportQuery.isError || strategiesQuery.isError ? (
-        <div className="py-10 flex justify-center items-center">
+        <div className="py-12 flex justify-center items-center">
           <AlertCircle className="h-8 w-8 text-destructive" />
-          <div className="ml-3">
-            <p className="font-semibold">Failed to load report data</p>
-            <p className="text-sm text-muted-foreground">
+          <div className="ml-4">
+            <p className="font-semibold text-gray-800">Failed to load report data</p>
+            <p className="text-sm text-gray-600">
               {(reportQuery.error instanceof Error 
                 ? reportQuery.error.message 
                 : strategiesQuery.error instanceof Error
@@ -114,11 +114,21 @@ export function ClientReports({ clientId }: ClientReportsProps) {
           </div>
         </div>
       ) : (
-        <Tabs defaultValue="therapeutic" className="space-y-4">
-          <div className="flex justify-between items-center">
-            <TabsList className="grid grid-cols-2 w-[400px]">
-              <TabsTrigger value="therapeutic">Therapeutic</TabsTrigger>
-              <TabsTrigger value="financial">Financial</TabsTrigger>
+        <Tabs defaultValue="therapeutic" className="space-y-6">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <TabsList className="grid grid-cols-2 w-full sm:w-[420px] rounded-lg">
+              <TabsTrigger 
+                value="therapeutic" 
+                className="text-sm font-medium py-2.5 data-[state=active]:font-semibold transition-all duration-200"
+              >
+                Therapeutic
+              </TabsTrigger>
+              <TabsTrigger 
+                value="financial" 
+                className="text-sm font-medium py-2.5 data-[state=active]:font-semibold transition-all duration-200"
+              >
+                Financial
+              </TabsTrigger>
             </TabsList>
             
             <DateRangePicker
@@ -130,29 +140,29 @@ export function ClientReports({ clientId }: ClientReportsProps) {
           </div>
           
           {/* Therapeutic Tab */}
-          <TabsContent value="therapeutic" className="space-y-5">
+          <TabsContent value="therapeutic" className="space-y-6">
             {/* Row 1: Client info (25%) and Observations (75%) */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 md:gap-6">
               {/* Client info (therapeutic data) - 25% */}
-              <div className="md:col-span-1">
+              <div className="lg:col-span-1">
                 <ClientInfoCard data={reportData} />
               </div>
               
               {/* Observations - 75% */}
-              <div className="md:col-span-3">
+              <div className="lg:col-span-3">
                 <ObservationsSection data={reportData} />
               </div>
             </div>
             
             {/* Row 2: Goals (25%) and Strategies (75%) */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 md:gap-6">
               {/* Goals section - 25% */}
-              <div className="md:col-span-1">
+              <div className="lg:col-span-1">
                 <GoalsSection data={reportData} />
               </div>
               
               {/* Strategies - 75% */}
-              <div className="md:col-span-3">
+              <div className="lg:col-span-3">
                 <StrategiesSection data={reportData} strategiesData={strategiesQuery.data} />
               </div>
             </div>
@@ -293,29 +303,34 @@ function ClientInfoCard({ data, className }: {
   const { clientDetails } = data;
   
   return (
-    <Card className={className}>
-      <CardHeader className="py-3">
-        <CardTitle className="text-base">Client Details</CardTitle>
+    <Card className={cn(
+      className,
+      "rounded-lg border border-gray-200",
+      "shadow-[0_2px_4px_-1px_rgba(0,0,0,0.06),_0_4px_6px_-1px_rgba(0,0,0,0.1)]",
+      "transition-shadow hover:shadow-[0_4px_6px_-1px_rgba(0,0,0,0.1),_0_2px_4px_-1px_rgba(0,0,0,0.06)]",
+    )}>
+      <CardHeader className="py-4 px-5">
+        <CardTitle className="text-base font-semibold text-gray-800">Client Details</CardTitle>
       </CardHeader>
-      <CardContent className="p-4">
+      <CardContent className="p-5">
         {/* Height matched to match Observations section */}
         <div className="h-[170px] flex flex-col justify-between py-2">
           <div className="space-y-6">
             <div className="flex justify-between items-center">
-              <span className="text-muted-foreground text-sm">Name:</span>
-              <span className="font-medium text-sm">{clientDetails.name}</span>
+              <span className="text-gray-600 text-sm font-medium">Name:</span>
+              <span className="font-semibold text-sm text-gray-900">{clientDetails.name}</span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-muted-foreground text-sm">Age:</span>
-              <span className="font-medium text-sm">{clientDetails.age} years</span>
+              <span className="text-gray-600 text-sm font-medium">Age:</span>
+              <span className="font-semibold text-sm text-gray-900">{clientDetails.age} years</span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-muted-foreground text-sm">Funds Management:</span>
-              <span className="font-medium text-sm">{clientDetails.fundsManagement}</span>
+              <span className="text-gray-600 text-sm font-medium">Funds Management:</span>
+              <span className="font-semibold text-sm text-gray-900">{clientDetails.fundsManagement}</span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-muted-foreground text-sm">Allied Health Team:</span>
-              <span className="font-medium text-sm">{clientDetails.allies.length}</span>
+              <span className="text-gray-600 text-sm font-medium">Allied Health Team:</span>
+              <span className="font-semibold text-sm text-gray-900">{clientDetails.allies.length}</span>
             </div>
           </div>
         </div>
