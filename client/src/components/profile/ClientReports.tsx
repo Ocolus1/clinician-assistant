@@ -7,6 +7,9 @@ import { Loader2, Info, BarChart4, Calendar, CheckCircle, AlertCircle, ArrowUpRi
 import { useLocation } from "wouter";
 import { apiRequest } from "@/lib/queryClient";
 
+// Import our enhanced financial tab components
+import { EnhancedFinancialTab } from "@/components/reports/EnhancedFinancialTab";
+
 // UI Components
 import { DateRangePicker } from "@/components/ui/date-range-picker";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -174,122 +177,8 @@ export function ClientReports({ clientId }: ClientReportsProps) {
           
           {/* Financial Tab */}
           <TabsContent value="financial" className="space-y-5">
-            {/* Financial metrics */}
-            <KeyMetricsCard data={reportData} />
-            
-            {/* Session attendance */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              <Card>
-                <CardHeader className="py-3">
-                  <CardTitle className="text-base">Session Attendance</CardTitle>
-                  <CardDescription className="text-xs">Breakdown of session attendance</CardDescription>
-                </CardHeader>
-                <CardContent className="p-2">
-                  <div className="h-[170px] flex items-center justify-center">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie
-                          data={[
-                            { name: 'Completed', value: reportData?.cancellations.completed, color: COLORS.green },
-                            { name: 'Waived', value: reportData?.cancellations.waived, color: COLORS.red },
-                            { name: 'Rescheduled', value: reportData?.cancellations.changed, color: COLORS.amber },
-                          ]}
-                          cx="50%"
-                          cy="50%"
-                          labelLine={false}
-                          label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                          outerRadius={80}
-                          fill="#8884d8"
-                          dataKey="value"
-                        >
-                          {[
-                            { name: 'Completed', value: reportData?.cancellations.completed, color: COLORS.green },
-                            { name: 'Waived', value: reportData?.cancellations.waived, color: COLORS.red },
-                            { name: 'Rescheduled', value: reportData?.cancellations.changed, color: COLORS.amber },
-                          ].map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={entry.color} />
-                          ))}
-                        </Pie>
-                        <RechartsTooltip formatter={(value: number) => [`${value}%`, '']} />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  </div>
-                  <div className="text-center text-xs text-muted-foreground">
-                    Total sessions: {reportData?.cancellations.total}
-                  </div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="py-3">
-                  <CardTitle className="text-base">Budget Utilization</CardTitle>
-                  <CardDescription className="text-xs">Financial plan and spending</CardDescription>
-                </CardHeader>
-                <CardContent className="p-2">
-                  <div className="h-[170px] space-y-3 flex flex-col justify-center">
-                    <div className="space-y-1">
-                      <div className="flex justify-between text-xs">
-                        <span>Spending Variance:</span>
-                        <span className={cn(
-                          reportData?.keyMetrics.spendingDeviation > 0 ? "text-destructive" : "text-green-600"
-                        )}>
-                          {reportData?.keyMetrics.spendingDeviation > 0 ? "+" : ""}
-                          {(reportData?.keyMetrics.spendingDeviation * 100).toFixed(1)}%
-                        </span>
-                      </div>
-                      <div className="w-full bg-secondary h-2 rounded-full overflow-hidden">
-                        <div 
-                          className={cn(
-                            "h-full rounded-full",
-                            reportData?.keyMetrics.spendingDeviation > 0 ? "bg-destructive" : "bg-green-600"
-                          )}
-                          style={{ width: `${Math.min(Math.abs(reportData?.keyMetrics.spendingDeviation * 100), 100)}%` }} 
-                        />
-                      </div>
-                    </div>
-                    
-                    <div className="space-y-1">
-                      <div className="flex justify-between text-xs">
-                        <span>Plan Expiration:</span>
-                        <span className={cn(
-                          reportData?.keyMetrics.planExpiration < 30 ? "text-destructive" : "text-green-600"
-                        )}>
-                          {reportData?.keyMetrics.planExpiration} days remaining
-                        </span>
-                      </div>
-                      <div className="w-full bg-secondary h-2 rounded-full overflow-hidden">
-                        <div 
-                          className={cn(
-                            "h-full rounded-full",
-                            reportData?.keyMetrics.planExpiration < 30 ? "bg-destructive" : "bg-green-600"
-                          )}
-                          style={{ width: `${Math.min((reportData?.keyMetrics.planExpiration / 90) * 100, 100)}%` }} 
-                        />
-                      </div>
-                    </div>
-                    
-                    <div className="space-y-1">
-                      <div className="flex justify-between text-xs">
-                        <span>Cancellation Rate:</span>
-                        <span className={cn(
-                          reportData?.cancellations.waived > 20 ? "text-destructive" : "text-green-600"
-                        )}>
-                          {reportData?.cancellations.waived}%
-                        </span>
-                      </div>
-                      <div className="w-full bg-secondary h-2 rounded-full overflow-hidden">
-                        <div 
-                          className={cn(
-                            "h-full rounded-full",
-                            reportData?.cancellations.waived > 20 ? "bg-destructive" : "bg-green-600"
-                          )} 
-                          style={{ width: `${reportData?.cancellations.waived}%` }} 
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
+            {/* Import and use the enhanced financial tab */}
+            <EnhancedFinancialTab clientId={clientId} reportData={reportData} />
           </TabsContent>
         </Tabs>
       )}
