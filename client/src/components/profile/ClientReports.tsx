@@ -115,28 +115,30 @@ export function ClientReports({ clientId }: ClientReportsProps) {
         </div>
       ) : (
         <Tabs defaultValue="therapeutic" className="space-y-6">
-          <div className="flex flex-col sm:flex-row justify-center mb-4 sm:mb-6">
-            <TabsList className="grid grid-cols-2 w-full max-w-md rounded-lg">
+          <div className="flex justify-between items-center mb-4">
+            {/* Left-aligned tabs */}
+            <TabsList className="grid w-auto grid-cols-2 rounded-lg h-10">
               <TabsTrigger 
                 value="therapeutic" 
-                className="text-sm font-medium py-3 data-[state=active]:font-semibold transition-all duration-200 data-[state=active]:bg-blue-50"
+                className="px-8 text-sm font-medium data-[state=active]:font-semibold transition-all duration-200 data-[state=active]:bg-blue-50"
               >
                 Therapeutic
               </TabsTrigger>
               <TabsTrigger 
                 value="financial" 
-                className="text-sm font-medium py-3 data-[state=active]:font-semibold transition-all duration-200 data-[state=active]:bg-blue-50"
+                className="px-8 text-sm font-medium data-[state=active]:font-semibold transition-all duration-200 data-[state=active]:bg-blue-50"
               >
                 Financial
               </TabsTrigger>
             </TabsList>
             
-            <div className="mt-4 sm:mt-0">
+            {/* Right-aligned date picker */}
+            <div>
               <DateRangePicker
                 value={dateRange}
                 onChange={setDateRange}
                 showAllTime={true}
-                className="w-full sm:w-auto"
+                className="w-auto"
               />
             </div>
           </div>
