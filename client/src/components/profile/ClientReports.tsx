@@ -115,28 +115,30 @@ export function ClientReports({ clientId }: ClientReportsProps) {
         </div>
       ) : (
         <Tabs defaultValue="therapeutic" className="space-y-6">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <TabsList className="grid grid-cols-2 w-full sm:w-[420px] rounded-lg">
+          <div className="flex flex-col sm:flex-row justify-center mb-4 sm:mb-6">
+            <TabsList className="grid grid-cols-2 w-full max-w-md rounded-lg">
               <TabsTrigger 
                 value="therapeutic" 
-                className="text-sm font-medium py-2.5 data-[state=active]:font-semibold transition-all duration-200"
+                className="text-sm font-medium py-3 data-[state=active]:font-semibold transition-all duration-200 data-[state=active]:bg-blue-50"
               >
                 Therapeutic
               </TabsTrigger>
               <TabsTrigger 
                 value="financial" 
-                className="text-sm font-medium py-2.5 data-[state=active]:font-semibold transition-all duration-200"
+                className="text-sm font-medium py-3 data-[state=active]:font-semibold transition-all duration-200 data-[state=active]:bg-blue-50"
               >
                 Financial
               </TabsTrigger>
             </TabsList>
             
-            <DateRangePicker
-              value={dateRange}
-              onChange={setDateRange}
-              showAllTime={true}
-              className="w-full sm:w-auto"
-            />
+            <div className="mt-4 sm:mt-0">
+              <DateRangePicker
+                value={dateRange}
+                onChange={setDateRange}
+                showAllTime={true}
+                className="w-full sm:w-auto"
+              />
+            </div>
           </div>
           
           {/* Therapeutic Tab */}
@@ -527,9 +529,9 @@ function StrategiesSection({ data, strategiesData }: {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-gray-200">
-                  <th className="text-left py-3 px-3 text-sm font-semibold text-gray-700">Strategy</th>
-                  <th className="text-center py-3 px-3 text-sm font-semibold text-gray-700">Used</th>
-                  <th className="text-center py-3 px-3 text-sm font-semibold text-gray-700 w-1/3">Effectiveness</th>
+                  <th className="text-left py-3 px-3 text-sm font-semibold text-gray-700 w-[40%]">Strategy</th>
+                  <th className="text-center py-3 px-3 text-sm font-semibold text-gray-700 w-[20%]">Used</th>
+                  <th className="text-center py-3 px-3 text-sm font-semibold text-gray-700 w-[40%]">Effectiveness</th>
                 </tr>
               </thead>
               <tbody>
