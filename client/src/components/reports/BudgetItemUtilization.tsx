@@ -170,7 +170,9 @@ export function BudgetItemUtilization({ clientId }: BudgetItemUtilizationProps) 
   }, [filteredItems, sortField, sortDirection]);
 
   // Calculate overall budget metrics
-  const totalBudget = budgetSettings?.ndisFunds ? parseFloat(budgetSettings.ndisFunds) : 0;
+  const totalBudget = budgetSettings?.ndisFunds !== null && budgetSettings?.ndisFunds !== undefined 
+    ? Number(budgetSettings.ndisFunds) 
+    : 0;
   const totalAllocated = enhancedBudgetItems.reduce((sum, item) => sum + item.totalCost, 0);
   const totalUsed = enhancedBudgetItems.reduce((sum, item) => sum + item.usedCost, 0);
   const totalRemaining = Math.max(0, totalBudget - totalUsed);

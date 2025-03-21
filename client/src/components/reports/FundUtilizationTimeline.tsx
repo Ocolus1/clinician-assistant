@@ -400,9 +400,9 @@ export function FundUtilizationTimeline({ clientId }: FundUtilizationTimelinePro
             <div className="text-sm font-medium">
               {formatCurrency(projectedRemainingAtEnd)}
               <span className="ml-1 text-xs text-gray-500">
-                ({budgetSettings?.ndisFunds !== null ? 
-                  ((projectedRemainingAtEnd / Number(budgetSettings.ndisFunds)) * 100).toFixed(0) : 
-                  0}% of total)
+                {budgetSettings && typeof budgetSettings.ndisFunds === 'number' && budgetSettings.ndisFunds > 0 ? 
+                  `(${((projectedRemainingAtEnd / budgetSettings.ndisFunds) * 100).toFixed(0)}% of total)` : 
+                  ''}
               </span>
             </div>
           </div>
