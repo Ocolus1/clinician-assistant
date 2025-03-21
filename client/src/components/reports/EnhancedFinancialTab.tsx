@@ -35,7 +35,6 @@ import { cn } from "@/lib/utils";
 import { BudgetItemUtilization } from './BudgetItemUtilization';
 import { FundUtilizationTimeline } from './FundUtilizationTimeline';
 import { BudgetReallocationSuggestions } from './BudgetReallocationSuggestions';
-import { UsageHistoryTimeline } from './UsageHistoryTimeline';
 import { ServiceGapAnalysis } from './ServiceGapAnalysis';
 import { ClientServiceComparison } from './ClientServiceComparison';
 
@@ -260,28 +259,12 @@ export function EnhancedFinancialTab({ clientId, reportData }: EnhancedFinancial
         </div>
       </div>
 
-      {/* Row 3: Budget Reallocation and Usage History */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-        {/* Budget Reallocation Suggestions */}
-        <div className="lg:col-span-1">
-          <BudgetReallocationSuggestions 
-            clientId={clientId} 
-            budgetItems={budgetItems} 
-            sessions={sessions}
-            budgetSettings={budgetSettings}
-          />
-        </div>
-        
-        {/* Usage History Timeline */}
-        <div className="lg:col-span-1">
-          <UsageHistoryTimeline 
-            clientId={clientId} 
-            budgetItems={budgetItems} 
-            sessions={sessions}
-            budgetSettings={budgetSettings}
-          />
-        </div>
-      </div>
+      {/* Row 3: Budget Reallocation Suggestions */}
+      <BudgetReallocationSuggestions 
+        budgetItems={budgetItems} 
+        sessions={sessions}
+        budgetSettings={budgetSettings}
+      />
 
       {/* Row 4: Service Gap Analysis and Client Comparison */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
@@ -291,8 +274,8 @@ export function EnhancedFinancialTab({ clientId, reportData }: EnhancedFinancial
             clientId={clientId}
             budgetItems={budgetItems}
             sessions={sessions}
-            goals={goals}
-            subgoals={subgoals}
+            goals={goals as any[]}
+            subgoals={subgoals as any[]}
             budgetSettings={budgetSettings}
           />
         </div>
