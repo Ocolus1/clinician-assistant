@@ -108,19 +108,22 @@ function generatePerformanceData(goalId: number, goalTitle: string, subgoals: an
       processedSubgoals = [...subgoals]; // safe copy
     } else if (subgoals && typeof subgoals === 'object') {
       // Try to extract from object if it's not an array
-      if ('data' in subgoals && Array.isArray(subgoals.data)) {
-        processedSubgoals = subgoals.data;
+      // Type assertion helps TypeScript understand that we're checking for nested properties
+      const anySubgoals = subgoals as any;
+      
+      if (anySubgoals.data && Array.isArray(anySubgoals.data)) {
+        processedSubgoals = anySubgoals.data;
         console.log("Extracted subgoals from data property:", processedSubgoals);
       } else {
         // Last resort - try to extract any array-like properties
-        const possibleArrayProps = Object.entries(subgoals)
+        const possibleArrayProps = Object.entries(anySubgoals)
           .filter(([_, value]) => Array.isArray(value))
           .map(([key, value]) => ({ key, length: (value as any[]).length }))
           .sort((a, b) => b.length - a.length); // Sort by array length descending
         
         if (possibleArrayProps.length > 0) {
           const bestProp = possibleArrayProps[0];
-          processedSubgoals = (subgoals as any)[bestProp.key];
+          processedSubgoals = anySubgoals[bestProp.key];
           console.log(`Extracted ${processedSubgoals.length} subgoals from ${bestProp.key} property`);
         }
       }
@@ -134,12 +137,14 @@ function generatePerformanceData(goalId: number, goalTitle: string, subgoals: an
     
     // Special handling for when subgoal data might be in a different format
     if (processedSubgoals.length === 1 && processedSubgoals[0] && typeof processedSubgoals[0] === 'object') {
-      if ('subgoals' in processedSubgoals[0] && Array.isArray(processedSubgoals[0].subgoals)) {
-        console.log("Detected subgoals nested in 'subgoals' property:", processedSubgoals[0].subgoals);
-        processedSubgoals = processedSubgoals[0].subgoals;
-      } else if ('data' in processedSubgoals[0] && Array.isArray(processedSubgoals[0].data)) {
-        console.log("Detected subgoals nested in 'data' property:", processedSubgoals[0].data);
-        processedSubgoals = processedSubgoals[0].data;
+      const firstItem = processedSubgoals[0] as any;
+      
+      if (firstItem.subgoals && Array.isArray(firstItem.subgoals)) {
+        console.log("Detected subgoals nested in 'subgoals' property:", firstItem.subgoals);
+        processedSubgoals = firstItem.subgoals;
+      } else if (firstItem.data && Array.isArray(firstItem.data)) {
+        console.log("Detected subgoals nested in 'data' property:", firstItem.data);
+        processedSubgoals = firstItem.data;
       }
     }
     
@@ -323,51 +328,45 @@ export function GoalPerformanceModal({
     }
   };
   
-  // Enhanced useEffect with more reliable behavior for loading subgoals
+  // Initial load effect - runs once when the modal opens
   useEffect(() => {
     if (goalId !== null && goalId !== undefined && !isNaN(Number(goalId)) && open) {
       const validGoalId = Number(goalId); // Ensure goalId is a valid number
       
       console.log(`GoalPerformanceModal: Modal opened for goal ${validGoalId}`);
       
-      // First try with passed subgoals, but ALSO double-check directly to ensure we have the latest data
-      let shouldFetchDirectly = true;
+      // Reset state when modal opens with a new goal
+      setPerformanceData(null);
+      setDirectSubgoals([]);
+      setIsLoading(true);
       
+      // Try to show initial UI with passed subgoals if available
       if (Array.isArray(subgoals) && subgoals.length > 0) {
         console.log(`GoalPerformanceModal: Parent passed ${subgoals.length} subgoals`);
         // Generate UI with the passed subgoals first for faster loading
         const data = generatePerformanceData(validGoalId, goalTitle, subgoals);
         setPerformanceData(data);
-        
-        // But still fetch directly to ensure we have the latest data, just don't show loading state
-        shouldFetchDirectly = true;
       }
       
       // Always fetch directly to ensure we have the most up-to-date data
-      if (shouldFetchDirectly) {
-        // If we already have performance data from passed subgoals, don't show loading state
-        if (!performanceData) {
-          setIsLoading(true);
-        }
-        
-        console.log(`GoalPerformanceModal: Fetching subgoals directly to ensure fresh data`);
-        fetchSubgoalsDirectly(validGoalId);
-      }
-    } else {
+      console.log(`GoalPerformanceModal: Fetching subgoals directly to ensure fresh data`);
+      fetchSubgoalsDirectly(validGoalId);
+    } else if (!open) {
+      // Clean up when modal closes
       setPerformanceData(null);
       setDirectSubgoals([]);
     }
-  }, [goalId, goalTitle, open, performanceData]);
+  }, [goalId, goalTitle, open, subgoals]); // Remove performanceData from dependencies
   
-  // When direct subgoals are fetched, generate performance data with them
+  // Separate effect for handling direct subgoals - only runs when directSubgoals changes
   useEffect(() => {
-    if (goalId !== null && directSubgoals.length > 0) {
+    if (goalId !== null && goalId !== undefined && directSubgoals.length > 0 && open) {
       console.log(`GoalPerformanceModal: Generating performance data with ${directSubgoals.length} direct subgoals`);
       const validGoalId = Number(goalId);
       const data = generatePerformanceData(validGoalId, goalTitle, directSubgoals);
       setPerformanceData(data);
     }
-  }, [directSubgoals, goalId, goalTitle]);
+  }, [directSubgoals, goalId, goalTitle, open]);
 
   // Calculate difference for current vs previous month
   const scoreDifference = performanceData 
