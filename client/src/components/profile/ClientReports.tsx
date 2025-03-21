@@ -570,34 +570,80 @@ function GoalsSection({ data }: { data?: ClientReportData }) {
   const displayGoals = [...goalsWithScores];
   
   return (
-    <Card className="overflow-hidden border border-gray-100 shadow-sm">
-      <CardHeader className="p-4 pb-0 border-b-0">
-        <CardTitle className="text-sm font-bold">GOALS - Average Score</CardTitle>
+    <Card className="overflow-hidden border border-gray-200 shadow-sm">
+      <CardHeader className="p-4 pb-0">
+        <CardTitle className="text-sm font-bold">Goals Progress</CardTitle>
       </CardHeader>
-      <CardContent className="p-0">
-        <div className="w-full bg-white rounded-sm p-6">
-          <div className="h-[170px] flex justify-between items-center">
-            {displayGoals.map((goal, index) => (
-              <div key={goal.id} className="relative flex flex-col items-center">
-                <div className="text-[10px] text-center h-12 px-1 mb-2 flex items-center justify-center max-w-[130px]">
-                  {goal.title}
-                </div>
-                <GoalGauge score={goal.score} />
-                {index < displayGoals.length - 1 && (
-                  <div className="absolute -right-4 top-1/2 transform -translate-y-1/2 text-gray-400">
-                    <ChevronRight size={16} />
-                  </div>
-                )}
+      <CardContent className="p-4">
+        <div className="h-[170px] flex justify-between items-center">
+          {displayGoals.map((goal, index) => (
+            <div key={goal.id} className="relative flex flex-col items-center">
+              <div className="text-[10px] text-center h-12 px-1 mb-2 flex items-center justify-center max-w-[130px]">
+                {goal.title}
               </div>
-            ))}
-          </div>
+              <GoalVerticalBar score={goal.score} />
+              {index < displayGoals.length - 1 && (
+                <div className="absolute -right-4 top-1/2 transform -translate-y-1/2 text-gray-400">
+                  <ChevronRight size={16} />
+                </div>
+              )}
+            </div>
+          ))}
         </div>
       </CardContent>
     </Card>
   );
 }
 
-// Goal Gauge Component - using improved SVG implementation for the half donut
+// Goal Vertical Bar Component - replacing the gauge with a vertical progress bar
+function GoalVerticalBar({ score }: { score: number }) {
+  // Determine color based on score
+  const getColor = (score: number) => {
+    if (score < 5) return "#f43f5e"; // red
+    if (score < 7) return "#f59e0b"; // amber
+    return "#10b981"; // green
+  };
+  
+  const color = getColor(score);
+  
+  // Calculate height percentage for the bar
+  const heightPercentage = (score / 10) * 100;
+  
+  return (
+    <div className="flex flex-col items-center w-16">
+      {/* Vertical bar container */}
+      <div className="relative w-12 h-20 flex flex-col justify-end items-center">
+        {/* Background track */}
+        <div className="absolute inset-0 w-8 h-full bg-gray-100 rounded-md mx-auto"></div>
+        
+        {/* Filled bar - height determined by score */}
+        <div 
+          className="absolute bottom-0 w-8 rounded-md mx-auto"
+          style={{ 
+            height: `${heightPercentage}%`, 
+            backgroundColor: color 
+          }}
+        ></div>
+        
+        {/* Score text - positioned at the center */}
+        <div 
+          className="absolute inset-0 flex items-center justify-center font-bold text-white text-sm"
+          style={{ textShadow: '0px 0px 2px rgba(0,0,0,0.5)' }}
+        >
+          {score.toFixed(1)}
+        </div>
+      </div>
+      
+      {/* Scale markers */}
+      <div className="w-full flex justify-between text-[9px] text-gray-500 mt-1">
+        <span>0</span>
+        <span>10</span>
+      </div>
+    </div>
+  );
+}
+
+// Original Goal Gauge Component - keeping for reference
 function GoalGauge({ score }: { score: number }) {
   // Determine color based on score
   const getColor = (score: number) => {
