@@ -18,6 +18,8 @@ import { cn } from "@/lib/utils";
 interface MilestonePerformance {
   id: number;
   title: string;
+  description?: string;
+  isEmpty?: boolean;
   values: {
     month: string; // Format: "YYYY-MM"
     score: number;
@@ -62,6 +64,13 @@ function getLast12Months() {
   return months;
 }
 
+// Interface for valid subgoal structure
+interface SubgoalData {
+  id: number;
+  title: string;
+  description?: string;
+}
+
 // Utility function to generate performance data that matches the subgoal data
 function generatePerformanceData(goalId: number, goalTitle: string, subgoals: any[]): GoalPerformance {
   const months = getLast12Months();
@@ -85,13 +94,13 @@ function generatePerformanceData(goalId: number, goalTitle: string, subgoals: an
   
   // Only create milestones from valid subgoals
   const validSubgoals = Array.isArray(subgoals) ? 
-    subgoals.filter(s => s && typeof s === 'object' && s.id && s.title) : 
+    subgoals.filter(s => s && typeof s === 'object' && s.id && s.title) as SubgoalData[] : 
     [];
   
   console.log(`Generating performance data for goal ${goalId}: ${goalTitle} with ${validSubgoals.length} subgoals`);
   
   // Generate milestone (subgoal) performance data
-  let milestones = [];
+  let milestones: MilestonePerformance[] = [];
   
   // Add actual subgoals first
   if (validSubgoals.length > 0) {
