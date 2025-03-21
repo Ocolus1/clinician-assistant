@@ -491,7 +491,6 @@ function StrategiesSection({ data, strategiesData }: {
     <Card>
       <CardHeader className="py-3">
         <CardTitle className="text-base">Therapy Strategies</CardTitle>
-        <CardDescription className="text-xs">Effectiveness of applied strategies</CardDescription>
       </CardHeader>
       <CardContent className="p-2">
         {!strategies.length ? (
@@ -505,8 +504,7 @@ function StrategiesSection({ data, strategiesData }: {
                 <tr className="border-b">
                   <th className="text-left py-2 px-2">Strategy</th>
                   <th className="text-center py-2 px-2">Used</th>
-                  <th className="text-center py-2 px-2">Score</th>
-                  <th className="text-center py-2 px-2">Rating</th>
+                  <th className="text-center py-2 px-2 w-1/3">Effectiveness</th>
                 </tr>
               </thead>
               <tbody>
@@ -514,21 +512,29 @@ function StrategiesSection({ data, strategiesData }: {
                   <tr key={strategy.id} className={index % 2 === 0 ? "bg-secondary/20" : ""}>
                     <td className="py-2 px-2 text-xs">{strategy.name}</td>
                     <td className="text-center py-2 px-2 text-xs">{strategy.timesUsed}</td>
-                    <td className="text-center py-2 px-2 text-xs">{strategy.averageScore.toFixed(1)}/10</td>
-                    <td className="text-center py-2 px-2">
-                      <div className="flex items-center justify-center">
-                        {Array.from({ length: 5 }).map((_, i) => (
-                          <div 
-                            key={i}
-                            className={cn(
-                              "h-1.5 w-1.5 rounded-full mx-0.5",
-                              i < Math.round(strategy.averageScore / 2) 
-                                ? "bg-primary" 
-                                : "bg-muted"
-                            )}
-                          />
-                        ))}
-                      </div>
+                    <td className="py-2 px-2">
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
+                              <div 
+                                className={cn(
+                                  "h-full rounded-full",
+                                  strategy.averageScore < 5 ? "bg-red-500" :
+                                  strategy.averageScore < 7 ? "bg-amber-500" : "bg-green-500"
+                                )}
+                                style={{
+                                  width: `${(strategy.averageScore / 10) * 100}%`,
+                                  transition: "width 0.3s ease-in-out"
+                                }}
+                              />
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p className="font-semibold">Score: {strategy.averageScore.toFixed(1)}/10</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
                     </td>
                   </tr>
                 ))}
