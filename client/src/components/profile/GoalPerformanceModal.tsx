@@ -2,7 +2,7 @@ import * as React from "react";
 // Using the React namespace for hooks instead of direct imports
 const { useState, useEffect } = React;
 import { format, subMonths, startOfMonth } from "date-fns";
-import { X } from "lucide-react";
+import { X, Plus } from "lucide-react";
 
 import {
   Dialog,
@@ -88,13 +88,20 @@ function generatePerformanceData(goalId: number, goalTitle: string, subgoals: an
     subgoals.filter(s => s && typeof s === 'object' && s.id && s.title) : 
     [];
   
-  // Generate milestone (subgoal) performance data - ensure milestones are never empty
-  const milestones = validSubgoals.length > 0 ? 
-    validSubgoals.map(subgoal => {
+  console.log(`Generating performance data for goal ${goalId}: ${goalTitle} with ${validSubgoals.length} subgoals`);
+  
+  // Generate milestone (subgoal) performance data
+  let milestones = [];
+  
+  // Add actual subgoals first
+  if (validSubgoals.length > 0) {
+    milestones = validSubgoals.map(subgoal => {
       // Generate deterministic values based on subgoal.id
       return {
         id: subgoal.id,
         title: subgoal.title,
+        description: subgoal.description || "",
+        isEmpty: false,
         values: months.map((month, index) => {
           const baseValue = ((subgoal.id % 10) + 1) / 10; // 0.1 to 1.0 range
           const modifier = Math.cos(index * 0.7) * 0.3; // Variation
@@ -106,16 +113,29 @@ function generatePerformanceData(goalId: number, goalTitle: string, subgoals: an
           };
         })
       };
-    }) : 
-    // If no valid subgoals, create a default milestone
-    [{
-      id: 1,
-      title: "Progress on " + goalTitle,
-      values: months.map((month, index) => ({
-        month: month.value,
-        score: Math.min(Math.max(Math.round(5 + Math.sin(index * 0.6) * 3), 1), 10)
-      }))
-    }];
+    });
+  }
+  
+  // Always ensure we have exactly 6 milestone cards (3x2 grid)
+  // Fill remaining slots with empty placeholders
+  const totalSlots = 6;
+  const emptySlots = totalSlots - milestones.length;
+  
+  // Generate empty placeholder milestone cards
+  if (emptySlots > 0) {
+    for (let i = 0; i < emptySlots; i++) {
+      milestones.push({
+        id: -1 - i, // Negative IDs to avoid conflicts
+        title: "No milestone set yet",
+        description: "Add a milestone to track progress on specific skill areas",
+        isEmpty: true,
+        values: months.map((month) => ({
+          month: month.value,
+          score: 0
+        }))
+      });
+    }
+  }
   
   return {
     id: goalId,
@@ -245,79 +265,95 @@ export function GoalPerformanceModal({
               </div>
             </div>
             
-            {/* Milestones grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Milestones grid - 3x2 layout */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {performanceData.milestones.map((milestone, index) => (
-                <Card key={milestone.id} className="shadow-sm border-gray-200">
+                <Card key={milestone.id} className={cn(
+                  "shadow-sm border-gray-200",
+                  milestone.isEmpty && "bg-gray-50 border-dashed"
+                )}>
                   <CardContent className="pt-4">
                     <div className="text-sm font-medium mb-3 text-gray-800">
                       {milestone.title}
                     </div>
                     
-                    <div className="relative h-[150px]">
-                      {/* Y-axis labels */}
-                      <div className="absolute left-0 top-0 bottom-0 flex flex-col justify-between text-xs text-gray-500">
-                        <div>10</div>
-                        <div>5</div>
-                        <div>0</div>
+                    {milestone.isEmpty ? (
+                      // Empty milestone placeholder
+                      <div className="flex items-center justify-center h-[150px] text-center">
+                        <div className="text-gray-400 text-xs max-w-[200px]">
+                          <div className="mb-2">
+                            <Plus className="h-8 w-8 mx-auto opacity-30" />
+                          </div>
+                          {milestone.description}
+                        </div>
                       </div>
-                      
-                      {/* Line chart */}
-                      <div className="absolute left-5 right-2 top-0 bottom-0">
-                        <svg width="100%" height="100%" viewBox="0 0 600 150" preserveAspectRatio="none">
-                          {/* Background grid lines */}
-                          <line x1="0" y1="0" x2="600" y2="0" stroke="#e5e7eb" strokeWidth="1" />
-                          <line x1="0" y1="75" x2="600" y2="75" stroke="#e5e7eb" strokeWidth="1" />
-                          <line x1="0" y1="150" x2="600" y2="150" stroke="#e5e7eb" strokeWidth="1" />
-                          
-                          {/* Performance line */}
-                          <polyline
-                            points={milestone.values.map((point, i) => {
+                    ) : (
+                      // Regular milestone with chart
+                      <div className="relative h-[150px]">
+                        {/* Y-axis labels */}
+                        <div className="absolute left-0 top-0 bottom-0 flex flex-col justify-between text-xs text-gray-500">
+                          <div>10</div>
+                          <div>5</div>
+                          <div>0</div>
+                        </div>
+                        
+                        {/* Line chart */}
+                        <div className="absolute left-5 right-2 top-0 bottom-0">
+                          <svg width="100%" height="100%" viewBox="0 0 600 150" preserveAspectRatio="none">
+                            {/* Background grid lines */}
+                            <line x1="0" y1="0" x2="600" y2="0" stroke="#e5e7eb" strokeWidth="1" />
+                            <line x1="0" y1="75" x2="600" y2="75" stroke="#e5e7eb" strokeWidth="1" />
+                            <line x1="0" y1="150" x2="600" y2="150" stroke="#e5e7eb" strokeWidth="1" />
+                            
+                            {/* Performance line */}
+                            <polyline
+                              points={milestone.values.map((point, i) => {
+                                const x = (i / (milestone.values.length - 1)) * 600;
+                                const y = (1 - point.score / 10) * 150;
+                                return `${x},${y}`;
+                              }).join(' ')}
+                              fill="none"
+                              stroke="black"
+                              strokeWidth="2"
+                            />
+                            
+                            {/* Data points */}
+                            {milestone.values.map((point, i) => {
                               const x = (i / (milestone.values.length - 1)) * 600;
                               const y = (1 - point.score / 10) * 150;
-                              return `${x},${y}`;
-                            }).join(' ')}
-                            fill="none"
-                            stroke="black"
-                            strokeWidth="2"
-                          />
-                          
-                          {/* Data points */}
-                          {milestone.values.map((point, i) => {
-                            const x = (i / (milestone.values.length - 1)) * 600;
-                            const y = (1 - point.score / 10) * 150;
-                            return (
-                              <g key={i}>
-                                <circle 
-                                  cx={x} 
-                                  cy={y} 
-                                  r="4" 
-                                  fill="white" 
-                                  stroke="black" 
-                                  strokeWidth="2" 
-                                />
-                                <text 
-                                  x={x} 
-                                  y={y - 8} 
-                                  textAnchor="middle" 
-                                  fill="black" 
-                                  fontSize="10"
-                                >
-                                  {point.score}
-                                </text>
-                              </g>
-                            );
-                          })}
-                        </svg>
+                              return (
+                                <g key={i}>
+                                  <circle 
+                                    cx={x} 
+                                    cy={y} 
+                                    r="4" 
+                                    fill="white" 
+                                    stroke="black" 
+                                    strokeWidth="2" 
+                                  />
+                                  <text 
+                                    x={x} 
+                                    y={y - 8} 
+                                    textAnchor="middle" 
+                                    fill="black" 
+                                    fontSize="10"
+                                  >
+                                    {point.score}
+                                  </text>
+                                </g>
+                              );
+                            })}
+                          </svg>
+                        </div>
+                        
+                        {/* X-axis month labels */}
+                        <div className="absolute left-5 right-2 bottom-[-20px] flex justify-between text-xs text-gray-500">
+                          {months.map((month, i) => (
+                            i % 3 === 0 && <div key={i} className="text-center">{month.display}</div>
+                          ))}
+                        </div>
                       </div>
-                      
-                      {/* X-axis month labels */}
-                      <div className="absolute left-5 right-2 bottom-[-20px] flex justify-between text-xs text-gray-500">
-                        {months.map((month, i) => (
-                          i % 2 === 0 && <div key={i} className="text-center">{month.display}</div>
-                        ))}
-                      </div>
-                    </div>
+                    )}
                   </CardContent>
                 </Card>
               ))}
