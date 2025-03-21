@@ -12,6 +12,12 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Card, CardContent } from "@/components/ui/card";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+  TooltipProvider,
+} from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 
 // Define the milestone performance data structure
@@ -397,50 +403,56 @@ export function GoalPerformanceModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[90%] md:max-w-[80%] lg:max-w-[75%] p-0 bg-white overflow-auto max-h-[90vh]">
         <DialogHeader className="p-6 pb-4 border-b">
-          <div className="flex justify-between items-start">
-            <div className="flex-1">
-              <DialogTitle className="text-2xl font-bold text-gray-900">
-                {performanceData?.title || goalTitle}
-              </DialogTitle>
-              <DialogDescription className="text-sm text-gray-600 mt-1 mb-3">
-                {performanceData?.description || goalDescription || "Goal details"}
-              </DialogDescription>
+          <div className="flex justify-between items-center">
+            <div className="flex-1 flex items-center">
+              {/* Goal Title with Tooltip */}
+              <Tooltip delayDuration={300}>
+                <TooltipTrigger asChild>
+                  <DialogTitle className="text-2xl font-bold text-gray-900 mr-4 cursor-help">
+                    {performanceData?.title || goalTitle}
+                  </DialogTitle>
+                </TooltipTrigger>
+                <TooltipContent className="max-w-[300px] p-3">
+                  <p className="text-sm">{performanceData?.description || goalDescription || "Goal details"}</p>
+                </TooltipContent>
+              </Tooltip>
               
+              {/* Scores on same row as title */}
               {performanceData && (
-                <div className="flex mt-3 gap-3">
+                <div className="flex gap-3 ml-auto">
                   {/* Current month score */}
-                  <div className="border rounded-md py-2 px-3 text-center bg-white shadow-sm flex items-center gap-2">
-                    <div className="text-xl font-bold text-blue-600">{performanceData.currentScore}</div>
-                    <div className="text-xs text-gray-500">this month</div>
+                  <div className="border rounded-md py-1 px-2 text-center bg-white shadow-sm flex items-center gap-1">
+                    <div className="text-lg font-bold text-blue-600">{performanceData.currentScore}</div>
+                    <div className="text-xs text-gray-500">this mo</div>
                   </div>
                   
                   {/* Previous month score */}
-                  <div className="border rounded-md py-2 px-3 text-center bg-white shadow-sm flex items-center gap-2">
-                    <div className="text-xl font-bold text-gray-600">{performanceData.previousScore}</div>
-                    <div className="text-xs text-gray-500">prev month</div>
+                  <div className="border rounded-md py-1 px-2 text-center bg-white shadow-sm flex items-center gap-1">
+                    <div className="text-lg font-bold text-gray-600">{performanceData.previousScore}</div>
+                    <div className="text-xs text-gray-500">prev</div>
                   </div>
                   
                   {/* Difference indicator */}
                   <div className={cn(
-                    "rounded-md py-2 px-3 text-center flex items-center gap-2 shadow-sm",
+                    "rounded-md py-1 px-2 text-center flex items-center gap-1 shadow-sm",
                     scoreDifference > 0 ? "bg-green-50 border border-green-100" : 
                     scoreDifference < 0 ? "bg-red-50 border border-red-100" : "bg-gray-50 border border-gray-100"
                   )}>
                     <div className={cn(
-                      "text-xl font-bold",
+                      "text-lg font-bold",
                       scoreDifference > 0 ? "text-green-600" : 
                       scoreDifference < 0 ? "text-red-600" : "text-gray-600"
                     )}>
                       {scoreDifference > 0 ? "+" : ""}{scoreDifference}
                     </div>
-                    <div className="text-xs text-gray-500">change</div>
+                    <div className="text-xs text-gray-500">Δ</div>
                   </div>
                 </div>
               )}
             </div>
             <button 
               onClick={() => onOpenChange(false)}
-              className="rounded-full p-1 hover:bg-gray-100 transition-colors"
+              className="rounded-full p-1 hover:bg-gray-100 transition-colors ml-2"
             >
               <X className="h-5 w-5 text-gray-500" />
             </button>
