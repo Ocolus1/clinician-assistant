@@ -396,15 +396,47 @@ export function GoalPerformanceModal({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[90%] md:max-w-[80%] lg:max-w-[75%] p-0 bg-white overflow-auto max-h-[90vh]">
-        <DialogHeader className="p-6 pb-2 border-b">
-          <div className="flex justify-between items-center">
-            <div>
+        <DialogHeader className="p-6 pb-4 border-b">
+          <div className="flex justify-between items-start">
+            <div className="flex-1">
               <DialogTitle className="text-2xl font-bold text-gray-900">
                 {performanceData?.title || goalTitle}
               </DialogTitle>
-              <DialogDescription className="text-sm text-gray-600 mt-1">
+              <DialogDescription className="text-sm text-gray-600 mt-1 mb-3">
                 {performanceData?.description || goalDescription || "Goal details"}
               </DialogDescription>
+              
+              {performanceData && (
+                <div className="flex mt-3 gap-3">
+                  {/* Current month score */}
+                  <div className="border rounded-md py-2 px-3 text-center bg-white shadow-sm flex items-center gap-2">
+                    <div className="text-xl font-bold text-blue-600">{performanceData.currentScore}</div>
+                    <div className="text-xs text-gray-500">this month</div>
+                  </div>
+                  
+                  {/* Previous month score */}
+                  <div className="border rounded-md py-2 px-3 text-center bg-white shadow-sm flex items-center gap-2">
+                    <div className="text-xl font-bold text-gray-600">{performanceData.previousScore}</div>
+                    <div className="text-xs text-gray-500">prev month</div>
+                  </div>
+                  
+                  {/* Difference indicator */}
+                  <div className={cn(
+                    "rounded-md py-2 px-3 text-center flex items-center gap-2 shadow-sm",
+                    scoreDifference > 0 ? "bg-green-50 border border-green-100" : 
+                    scoreDifference < 0 ? "bg-red-50 border border-red-100" : "bg-gray-50 border border-gray-100"
+                  )}>
+                    <div className={cn(
+                      "text-xl font-bold",
+                      scoreDifference > 0 ? "text-green-600" : 
+                      scoreDifference < 0 ? "text-red-600" : "text-gray-600"
+                    )}>
+                      {scoreDifference > 0 ? "+" : ""}{scoreDifference}
+                    </div>
+                    <div className="text-xs text-gray-500">change</div>
+                  </div>
+                </div>
+              )}
             </div>
             <button 
               onClick={() => onOpenChange(false)}
@@ -441,37 +473,6 @@ export function GoalPerformanceModal({
         
         {!isLoading && performanceData && (
           <div className="p-6">
-            {/* Monthly performance summary row */}
-            <div className="flex mb-8 gap-4">
-              {/* Current month score */}
-              <div className="border rounded-md w-24 p-4 text-center">
-                <div className="text-3xl font-bold">{performanceData.currentScore}</div>
-                <div className="text-xs text-gray-500 mt-1">this month</div>
-              </div>
-              
-              {/* Previous month score */}
-              <div className="border rounded-md w-24 p-4 text-center">
-                <div className="text-3xl font-bold">{performanceData.previousScore}</div>
-                <div className="text-xs text-gray-500 mt-1">prev month</div>
-              </div>
-              
-              {/* Difference indicator */}
-              <div className={cn(
-                "rounded-md w-24 p-4 text-center",
-                scoreDifference > 0 ? "bg-green-100" : 
-                scoreDifference < 0 ? "bg-red-100" : "bg-gray-100"
-              )}>
-                <div className={cn(
-                  "text-3xl font-bold",
-                  scoreDifference > 0 ? "text-green-600" : 
-                  scoreDifference < 0 ? "text-red-600" : "text-gray-600"
-                )}>
-                  {scoreDifference > 0 ? "+" : ""}{scoreDifference}
-                </div>
-                <div className="text-xs text-gray-500 mt-1">Difference</div>
-              </div>
-            </div>
-            
             {/* Monthly performance graph */}
             <div className="mb-8">
               <div className="flex justify-between items-end h-[120px]">
@@ -519,17 +520,10 @@ export function GoalPerformanceModal({
                         </div>
                       </div>
                     ) : (
-                      // Regular milestone with chart
-                      <div className="relative h-[150px]">
-                        {/* Y-axis labels */}
-                        <div className="absolute left-0 top-0 bottom-0 flex flex-col justify-between text-xs text-gray-500">
-                          <div>10</div>
-                          <div>5</div>
-                          <div>0</div>
-                        </div>
-                        
-                        {/* Line chart */}
-                        <div className="absolute left-5 right-2 top-0 bottom-0">
+                      // Regular milestone with chart - no vertical axis
+                      <div className="relative h-[150px] pt-2">
+                        {/* Line chart - full width */}
+                        <div className="absolute left-0 right-0 top-0 bottom-5">
                           <svg width="100%" height="100%" viewBox="0 0 600 150" preserveAspectRatio="none">
                             {/* Background grid lines */}
                             <line x1="0" y1="0" x2="600" y2="0" stroke="#e5e7eb" strokeWidth="1" />
@@ -544,7 +538,7 @@ export function GoalPerformanceModal({
                                 return `${x},${y}`;
                               }).join(' ')}
                               fill="none"
-                              stroke="black"
+                              stroke="#3B82F6"
                               strokeWidth="2"
                             />
                             
@@ -557,17 +551,18 @@ export function GoalPerformanceModal({
                                   <circle 
                                     cx={x} 
                                     cy={y} 
-                                    r="4" 
+                                    r="3.5" 
                                     fill="white" 
-                                    stroke="black" 
-                                    strokeWidth="2" 
+                                    stroke="#3B82F6" 
+                                    strokeWidth="1.5" 
                                   />
                                   <text 
                                     x={x} 
                                     y={y - 8} 
                                     textAnchor="middle" 
-                                    fill="black" 
-                                    fontSize="10"
+                                    fill="#3B82F6" 
+                                    fontSize="9"
+                                    fontWeight="bold"
                                   >
                                     {point.score}
                                   </text>
@@ -577,10 +572,10 @@ export function GoalPerformanceModal({
                           </svg>
                         </div>
                         
-                        {/* X-axis month labels */}
-                        <div className="absolute left-5 right-2 bottom-[-20px] flex justify-between text-xs text-gray-500">
+                        {/* X-axis month labels - show all 12 months */}
+                        <div className="absolute left-0 right-0 bottom-[-5px] flex justify-between text-[9px] text-gray-500">
                           {months.map((month, i) => (
-                            i % 3 === 0 && <div key={i} className="text-center">{month.display}</div>
+                            <div key={i} className="text-center px-0">{month.display}</div>
                           ))}
                         </div>
                       </div>
