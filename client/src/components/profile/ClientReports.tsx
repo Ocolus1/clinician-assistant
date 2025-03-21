@@ -427,23 +427,27 @@ function ObservationsSection({ data }: { data?: ClientReportData }) {
   ];
   
   return (
-    <Card>
-      <CardHeader className="py-3">
-        <CardTitle className="text-base">Observation Scores</CardTitle>
+    <Card className={cn(
+      "rounded-lg border border-gray-200",
+      "shadow-[0_2px_4px_-1px_rgba(0,0,0,0.06),_0_4px_6px_-1px_rgba(0,0,0,0.1)]",
+      "transition-shadow hover:shadow-[0_4px_6px_-1px_rgba(0,0,0,0.1),_0_2px_4px_-1px_rgba(0,0,0,0.06)]",
+    )}>
+      <CardHeader className="py-4 px-5">
+        <CardTitle className="text-base font-semibold text-gray-800">Observation Scores</CardTitle>
       </CardHeader>
-      <CardContent className="p-4">
+      <CardContent className="p-5">
         <div className="h-[170px] flex flex-col justify-center">
-          <div className="space-y-6">
+          <div className="space-y-7">
             {observationData.map((entry, index) => (
               <div key={index}>
-                <div className="flex items-center">
+                <div className="flex items-center mb-1.5">
                   {/* Label positioned to the left */}
-                  <span className="text-sm w-32 font-medium text-right pr-2">{entry.name}:</span>
+                  <span className="text-sm w-36 font-medium text-gray-700 text-right pr-3">{entry.name}:</span>
                   
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <div className="relative h-4 w-full overflow-hidden rounded-full cursor-pointer">
+                        <div className="relative h-5 w-full overflow-hidden rounded-full cursor-pointer group">
                           {/* Background track */}
                           <div className="absolute inset-0 bg-gray-200"></div>
                           
@@ -453,8 +457,9 @@ function ObservationsSection({ data }: { data?: ClientReportData }) {
                               <div 
                                 key={i} 
                                 className={cn(
-                                  "h-full",
-                                  i < Math.floor(entry.value) ? "" : "opacity-0"
+                                  "h-full transition-all duration-300",
+                                  i < Math.floor(entry.value) ? "" : "opacity-0",
+                                  "group-hover:scale-y-110"
                                 )}
                                 style={{
                                   width: "9%", // Slightly smaller to allow for spacing
@@ -471,15 +476,16 @@ function ObservationsSection({ data }: { data?: ClientReportData }) {
                           
                           {/* Score indicator */}
                           <div 
-                            className="absolute right-1 top-1/2 transform -translate-y-1/2 text-xs font-medium"
+                            className="absolute right-2 top-1/2 transform -translate-y-1/2 text-sm font-semibold"
                             style={{ color: entry.color }}
                           >
                             {entry.value.toFixed(1)}
                           </div>
                         </div>
                       </TooltipTrigger>
-                      <TooltipContent>
-                        <p className="font-medium">{entry.value.toFixed(1)}/10</p>
+                      <TooltipContent className="bg-white border border-gray-200 shadow-md rounded-lg p-2">
+                        <p className="font-semibold text-gray-800">Score: {entry.value.toFixed(1)}/10</p>
+                        <p className="text-xs text-gray-600 mt-1">Average from all sessions</p>
                       </TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
@@ -503,38 +509,47 @@ function StrategiesSection({ data, strategiesData }: {
   const strategies = strategiesData?.strategies || data.strategies.strategies || [];
   
   return (
-    <Card>
-      <CardHeader className="py-3">
-        <CardTitle className="text-base">Therapy Strategies</CardTitle>
+    <Card className={cn(
+      "rounded-lg border border-gray-200",
+      "shadow-[0_2px_4px_-1px_rgba(0,0,0,0.06),_0_4px_6px_-1px_rgba(0,0,0,0.1)]",
+      "transition-shadow hover:shadow-[0_4px_6px_-1px_rgba(0,0,0,0.1),_0_2px_4px_-1px_rgba(0,0,0,0.06)]",
+    )}>
+      <CardHeader className="py-4 px-5">
+        <CardTitle className="text-base font-semibold text-gray-800">Therapy Strategies</CardTitle>
       </CardHeader>
-      <CardContent className="p-2">
+      <CardContent className="px-5 pb-5 pt-2">
         {!strategies.length ? (
           <div className="text-center h-[170px] flex items-center justify-center">
-            <p className="text-xs text-muted-foreground">No strategy data available for this period.</p>
+            <p className="text-sm text-gray-500 font-medium">No strategy data available for this period.</p>
           </div>
         ) : (
           <div className="overflow-x-auto h-[170px]">
-            <table className="w-full text-sm">
+            <table className="w-full">
               <thead>
-                <tr className="border-b">
-                  <th className="text-left py-2 px-2">Strategy</th>
-                  <th className="text-center py-2 px-2">Used</th>
-                  <th className="text-center py-2 px-2 w-1/3">Effectiveness</th>
+                <tr className="border-b border-gray-200">
+                  <th className="text-left py-3 px-3 text-sm font-semibold text-gray-700">Strategy</th>
+                  <th className="text-center py-3 px-3 text-sm font-semibold text-gray-700">Used</th>
+                  <th className="text-center py-3 px-3 text-sm font-semibold text-gray-700 w-1/3">Effectiveness</th>
                 </tr>
               </thead>
               <tbody>
                 {strategies.map((strategy: { id: number; name: string; timesUsed: number; averageScore: number }, index: number) => (
-                  <tr key={strategy.id} className={index % 2 === 0 ? "bg-secondary/20" : ""}>
-                    <td className="py-2 px-2 text-xs">{strategy.name}</td>
-                    <td className="text-center py-2 px-2 text-xs">{strategy.timesUsed}</td>
-                    <td className="py-2 px-2">
+                  <tr key={strategy.id} 
+                    className={cn(
+                      index % 2 === 0 ? "bg-gray-50" : "bg-white",
+                      "hover:bg-gray-100 transition-colors duration-150"
+                    )}
+                  >
+                    <td className="py-2.5 px-3 text-sm font-medium text-gray-800">{strategy.name}</td>
+                    <td className="text-center py-2.5 px-3 text-sm font-medium text-gray-600">{strategy.timesUsed}</td>
+                    <td className="py-2.5 px-3">
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
+                            <div className="w-full bg-gray-100 h-3 rounded-full overflow-hidden cursor-pointer group">
                               <div 
                                 className={cn(
-                                  "h-full rounded-full",
+                                  "h-full rounded-full transition-all duration-300 group-hover:brightness-110",
                                   strategy.averageScore < 5 ? "bg-red-500" :
                                   strategy.averageScore < 7 ? "bg-amber-500" : "bg-green-500"
                                 )}
@@ -545,8 +560,9 @@ function StrategiesSection({ data, strategiesData }: {
                               />
                             </div>
                           </TooltipTrigger>
-                          <TooltipContent>
-                            <p className="font-semibold">Score: {strategy.averageScore.toFixed(1)}/10</p>
+                          <TooltipContent className="bg-white border border-gray-200 shadow-md rounded-lg p-2">
+                            <p className="font-semibold text-gray-800">Score: {strategy.averageScore.toFixed(1)}/10</p>
+                            <p className="text-xs text-gray-600 mt-1">Based on {strategy.timesUsed} sessions</p>
                           </TooltipContent>
                         </Tooltip>
                       </TooltipProvider>
@@ -591,16 +607,20 @@ function GoalsSection({ data }: { data?: ClientReportData }) {
   const displayGoals = [...goalsWithScores];
   
   return (
-    <Card className="overflow-hidden border border-gray-200 shadow-sm">
-      <CardHeader className="p-4 pb-0">
-        <CardTitle className="text-base font-bold">Goals Progress</CardTitle>
+    <Card className={cn(
+      "rounded-lg border border-gray-200",
+      "shadow-[0_2px_4px_-1px_rgba(0,0,0,0.06),_0_4px_6px_-1px_rgba(0,0,0,0.1)]",
+      "transition-shadow hover:shadow-[0_4px_6px_-1px_rgba(0,0,0,0.1),_0_2px_4px_-1px_rgba(0,0,0,0.06)]",
+    )}>
+      <CardHeader className="py-4 px-5">
+        <CardTitle className="text-base font-semibold text-gray-800">Goals Progress</CardTitle>
       </CardHeader>
-      <CardContent className="p-4">
-        <div className="h-[178px] flex justify-evenly items-center">
+      <CardContent className="p-5">
+        <div className="h-[170px] flex justify-evenly items-center">
           {displayGoals.map((goal) => (
             <div key={goal.id} className="flex flex-col items-center">
               <GoalVerticalBar score={goal.score} />
-              <div className="text-xs text-center mt-3 px-2 flex items-center justify-center max-w-[130px]">
+              <div className="text-sm text-center mt-3 px-2 flex items-center justify-center max-w-[130px] font-medium text-gray-700">
                 {goal.title}
               </div>
             </div>
@@ -629,26 +649,32 @@ function GoalVerticalBar({ score }: { score: number }) {
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
-          <div className="flex flex-col items-center w-14">
+          <div className="flex flex-col items-center w-16 group">
             {/* Vertical bar container */}
-            <div className="relative w-12 h-24 flex flex-col justify-end items-center">
+            <div className="relative w-14 h-28 flex flex-col justify-end items-center">
               {/* Background track */}
-              <div className="absolute inset-0 w-8 h-full bg-gray-100 rounded-md mx-auto"></div>
+              <div className="absolute inset-0 w-8 h-full bg-gray-100 rounded-lg mx-auto"></div>
               
               {/* Filled bar - height determined by score */}
               <div 
-                className="absolute bottom-0 w-8 rounded-md mx-auto"
+                className="absolute bottom-0 w-8 rounded-lg mx-auto transition-all duration-300 group-hover:brightness-110"
                 style={{ 
                   height: `${heightPercentage}%`, 
                   backgroundColor: color,
                   transition: 'height 0.3s ease-in-out'
                 }}
               ></div>
+              
+              {/* Score label - small label at the top */}
+              <div className="absolute top-0 left-0 right-0 text-center text-xs font-medium text-gray-700">
+                {score.toFixed(1)}
+              </div>
             </div>
           </div>
         </TooltipTrigger>
-        <TooltipContent>
-          <p className="font-semibold">Score: {score.toFixed(1)}/10</p>
+        <TooltipContent className="bg-white border border-gray-200 shadow-md rounded-lg p-2">
+          <p className="font-semibold text-gray-800">Score: {score.toFixed(1)}/10</p>
+          <p className="text-xs text-gray-600 mt-1">Average progress across sessions</p>
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>
