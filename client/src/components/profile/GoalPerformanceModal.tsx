@@ -406,16 +406,18 @@ export function GoalPerformanceModal({
           <div className="flex justify-between items-center">
             <div className="flex-1 flex items-center">
               {/* Goal Title with Tooltip */}
-              <Tooltip delayDuration={300}>
-                <TooltipTrigger asChild>
-                  <DialogTitle className="text-2xl font-bold text-gray-900 mr-4 cursor-help">
-                    {performanceData?.title || goalTitle}
-                  </DialogTitle>
-                </TooltipTrigger>
-                <TooltipContent className="max-w-[300px] p-3">
-                  <p className="text-sm">{performanceData?.description || goalDescription || "Goal details"}</p>
-                </TooltipContent>
-              </Tooltip>
+              <TooltipProvider>
+                <Tooltip delayDuration={300}>
+                  <TooltipTrigger asChild>
+                    <DialogTitle className="text-2xl font-bold text-gray-900 mr-4 cursor-help">
+                      {performanceData?.title || goalTitle}
+                    </DialogTitle>
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-[300px] p-3">
+                    <p className="text-sm">{performanceData?.description || goalDescription || "Goal details"}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
               
               {/* Scores on same row as title */}
               {performanceData && (
@@ -554,30 +556,47 @@ export function GoalPerformanceModal({
                               strokeWidth="2"
                             />
                             
-                            {/* Data points */}
+                            {/* Data points with tooltips */}
                             {milestone.values.map((point, i) => {
                               const x = (i / (milestone.values.length - 1)) * 600;
                               const y = (1 - point.score / 10) * 150;
+                              const month = months[i]?.display || '';
                               return (
-                                <g key={i}>
+                                <g key={i} className="group">
+                                  {/* Tooltip box that appears on hover */}
+                                  <rect 
+                                    x={x-30} 
+                                    y={y-25} 
+                                    width="60" 
+                                    height="20" 
+                                    rx="3"
+                                    fill="#3B82F6" 
+                                    opacity="0"
+                                    className="opacity-0 group-hover:opacity-100 transition-opacity"
+                                  />
+                                  <text 
+                                    x={x} 
+                                    y={y-12} 
+                                    textAnchor="middle" 
+                                    fill="white" 
+                                    fontSize="10"
+                                    fontWeight="bold"
+                                    opacity="0"
+                                    className="opacity-0 group-hover:opacity-100 transition-opacity"
+                                  >
+                                    {`${month}: ${point.score}`}
+                                  </text>
+                                  
+                                  {/* Filled circle data point */}
                                   <circle 
                                     cx={x} 
                                     cy={y} 
                                     r="3.5" 
-                                    fill="white" 
-                                    stroke="#3B82F6" 
-                                    strokeWidth="1.5" 
-                                  />
-                                  <text 
-                                    x={x} 
-                                    y={y - 8} 
-                                    textAnchor="middle" 
                                     fill="#3B82F6" 
-                                    fontSize="9"
-                                    fontWeight="bold"
-                                  >
-                                    {point.score}
-                                  </text>
+                                    stroke="#ffffff" 
+                                    strokeWidth="1" 
+                                    className="transition-all"
+                                  />
                                 </g>
                               );
                             })}
