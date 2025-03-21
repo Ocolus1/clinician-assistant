@@ -589,10 +589,10 @@ import { GoalPerformanceModal } from './GoalPerformanceModal';
 function GoalsSection({ data }: { data?: ClientReportData }) {
   // Get client goals directly from the parent ClientReports component props
   const clientId = data?.clientDetails?.id || null;
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedGoalId, setSelectedGoalId] = useState<number | null>(null);
-  const [selectedGoal, setSelectedGoal] = useState<any>(null);
-  const [goalSubgoals, setGoalSubgoals] = useState<any[]>([]);
+  const [isModalOpen, setIsModalOpen] = React.useState(false);
+  const [selectedGoalId, setSelectedGoalId] = React.useState<number | null>(null);
+  const [selectedGoal, setSelectedGoal] = React.useState<any>(null);
+  const [goalSubgoals, setGoalSubgoals] = React.useState<any[]>([]);
   
   // Fetch the actual client goals from the API
   const { data: clientGoals = [] } = useQuery({
@@ -605,18 +605,18 @@ function GoalsSection({ data }: { data?: ClientReportData }) {
   });
   
   // Fetch subgoals for the selected goal
-  const { data: subgoals = [], refetch: refetchSubgoals } = useQuery({
+  const { data: subgoals = [], refetch: refetchSubgoals } = useQuery<any[]>({
     queryKey: ['/api/goals', selectedGoalId, 'subgoals'],
     enabled: !!selectedGoalId,
     queryFn: async ({ queryKey }) => {
       const response = await apiRequest('GET', `/api/goals/${selectedGoalId}/subgoals`);
-      return response || [];
+      return Array.isArray(response) ? response : [];
     },
   });
   
   // Update subgoals whenever they change
-  useEffect(() => {
-    if (subgoals.length > 0) {
+  React.useEffect(() => {
+    if (Array.isArray(subgoals) && subgoals.length > 0) {
       setGoalSubgoals(subgoals);
     }
   }, [subgoals]);
