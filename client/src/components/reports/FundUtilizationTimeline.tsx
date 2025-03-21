@@ -54,9 +54,10 @@ export function FundUtilizationTimeline({ clientId }: FundUtilizationTimelinePro
     }
 
     try {
-      // Parse dates
-      const startDate = new Date(budgetSettings.startDate);
-      const endDate = new Date(budgetSettings.endDate);
+      // Parse dates - use created date as start date if available, otherwise default to 3 months ago
+      const startDate = budgetSettings.createdAt ? new Date(budgetSettings.createdAt) : new Date(new Date().setMonth(new Date().getMonth() - 3));
+      // Use endOfPlan as end date if available, otherwise default to 9 months from now
+      const endDate = budgetSettings.endOfPlan ? new Date(budgetSettings.endOfPlan) : new Date(new Date().setMonth(new Date().getMonth() + 9));
       const today = new Date();
       
       // If dates are invalid, use fallback
@@ -82,7 +83,7 @@ export function FundUtilizationTimeline({ clientId }: FundUtilizationTimelinePro
       );
       
       // Total budget amount
-      const totalBudget = budgetSettings.ndisFunds ? parseFloat(budgetSettings.ndisFunds) : 50000;
+      const totalBudget = budgetSettings.ndisFunds !== null ? Number(budgetSettings.ndisFunds) : 50000;
       
       // Generate spending curve using simulated data
       // In a real app, this would use actual spending data from sessions
@@ -193,8 +194,8 @@ export function FundUtilizationTimeline({ clientId }: FundUtilizationTimelinePro
     }
 
     try {
-      const totalBudget = budgetSettings.ndisFunds ? parseFloat(budgetSettings.ndisFunds) : 50000;
-      const endDate = new Date(budgetSettings.endDate);
+      const totalBudget = budgetSettings.ndisFunds !== null ? Number(budgetSettings.ndisFunds) : 50000;
+      const endDate = budgetSettings.endOfPlan ? new Date(budgetSettings.endOfPlan) : new Date(new Date().setMonth(new Date().getMonth() + 9));
       const today = new Date();
       
       // Find the projected depletion date (when actualSpent reaches totalBudget)
@@ -399,8 +400,8 @@ export function FundUtilizationTimeline({ clientId }: FundUtilizationTimelinePro
             <div className="text-sm font-medium">
               {formatCurrency(projectedRemainingAtEnd)}
               <span className="ml-1 text-xs text-gray-500">
-                ({budgetSettings?.ndisFunds ? 
-                  ((projectedRemainingAtEnd / parseFloat(budgetSettings.ndisFunds)) * 100).toFixed(0) : 
+                ({budgetSettings?.ndisFunds !== null ? 
+                  ((projectedRemainingAtEnd / Number(budgetSettings.ndisFunds)) * 100).toFixed(0) : 
                   0}% of total)
               </span>
             </div>
