@@ -590,22 +590,40 @@ function GoalsSection({ data }: { data?: ClientReportData }) {
   // Get client goals directly from the parent ClientReports component props
   const clientId = data?.clientDetails?.id || null;
   const [isModalOpen, setIsModalOpen] = React.useState(false);
-  const [selectedGoalId, setSelectedGoalId] = React.useState<number | null>(null);
+  const [selectedGoalId, setSelectedGoalId] = React.useState<number>(0);
   const [selectedGoal, setSelectedGoal] = React.useState<any>(null);
-  const [goalSubgoals, setGoalSubgoals] = React.useState<any[]>([]);
+  // Define a type for subgoals
+  interface Subgoal {
+    id: number;
+    goalId: number;
+    title: string;
+    description: string;
+    status?: string;
+  }
   
-  // Fetch the actual client goals from the API
-  const { data: clientGoals = [] } = useQuery({
+  const [goalSubgoals, setGoalSubgoals] = React.useState<Record<number, Subgoal[]>>({});
+  
+  // Define a type for client goals
+  interface ClientGoal {
+    id: number;
+    title: string;
+    description: string;
+    clientId: number;
+    status?: string;
+  }
+  
+  // Fetch the actual client goals from the API with proper typing
+  const { data: clientGoals = [] } = useQuery<ClientGoal[]>({
     queryKey: ['/api/clients', clientId, 'goals'],
     enabled: !!clientId,
     queryFn: async ({ queryKey }) => {
       const response = await apiRequest('GET', `/api/clients/${clientId}/goals`);
-      return response || [];
+      return Array.isArray(response) ? response : [];
     }
   });
   
   // Fetch subgoals for the selected goal
-  const { data: subgoals = [], refetch: refetchSubgoals } = useQuery<any[]>({
+  const { data: subgoals = [], refetch: refetchSubgoals } = useQuery<Subgoal[]>({
     queryKey: ['/api/goals', selectedGoalId, 'subgoals'],
     enabled: !!selectedGoalId,
     queryFn: async ({ queryKey }) => {
@@ -614,12 +632,17 @@ function GoalsSection({ data }: { data?: ClientReportData }) {
     },
   });
   
-  // Update subgoals whenever they change
+  // Update subgoals whenever they change - organize by goalId
   React.useEffect(() => {
-    if (Array.isArray(subgoals) && subgoals.length > 0) {
-      setGoalSubgoals(subgoals);
+    if (Array.isArray(subgoals) && subgoals.length > 0 && selectedGoalId !== null) {
+      // Update the state in an immutable way, indexed by goal ID
+      setGoalSubgoals(prevSubgoals => ({
+        ...prevSubgoals,
+        [selectedGoalId]: subgoals
+      }));
+      console.log(`Storing ${subgoals.length} subgoals for goal ${selectedGoalId}`);
     }
-  }, [subgoals]);
+  }, [subgoals, selectedGoalId]);
   
   // Assign appropriate scores for demonstration (in real app this would be from assessments)
   const mockScores = [6.0, 5.0, 8.0]; // Match to our 3 actual goals
@@ -634,6 +657,53 @@ function GoalsSection({ data }: { data?: ClientReportData }) {
   
   // Only use the actual goals from the client's profile
   const displayGoals = [...goalsWithScores];
+  
+  // Prefetch subgoals for all goals when goals are loaded
+  React.useEffect(() => {
+    // Make sure we have valid client goals
+    if (Array.isArray(clientGoals) && clientGoals.length > 0) {
+      console.log(`Prefetching subgoals for ${clientGoals.length} goals`);
+      
+      // Fetch all subgoals in parallel with Promise.all
+      Promise.all(clientGoals.map(async (goal: ClientGoal) => {
+        try {
+          const goalId = Number(goal.id);
+          // Only fetch if we don't already have this goal's subgoals or they're empty
+          if (!goalSubgoals[goalId] || goalSubgoals[goalId].length === 0) {
+            console.log(`Fetching subgoals for goal ${goalId}`);
+            const response = await apiRequest('GET', `/api/goals/${goalId}/subgoals`);
+            if (Array.isArray(response)) {
+              console.log(`Fetched ${response.length} subgoals for goal ${goalId}:`, response);
+              return {
+                goalId,
+                subgoals: response
+              };
+            }
+          }
+          return null;
+        } catch (error) {
+          console.error(`Error prefetching subgoals for goal ${goal.id}:`, error);
+          return null;
+        }
+      }))
+      .then(results => {
+        // Filter out nulls and update state in one batch
+        const validResults = results.filter(r => r !== null);
+        if (validResults.length > 0) {
+          setGoalSubgoals(prev => {
+            const newState = { ...prev };
+            validResults.forEach(result => {
+              if (result && result.goalId && Array.isArray(result.subgoals)) {
+                newState[result.goalId] = result.subgoals;
+              }
+            });
+            console.log("Updated goal subgoals:", newState);
+            return newState;
+          });
+        }
+      });
+    }
+  }, [clientGoals, clientId]);
   
   // Handle goal click to open the performance modal
   const handleGoalClick = (goal: any) => {
@@ -652,6 +722,31 @@ function GoalsSection({ data }: { data?: ClientReportData }) {
     // Get the subgoals for this specific goal
     const goalSpecificSubgoals = goalSubgoals[goalId] || [];
     console.log(`Clicking goal ${goalId} with ${goalSpecificSubgoals.length} subgoals:`, goalSpecificSubgoals);
+    
+    // Debug log all stored goal subgoals
+    console.log("All goal subgoals:", goalSubgoals);
+    console.log("Keys in goalSubgoals:", Object.keys(goalSubgoals));
+    
+    // Force fetch subgoals for this goal if not found
+    if (!goalSpecificSubgoals.length) {
+      console.log(`No subgoals found for goal ${goalId}, fetching now...`);
+      apiRequest('GET', `/api/goals/${goalId}/subgoals`)
+        .then(response => {
+          if (Array.isArray(response) && response.length > 0) {
+            console.log(`Fetched ${response.length} subgoals for goal ${goalId}:`, response);
+            // Update subgoals state with these new subgoals
+            setGoalSubgoals(prev => ({
+              ...prev,
+              [goalId]: response
+            }));
+          } else {
+            console.log(`No subgoals returned from API for goal ${goalId}`);
+          }
+        })
+        .catch(error => {
+          console.error(`Error fetching subgoals for goal ${goalId}:`, error);
+        });
+    }
     
     // Set state with type safety
     setSelectedGoalId(goalId);
@@ -702,6 +797,19 @@ function GoalsSection({ data }: { data?: ClientReportData }) {
           subgoals={goalSubgoals[selectedGoalId] || []}
         />
       )}
+      
+      {/* Debug helper - hidden from view */}
+      <div style={{ display: 'none' }}>
+        {/* This ensures apiRequest is imported correctly */}
+        {Object.keys(goalSubgoals).map(key => {
+          const numericKey = parseInt(key, 10);
+          return (
+            <div key={key} data-goal-id={key} data-subgoal-count={
+              goalSubgoals[numericKey] ? goalSubgoals[numericKey].length : 0
+            }></div>
+          );
+        })}
+      </div>
     </>
   );
 }

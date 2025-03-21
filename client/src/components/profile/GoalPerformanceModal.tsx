@@ -92,12 +92,23 @@ function generatePerformanceData(goalId: number, goalTitle: string, subgoals: an
   const currentScore = monthlyScores[monthlyScores.length - 1].score;
   const previousScore = monthlyScores[monthlyScores.length - 2].score;
   
+  // Enhanced subgoal validation to catch more edge cases
+  let processedSubgoals = subgoals;
+  
+  // Handle edge case where subgoals might be nested in a weird format
+  if (Array.isArray(subgoals) && subgoals.length === 1 && Array.isArray(subgoals[0])) {
+    processedSubgoals = subgoals[0];
+    console.log("Detected nested subgoals array, flattening:", processedSubgoals);
+  }
+  
   // Only create milestones from valid subgoals
-  const validSubgoals = Array.isArray(subgoals) ? 
-    subgoals.filter(s => s && typeof s === 'object' && s.id && s.title) as SubgoalData[] : 
+  const validSubgoals = Array.isArray(processedSubgoals) ? 
+    processedSubgoals.filter(s => s && typeof s === 'object' && s.id && s.title) as SubgoalData[] : 
     [];
   
   console.log(`Generating performance data for goal ${goalId}: ${goalTitle} with ${validSubgoals.length} subgoals`);
+  console.log("Raw subgoals:", subgoals);
+  console.log("Valid subgoals:", validSubgoals);
   
   // Generate milestone (subgoal) performance data
   let milestones: MilestonePerformance[] = [];
@@ -168,16 +179,65 @@ export function GoalPerformanceModal({
   const [performanceData, setPerformanceData] = useState<GoalPerformance | null>(null);
   const months = getLast12Months();
   
-  // When the goal ID changes, generate new performance data
+  // State to store subgoals fetched directly in this component
+  const [directSubgoals, setDirectSubgoals] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  
+  // Function to fetch subgoals directly from the API
+  const fetchSubgoalsDirectly = async (goalId: number) => {
+    try {
+      setIsLoading(true);
+      // Import apiRequest if not already imported
+      const apiRequest = (await import('@/lib/queryClient')).apiRequest;
+      
+      console.log(`GoalPerformanceModal: Directly fetching subgoals for goal ${goalId}`);
+      const response = await apiRequest('GET', `/api/goals/${goalId}/subgoals`);
+      
+      if (Array.isArray(response)) {
+        console.log(`GoalPerformanceModal: Directly fetched ${response.length} subgoals:`, response);
+        setDirectSubgoals(response);
+      } else {
+        console.log(`GoalPerformanceModal: No subgoals returned from direct API call`);
+        setDirectSubgoals([]);
+      }
+    } catch (error) {
+      console.error(`GoalPerformanceModal: Error fetching subgoals:`, error);
+      setDirectSubgoals([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  // When the goal ID changes or modal opens, fetch subgoals and generate new performance data
   useEffect(() => {
     if (goalId !== null && goalId !== undefined && !isNaN(Number(goalId)) && open) {
       const validGoalId = Number(goalId); // Ensure goalId is a valid number
-      const data = generatePerformanceData(validGoalId, goalTitle, subgoals || []);
-      setPerformanceData(data);
+      
+      // First try with passed subgoals
+      if (Array.isArray(subgoals) && subgoals.length > 0) {
+        console.log(`GoalPerformanceModal: Using ${subgoals.length} passed subgoals`);
+        const data = generatePerformanceData(validGoalId, goalTitle, subgoals);
+        setPerformanceData(data);
+      } else {
+        // If no subgoals passed or empty array, fetch them directly
+        console.log(`GoalPerformanceModal: No passed subgoals, fetching directly`);
+        fetchSubgoalsDirectly(validGoalId);
+      }
     } else {
       setPerformanceData(null);
+      setDirectSubgoals([]);
     }
-  }, [goalId, goalTitle, subgoals, open]);
+  }, [goalId, goalTitle, open]);
+  
+  // When direct subgoals are fetched, generate performance data with them
+  useEffect(() => {
+    if (goalId !== null && directSubgoals.length > 0) {
+      console.log(`GoalPerformanceModal: Generating performance data with ${directSubgoals.length} direct subgoals`);
+      const validGoalId = Number(goalId);
+      const data = generatePerformanceData(validGoalId, goalTitle, directSubgoals);
+      setPerformanceData(data);
+    }
+  }, [directSubgoals, goalId, goalTitle]);
 
   // Calculate difference for current vs previous month
   const scoreDifference = performanceData 
