@@ -124,7 +124,15 @@ export function ServiceGapAnalysis({
 
   // Create service recommendations based on underutilized items and missing categories
   const serviceRecommendations = React.useMemo(() => {
-    const recommendations = [];
+    const recommendations: Array<{
+      type: string;
+      title: string;
+      description: string;
+      impact: 'high' | 'medium' | 'low';
+      relevance: number;
+      item?: any;
+      category?: any;
+    }> = [];
     
     // Add recommendations for underutilized items
     underutilizedItems.forEach(item => {

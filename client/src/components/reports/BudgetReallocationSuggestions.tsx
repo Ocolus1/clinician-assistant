@@ -75,9 +75,15 @@ export function BudgetReallocationSuggestions({
 
   // Calculate days elapsed in the plan
   function calculateDaysElapsedInPlan(settings?: BudgetSettings): number {
-    if (!settings || !settings.startOfPlan) return 30; // Default if no settings
+    if (!settings) return 30; // Default if no settings
     
-    const startDate = new Date(settings.startOfPlan);
+    // If there's no start date, estimate based on end date
+    if (!settings.createdAt && !settings.endOfPlan) return 30;
+    
+    // Use createdAt as a fallback for startOfPlan
+    const startDate = settings.createdAt ? new Date(settings.createdAt) : 
+                    (settings.endOfPlan ? new Date(new Date(settings.endOfPlan).getTime() - (365 * 24 * 60 * 60 * 1000)) : new Date());
+    
     const today = new Date();
     const diffTime = today.getTime() - startDate.getTime();
     return Math.max(0, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
@@ -85,9 +91,15 @@ export function BudgetReallocationSuggestions({
   
   // Calculate total days in the plan
   function calculateTotalDaysInPlan(settings?: BudgetSettings): number {
-    if (!settings || !settings.startOfPlan || !settings.endOfPlan) return 365; // Default to a year
+    if (!settings) return 365; // Default to a year
     
-    const startDate = new Date(settings.startOfPlan);
+    // If there's no end date, default to a year from creation or today
+    if (!settings.endOfPlan) return 365;
+    
+    // Use createdAt as a fallback for startOfPlan
+    const startDate = settings.createdAt ? new Date(settings.createdAt) : 
+                    new Date(new Date(settings.endOfPlan).getTime() - (365 * 24 * 60 * 60 * 1000));
+    
     const endDate = new Date(settings.endOfPlan);
     const diffTime = endDate.getTime() - startDate.getTime();
     return Math.ceil(diffTime / (1000 * 60 * 60 * 24));

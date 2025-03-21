@@ -82,12 +82,31 @@ export function EnhancedFinancialTab({ clientId, reportData }: EnhancedFinancial
   const spendingDeviation = (keyMetrics.spendingDeviation * 100).toFixed(1);
   const isOverAllocated = keyMetrics.spendingDeviation > 0;
 
+  // Define types for our data
+  type Goal = {
+    id: number;
+    clientId: number;
+    title: string;
+    description: string;
+    priority: string;
+  };
+  
+  type Subgoal = {
+    id: number;
+    goalId: number;
+    title: string;
+    description: string;
+    status?: string;
+  };
+  
+  type Session = any;
+  
   // Get goals and subgoals for ServiceGapAnalysis
-  const { data: goals = [] } = useQuery({
+  const { data: goals = [] } = useQuery<Goal[]>({
     queryKey: [`/api/clients/${clientId}/goals`],
   });
   
-  const { data: sessions = [] } = useQuery({
+  const { data: sessions = [] } = useQuery<Session[]>({
     queryKey: [`/api/clients/${clientId}/sessions`],
   });
   
@@ -102,16 +121,22 @@ export function EnhancedFinancialTab({ clientId, reportData }: EnhancedFinancial
   });
   
   // Get all subgoals from all goals
-  const { data: subgoals = [] } = useQuery({
+  const { data: subgoals = [] } = useQuery<Subgoal[]>({
     queryKey: [`/api/clients/${clientId}/subgoals`],
     queryFn: async () => {
       // Fetch subgoals for each goal
-      const allSubgoals = [];
-      for (const goal of goals) {
-        const response = await fetch(`/api/goals/${goal.id}/subgoals`);
-        if (response.ok) {
-          const subgoals = await response.json();
-          allSubgoals.push(...subgoals);
+      const allSubgoals: Subgoal[] = [];
+      if (goals && Array.isArray(goals)) {
+        for (const goal of goals) {
+          if (goal && goal.id) {
+            const response = await fetch(`/api/goals/${goal.id}/subgoals`);
+            if (response.ok) {
+              const goalSubgoals = await response.json();
+              if (Array.isArray(goalSubgoals)) {
+                allSubgoals.push(...goalSubgoals);
+              }
+            }
+          }
         }
       }
       return allSubgoals;
@@ -241,8 +266,9 @@ export function EnhancedFinancialTab({ clientId, reportData }: EnhancedFinancial
         <div className="lg:col-span-1">
           <BudgetReallocationSuggestions 
             clientId={clientId} 
-            budgetItems={[]} 
-            sessions={sessions} 
+            budgetItems={budgetItems} 
+            sessions={sessions}
+            budgetSettings={budgetSettings}
           />
         </div>
         
@@ -250,8 +276,9 @@ export function EnhancedFinancialTab({ clientId, reportData }: EnhancedFinancial
         <div className="lg:col-span-1">
           <UsageHistoryTimeline 
             clientId={clientId} 
-            budgetItems={[]} 
-            sessions={sessions} 
+            budgetItems={budgetItems} 
+            sessions={sessions}
+            budgetSettings={budgetSettings}
           />
         </div>
       </div>
@@ -262,10 +289,11 @@ export function EnhancedFinancialTab({ clientId, reportData }: EnhancedFinancial
         <div className="lg:col-span-1">
           <ServiceGapAnalysis
             clientId={clientId}
-            budgetItems={[]}
+            budgetItems={budgetItems}
             sessions={sessions}
             goals={goals}
             subgoals={subgoals}
+            budgetSettings={budgetSettings}
           />
         </div>
         
@@ -273,7 +301,8 @@ export function EnhancedFinancialTab({ clientId, reportData }: EnhancedFinancial
         <div className="lg:col-span-1">
           <ClientServiceComparison
             clientId={clientId}
-            budgetItems={[]}
+            budgetItems={budgetItems}
+            budgetSettings={budgetSettings}
           />
         </div>
       </div>
