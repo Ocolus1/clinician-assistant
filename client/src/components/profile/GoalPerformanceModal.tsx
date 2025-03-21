@@ -395,7 +395,7 @@ export function GoalPerformanceModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl p-0 bg-white overflow-auto max-h-[90vh]">
+      <DialogContent className="w-[75%] p-0 bg-white overflow-auto max-h-[90vh]">
         <DialogHeader className="p-6 pb-2 border-b">
           <div className="flex justify-between items-center">
             <div>
