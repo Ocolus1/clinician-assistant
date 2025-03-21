@@ -637,16 +637,28 @@ function GoalsSection({ data }: { data?: ClientReportData }) {
   
   // Handle goal click to open the performance modal
   const handleGoalClick = (goal: any) => {
-    // Ensure goal.id is a valid number
-    if (goal && goal.id !== undefined && goal.id !== null) {
-      const goalId = Number(goal.id);
-      if (!isNaN(goalId)) {
-        setSelectedGoalId(goalId);
-        setSelectedGoal(goal);
-        setIsModalOpen(true);
-        refetchSubgoals();
-      }
+    // Ensure goal.id is a valid number before proceeding
+    if (!goal || goal.id === undefined || goal.id === null) {
+      console.log("Invalid goal object:", goal);
+      return;
     }
+    
+    const goalId = Number(goal.id);
+    if (isNaN(goalId)) {
+      console.log("Invalid goalId (NaN):", goal.id);
+      return;
+    }
+    
+    // Get the subgoals for this specific goal
+    const goalSpecificSubgoals = goalSubgoals[goalId] || [];
+    console.log(`Clicking goal ${goalId} with ${goalSpecificSubgoals.length} subgoals:`, goalSpecificSubgoals);
+    
+    // Set state with type safety
+    setSelectedGoalId(goalId);
+    setSelectedGoal(goal);
+    
+    // Open the modal only after necessary data is set
+    setIsModalOpen(true);
   };
   
   return (
@@ -687,7 +699,7 @@ function GoalsSection({ data }: { data?: ClientReportData }) {
           goalId={selectedGoalId}
           goalTitle={selectedGoal.title}
           goalDescription={selectedGoal.description}
-          subgoals={goalSubgoals}
+          subgoals={goalSubgoals[selectedGoalId] || []}
         />
       )}
     </>

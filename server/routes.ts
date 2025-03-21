@@ -282,8 +282,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.get("/api/goals/:goalId/subgoals", async (req, res) => {
-    const subgoals = await storage.getSubgoalsByGoal(parseInt(req.params.goalId));
-    res.json(subgoals);
+    try {
+      const goalId = req.params.goalId;
+      // Validate that goalId is a valid number
+      if (!goalId || isNaN(parseInt(goalId))) {
+        return res.status(400).json({ error: "Invalid goalId parameter. Must be a valid number." });
+      }
+      const subgoals = await storage.getSubgoalsByGoal(parseInt(goalId));
+      res.json(subgoals);
+    } catch (error) {
+      console.error("Error fetching subgoals:", error);
+      res.status(500).json({ error: formatError(error) });
+    }
   });
 
   app.delete("/api/subgoals/:id", async (req, res) => {
