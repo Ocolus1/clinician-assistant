@@ -34,6 +34,10 @@ import { cn } from "@/lib/utils";
 // Import our specialized components
 import { BudgetItemUtilization } from './BudgetItemUtilization';
 import { FundUtilizationTimeline } from './FundUtilizationTimeline';
+import { BudgetReallocationSuggestions } from './BudgetReallocationSuggestions';
+import { UsageHistoryTimeline } from './UsageHistoryTimeline';
+import { ServiceGapAnalysis } from './ServiceGapAnalysis';
+import { ClientServiceComparison } from './ClientServiceComparison';
 
 // Import types
 import { ClientReportData } from '@/lib/api/clientReports';
@@ -77,6 +81,43 @@ export function EnhancedFinancialTab({ clientId, reportData }: EnhancedFinancial
   // Format spending deviation as percentage
   const spendingDeviation = (keyMetrics.spendingDeviation * 100).toFixed(1);
   const isOverAllocated = keyMetrics.spendingDeviation > 0;
+
+  // Get goals and subgoals for ServiceGapAnalysis
+  const { data: goals = [] } = useQuery({
+    queryKey: [`/api/clients/${clientId}/goals`],
+  });
+  
+  const { data: sessions = [] } = useQuery({
+    queryKey: [`/api/clients/${clientId}/sessions`],
+  });
+  
+  // Get budget items
+  const { data: budgetItems = [] } = useQuery<any[]>({
+    queryKey: [`/api/clients/${clientId}/budget-items`],
+  });
+  
+  // Get budget settings
+  const { data: budgetSettings } = useQuery<any>({
+    queryKey: [`/api/clients/${clientId}/budget-settings`],
+  });
+  
+  // Get all subgoals from all goals
+  const { data: subgoals = [] } = useQuery({
+    queryKey: [`/api/clients/${clientId}/subgoals`],
+    queryFn: async () => {
+      // Fetch subgoals for each goal
+      const allSubgoals = [];
+      for (const goal of goals) {
+        const response = await fetch(`/api/goals/${goal.id}/subgoals`);
+        if (response.ok) {
+          const subgoals = await response.json();
+          allSubgoals.push(...subgoals);
+        }
+      }
+      return allSubgoals;
+    },
+    enabled: goals.length > 0,
+  });
 
   return (
     <div className="space-y-5">
@@ -191,6 +232,49 @@ export function EnhancedFinancialTab({ clientId, reportData }: EnhancedFinancial
               </div>
             </CardContent>
           </Card>
+        </div>
+      </div>
+
+      {/* Row 3: Budget Reallocation and Usage History */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        {/* Budget Reallocation Suggestions */}
+        <div className="lg:col-span-1">
+          <BudgetReallocationSuggestions 
+            clientId={clientId} 
+            budgetItems={[]} 
+            sessions={sessions} 
+          />
+        </div>
+        
+        {/* Usage History Timeline */}
+        <div className="lg:col-span-1">
+          <UsageHistoryTimeline 
+            clientId={clientId} 
+            budgetItems={[]} 
+            sessions={sessions} 
+          />
+        </div>
+      </div>
+
+      {/* Row 4: Service Gap Analysis and Client Comparison */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        {/* Service Gap Analysis */}
+        <div className="lg:col-span-1">
+          <ServiceGapAnalysis
+            clientId={clientId}
+            budgetItems={[]}
+            sessions={sessions}
+            goals={goals}
+            subgoals={subgoals}
+          />
+        </div>
+        
+        {/* Client Service Comparison */}
+        <div className="lg:col-span-1">
+          <ClientServiceComparison
+            clientId={clientId}
+            budgetItems={[]}
+          />
         </div>
       </div>
       

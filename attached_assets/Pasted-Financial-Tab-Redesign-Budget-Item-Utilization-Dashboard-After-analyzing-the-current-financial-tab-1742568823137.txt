@@ -1,0 +1,85 @@
+Financial Tab Redesign: Budget Item Utilization Dashboard
+After analyzing the current financial tab design and understanding the critical connection to the active budget plan in the client profile, here's a revised approach focused on tracking individual budget items and their utilization:
+
+Conceptual Redesign: "Budget Item Utilization Dashboard"
+1. Budget Items Utilization Grid
+Main Component: A sortable, filterable grid showing:
+Each individual budget item from the active plan
+Allocated quantity/amount for each item
+Used quantity/amount to date
+Remaining quantity/amount
+Utilization percentage with visual indicator
+Price per unit
+Total allocated cost vs. used cost
+Days remaining until plan expiration
+2. Visual Item Consumption Chart
+Stacked Bar Chart: Showing:
+Each budget item represented as a segment
+Used portions in solid color
+Remaining portions in lighter shade/pattern
+Items sorted by percentage utilized (highest to lowest)
+Option to sort by category, cost, or alphabetically
+3. Usage Pace Indicators
+For Each Budget Item:
+Small trend arrow showing if usage is on track, too fast, or too slow
+Visual meter showing ideal usage rate vs. actual usage rate
+Weeks/months of supply remaining at current usage rate
+Items at risk of under/overutilization highlighted
+4. Plan Overview Card
+Comprehensive Plan Status:
+Active plan name and code
+Plan dates (start and expiration) with days remaining
+Total budget amount allocated
+Total amount spent to date
+Percentage of plan utilized
+Graphical timeline showing current position in plan period
+5. Utilization Forecast
+Projection Visualization:
+Line chart showing projected utilization of each major item
+Intersection point showing when items will be depleted
+Critical dates flagged where items may run out before plan end
+Option to adjust usage intensity to see impact on forecast
+6. Budget Reallocation Suggestions
+Smart Recommendations:
+Items with excessive allocation identified
+Items at risk of running out highlighted
+Suggested reallocation amounts from underused to overused items
+Estimated impact of reallocation on overall plan optimization
+7. Usage History
+Time-Series Visualization:
+Monthly usage of each item shown as a small multiple
+Pattern identification (steady, increasing, seasonal)
+Comparison to similar clients' usage patterns (anonymized)
+Drill-down capability for detailed session-by-session usage
+8. Service Gap Analysis
+Needs Assessment:
+Identifying budget items with zero or minimal usage
+Suggestion for items that might benefit the client based on their profile
+Comparison with therapy goals to ensure alignment
+Alert for underutilized therapy categories
+Visual Design Principles
+Item-Centric Design:
+
+Each budget item has consistent visual representation across all views
+Color coding by category for easy pattern recognition
+Clear numerical presentation of quantities remaining
+Prominent display of "days remaining" to create urgency when appropriate
+Progressive Disclosure:
+
+Summary view shows critical items and overall plan status
+Drill-down capability for detailed item analysis
+Expandable sections for deeper metrics
+Tooltip details on hover for additional context
+Action-Oriented Layout:
+
+Most at-risk items prominently displayed
+Quick-filter buttons for "Overused", "Underused", "On Track"
+Prioritized recommendations at top of view
+Export and share capabilities for client discussions
+Key Features
+Toggle between quantity view (units) and financial view (dollars)
+Filter by therapy category or service type
+Compare across multiple active plans if applicable
+Historical view option showing previous plans' utilization patterns
+Real-time updates when new sessions are added
+By implementing this redesigned financial tab with a focus on specific budget items from the active plan, clinicians would gain a detailed understanding of exactly which services are being utilized effectively and which may need adjustment. This approach directly addresses the core business challenge of maximizing fund utilization before plan expiration, while providing actionable insights at the individual service level.
