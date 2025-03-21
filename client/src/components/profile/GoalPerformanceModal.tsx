@@ -10,7 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
-} from "@/components/ui/dialog";
+} from "@/components/ui/custom-dialog";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   Tooltip,
@@ -401,7 +401,7 @@ export function GoalPerformanceModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[90%] md:max-w-[80%] lg:max-w-[75%] p-0 bg-white overflow-auto max-h-[90vh]" hideCloseButton={true}>
+      <DialogContent className="sm:max-w-[90%] md:max-w-[80%] lg:max-w-[75%] p-0 bg-white overflow-auto max-h-[90vh]">
         <DialogHeader className="p-6 pb-4 border-b">
           <div className="flex justify-between items-center">
             <div className="flex items-center flex-1">
