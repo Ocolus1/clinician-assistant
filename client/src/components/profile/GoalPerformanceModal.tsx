@@ -1,5 +1,6 @@
 import * as React from "react";
 // Using the React namespace for hooks instead of direct imports
+import "./FixedDialog.css"; // Import the CSS fix for dialog
 const { useState, useEffect } = React;
 import { format, subMonths, startOfMonth } from "date-fns";
 import { X, Plus } from "lucide-react";

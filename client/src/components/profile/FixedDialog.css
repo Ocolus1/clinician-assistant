@@ -1,0 +1,4 @@
+/* Hide the built-in close button from Radix UI Dialog */
+[data-radix-dialog-content] > [data-radix-dialog-close]:first-of-type {
+  display: none !important;
+}
