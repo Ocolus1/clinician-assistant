@@ -572,21 +572,16 @@ function GoalsSection({ data }: { data?: ClientReportData }) {
   return (
     <Card className="overflow-hidden border border-gray-200 shadow-sm">
       <CardHeader className="p-4 pb-0">
-        <CardTitle className="text-sm font-bold">Goals Progress</CardTitle>
+        <CardTitle className="text-base font-bold">Goals Progress</CardTitle>
       </CardHeader>
       <CardContent className="p-4">
-        <div className="h-[170px] flex justify-between items-center">
-          {displayGoals.map((goal, index) => (
-            <div key={goal.id} className="relative flex flex-col items-center">
-              <div className="text-[10px] text-center h-12 px-1 mb-2 flex items-center justify-center max-w-[130px]">
+        <div className="h-[178px] flex justify-evenly items-center">
+          {displayGoals.map((goal) => (
+            <div key={goal.id} className="flex flex-col items-center">
+              <GoalVerticalBar score={goal.score} />
+              <div className="text-xs text-center mt-3 px-2 flex items-center justify-center max-w-[130px]">
                 {goal.title}
               </div>
-              <GoalVerticalBar score={goal.score} />
-              {index < displayGoals.length - 1 && (
-                <div className="absolute -right-4 top-1/2 transform -translate-y-1/2 text-gray-400">
-                  <ChevronRight size={16} />
-                </div>
-              )}
             </div>
           ))}
         </div>
@@ -595,7 +590,7 @@ function GoalsSection({ data }: { data?: ClientReportData }) {
   );
 }
 
-// Goal Vertical Bar Component - replacing the gauge with a vertical progress bar
+// Goal Vertical Bar Component - improved version with tooltip
 function GoalVerticalBar({ score }: { score: number }) {
   // Determine color based on score
   const getColor = (score: number) => {
@@ -610,36 +605,32 @@ function GoalVerticalBar({ score }: { score: number }) {
   const heightPercentage = (score / 10) * 100;
   
   return (
-    <div className="flex flex-col items-center w-16">
-      {/* Vertical bar container */}
-      <div className="relative w-12 h-20 flex flex-col justify-end items-center">
-        {/* Background track */}
-        <div className="absolute inset-0 w-8 h-full bg-gray-100 rounded-md mx-auto"></div>
-        
-        {/* Filled bar - height determined by score */}
-        <div 
-          className="absolute bottom-0 w-8 rounded-md mx-auto"
-          style={{ 
-            height: `${heightPercentage}%`, 
-            backgroundColor: color 
-          }}
-        ></div>
-        
-        {/* Score text - positioned at the center */}
-        <div 
-          className="absolute inset-0 flex items-center justify-center font-bold text-white text-sm"
-          style={{ textShadow: '0px 0px 2px rgba(0,0,0,0.5)' }}
-        >
-          {score.toFixed(1)}
-        </div>
-      </div>
-      
-      {/* Scale markers */}
-      <div className="w-full flex justify-between text-[9px] text-gray-500 mt-1">
-        <span>0</span>
-        <span>10</span>
-      </div>
-    </div>
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <div className="flex flex-col items-center w-14">
+            {/* Vertical bar container */}
+            <div className="relative w-12 h-24 flex flex-col justify-end items-center">
+              {/* Background track */}
+              <div className="absolute inset-0 w-8 h-full bg-gray-100 rounded-md mx-auto"></div>
+              
+              {/* Filled bar - height determined by score */}
+              <div 
+                className="absolute bottom-0 w-8 rounded-md mx-auto"
+                style={{ 
+                  height: `${heightPercentage}%`, 
+                  backgroundColor: color,
+                  transition: 'height 0.3s ease-in-out'
+                }}
+              ></div>
+            </div>
+          </div>
+        </TooltipTrigger>
+        <TooltipContent>
+          <p className="font-semibold">Score: {score.toFixed(1)}/10</p>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   );
 }
 
