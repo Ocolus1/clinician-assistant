@@ -582,10 +582,17 @@ function StrategiesSection({ data, strategiesData }: {
   );
 }
 
-// Goals Section Component with gauge visualization matching the mockup
+// Import the GoalPerformanceModal
+import { GoalPerformanceModal } from './GoalPerformanceModal';
+
+// Goals Section Component with gauge visualization and clickable goals
 function GoalsSection({ data }: { data?: ClientReportData }) {
   // Get client goals directly from the parent ClientReports component props
   const clientId = data?.clientDetails?.id || null;
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedGoalId, setSelectedGoalId] = useState<number | null>(null);
+  const [selectedGoal, setSelectedGoal] = useState<any>(null);
+  const [goalSubgoals, setGoalSubgoals] = useState<any[]>([]);
   
   // Fetch the actual client goals from the API
   const { data: clientGoals = [] } = useQuery({
@@ -597,6 +604,23 @@ function GoalsSection({ data }: { data?: ClientReportData }) {
     }
   });
   
+  // Fetch subgoals for the selected goal
+  const { data: subgoals = [], refetch: refetchSubgoals } = useQuery({
+    queryKey: ['/api/goals', selectedGoalId, 'subgoals'],
+    enabled: !!selectedGoalId,
+    queryFn: async ({ queryKey }) => {
+      const response = await apiRequest('GET', `/api/goals/${selectedGoalId}/subgoals`);
+      return response || [];
+    },
+  });
+  
+  // Update subgoals whenever they change
+  useEffect(() => {
+    if (subgoals.length > 0) {
+      setGoalSubgoals(subgoals);
+    }
+  }, [subgoals]);
+  
   // Assign appropriate scores for demonstration (in real app this would be from assessments)
   const mockScores = [6.0, 5.0, 8.0]; // Match to our 3 actual goals
   
@@ -604,36 +628,63 @@ function GoalsSection({ data }: { data?: ClientReportData }) {
   const goalsWithScores = Array.isArray(clientGoals) ? clientGoals.map((goal: any, index: number) => ({
     id: goal.id,
     title: goal.title,
+    description: goal.description,
     score: mockScores[index % mockScores.length] // Use mockScores in a circular pattern
   })) : [];
   
   // Only use the actual goals from the client's profile
   const displayGoals = [...goalsWithScores];
   
+  // Handle goal click to open the performance modal
+  const handleGoalClick = (goal: any) => {
+    setSelectedGoalId(goal.id);
+    setSelectedGoal(goal);
+    setIsModalOpen(true);
+    refetchSubgoals();
+  };
+  
   return (
-    <Card className={cn(
-      "rounded-lg border border-gray-200",
-      "shadow-[0_2px_4px_-1px_rgba(0,0,0,0.06),_0_4px_6px_-1px_rgba(0,0,0,0.1)]",
-      "transition-shadow hover:shadow-[0_4px_6px_-1px_rgba(0,0,0,0.1),_0_2px_4px_-1px_rgba(0,0,0,0.06)]",
-    )}>
-      <CardHeader className="py-4 px-5">
-        <CardTitle className="text-base font-semibold text-gray-800">Goals Progress</CardTitle>
-      </CardHeader>
-      <CardContent className="p-5">
-        <div className="h-[190px] flex flex-col justify-center">
-          <div className="flex justify-between items-center space-x-4">
-            {displayGoals.map((goal) => (
-              <div key={goal.id} className="flex flex-col items-center w-full">
-                <GoalVerticalBar score={goal.score} />
-                <div className="text-xs text-center mt-2 px-1 flex items-center justify-center w-full font-medium text-gray-700 line-clamp-2 h-8">
-                  {goal.title}
+    <>
+      <Card className={cn(
+        "rounded-lg border border-gray-200",
+        "shadow-[0_2px_4px_-1px_rgba(0,0,0,0.06),_0_4px_6px_-1px_rgba(0,0,0,0.1)]",
+        "transition-shadow hover:shadow-[0_4px_6px_-1px_rgba(0,0,0,0.1),_0_2px_4px_-1px_rgba(0,0,0,0.06)]",
+      )}>
+        <CardHeader className="py-4 px-5">
+          <CardTitle className="text-base font-semibold text-gray-800">Goals Progress</CardTitle>
+        </CardHeader>
+        <CardContent className="p-5">
+          <div className="h-[190px] flex flex-col justify-center">
+            <div className="flex justify-between items-center space-x-4">
+              {displayGoals.map((goal) => (
+                <div 
+                  key={goal.id} 
+                  className="flex flex-col items-center w-full cursor-pointer hover:opacity-90 transition-opacity"
+                  onClick={() => handleGoalClick(goal)}
+                >
+                  <GoalVerticalBar score={goal.score} />
+                  <div className="text-xs text-center mt-2 px-1 flex items-center justify-center w-full font-medium text-gray-700 line-clamp-2 h-8">
+                    {goal.title}
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </div>
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+      
+      {/* Goal Performance Modal */}
+      {selectedGoal && (
+        <GoalPerformanceModal
+          open={isModalOpen}
+          onOpenChange={setIsModalOpen}
+          goalId={selectedGoalId}
+          goalTitle={selectedGoal.title}
+          goalDescription={selectedGoal.description}
+          subgoals={goalSubgoals}
+        />
+      )}
+    </>
   );
 }
 
