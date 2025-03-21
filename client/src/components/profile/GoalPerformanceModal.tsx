@@ -71,101 +71,140 @@ interface SubgoalData {
   description?: string;
 }
 
-// Utility function to generate performance data that matches the subgoal data
+// Improved utility function to generate performance data with better error handling
 function generatePerformanceData(goalId: number, goalTitle: string, subgoals: any[]): GoalPerformance {
+  console.log("generatePerformanceData called with:", { goalId, goalTitle, subgoalsType: typeof subgoals, subgoalsLength: subgoals?.length });
+  
   const months = getLast12Months();
   
-  // Generate scores for the goal (consistent 3-8 range)
-  const monthlyScores = months.map((month, index) => {
-    // Use deterministic values based on goalId and index to ensure consistent display
-    const baseValue = ((goalId % 5) + 3) / 10; // 0.3 to 0.8 range
-    const modifier = Math.sin(index * 0.5) * 0.2; // Slight variation
-    const score = Math.min(Math.max(Math.round((baseValue + modifier) * 10), 3), 8);
-    
-    return {
-      month: month.value,
-      score: score
-    };
-  });
-  
-  // Current month's score and previous month's score
-  const currentScore = monthlyScores[monthlyScores.length - 1].score;
-  const previousScore = monthlyScores[monthlyScores.length - 2].score;
-  
-  // Enhanced subgoal validation to catch more edge cases
-  let processedSubgoals = subgoals;
-  
-  // Handle edge case where subgoals might be nested in a weird format
-  if (Array.isArray(subgoals) && subgoals.length === 1 && Array.isArray(subgoals[0])) {
-    processedSubgoals = subgoals[0];
-    console.log("Detected nested subgoals array, flattening:", processedSubgoals);
-  }
-  
-  // Only create milestones from valid subgoals
-  const validSubgoals = Array.isArray(processedSubgoals) ? 
-    processedSubgoals.filter(s => s && typeof s === 'object' && s.id && s.title) as SubgoalData[] : 
-    [];
-  
-  console.log(`Generating performance data for goal ${goalId}: ${goalTitle} with ${validSubgoals.length} subgoals`);
-  console.log("Raw subgoals:", subgoals);
-  console.log("Valid subgoals:", validSubgoals);
-  
-  // Generate milestone (subgoal) performance data
-  let milestones: MilestonePerformance[] = [];
-  
-  // Add actual subgoals first
-  if (validSubgoals.length > 0) {
-    milestones = validSubgoals.map(subgoal => {
-      // Generate deterministic values based on subgoal.id
+  try {
+    // Generate scores for the goal (consistent 3-8 range)
+    const monthlyScores = months.map((month, index) => {
+      // Use deterministic values based on goalId and index to ensure consistent display
+      const safeGoalId = typeof goalId === 'number' && !isNaN(goalId) ? goalId : 1;
+      const baseValue = ((safeGoalId % 5) + 3) / 10; // 0.3 to 0.8 range
+      const modifier = Math.sin(index * 0.5) * 0.2; // Slight variation
+      const score = Math.min(Math.max(Math.round((baseValue + modifier) * 10), 3), 8);
+      
       return {
-        id: subgoal.id,
-        title: subgoal.title,
-        description: subgoal.description || "",
-        isEmpty: false,
-        values: months.map((month, index) => {
-          const baseValue = ((subgoal.id % 10) + 1) / 10; // 0.1 to 1.0 range
-          const modifier = Math.cos(index * 0.7) * 0.3; // Variation
-          const score = Math.min(Math.max(Math.round((baseValue + modifier) * 10), 1), 10);
-          
-          return {
-            month: month.value,
-            score: score
-          };
-        })
+        month: month.value,
+        score: score
       };
     });
-  }
-  
-  // Always ensure we have exactly 6 milestone cards (3x2 grid)
-  // Fill remaining slots with empty placeholders
-  const totalSlots = 6;
-  const emptySlots = totalSlots - milestones.length;
-  
-  // Generate empty placeholder milestone cards
-  if (emptySlots > 0) {
-    for (let i = 0; i < emptySlots; i++) {
-      milestones.push({
-        id: -1 - i, // Negative IDs to avoid conflicts
-        title: "No milestone set yet",
-        description: "Add a milestone to track progress on specific skill areas",
-        isEmpty: true,
-        values: months.map((month) => ({
-          month: month.value,
-          score: 0
-        }))
+    
+    // Current month's score and previous month's score
+    const currentScore = monthlyScores[monthlyScores.length - 1].score;
+    const previousScore = monthlyScores.length > 1 ? monthlyScores[monthlyScores.length - 2].score : currentScore;
+    
+    // Enhanced subgoal processing with more robust checks
+    let processedSubgoals = Array.isArray(subgoals) ? subgoals : [];
+    
+    // Handle edge cases where subgoals might be nested or in unexpected formats
+    if (processedSubgoals.length === 1 && Array.isArray(processedSubgoals[0])) {
+      console.log("Detected nested subgoals array, flattening:", processedSubgoals[0]);
+      processedSubgoals = processedSubgoals[0];
+    }
+    
+    // Special handling for when subgoal data might be in a different format
+    if (processedSubgoals.length === 1 && processedSubgoals[0] && typeof processedSubgoals[0] === 'object' && 'subgoals' in processedSubgoals[0]) {
+      console.log("Detected subgoals nested in 'subgoals' property:", processedSubgoals[0].subgoals);
+      processedSubgoals = processedSubgoals[0].subgoals;
+    }
+    
+    // Filtered validation to ensure subgoals have required properties
+    const validSubgoals = Array.isArray(processedSubgoals) 
+      ? processedSubgoals.filter(s => {
+          const isValid = s && typeof s === 'object' && (s.id !== undefined) && s.title;
+          if (!isValid) {
+            console.warn("Invalid subgoal found:", s);
+          }
+          return isValid;
+        }) as SubgoalData[] 
+      : [];
+    
+    console.log(`Generating performance data for goal ${goalId}: ${goalTitle} with ${validSubgoals.length} subgoals`);
+    
+    // Generate milestone (subgoal) performance data
+    let milestones: MilestonePerformance[] = [];
+    
+    // Add actual subgoals first
+    if (validSubgoals.length > 0) {
+      milestones = validSubgoals.map(subgoal => {
+        // Generate deterministic values based on subgoal.id
+        const safeId = typeof subgoal.id === 'number' && !isNaN(subgoal.id) ? subgoal.id : 1;
+        
+        return {
+          id: safeId,
+          title: subgoal.title || "Untitled Milestone",
+          description: subgoal.description || "",
+          isEmpty: false,
+          values: months.map((month, index) => {
+            const baseValue = ((safeId % 10) + 1) / 10; // 0.1 to 1.0 range
+            const modifier = Math.cos(index * 0.7) * 0.3; // Variation
+            const score = Math.min(Math.max(Math.round((baseValue + modifier) * 10), 1), 10);
+            
+            return {
+              month: month.value,
+              score: score
+            };
+          })
+        };
       });
     }
+    
+    // Always ensure we have exactly 6 milestone cards (3x2 grid)
+    // Fill remaining slots with empty placeholders
+    const totalSlots = 6;
+    const emptySlots = totalSlots - milestones.length;
+    
+    // Generate empty placeholder milestone cards
+    if (emptySlots > 0) {
+      for (let i = 0; i < emptySlots; i++) {
+        milestones.push({
+          id: -1 - i, // Negative IDs to avoid conflicts
+          title: "No milestone set yet",
+          description: "Add a milestone to track progress on specific skill areas",
+          isEmpty: true,
+          values: months.map((month) => ({
+            month: month.value,
+            score: 0
+          }))
+        });
+      }
+    }
+    
+    return {
+      id: goalId,
+      title: goalTitle || "Untitled Goal",
+      description: goalTitle ? `Working towards ${goalTitle.toLowerCase()}` : "Goal details",
+      currentScore,
+      previousScore,
+      monthlyScores,
+      milestones
+    };
+  } catch (error) {
+    console.error("Error in generatePerformanceData:", error);
+    
+    // Create fallback performance data in case of error
+    const fallbackScores = months.map(() => ({ month: "", score: 5 }));
+    const fallbackMilestones: MilestonePerformance[] = Array(6).fill(null).map((_, i) => ({
+      id: -1 - i,
+      title: i === 0 ? "Error creating performance data" : "No milestone data",
+      description: i === 0 ? "There was a problem generating the performance data" : "Placeholder milestone",
+      isEmpty: true,
+      values: months.map(month => ({ month: month.value, score: 0 }))
+    }));
+    
+    return {
+      id: goalId,
+      title: goalTitle || "Error Loading Goal",
+      description: "Error generating performance data",
+      currentScore: 5,
+      previousScore: 5,
+      monthlyScores: fallbackScores,
+      milestones: fallbackMilestones
+    };
   }
-  
-  return {
-    id: goalId,
-    title: goalTitle,
-    description: "Working towards " + goalTitle.toLowerCase(),
-    currentScore,
-    previousScore,
-    monthlyScores,
-    milestones
-  };
 }
 
 export function GoalPerformanceModal({
@@ -183,26 +222,57 @@ export function GoalPerformanceModal({
   const [directSubgoals, setDirectSubgoals] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   
-  // Function to fetch subgoals directly from the API
+  // Improved function to fetch subgoals directly from the API
   const fetchSubgoalsDirectly = async (goalId: number) => {
     try {
       setIsLoading(true);
-      // Import apiRequest if not already imported
-      const apiRequest = (await import('@/lib/queryClient')).apiRequest;
-      
       console.log(`GoalPerformanceModal: Directly fetching subgoals for goal ${goalId}`);
-      const response = await apiRequest('GET', `/api/goals/${goalId}/subgoals`);
+      
+      // Use dynamic import with a timeout to ensure we don't hang indefinitely
+      const fetchPromise = new Promise(async (resolve, reject) => {
+        try {
+          const { apiRequest } = await import('@/lib/queryClient');
+          const response = await apiRequest('GET', `/api/goals/${goalId}/subgoals`);
+          resolve(response);
+        } catch (error) {
+          reject(error);
+        }
+      });
+      
+      // Set a timeout of 5 seconds to prevent hanging
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error("Fetch timeout after 5 seconds")), 5000);
+      });
+      
+      // Race the fetch against the timeout
+      const response = await Promise.race([fetchPromise, timeoutPromise]);
       
       if (Array.isArray(response)) {
         console.log(`GoalPerformanceModal: Directly fetched ${response.length} subgoals:`, response);
-        setDirectSubgoals(response);
+        if (response.length > 0) {
+          setDirectSubgoals(response);
+        } else {
+          // If no subgoals were found, create placeholder data
+          // This ensures we can at least show the milestone grid
+          console.log(`GoalPerformanceModal: No subgoals found, creating placeholders`);
+          setDirectSubgoals([
+            { id: -1, title: "No subgoals available", description: "Please add subgoals to this goal to track progress" }
+          ]);
+        }
+      } else if (response === null || response === undefined) {
+        console.log(`GoalPerformanceModal: API returned null/undefined, creating placeholders`);
+        setDirectSubgoals([
+          { id: -1, title: "No subgoals available", description: "Please add subgoals to this goal to track progress" }
+        ]);
       } else {
-        console.log(`GoalPerformanceModal: No subgoals returned from direct API call`);
+        console.warn(`GoalPerformanceModal: Unexpected API response:`, response);
         setDirectSubgoals([]);
       }
     } catch (error) {
       console.error(`GoalPerformanceModal: Error fetching subgoals:`, error);
-      setDirectSubgoals([]);
+      setDirectSubgoals([
+        { id: -1, title: "Error loading subgoals", description: "There was a problem loading the subgoals for this goal" }
+      ]);
     } finally {
       setIsLoading(false);
     }
@@ -255,6 +325,15 @@ export function GoalPerformanceModal({
     0
   ) || 10;
 
+  // Log the state for debugging
+  console.log("GoalPerformanceModal render state:", {
+    isLoading,
+    directSubgoalsLength: directSubgoals.length,
+    passedSubgoalsLength: subgoals?.length || 0,
+    hasPerformanceData: !!performanceData,
+    goalId
+  });
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl p-0 bg-white overflow-auto max-h-[90vh]">
@@ -262,10 +341,10 @@ export function GoalPerformanceModal({
           <div className="flex justify-between items-center">
             <div>
               <DialogTitle className="text-2xl font-bold text-gray-900">
-                {performanceData?.title}
+                {performanceData?.title || goalTitle}
               </DialogTitle>
               <DialogDescription className="text-sm text-gray-600 mt-1">
-                {performanceData?.description}
+                {performanceData?.description || goalDescription || "Goal details"}
               </DialogDescription>
             </div>
             <button 
@@ -277,7 +356,31 @@ export function GoalPerformanceModal({
           </div>
         </DialogHeader>
         
-        {performanceData && (
+        {isLoading && (
+          <div className="p-6 flex items-center justify-center min-h-[300px]">
+            <div className="flex flex-col items-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mb-3"></div>
+              <div className="text-sm text-gray-500">Loading goal data...</div>
+            </div>
+          </div>
+        )}
+        
+        {!isLoading && !performanceData && (
+          <div className="p-6 flex items-center justify-center min-h-[300px]">
+            <div className="text-center">
+              <div className="text-red-500 mb-2">Failed to load goal performance data</div>
+              <div className="text-sm text-gray-500">
+                No subgoals available for this goal. Please try again or add subgoals to this goal.
+              </div>
+              <div className="text-xs text-gray-400 mt-3">
+                Goal ID: {goalId}, Subgoals available: {subgoals?.length || 0}, 
+                Direct subgoals: {directSubgoals.length}
+              </div>
+            </div>
+          </div>
+        )}
+        
+        {!isLoading && performanceData && (
           <div className="p-6">
             {/* Monthly performance summary row */}
             <div className="flex mb-8 gap-4">
