@@ -404,7 +404,7 @@ export function GoalPerformanceModal({
       <DialogContent className="sm:max-w-[90%] md:max-w-[80%] lg:max-w-[75%] p-0 bg-white overflow-auto max-h-[90vh]">
         <DialogHeader className="p-6 pb-4 border-b">
           <div className="flex justify-between items-center">
-            <div className="flex-1 flex items-center">
+            <div className="flex items-center flex-1">
               {/* Goal Title with Tooltip */}
               <TooltipProvider>
                 <Tooltip delayDuration={300}>
@@ -418,10 +418,12 @@ export function GoalPerformanceModal({
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
-              
-              {/* Scores on same row as title */}
+            </div>
+            
+            {/* Scores in the middle */}
+            <div className="flex gap-3 flex-1 justify-center">
               {performanceData && (
-                <div className="flex gap-3 ml-auto">
+                <>
                   {/* Current month score */}
                   <div className="border rounded-md py-1 px-2 text-center bg-white shadow-sm flex items-center gap-1">
                     <div className="text-lg font-bold text-blue-600">{performanceData.currentScore}</div>
@@ -449,15 +451,19 @@ export function GoalPerformanceModal({
                     </div>
                     <div className="text-xs text-gray-500">Δ</div>
                   </div>
-                </div>
+                </>
               )}
             </div>
-            <button 
-              onClick={() => onOpenChange(false)}
-              className="rounded-full p-1 hover:bg-gray-100 transition-colors ml-2"
-            >
-              <X className="h-5 w-5 text-gray-500" />
-            </button>
+            
+            {/* Close button */}
+            <div className="flex items-center justify-end flex-1">
+              <button 
+                onClick={() => onOpenChange(false)}
+                className="rounded-full p-1 hover:bg-gray-100 transition-colors"
+              >
+                <X className="h-5 w-5 text-gray-500" />
+              </button>
+            </div>
           </div>
         </DialogHeader>
         
