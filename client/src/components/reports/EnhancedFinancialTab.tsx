@@ -36,7 +36,6 @@ import { BudgetItemUtilization } from './BudgetItemUtilization';
 import { FundUtilizationTimeline } from './FundUtilizationTimeline';
 import { BudgetReallocationSuggestions } from './BudgetReallocationSuggestions';
 import { ServiceGapAnalysis } from './ServiceGapAnalysis';
-import { ClientServiceComparison } from './ClientServiceComparison';
 
 // Import types
 import { ClientReportData } from '@/lib/api/clientReports';
@@ -266,29 +265,15 @@ export function EnhancedFinancialTab({ clientId, reportData }: EnhancedFinancial
         budgetSettings={budgetSettings}
       />
 
-      {/* Row 4: Service Gap Analysis and Client Comparison */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-        {/* Service Gap Analysis */}
-        <div className="lg:col-span-1">
-          <ServiceGapAnalysis
-            clientId={clientId}
-            budgetItems={budgetItems}
-            sessions={sessions}
-            goals={goals as any[]}
-            subgoals={subgoals as any[]}
-            budgetSettings={budgetSettings}
-          />
-        </div>
-        
-        {/* Client Service Comparison */}
-        <div className="lg:col-span-1">
-          <ClientServiceComparison
-            clientId={clientId}
-            budgetItems={budgetItems}
-            budgetSettings={budgetSettings}
-          />
-        </div>
-      </div>
+      {/* Row 4: Service Gap Analysis */}
+      <ServiceGapAnalysis
+        clientId={clientId}
+        budgetItems={budgetItems}
+        sessions={sessions}
+        goals={goals as any[]}
+        subgoals={subgoals as any[]}
+        budgetSettings={budgetSettings}
+      />
       
       {/* Additional information or explanatory text */}
       <Card className="bg-muted/50">
