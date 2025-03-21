@@ -1,5 +1,6 @@
 import * as React from "react";
-import { useState, useEffect } from "react";
+// Using the React namespace for hooks instead of direct imports
+const { useState, useEffect } = React;
 import { format, subMonths, startOfMonth } from "date-fns";
 import { X } from "lucide-react";
 
@@ -111,8 +112,9 @@ export function GoalPerformanceModal({
   
   // When the goal ID changes, generate new performance data
   useEffect(() => {
-    if (goalId && open) {
-      const data = generatePerformanceData(goalId, goalTitle, subgoals);
+    if (goalId !== null && goalId !== undefined && !isNaN(Number(goalId)) && open) {
+      const validGoalId = Number(goalId); // Ensure goalId is a valid number
+      const data = generatePerformanceData(validGoalId, goalTitle, subgoals || []);
       setPerformanceData(data);
     } else {
       setPerformanceData(null);

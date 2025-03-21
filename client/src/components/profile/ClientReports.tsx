@@ -637,10 +637,16 @@ function GoalsSection({ data }: { data?: ClientReportData }) {
   
   // Handle goal click to open the performance modal
   const handleGoalClick = (goal: any) => {
-    setSelectedGoalId(goal.id);
-    setSelectedGoal(goal);
-    setIsModalOpen(true);
-    refetchSubgoals();
+    // Ensure goal.id is a valid number
+    if (goal && goal.id !== undefined && goal.id !== null) {
+      const goalId = Number(goal.id);
+      if (!isNaN(goalId)) {
+        setSelectedGoalId(goalId);
+        setSelectedGoal(goal);
+        setIsModalOpen(true);
+        refetchSubgoals();
+      }
+    }
   };
   
   return (
