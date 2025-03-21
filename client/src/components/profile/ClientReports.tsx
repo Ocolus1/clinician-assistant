@@ -523,7 +523,7 @@ function StrategiesSection({ data, strategiesData }: {
             <p className="text-sm text-gray-500 font-medium">No strategy data available for this period.</p>
           </div>
         ) : (
-          <div className="overflow-x-auto h-[170px]">
+          <div className="overflow-x-auto h-[190px]"> {/* Increased height to match goals section */}
             <table className="w-full">
               <thead>
                 <tr className="border-b border-gray-200">

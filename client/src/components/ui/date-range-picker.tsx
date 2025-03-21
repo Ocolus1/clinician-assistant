@@ -91,10 +91,12 @@ export function DateRangePicker({
             variant={"outline"}
             className={cn(
               "w-auto justify-start text-left font-normal",
-              !value && "text-muted-foreground"
+              !value && showAllTime
+                ? "text-blue-500 border-blue-200 bg-blue-50 hover:bg-blue-100 hover:text-blue-600"
+                : !value && "text-muted-foreground"
             )}
           >
-            <CalendarIcon className="mr-2 h-4 w-4" />
+            <CalendarIcon className={cn("mr-2 h-4 w-4", !value && showAllTime ? "text-blue-500" : "")} />
             {value?.from ? (
               value.to ? (
                 <>
@@ -105,7 +107,9 @@ export function DateRangePicker({
                 format(value.from, "LLL dd, y")
               )
             ) : (
-              <span>{showAllTime ? "All Time" : "Pick a date range"}</span>
+              <span className={cn(!value && showAllTime ? "font-medium" : "")}>
+                {showAllTime ? "All Time" : "Pick a date range"}
+              </span>
             )}
           </Button>
         </PopoverTrigger>
@@ -121,7 +125,7 @@ export function DateRangePicker({
                 </SelectTrigger>
                 <SelectContent position="popper">
                   {showAllTime && (
-                    <SelectItem value="all-time">All Time</SelectItem>
+                    <SelectItem className="text-blue-500 hover:bg-blue-50 hover:text-blue-600 font-medium" value="all-time">All Time</SelectItem>
                   )}
                   <SelectItem value="custom">Custom Range</SelectItem>
                   {presets.map((preset) => (
