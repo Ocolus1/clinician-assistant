@@ -36,6 +36,7 @@ import { BudgetItemUtilization } from './BudgetItemUtilization';
 import { FundUtilizationTimeline } from './FundUtilizationTimeline';
 import { BudgetReallocationSuggestions } from './BudgetReallocationSuggestions';
 import { ServiceGapAnalysis } from './ServiceGapAnalysis';
+import { DirectFundUtilization } from './DirectFundUtilization';
 
 // Import types
 import { ClientReportData } from '@/lib/api/clientReports';
@@ -144,6 +145,9 @@ export function EnhancedFinancialTab({ clientId, reportData }: EnhancedFinancial
 
   return (
     <div className="space-y-5">
+      {/* NEW: Direct Budget Status */}
+      <DirectFundUtilization clientId={clientId} />
+      
       {/* Row 1: Fund utilization timeline */}
       <FundUtilizationTimeline clientId={clientId} />
       
