@@ -313,34 +313,127 @@ export function FundUtilizationTimeline({ clientId }: FundUtilizationTimelinePro
                 hide={true}
                 domain={[0, 20000]} // Set maximum to 20,000 for better visual clarity
               />
-              <RechartsTooltip
-                formatter={(value, name, props) => {
-                  // Get the data point to access the visualization scale
-                  const dataPoint = props?.payload;
-                  // Default to 1 if scale is not found or undefined
+              <RechartsTooltip 
+                content={({ active, payload, label }) => {
+                  if (!active || !payload || payload.length === 0) return null;
+                  
+                  // Get the data point for this tooltip
+                  const dataPoint = payload[0].payload;
                   const scale = dataPoint && 'visualizationScale' in dataPoint ? 
                     Number(dataPoint.visualizationScale) : 1;
                   
-                  // Unscale the value if there's a scale factor applied
-                  const actualValue = value !== null && value !== undefined && scale !== 1 ? 
-                    (value as number) / scale : value;
+                  // Format the date properly
+                  const displayDate = dataPoint.isToday 
+                    ? new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                    : label;
                   
-                  return [
-                    actualValue ? `$${actualValue.toLocaleString('en-US', { maximumFractionDigits: 0 })}` : '-',
-                    name === 'projectedSpent' ? 'Projected' : 
-                    name === 'actualSpent' ? 'Actual' : 
-                    name === 'extensionSpent' ? 'Extension' : 
-                    name === 'correctionSpent' ? 'Correction' : name
-                  ];
-                }}
-                labelFormatter={(label, payload) => {
-                  // If this point is today, show the actual today's date
-                  const dataPoint = Array.isArray(payload) && payload.length > 0 ? payload[0].payload : null;
-                  if (dataPoint && dataPoint.isToday) {
-                    return `Date: ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
-                  }
-                  // Otherwise show the displayed date
-                  return `Date: ${label}`;
+                  // Get all the values with scaling applied correctly
+                  const values = {
+                    projected: payload.find(p => p.dataKey === 'projectedSpent')?.value,
+                    actual: payload.find(p => p.dataKey === 'actualSpent')?.value,
+                    extension: payload.find(p => p.dataKey === 'extensionSpent')?.value,
+                    correction: payload.find(p => p.dataKey === 'correctionSpent')?.value
+                  };
+                  
+                  // Unscale the values
+                  const unscaledValues = {
+                    projected: values.projected !== null && values.projected !== undefined && scale !== 1 
+                      ? (values.projected as number) / scale : values.projected,
+                    actual: values.actual !== null && values.actual !== undefined && scale !== 1 
+                      ? (values.actual as number) / scale : values.actual,
+                    extension: values.extension !== null && values.extension !== undefined && scale !== 1 
+                      ? (values.extension as number) / scale : values.extension,
+                    correction: values.correction !== null && values.correction !== undefined && scale !== 1 
+                      ? (values.correction as number) / scale : values.correction
+                  };
+                  
+                  // Calculate deltas for comparison insights
+                  const deltas = {
+                    actualVsProjected: unscaledValues.actual && unscaledValues.projected 
+                      ? ((unscaledValues.actual as number) / (unscaledValues.projected as number) - 1) * 100 
+                      : null,
+                    correctionNeeded: unscaledValues.actual && unscaledValues.correction 
+                      ? ((unscaledValues.correction as number) / (unscaledValues.actual as number) - 1) * 100 
+                      : null
+                  };
+                  
+                  // Helper function to format currency
+                  const formatValue = (value: any) => 
+                    value !== null && value !== undefined 
+                      ? `$${Number(value).toLocaleString('en-US', { maximumFractionDigits: 0 })}` 
+                      : '-';
+                  
+                  return (
+                    <div className="bg-white p-3 rounded-lg shadow-md border border-gray-100 max-w-[280px]">
+                      {/* Date header with primary emphasis */}
+                      <div className="font-medium text-gray-900 pb-1 border-b border-gray-100 mb-2">
+                        {displayDate}
+                      </div>
+                      
+                      {/* Data values with visual hierarchy */}
+                      <div className="space-y-2 mb-2">
+                        {/* Projected amount */}
+                        {unscaledValues.projected !== null && (
+                          <div className="flex justify-between items-center">
+                            <div className="flex items-center">
+                              <div className="w-2.5 h-2.5 rounded-full bg-gray-500 mr-2"></div>
+                              <span className="text-sm text-gray-700">Projected</span>
+                            </div>
+                            <span className="text-sm font-medium text-right">{formatValue(unscaledValues.projected)}</span>
+                          </div>
+                        )}
+                        
+                        {/* Actual amount with comparison */}
+                        {unscaledValues.actual !== null && (
+                          <div className="flex justify-between items-center">
+                            <div className="flex items-center">
+                              <div className="w-2.5 h-2.5 rounded-full bg-blue-500 mr-2"></div>
+                              <span className="text-sm text-gray-700">Actual</span>
+                            </div>
+                            <div className="flex items-center space-x-1">
+                              <span className="text-sm font-medium text-right">{formatValue(unscaledValues.actual)}</span>
+                              {deltas.actualVsProjected !== null && (
+                                <span className={`text-xs px-1.5 py-0.5 rounded-full ${deltas.actualVsProjected >= 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                                  {deltas.actualVsProjected >= 0 ? '+' : ''}{Math.round(deltas.actualVsProjected)}%
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                        
+                        {/* Extension amount */}
+                        {unscaledValues.extension !== null && (
+                          <div className="flex justify-between items-center">
+                            <div className="flex items-center">
+                              <div className="w-2.5 h-2.5 rounded-full border-2 border-blue-500 bg-white mr-2"></div>
+                              <span className="text-sm text-gray-700">Extension</span>
+                            </div>
+                            <span className="text-sm font-medium text-right">{formatValue(unscaledValues.extension)}</span>
+                          </div>
+                        )}
+                        
+                        {/* Correction amount with action needed */}
+                        {unscaledValues.correction !== null && (
+                          <div className="flex justify-between items-center">
+                            <div className="flex items-center">
+                              <div className="w-2.5 h-2.5 rounded-full bg-amber-500 mr-2"></div>
+                              <span className="text-sm text-gray-700">Correction</span>
+                            </div>
+                            <span className="text-sm font-medium text-right">{formatValue(unscaledValues.correction)}</span>
+                          </div>
+                        )}
+                      </div>
+                      
+                      {/* Actionable insight if we have the correction needed delta */}
+                      {deltas.correctionNeeded !== null && deltas.correctionNeeded > 5 && (
+                        <div className="mt-2 pt-2 border-t border-gray-100">
+                          <div className="text-xs bg-amber-50 text-amber-800 p-1.5 rounded">
+                            <span className="font-medium">Action needed:</span> Increase spending by {Math.round(deltas.correctionNeeded)}% to use all funds
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
                 }}
               />
               <ReferenceLine 
