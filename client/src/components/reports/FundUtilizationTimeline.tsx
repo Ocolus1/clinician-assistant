@@ -295,15 +295,22 @@ export function FundUtilizationTimeline({ clientId }: FundUtilizationTimelinePro
                   return `${month} ${new Date().getFullYear().toString().substring(2)}`;
                 }}
               />
-              {/* Removed YAxis as requested for cleaner visualization */}
+              {/* Using hidden YAxis to maintain chart proportions while not showing it visually */}
+              <YAxis 
+                hide={true}
+                domain={[0, 20000]} // Set maximum to 20,000 for better visual clarity
+              />
               <RechartsTooltip
                 formatter={(value, name, props) => {
                   // Get the data point to access the visualization scale
-                  const dataPoint = props.payload;
-                  const scale = dataPoint?.visualizationScale || 1;
+                  const dataPoint = props?.payload;
+                  // Default to 1 if scale is not found or undefined
+                  const scale = dataPoint && 'visualizationScale' in dataPoint ? 
+                    Number(dataPoint.visualizationScale) : 1;
                   
                   // Unscale the value if there's a scale factor applied
-                  const actualValue = value !== null && value !== undefined && scale !== 1 ? (value as number) / scale : value;
+                  const actualValue = value !== null && value !== undefined && scale !== 1 ? 
+                    (value as number) / scale : value;
                   
                   return [
                     actualValue ? `$${actualValue.toLocaleString('en-US', { maximumFractionDigits: 0 })}` : '-',
@@ -404,13 +411,12 @@ export function FundUtilizationTimeline({ clientId }: FundUtilizationTimelinePro
                   // Find today's point, with fallback
                   const todayPoint = timelineData.find(p => p.isToday) || null;
                   
-                  // Type guard for enhanced data point with visualizationScale property
-                  const hasScale = (point: any): point is (typeof point & { visualizationScale: number }) => {
-                    return point && typeof point === 'object' && 'visualizationScale' in point;
-                  };
-                  
-                  // Get scale factor safely with type guard
-                  const scale = todayPoint && hasScale(todayPoint) ? todayPoint.visualizationScale : 1;
+                  // Safely check for visualizationScale property and use a default
+                  const scale = todayPoint && 
+                    typeof todayPoint === 'object' && 
+                    'visualizationScale' in todayPoint && 
+                    typeof todayPoint.visualizationScale === 'number' ? 
+                    todayPoint.visualizationScale : 1;
                   
                   // Unscale the value if needed to show actual remaining funds
                   const actualSpent = todayPoint && todayPoint.actualSpent !== null && todayPoint.actualSpent !== undefined ? 
