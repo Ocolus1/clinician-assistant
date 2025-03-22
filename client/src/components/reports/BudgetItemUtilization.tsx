@@ -74,8 +74,8 @@ export function BudgetItemUtilization({ clientId }: BudgetItemUtilizationProps) 
 
   // Process budget items to add utilization data
   const enhancedBudgetItems: EnhancedBudgetItem[] = React.useMemo(() => {
-    // If still loading or no data, return empty array
-    if (isLoadingItems || isLoadingSettings || isLoadingSessions || !budgetItems || !budgetSettings) {
+    // If still loading or no budget items, return empty array
+    if (isLoadingItems || isLoadingSettings || isLoadingSessions || !budgetItems) {
       return [];
     }
 
@@ -188,8 +188,8 @@ export function BudgetItemUtilization({ clientId }: BudgetItemUtilizationProps) 
     return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   }, [budgetSettings]);
 
-  // Don't render if still loading
-  if (isLoadingItems || isLoadingSettings || isLoadingSessions) {
+  // Don't render if still loading or no budget items
+  if (isLoadingItems || isLoadingSettings || isLoadingSessions || !budgetItems || budgetItems.length === 0) {
     return (
       <Card>
         <CardHeader>
