@@ -83,7 +83,15 @@ export function FundUtilizationTimeline({ clientId }: FundUtilizationTimelinePro
       // Use the dummy data generator for consistent visualization
       // In a real app, this would use actual spending data from database
       // This percentage matches the -79% spending variance shown in the top card
-      const data = getDummyFundUtilizationData(clientId, underspendingPercentage);
+      let data = getDummyFundUtilizationData(clientId, underspendingPercentage);
+      
+      // Sort the data chronologically by actual date value to ensure proper ordering
+      data = data.sort((a, b) => {
+        // Parse the ISO date strings into Date objects for proper comparison
+        const dateA = new Date(a.date);
+        const dateB = new Date(b.date);
+        return dateA.getTime() - dateB.getTime();
+      });
       
       // If we have budget settings, use real total budget value
       if (budgetSettings?.ndisFunds) {
@@ -291,22 +299,32 @@ export function FundUtilizationTimeline({ clientId }: FundUtilizationTimelinePro
               </defs>
               <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
               <XAxis 
-                dataKey="displayDate" 
+                // Use the actual date value for proper chronological ordering
+                dataKey="date" 
                 tick={{ fontSize: 11 }}
                 tickMargin={10}
                 interval={"preserveStartEnd"}
+                // Format the date ISO string into "MMM YY" format
                 tickFormatter={(value) => {
-                  // Format to show month and year (Jan 25, Feb 25, etc.)
-                  const dateStr = String(value);
-                  if (!dateStr.includes(' ')) return value;
-                  
-                  // Extract month from the date string (e.g., "Mar 22" -> "Mar")
-                  const month = dateStr.split(' ')[0];
-                  
-                  // For consistency, use the current year for all date labels
-                  // This ensures dates like "Mar 25" mean March 2025
-                  return `${month} ${new Date().getFullYear().toString().substring(2)}`;
+                  try {
+                    // Parse the ISO date string into a Date object
+                    const date = new Date(value);
+                    
+                    // Format as "MMM YY" (e.g., "Jan 25", "Feb 25", etc.)
+                    return date.toLocaleDateString('en-US', { 
+                      month: 'short',
+                      year: '2-digit'
+                    });
+                  } catch (error) {
+                    // Fallback if there's an error parsing the date
+                    return value;
+                  }
                 }}
+                // Important: This tells Recharts to treat the axis as a time scale
+                // instead of treating values as categories
+                type="category"
+                // Ensure the domain is based on the actual dates
+                domain={['dataMin', 'dataMax']}
               />
               {/* Using hidden YAxis to maintain chart proportions while not showing it visually */}
               <YAxis 
@@ -327,17 +345,16 @@ export function FundUtilizationTimeline({ clientId }: FundUtilizationTimelinePro
                   let displayDate;
                   
                   try {
-                    // The displayDate is like "Mar 8" but we want "Mar 25"
-                    // First, extract just the month part
-                    const month = (dataPoint.displayDate || label).split(' ')[0];
+                    // Get the actual date object from the ISO date string
+                    const date = new Date(dataPoint.date || label);
                     
-                    // Use current year's last two digits for consistent formatting
-                    const year = new Date().getFullYear().toString().substring(2);
-                    
-                    // Combine them in "MMM YY" format
-                    displayDate = `${month} ${year}`;
+                    // Format it consistently as "MMM YY" (e.g., "Jan 25")
+                    displayDate = date.toLocaleDateString('en-US', {
+                      month: 'short',
+                      year: '2-digit'
+                    });
                   } catch (error) {
-                    // Fallback to the original value if parsing fails
+                    // Fallback to using the displayDate property or label
                     displayDate = dataPoint.displayDate || label;
                   }
                   
@@ -451,11 +468,14 @@ export function FundUtilizationTimeline({ clientId }: FundUtilizationTimelinePro
                 }}
               />
               <ReferenceLine 
-                x={timelineData.find(point => point.isToday)?.displayDate} 
+                x={timelineData.find(point => point.isToday)?.date} 
                 stroke="#64748b" 
                 strokeDasharray="3 3"
                 label={{ 
-                  value: `Today (${new Date().toLocaleDateString('en-US', { month: 'short' })} ${new Date().getFullYear().toString().substring(2)})`, 
+                  value: `Today (${new Date().toLocaleDateString('en-US', { 
+                    month: 'short',
+                    year: '2-digit'
+                  })})`, 
                   position: 'insideTopRight', fontSize: 11, fill: '#64748b' 
                 }}
               />
