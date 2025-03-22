@@ -37,6 +37,10 @@ interface FundUtilizationTimelineProps {
 }
 
 export function FundUtilizationTimeline({ clientId }: FundUtilizationTimelineProps) {
+  // Fixed value for the underspending percentage that will be displayed
+  // This should match the value used in the dummy data
+  const underspendingPercentage = 79; // Fixed at 79% underspending for demo
+  
   // Fetch budget settings and sessions
   const { data: budgetSettings, isLoading: isLoadingSettings } = useQuery<BudgetSettings>({
     queryKey: ['/api/clients', clientId, 'budget-settings'],
@@ -79,7 +83,6 @@ export function FundUtilizationTimeline({ clientId }: FundUtilizationTimelinePro
       // Use the dummy data generator for consistent visualization
       // In a real app, this would use actual spending data from database
       // This percentage matches the -79% spending variance shown in the top card
-      const underspendingPercentage = 79; // Fixed at 79% underspending for demo
       const data = getDummyFundUtilizationData(clientId, underspendingPercentage);
       
       // If we have budget settings, use real total budget value
@@ -166,6 +169,7 @@ export function FundUtilizationTimeline({ clientId }: FundUtilizationTimelinePro
       
       // Current utilization rate
       const todayPoint = timelineData.find(point => point.isToday);
+      
       // The utilizationRate should be around 0.21 (21%) for a -79% spending variance
       // because the spending variance is (actual - expected) / expected = (-0.79)
       // which means we're spending at 21% of the ideal rate
@@ -411,15 +415,9 @@ export function FundUtilizationTimeline({ clientId }: FundUtilizationTimelinePro
         
         <div className="grid grid-cols-4 gap-2 mt-4">
           <div className="rounded-lg p-2.5 border border-gray-100 bg-gray-50">
-            <div className="text-xs text-gray-500">Current Pattern</div>
+            <div className="text-xs text-gray-500">Spending Variance</div>
             <div className="text-sm font-medium">
-              {utilizationRate < 0.80 ? 'Significant underspending' : 
-               utilizationRate < 0.95 ? 'Moderate underspending' : 
-               utilizationRate > 1.1 ? 'Overspending' : 
-               'Near target'}
-              <span className="ml-1 text-xs text-gray-500">
-                ({(utilizationRate * 100).toFixed(0)}%)
-              </span>
+              <span className="text-blue-700">-{underspendingPercentage}%</span>
             </div>
           </div>
           
