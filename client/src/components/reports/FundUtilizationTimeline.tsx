@@ -322,19 +322,9 @@ export function FundUtilizationTimeline({ clientId }: FundUtilizationTimelinePro
                   const scale = dataPoint && 'visualizationScale' in dataPoint ? 
                     Number(dataPoint.visualizationScale) : 1;
                   
-                  // Format the date to match axis labels (Apr 25 format)
-                  let displayDate;
-                  if (dataPoint.isToday) {
-                    // For today's date, show current month + YY
-                    const today = new Date();
-                    const month = today.toLocaleDateString('en-US', { month: 'short' });
-                    const year = today.getFullYear().toString().substring(2);
-                    displayDate = `${month} ${year}`;
-                  } else {
-                    // For other dates, use the same format as x-axis
-                    // The label already has the correct format from the x-axis formatter
-                    displayDate = label;
-                  }
+                  // Get the data format directly from the dataPoint.displayDate, which should match the axis
+                  // The displayDate in the data structure is already formatted as "MMM YY" (e.g., "Jun 25")
+                  const displayDate = dataPoint.displayDate || label;
                   
                   // Get all the values with scaling applied correctly
                   const values = {
