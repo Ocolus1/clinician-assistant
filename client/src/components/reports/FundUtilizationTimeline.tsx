@@ -510,7 +510,25 @@ export function FundUtilizationTimeline({ clientId }: FundUtilizationTimelinePro
           <div className="rounded-lg p-2.5 border border-gray-100 bg-gray-50">
             <div className="text-xs text-gray-500">Spending Variance</div>
             <div className="text-sm font-medium">
-              <span className="text-blue-700">-{underspendingPercentage}%</span>
+              {(() => {
+                // Find today's point for calculation
+                const todayPoint = timelineData.find(point => point.isToday);
+                if (!todayPoint) return <span className="text-blue-700">-{underspendingPercentage}%</span>;
+                
+                // Get values for actual and projected spending at the today point
+                const actual = todayPoint.actualSpent;
+                const projected = todayPoint.projectedSpent;
+                
+                // Calculate the delta using the same formula as in tooltip
+                const actualVsProjected = (actual !== null && projected !== null) 
+                  ? ((actual as number) / (projected as number) - 1) * 100 
+                  : null;
+                  
+                // Round the value to match tooltip display
+                const roundedValue = actualVsProjected !== null ? Math.round(actualVsProjected) : null;
+                
+                return <span className="text-blue-700">{roundedValue !== null ? (roundedValue >= 0 ? '+' : '') + roundedValue : -underspendingPercentage}%</span>;
+              })()}
             </div>
           </div>
           
