@@ -594,7 +594,8 @@ export function getDummyFundUtilizationData(clientId: number = 77, underspending
     // Add the data point
     result.push({
       date: pointDate.toISOString().split('T')[0],
-      displayDate: pointDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+      // Format the date as "MMM YY" for consistent x-axis display (e.g., "Jan 25")
+      displayDate: pointDate.toLocaleDateString('en-US', { month: 'short', year: '2-digit' }),
       dayNumber,
       projectedSpent,
       actualSpent: thisActualSpent,
