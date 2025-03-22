@@ -401,9 +401,9 @@ export function getDummyFundUtilizationData(clientId: number = 77, underspending
   const elapsedDays = Math.round((now.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
   const remainingDays = totalDays - elapsedDays;
   
-  // Total budget amount (based on client ID for variety)
-  const baseBudget = 50000 + (clientId % 10) *
-  5000;
+  // Total budget amount (based on client ID, capped at 20,000 per request)
+  // This ensures active budget plans never exceed 20k for visualization purposes
+  const baseBudget = 15000 + (clientId % 10) * 500;
   const totalBudget = baseBudget;
   
   // Daily spending rates
@@ -419,6 +419,9 @@ export function getDummyFundUtilizationData(clientId: number = 77, underspending
   
   // Current actual spending value
   let actualSpent = 0;
+  
+  // Store the exact value of today's actual spending (will be used for future points)
+  let todayActualSpent = 0;
   
   for (let i = 0; i <= numPoints; i++) {
     const dayNumber = i * daysPerPoint;
@@ -459,8 +462,13 @@ export function getDummyFundUtilizationData(clientId: number = 77, underspending
       actualSpent = thisActualSpent; // Update running total
     }
     
-    // If this is today's point, save the current actual spent
-    const actualSpentToday = isToday ? actualSpent : (isPastToday ? actualSpent : null);
+    // If this is today's point, save the current actual spent for future reference
+    if (isToday) {
+      todayActualSpent = actualSpent;
+    }
+    
+    // Use the stored value of today's spending for consistency
+    const actualSpentToday = isToday ? actualSpent : (isPastToday ? todayActualSpent : null);
     
     // 3. Extension line - future projection based on actual pattern with step-like sessions
     let extensionSpent = null;

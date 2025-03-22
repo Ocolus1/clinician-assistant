@@ -286,12 +286,16 @@ export function FundUtilizationTimeline({ clientId }: FundUtilizationTimelinePro
                 tick={{ fontSize: 11 }}
                 tickMargin={10}
                 interval={"preserveStartEnd"}
+                tickFormatter={(value) => {
+                  // Format to show month and year (Jan 25, Feb 25, etc.)
+                  const dateStr = String(value);
+                  if (!dateStr.includes(' ')) return value;
+                  const [month, day] = dateStr.split(' ');
+                  // Format "Jan 29" to "Jan 25" (displaying year)
+                  return `${month} ${new Date().getFullYear().toString().substring(2)}`;
+                }}
               />
-              <YAxis 
-                tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
-                tick={{ fontSize: 11 }}
-                domain={[0, 20000]} // Set maximum to 20,000 for better visual clarity
-              />
+              {/* Removed YAxis as requested for cleaner visualization */}
               <RechartsTooltip
                 formatter={(value, name, props) => {
                   // Get the data point to access the visualization scale
@@ -323,21 +327,23 @@ export function FundUtilizationTimeline({ clientId }: FundUtilizationTimelinePro
                 type="monotone"
                 dataKey="projectedSpent"
                 stroke="#6b7280"
-                strokeWidth={2}
+                strokeWidth={1.5}
                 name="Projected"
                 dot={false}
                 activeDot={{ r: 5, fill: '#6b7280', stroke: '#fff', strokeWidth: 1 }}
+                isAnimationActive={false}
               />
               
-              {/* Line 2: Actual - Actual spending up to today */}
+              {/* Line 2: Actual - Actual spending up to today - Primary focus */}
               <Line
                 type="monotone"
                 dataKey="actualSpent"
                 stroke="#3b82f6"
-                strokeWidth={3}
+                strokeWidth={4}
                 name="Actual"
                 dot={false}
-                activeDot={{ r: 6, fill: '#3b82f6', stroke: '#fff', strokeWidth: 2 }}
+                activeDot={{ r: 7, fill: '#3b82f6', stroke: '#fff', strokeWidth: 2 }}
+                isAnimationActive={false}
               />
               
               {/* Line 3: Extension - Dotted projection based on actual pattern */}
@@ -345,22 +351,24 @@ export function FundUtilizationTimeline({ clientId }: FundUtilizationTimelinePro
                 type="monotone"
                 dataKey="extensionSpent"
                 stroke="#3b82f6"
-                strokeWidth={2}
+                strokeWidth={2.5}
                 strokeDasharray="5 5"
                 name="Extension"
                 dot={false}
                 activeDot={{ r: 5, fill: '#3b82f6', stroke: '#fff', strokeWidth: 1 }}
+                isAnimationActive={false}
               />
               
-              {/* Line 4: Correction - Path needed from today to use all funds */}
+              {/* Line 4: Correction - Path needed from today to use all funds - Secondary focus */}
               <Line
                 type="monotone"
                 dataKey="correctionSpent"
                 stroke="#f59e0b"
-                strokeWidth={2.5}
+                strokeWidth={3.5}
                 name="Correction"
                 dot={false}
-                activeDot={{ r: 5, fill: '#f59e0b', stroke: '#fff', strokeWidth: 1 }}
+                activeDot={{ r: 6, fill: '#f59e0b', stroke: '#fff', strokeWidth: 1.5 }}
+                isAnimationActive={false}
               />
               
               <Legend 
@@ -393,19 +401,20 @@ export function FundUtilizationTimeline({ clientId }: FundUtilizationTimelinePro
             <div className="text-sm font-medium">
               {formatCurrency(budgetSettings && typeof budgetSettings.ndisFunds === 'number' ? 
                 (() => {
-                  const todayPoint = timelineData.find(p => p.isToday);
+                  // Find today's point, with fallback
+                  const todayPoint = timelineData.find(p => p.isToday) || null;
                   
                   // Type guard for enhanced data point with visualizationScale property
                   const hasScale = (point: any): point is (typeof point & { visualizationScale: number }) => {
-                    return point && 'visualizationScale' in point;
+                    return point && typeof point === 'object' && 'visualizationScale' in point;
                   };
                   
                   // Get scale factor safely with type guard
-                  const scale = hasScale(todayPoint) ? todayPoint.visualizationScale : 1;
+                  const scale = todayPoint && hasScale(todayPoint) ? todayPoint.visualizationScale : 1;
                   
                   // Unscale the value if needed to show actual remaining funds
-                  const actualSpent = todayPoint?.actualSpent && todayPoint.actualSpent > 0 ? 
-                    (todayPoint.actualSpent as number) / scale : 0;
+                  const actualSpent = todayPoint && todayPoint.actualSpent !== null && todayPoint.actualSpent !== undefined ? 
+                    Number(todayPoint.actualSpent) / scale : 0;
                     
                   return Number(budgetSettings.ndisFunds) - actualSpent;
                 })() :
