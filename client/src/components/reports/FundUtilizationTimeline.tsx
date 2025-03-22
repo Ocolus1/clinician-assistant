@@ -317,20 +317,21 @@ export function FundUtilizationTimeline({ clientId }: FundUtilizationTimelinePro
               </defs>
               <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
               <XAxis 
-                // Use displayDate as a category to ensure correct chronological order
+                // We need to use the actual date for proper time-based sorting
                 dataKey="displayDate" 
                 tick={{ fontSize: 11 }}
                 tickMargin={10}
                 // Only show ticks at reasonable intervals to avoid overcrowding
                 interval="preserveStartEnd"
-                // Use category to avoid date parsing which can cause sorting issues
+                // Use category to maintain the exact order from our data array
                 type="category"
-                // Enforce strict categories to prevent duplicates
+                // Prevent any duplicates
                 allowDuplicatedCategory={false}
                 // Add a label to identify the timeline clearly
                 label={{ value: "Budget Plan Timeline", position: "insideBottomRight", offset: -5, fontSize: 11 }}
-                // Explicitly define ticks to ensure they appear in chronological order
-                ticks={Array.from(new Set(timelineData.map(d => d.displayDate)))}
+                // Use our pre-sorted data array to create chronologically ordered ticks
+                // Important: We ensure the array is already sorted in our useMemo
+                ticks={timelineData.map(d => d.displayDate)}
               />
               {/* Using hidden YAxis to maintain chart proportions while not showing it visually */}
               <YAxis 
