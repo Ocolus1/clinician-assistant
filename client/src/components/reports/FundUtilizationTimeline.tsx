@@ -579,9 +579,34 @@ export function FundUtilizationTimeline({ clientId }: FundUtilizationTimelinePro
           <div className="rounded-lg p-2.5 border border-blue-50 bg-blue-50">
             <div className="text-xs text-blue-700">Plan Expiration</div>
             <div className="text-sm font-medium text-blue-800">
-              {budgetSettings?.endOfPlan ? 
-                `${differenceInDays(new Date(budgetSettings.endOfPlan), new Date())} days` : 
-                '363 days'}
+              {(() => {
+                // If we have a real end date from the database, use it
+                if (budgetSettings?.endOfPlan) {
+                  const endDate = new Date(budgetSettings.endOfPlan);
+                  const today = new Date();
+                  
+                  // Calculate days remaining
+                  const daysRemaining = differenceInDays(endDate, today);
+                  
+                  // Show the calculated days remaining
+                  return `${daysRemaining} days`;
+                }
+                
+                // For client 77, use the dummy data's endDate calculation
+                // This ensures consistency with the chart visualization
+                const todayPoint = timelineData.find(p => p.isToday);
+                if (todayPoint && timelineData.length > 0) {
+                  // Calculate days from today to end of the timeline
+                  const lastPoint = timelineData[timelineData.length - 1];
+                  const lastDate = new Date(lastPoint.date);
+                  const today = new Date();
+                  
+                  // Calculate days remaining using date-fns
+                  return `${differenceInDays(lastDate, today)} days`;
+                }
+                
+                return '363 days'; // Default fallback only if all else fails
+              })()}
             </div>
           </div>
           
