@@ -48,12 +48,28 @@ export function FundUtilizationTimeline({ clientId }: FundUtilizationTimelinePro
     enabled: !!clientId,
   });
 
+  // Define type for timeline data points with visualization scale
+  type TimelineDataPoint = {
+    date: string;
+    displayDate: string;
+    dayNumber: number;
+    projectedSpent: number;
+    actualSpent: number | null;
+    extensionSpent: number | null;
+    correctionSpent: number | null;
+    isToday: boolean;
+    isPastToday: boolean;
+    percentOfTimeElapsed: number;
+    percentOfBudgetSpent: number;
+    visualizationScale?: number;
+  };
+
   // Generate the enhanced spending data visualization with the four lines:
   // 1. Projected: Initial projection at client onboarding
   // 2. Actual: Actual spending to date
   // 3. Extension: Dotted line projecting future based on actual pattern
   // 4. Correction: Line showing ideal spending from today to use all funds
-  const timelineData = React.useMemo(() => {
+  const timelineData = React.useMemo<TimelineDataPoint[]>(() => {
     // If data is being loaded, return empty array
     if (isLoadingSettings || isLoadingSessions) {
       return [];
@@ -72,16 +88,24 @@ export function FundUtilizationTimeline({ clientId }: FundUtilizationTimelinePro
         // Adjust the dummy data to use the real budget amount, but scale it to fit under 20,000 for visualization
         const visualizationScale = totalBudget > 20000 ? 20000 / totalBudget : 1;
         
-        return data.map(point => ({
-          ...point,
+        // Define a type for our enhanced data points with visualization scale
+        type EnhancedDataPoint = typeof data[0] & { 
+          visualizationScale: number 
+        };
+        
+        return data.map(point => {
           // Create scaled version of data for better visualization while maintaining proportions
-          projectedSpent: point.projectedSpent / point.projectedSpent * totalBudget * (point.percentOfTimeElapsed / 100) * visualizationScale,
-          actualSpent: point.actualSpent ? (point.actualSpent / point.projectedSpent * totalBudget * (point.percentOfTimeElapsed / 100) * visualizationScale) : null,
-          extensionSpent: point.extensionSpent ? (point.extensionSpent / point.projectedSpent * totalBudget * (point.percentOfTimeElapsed / 100) * visualizationScale) : null,
-          correctionSpent: point.correctionSpent ? (point.correctionSpent / point.projectedSpent * totalBudget * (point.percentOfTimeElapsed / 100) * visualizationScale) : null,
-          // Add a property to track the scaling factor for tooltips
-          visualizationScale: visualizationScale
-        }));
+          const enhancedPoint: EnhancedDataPoint = {
+            ...point,
+            projectedSpent: point.projectedSpent / point.projectedSpent * totalBudget * (point.percentOfTimeElapsed / 100) * visualizationScale,
+            actualSpent: point.actualSpent ? (point.actualSpent / point.projectedSpent * totalBudget * (point.percentOfTimeElapsed / 100) * visualizationScale) : null,
+            extensionSpent: point.extensionSpent ? (point.extensionSpent / point.projectedSpent * totalBudget * (point.percentOfTimeElapsed / 100) * visualizationScale) : null,
+            correctionSpent: point.correctionSpent ? (point.correctionSpent / point.projectedSpent * totalBudget * (point.percentOfTimeElapsed / 100) * visualizationScale) : null,
+            // Add a property to track the scaling factor for tooltips
+            visualizationScale: visualizationScale
+          };
+          return enhancedPoint;
+        });
       }
       
       return data;
@@ -275,7 +299,7 @@ export function FundUtilizationTimeline({ clientId }: FundUtilizationTimelinePro
                   const scale = dataPoint?.visualizationScale || 1;
                   
                   // Unscale the value if there's a scale factor applied
-                  const actualValue = value && scale !== 1 ? value / scale : value;
+                  const actualValue = value !== null && value !== undefined && scale !== 1 ? (value as number) / scale : value;
                   
                   return [
                     actualValue ? `$${actualValue.toLocaleString('en-US', { maximumFractionDigits: 0 })}` : '-',
@@ -370,10 +394,20 @@ export function FundUtilizationTimeline({ clientId }: FundUtilizationTimelinePro
               {formatCurrency(budgetSettings && typeof budgetSettings.ndisFunds === 'number' ? 
                 (() => {
                   const todayPoint = timelineData.find(p => p.isToday);
-                  const visualizationScale = todayPoint?.visualizationScale || 1;
+                  
+                  // Type guard for enhanced data point with visualizationScale property
+                  const hasScale = (point: any): point is (typeof point & { visualizationScale: number }) => {
+                    return point && 'visualizationScale' in point;
+                  };
+                  
+                  // Get scale factor safely with type guard
+                  const scale = hasScale(todayPoint) ? todayPoint.visualizationScale : 1;
+                  
                   // Unscale the value if needed to show actual remaining funds
-                  const actualSpent = todayPoint?.actualSpent ? todayPoint.actualSpent / visualizationScale : 0;
-                  return budgetSettings.ndisFunds - actualSpent;
+                  const actualSpent = todayPoint?.actualSpent && todayPoint.actualSpent > 0 ? 
+                    (todayPoint.actualSpent as number) / scale : 0;
+                    
+                  return Number(budgetSettings.ndisFunds) - actualSpent;
                 })() :
                 0)}
             </div>
