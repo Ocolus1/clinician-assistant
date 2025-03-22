@@ -134,15 +134,13 @@ async function createFinancialTestClient() {
   }
 }
 
-// Check if this module is being run directly
-if (require.main === module) {
-  createFinancialTestClient()
-    .then(() => process.exit(0))
-    .catch((err) => {
-      console.error(err);
-      process.exit(1);
-    });
-}
+// Run the function when the script is executed directly
+createFinancialTestClient()
+  .then(() => process.exit(0))
+  .catch((err) => {
+    console.error(err);
+    process.exit(1);
+  });
 
 // Export the function for potential reuse
 export default createFinancialTestClient;
