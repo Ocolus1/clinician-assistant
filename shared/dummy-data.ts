@@ -474,23 +474,49 @@ export function getDummyFundUtilizationData(clientId: number = 77, underspending
   let todayActualSpent = 0;
   
   // Create one data point per month from start month to end month
-  // We'll use a different approach to avoid duplicate months
-  // Create an array of unique month/year combinations to display
+  // We'll create an array of valid month/year combinations without duplicates
   const uniqueMonths = [];
   
-  // Start with the first month of the plan
-  let currentDate = new Date(startYear, startMonth, 1);
+  // Important: Use the exact start date for the first point (not just 1st of month)
+  // This ensures we include the exact start date with proper values
+  uniqueMonths.push({
+    year: startDate.getFullYear(),
+    month: startDate.getMonth(),
+    day: startDate.getDate(),
+    // Format as "MMM YY" with the exact start date
+    display: startDate.toLocaleDateString('en-US', { month: 'short', year: '2-digit' }),
+    isExactStart: true
+  });
+  
+  // Now add remaining months, starting from the first day of the next month
+  let currentDate = new Date(startYear, startMonth + 1, 1); // Start with next month
   
   // Go through each month until we reach the end date
   while (currentDate <= endDate) {
-    uniqueMonths.push({
-      year: currentDate.getFullYear(),
-      month: currentDate.getMonth(),
-      display: currentDate.toLocaleDateString('en-US', { month: 'short', year: '2-digit' })
-    });
+    // Skip if this month is already included (avoid duplicates)
+    if (!uniqueMonths.some(m => m.year === currentDate.getFullYear() && m.month === currentDate.getMonth())) {
+      uniqueMonths.push({
+        year: currentDate.getFullYear(),
+        month: currentDate.getMonth(),
+        day: 1, // First of month for all intermediate points
+        display: currentDate.toLocaleDateString('en-US', { month: 'short', year: '2-digit' }),
+        isExactStart: false
+      });
+    }
     
     // Move to next month
     currentDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1);
+  }
+  
+  // Add the exact end date as the final point if it's not already included
+  if (!uniqueMonths.some(m => m.year === endDate.getFullYear() && m.month === endDate.getMonth())) {
+    uniqueMonths.push({
+      year: endDate.getFullYear(),
+      month: endDate.getMonth(),
+      day: endDate.getDate(),
+      display: endDate.toLocaleDateString('en-US', { month: 'short', year: '2-digit' }),
+      isExactEnd: true
+    });
   }
   
   console.log(`Created ${uniqueMonths.length} unique month data points from ${startDate.toISOString()} to ${endDate.toISOString()}`);
@@ -498,8 +524,15 @@ export function getDummyFundUtilizationData(clientId: number = 77, underspending
   // Now create one data point for each unique month
   for (let i = 0; i < uniqueMonths.length; i++) {
     const monthData = uniqueMonths[i];
-    // Create a date object for this month (1st day of month)
-    const pointDate = new Date(monthData.year, monthData.month, 1);
+    
+    // Create a date object using the proper day value
+    // For the first point, use the exact start date day to ensure values are calculated correctly
+    // For other points, use the first of the month
+    const pointDate = new Date(
+      monthData.year, 
+      monthData.month, 
+      monthData.day || 1 // Use provided day or default to 1st
+    );
     
     // Calculate the actual day number for calculations
     const dayNumber = Math.round((pointDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
@@ -650,11 +683,30 @@ export function getDummyFundUtilizationData(clientId: number = 77, underspending
       }
     }
     
-    // Add the data point
+    // Create a unique identifier for this point that will ensure proper chronological ordering
+    // For the first point (budget start), ensure we use a special marker that sorts first
+    const isStartPoint = monthData.isExactStart === true;
+    const isEndPoint = monthData.isExactEnd === true;
+    let displayDate;
+    
+    if (isStartPoint) {
+      // Special handling for start point to ensure it's first
+      displayDate = startDate.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+      
+      // Log this critical start point
+      console.log(`Start point display date: ${displayDate}, projectedSpent: ${projectedSpent}, actualSpent: ${thisActualSpent}`);
+    } else if (isEndPoint) {
+      // Special handling for end point
+      displayDate = endDate.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+    } else {
+      // Normal month points
+      displayDate = pointDate.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+    }
+    
+    // Add the data point with proper types and formatting
     result.push({
       date: pointDate.toISOString().split('T')[0],
-      // Format the date as "MMM YY" for consistent x-axis display (e.g., "Jan 25")
-      displayDate: pointDate.toLocaleDateString('en-US', { month: 'short', year: '2-digit' }),
+      displayDate,  // Use our carefully formatted display date
       dayNumber,
       projectedSpent,
       actualSpent: thisActualSpent,
@@ -663,7 +715,10 @@ export function getDummyFundUtilizationData(clientId: number = 77, underspending
       isToday,
       isPastToday,
       percentOfTimeElapsed: percentOfTimeElapsed * 100,
-      percentOfBudgetSpent: actualSpent / totalBudget * 100
+      percentOfBudgetSpent: actualSpent / totalBudget * 100,
+      // Add additional info for debugging
+      isStartPoint,
+      isEndPoint
     });
   }
   
