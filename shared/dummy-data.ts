@@ -430,8 +430,20 @@ export function getDummyFundUtilizationData(clientId: number = 77, underspending
   const actualFactor = 1 - (underspending / 100);
   const actualDailyRate = idealDailyRate * actualFactor;
   
-  // Generate data points (one per month for cleaner display)
-  const numPoints = 12;
+  // Generate one data point per month from start to end of plan
+  // This ensures we show only the relevant months on the x-axis
+  
+  // Determine start and end months to build x-axis
+  const startMonth = startDate.getMonth();
+  const startYear = startDate.getFullYear();
+  const endMonth = endDate.getMonth();
+  const endYear = endDate.getFullYear();
+  
+  // Calculate total months between start and end date (inclusive)
+  const totalMonths = (endYear - startYear) * 12 + (endMonth - startMonth) + 1;
+  
+  // Use months as our data points for a cleaner display
+  const numPoints = totalMonths;
   const daysPerPoint = Math.ceil(totalDays / numPoints);
   
   // Current actual spending value
@@ -441,9 +453,12 @@ export function getDummyFundUtilizationData(clientId: number = 77, underspending
   let todayActualSpent = 0;
   
   for (let i = 0; i <= numPoints; i++) {
-    const dayNumber = i * daysPerPoint;
-    const pointDate = new Date(startDate);
-    pointDate.setDate(startDate.getDate() + dayNumber);
+    // Create points based on month increments rather than days
+    // This ensures one clean point per month
+    const pointDate = new Date(startYear, startMonth + i, 1);
+    
+    // Calculate the actual day number for calculations
+    const dayNumber = Math.round((pointDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
     
     const isPastToday = dayNumber > elapsedDays;
     const isToday = dayNumber <= elapsedDays && dayNumber >= elapsedDays - daysPerPoint;
