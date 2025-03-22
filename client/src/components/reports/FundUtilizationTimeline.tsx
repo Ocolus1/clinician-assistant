@@ -322,9 +322,24 @@ export function FundUtilizationTimeline({ clientId }: FundUtilizationTimelinePro
                   const scale = dataPoint && 'visualizationScale' in dataPoint ? 
                     Number(dataPoint.visualizationScale) : 1;
                   
-                  // Get the data format directly from the dataPoint.displayDate, which should match the axis
-                  // The displayDate in the data structure is already formatted as "MMM YY" (e.g., "Jun 25")
-                  const displayDate = dataPoint.displayDate || label;
+                  // Force date to match the x-axis format: "MMM YY"
+                  // Extract the month and year from the raw date in the data point
+                  let displayDate;
+                  
+                  try {
+                    // The displayDate is like "Mar 8" but we want "Mar 25"
+                    // First, extract just the month part
+                    const month = (dataPoint.displayDate || label).split(' ')[0];
+                    
+                    // Use current year's last two digits for consistent formatting
+                    const year = new Date().getFullYear().toString().substring(2);
+                    
+                    // Combine them in "MMM YY" format
+                    displayDate = `${month} ${year}`;
+                  } catch (error) {
+                    // Fallback to the original value if parsing fails
+                    displayDate = dataPoint.displayDate || label;
+                  }
                   
                   // Get all the values with scaling applied correctly
                   const values = {
