@@ -36,7 +36,6 @@ import { BudgetItemUtilization } from './BudgetItemUtilization';
 import { FundUtilizationTimeline } from './FundUtilizationTimeline';
 import { BudgetReallocationSuggestions } from './BudgetReallocationSuggestions';
 import { ServiceGapAnalysis } from './ServiceGapAnalysis';
-import { DirectFundUtilization } from './DirectFundUtilization';
 
 // Import types
 import { ClientReportData } from '@/lib/api/clientReports';
