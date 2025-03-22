@@ -30,6 +30,7 @@ import {
   TooltipProps,
 } from "recharts";
 import { BudgetItem, BudgetSettings } from "@shared/schema";
+import { calculateBudgetItemUtilization, calculateRemainingFunds, calculateSpentFromSessions } from "@/lib/utils/budgetUtils";
 
 // Interface for enhanced budget item with utilization data
 interface EnhancedBudgetItem extends BudgetItem {
