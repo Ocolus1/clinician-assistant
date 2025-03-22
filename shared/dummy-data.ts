@@ -385,21 +385,26 @@ export const dummyDashboardData: DashboardData = {
  * @param underspending Percentage of underspending (0-100)
  * @returns Array of data points for the timeline
  */
-export function getDummyFundUtilizationData(clientId: number = 77, underspending: number = 79) {
+export function getDummyFundUtilizationData(clientId: number = 77, underspending: number = 79, planStartDate?: string, planEndDate?: string) {
   const result = [];
   const now = new Date();
   
-  // Set up dates - using client creation date as starting point
-  // Instead of hardcoding 3 months ago, use the specific client's creation date
-  // This should match when the client was entered into the database
+  // Set up dates - properly using budget plan start and end dates when provided
+  // This ensures we show the correct timeframe based on the active budget plan
   const startDate = (() => {
-    // Use client ID to get a deterministic creation date (earlier for older clients)
-    // In a real app, this would use the client's actual creation date from the DB
+    // If a plan start date is provided, use it
+    if (planStartDate) {
+      return new Date(planStartDate);
+    }
+    
+    // Fallback to our previous logic if no plan date is provided
     const baseDate = new Date(now);
     
-    // For client ID 77, we want to use exactly 3 months ago as the onboarding date
+    // For client ID 77, we want to use March 20, 2025 as the budget start date to match real data
     if (clientId === 77) {
-      baseDate.setMonth(now.getMonth() - 3);
+      return new Date("2025-03-20");
+    } else if (clientId === 59) {
+      return new Date("2025-03-16"); // Use March 16, 2025 for Radwan's budget
     } else {
       // For other clients, vary the date based on client ID
       const monthsAgo = 1 + (clientId % 12); // 1-12 months ago
@@ -409,9 +414,11 @@ export function getDummyFundUtilizationData(clientId: number = 77, underspending
     return baseDate;
   })();
   
-  // Get end date from plan if provided, otherwise default to 1 year from now
-  const endDate = new Date(now);
-  endDate.setFullYear(now.getFullYear() + 1); // Plan ends 1 year from now
+  // Get end date from plan if provided, otherwise default to 1 year from start date
+  const endDate = planEndDate ? new Date(planEndDate) : new Date(startDate);
+  if (!planEndDate) {
+    endDate.setFullYear(endDate.getFullYear() + 1); // Plan ends 1 year from start date if not specified
+  }
   
   // Calculate total days
   const totalDays = Math.round((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));

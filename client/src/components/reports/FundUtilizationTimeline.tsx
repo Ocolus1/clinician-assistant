@@ -80,10 +80,19 @@ export function FundUtilizationTimeline({ clientId }: FundUtilizationTimelinePro
     }
 
     try {
+      // Extract budget plan start and end dates from the budget settings
+      // This ensures we use the proper date range for the timeline
+      const planStartDate = budgetSettings?.createdAt || undefined;
+      const planEndDate = budgetSettings?.endOfPlan || undefined;
+      
       // Use the dummy data generator for consistent visualization
-      // In a real app, this would use actual spending data from database
-      // This percentage matches the -79% spending variance shown in the top card
-      let data = getDummyFundUtilizationData(clientId, underspendingPercentage);
+      // Pass the actual plan dates to ensure correct date range
+      let data = getDummyFundUtilizationData(
+        clientId, 
+        underspendingPercentage,
+        planStartDate,
+        planEndDate
+      );
       
       // Sort the data chronologically by actual date value to ensure proper ordering
       data = data.sort((a, b) => {
