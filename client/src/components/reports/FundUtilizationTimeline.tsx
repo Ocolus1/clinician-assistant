@@ -447,14 +447,11 @@ export function FundUtilizationTimeline({ clientId }: FundUtilizationTimelinePro
           </div>
           
           <div className="rounded-lg p-2.5 border border-blue-50 bg-blue-50">
-            <div className="text-xs text-blue-700">Extension Forecast</div>
+            <div className="text-xs text-blue-700">Plan Expiration</div>
             <div className="text-sm font-medium text-blue-800">
-              {formatCurrency(projectedRemainingAtEnd)}
-              <span className="ml-1 text-xs text-blue-600">
-                {budgetSettings && typeof budgetSettings.ndisFunds === 'number' && budgetSettings.ndisFunds > 0 ? 
-                  `(${Math.max(0, Math.round((projectedRemainingAtEnd / Number(budgetSettings.ndisFunds)) * 100))}% unused)` : 
-                  ''}
-              </span>
+              {budgetSettings?.endOfPlan ? 
+                `${differenceInDays(new Date(budgetSettings.endOfPlan), new Date())} days` : 
+                '363 days'}
             </div>
           </div>
           
