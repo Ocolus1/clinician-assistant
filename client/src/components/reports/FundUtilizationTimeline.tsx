@@ -261,6 +261,7 @@ export function FundUtilizationTimeline({ clientId }: FundUtilizationTimelinePro
               <YAxis 
                 tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
                 tick={{ fontSize: 11 }}
+                domain={[0, 20000]} // Set maximum to 20,000 for better visual clarity
               />
               <RechartsTooltip
                 formatter={(value, name) => [
