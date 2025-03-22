@@ -317,6 +317,7 @@ export function FundUtilizationTimeline({ clientId }: FundUtilizationTimelinePro
                 dataKey="date" 
                 tick={{ fontSize: 11 }}
                 tickMargin={10}
+                // Always include first and last ticks plus some evenly spaced ones
                 interval={"preserveStartEnd"}
                 // Format the date ISO string into "MMM YY" format
                 tickFormatter={(value) => {
@@ -337,10 +338,10 @@ export function FundUtilizationTimeline({ clientId }: FundUtilizationTimelinePro
                 // Important: This tells Recharts to treat the axis as a time scale
                 // instead of treating values as categories
                 type="category"
-                // CRITICAL FIX: Explicitly force the domain to start with the first data point
-                // This ensures we don't show dates before the budget plan was created
+                // CRITICAL FIX: Explicitly force the domain to include both the first and last data points
+                // This ensures we show from plan start date to plan end date
                 domain={['dataMin', 'dataMax']}
-                // Add a label to identify the start date clearly
+                // Add a label to identify the timeline clearly
                 label={{ value: "Budget Plan Timeline", position: "insideBottomRight", offset: -5, fontSize: 11 }}
               />
               {/* Using hidden YAxis to maintain chart proportions while not showing it visually */}

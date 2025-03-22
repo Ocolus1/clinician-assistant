@@ -423,6 +423,13 @@ export function getDummyFundUtilizationData(clientId: number = 77, underspending
     endDate.setFullYear(endDate.getFullYear() + 1); // Plan ends 1 year from start date if not specified
   }
   
+  // Log the plan date information for debugging
+  console.log(`Fund utilization timeline for client ${clientId}:`);
+  console.log(`Start date: ${startDate.toISOString()} (${startDate.toLocaleDateString('en-US', { month: 'short', year: '2-digit' })})`);
+  console.log(`End date: ${endDate.toISOString()} (${endDate.toLocaleDateString('en-US', { month: 'short', year: '2-digit' })})`);
+  console.log(`Total days in plan: ${Math.round((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24))}`);
+  
+  
   // Calculate total days
   const totalDays = Math.round((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
   const elapsedDays = Math.round((now.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
@@ -466,13 +473,22 @@ export function getDummyFundUtilizationData(clientId: number = 77, underspending
   // Store the exact value of today's actual spending (will be used for future points)
   let todayActualSpent = 0;
   
-  for (let i = 0; i < numPoints; i++) {  // Changed to < from <= to avoid extra point
+  // Create one point per month with one extra point for the last month
+  // to ensure we include the final month completely
+  for (let i = 0; i <= numPoints; i++) {  // Changed back to <= to include the end month
     // Create points based on month increments rather than days
     // This ensures one clean point per month
     // For the first point, use the exact startDate to ensure we start exactly at plan creation
-    const pointDate = i === 0 ? 
-      new Date(startDate) : // First point exactly matches plan start date
-      new Date(startYear, startMonth + i, 1); // Other points use the first of each month
+    // For the last point, ensure we use the exact end date
+    let pointDate;
+    if (i === 0) {
+      pointDate = new Date(startDate); // First point exactly matches plan start date
+    } else if (i === numPoints) {
+      pointDate = new Date(endDate); // Last point exactly matches plan end date
+      console.log(`Using exact end date for final point: ${pointDate.toISOString()}`);
+    } else {
+      pointDate = new Date(startYear, startMonth + i, 1); // Other points use the first of each month
+    }
     
     // Calculate the actual day number for calculations
     const dayNumber = Math.round((pointDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
