@@ -473,28 +473,33 @@ export function getDummyFundUtilizationData(clientId: number = 77, underspending
   // Store the exact value of today's actual spending (will be used for future points)
   let todayActualSpent = 0;
   
-  // Create one point per month with one extra point for the last month
-  // to ensure we include the final month completely
-  for (let i = 0; i <= numPoints; i++) {  // Changed back to <= to include the end month
-    // Create points based on month increments rather than days
-    // This ensures one clean point per month
-    // For the first point, use the exact startDate to ensure we start exactly at plan creation
-    // For the last point, ensure we use the exact end date
-    let pointDate;
+  // Create one data point per month from start month to end month
+  // We'll use a different approach to avoid duplicate months
+  // Create an array of unique month/year combinations to display
+  const uniqueMonths = [];
+  
+  // Start with the first month of the plan
+  let currentDate = new Date(startYear, startMonth, 1);
+  
+  // Go through each month until we reach the end date
+  while (currentDate <= endDate) {
+    uniqueMonths.push({
+      year: currentDate.getFullYear(),
+      month: currentDate.getMonth(),
+      display: currentDate.toLocaleDateString('en-US', { month: 'short', year: '2-digit' })
+    });
     
-    // Special handling to avoid duplicates in the date display
-    if (i === 0) {
-      // First point - use start date, but set day to 1 for a clean month start
-      pointDate = new Date(startYear, startMonth, 1);
-      console.log(`Creating first data point at: ${pointDate.toISOString()}`);
-    } else if (i === numPoints) {
-      // Last point - use end date
-      pointDate = new Date(endYear, endMonth, 1);
-      console.log(`Creating last data point at: ${pointDate.toISOString()}`);
-    } else {
-      // Middle points - create evenly spaced monthly points
-      pointDate = new Date(startYear, startMonth + i, 1);
-    }
+    // Move to next month
+    currentDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1);
+  }
+  
+  console.log(`Created ${uniqueMonths.length} unique month data points from ${startDate.toISOString()} to ${endDate.toISOString()}`);
+  
+  // Now create one data point for each unique month
+  for (let i = 0; i < uniqueMonths.length; i++) {
+    const monthData = uniqueMonths[i];
+    // Create a date object for this month (1st day of month)
+    const pointDate = new Date(monthData.year, monthData.month, 1);
     
     // Calculate the actual day number for calculations
     const dayNumber = Math.round((pointDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));

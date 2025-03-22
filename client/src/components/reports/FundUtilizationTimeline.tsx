@@ -317,21 +317,20 @@ export function FundUtilizationTimeline({ clientId }: FundUtilizationTimelinePro
               </defs>
               <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
               <XAxis 
-                // Fix for duplicate months - use the displayDate directly as a category
-                // instead of trying to parse and format dates which can cause issues
+                // Use displayDate as a category to ensure correct chronological order
                 dataKey="displayDate" 
                 tick={{ fontSize: 11 }}
                 tickMargin={10}
-                // Control tick intervals - show every other month to reduce duplicates
-                interval={1}
-                // Don't need tickFormatter because we're using the pre-formatted displayDate field
-                // This ensures consistent display without parsing dates
-                // Important: Change to "category" type without date parsing
+                // Only show ticks at reasonable intervals to avoid overcrowding
+                interval="preserveStartEnd"
+                // Use category to avoid date parsing which can cause sorting issues
                 type="category"
                 // Enforce strict categories to prevent duplicates
                 allowDuplicatedCategory={false}
                 // Add a label to identify the timeline clearly
                 label={{ value: "Budget Plan Timeline", position: "insideBottomRight", offset: -5, fontSize: 11 }}
+                // Explicitly define ticks to ensure they appear in chronological order
+                ticks={Array.from(new Set(timelineData.map(d => d.displayDate)))}
               />
               {/* Using hidden YAxis to maintain chart proportions while not showing it visually */}
               <YAxis 
