@@ -498,7 +498,7 @@ export function FundUtilizationTimeline({ clientId }: FundUtilizationTimelinePro
               {formatCurrency(projectedRemainingAtEnd)}
               <span className="ml-1 text-xs text-blue-600">
                 {budgetSettings && typeof budgetSettings.ndisFunds === 'number' && budgetSettings.ndisFunds > 0 ? 
-                  `(${Math.max(0, ((projectedRemainingAtEnd / (budgetSettings.ndisFunds || 1)) * 100).toFixed(0))}% unused)` : 
+                  `(${Math.max(0, Math.round((projectedRemainingAtEnd / Number(budgetSettings.ndisFunds)) * 100))}% unused)` : 
                   ''}
               </span>
             </div>
