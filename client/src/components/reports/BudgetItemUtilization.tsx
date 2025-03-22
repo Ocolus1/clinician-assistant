@@ -88,11 +88,11 @@ export function BudgetItemUtilization({ clientId }: BudgetItemUtilizationProps) 
 
     // Use our utility function to calculate actual utilization from session products
     // This replaces the previous mock calculation with real data
-    console.log("Calculating actual utilization from sessions:", sessions.length);
+    console.log("Calculating actual utilization from sessions:", sessions?.length);
     
     // First fetch session data with products directly from the database
     // This is needed because we need to access the session notes for each session
-    const enhancedItems = calculateBudgetItemUtilization(activePlanItems, sessions);
+    const enhancedItems = calculateBudgetItemUtilization(activePlanItems, sessions as any[]);
     
     // Log the results for debugging
     console.log("Enhanced budget items with actual utilization:", enhancedItems.length);

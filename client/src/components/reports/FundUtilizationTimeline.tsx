@@ -608,7 +608,7 @@ export function FundUtilizationTimeline({ clientId }: FundUtilizationTimelinePro
                 
                 // Log budget settings and session count for debugging
                 console.log(`FundTimeline: Computing remaining funds for client ${clientId}`);
-                console.log(`FundTimeline: ${sessions.length} sessions loaded`);
+                console.log(`FundTimeline: ${(sessions as any[])?.length || 0} sessions loaded`);
                 
                 // ndisFunds might be stored in different formats (string/number) in different places
                 let totalBudget = 0;
