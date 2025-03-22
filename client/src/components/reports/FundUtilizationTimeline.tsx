@@ -69,13 +69,18 @@ export function FundUtilizationTimeline({ clientId }: FundUtilizationTimelinePro
       if (budgetSettings?.ndisFunds) {
         const totalBudget = Number(budgetSettings.ndisFunds);
         
-        // Adjust the dummy data to use the real budget amount
+        // Adjust the dummy data to use the real budget amount, but scale it to fit under 20,000 for visualization
+        const visualizationScale = totalBudget > 20000 ? 20000 / totalBudget : 1;
+        
         return data.map(point => ({
           ...point,
-          projectedSpent: point.projectedSpent / point.projectedSpent * totalBudget * (point.percentOfTimeElapsed / 100),
-          actualSpent: point.actualSpent ? (point.actualSpent / point.projectedSpent * totalBudget * (point.percentOfTimeElapsed / 100)) : null,
-          extensionSpent: point.extensionSpent ? (point.extensionSpent / point.projectedSpent * totalBudget * (point.percentOfTimeElapsed / 100)) : null,
-          correctionSpent: point.correctionSpent ? (point.correctionSpent / point.projectedSpent * totalBudget * (point.percentOfTimeElapsed / 100)) : null,
+          // Create scaled version of data for better visualization while maintaining proportions
+          projectedSpent: point.projectedSpent / point.projectedSpent * totalBudget * (point.percentOfTimeElapsed / 100) * visualizationScale,
+          actualSpent: point.actualSpent ? (point.actualSpent / point.projectedSpent * totalBudget * (point.percentOfTimeElapsed / 100) * visualizationScale) : null,
+          extensionSpent: point.extensionSpent ? (point.extensionSpent / point.projectedSpent * totalBudget * (point.percentOfTimeElapsed / 100) * visualizationScale) : null,
+          correctionSpent: point.correctionSpent ? (point.correctionSpent / point.projectedSpent * totalBudget * (point.percentOfTimeElapsed / 100) * visualizationScale) : null,
+          // Add a property to track the scaling factor for tooltips
+          visualizationScale: visualizationScale
         }));
       }
       
@@ -264,13 +269,22 @@ export function FundUtilizationTimeline({ clientId }: FundUtilizationTimelinePro
                 domain={[0, 20000]} // Set maximum to 20,000 for better visual clarity
               />
               <RechartsTooltip
-                formatter={(value, name) => [
-                  value ? `$${value.toLocaleString('en-US', { maximumFractionDigits: 0 })}` : '-',
-                  name === 'projectedSpent' ? 'Projected' : 
-                  name === 'actualSpent' ? 'Actual' : 
-                  name === 'extensionSpent' ? 'Extension' : 
-                  name === 'correctionSpent' ? 'Correction' : name
-                ]}
+                formatter={(value, name, props) => {
+                  // Get the data point to access the visualization scale
+                  const dataPoint = props.payload;
+                  const scale = dataPoint?.visualizationScale || 1;
+                  
+                  // Unscale the value if there's a scale factor applied
+                  const actualValue = value && scale !== 1 ? value / scale : value;
+                  
+                  return [
+                    actualValue ? `$${actualValue.toLocaleString('en-US', { maximumFractionDigits: 0 })}` : '-',
+                    name === 'projectedSpent' ? 'Projected' : 
+                    name === 'actualSpent' ? 'Actual' : 
+                    name === 'extensionSpent' ? 'Extension' : 
+                    name === 'correctionSpent' ? 'Correction' : name
+                  ];
+                }}
                 labelFormatter={(label) => `Date: ${label}`}
               />
               <ReferenceLine 
@@ -354,7 +368,13 @@ export function FundUtilizationTimeline({ clientId }: FundUtilizationTimelinePro
             <div className="text-xs text-gray-500">Funds Remaining</div>
             <div className="text-sm font-medium">
               {formatCurrency(budgetSettings && typeof budgetSettings.ndisFunds === 'number' ? 
-                budgetSettings.ndisFunds - (timelineData.find(p => p.isToday)?.actualSpent || 0) : 
+                (() => {
+                  const todayPoint = timelineData.find(p => p.isToday);
+                  const visualizationScale = todayPoint?.visualizationScale || 1;
+                  // Unscale the value if needed to show actual remaining funds
+                  const actualSpent = todayPoint?.actualSpent ? todayPoint.actualSpent / visualizationScale : 0;
+                  return budgetSettings.ndisFunds - actualSpent;
+                })() :
                 0)}
             </div>
           </div>
