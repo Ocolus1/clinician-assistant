@@ -145,9 +145,6 @@ export function EnhancedFinancialTab({ clientId, reportData }: EnhancedFinancial
 
   return (
     <div className="space-y-5">
-      {/* NEW: Direct Budget Status */}
-      <DirectFundUtilization clientId={clientId} />
-      
       {/* Row 1: Fund utilization timeline */}
       <FundUtilizationTimeline clientId={clientId} />
       
