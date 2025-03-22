@@ -121,12 +121,16 @@ export function FundUtilizationTimeline({ clientId }: FundUtilizationTimelinePro
         
         return data.map(point => {
           // Create scaled version of data for better visualization while maintaining proportions
+          // Bug fix: there's a scaling error in the calculations that's causing values to not display properly
+          // For the first point (point.projectedSpent/point.projectedSpent = 1) multiplied by other factors
+          // For March entry specifically, using point.projectedSpent directly
           const enhancedPoint: EnhancedDataPoint = {
             ...point,
-            projectedSpent: point.projectedSpent / point.projectedSpent * totalBudget * (point.percentOfTimeElapsed / 100) * visualizationScale,
-            actualSpent: point.actualSpent ? (point.actualSpent / point.projectedSpent * totalBudget * (point.percentOfTimeElapsed / 100) * visualizationScale) : null,
-            extensionSpent: point.extensionSpent ? (point.extensionSpent / point.projectedSpent * totalBudget * (point.percentOfTimeElapsed / 100) * visualizationScale) : null,
-            correctionSpent: point.correctionSpent ? (point.correctionSpent / point.projectedSpent * totalBudget * (point.percentOfTimeElapsed / 100) * visualizationScale) : null,
+            // Keep original values but apply visualization scale
+            projectedSpent: point.projectedSpent * visualizationScale,
+            actualSpent: point.actualSpent !== null ? point.actualSpent * visualizationScale : null,
+            extensionSpent: point.extensionSpent !== null ? point.extensionSpent * visualizationScale : null,
+            correctionSpent: point.correctionSpent !== null ? point.correctionSpent * visualizationScale : null,
             // Add a property to track the scaling factor for tooltips
             visualizationScale: visualizationScale
           };
@@ -313,34 +317,19 @@ export function FundUtilizationTimeline({ clientId }: FundUtilizationTimelinePro
               </defs>
               <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
               <XAxis 
-                // Use the actual date value for proper chronological ordering
-                dataKey="date" 
+                // Fix for duplicate months - use the displayDate directly as a category
+                // instead of trying to parse and format dates which can cause issues
+                dataKey="displayDate" 
                 tick={{ fontSize: 11 }}
                 tickMargin={10}
-                // Always include first and last ticks plus some evenly spaced ones
-                interval={"preserveStartEnd"}
-                // Format the date ISO string into "MMM YY" format
-                tickFormatter={(value) => {
-                  try {
-                    // Parse the ISO date string into a Date object
-                    const date = new Date(value);
-                    
-                    // Format as "MMM YY" (e.g., "Jan 25", "Feb 25", etc.)
-                    return date.toLocaleDateString('en-US', { 
-                      month: 'short',
-                      year: '2-digit'
-                    });
-                  } catch (error) {
-                    // Fallback if there's an error parsing the date
-                    return value;
-                  }
-                }}
-                // Important: This tells Recharts to treat the axis as a time scale
-                // instead of treating values as categories
+                // Control tick intervals - show every other month to reduce duplicates
+                interval={1}
+                // Don't need tickFormatter because we're using the pre-formatted displayDate field
+                // This ensures consistent display without parsing dates
+                // Important: Change to "category" type without date parsing
                 type="category"
-                // CRITICAL FIX: Explicitly force the domain to include both the first and last data points
-                // This ensures we show from plan start date to plan end date
-                domain={['dataMin', 'dataMax']}
+                // Enforce strict categories to prevent duplicates
+                allowDuplicatedCategory={false}
                 // Add a label to identify the timeline clearly
                 label={{ value: "Budget Plan Timeline", position: "insideBottomRight", offset: -5, fontSize: 11 }}
               />
@@ -486,7 +475,7 @@ export function FundUtilizationTimeline({ clientId }: FundUtilizationTimelinePro
                 }}
               />
               <ReferenceLine 
-                x={timelineData.find(point => point.isToday)?.date} 
+                x={timelineData.find(point => point.isToday)?.displayDate} 
                 stroke="#64748b" 
                 strokeDasharray="3 3"
                 label={{ 

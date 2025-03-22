@@ -481,13 +481,19 @@ export function getDummyFundUtilizationData(clientId: number = 77, underspending
     // For the first point, use the exact startDate to ensure we start exactly at plan creation
     // For the last point, ensure we use the exact end date
     let pointDate;
+    
+    // Special handling to avoid duplicates in the date display
     if (i === 0) {
-      pointDate = new Date(startDate); // First point exactly matches plan start date
+      // First point - use start date, but set day to 1 for a clean month start
+      pointDate = new Date(startYear, startMonth, 1);
+      console.log(`Creating first data point at: ${pointDate.toISOString()}`);
     } else if (i === numPoints) {
-      pointDate = new Date(endDate); // Last point exactly matches plan end date
-      console.log(`Using exact end date for final point: ${pointDate.toISOString()}`);
+      // Last point - use end date
+      pointDate = new Date(endYear, endMonth, 1);
+      console.log(`Creating last data point at: ${pointDate.toISOString()}`);
     } else {
-      pointDate = new Date(startYear, startMonth + i, 1); // Other points use the first of each month
+      // Middle points - create evenly spaced monthly points
+      pointDate = new Date(startYear, startMonth + i, 1);
     }
     
     // Calculate the actual day number for calculations
