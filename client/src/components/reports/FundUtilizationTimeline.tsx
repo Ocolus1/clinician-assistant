@@ -30,6 +30,7 @@ import {
   Tooltip as RechartsTooltip,
 } from "recharts";
 import { BudgetSettings } from "@shared/schema";
+import { getDummyFundUtilizationData } from "@shared/dummy-data";
 
 interface FundUtilizationTimelineProps {
   clientId: number;
@@ -53,172 +54,37 @@ export function FundUtilizationTimeline({ clientId }: FundUtilizationTimelinePro
   // 3. Extension: Dotted line projecting future based on actual pattern
   // 4. Correction: Line showing ideal spending from today to use all funds
   const timelineData = React.useMemo(() => {
-    if (!budgetSettings || isLoadingSettings || isLoadingSessions) {
+    // If data is being loaded, return empty array
+    if (isLoadingSettings || isLoadingSessions) {
       return [];
     }
 
     try {
-      // Parse dates - use created date as start date (onboarding date)
-      const startDate = budgetSettings.createdAt ? new Date(budgetSettings.createdAt) : new Date(new Date().setMonth(new Date().getMonth() - 3));
-      // Use endOfPlan as end date (plan expiry date)
-      const endDate = budgetSettings.endOfPlan ? new Date(budgetSettings.endOfPlan) : new Date(new Date().setMonth(new Date().getMonth() + 9));
-      const today = new Date();
+      // Use the dummy data generator for consistent visualization
+      // In a real app, this would use actual spending data from database
+      const underspendingPercentage = 79; // Fixed at 79% underspending for demo
+      const data = getDummyFundUtilizationData(clientId, underspendingPercentage);
       
-      // If dates are invalid, use fallback
-      if (isNaN(startDate.getTime())) {
-        const fallbackStartDate = new Date();
-        fallbackStartDate.setMonth(fallbackStartDate.getMonth() - 3);
-        startDate.setTime(fallbackStartDate.getTime());
+      // If we have budget settings, use real total budget value
+      if (budgetSettings?.ndisFunds) {
+        const totalBudget = Number(budgetSettings.ndisFunds);
+        
+        // Adjust the dummy data to use the real budget amount
+        return data.map(point => ({
+          ...point,
+          projectedSpent: point.projectedSpent / point.projectedSpent * totalBudget * (point.percentOfTimeElapsed / 100),
+          actualSpent: point.actualSpent ? (point.actualSpent / point.projectedSpent * totalBudget * (point.percentOfTimeElapsed / 100)) : null,
+          extensionSpent: point.extensionSpent ? (point.extensionSpent / point.projectedSpent * totalBudget * (point.percentOfTimeElapsed / 100)) : null,
+          correctionSpent: point.correctionSpent ? (point.correctionSpent / point.projectedSpent * totalBudget * (point.percentOfTimeElapsed / 100)) : null,
+        }));
       }
       
-      if (isNaN(endDate.getTime())) {
-        const fallbackEndDate = new Date();
-        fallbackEndDate.setMonth(fallbackEndDate.getMonth() + 9);
-        endDate.setTime(fallbackEndDate.getTime());
-      }
-      
-      // Calculate total days in plan
-      const totalDays = Math.max(differenceInDays(endDate, startDate), 30);
-      
-      // Calculate days elapsed
-      const daysElapsed = Math.min(
-        Math.max(differenceInDays(today, startDate), 0),
-        totalDays
-      );
-      
-      // Calculate days remaining from today to plan end
-      const daysRemaining = Math.max(0, differenceInDays(endDate, today));
-      
-      // Total budget amount
-      const totalBudget = budgetSettings.ndisFunds !== null ? Number(budgetSettings.ndisFunds) : 50000;
-      
-      // Generate spending curve using simulated data
-      // In a real app, this would use actual spending data from sessions
-      const dataPoints = [];
-      const numPoints = Math.min(36, totalDays); // Use more points for smoother curves
-      const interval = totalDays / numPoints;
-      
-      // Initial spending rate (for projected line)
-      const projectedDailyRate = totalBudget / totalDays;
-      
-      // For actual spending pattern
-      const patternSeed = clientId % 4;
-      
-      // Find actual spending today - this will be used to calculate correction line
-      let actualSpentToday = 0;
-      let actualFactorMultiplier;
-      
-      // Set the multiplier to create a realistic spending pattern based on client ID
-      // Using this to simulate different spending patterns that might occur in real data
-      if (patternSeed === 0) {
-        // Slow start, accelerates later (underspending pattern)
-        actualFactorMultiplier = 0.5; // Significantly underspending
-      } else if (patternSeed === 1) {
-        // Fast start, slows down (overspending pattern)
-        actualFactorMultiplier = 1.2; // Slightly overspending
-      } else if (patternSeed === 2) {
-        // Fluctuating with seasonal pattern (variable spending)
-        actualFactorMultiplier = 0.6; // Moderately underspending
-      } else {
-        // Mostly on track with small deviations (near ideal)
-        actualFactorMultiplier = 0.9; // Slightly underspending
-      }
-      
-      // Generate each data point
-      for (let i = 0; i <= numPoints; i++) {
-        const dayNumber = Math.round(i * interval);
-        const pointDate = addDays(startDate, dayNumber);
-        const percentOfTimeElapsed = dayNumber / totalDays;
-        
-        // 1. Projected line - how we expect to spend at onboarding (linear)
-        const projectedSpent = totalBudget * percentOfTimeElapsed;
-        
-        // 2. Actual line - influenced by pattern and only up to today
-        let actualFactor;
-        
-        if (patternSeed === 0) {
-          // Slow start, accelerates later (underspending pattern)
-          actualFactor = Math.pow(percentOfTimeElapsed, 1.3) * actualFactorMultiplier;
-        } else if (patternSeed === 1) {
-          // Fast start, slows down
-          actualFactor = Math.pow(percentOfTimeElapsed, 0.9) * actualFactorMultiplier;
-        } else if (patternSeed === 2) {
-          // Fluctuating with seasonal pattern
-          actualFactor = percentOfTimeElapsed * actualFactorMultiplier + 
-            Math.sin(percentOfTimeElapsed * Math.PI * 2) * 0.1;
-        } else {
-          // Mostly on track with small deviations
-          actualFactor = percentOfTimeElapsed * actualFactorMultiplier;
-        }
-        
-        // Keep actual factor within reasonable bounds (0-1.2)
-        actualFactor = Math.max(0, Math.min(1.2, actualFactor));
-        
-        // Calculate actual spent amount
-        let actualSpent = totalBudget * actualFactor;
-        
-        // Check if this point is today
-        const isPastToday = isAfter(pointDate, today);
-        const isToday = !isPastToday && i > 0 && 
-          isAfter(pointDate, addDays(today, -1)) && 
-          !isAfter(pointDate, today);
-        
-        if (isToday) {
-          actualSpentToday = actualSpent;
-        }
-        
-        // 3. Extension line - projects future spending based on actual pattern
-        let extensionSpent = null;
-        if (isPastToday) {
-          // Use the actual rate of spending for projection
-          const daysFromToday = differenceInDays(pointDate, today);
-          const actualRate = actualSpentToday / daysElapsed;
-          extensionSpent = actualSpentToday + (actualRate * daysFromToday);
-        }
-        
-        // 4. Correction line - from today to end date to use all funds
-        let correctionSpent = null;
-        
-        if (!isPastToday) {
-          // Before today, no correction line
-          correctionSpent = null;
-        } else {
-          // For today's point, use actual spent
-          if (i > 0 && differenceInDays(pointDate, today) <= 1) {
-            correctionSpent = actualSpentToday;
-          } else {
-            // Calculate daily rate needed to use all funds from today to end
-            const remainingFunds = totalBudget - actualSpentToday;
-            const requiredDailyRate = remainingFunds / daysRemaining;
-            const daysFromToday = differenceInDays(pointDate, today);
-            
-            // Calculate correction amount
-            correctionSpent = actualSpentToday + (requiredDailyRate * daysFromToday);
-          }
-        }
-        
-        // Add data point with all four lines
-        dataPoints.push({
-          date: format(pointDate, 'yyyy-MM-dd'),
-          dayNumber,
-          displayDate: format(pointDate, 'MMM d'),
-          projectedSpent, // Line 1: Projected (initial expectation)
-          actualSpent:  isPastToday ? null : actualSpent, // Line 2: Actual (only up to today)
-          extensionSpent, // Line 3: Extension (dotted projection)
-          correctionSpent, // Line 4: Correction (path to use all funds)
-          isPastToday,
-          isToday,
-          percentOfTimeElapsed: percentOfTimeElapsed * 100,
-          percentOfBudgetSpent: (actualSpent / totalBudget) * 100
-        });
-      }
-      
-      return dataPoints;
+      return data;
     } catch (error) {
       console.error("Error generating timeline data:", error);
       return [];
     }
-  }, [budgetSettings, isLoadingSettings, isLoadingSessions, clientId, sessions]);
+  }, [budgetSettings, isLoadingSettings, isLoadingSessions, clientId]);
 
   // Calculate depletion date and current status
   const {

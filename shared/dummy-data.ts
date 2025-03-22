@@ -371,6 +371,126 @@ export const dummyDashboardData: DashboardData = {
 };
 
 // ------------------------------------------------------
+// Fund Utilization Timeline Dummy Data
+// ------------------------------------------------------
+
+/**
+ * Generate dummy fund utilization timeline data with four data series:
+ * 1. Projected: Initial projection at client onboarding
+ * 2. Actual: Actual spending up to today
+ * 3. Extension: Projected future spending based on actual pattern
+ * 4. Correction: Path needed from today to use all funds
+ * 
+ * @param clientId Client ID to use for seeding patterns
+ * @param underspending Percentage of underspending (0-100)
+ * @returns Array of data points for the timeline
+ */
+export function getDummyFundUtilizationData(clientId: number = 77, underspending: number = 79) {
+  const result = [];
+  const now = new Date();
+  
+  // Set up dates
+  const startDate = new Date(now);
+  startDate.setMonth(now.getMonth() - 3); // Onboarding date (3 months ago)
+  
+  const endDate = new Date(now);
+  endDate.setFullYear(now.getFullYear() + 1); // Plan ends 1 year from now
+  
+  // Calculate total days
+  const totalDays = Math.round((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+  const elapsedDays = Math.round((now.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+  const remainingDays = totalDays - elapsedDays;
+  
+  // Total budget amount (based on client ID for variety)
+  const baseBudget = 50000 + (clientId % 10) *
+  5000;
+  const totalBudget = baseBudget;
+  
+  // Daily spending rates
+  const idealDailyRate = totalBudget / totalDays;
+  
+  // Actual spending rate (underspending by specified percentage)
+  const actualFactor = 1 - (underspending / 100);
+  const actualDailyRate = idealDailyRate * actualFactor;
+  
+  // Generate data points (one per month for cleaner display)
+  const numPoints = 12;
+  const daysPerPoint = Math.ceil(totalDays / numPoints);
+  
+  // Current actual spending value
+  let actualSpent = 0;
+  
+  for (let i = 0; i <= numPoints; i++) {
+    const dayNumber = i * daysPerPoint;
+    const pointDate = new Date(startDate);
+    pointDate.setDate(startDate.getDate() + dayNumber);
+    
+    const isPastToday = dayNumber > elapsedDays;
+    const isToday = dayNumber <= elapsedDays && dayNumber >= elapsedDays - daysPerPoint;
+    
+    // Calculate percent of time elapsed
+    const percentOfTimeElapsed = dayNumber / totalDays;
+    
+    // 1. Projected line - initial expectation (linear)
+    const projectedSpent = totalBudget * percentOfTimeElapsed;
+    
+    // 2. Actual line - with some variability and underspending
+    let thisActualSpent = null;
+    if (!isPastToday) {
+      // Add some random variability to make the line interesting
+      const variabilityFactor = 1 + (Math.random() * 0.3 - 0.15); // +/- 15%
+      const dailyAmount = actualDailyRate * variabilityFactor;
+      actualSpent += dailyAmount * (i === 0 ? 1 : daysPerPoint);
+      thisActualSpent = actualSpent;
+    }
+    
+    // If this is today's point, save the current actual spent
+    const actualSpentToday = isToday ? actualSpent : (isPastToday ? actualSpent : null);
+    
+    // 3. Extension line - future projection based on actual pattern
+    let extensionSpent = null;
+    if (isPastToday && actualSpentToday !== null) {
+      // Project future spending at the same rate
+      const daysFromToday = dayNumber - elapsedDays;
+      extensionSpent = actualSpentToday + (actualDailyRate * daysFromToday);
+    }
+    
+    // 4. Correction line - path needed to use all funds
+    let correctionSpent = null;
+    if (isPastToday && actualSpentToday !== null) {
+      // Calculate required daily rate to use all remaining funds
+      const remainingFunds = totalBudget - actualSpentToday;
+      const remainingDaysFromThisPoint = totalDays - elapsedDays;
+      
+      if (remainingDaysFromThisPoint > 0) {
+        const requiredDailyRate = remainingFunds / remainingDaysFromThisPoint;
+        const daysFromToday = dayNumber - elapsedDays;
+        correctionSpent = actualSpentToday + (requiredDailyRate * daysFromToday);
+      } else {
+        correctionSpent = totalBudget;
+      }
+    }
+    
+    // Add the data point
+    result.push({
+      date: pointDate.toISOString().split('T')[0],
+      displayDate: pointDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+      dayNumber,
+      projectedSpent,
+      actualSpent: thisActualSpent,
+      extensionSpent,
+      correctionSpent,
+      isToday,
+      isPastToday,
+      percentOfTimeElapsed: percentOfTimeElapsed * 100,
+      percentOfBudgetSpent: actualSpent / totalBudget * 100
+    });
+  }
+  
+  return result;
+}
+
+// ------------------------------------------------------
 // Client Report Dummy Data
 // ------------------------------------------------------
 
