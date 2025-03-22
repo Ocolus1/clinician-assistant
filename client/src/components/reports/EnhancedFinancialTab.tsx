@@ -144,65 +144,6 @@ export function EnhancedFinancialTab({ clientId, reportData }: EnhancedFinancial
 
   return (
     <div className="space-y-5">
-      {/* Financial summary card - shows key metrics */}
-      <Card>
-        <CardHeader className="py-3">
-          <CardTitle className="text-base">Financial Summary</CardTitle>
-          <CardDescription>Key financial health indicators</CardDescription>
-        </CardHeader>
-        <CardContent className="p-3">
-          <div className="h-[170px] grid grid-cols-1 sm:grid-cols-3 gap-3 items-center">
-            <div className="space-y-1">
-              <div className="text-muted-foreground text-xs">Spending Variance</div>
-              <div className="flex items-center">
-                <span className={cn(
-                  "text-lg font-bold",
-                  isOverAllocated ? "text-destructive" : "text-green-600"
-                )}>
-                  {isOverAllocated ? "+" : ""}{spendingDeviation}%
-                </span>
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Info className="h-3 w-3 ml-1 text-muted-foreground" />
-                    </TooltipTrigger>
-                    <TooltipContent className="max-w-[250px]">
-                      {isOverAllocated 
-                        ? `Budget over-allocated by ${spendingDeviation}%` 
-                        : `Budget under-allocated by ${Math.abs(Number(spendingDeviation))}%`}
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              </div>
-            </div>
-            
-            <div className="space-y-1">
-              <div className="text-muted-foreground text-xs">Plan Expiration</div>
-              <div className="flex items-center">
-                <span className={cn(
-                  "text-lg font-bold",
-                  keyMetrics.planExpiration < 30 ? "text-destructive" : "text-green-600"
-                )}>
-                  {keyMetrics.planExpiration} days
-                </span>
-              </div>
-            </div>
-            
-            <div className="space-y-1">
-              <div className="text-muted-foreground text-xs">Cancellation Rate</div>
-              <div className="flex items-center">
-                <span className={cn(
-                  "text-lg font-bold",
-                  cancellations.waived > 20 ? "text-destructive" : "text-green-600"
-                )}>
-                  {cancellations.waived}%
-                </span>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-      
       {/* Row 1: Fund utilization timeline */}
       <FundUtilizationTimeline clientId={clientId} />
       
