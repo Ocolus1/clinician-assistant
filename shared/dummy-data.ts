@@ -394,6 +394,7 @@ export function getDummyFundUtilizationData(clientId: number = 77, underspending
   const startDate = (() => {
     // If a plan start date is provided, use it
     if (planStartDate) {
+      console.log(`Using provided plan start date: ${planStartDate} for client ${clientId}`);
       return new Date(planStartDate);
     }
     
@@ -402,8 +403,10 @@ export function getDummyFundUtilizationData(clientId: number = 77, underspending
     
     // For client ID 77, we want to use March 20, 2025 as the budget start date to match real data
     if (clientId === 77) {
+      console.log(`Using hardcoded March 20, 2025 for client 77`);
       return new Date("2025-03-20");
     } else if (clientId === 59) {
+      console.log(`Using hardcoded March 16, 2025 for client 59`);
       return new Date("2025-03-16"); // Use March 16, 2025 for Radwan's budget
     } else {
       // For other clients, vary the date based on client ID
@@ -446,6 +449,8 @@ export function getDummyFundUtilizationData(clientId: number = 77, underspending
   const endMonth = endDate.getMonth();
   const endYear = endDate.getFullYear();
   
+  console.log(`Date range for client ${clientId}: Start: ${startMonth}/${startYear}, End: ${endMonth}/${endYear}`);
+  
   // Calculate total months between start and end date (inclusive)
   const totalMonths = (endYear - startYear) * 12 + (endMonth - startMonth) + 1;
   
@@ -453,16 +458,21 @@ export function getDummyFundUtilizationData(clientId: number = 77, underspending
   const numPoints = totalMonths;
   const daysPerPoint = Math.ceil(totalDays / numPoints);
   
+  console.log(`Creating ${numPoints} data points for timeline`);
+  
   // Current actual spending value
   let actualSpent = 0;
   
   // Store the exact value of today's actual spending (will be used for future points)
   let todayActualSpent = 0;
   
-  for (let i = 0; i <= numPoints; i++) {
+  for (let i = 0; i < numPoints; i++) {  // Changed to < from <= to avoid extra point
     // Create points based on month increments rather than days
     // This ensures one clean point per month
-    const pointDate = new Date(startYear, startMonth + i, 1);
+    // For the first point, use the exact startDate to ensure we start exactly at plan creation
+    const pointDate = i === 0 ? 
+      new Date(startDate) : // First point exactly matches plan start date
+      new Date(startYear, startMonth + i, 1); // Other points use the first of each month
     
     // Calculate the actual day number for calculations
     const dayNumber = Math.round((pointDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));

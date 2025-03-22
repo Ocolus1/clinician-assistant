@@ -82,8 +82,13 @@ export function FundUtilizationTimeline({ clientId }: FundUtilizationTimelinePro
     try {
       // Extract budget plan start and end dates from the budget settings
       // This ensures we use the proper date range for the timeline
-      const planStartDate = budgetSettings?.createdAt || undefined;
-      const planEndDate = budgetSettings?.endOfPlan || undefined;
+      // Ensure they are in ISO string format for consistency
+      const planStartDate = budgetSettings?.createdAt ? 
+        new Date(budgetSettings.createdAt).toISOString().split('T')[0] : undefined;
+      const planEndDate = budgetSettings?.endOfPlan ? 
+        new Date(budgetSettings.endOfPlan).toISOString().split('T')[0] : undefined;
+        
+      console.log("Plan dates for client", clientId, ":", { planStartDate, planEndDate });
       
       // Use the dummy data generator for consistent visualization
       // Pass the actual plan dates to ensure correct date range
@@ -332,8 +337,11 @@ export function FundUtilizationTimeline({ clientId }: FundUtilizationTimelinePro
                 // Important: This tells Recharts to treat the axis as a time scale
                 // instead of treating values as categories
                 type="category"
-                // Ensure the domain is based on the actual dates
+                // CRITICAL FIX: Explicitly force the domain to start with the first data point
+                // This ensures we don't show dates before the budget plan was created
                 domain={['dataMin', 'dataMax']}
+                // Add a label to identify the start date clearly
+                label={{ value: "Budget Plan Timeline", position: "insideBottomRight", offset: -5, fontSize: 11 }}
               />
               {/* Using hidden YAxis to maintain chart proportions while not showing it visually */}
               <YAxis 
