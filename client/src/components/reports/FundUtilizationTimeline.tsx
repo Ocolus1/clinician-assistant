@@ -1,6 +1,6 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { format, addDays, differenceInDays, isAfter } from 'date-fns';
+import { format, addDays, differenceInDays, isAfter, isWithinInterval } from 'date-fns';
 import {
   Card,
   CardContent,
@@ -26,7 +26,7 @@ import {
   ResponsiveContainer,
   ReferenceLine,
   Area,
-  AreaChart,
+  Legend,
   Tooltip as RechartsTooltip,
 } from "recharts";
 import { BudgetSettings } from "@shared/schema";
@@ -47,16 +47,20 @@ export function FundUtilizationTimeline({ clientId }: FundUtilizationTimelinePro
     enabled: !!clientId,
   });
 
-  // Generate the projected spending data for visualization
+  // Generate the enhanced spending data visualization with the four lines:
+  // 1. Projected: Initial projection at client onboarding
+  // 2. Actual: Actual spending to date
+  // 3. Extension: Dotted line projecting future based on actual pattern
+  // 4. Correction: Line showing ideal spending from today to use all funds
   const timelineData = React.useMemo(() => {
     if (!budgetSettings || isLoadingSettings || isLoadingSessions) {
       return [];
     }
 
     try {
-      // Parse dates - use created date as start date if available, otherwise default to 3 months ago
+      // Parse dates - use created date as start date (onboarding date)
       const startDate = budgetSettings.createdAt ? new Date(budgetSettings.createdAt) : new Date(new Date().setMonth(new Date().getMonth() - 3));
-      // Use endOfPlan as end date if available, otherwise default to 9 months from now
+      // Use endOfPlan as end date (plan expiry date)
       const endDate = budgetSettings.endOfPlan ? new Date(budgetSettings.endOfPlan) : new Date(new Date().setMonth(new Date().getMonth() + 9));
       const today = new Date();
       
@@ -82,85 +86,128 @@ export function FundUtilizationTimeline({ clientId }: FundUtilizationTimelinePro
         totalDays
       );
       
+      // Calculate days remaining from today to plan end
+      const daysRemaining = Math.max(0, differenceInDays(endDate, today));
+      
       // Total budget amount
       const totalBudget = budgetSettings.ndisFunds !== null ? Number(budgetSettings.ndisFunds) : 50000;
       
       // Generate spending curve using simulated data
       // In a real app, this would use actual spending data from sessions
-      // For visualization purposes, we're generating a curve based on the item ID
       const dataPoints = [];
-      const numPoints = Math.min(24, totalDays); // Use 24 points or total days, whichever is smaller
+      const numPoints = Math.min(36, totalDays); // Use more points for smoother curves
       const interval = totalDays / numPoints;
       
-      // Since we don't have real spending data, create a reasonable spending curve
-      // In a real app, you would aggregate actual spending from sessions by date
-      let cumulativeSpent = 0;
-      const dailyRate = totalBudget / totalDays;
-      const variance = dailyRate * 0.4; // 40% variance for a realistic curve
+      // Initial spending rate (for projected line)
+      const projectedDailyRate = totalBudget / totalDays;
       
-      const idealDailyRate = totalBudget / totalDays;
+      // For actual spending pattern
+      const patternSeed = clientId % 4;
       
+      // Find actual spending today - this will be used to calculate correction line
+      let actualSpentToday = 0;
+      let actualFactorMultiplier;
+      
+      // Set the multiplier to create a realistic spending pattern based on client ID
+      // Using this to simulate different spending patterns that might occur in real data
+      if (patternSeed === 0) {
+        // Slow start, accelerates later (underspending pattern)
+        actualFactorMultiplier = 0.5; // Significantly underspending
+      } else if (patternSeed === 1) {
+        // Fast start, slows down (overspending pattern)
+        actualFactorMultiplier = 1.2; // Slightly overspending
+      } else if (patternSeed === 2) {
+        // Fluctuating with seasonal pattern (variable spending)
+        actualFactorMultiplier = 0.6; // Moderately underspending
+      } else {
+        // Mostly on track with small deviations (near ideal)
+        actualFactorMultiplier = 0.9; // Slightly underspending
+      }
+      
+      // Generate each data point
       for (let i = 0; i <= numPoints; i++) {
         const dayNumber = Math.round(i * interval);
         const pointDate = addDays(startDate, dayNumber);
         const percentOfTimeElapsed = dayNumber / totalDays;
         
-        // Ideal spending - perfectly linear rate
-        const idealSpent = totalBudget * percentOfTimeElapsed;
+        // 1. Projected line - how we expect to spend at onboarding (linear)
+        const projectedSpent = totalBudget * percentOfTimeElapsed;
         
-        // Actual spending - follows a slightly non-linear pattern
-        // Use different spending patterns based on client ID for demonstration
-        // In a real app, this would use actual spending data
+        // 2. Actual line - influenced by pattern and only up to today
         let actualFactor;
         
-        const patternSeed = clientId % 4;
-        
         if (patternSeed === 0) {
-          // Slow start, accelerates later
-          actualFactor = Math.pow(percentOfTimeElapsed, 1.2);
+          // Slow start, accelerates later (underspending pattern)
+          actualFactor = Math.pow(percentOfTimeElapsed, 1.3) * actualFactorMultiplier;
         } else if (patternSeed === 1) {
           // Fast start, slows down
-          actualFactor = Math.pow(percentOfTimeElapsed, 0.8);
+          actualFactor = Math.pow(percentOfTimeElapsed, 0.9) * actualFactorMultiplier;
         } else if (patternSeed === 2) {
           // Fluctuating with seasonal pattern
-          actualFactor = percentOfTimeElapsed + Math.sin(percentOfTimeElapsed * Math.PI * 2) * 0.1;
+          actualFactor = percentOfTimeElapsed * actualFactorMultiplier + 
+            Math.sin(percentOfTimeElapsed * Math.PI * 2) * 0.1;
         } else {
           // Mostly on track with small deviations
-          actualFactor = percentOfTimeElapsed + (Math.random() * 0.1 - 0.05);
+          actualFactor = percentOfTimeElapsed * actualFactorMultiplier;
         }
         
         // Keep actual factor within reasonable bounds (0-1.2)
         actualFactor = Math.max(0, Math.min(1.2, actualFactor));
         
-        // Calculate the actual spent amount
+        // Calculate actual spent amount
         let actualSpent = totalBudget * actualFactor;
         
-        // If we're past today, use projected spending
+        // Check if this point is today
         const isPastToday = isAfter(pointDate, today);
-        if (isPastToday) {
-          // Use recent spending rate for projection
-          if (dataPoints.length > 0) {
-            const lastFewPoints = dataPoints.slice(-3);
-            const avgRate = lastFewPoints.reduce((sum, pt) => 
-              sum + (pt.actualSpent / (totalBudget * (pt.dayNumber / totalDays))), 0
-            ) / lastFewPoints.length;
-            
-            const daysFromToday = differenceInDays(pointDate, today);
-            actualSpent = cumulativeSpent + (dailyRate * avgRate * daysFromToday);
-          }
-        } else {
-          // For historical points, store the cumulative spent
-          cumulativeSpent = actualSpent;
+        const isToday = !isPastToday && i > 0 && 
+          isAfter(pointDate, addDays(today, -1)) && 
+          !isAfter(pointDate, today);
+        
+        if (isToday) {
+          actualSpentToday = actualSpent;
         }
         
-        // Add data point
+        // 3. Extension line - projects future spending based on actual pattern
+        let extensionSpent = null;
+        if (isPastToday) {
+          // Use the actual rate of spending for projection
+          const daysFromToday = differenceInDays(pointDate, today);
+          const actualRate = actualSpentToday / daysElapsed;
+          extensionSpent = actualSpentToday + (actualRate * daysFromToday);
+        }
+        
+        // 4. Correction line - from today to end date to use all funds
+        let correctionSpent = null;
+        
+        if (!isPastToday) {
+          // Before today, no correction line
+          correctionSpent = null;
+        } else {
+          // For today's point, use actual spent
+          if (i > 0 && differenceInDays(pointDate, today) <= 1) {
+            correctionSpent = actualSpentToday;
+          } else {
+            // Calculate daily rate needed to use all funds from today to end
+            const remainingFunds = totalBudget - actualSpentToday;
+            const requiredDailyRate = remainingFunds / daysRemaining;
+            const daysFromToday = differenceInDays(pointDate, today);
+            
+            // Calculate correction amount
+            correctionSpent = actualSpentToday + (requiredDailyRate * daysFromToday);
+          }
+        }
+        
+        // Add data point with all four lines
         dataPoints.push({
           date: format(pointDate, 'yyyy-MM-dd'),
           dayNumber,
           displayDate: format(pointDate, 'MMM d'),
-          idealSpent,
-          actualSpent,
+          projectedSpent, // Line 1: Projected (initial expectation)
+          actualSpent:  isPastToday ? null : actualSpent, // Line 2: Actual (only up to today)
+          extensionSpent, // Line 3: Extension (dotted projection)
+          correctionSpent, // Line 4: Correction (path to use all funds)
           isPastToday,
+          isToday,
           percentOfTimeElapsed: percentOfTimeElapsed * 100,
           percentOfBudgetSpent: (actualSpent / totalBudget) * 100
         });
@@ -198,8 +245,12 @@ export function FundUtilizationTimeline({ clientId }: FundUtilizationTimelinePro
       const endDate = budgetSettings.endOfPlan ? new Date(budgetSettings.endOfPlan) : new Date(new Date().setMonth(new Date().getMonth() + 9));
       const today = new Date();
       
-      // Find the projected depletion date (when actualSpent reaches totalBudget)
-      const depletionPoint = timelineData.find(point => point.actualSpent >= totalBudget);
+      // Find the projected depletion date using extension line
+      const depletionPoint = timelineData.find(point => {
+        const extensionValue = point.extensionSpent || 0;
+        return extensionValue >= totalBudget;
+      });
+      
       const actualDepletionDate = depletionPoint 
         ? new Date(depletionPoint.date)
         : null;
@@ -212,20 +263,21 @@ export function FundUtilizationTimeline({ clientId }: FundUtilizationTimelinePro
         ? Math.max(0, differenceInDays(actualDepletionDate, today))
         : differenceInDays(endDate, today);
       
-      // Projected remaining at end of plan
+      // Projected remaining at end of plan - calculated from extension line
       const lastPoint = timelineData[timelineData.length - 1];
-      const projectedRemainingAtEnd = totalBudget - lastPoint.actualSpent;
+      const lastExtensionValue = lastPoint.extensionSpent || 0;
+      const projectedRemainingAtEnd = Math.max(0, totalBudget - lastExtensionValue);
       
       // Current utilization rate
-      const todayPoint = timelineData.find(point => !point.isPastToday);
+      const todayPoint = timelineData.find(point => point.isToday);
       const utilizationRate = todayPoint 
-        ? (todayPoint.percentOfBudgetSpent / todayPoint.percentOfTimeElapsed)
+        ? (todayPoint.percentOfBudgetSpent / Math.max(0.1, todayPoint.percentOfTimeElapsed))
         : 1;
       
-      // Determine status
+      // Determine status - for underspending scenario (79%)
       let status: 'depleting-fast' | 'depleting-slow' | 'balanced' = 'balanced';
-      if (utilizationRate > 1.2) status = 'depleting-fast';
-      else if (utilizationRate < 0.8) status = 'depleting-slow';
+      if (utilizationRate > 1.1) status = 'depleting-fast';
+      else if (utilizationRate < 0.85) status = 'depleting-slow';
       
       return {
         actualDepletionDate,
@@ -305,24 +357,32 @@ export function FundUtilizationTimeline({ clientId }: FundUtilizationTimelinePro
           <CardTitle className="text-base">Fund Utilization Timeline</CardTitle>
           {statusBadge}
         </div>
-        <CardDescription>Projected spending pattern based on current utilization</CardDescription>
+        <CardDescription>Track and optimize spending to ensure full fund utilization</CardDescription>
       </CardHeader>
       
       <CardContent>
         <div className="h-[200px] mt-4">
           <ResponsiveContainer width="100%" height="100%">
-            <AreaChart
+            <LineChart
               data={timelineData}
               margin={{ top: 10, right: 5, left: 5, bottom: 20 }}
             >
               <defs>
+                <linearGradient id="projectedGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#6b7280" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="#6b7280" stopOpacity={0} />
+                </linearGradient>
                 <linearGradient id="actualGradient" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.5} />
                   <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
                 </linearGradient>
-                <linearGradient id="idealGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#10b981" stopOpacity={0.1} />
-                  <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                <linearGradient id="extensionGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.2} />
+                  <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                </linearGradient>
+                <linearGradient id="correctionGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="#f59e0b" stopOpacity={0} />
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
@@ -338,72 +398,119 @@ export function FundUtilizationTimeline({ clientId }: FundUtilizationTimelinePro
               />
               <RechartsTooltip
                 formatter={(value, name) => [
-                  `$${value.toLocaleString('en-US', { maximumFractionDigits: 0 })}`,
-                  name === 'actualSpent' ? 'Actual Spent' : 'Ideal Spending'
+                  value ? `$${value.toLocaleString('en-US', { maximumFractionDigits: 0 })}` : '-',
+                  name === 'projectedSpent' ? 'Projected' : 
+                  name === 'actualSpent' ? 'Actual' : 
+                  name === 'extensionSpent' ? 'Extension' : 
+                  name === 'correctionSpent' ? 'Correction' : name
                 ]}
                 labelFormatter={(label) => `Date: ${label}`}
               />
               <ReferenceLine 
-                x={timelineData.find(point => !point.isPastToday)?.displayDate} 
+                x={timelineData.find(point => point.isToday)?.displayDate} 
                 stroke="#64748b" 
                 strokeDasharray="3 3"
                 label={{ value: 'Today', position: 'insideTopRight', fontSize: 11, fill: '#64748b' }}
               />
-              <Area
+              
+              {/* Line 1: Projected - Initial projection at client onboarding */}
+              <Line
                 type="monotone"
-                dataKey="idealSpent"
-                stroke="#10b981"
-                strokeWidth={1}
-                strokeDasharray="5 5"
-                fillOpacity={1}
-                fill="url(#idealGradient)"
-                name="Ideal Spending"
-                activeDot={false}
+                dataKey="projectedSpent"
+                stroke="#6b7280"
+                strokeWidth={2}
+                name="Projected"
+                dot={false}
+                activeDot={{ r: 5, fill: '#6b7280', stroke: '#fff', strokeWidth: 1 }}
               />
-              <Area
+              
+              {/* Line 2: Actual - Actual spending up to today */}
+              <Line
                 type="monotone"
                 dataKey="actualSpent"
                 stroke="#3b82f6"
-                strokeWidth={2}
-                fillOpacity={1}
-                fill="url(#actualGradient)"
-                name="Actual Spent"
-                dot={{ r: 0 }}
+                strokeWidth={3}
+                name="Actual"
+                dot={false}
                 activeDot={{ r: 6, fill: '#3b82f6', stroke: '#fff', strokeWidth: 2 }}
               />
-            </AreaChart>
+              
+              {/* Line 3: Extension - Dotted projection based on actual pattern */}
+              <Line
+                type="monotone"
+                dataKey="extensionSpent"
+                stroke="#3b82f6"
+                strokeWidth={2}
+                strokeDasharray="5 5"
+                name="Extension"
+                dot={false}
+                activeDot={{ r: 5, fill: '#3b82f6', stroke: '#fff', strokeWidth: 1 }}
+              />
+              
+              {/* Line 4: Correction - Path needed from today to use all funds */}
+              <Line
+                type="monotone"
+                dataKey="correctionSpent"
+                stroke="#f59e0b"
+                strokeWidth={2.5}
+                name="Correction"
+                dot={false}
+                activeDot={{ r: 5, fill: '#f59e0b', stroke: '#fff', strokeWidth: 1 }}
+              />
+              
+              <Legend 
+                verticalAlign="top" 
+                height={36} 
+                iconSize={10}
+                iconType="line"
+                wrapperStyle={{ paddingTop: "10px", fontSize: "11px" }}
+              />
+            </LineChart>
           </ResponsiveContainer>
         </div>
         
-        <div className="grid grid-cols-3 gap-2 mt-4">
-          <div className="rounded-lg p-3 border border-gray-100 bg-gray-50">
-            <div className="text-xs text-gray-500">Depletion Pace</div>
+        <div className="grid grid-cols-4 gap-2 mt-4">
+          <div className="rounded-lg p-2.5 border border-gray-100 bg-gray-50">
+            <div className="text-xs text-gray-500">Current Pattern</div>
             <div className="text-sm font-medium">
-              {utilizationRate < 0.95 ? 'Slower than ideal' : 
-               utilizationRate > 1.05 ? 'Faster than ideal' : 
-               'On target'}
-              <span className="ml-1 text-sm font-normal">
-                ({(utilizationRate * 100).toFixed(0)}% of ideal)
+              {utilizationRate < 0.80 ? 'Significant underspending' : 
+               utilizationRate < 0.95 ? 'Moderate underspending' : 
+               utilizationRate > 1.1 ? 'Overspending' : 
+               'Near target'}
+              <span className="ml-1 text-xs text-gray-500">
+                ({(utilizationRate * 100).toFixed(0)}%)
               </span>
             </div>
           </div>
           
-          <div className="rounded-lg p-3 border border-gray-100 bg-gray-50">
-            <div className="text-xs text-gray-500">Projected Depletion</div>
+          <div className="rounded-lg p-2.5 border border-gray-100 bg-gray-50">
+            <div className="text-xs text-gray-500">Funds Remaining</div>
             <div className="text-sm font-medium">
-              {formattedDepletionDate}
+              {formatCurrency(budgetSettings && typeof budgetSettings.ndisFunds === 'number' ? 
+                budgetSettings.ndisFunds - (timelineData.find(p => p.isToday)?.actualSpent || 0) : 
+                0)}
             </div>
           </div>
           
-          <div className="rounded-lg p-3 border border-gray-100 bg-gray-50">
-            <div className="text-xs text-gray-500">Projected Remaining</div>
-            <div className="text-sm font-medium">
+          <div className="rounded-lg p-2.5 border border-blue-50 bg-blue-50">
+            <div className="text-xs text-blue-700">Extension Forecast</div>
+            <div className="text-sm font-medium text-blue-800">
               {formatCurrency(projectedRemainingAtEnd)}
-              <span className="ml-1 text-xs text-gray-500">
+              <span className="ml-1 text-xs text-blue-600">
                 {budgetSettings && typeof budgetSettings.ndisFunds === 'number' && budgetSettings.ndisFunds > 0 ? 
-                  `(${((projectedRemainingAtEnd / budgetSettings.ndisFunds) * 100).toFixed(0)}% of total)` : 
+                  `(${Math.max(0, ((projectedRemainingAtEnd / (budgetSettings.ndisFunds || 1)) * 100).toFixed(0))}% unused)` : 
                   ''}
               </span>
+            </div>
+          </div>
+          
+          <div className="rounded-lg p-2.5 border border-amber-50 bg-amber-50">
+            <div className="text-xs text-amber-700">Action Needed</div>
+            <div className="text-sm font-medium text-amber-800">
+              {utilizationRate < 0.80 ? 'Increase spending by ' + (((1/utilizationRate) - 1) * 100).toFixed(0) + '%' : 
+               utilizationRate < 0.95 ? 'Increase spending by ' + (((1/utilizationRate) - 1) * 100).toFixed(0) + '%' : 
+               utilizationRate > 1.05 ? 'Reduce spending by ' + ((1 - (1/utilizationRate)) * 100).toFixed(0) + '%' : 
+               'Maintain current pace'}
             </div>
           </div>
         </div>
