@@ -322,10 +322,19 @@ export function FundUtilizationTimeline({ clientId }: FundUtilizationTimelinePro
                   const scale = dataPoint && 'visualizationScale' in dataPoint ? 
                     Number(dataPoint.visualizationScale) : 1;
                   
-                  // Format the date properly
-                  const displayDate = dataPoint.isToday 
-                    ? new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-                    : label;
+                  // Format the date to match axis labels (Apr 25 format)
+                  let displayDate;
+                  if (dataPoint.isToday) {
+                    // For today's date, show current month + YY
+                    const today = new Date();
+                    const month = today.toLocaleDateString('en-US', { month: 'short' });
+                    const year = today.getFullYear().toString().substring(2);
+                    displayDate = `${month} ${year}`;
+                  } else {
+                    // For other dates, use the same format as x-axis
+                    // The label already has the correct format from the x-axis formatter
+                    displayDate = label;
+                  }
                   
                   // Get all the values with scaling applied correctly
                   const values = {
@@ -441,7 +450,7 @@ export function FundUtilizationTimeline({ clientId }: FundUtilizationTimelinePro
                 stroke="#64748b" 
                 strokeDasharray="3 3"
                 label={{ 
-                  value: `Today (${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })})`, 
+                  value: `Today (${new Date().toLocaleDateString('en-US', { month: 'short' })} ${new Date().getFullYear().toString().substring(2)})`, 
                   position: 'insideTopRight', fontSize: 11, fill: '#64748b' 
                 }}
               />
