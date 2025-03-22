@@ -99,6 +99,15 @@ export function FundUtilizationTimeline({ clientId }: FundUtilizationTimelinePro
         planEndDate
       );
       
+      // CRITICAL: Sort the timeline data chronologically by date to ensure proper display
+      console.log("Before sorting:", data.map(d => d.date));
+      data = data.sort((a, b) => {
+        const dateA = new Date(a.date);
+        const dateB = new Date(b.date);
+        return dateA.getTime() - dateB.getTime();
+      });
+      console.log("After sorting:", data.map(d => d.date));
+      
       // Sort the data chronologically by actual date value to ensure proper ordering
       data = data.sort((a, b) => {
         // Parse the ISO date strings into Date objects for proper comparison
