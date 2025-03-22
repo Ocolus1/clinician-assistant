@@ -78,6 +78,7 @@ export function FundUtilizationTimeline({ clientId }: FundUtilizationTimelinePro
     try {
       // Use the dummy data generator for consistent visualization
       // In a real app, this would use actual spending data from database
+      // This percentage matches the -79% spending variance shown in the top card
       const underspendingPercentage = 79; // Fixed at 79% underspending for demo
       const data = getDummyFundUtilizationData(clientId, underspendingPercentage);
       
@@ -165,6 +166,9 @@ export function FundUtilizationTimeline({ clientId }: FundUtilizationTimelinePro
       
       // Current utilization rate
       const todayPoint = timelineData.find(point => point.isToday);
+      // The utilizationRate calculated here should be around 0.21 (21%) 
+      // because we're using 79% underspending which means we're spending at 21% of ideal rate.
+      // This matches with the -79% spending variance shown in the UI.
       const utilizationRate = todayPoint 
         ? (todayPoint.percentOfBudgetSpent / Math.max(0.1, todayPoint.percentOfTimeElapsed))
         : 1;
@@ -252,7 +256,7 @@ export function FundUtilizationTimeline({ clientId }: FundUtilizationTimelinePro
           <CardTitle className="text-base">Fund Utilization Timeline</CardTitle>
           {statusBadge}
         </div>
-        <CardDescription>Track and optimize spending to ensure full fund utilization</CardDescription>
+        {/* Removed subtitle as requested */}
       </CardHeader>
       
       <CardContent>
@@ -290,8 +294,12 @@ export function FundUtilizationTimeline({ clientId }: FundUtilizationTimelinePro
                   // Format to show month and year (Jan 25, Feb 25, etc.)
                   const dateStr = String(value);
                   if (!dateStr.includes(' ')) return value;
-                  const [month, day] = dateStr.split(' ');
-                  // Format "Jan 29" to "Jan 25" (displaying year)
+                  
+                  // Extract month from the date string (e.g., "Mar 22" -> "Mar")
+                  const month = dateStr.split(' ')[0];
+                  
+                  // For consistency, use the current year for all date labels
+                  // This ensures dates like "Mar 25" mean March 2025
                   return `${month} ${new Date().getFullYear().toString().substring(2)}`;
                 }}
               />
@@ -326,7 +334,10 @@ export function FundUtilizationTimeline({ clientId }: FundUtilizationTimelinePro
                 x={timelineData.find(point => point.isToday)?.displayDate} 
                 stroke="#64748b" 
                 strokeDasharray="3 3"
-                label={{ value: 'Today', position: 'insideTopRight', fontSize: 11, fill: '#64748b' }}
+                label={{ 
+                  value: `Today (${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })})`, 
+                  position: 'insideTopRight', fontSize: 11, fill: '#64748b' 
+                }}
               />
               
               {/* Line 1: Projected - Initial projection at client onboarding */}
