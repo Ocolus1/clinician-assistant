@@ -552,20 +552,25 @@ export function FundUtilizationTimeline({ clientId }: FundUtilizationTimelinePro
               {formatCurrency(budgetSettings && typeof budgetSettings.ndisFunds === 'number' ? 
                 (() => {
                   // Find today's point, with fallback
-                  const todayPoint = timelineData.find(p => p.isToday) || null;
+                  const todayPoint = timelineData.find(p => p.isToday);
                   
-                  // Safely check for visualizationScale property and use a default
-                  const scale = todayPoint && 
-                    typeof todayPoint === 'object' && 
-                    'visualizationScale' in todayPoint && 
+                  if (!todayPoint) {
+                    // If we can't find today's point, use the total budget as fallback
+                    return Number(budgetSettings.ndisFunds);
+                  }
+                  
+                  // Get the visualization scale (used to normalize values for chart display)
+                  const scale = 'visualizationScale' in todayPoint && 
                     typeof todayPoint.visualizationScale === 'number' ? 
                     todayPoint.visualizationScale : 1;
                   
-                  // Unscale the value if needed to show actual remaining funds
-                  const actualSpent = todayPoint && todayPoint.actualSpent !== null && todayPoint.actualSpent !== undefined ? 
+                  // Get the actual spent amount and unscale it to get the real value
+                  const actualSpent = todayPoint.actualSpent !== null && 
+                    todayPoint.actualSpent !== undefined ? 
                     Number(todayPoint.actualSpent) / scale : 0;
-                    
-                  return Number(budgetSettings.ndisFunds) - actualSpent;
+                  
+                  // Calculate remaining funds
+                  return Math.max(0, Number(budgetSettings.ndisFunds) - actualSpent);
                 })() :
                 0)}
             </div>
