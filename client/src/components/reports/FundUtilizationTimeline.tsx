@@ -328,7 +328,15 @@ export function FundUtilizationTimeline({ clientId }: FundUtilizationTimelinePro
                     name === 'correctionSpent' ? 'Correction' : name
                   ];
                 }}
-                labelFormatter={(label) => `Date: ${label}`}
+                labelFormatter={(label, payload) => {
+                  // If this point is today, show the actual today's date
+                  const dataPoint = Array.isArray(payload) && payload.length > 0 ? payload[0].payload : null;
+                  if (dataPoint && dataPoint.isToday) {
+                    return `Date: ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
+                  }
+                  // Otherwise show the displayed date
+                  return `Date: ${label}`;
+                }}
               />
               <ReferenceLine 
                 x={timelineData.find(point => point.isToday)?.displayDate} 
