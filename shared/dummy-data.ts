@@ -431,41 +431,87 @@ export function getDummyFundUtilizationData(clientId: number = 77, underspending
     // Calculate percent of time elapsed
     const percentOfTimeElapsed = dayNumber / totalDays;
     
-    // 1. Projected line - initial expectation (linear)
-    const projectedSpent = totalBudget * percentOfTimeElapsed;
+    // 1. Projected line - step-like to represent biweekly sessions
+    // Use a step function to simulate biweekly therapy sessions rather than continuous spending
+    const sessionFrequency = 14; // Days between sessions (biweekly)
+    const daysPerSession = Math.floor(dayNumber / sessionFrequency);
+    const sessionsCompleted = Math.max(0, daysPerSession);
+    const costPerSession = totalBudget / (totalDays / sessionFrequency);
+    const projectedSpent = Math.min(costPerSession * sessionsCompleted, totalBudget);
     
-    // 2. Actual line - with some variability and underspending
+    // 2. Actual line - step-like pattern for actual sessions with variability and underspending
     let thisActualSpent = null;
     if (!isPastToday) {
+      // Create a step-like pattern for actual sessions too
+      const actualSessionFrequency = 14; // Biweekly sessions
+      const actualDaysPerSession = Math.floor(dayNumber / actualSessionFrequency);
+      const actualSessionsCompleted = Math.max(0, actualDaysPerSession);
+      
+      // Determine if some sessions were missed (based on underspending percentage)
+      const missedSessions = Math.floor(actualSessionsCompleted * (underspending / 100) / 2);
+      const effectiveSessionsCompleted = actualSessionsCompleted - missedSessions;
+      
       // Add some random variability to make the line interesting
-      const variabilityFactor = 1 + (Math.random() * 0.3 - 0.15); // +/- 15%
-      const dailyAmount = actualDailyRate * variabilityFactor;
-      actualSpent += dailyAmount * (i === 0 ? 1 : daysPerPoint);
-      thisActualSpent = actualSpent;
+      const variabilityFactor = 1 + (Math.random() * 0.2 - 0.1); // +/- 10%
+      const actualCostPerSession = costPerSession * actualFactor * variabilityFactor;
+      
+      thisActualSpent = Math.max(0, actualCostPerSession * effectiveSessionsCompleted);
+      actualSpent = thisActualSpent; // Update running total
     }
     
     // If this is today's point, save the current actual spent
     const actualSpentToday = isToday ? actualSpent : (isPastToday ? actualSpent : null);
     
-    // 3. Extension line - future projection based on actual pattern
+    // 3. Extension line - future projection based on actual pattern with step-like sessions
     let extensionSpent = null;
     if (isPastToday && actualSpentToday !== null) {
-      // Project future spending at the same rate
+      // Project future spending at the same rate, but with step-like sessions
+      const sessionFrequencyForExtension = 14; // Biweekly sessions
+      
+      // Calculate how many additional sessions from today to this point
+      const remainingDaysInPlan = totalDays - elapsedDays;
       const daysFromToday = dayNumber - elapsedDays;
-      extensionSpent = actualSpentToday + (actualDailyRate * daysFromToday);
+      
+      // Calculate rate of sessions attended so far
+      const actualSessionRate = actualSpentToday / (costPerSession * ((elapsedDays / sessionFrequencyForExtension) || 1));
+      
+      // Calculate expected future sessions
+      const futureSessionsScheduled = Math.floor(daysFromToday / sessionFrequencyForExtension);
+      const expectedSessionsToAttend = futureSessionsScheduled * actualSessionRate;
+      
+      // Extension spent is current actual + expected future spending
+      extensionSpent = actualSpentToday + (expectedSessionsToAttend * costPerSession * actualFactor);
     }
     
-    // 4. Correction line - path needed to use all funds
+    // 4. Correction line - path needed to use all funds, following session schedule
     let correctionSpent = null;
     if (isPastToday && actualSpentToday !== null) {
-      // Calculate required daily rate to use all remaining funds
+      // Calculate remaining funds and days
       const remainingFunds = totalBudget - actualSpentToday;
       const remainingDaysFromThisPoint = totalDays - elapsedDays;
       
       if (remainingDaysFromThisPoint > 0) {
-        const requiredDailyRate = remainingFunds / remainingDaysFromThisPoint;
+        // Calculate how many sessions remain in the plan from today to end
+        const sessionFrequencyForCorrection = 14; // Biweekly
         const daysFromToday = dayNumber - elapsedDays;
-        correctionSpent = actualSpentToday + (requiredDailyRate * daysFromToday);
+        
+        // Get the number of remaining sessions from today to plan end
+        const remainingSessionsInPlan = Math.floor((totalDays - elapsedDays) / sessionFrequencyForCorrection);
+        
+        // Calculate how many sessions from today to this future point
+        const sessionsFromTodayToPoint = Math.floor(daysFromToday / sessionFrequencyForCorrection);
+        
+        // Calculate the ideal cost per future session to use all funds
+        const idealCostPerFutureSession = remainingFunds / remainingSessionsInPlan;
+        
+        // Calculate correction spending for this point
+        if (sessionsFromTodayToPoint === 0) {
+          // This is today's point (or very close)
+          correctionSpent = actualSpentToday;
+        } else {
+          // This is a future point
+          correctionSpent = actualSpentToday + (idealCostPerFutureSession * sessionsFromTodayToPoint);
+        }
       } else {
         correctionSpent = totalBudget;
       }
