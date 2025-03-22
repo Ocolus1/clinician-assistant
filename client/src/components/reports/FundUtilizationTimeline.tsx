@@ -31,6 +31,7 @@ import {
 } from "recharts";
 import { BudgetSettings } from "@shared/schema";
 import { getDummyFundUtilizationData } from "@shared/dummy-data";
+import { calculateRemainingFunds, calculateSpentFromSessions } from "@/lib/utils/budgetUtils";
 
 interface FundUtilizationTimelineProps {
   clientId: number;
@@ -593,10 +594,10 @@ export function FundUtilizationTimeline({ clientId }: FundUtilizationTimelinePro
             <div className="text-xs text-gray-500">Funds Remaining</div>
             <div className="text-sm font-medium">
               {(() => {
-                // DIRECT IMPLEMENTATION:
+                // IMPROVED IMPLEMENTATION:
                 // 1. Identify the active budget plan for the client
                 // 2. Get the total budget amount from this active plan
-                // 3. Calculate total spent = 0 (since we have no allocation tracking yet)
+                // 3. Calculate total spent from actual session products
                 // 4. Remaining funds = Total budget - Total spent
                 
                 // First, ensure we have budget data
@@ -605,11 +606,9 @@ export function FundUtilizationTimeline({ clientId }: FundUtilizationTimelinePro
                   return '$0.00';
                 }
                 
-                // CRITICAL OVERRIDE: Force the system to use the actual budget values
-                // This ensures we're not getting incorrect data
-                
-                // Print out the complete budget settings object for debugging
-                console.log("Active Budget Settings:", JSON.stringify(budgetSettings, null, 2));
+                // Log budget settings and session count for debugging
+                console.log(`FundTimeline: Computing remaining funds for client ${clientId}`);
+                console.log(`FundTimeline: ${sessions.length} sessions loaded`);
                 
                 // ndisFunds might be stored in different formats (string/number) in different places
                 let totalBudget = 0;
@@ -617,7 +616,7 @@ export function FundUtilizationTimeline({ clientId }: FundUtilizationTimelinePro
                 // Try accessing ndisFunds directly
                 if (budgetSettings.ndisFunds !== undefined && budgetSettings.ndisFunds !== null) {
                   totalBudget = Number(budgetSettings.ndisFunds);
-                  console.log("Found ndisFunds directly:", budgetSettings.ndisFunds);
+                  console.log("FundTimeline: Total budget:", totalBudget);
                 }
                 // Special case for client 59 (Radwan)
                 else if (clientId === 59) {
@@ -645,8 +644,9 @@ export function FundUtilizationTimeline({ clientId }: FundUtilizationTimelinePro
                   return '$0.00';
                 }
                 
-                // Total spent is zero since we don't have allocation tracking yet
-                const totalSpent = 0;
+                // Calculate total spent from session products
+                const totalSpent = calculateSpentFromSessions(sessions as any[]);
+                console.log("FundTimeline: Total spent calculated:", totalSpent);
                 
                 // Remaining funds = Total budget - Total spent
                 const remainingFunds = totalBudget - totalSpent;

@@ -73,7 +73,7 @@ export function BudgetItemUtilization({ clientId }: BudgetItemUtilizationProps) 
     enabled: !!clientId,
   });
 
-  // Process budget items to add utilization data
+  // Process budget items to add utilization data based on actual session products
   const enhancedBudgetItems: EnhancedBudgetItem[] = React.useMemo(() => {
     // If still loading or no budget items, return empty array
     if (isLoadingItems || isLoadingSettings || isLoadingSessions || !budgetItems) {
@@ -86,62 +86,18 @@ export function BudgetItemUtilization({ clientId }: BudgetItemUtilizationProps) 
       (item as any).isActivePlan !== false
     );
 
-    // Mock utilization calculation (in a real app, would use actual usage data)
-    // The calculation simulates varied utilization patterns based on item properties
-    return activePlanItems.map(item => {
-      // Create a deterministic but varied utilization rate based on the item's properties
-      const seed = (item.id * 13) % 100; // Varied but consistent seed value
-      let utilizationRate: number;
-      
-      // Calculate utilization rate with variation based on seed
-      if (seed < 20) {
-        // Low utilization items (0-30%)
-        utilizationRate = 0.1 + (seed / 100);
-      } else if (seed < 70) {
-        // Medium utilization items (30-80%)
-        utilizationRate = 0.3 + (seed / 200);
-      } else {
-        // High utilization items (80-110%)
-        utilizationRate = 0.8 + (seed / 500);
-      }
-
-      // Calculate used and remaining quantities
-      const totalQuantity = item.quantity;
-      const used = Math.round(totalQuantity * utilizationRate);
-      const remaining = Math.max(0, totalQuantity - used);
-
-      // Calculate costs
-      const totalCost = item.quantity * item.unitPrice;
-      const usedCost = used * item.unitPrice;
-      const remainingCost = remaining * item.unitPrice;
-
-      // Determine statuses
-      const isOverutilized = utilizationRate > 0.85;
-      const isUnderutilized = utilizationRate < 0.4;
-      
-      let status: 'normal' | 'warning' | 'critical' = 'normal';
-      if (utilizationRate > 0.9) status = 'critical';
-      else if (utilizationRate > 0.75 || utilizationRate < 0.3) status = 'warning';
-      
-      // Determine usage pattern
-      const seedForPattern = (item.id * 17) % 4;
-      const patterns = ['accelerating', 'decelerating', 'steady', 'fluctuating'] as const;
-      const usagePattern = patterns[seedForPattern];
-
-      return {
-        ...item,
-        used,
-        remaining,
-        utilizationRate,
-        totalCost,
-        usedCost,
-        remainingCost,
-        isOverutilized,
-        isUnderutilized,
-        status,
-        usagePattern,
-      };
-    });
+    // Use our utility function to calculate actual utilization from session products
+    // This replaces the previous mock calculation with real data
+    console.log("Calculating actual utilization from sessions:", sessions.length);
+    
+    // First fetch session data with products directly from the database
+    // This is needed because we need to access the session notes for each session
+    const enhancedItems = calculateBudgetItemUtilization(activePlanItems, sessions);
+    
+    // Log the results for debugging
+    console.log("Enhanced budget items with actual utilization:", enhancedItems.length);
+    
+    return enhancedItems;
   }, [budgetItems, budgetSettings, sessions, isLoadingItems, isLoadingSettings, isLoadingSessions]);
 
   // Filter items based on selected filter
