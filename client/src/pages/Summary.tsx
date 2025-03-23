@@ -5,10 +5,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { FileText, Printer } from "lucide-react";
 import { Client, Ally, Goal, BudgetItem } from "@shared/schema";
+import { IntegratedSessionForm } from "@/components/sessions/IntegratedSessionFormFixed";
+import { useState } from "react";
 
 export default function Summary() {
   const { clientId } = useParams();
   const [, setLocation] = useLocation();
+  const [isSessionFormOpen, setIsSessionFormOpen] = useState(false);
   console.log("Summary component - clientId param:", clientId);
   const parsedClientId = clientId ? parseInt(clientId) : 0;
   console.log("Summary component - parsedClientId:", parsedClientId);
@@ -124,6 +127,13 @@ export default function Summary() {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Session Form Dialog */}
+      <IntegratedSessionForm 
+        open={isSessionFormOpen}
+        onOpenChange={setIsSessionFormOpen}
+        initialClient={client}
+      />
+      
       <div className="container mx-auto py-8">
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-3xl font-bold">Client Summary</h1>
@@ -131,9 +141,8 @@ export default function Summary() {
             <Button
               className="bg-green-600 hover:bg-green-700 text-white"
               onClick={() => {
-                // Open the session dialog from the top bar
-                // We'll use the URL parameter approach to trigger the dialog
-                setLocation(`/client/${clientId}?openSessionDialog=true`);
+                // Open the session dialog directly
+                setIsSessionFormOpen(true);
               }}
             >
               <FileText className="w-4 h-4 mr-2" />
