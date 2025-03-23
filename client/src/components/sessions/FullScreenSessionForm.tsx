@@ -2914,7 +2914,7 @@ export function FullScreenSessionForm({
                         </span>
                       ) : (
                         <span className="flex items-center justify-center">
-                          <Save className="h-5 w-5 mr-2" />
+                          <ShoppingCart className="h-5 w-5 mr-2" />
                           Create New Session
                         </span>
                       )}
