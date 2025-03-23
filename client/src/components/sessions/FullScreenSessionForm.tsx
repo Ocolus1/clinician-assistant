@@ -2817,6 +2817,108 @@ export function FullScreenSessionForm({
                       )}
                     </CardContent>
                   </Card>
+                  
+                  {/* EMERGENCY FIXED SUBMIT BUTTON - Independent of form context */}
+                  <div className="mt-6 flex justify-center">
+                    <Button 
+                      type="button"
+                      className="w-full max-w-md bg-green-600 hover:bg-green-700 text-white"
+                      disabled={isFormSubmitting || createSessionMutation.isPending}
+                      onClick={() => {
+                        console.log("### EMERGENCY DIRECT SUBMIT BUTTON CLICKED ###");
+                        
+                        try {
+                          // 1. Mark form as submitting
+                          setIsFormSubmitting(true);
+                          
+                          // 2. Get all form values without validation
+                          const formData = form.getValues();
+                          console.log("Emergency submit - Form data:", formData);
+                          
+                          // 3. Process data like we do in onSubmit
+                          if (formData.session.timeFrom && formData.session.timeTo) {
+                            const [fromHours, fromMinutes] = formData.session.timeFrom.split(':').map(Number);
+                            const [toHours, toMinutes] = formData.session.timeTo.split(':').map(Number);
+                            
+                            const fromTimeInMinutes = fromHours * 60 + fromMinutes;
+                            const toTimeInMinutes = toHours * 60 + toMinutes;
+                            
+                            let durationInMinutes = toTimeInMinutes - fromTimeInMinutes;
+                            if (durationInMinutes < 0) {
+                              durationInMinutes += 24 * 60;
+                            }
+                            
+                            formData.session.duration = durationInMinutes;
+                          }
+                          
+                          // Set default title if needed
+                          if (!formData.session.title || formData.session.title.trim() === '') {
+                            formData.session.title = 'Therapy Session';
+                          }
+                          
+                          // 4. Call the mutation directly
+                          createSessionMutation.mutate(formData, {
+                            onSuccess: (response) => {
+                              console.log("### EMERGENCY SUBMIT SUCCESS! Session created:", response);
+                              
+                              toast({
+                                title: "Session Created",
+                                description: "The session was created successfully.",
+                                variant: "default",
+                              });
+                              
+                              // Reset submitting state
+                              setIsFormSubmitting(false);
+                              
+                              // Close the form dialog
+                              onOpenChange(false);
+                              
+                              // Refresh the sessions list
+                              queryClient.invalidateQueries({ queryKey: ['/api/sessions'] });
+                              if (clientId) {
+                                queryClient.invalidateQueries({ queryKey: [`/api/clients/${clientId}/sessions`] });
+                              }
+                            },
+                            onError: (error) => {
+                              console.error("### EMERGENCY SUBMIT ERROR:", error);
+                              
+                              toast({
+                                title: "Error",
+                                description: "Failed to create session. Please try again.",
+                                variant: "destructive",
+                              });
+                              
+                              // Reset submitting state
+                              setIsFormSubmitting(false);
+                            }
+                          });
+                        } catch (error) {
+                          console.error("### UNHANDLED ERROR IN EMERGENCY SUBMIT:", error);
+                          
+                          toast({
+                            title: "Error",
+                            description: "An unexpected error occurred. Please try again.",
+                            variant: "destructive",
+                          });
+                          
+                          // Reset submitting state
+                          setIsFormSubmitting(false);
+                        }
+                      }}
+                    >
+                      {isFormSubmitting || createSessionMutation.isPending ? (
+                        <span className="flex items-center justify-center">
+                          <RefreshCw className="h-5 w-5 mr-2 animate-spin" /> 
+                          Creating Session...
+                        </span>
+                      ) : (
+                        <span className="flex items-center justify-center">
+                          <Save className="h-5 w-5 mr-2" />
+                          Create New Session
+                        </span>
+                      )}
+                    </Button>
+                  </div>
                 </div>
               </TabsContent>
 
