@@ -151,11 +151,13 @@ export default function Sessions() {
     queryKey: ["/api/sessions"],
   });
   
-  // Combine sessions with client names
+  // Combine sessions with client names and set all to completed status
   const sessionsWithClientNames = sessions.map(session => {
     const client = clients.find(c => c.id === session.clientId);
     return {
       ...session,
+      // Override all sessions to display as completed
+      status: "completed",
       clientName: client?.name || "Unknown Client",
       // Make sure dates are Date objects
       sessionDate: new Date(session.sessionDate),
@@ -247,11 +249,8 @@ export default function Sessions() {
                   <SelectValue placeholder="Filter by status" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Statuses</SelectItem>
-                  <SelectItem value="scheduled">Scheduled</SelectItem>
+                  <SelectItem value="all">All Sessions</SelectItem>
                   <SelectItem value="completed">Completed</SelectItem>
-                  <SelectItem value="cancelled">Cancelled</SelectItem>
-                  <SelectItem value="rescheduled">Rescheduled</SelectItem>
                 </SelectContent>
               </Select>
               
@@ -276,127 +275,62 @@ export default function Sessions() {
             </div>
           </div>
           
-          {/* View tabs for upcoming vs. past sessions */}
-          <Tabs defaultValue="upcoming" className="mb-6">
-            <TabsList>
-              <TabsTrigger value="upcoming">Upcoming Sessions</TabsTrigger>
-              <TabsTrigger value="past">Past Sessions</TabsTrigger>
-            </TabsList>
-            <TabsContent value="upcoming">
-              {/* Show loading skeleton during data fetch */}
-              {sessionsLoading ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {[1, 2, 3].map(i => (
-                    <Card key={i}>
-                      <CardContent className="p-4">
-                        <Skeleton className="h-4 w-3/4 mb-2" />
-                        <Skeleton className="h-4 w-1/2 mb-4" />
-                        <div className="space-y-2">
-                          <Skeleton className="h-3 w-full" />
-                          <Skeleton className="h-3 w-full" />
-                          <Skeleton className="h-3 w-2/3" />
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
+          {/* Display all sessions as a single list */}
+          <div className="mb-6">
+            <h2 className="text-xl font-medium mb-4">Therapy Sessions</h2>
+            
+            {/* Show loading skeleton during data fetch */}
+            {sessionsLoading ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {[1, 2, 3].map(i => (
+                  <Card key={i}>
+                    <CardContent className="p-4">
+                      <Skeleton className="h-4 w-3/4 mb-2" />
+                      <Skeleton className="h-4 w-1/2 mb-4" />
+                      <div className="space-y-2">
+                        <Skeleton className="h-3 w-full" />
+                        <Skeleton className="h-3 w-full" />
+                        <Skeleton className="h-3 w-2/3" />
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              // Process all sessions to mark them as completed
+              sortedSessions.length === 0 ? (
+                <div className="text-center py-8 bg-gray-50 rounded-lg max-w-md mx-auto">
+                  <h4 className="text-lg font-medium text-gray-500 mb-2">No therapy sessions</h4>
+                  <p className="text-gray-500 mb-4">No therapy sessions found.</p>
+                  <Button onClick={() => setCreateSessionDialogOpen(true)}>Add New Session</Button>
                 </div>
               ) : (
-                // Filter for upcoming sessions (scheduled, rescheduled)
-                sortedSessions.filter(s => 
-                  s.status === "scheduled" || 
-                  s.status === "rescheduled"
-                ).length === 0 ? (
-                  <div className="text-center py-8 bg-gray-50 rounded-lg max-w-md mx-auto">
-                    <h4 className="text-lg font-medium text-gray-500 mb-2">No upcoming sessions</h4>
-                    <p className="text-gray-500 mb-4">No scheduled therapy sessions found.</p>
-                    <Button onClick={() => setCreateSessionDialogOpen(true)}>Schedule New Session</Button>
+                viewType === "grid" ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {sortedSessions.map(session => (
+                      <SessionCard 
+                        key={session.id} 
+                        // Override all sessions to display as completed
+                        session={{...session, status: "completed"}}
+                        onClick={() => handleSelectSession({...session, status: "completed"})}
+                      />
+                    ))}
                   </div>
                 ) : (
-                  viewType === "grid" ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {sortedSessions
-                        .filter(s => s.status === "scheduled" || s.status === "rescheduled")
-                        .map(session => (
-                          <SessionCard 
-                            key={session.id} 
-                            session={session}
-                            onClick={() => handleSelectSession(session)}
-                          />
-                        ))}
-                    </div>
-                  ) : (
-                    <div className="space-y-2">
-                      {sortedSessions
-                        .filter(s => s.status === "scheduled" || s.status === "rescheduled")
-                        .map(session => (
-                          <SessionListItem 
-                            key={session.id} 
-                            session={session}
-                            onClick={() => handleSelectSession(session)}
-                          />
-                        ))}
-                    </div>
-                  )
-                )
-              )}
-            </TabsContent>
-            <TabsContent value="past">
-              {/* Filter for past sessions (completed, cancelled) */}
-              {sessionsLoading ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {[1, 2, 3].map(i => (
-                    <Card key={i}>
-                      <CardContent className="p-4">
-                        <Skeleton className="h-4 w-3/4 mb-2" />
-                        <Skeleton className="h-4 w-1/2 mb-4" />
-                        <div className="space-y-2">
-                          <Skeleton className="h-3 w-full" />
-                          <Skeleton className="h-3 w-full" />
-                          <Skeleton className="h-3 w-2/3" />
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              ) : (
-                sortedSessions.filter(s => 
-                  s.status === "completed" || 
-                  s.status === "cancelled"
-                ).length === 0 ? (
-                  <div className="text-center py-8 bg-gray-50 rounded-lg max-w-md mx-auto">
-                    <h4 className="text-lg font-medium text-gray-500 mb-2">No past sessions</h4>
-                    <p className="text-gray-500">Session history will appear here once sessions are completed.</p>
+                  <div className="space-y-2">
+                    {sortedSessions.map(session => (
+                      <SessionListItem 
+                        key={session.id} 
+                        // Override all sessions to display as completed
+                        session={{...session, status: "completed"}}
+                        onClick={() => handleSelectSession({...session, status: "completed"})}
+                      />
+                    ))}
                   </div>
-                ) : (
-                  viewType === "grid" ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {sortedSessions
-                        .filter(s => s.status === "completed" || s.status === "cancelled")
-                        .map(session => (
-                          <SessionCard 
-                            key={session.id} 
-                            session={session}
-                            onClick={() => handleSelectSession(session)}
-                          />
-                        ))}
-                    </div>
-                  ) : (
-                    <div className="space-y-2">
-                      {sortedSessions
-                        .filter(s => s.status === "completed" || s.status === "cancelled")
-                        .map(session => (
-                          <SessionListItem 
-                            key={session.id} 
-                            session={session}
-                            onClick={() => handleSelectSession(session)}
-                          />
-                        ))}
-                    </div>
-                  )
                 )
-              )}
-            </TabsContent>
-          </Tabs>
+              )
+            )}
+          </div>
         </>
       )}
     </div>

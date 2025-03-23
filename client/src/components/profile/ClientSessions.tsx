@@ -132,21 +132,15 @@ export default function ClientSessions() {
     enabled: !!clientId,
   });
   
-  // Filter sessions
-  const upcomingSessions = sessions.filter(session => 
-    session.status === 'scheduled' || session.status === 'rescheduled'
-  );
-  
-  const pastSessions = sessions.filter(session => 
-    session.status === 'completed' || session.status === 'cancelled' || session.status === 'waived'
-  );
+  // All sessions should be treated as completed sessions
+  // Set status to completed for all sessions to ensure they display correctly
+  const processedSessions = sessions.map(session => ({
+    ...session,
+    status: "completed" // Force all sessions to be completed
+  }));
   
   // Sort sessions by date (most recent first)
-  const sortedUpcoming = [...upcomingSessions].sort((a, b) => 
-    new Date(a.sessionDate).getTime() - new Date(b.sessionDate).getTime()
-  );
-  
-  const sortedPast = [...pastSessions].sort((a, b) => 
+  const sortedSessions = [...processedSessions].sort((a, b) => 
     new Date(b.sessionDate).getTime() - new Date(a.sessionDate).getTime()
   );
   
@@ -178,56 +172,25 @@ export default function ClientSessions() {
         initialClient={client}
       />
       
-      <Tabs defaultValue="upcoming" className="w-full">
-        <TabsList className="mb-4">
-          <TabsTrigger value="upcoming">Upcoming</TabsTrigger>
-          <TabsTrigger value="past">Past Sessions</TabsTrigger>
-        </TabsList>
+      <div className="mb-6">
+        <h4 className="font-medium mb-4">Therapy Sessions</h4>
         
-        <TabsContent value="upcoming">
-          <div className="mb-6">
-            <h4 className="font-medium mb-4">Upcoming Sessions</h4>
-            
-            {sortedUpcoming.length === 0 ? (
-              <div className="text-center py-8 bg-gray-50 rounded-lg">
-                <Calendar className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-                <h4 className="text-lg font-medium text-gray-500 mb-2">No upcoming sessions</h4>
-                <p className="text-gray-500 mb-4">Future scheduled sessions will appear here.</p>
-              </div>
-            ) : (
-              sortedUpcoming.map(session => (
-                <SessionCard 
-                  key={session.id} 
-                  session={session}
-                  onClick={() => setSelectedSession(session)}
-                />
-              ))
-            )}
+        {sortedSessions.length === 0 ? (
+          <div className="text-center py-8 bg-gray-50 rounded-lg">
+            <Clock className="h-10 w-10 text-gray-300 mx-auto mb-3" />
+            <h5 className="text-md font-medium text-gray-500 mb-2">No sessions found</h5>
+            <p className="text-gray-500">Add a new session to get started.</p>
           </div>
-        </TabsContent>
-        
-        <TabsContent value="past">
-          <div className="mb-6">
-            <h4 className="font-medium mb-4">Past Sessions</h4>
-            
-            {sortedPast.length === 0 ? (
-              <div className="text-center py-8 bg-gray-50 rounded-lg">
-                <Clock className="h-10 w-10 text-gray-300 mx-auto mb-3" />
-                <h5 className="text-md font-medium text-gray-500 mb-2">No past sessions</h5>
-                <p className="text-gray-500">Completed, cancelled, and waived sessions will appear here.</p>
-              </div>
-            ) : (
-              sortedPast.map(session => (
-                <SessionCard 
-                  key={session.id} 
-                  session={session} 
-                  onClick={() => setSelectedSession(session)}
-                />
-              ))
-            )}
-          </div>
-        </TabsContent>
-      </Tabs>
+        ) : (
+          sortedSessions.map(session => (
+            <SessionCard 
+              key={session.id} 
+              session={session} 
+              onClick={() => setSelectedSession(session)}
+            />
+          ))
+        )}
+      </div>
       
       {/* Session details modal could be added here */}
       {selectedSession && (
