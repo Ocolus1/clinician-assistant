@@ -50,8 +50,16 @@ export function FundUtilizationTimeline({ clientId }: FundUtilizationTimelinePro
   // Fetch all sessions for this client
   const { data: sessions = [], isLoading: isLoadingSessions } = useQuery<any[]>({
     queryKey: ['/api/clients', clientId, 'sessions'],
-    enabled: !!clientId,
+    enabled: !!clientId
   });
+
+  // Log session data after fetching
+  React.useEffect(() => {
+    if (sessions.length > 0) {
+      console.log(`Loaded ${sessions.length} sessions for client ${clientId}`);
+      console.log('Session data sample:', sessions.slice(0, 2));
+    }
+  }, [sessions, clientId]);
   
   // Fetch budget items for the active plan
   const { data: budgetItems = [], isLoading: isLoadingBudgetItems } = useQuery<any[]>({
@@ -103,12 +111,18 @@ export function FundUtilizationTimeline({ clientId }: FundUtilizationTimelinePro
         totalBudget
       });
       
-      // Create a chronological list of sorted sessions
-      const sortedSessions = [...sessions].sort((a, b) => {
+      // Type safety: Ensure sessions is treated as an array
+      const sessionsArray = Array.isArray(sessions) ? sessions : [];
+      
+      // Create a chronological list of sorted sessions with safe date handling
+      const sortedSessions = [...sessionsArray].filter(session => {
+        // Make sure the session has a valid date
+        return session && session.sessionDate && !isNaN(new Date(session.sessionDate).getTime());
+      }).sort((a, b) => {
         return new Date(a.sessionDate).getTime() - new Date(b.sessionDate).getTime();
       });
       
-      console.log(`Found ${sortedSessions.length} sessions for timeline`);
+      console.log(`Found ${sortedSessions.length} valid sessions for timeline`);
       
       // Calculate actual spending by session date
       const cumulativeSpendingByDate: Record<string, number> = {};
@@ -116,33 +130,37 @@ export function FundUtilizationTimeline({ clientId }: FundUtilizationTimelinePro
       
       // Process sessions and calculate cumulative spending
       sortedSessions.forEach(session => {
-        // Get session date and format as ISO string for consistent comparison
-        const sessionDate = new Date(session.sessionDate);
-        const dateKey = sessionDate.toISOString().split('T')[0];
-        
-        // Calculate spending from this session
-        let sessionSpending = 0;
-        
-        // If the session has products property directly
-        if (session.products && Array.isArray(session.products)) {
-          for (const product of session.products) {
-            const quantity = Number(product.quantity) || 1;
-            const unitPrice = Number(product.unitPrice) || 0;
-            sessionSpending += quantity * unitPrice;
+        try {
+          // Get session date and format as ISO string for consistent comparison
+          const sessionDate = new Date(session.sessionDate);
+          const dateKey = sessionDate.toISOString().split('T')[0];
+          
+          // Calculate spending from this session
+          let sessionSpending = 0;
+          
+          // If the session has products property directly
+          if (session.products && Array.isArray(session.products)) {
+            for (const product of session.products) {
+              const quantity = Number(product.quantity) || 1;
+              const unitPrice = Number(product.unitPrice) || 0;
+              sessionSpending += quantity * unitPrice;
+            }
           }
-        }
-        // If the session has a sessionNote property with products
-        else if (session.sessionNote && session.sessionNote.products && Array.isArray(session.sessionNote.products)) {
-          for (const product of session.sessionNote.products) {
-            const quantity = Number(product.quantity) || 1;
-            const unitPrice = Number(product.unitPrice) || 0;
-            sessionSpending += quantity * unitPrice;
+          // If the session has a sessionNote property with products
+          else if (session.sessionNote && session.sessionNote.products && Array.isArray(session.sessionNote.products)) {
+            for (const product of session.sessionNote.products) {
+              const quantity = Number(product.quantity) || 1;
+              const unitPrice = Number(product.unitPrice) || 0;
+              sessionSpending += quantity * unitPrice;
+            }
           }
+          
+          // Add to running total
+          runningTotal += sessionSpending;
+          cumulativeSpendingByDate[dateKey] = runningTotal;
+        } catch (error) {
+          console.error("Error processing session for timeline:", error);
         }
-        
-        // Add to running total
-        runningTotal += sessionSpending;
-        cumulativeSpendingByDate[dateKey] = runningTotal;
       });
       
       console.log("Cumulative spending by date:", cumulativeSpendingByDate);
@@ -367,8 +385,18 @@ export function FundUtilizationTimeline({ clientId }: FundUtilizationTimelinePro
     }
   }, [budgetSettings, timelineData]);
 
-  // Loading state
-  if (isLoadingSettings || isLoadingSessions || isLoadingBudgetItems || !timelineData || timelineData.length === 0) {
+  // Debugging loading state
+  console.log('Timeline loading state:', {
+    isLoadingSettings,
+    isLoadingSessions,
+    isLoadingBudgetItems,
+    timelineDataLength: timelineData?.length || 0,
+    budgetSettingsAvailable: !!budgetSettings,
+    sessionsAvailable: Array.isArray(sessions) ? sessions.length : 0
+  });
+
+  // Loading state - only show if actually loading or no timeline data
+  if ((isLoadingSettings || isLoadingSessions || isLoadingBudgetItems) && (!timelineData || timelineData.length === 0)) {
     return (
       <Card>
         <CardHeader>
@@ -384,6 +412,24 @@ export function FundUtilizationTimeline({ clientId }: FundUtilizationTimelinePro
                 <div className="h-4 bg-gray-200 rounded w-5/6"></div>
               </div>
             </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+  
+  // If we have no timeline data but we're not loading anymore, show an empty state
+  if (!timelineData || timelineData.length === 0) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Fund Utilization Timeline</CardTitle>
+          <CardDescription>No timeline data available</CardDescription>
+        </CardHeader>
+        <CardContent className="h-[200px] flex items-center justify-center text-gray-500">
+          <div className="text-center">
+            <p>Could not generate timeline visualization</p>
+            <p className="text-sm mt-2">Check that the client has a valid budget plan and sessions</p>
           </div>
         </CardContent>
       </Card>
