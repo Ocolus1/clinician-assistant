@@ -1709,8 +1709,8 @@ export function FullScreenSessionForm({
   return (
     <div className="fullscreen-form">
       <div className="bg-background h-full w-full overflow-hidden flex flex-col">
-        {/* Header */}
-        <div className="p-4 border-b flex justify-between items-center bg-card">
+        {/* Simplified Header - removed navigation buttons */}
+        <div className="p-4 border-b flex items-center bg-card">
           <div className="flex items-center gap-2">
             <Button 
               variant="outline" 
@@ -1720,120 +1720,6 @@ export function FullScreenSessionForm({
               <ChevronLeft className="h-4 w-4" />
             </Button>
             <h1 className="text-xl font-semibold">Create Session</h1>
-          </div>
-          <div className="flex gap-2">
-            {/* Cancel button - available on all tabs */}
-            <Button 
-              variant="outline"
-              onClick={() => setShowCancelDialog(true)}
-            >
-              Cancel
-            </Button>
-            
-            {/* Navigation buttons based on active tab */}
-            {activeTab === "session" && (
-              <Button 
-                onClick={() => setActiveTab("assessment")}
-                variant="default"
-              >
-                Next <ChevronRight className="h-4 w-4 ml-1" />
-              </Button>
-            )}
-            
-            {activeTab === "assessment" && (
-              <>
-                <Button 
-                  onClick={() => setActiveTab("session")}
-                  variant="outline"
-                >
-                  <ChevronLeft className="h-4 w-4 mr-1" /> Previous
-                </Button>
-                <Button 
-                  onClick={() => setActiveTab("summary")}
-                  variant="default"
-                >
-                  Next <ChevronRight className="h-4 w-4 ml-1" />
-                </Button>
-              </>
-            )}
-            
-            {activeTab === "summary" && (
-              <>
-                <Button 
-                  onClick={() => setActiveTab("assessment")}
-                  variant="outline"
-                >
-                  <ChevronLeft className="h-4 w-4 mr-1" /> Previous
-                </Button>
-                <Button 
-                  type="button"
-                  disabled={isFormSubmitting || createSessionMutation.isPending}
-                  variant="default"
-                  onClick={() => {
-                    // Explicit form submission with validation and detailed error handling
-                    console.log("Create Session button clicked - beginning direct form handling");
-                    
-                    // Validate the form first
-                    form.trigger().then((isValid) => {
-                      console.log("Form validation result:", isValid, "Form errors:", form.formState.errors);
-                      
-                      if (isValid) {
-                        // Get the form data directly
-                        const formData = form.getValues();
-                        console.log("Form values to submit:", formData);
-                        
-                        // Prevent multiple submissions
-                        setIsFormSubmitting(true);
-                        
-                        // Directly call the mutation without going through form handler
-                        createSessionMutation.mutate(formData, {
-                          onSuccess: () => {
-                            console.log("Session created successfully via direct handler");
-                            setIsFormSubmitting(false);
-                            toast({
-                              title: "Success!",
-                              description: "Session created successfully.",
-                              variant: "default",
-                            });
-                            // Close the form
-                            onOpenChange(false);
-                            
-                            // Invalidate queries to refresh lists
-                            queryClient.invalidateQueries({ queryKey: ['/api/sessions'] });
-                            if (clientId) {
-                              queryClient.invalidateQueries({ queryKey: [`/api/clients/${clientId}/sessions`] });
-                            }
-                          },
-                          onError: (error) => {
-                            console.error("Error creating session via direct handler:", error);
-                            setIsFormSubmitting(false);
-                            toast({
-                              title: "Error",
-                              description: "Failed to create session. Please try again.",
-                              variant: "destructive",
-                            });
-                          }
-                        });
-                      } else {
-                        console.error("Form validation failed:", form.formState.errors);
-                        toast({
-                          title: "Validation Error",
-                          description: "Please check all fields and try again.",
-                          variant: "destructive",
-                        });
-                      }
-                    });
-                  }}
-                >
-                  {isFormSubmitting || createSessionMutation.isPending ? (
-                    <span className="flex items-center">
-                      <RefreshCw className="h-4 w-4 mr-2 animate-spin" /> 
-                      Creating...
-                    </span>
-                  ) : "Create Session"}
-                </Button>
-              </>
-            )}
           </div>
         </div>
         
@@ -1893,7 +1779,7 @@ export function FullScreenSessionForm({
               </div>
 
               {/* Session Details Tab */}
-              <TabsContent value="session" className="h-[calc(100%-48px)] overflow-y-auto p-4">
+              <TabsContent value="session" className="h-[calc(100%-48px)] overflow-y-auto p-4 pb-24">
                 <ThreeColumnLayout
                   leftColumn={
                     <div className="space-y-6 p-4">
@@ -2591,7 +2477,7 @@ export function FullScreenSessionForm({
               </TabsContent>
 
               {/* Summary Tab */}
-              <TabsContent value="summary" className="h-[calc(100%-48px)] overflow-y-auto p-4">
+              <TabsContent value="summary" className="h-[calc(100%-48px)] overflow-y-auto p-4 pb-24">
                 <div className="p-4 max-w-3xl mx-auto">
                   <Card>
                     <CardHeader className="pb-2">
@@ -2910,7 +2796,7 @@ export function FullScreenSessionForm({
               </TabsContent>
 
               {/* Performance Assessment Tab */}
-              <TabsContent value="assessment" className="h-[calc(100%-48px)] overflow-y-auto p-4">
+              <TabsContent value="assessment" className="h-[calc(100%-48px)] overflow-y-auto p-4 pb-24">
                 <div className="flex gap-4 p-4">
                   {/* Left Column - 75% - Goals Assessed */}
                   <div className="w-3/4">
@@ -3132,6 +3018,72 @@ export function FullScreenSessionForm({
                 </div>
               </TabsContent>
             </Tabs>
+
+            {/* Form Navigation Footer */}
+            <div className="fixed bottom-0 left-0 right-0 border-t bg-card p-4 z-10 flex justify-between">
+              <div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    if (activeTab === "assessment") {
+                      setActiveTab("session");
+                    } else if (activeTab === "summary") {
+                      setActiveTab("assessment");
+                    }
+                  }}
+                  disabled={activeTab === "session"}
+                >
+                  <ChevronLeft className="mr-2 h-4 w-4" />
+                  Previous
+                </Button>
+              </div>
+              <div className="flex gap-2">
+                <Button 
+                  type="button" 
+                  variant="outline"
+                  onClick={() => {
+                    if (onOpenChange) {
+                      onOpenChange(false);
+                    }
+                  }}
+                >
+                  Cancel
+                </Button>
+                {activeTab === "summary" && (
+                  <Button 
+                    type="submit"
+                    disabled={isFormSubmitting || form.formState.isSubmitting}
+                    onClick={(e) => {
+                      // The form's onSubmit handler will handle this
+                      console.log("Create New Session button in footer clicked");
+                    }}
+                  >
+                    {isFormSubmitting || form.formState.isSubmitting ? (
+                      <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <Save className="mr-2 h-4 w-4" />
+                    )}
+                    Create New Session
+                  </Button>
+                )}
+                {activeTab !== "summary" && (
+                  <Button
+                    type="button"
+                    onClick={() => {
+                      if (activeTab === "session") {
+                        setActiveTab("assessment");
+                      } else if (activeTab === "assessment") {
+                        setActiveTab("summary");
+                      }
+                    }}
+                  >
+                    Next
+                    <ChevronRight className="ml-2 h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+            </div>
           </form>
         </Form>
       </div>
