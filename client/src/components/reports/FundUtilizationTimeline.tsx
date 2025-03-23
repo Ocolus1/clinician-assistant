@@ -30,7 +30,6 @@ import {
   Tooltip as RechartsTooltip,
 } from "recharts";
 import { BudgetSettings } from "@shared/schema";
-import { getDummyFundUtilizationData } from "@shared/dummy-data";
 import { calculateRemainingFunds, calculateSpentFromSessions } from "@/lib/utils/budgetUtils";
 
 interface FundUtilizationTimelineProps {
@@ -49,13 +48,13 @@ export function FundUtilizationTimeline({ clientId }: FundUtilizationTimelinePro
   });
 
   // Fetch all sessions for this client
-  const { data: sessions = [], isLoading: isLoadingSessions } = useQuery({
+  const { data: sessions = [], isLoading: isLoadingSessions } = useQuery<any[]>({
     queryKey: ['/api/clients', clientId, 'sessions'],
     enabled: !!clientId,
   });
   
   // Fetch budget items for the active plan
-  const { data: budgetItems = [], isLoading: isLoadingBudgetItems } = useQuery({
+  const { data: budgetItems = [], isLoading: isLoadingBudgetItems } = useQuery<any[]>({
     queryKey: ['/api/clients', clientId, 'budget-items'],
     enabled: !!clientId && !!budgetSettings?.id,
   });
@@ -83,84 +82,205 @@ export function FundUtilizationTimeline({ clientId }: FundUtilizationTimelinePro
   // 4. Correction: Line showing ideal spending from today to use all funds
   const timelineData = React.useMemo<TimelineDataPoint[]>(() => {
     // If data is being loaded, return empty array
-    if (isLoadingSettings || isLoadingSessions) {
+    if (isLoadingSettings || isLoadingSessions || !budgetSettings) {
       return [];
     }
 
     try {
-      // Extract budget plan start and end dates from the budget settings
-      // This ensures we use the proper date range for the timeline
-      // Ensure they are in ISO string format for consistency
-      const planStartDate = budgetSettings?.createdAt ? 
-        new Date(budgetSettings.createdAt).toISOString().split('T')[0] : undefined;
-      const planEndDate = budgetSettings?.endOfPlan ? 
-        new Date(budgetSettings.endOfPlan).toISOString().split('T')[0] : undefined;
-        
-      console.log("Plan dates for client", clientId, ":", { planStartDate, planEndDate });
+      // Extract budget plan data
+      const planStartDate = budgetSettings.createdAt ? new Date(budgetSettings.createdAt) : new Date();
+      const planEndDate = budgetSettings.endOfPlan ? new Date(budgetSettings.endOfPlan) : new Date();
+      const totalBudget = Number(budgetSettings.ndisFunds || 0);
       
-      // Use the dummy data generator for consistent visualization
-      // Pass the actual plan dates to ensure correct date range
-      let data = getDummyFundUtilizationData(
-        clientId, 
-        underspendingPercentage,
-        planStartDate,
-        planEndDate
-      );
-      
-      // CRITICAL: Sort the timeline data chronologically by date to ensure proper display
-      console.log("Before sorting:", data.map(d => d.date));
-      data = data.sort((a, b) => {
-        const dateA = new Date(a.date);
-        const dateB = new Date(b.date);
-        return dateA.getTime() - dateB.getTime();
-      });
-      console.log("After sorting:", data.map(d => d.date));
-      
-      // Sort the data chronologically by actual date value to ensure proper ordering
-      data = data.sort((a, b) => {
-        // Parse the ISO date strings into Date objects for proper comparison
-        const dateA = new Date(a.date);
-        const dateB = new Date(b.date);
-        return dateA.getTime() - dateB.getTime();
+      if (totalBudget <= 0) {
+        console.error("Invalid budget amount for timeline calculation");
+        return [];
+      }
+
+      console.log("Plan dates for client", clientId, ":", { 
+        planStartDate: planStartDate.toISOString(), 
+        planEndDate: planEndDate.toISOString(),
+        totalBudget
       });
       
-      // If we have budget settings, use real total budget value
-      if (budgetSettings?.ndisFunds) {
-        const totalBudget = Number(budgetSettings.ndisFunds);
+      // Create a chronological list of sorted sessions
+      const sortedSessions = [...sessions].sort((a, b) => {
+        return new Date(a.sessionDate).getTime() - new Date(b.sessionDate).getTime();
+      });
+      
+      console.log(`Found ${sortedSessions.length} sessions for timeline`);
+      
+      // Calculate actual spending by session date
+      const cumulativeSpendingByDate: Record<string, number> = {};
+      let runningTotal = 0;
+      
+      // Process sessions and calculate cumulative spending
+      sortedSessions.forEach(session => {
+        // Get session date and format as ISO string for consistent comparison
+        const sessionDate = new Date(session.sessionDate);
+        const dateKey = sessionDate.toISOString().split('T')[0];
         
-        // Adjust the dummy data to use the real budget amount, but scale it to fit under 20,000 for visualization
-        const visualizationScale = totalBudget > 20000 ? 20000 / totalBudget : 1;
+        // Calculate spending from this session
+        let sessionSpending = 0;
         
-        // Define a type for our enhanced data points with visualization scale
-        type EnhancedDataPoint = typeof data[0] & { 
-          visualizationScale: number 
-        };
+        // If the session has products property directly
+        if (session.products && Array.isArray(session.products)) {
+          for (const product of session.products) {
+            const quantity = Number(product.quantity) || 1;
+            const unitPrice = Number(product.unitPrice) || 0;
+            sessionSpending += quantity * unitPrice;
+          }
+        }
+        // If the session has a sessionNote property with products
+        else if (session.sessionNote && session.sessionNote.products && Array.isArray(session.sessionNote.products)) {
+          for (const product of session.sessionNote.products) {
+            const quantity = Number(product.quantity) || 1;
+            const unitPrice = Number(product.unitPrice) || 0;
+            sessionSpending += quantity * unitPrice;
+          }
+        }
         
-        return data.map(point => {
-          // Create scaled version of data for better visualization while maintaining proportions
-          // Bug fix: there's a scaling error in the calculations that's causing values to not display properly
-          // For the first point (point.projectedSpent/point.projectedSpent = 1) multiplied by other factors
-          // For March entry specifically, using point.projectedSpent directly
-          const enhancedPoint: EnhancedDataPoint = {
-            ...point,
-            // Keep original values but apply visualization scale
-            projectedSpent: point.projectedSpent * visualizationScale,
-            actualSpent: point.actualSpent !== null ? point.actualSpent * visualizationScale : null,
-            extensionSpent: point.extensionSpent !== null ? point.extensionSpent * visualizationScale : null,
-            correctionSpent: point.correctionSpent !== null ? point.correctionSpent * visualizationScale : null,
-            // Add a property to track the scaling factor for tooltips
-            visualizationScale: visualizationScale
-          };
-          return enhancedPoint;
+        // Add to running total
+        runningTotal += sessionSpending;
+        cumulativeSpendingByDate[dateKey] = runningTotal;
+      });
+      
+      console.log("Cumulative spending by date:", cumulativeSpendingByDate);
+      
+      // Generate timeline data points
+      // We'll create monthly data points for clarity
+      const timelinePoints: TimelineDataPoint[] = [];
+      const today = new Date();
+      
+      // Calculate ideal spending rate (amount per day)
+      const totalDays = Math.max(1, differenceInDays(planEndDate, planStartDate));
+      const idealDailyRate = totalBudget / totalDays;
+      
+      // Calculate actual spending rate based on sessions so far
+      const daysElapsedSoFar = Math.max(1, differenceInDays(today, planStartDate));
+      const totalSpentSoFar = Object.values(cumulativeSpendingByDate).pop() || 0;
+      const actualDailyRate = totalSpentSoFar / daysElapsedSoFar;
+      
+      console.log("Spending rates:", {
+        totalDays,
+        idealDailyRate,
+        daysElapsedSoFar,
+        totalSpentSoFar,
+        actualDailyRate
+      });
+      
+      // Create data points at regular intervals
+      // Start with plan start date
+      let currentDate = new Date(planStartDate);
+      
+      // Get monthly timeline points from start date to end date
+      while (currentDate <= planEndDate) {
+        const dateKey = currentDate.toISOString().split('T')[0];
+        const displayDate = format(currentDate, 'MMM yy');
+        const dayNumber = differenceInDays(currentDate, planStartDate);
+        
+        // Calculate expected spending at this point (projected line)
+        const projectedSpent = idealDailyRate * dayNumber;
+        
+        // Get actual spent amount from our cumulative tracking
+        // Find the closest date that's not after our current point
+        const actualSpent = (() => {
+          // If this date is in the future, return null for actual spent
+          if (isAfter(currentDate, today)) {
+            return null;
+          }
+          
+          // Find the closest date in our spending record
+          const spendingDates = Object.keys(cumulativeSpendingByDate).sort();
+          let closestDate = spendingDates[0] || null;
+          
+          for (const spendingDate of spendingDates) {
+            if (spendingDate <= dateKey) {
+              closestDate = spendingDate;
+            } else {
+              break;
+            }
+          }
+          
+          return closestDate ? cumulativeSpendingByDate[closestDate] : 0;
+        })();
+        
+        // Calculate extension spending (future projection based on actual rate)
+        const extensionSpent = (() => {
+          // If this date is in the past or today, return null
+          if (!isAfter(currentDate, today)) {
+            return null;
+          }
+          
+          // Calculate based on actual daily rate
+          const futureDays = differenceInDays(currentDate, today);
+          return totalSpentSoFar + (actualDailyRate * futureDays);
+        })();
+        
+        // Calculate correction spending (what's needed to use all funds by end)
+        const correctionSpent = (() => {
+          // If this date is in the past, return null
+          if (!isAfter(currentDate, today)) {
+            return null;
+          }
+          
+          // Calculate remaining days and funds
+          const remainingDays = Math.max(1, differenceInDays(planEndDate, today));
+          const remainingFunds = totalBudget - totalSpentSoFar;
+          const correctionDailyRate = remainingFunds / remainingDays;
+          
+          // Days from today to this date point
+          const daysFromToday = differenceInDays(currentDate, today);
+          
+          return totalSpentSoFar + (correctionDailyRate * daysFromToday);
+        })();
+        
+        const isToday = format(currentDate, 'yyyy-MM-dd') === format(today, 'yyyy-MM-dd');
+        const isPastToday = !isAfter(currentDate, today);
+        
+        // Calculate percentages for visualization
+        const percentOfTimeElapsed = dayNumber / totalDays;
+        const percentOfBudgetSpent = (actualSpent !== null ? actualSpent : 0) / totalBudget;
+        
+        timelinePoints.push({
+          date: dateKey,
+          displayDate,
+          dayNumber,
+          projectedSpent,
+          actualSpent,
+          extensionSpent,
+          correctionSpent,
+          isToday,
+          isPastToday,
+          percentOfTimeElapsed,
+          percentOfBudgetSpent
         });
+        
+        // Move to next month
+        currentDate = new Date(currentDate);
+        currentDate.setMonth(currentDate.getMonth() + 1);
       }
       
-      return data;
+      console.log("Generated timeline points:", timelinePoints.length);
+      
+      // Scale data for visualization if needed
+      const visualizationScale = totalBudget > 20000 ? 20000 / totalBudget : 1;
+      
+      return timelinePoints.map(point => ({
+        ...point,
+        // Apply visualization scale
+        projectedSpent: point.projectedSpent * visualizationScale,
+        actualSpent: point.actualSpent !== null ? point.actualSpent * visualizationScale : null,
+        extensionSpent: point.extensionSpent !== null ? point.extensionSpent * visualizationScale : null,
+        correctionSpent: point.correctionSpent !== null ? point.correctionSpent * visualizationScale : null,
+        // Add visualization scale for tooltips
+        visualizationScale
+      }));
     } catch (error) {
       console.error("Error generating timeline data:", error);
       return [];
     }
-  }, [budgetSettings, isLoadingSettings, isLoadingSessions, clientId]);
+  }, [budgetSettings, sessions, isLoadingSettings, isLoadingSessions, clientId]);
 
   // Calculate depletion date and current status
   const {
