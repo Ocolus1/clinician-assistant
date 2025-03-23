@@ -1758,9 +1758,14 @@ export function FullScreenSessionForm({
                   <ChevronLeft className="h-4 w-4 mr-1" /> Previous
                 </Button>
                 <Button 
-                  type="submit"
+                  type="button"
                   disabled={isFormSubmitting || createSessionMutation.isPending}
                   variant="default"
+                  onClick={() => {
+                    // Manually trigger form validation and submission
+                    console.log("Create Session button clicked - triggering form submission");
+                    form.handleSubmit(onSubmit)();
+                  }}
                 >
                   {isFormSubmitting || createSessionMutation.isPending ? (
                     <span className="flex items-center">
