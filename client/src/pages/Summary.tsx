@@ -128,6 +128,17 @@ export default function Summary() {
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-3xl font-bold">Client Summary</h1>
           <div className="flex gap-4">
+            <Button
+              className="bg-green-600 hover:bg-green-700 text-white"
+              onClick={() => {
+                // Open the session dialog from the top bar
+                // We'll use the URL parameter approach to trigger the dialog
+                setLocation(`/client/${clientId}?openSessionDialog=true`);
+              }}
+            >
+              <FileText className="w-4 h-4 mr-2" />
+              Create Session
+            </Button>
             <Button onClick={() => setLocation(`/print-summary/${clientId}`)} variant="default">
               <FileText className="w-4 h-4 mr-2" />
               View & Print Report
