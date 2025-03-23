@@ -34,8 +34,6 @@ import { cn } from "@/lib/utils";
 // Import our specialized components
 import { BudgetItemUtilization } from './BudgetItemUtilization';
 import { FundUtilizationTimeline } from './FundUtilizationTimeline';
-import { BudgetReallocationSuggestions } from './BudgetReallocationSuggestions';
-import { ServiceGapAnalysis } from './ServiceGapAnalysis';
 
 // Import types
 import { ClientReportData } from '@/lib/api/clientReports';
@@ -80,66 +78,12 @@ export function EnhancedFinancialTab({ clientId, reportData }: EnhancedFinancial
   const spendingDeviation = (keyMetrics.spendingDeviation * 100).toFixed(1);
   const isOverAllocated = keyMetrics.spendingDeviation > 0;
 
-  // Define types for our data
-  type Goal = {
-    id: number;
-    clientId: number;
-    title: string;
-    description: string;
-    priority: string;
-  };
-  
-  type Subgoal = {
-    id: number;
-    goalId: number;
-    title: string;
-    description: string;
-    status?: string;
-  };
-  
+  // Define session type
   type Session = any;
   
-  // Get goals and subgoals for ServiceGapAnalysis
-  const { data: goals = [] } = useQuery<Goal[]>({
-    queryKey: [`/api/clients/${clientId}/goals`],
-  });
-  
+  // Get session data for attendance chart
   const { data: sessions = [] } = useQuery<Session[]>({
     queryKey: [`/api/clients/${clientId}/sessions`],
-  });
-  
-  // Get budget items
-  const { data: budgetItems = [] } = useQuery<any[]>({
-    queryKey: [`/api/clients/${clientId}/budget-items`],
-  });
-  
-  // Get budget settings
-  const { data: budgetSettings } = useQuery<any>({
-    queryKey: [`/api/clients/${clientId}/budget-settings`],
-  });
-  
-  // Get all subgoals from all goals
-  const { data: subgoals = [] } = useQuery<Subgoal[]>({
-    queryKey: [`/api/clients/${clientId}/subgoals`],
-    queryFn: async () => {
-      // Fetch subgoals for each goal
-      const allSubgoals: Subgoal[] = [];
-      if (goals && Array.isArray(goals)) {
-        for (const goal of goals) {
-          if (goal && goal.id) {
-            const response = await fetch(`/api/goals/${goal.id}/subgoals`);
-            if (response.ok) {
-              const goalSubgoals = await response.json();
-              if (Array.isArray(goalSubgoals)) {
-                allSubgoals.push(...goalSubgoals);
-              }
-            }
-          }
-        }
-      }
-      return allSubgoals;
-    },
-    enabled: goals.length > 0,
   });
 
   return (
@@ -199,22 +143,7 @@ export function EnhancedFinancialTab({ clientId, reportData }: EnhancedFinancial
         </div>
       </div>
 
-      {/* Row 3: Budget Reallocation Suggestions */}
-      <BudgetReallocationSuggestions 
-        budgetItems={budgetItems} 
-        sessions={sessions}
-        budgetSettings={budgetSettings}
-      />
-
-      {/* Row 4: Service Gap Analysis */}
-      <ServiceGapAnalysis
-        clientId={clientId}
-        budgetItems={budgetItems}
-        sessions={sessions}
-        goals={goals as any[]}
-        subgoals={subgoals as any[]}
-        budgetSettings={budgetSettings}
-      />
+      {/* Budget Reallocation Suggestions and Service Gap Analysis sections removed */}
       
       {/* Additional information or explanatory text */}
       <Card className="bg-muted/50">
