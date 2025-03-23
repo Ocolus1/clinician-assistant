@@ -644,11 +644,18 @@ export function FullScreenSessionForm({
     performanceAssessments: [],
   };
   
-  // Create form
+  // Create form with validation debugging
   const form = useSafeForm<IntegratedSessionFormValues>({
     resolver: zodResolver(integratedSessionFormSchema),
     defaultValues,
+    mode: "onChange", // Validate on field change for better user feedback
   });
+  
+  // Log validation schema for debugging
+  useEffect(() => {
+    console.log("Using integrated session form schema:", integratedSessionFormSchema);
+    console.log("Form default values:", defaultValues);
+  }, []);
 
   // Reset form values when form dialog is closed and reset form when reopened
   useEffect(() => {
@@ -1762,9 +1769,59 @@ export function FullScreenSessionForm({
                   disabled={isFormSubmitting || createSessionMutation.isPending}
                   variant="default"
                   onClick={() => {
-                    // Manually trigger form validation and submission
-                    console.log("Create Session button clicked - triggering form submission");
-                    form.handleSubmit(onSubmit)();
+                    // Explicit form submission with validation and detailed error handling
+                    console.log("Create Session button clicked - beginning direct form handling");
+                    
+                    // Validate the form first
+                    form.trigger().then((isValid) => {
+                      console.log("Form validation result:", isValid, "Form errors:", form.formState.errors);
+                      
+                      if (isValid) {
+                        // Get the form data directly
+                        const formData = form.getValues();
+                        console.log("Form values to submit:", formData);
+                        
+                        // Prevent multiple submissions
+                        setIsFormSubmitting(true);
+                        
+                        // Directly call the mutation without going through form handler
+                        createSessionMutation.mutate(formData, {
+                          onSuccess: () => {
+                            console.log("Session created successfully via direct handler");
+                            setIsFormSubmitting(false);
+                            toast({
+                              title: "Success!",
+                              description: "Session created successfully.",
+                              variant: "default",
+                            });
+                            // Close the form
+                            onOpenChange(false);
+                            
+                            // Invalidate queries to refresh lists
+                            queryClient.invalidateQueries({ queryKey: ['/api/sessions'] });
+                            if (clientId) {
+                              queryClient.invalidateQueries({ queryKey: [`/api/clients/${clientId}/sessions`] });
+                            }
+                          },
+                          onError: (error) => {
+                            console.error("Error creating session via direct handler:", error);
+                            setIsFormSubmitting(false);
+                            toast({
+                              title: "Error",
+                              description: "Failed to create session. Please try again.",
+                              variant: "destructive",
+                            });
+                          }
+                        });
+                      } else {
+                        console.error("Form validation failed:", form.formState.errors);
+                        toast({
+                          title: "Validation Error",
+                          description: "Please check all fields and try again.",
+                          variant: "destructive",
+                        });
+                      }
+                    });
                   }}
                 >
                   {isFormSubmitting || createSessionMutation.isPending ? (
