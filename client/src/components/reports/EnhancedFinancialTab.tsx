@@ -92,18 +92,18 @@ export function EnhancedFinancialTab({ clientId, reportData }: EnhancedFinancial
       <FundUtilizationTimeline clientId={clientId} />
       
       {/* Row 2: Budget item utilization grid and Session attendance */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-        {/* Budget item utilization */}
-        <div className="lg:col-span-1">
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
+        {/* Budget item utilization (80% width - 4/5 columns) */}
+        <div className="lg:col-span-4">
           <BudgetItemUtilization clientId={clientId} />
         </div>
         
-        {/* Session attendance */}
+        {/* Session attendance (20% width - 1/5 columns) */}
         <div className="lg:col-span-1">
           <Card>
             <CardHeader className="py-3">
               <CardTitle className="text-base">Session Attendance</CardTitle>
-              <CardDescription className="text-xs">Breakdown of session attendance</CardDescription>
+              <CardDescription className="text-xs">Breakdown of attendance</CardDescription>
             </CardHeader>
             <CardContent className="p-2">
               <div className="h-[170px] flex items-center justify-center">
@@ -119,7 +119,7 @@ export function EnhancedFinancialTab({ clientId, reportData }: EnhancedFinancial
                       cy="50%"
                       labelLine={false}
                       label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                      outerRadius={80}
+                      outerRadius={60}
                       fill="#8884d8"
                       dataKey="value"
                     >
