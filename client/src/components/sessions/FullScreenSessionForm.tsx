@@ -1259,7 +1259,7 @@ export function FullScreenSessionForm({
   // Form submission handler
   const createSessionMutation = useMutation({
     mutationFn: async (data: IntegratedSessionFormValues) => {
-      console.log("Form submit data:", data);
+      console.log("### DETAILED FORM SUBMISSION - Form submit data:", data);
       
       // Ensure therapistId is properly formatted
       const sessionData = {
@@ -1267,11 +1267,11 @@ export function FullScreenSessionForm({
         therapistId: data.session.therapistId ? Number(data.session.therapistId) : undefined
       };
       
-      console.log("Formatted session data:", sessionData);
+      console.log("### DETAILED FORM SUBMISSION - Formatted session data:", sessionData);
 
       // First create the session
       const sessionResponse = await apiRequest("POST", "/api/sessions", sessionData);
-      console.log("Session created:", sessionResponse);
+      console.log("### DETAILED FORM SUBMISSION - Session created successfully:", sessionResponse);
 
       if (!sessionResponse || !('id' in sessionResponse)) {
         throw new Error("Failed to create session");
@@ -2824,19 +2824,19 @@ export function FullScreenSessionForm({
                     <Button 
                       type="button"
                       className="w-full max-w-md bg-green-600 hover:bg-green-700 text-white"
-                      disabled={isFormSubmitting || createSessionMutation.isPending}
-                      onClick={() => {
+                      disabled={isFormSubmitting}
+                      onClick={async () => {
                         console.log("### EMERGENCY DIRECT SUBMIT BUTTON CLICKED ###");
                         
+                        // Mark form as submitting
+                        setIsFormSubmitting(true);
+                        
                         try {
-                          // 1. Mark form as submitting
-                          setIsFormSubmitting(true);
-                          
-                          // 2. Get all form values without validation
+                          // Get all form values without validation
                           const formData = form.getValues();
                           console.log("Emergency submit - Form data:", formData);
                           
-                          // 3. Process data like we do in onSubmit
+                          // Process data like we do in onSubmit
                           if (formData.session.timeFrom && formData.session.timeTo) {
                             const [fromHours, fromMinutes] = formData.session.timeFrom.split(':').map(Number);
                             const [toHours, toMinutes] = formData.session.timeTo.split(':').map(Number);
@@ -2857,57 +2857,43 @@ export function FullScreenSessionForm({
                             formData.session.title = 'Therapy Session';
                           }
                           
-                          // 4. Call the mutation directly
-                          createSessionMutation.mutate(formData, {
-                            onSuccess: (response) => {
-                              console.log("### EMERGENCY SUBMIT SUCCESS! Session created:", response);
-                              
-                              toast({
-                                title: "Session Created",
-                                description: "The session was created successfully.",
-                                variant: "default",
-                              });
-                              
-                              // Reset submitting state
-                              setIsFormSubmitting(false);
-                              
-                              // Close the form dialog
-                              onOpenChange(false);
-                              
-                              // Refresh the sessions list
-                              queryClient.invalidateQueries({ queryKey: ['/api/sessions'] });
-                              if (clientId) {
-                                queryClient.invalidateQueries({ queryKey: [`/api/clients/${clientId}/sessions`] });
-                              }
-                            },
-                            onError: (error) => {
-                              console.error("### EMERGENCY SUBMIT ERROR:", error);
-                              
-                              toast({
-                                title: "Error",
-                                description: "Failed to create session. Please try again.",
-                                variant: "destructive",
-                              });
-                              
-                              // Reset submitting state
-                              setIsFormSubmitting(false);
-                            }
+                          // Direct API call instead of using the mutation
+                          console.log("### DIRECT API CALL - Creating session with data:", formData.session);
+                          const sessionResponse = await apiRequest("POST", "/api/sessions", formData.session);
+                          
+                          console.log("### DIRECT API CALL - Session created successfully:", sessionResponse);
+                          
+                          toast({
+                            title: "Session Created",
+                            description: "The session was created successfully.",
+                            variant: "default",
                           });
+                          
+                          // Close the form dialog
+                          setTimeout(() => {
+                            onOpenChange(false);
+                            
+                            // Refresh the sessions list
+                            queryClient.invalidateQueries({ queryKey: ['/api/sessions'] });
+                            if (clientId) {
+                              queryClient.invalidateQueries({ queryKey: [`/api/clients/${clientId}/sessions`] });
+                            }
+                          }, 500);
                         } catch (error) {
-                          console.error("### UNHANDLED ERROR IN EMERGENCY SUBMIT:", error);
+                          console.error("### DIRECT API CALL ERROR:", error);
                           
                           toast({
                             title: "Error",
-                            description: "An unexpected error occurred. Please try again.",
+                            description: "Failed to create session. Please try again.",
                             variant: "destructive",
                           });
-                          
-                          // Reset submitting state
+                        } finally {
+                          // Always reset submitting state
                           setIsFormSubmitting(false);
                         }
                       }}
                     >
-                      {isFormSubmitting || createSessionMutation.isPending ? (
+                      {isFormSubmitting ? (
                         <span className="flex items-center justify-center">
                           <RefreshCw className="h-5 w-5 mr-2 animate-spin" /> 
                           Creating Session...
