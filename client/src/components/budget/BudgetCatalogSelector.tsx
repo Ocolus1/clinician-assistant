@@ -19,6 +19,7 @@ interface BudgetCatalogSelectorProps {
   onAddItem: (catalogItem: CatalogItem, quantity: number) => void;
   remainingBudget: number;
   activePlan: BudgetPlan | null;
+  currentItems?: any[]; // Currently added budget items
 }
 
 /**
@@ -29,10 +30,16 @@ export function BudgetCatalogSelector({
   catalogItems, 
   onAddItem,
   remainingBudget,
-  activePlan
+  activePlan,
+  currentItems = []
 }: BudgetCatalogSelectorProps) {
   const [selectedItemId, setSelectedItemId] = useState<string>('');
   const [quantity, setQuantity] = useState<number>(1);
+  
+  // Get already added item codes to filter them out
+  const existingItemCodes = useMemo(() => {
+    return currentItems.map(item => item.itemCode);
+  }, [currentItems]);
   
   // Get the selected catalog item
   const selectedItem = useMemo(() => {
@@ -76,11 +83,19 @@ export function BudgetCatalogSelector({
   const isDisabled = !activePlan;
   const isAddDisabled = !selectedItem || !quantity || quantity > maxQuantity || quantity < 1;
   
-  // Filter active catalog items
-  const activeItems = catalogItems.filter(item => item.isActive !== false);
+  // Filter active catalog items and exclude already added items
+  const availableItems = useMemo(() => {
+    return catalogItems.filter(item => {
+      // Filter active items only
+      const isActive = item.isActive !== false;
+      // Filter out items that are already in the budget plan
+      const isNotAlreadyAdded = !existingItemCodes.includes(item.itemCode);
+      return isActive && isNotAlreadyAdded;
+    });
+  }, [catalogItems, existingItemCodes]);
   
   // Group items by category for better organization
-  const groupedItems = activeItems.reduce((acc: Record<string, CatalogItem[]>, item) => {
+  const groupedItems = availableItems.reduce((acc: Record<string, CatalogItem[]>, item) => {
     const category = item.category || 'Uncategorized';
     if (!acc[category]) {
       acc[category] = [];

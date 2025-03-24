@@ -878,6 +878,7 @@ export function UnifiedBudgetManager({ clientId, selectedPlanId }: UnifiedBudget
                   onAddItem={handleAddCatalogItem}
                   remainingBudget={getClientBudget() - (form.watch("totalAllocated") || 0)} // Calculate remaining allocation based on client budget
                   activePlan={activePlan}
+                  currentItems={form.getValues().items} // Pass current items to filter them out
                 />
               )}
             </div>

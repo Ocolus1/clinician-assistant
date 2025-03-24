@@ -120,6 +120,17 @@ export function BudgetItemRow({
     validateQuantity(quantity);
   };
   
+  // Handle clicking on the item card to toggle editing
+  const handleCardClick = () => {
+    // If in read-only mode, don't allow editing
+    if (isReadOnly) return;
+    
+    // Only start editing if not already editing
+    if (!isEditing) {
+      handleStartEdit();
+    }
+  };
+  
   // Cancel editing (revert to original quantity)
   const handleCancelEdit = () => {
     setQuantity(item.quantity);
@@ -194,12 +205,15 @@ export function BudgetItemRow({
   };
   
   return (
-    <div className={cn(
-      "border rounded-md p-3 transition-colors",
-      isEditing ? "border-blue-300 bg-blue-50" : "border-gray-200",
-      item.isNew && "border-green-300 bg-green-50",
-      hasUnsavedChanges && !isEditing && "border-amber-300 bg-amber-50"
-    )}>
+    <div 
+      className={cn(
+        "border rounded-md p-3 transition-colors",
+        isEditing ? "border-blue-300 bg-blue-50" : "border-gray-200 hover:border-blue-200 hover:bg-blue-50/50 cursor-pointer",
+        item.isNew && "border-green-300 bg-green-50",
+        hasUnsavedChanges && !isEditing && "border-amber-300 bg-amber-50"
+      )}
+      onClick={!isEditing ? handleCardClick : undefined}
+    >
       {isEditing ? (
         <div className="flex flex-col gap-4">
           {/* Item Header in Edit Mode */}

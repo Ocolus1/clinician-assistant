@@ -18,6 +18,7 @@ interface CatalogSelectionModalProps {
   onOpenChange: (open: boolean) => void;
   catalogItems: CatalogItem[];
   onSelectItem: (item: CatalogItem) => void;
+  currentItems?: CatalogItem[]; // Currently selected items to filter out
 }
 
 export function CatalogSelectionModal({
@@ -25,6 +26,7 @@ export function CatalogSelectionModal({
   onOpenChange,
   catalogItems,
   onSelectItem,
+  currentItems = []
 }: CatalogSelectionModalProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [filteredItems, setFilteredItems] = useState<CatalogItem[]>([]);
@@ -36,27 +38,35 @@ export function CatalogSelectionModal({
     }
   }, [open]);
 
-  // Filter catalog items based on search term
+  // Get the list of item codes that are already added to the budget
+  const existingItemCodes = currentItems.map(item => item.itemCode);
+
+  // Filter catalog items based on search term and exclude already added items
   useEffect(() => {
     if (!catalogItems) {
       setFilteredItems([]);
       return;
     }
 
+    // First filter out any items that are already in the budget plan
+    const availableItems = catalogItems.filter(item => 
+      !existingItemCodes.includes(item.itemCode)
+    );
+
     const lowerSearchTerm = searchTerm.toLowerCase();
     if (!lowerSearchTerm) {
-      setFilteredItems(catalogItems);
+      setFilteredItems(availableItems);
       return;
     }
 
-    const filtered = catalogItems.filter(
+    const filtered = availableItems.filter(
       (item) =>
         item.itemCode.toLowerCase().includes(lowerSearchTerm) ||
         (item.description && item.description.toLowerCase().includes(lowerSearchTerm)) ||
         (item.category && item.category.toLowerCase().includes(lowerSearchTerm))
     );
     setFilteredItems(filtered);
-  }, [searchTerm, catalogItems]);
+  }, [searchTerm, catalogItems, existingItemCodes]);
 
   // Group items by category for better organization
   const groupedItems = filteredItems.reduce<Record<string, CatalogItem[]>>((acc, item) => {
