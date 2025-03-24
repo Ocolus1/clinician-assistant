@@ -53,6 +53,11 @@ export function EnhancedBudgetCardGrid({ clientId, onPlanSelected }: EnhancedBud
     );
   }
 
+  // Additional debug logging
+  console.log("Rendering EnhancedBudgetCardGrid with plans:", budgetPlans);
+  console.log("Is Array?", Array.isArray(budgetPlans));
+  console.log("Plan length:", budgetPlans ? (Array.isArray(budgetPlans) ? budgetPlans.length : 'Not an array') : 'No plans');
+
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
@@ -66,6 +71,14 @@ export function EnhancedBudgetCardGrid({ clientId, onPlanSelected }: EnhancedBud
           <Plus className="h-4 w-4 mr-2" />
           Create Plan
         </Button>
+      </div>
+
+      {/* Debug info */}
+      <div className="mb-4 p-2 bg-gray-100 rounded-md">
+        <h4 className="text-sm font-medium mb-1">Debug Info (only shown in development)</h4>
+        <div className="text-xs">
+          <p>Budget Plans: {JSON.stringify(budgetPlans)}</p>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
