@@ -1,9 +1,11 @@
 import React from 'react';
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
-import { Edit } from "lucide-react";
+import { Edit, User, Calendar, CreditCard, Mail, Phone, Home, History, MessageSquare, Settings, CheckCircle2 } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { cn } from "@/lib/utils";
 import type { Client } from "@shared/schema";
 
 // Extended interface that makes nullable fields explicit
@@ -65,45 +67,182 @@ export default function ClientPersonalInfo({ client, onEdit }: ClientPersonalInf
     });
   }
 
+  // Extract client name and unique identifier (if present)
+  const clientNameParts = client.name.split('-');
+  const displayName = clientNameParts[0];
+  const identifier = clientNameParts.length > 1 ? clientNameParts[1] : null;
+
+  // Determine fund management badge styles
+  const getFundManagementStyles = () => {
+    switch(client.fundsManagement) {
+      case 'Self-Managed':
+        return 'bg-blue-50 text-blue-700 border-blue-200';
+      case 'Advisor-Managed':
+        return 'bg-purple-50 text-purple-700 border-purple-200';
+      case 'Custodian-Managed':
+        return 'bg-amber-50 text-amber-700 border-amber-200';
+      default:
+        return 'bg-gray-50 text-gray-700 border-gray-200';
+    }
+  };
+
   return (
-    <Card className="w-full shadow-sm">
-      <CardHeader className="pb-2 flex flex-row items-center justify-between">
-        <div className="flex items-center">
-          <CardTitle>{client.name}</CardTitle>
-          <Badge variant="outline" className="ml-2 bg-green-50 text-green-700 border-green-200">
-            Active
+    <Card className="w-full shadow-sm hover:shadow-md transition-all duration-200">
+      <CardHeader className="pb-3 flex flex-row items-center justify-between">
+        <div className="flex flex-col">
+          <div className="flex items-center">
+            <div className="mr-3 bg-gradient-to-br from-primary/10 to-primary/30 rounded-full p-2.5">
+              <User className="h-6 w-6 text-primary/80" />
+            </div>
+            <div>
+              <CardTitle className="text-xl font-bold">{displayName}</CardTitle>
+              {identifier && (
+                <CardDescription className="text-xs mt-0.5">
+                  ID: {identifier}
+                </CardDescription>
+              )}
+            </div>
+          </div>
+        </div>
+        <div className="flex items-center space-x-2">
+          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+            <CheckCircle2 className="mr-1 h-3 w-3" /> Active
           </Badge>
+
+          {onEdit && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button 
+                    variant="outline"
+                    size="sm" 
+                    onClick={onEdit}
+                    className="rounded-full hover:bg-primary/5 focus:ring-2 focus:ring-offset-2 focus:ring-primary/20"
+                    aria-label="Edit personal information"
+                  >
+                    <Edit className="h-4 w-4 mr-1" />
+                    Edit Information
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Edit client personal information</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
         </div>
-        {onEdit && (
-          <Button 
-            variant="ghost"
-            size="icon" 
-            onClick={onEdit}
-          >
-            <Edit className="h-4 w-4" />
-          </Button>
-        )}
       </CardHeader>
-      <CardContent className="pt-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <h4 className="text-sm font-medium text-gray-500 mb-1">Date of Birth</h4>
-            <p className="font-medium">
-              {formatDate(client.dateOfBirth)}
-              {clientAge && 
-                <Badge variant="outline" className="ml-2 bg-primary/10 text-primary">
-                  {clientAge} years old
-                </Badge>
-              }
-            </p>
+
+      <CardContent className="pt-3 pb-5">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-y-5 gap-x-8">
+          <div className="space-y-4">
+            <div className="flex items-start">
+              <Calendar className="h-5 w-5 text-muted-foreground mr-3 mt-0.5" />
+              <div>
+                <h4 className="text-sm font-medium text-muted-foreground mb-1">Date of Birth</h4>
+                <p className="font-medium flex items-center">
+                  {formatDate(client.dateOfBirth)}
+                  {clientAge && 
+                    <Badge variant="outline" className="ml-2.5 bg-primary/10 text-primary border-primary/25">
+                      {clientAge} years old
+                    </Badge>
+                  }
+                </p>
+              </div>
+            </div>
+            
+            <div className="flex items-start">
+              <CreditCard className="h-5 w-5 text-muted-foreground mr-3 mt-0.5" />
+              <div>
+                <h4 className="text-sm font-medium text-muted-foreground mb-1">Funds Management</h4>
+                <p className="font-medium flex items-center">
+                  <Badge variant="outline" className={cn("mr-1.5", getFundManagementStyles())}>
+                    {client.fundsManagement || 'Not specified'}
+                  </Badge>
+                </p>
+              </div>
+            </div>
           </div>
-          <div>
-            <h4 className="text-sm font-medium text-gray-500 mb-1">Funds Management</h4>
-            <p className="font-medium">
-              {client.fundsManagement || 'Not specified'}
-            </p>
+
+          <div className="space-y-4">
+            {client.contactEmail && (
+              <div className="flex items-start">
+                <Mail className="h-5 w-5 text-muted-foreground mr-3 mt-0.5" />
+                <div>
+                  <h4 className="text-sm font-medium text-muted-foreground mb-1">Contact Email</h4>
+                  <p className="font-medium">{client.contactEmail}</p>
+                </div>
+              </div>
+            )}
+            
+            {client.contactPhone && (
+              <div className="flex items-start">
+                <Phone className="h-5 w-5 text-muted-foreground mr-3 mt-0.5" />
+                <div>
+                  <h4 className="text-sm font-medium text-muted-foreground mb-1">Contact Phone</h4>
+                  <p className="font-medium">{client.contactPhone}</p>
+                </div>
+              </div>
+            )}
+
+            {!client.contactEmail && !client.contactPhone && (
+              <div className="flex items-start">
+                <MessageSquare className="h-5 w-5 text-muted-foreground mr-3 mt-0.5" />
+                <div>
+                  <h4 className="text-sm font-medium text-muted-foreground mb-1">Contact Information</h4>
+                  <p className="text-muted-foreground italic">No contact information provided</p>
+                </div>
+              </div>
+            )}
           </div>
         </div>
+
+        {/* Additional fields that can be shown when expanded */}
+        {(client.address || client.medicalHistory || client.communicationNeeds || client.therapyPreferences) && (
+          <div className="mt-6 pt-4 border-t border-border">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-y-5 gap-x-8">
+              {client.address && (
+                <div className="flex items-start">
+                  <Home className="h-5 w-5 text-muted-foreground mr-3 mt-0.5" />
+                  <div>
+                    <h4 className="text-sm font-medium text-muted-foreground mb-1">Address</h4>
+                    <p className="font-medium">{client.address}</p>
+                  </div>
+                </div>
+              )}
+              
+              {client.medicalHistory && (
+                <div className="flex items-start">
+                  <History className="h-5 w-5 text-muted-foreground mr-3 mt-0.5" />
+                  <div>
+                    <h4 className="text-sm font-medium text-muted-foreground mb-1">Medical History</h4>
+                    <p className="font-medium">{client.medicalHistory}</p>
+                  </div>
+                </div>
+              )}
+
+              {client.communicationNeeds && (
+                <div className="flex items-start">
+                  <MessageSquare className="h-5 w-5 text-muted-foreground mr-3 mt-0.5" />
+                  <div>
+                    <h4 className="text-sm font-medium text-muted-foreground mb-1">Communication Needs</h4>
+                    <p className="font-medium">{client.communicationNeeds}</p>
+                  </div>
+                </div>
+              )}
+
+              {client.therapyPreferences && (
+                <div className="flex items-start">
+                  <Settings className="h-5 w-5 text-muted-foreground mr-3 mt-0.5" />
+                  <div>
+                    <h4 className="text-sm font-medium text-muted-foreground mb-1">Therapy Preferences</h4>
+                    <p className="font-medium">{client.therapyPreferences}</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
