@@ -569,17 +569,18 @@ export function GoalPerformanceModal({
                             <line x1="0" y1="75" x2="600" y2="75" stroke="#e5e7eb" strokeWidth="1" />
                             <line x1="0" y1="150" x2="600" y2="150" stroke="#e5e7eb" strokeWidth="1" />
                             
-                            {/* Only render polyline if we have at least 2 valid points */}
+                            {/* Only render polyline if we have at least 2 valid data points with scores > 0 */}
                             {milestone.hasValidDataForLine && (
                               <polyline
                                 points={milestone.values
                                   .map((point, i) => {
-                                    if (point.score === 0) return null;
+                                    // Skip any points with zero score
+                                    if (!point.score || point.score <= 0) return null;
                                     const x = (i / (milestone.values.length - 1)) * 600;
                                     const y = (1 - point.score / 10) * 150;
                                     return `${x},${y}`;
                                   })
-                                  .filter(Boolean)
+                                  .filter(Boolean) // Remove null entries
                                   .join(' ')}
                                 fill="none"
                                 stroke="#ff5252"
@@ -587,51 +588,7 @@ export function GoalPerformanceModal({
                               />
                             )}
                             
-                            {/* Only render data points if we have valid data for line */}
-                            {milestone.hasValidDataForLine && milestone.values.map((point, i) => {
-                              if (point.score === 0) return null;
-                              
-                              const x = (i / (milestone.values.length - 1)) * 600;
-                              const y = (1 - point.score / 10) * 150;
-                              
-                              const monthObj = progressDataService.getLast6Months()[i];
-                              const month = monthObj ? monthObj.display : '';
-                              
-                              return (
-                                <g key={i} className="group">
-                                  <rect 
-                                    x={x-40} 
-                                    y={y-30} 
-                                    width="80" 
-                                    height="25" 
-                                    rx="4"
-                                    fill="#3B82F6" 
-                                    className="opacity-0 group-hover:opacity-90 transition-opacity"
-                                  />
-                                  <text 
-                                    x={x} 
-                                    y={y-15} 
-                                    textAnchor="middle" 
-                                    fill="white" 
-                                    fontSize="11"
-                                    fontWeight="bold"
-                                    className="opacity-0 group-hover:opacity-100 transition-opacity"
-                                  >
-                                    {`${month}: ${point.score}/10`}
-                                  </text>
-                                  
-                                  <circle 
-                                    cx={x} 
-                                    cy={y} 
-                                    r="4" 
-                                    fill="#3B82F6" 
-                                    stroke="#ffffff" 
-                                    strokeWidth="1.5" 
-                                    className="transition-all hover:scale-125"
-                                  />
-                                </g>
-                              );
-                            })}
+                            {/* Removed data points per requirement, only keeping the polyline */}
                           </svg>
                         </div>
                         

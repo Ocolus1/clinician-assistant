@@ -292,7 +292,7 @@ export const progressDataService = {
           title: subgoal.title || "Untitled Milestone",
           description: subgoal.description || "",
           isEmpty: true,
-          hasValidDataForLine: false, // Add this to ensure consistency
+          hasValidDataForLine: false, // This is critical to prevent empty sparklines
           values: months.map(month => ({
             month: month.value,
             score: 0
@@ -381,16 +381,16 @@ export const progressDataService = {
     } catch (error) {
       console.error('Error fetching milestone performance data:', error);
       
-      // Return empty data structure
+      // Return empty data structure with proper flags
       return subgoals.map(subgoal => ({
         id: subgoal.id,
         title: subgoal.title || "Untitled Milestone",
         description: subgoal.description || "",
-        isEmpty: true,
-        hasValidDataForLine: false,
+        isEmpty: true, // Mark as empty for UI
+        hasValidDataForLine: false, // Ensure no line rendering
         values: this.getLast6Months().map(month => ({
           month: month.value,
-          score: 0
+          score: 0 // No data = zero score
         }))
       }));
     }
