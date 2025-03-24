@@ -69,6 +69,14 @@ export default function GoalsForm({ clientId, onComplete, onPrevious }: GoalsFor
       .max(200, "Description must be 200 characters or less"),
     priority: z.string().min(1, "Priority is required"),
   });
+  
+  // Enhanced subgoal form schema with required fields and 100-character limit
+  const enhancedSubgoalSchema = insertSubgoalSchema.extend({
+    title: z.string().min(1, "Subgoal title is required"),
+    description: z.string()
+      .min(1, "Description is required")
+      .max(100, "Description must be 100 characters or less"),
+  });
 
   const goalForm = useForm({
     resolver: zodResolver(enhancedGoalSchema),
@@ -80,7 +88,7 @@ export default function GoalsForm({ clientId, onComplete, onPrevious }: GoalsFor
   });
 
   const subgoalForm = useForm({
-    resolver: zodResolver(insertSubgoalSchema),
+    resolver: zodResolver(enhancedSubgoalSchema),
     defaultValues: {
       title: "",
       description: "",
