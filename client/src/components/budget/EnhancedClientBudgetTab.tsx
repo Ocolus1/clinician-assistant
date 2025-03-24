@@ -63,6 +63,9 @@ function BudgetTabContents({ clientId }: { clientId: number }) {
   
   // If we have a selected plan, show its details instead of the grid
   if (selectedPlan) {
+    // Get the clearSelectedPlan function from the context
+    const { clearSelectedPlan } = useBudgetFeature();
+    
     return (
       <div className="space-y-4">
         <div>
@@ -70,7 +73,7 @@ function BudgetTabContents({ clientId }: { clientId: number }) {
             variant="ghost" 
             size="sm" 
             className="mb-4" 
-            onClick={resetSelectedPlan}
+            onClick={clearSelectedPlan}
           >
             <ChevronLeft className="h-4 w-4 mr-1" />
             Back to Budget Plans
@@ -82,25 +85,57 @@ function BudgetTabContents({ clientId }: { clientId: number }) {
     );
   }
   
+  // Use the direct plans if we have them but not in context
+  const plansToUse = (budgetPlans && budgetPlans.length > 0) ? null : 
+                     (directPlans.length > 0) ? directPlans : null;
+  
+  // If we have direct plans but they're not in context, create a provider with them
+  if (plansToUse) {
+    console.log(`[BudgetTabContents] Creating provider with ${plansToUse.length} direct plans`);
+    
+    // Format plans for the context
+    const formattedPlans = plansToUse.map(plan => ({
+      id: plan.id,
+      clientId: plan.clientId,
+      planName: plan.planSerialNumber || `Plan ${plan.id}`,
+      planCode: plan.planCode || null,
+      isActive: plan.isActive === true,
+      availableFunds: parseFloat(plan.ndisFunds) || 0,
+      endDate: plan.endOfPlan,
+      startDate: plan.createdAt,
+      totalUsed: 0,
+      itemCount: 0,
+      percentUsed: 0,
+    }));
+    
+    return (
+      <BudgetFeatureProvider clientId={clientId} initialBudgetPlans={formattedPlans}>
+        <SimpleBudgetCardGrid clientId={clientId} />
+      </BudgetFeatureProvider>
+    );
+  }
+  
+  // Handle error state
+  if (error) {
+    return (
+      <div className="rounded-md border border-red-200 bg-red-50 p-4">
+        <div className="flex items-center">
+          <div className="flex-shrink-0 text-red-500">
+            <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+            </svg>
+          </div>
+          <div className="ml-3">
+            <h3 className="text-sm font-medium text-red-800">Failed to load budget plans</h3>
+            <p className="text-sm text-red-700 mt-1">Please try again.</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  
   return (
     <div className="w-full">
-      {/* Debug info when we have direct plans but no context plans */}
-      {showNoPlansDebug && (
-        <div className="mb-4 p-4 border border-yellow-400 bg-yellow-50 rounded-md">
-          <div className="font-semibold mb-2">Debug Info: Context plans missing but plans found in database</div>
-          <div className="text-sm">Found {directPlans.length} plans in database:</div>
-          <ul className="text-xs mt-1 space-y-1">
-            {directPlans.map((plan, idx) => (
-              <li key={idx}>
-                Plan {idx+1}: ID {plan.id} - {plan.planSerialNumber || 'Unnamed'} - 
-                {plan.isActive ? ' (Active)' : ' (Inactive)'} -
-                ${plan.availableFunds}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-      
       {/* Show the simplified budget card grid by default */}
       <SimpleBudgetCardGrid clientId={clientId} />
     </div>

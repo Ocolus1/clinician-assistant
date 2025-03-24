@@ -25,13 +25,15 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 
 interface BudgetPlanCardProps {
   plan: BudgetSettings;
-  onViewPlan: (planId: number) => void;
+  clientId?: number; // Make clientId optional since we just pass it through
+  onView?: (planId: number) => void;
+  onViewPlan?: (planId: number) => void; // Support both naming conventions
 }
 
 /**
  * Budget Plan Card component for displaying budget plan data in a visual card format
  */
-export function BudgetPlanCard({ plan, onViewPlan }: BudgetPlanCardProps) {
+export function BudgetPlanCard({ plan, clientId, onView, onViewPlan }: BudgetPlanCardProps) {
   // Format dates
   const startDate = plan.createdAt ? new Date(plan.createdAt).toLocaleDateString() : "N/A";
   const endDate = plan.endOfPlan ? new Date(plan.endOfPlan).toLocaleDateString() : "N/A";
@@ -124,7 +126,14 @@ export function BudgetPlanCard({ plan, onViewPlan }: BudgetPlanCardProps) {
                 variant="outline" 
                 size="sm" 
                 className="text-sm"
-                onClick={() => onViewPlan(plan.id)}
+                onClick={() => {
+                  // Use the onView prop if provided, otherwise fall back to onViewPlan
+                  if (onView) {
+                    onView(plan.id);
+                  } else if (onViewPlan) {
+                    onViewPlan(plan.id);
+                  }
+                }}
               >
                 <ClipboardList className="h-4 w-4 mr-1" />
                 Preview

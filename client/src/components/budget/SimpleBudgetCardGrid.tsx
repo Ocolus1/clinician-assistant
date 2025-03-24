@@ -26,12 +26,9 @@ export function SimpleBudgetCardGrid({ clientId }: SimpleBudgetCardGridProps) {
     return (
       <div className="space-y-4">
         <div className="flex justify-between items-center mb-4">
-          <div>
-            <h3 className="text-lg font-medium">Budget Plans</h3>
-            <p className="text-sm text-muted-foreground">
-              No budget plans have been created yet.
-            </p>
-          </div>
+          <p className="text-sm text-muted-foreground">
+            No budget plans have been created yet.
+          </p>
           <Button onClick={handleOpenCreateWizard}>
             <PlusCircle className="h-4 w-4 mr-2" />
             Create Budget Plan
@@ -62,13 +59,7 @@ export function SimpleBudgetCardGrid({ clientId }: SimpleBudgetCardGridProps) {
   // Display grid of budget plans
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center mb-4">
-        <div>
-          <h3 className="text-lg font-medium">Budget Plans</h3>
-          <p className="text-sm text-muted-foreground">
-            {budgetPlans.length} {budgetPlans.length === 1 ? 'plan' : 'plans'} available
-          </p>
-        </div>
+      <div className="flex justify-end items-center mb-4">
         <Button onClick={handleOpenCreateWizard}>
           <PlusCircle className="h-4 w-4 mr-2" />
           Create Budget Plan
