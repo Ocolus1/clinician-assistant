@@ -572,6 +572,7 @@ export function FullScreenBudgetPlanDialog({
         onOpenChange={setCatalogModalOpen}
         catalogItems={catalogItems} 
         onSelectItem={handleCatalogItemSelect}
+        currentItems={budgetItemsArray} // Pass current items to filter them out
       />
     </>
   );

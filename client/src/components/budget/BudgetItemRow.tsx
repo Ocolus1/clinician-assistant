@@ -232,7 +232,7 @@ export function BudgetItemRow({
               <div className="text-sm text-gray-500">{item.itemCode}</div>
             </div>
             
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -262,7 +262,7 @@ export function BudgetItemRow({
           </div>
           
           {/* Edit Quantity Controls */}
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between" onClick={(e) => e.stopPropagation()}>
             <div className="text-sm">
               <span className="font-medium">{formatCurrency(item.unitPrice)}</span>
               <span className="text-gray-500"> per unit</span>
@@ -342,7 +342,7 @@ export function BudgetItemRow({
               </div>
               
               {/* Action Buttons */}
-              <div className="flex items-center">
+              <div className="flex items-center" onClick={(e) => e.stopPropagation()}>
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
