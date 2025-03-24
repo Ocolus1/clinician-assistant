@@ -222,11 +222,14 @@ const GoalPreviewDialog = ({
                           </div>
 
                           <div className="flex flex-col items-start ml-4">
-                            <span className="text-sm text-gray-500 mb-1">Progress</span>
-                            {/* Empty div in place of sparklines - completely removed */}
-                            <div className="w-20 h-10 flex items-center justify-center">
-                              <span className="text-sm text-gray-500">
-                                {subgoal.status === 'completed' ? "Completed" : "In progress"}
+                            {/* Status indicator - improved styling with status-based colors */}
+                            <div className="h-8 flex items-center">
+                              <span className={`text-sm font-medium ${
+                                subgoal.status === 'completed' 
+                                  ? "text-green-600" 
+                                  : "text-blue-600"
+                              }`}>
+                                {subgoal.status === 'completed' ? "Completed" : "In Progress"}
                               </span>
                             </div>
                           </div>

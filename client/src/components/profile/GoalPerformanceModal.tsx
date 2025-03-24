@@ -592,7 +592,7 @@ export function GoalPerformanceModal({
                           </svg>
                         </div>
                         
-                        <div className="absolute left-0 right-0 bottom-[-5px] flex justify-between text-[9px] text-gray-500">
+                        <div className="absolute left-0 right-0 bottom-[-5px] flex justify-between text-xs text-gray-500">
                           {progressDataService.getLast6Months().map((month, i) => (
                             <div key={i} className="text-center px-0">{month.display}</div>
                           ))}
