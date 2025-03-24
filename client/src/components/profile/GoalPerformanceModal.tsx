@@ -587,7 +587,8 @@ export function GoalPerformanceModal({
                               />
                             )}
                             
-                            {milestone.values.map((point, i) => {
+                            {/* Only render data points if we have valid data for line */}
+                            {milestone.hasValidDataForLine && milestone.values.map((point, i) => {
                               if (point.score === 0) return null;
                               
                               const x = (i / (milestone.values.length - 1)) * 600;
