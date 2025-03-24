@@ -1,20 +1,20 @@
 /**
  * Migration script to add unique identifier columns to clients table
  * 
- * This script adds originalName and uniqueIdentifier columns to the clients table,
- * and populates them based on the existing name field.
+ * This script adds originalName and uniqueIdentifier columns to the clients table
+ * using direct SQL rather than Drizzle ORM.
  */
-import { eq } from "drizzle-orm";
-import { Pool } from "pg";
-import { drizzle } from "drizzle-orm/pg-core";
-import { clients } from "./shared/schema";
+import { Pool, neonConfig } from '@neondatabase/serverless';
+import ws from 'ws';
+
+// Configure neon for serverless environments
+neonConfig.webSocketConstructor = ws;
 
 async function main() {
   console.log("Adding client identifier columns and populating data");
 
   // Connect to the database
   const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-  const db = drizzle(pool);
 
   try {
     // Check if columns already exist
@@ -38,13 +38,18 @@ async function main() {
     }
 
     // Get all clients
-    const allClients = await db.select().from(clients);
-    console.log(`Found ${allClients.length} clients to process`);
+    const clientsResult = await pool.query(`
+      SELECT id, name, original_name, unique_identifier 
+      FROM clients
+    `);
+    
+    const clients = clientsResult.rows;
+    console.log(`Found ${clients.length} clients to process`);
 
     // Update each client
-    for (const client of allClients) {
+    for (const client of clients) {
       // Skip clients that already have the fields populated
-      if (client.originalName && client.uniqueIdentifier) {
+      if (client.original_name && client.unique_identifier) {
         console.log(`Client ${client.id} already has identifier data, skipping`);
         continue;
       }
@@ -53,13 +58,14 @@ async function main() {
       const uniqueIdentifier = Math.floor(100000 + Math.random() * 900000).toString();
       
       // Update the client record
-      await db.update(clients)
-        .set({ 
-          originalName: client.name,
-          uniqueIdentifier: uniqueIdentifier,
-          name: `${client.name}-${uniqueIdentifier}`
-        })
-        .where(eq(clients.id, client.id));
+      await pool.query(`
+        UPDATE clients
+        SET 
+          original_name = $1, 
+          unique_identifier = $2,
+          name = $3
+        WHERE id = $4
+      `, [client.name, uniqueIdentifier, `${client.name}-${uniqueIdentifier}`, client.id]);
       
       console.log(`Updated client ${client.id}: ${client.name} → ${client.name}-${uniqueIdentifier}`);
     }
