@@ -17,12 +17,18 @@ interface EnhancedBudgetCardGridProps {
 }
 
 export function EnhancedBudgetCardGrid({ clientId, onPlanSelected }: EnhancedBudgetCardGridProps) {
+  // Debug the query and response
   const { data: budgetPlans, isLoading } = useQuery({
     queryKey: ['/api/clients', clientId, 'budget-settings'],
-    queryFn: getQueryFn({
-      on401: "throw",
-      getFn: () => ({ url: `/api/clients/${clientId}/budget-settings?all=true` })
-    })
+    queryFn: async () => {
+      console.log("Fetching budget plans for client ID:", clientId);
+      const response = await fetch(`/api/clients/${clientId}/budget-settings?all=true`);
+      const data = await response.json();
+      console.log("Budget plans received:", data);
+      
+      // Ensure we're returning an array of plans
+      return Array.isArray(data) ? data : [data].filter(plan => plan && plan.id);
+    }
   });
 
   if (isLoading) {
