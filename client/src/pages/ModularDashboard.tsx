@@ -136,7 +136,7 @@ function ModularDashboardContent() {
       
       {/* Budget Expiration Modal */}
       <Dialog open={budgetModalOpen} onOpenChange={setBudgetModalOpen}>
-        <DialogContent className="sm:max-w-[75%] sm:max-h-[75vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-[75%] max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <CalendarClock className="h-5 w-5 text-[#2563EB]" />
@@ -148,7 +148,9 @@ function ModularDashboardContent() {
           </DialogHeader>
           <div className="mt-4">
             <Card className="shadow-sm">
-              <BudgetExpirationCard />
+              <div className="h-[60vh]">
+                <BudgetExpirationCard />
+              </div>
             </Card>
           </div>
         </DialogContent>
@@ -156,7 +158,7 @@ function ModularDashboardContent() {
       
       {/* Revenue Analytics Modal */}
       <Dialog open={revenueModalOpen} onOpenChange={setRevenueModalOpen}>
-        <DialogContent className="sm:max-w-[75%] sm:max-h-[75vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-[75%] max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <BarChart className="h-5 w-5 text-[#10B981]" />
@@ -168,7 +170,9 @@ function ModularDashboardContent() {
           </DialogHeader>
           <div className="mt-4">
             <Card className="shadow-sm">
-              <AppointmentAnalytics />
+              <div className="h-[60vh]">
+                <AppointmentAnalytics />
+              </div>
             </Card>
           </div>
         </DialogContent>
@@ -176,7 +180,7 @@ function ModularDashboardContent() {
       
       {/* Upcoming Tasks Modal */}
       <Dialog open={tasksModalOpen} onOpenChange={setTasksModalOpen}>
-        <DialogContent className="sm:max-w-[75%] sm:max-h-[75vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-[75%] max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <ListTodo className="h-5 w-5 text-[#F59E0B]" />
@@ -188,7 +192,9 @@ function ModularDashboardContent() {
           </DialogHeader>
           <div className="mt-4">
             <Card className="shadow-sm">
-              <UpcomingTasksTimeline />
+              <div className="h-[60vh]">
+                <UpcomingTasksTimeline />
+              </div>
             </Card>
           </div>
         </DialogContent>
