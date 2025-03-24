@@ -34,7 +34,7 @@ export const progressDataService = {
     }
     
     try {
-      const response = await apiRequest(
+      const response = await apiRequest<GoalPerformanceMap>(
         'GET', 
         `/api/clients/${clientId}/goals/performance`
       );
@@ -60,7 +60,7 @@ export const progressDataService = {
     }
     
     try {
-      const response = await apiRequest(
+      const response = await apiRequest<GoalPerformanceMap>(
         'GET', 
         `/api/clients/${clientId}/goals/performance?goalId=${goalId}`
       );

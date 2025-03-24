@@ -1,40 +1,42 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card, CardHeader, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Target, Edit, Archive, Eye } from "lucide-react";
 import type { Goal, Subgoal } from "@shared/schema";
+import { progressDataService } from '@/lib/services/progressDataService';
 
 // Enhanced circular gauge with hover tooltip
-const GaugeChart = ({ value, size = 60, strokeWidth = 8 }: { value: number, size?: number, strokeWidth?: number }) => {
+const GaugeChart = ({ value, size = 60, strokeWidth = 8 }: { value: number | null, size?: number, strokeWidth?: number }) => {
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
-  const strokeDashoffset = circumference - (value / 100) * circumference;
+  // Only calculate offset if we have a valid value
+  const strokeDashoffset = value !== null ? circumference - (value / 100) * circumference : circumference;
 
   // Dynamic color based on measurement data with descriptive label
   let color = "";
   let statusLabel = "";
   let displayValue = "N/A";
   
-  if (value > 0) {
+  if (value !== null && value > 0) {
     displayValue = `${value}%`;
     
     if (value >= 75) {
       color = "stroke-green-500";
-      statusLabel = "Strong Progress";
+      statusLabel = "Strong Performance";
     } else if (value >= 50) {
       color = "stroke-blue-500";
-      statusLabel = "Steady Progress";
+      statusLabel = "Steady Performance";
     } else if (value >= 25) {
       color = "stroke-amber-500";
-      statusLabel = "Initial Progress";
+      statusLabel = "Initial Performance";
     } else {
       color = "stroke-gray-400";
-      statusLabel = "No Data Yet";
+      statusLabel = "Low Performance";
     }
   } else {
     color = "stroke-gray-400";
-    statusLabel = "No Data Yet";
+    statusLabel = "No Session Data";
   }
 
   return (
@@ -56,15 +58,16 @@ const GaugeChart = ({ value, size = 60, strokeWidth = 8 }: { value: number, size
           className={color}
           strokeWidth={strokeWidth}
           strokeDasharray={circumference}
-          strokeDashoffset={value > 0 ? strokeDashoffset : circumference}
+          strokeDashoffset={value !== null && value > 0 ? strokeDashoffset : circumference}
           strokeLinecap="round"
         />
       </svg>
       <span className="absolute text-sm font-medium">{displayValue}</span>
       
       {/* Tooltip on hover */}
-      <div className="absolute z-10 scale-0 group-hover:scale-100 transition-all duration-200 top-full mt-2 w-32 px-2 py-1 bg-black/80 rounded text-white text-xs text-center">
+      <div className="absolute z-10 scale-0 group-hover:scale-100 transition-all duration-200 top-full mt-2 w-40 px-2 py-1 bg-black/80 rounded text-white text-xs text-center">
         {statusLabel}
+        {value === null && <div className="mt-1 text-xs text-gray-300">Based on session data</div>}
       </div>
     </div>
   );
@@ -76,21 +79,39 @@ interface GoalCardProps {
   onPreview: (goal: Goal) => void;
   onEdit: (goal: Goal) => void;
   onArchive: (goal: Goal) => void;
+  performance?: number | null;
 }
 
-const GoalCard = ({ goal, subgoals, onPreview, onEdit, onArchive }: GoalCardProps) => {
-  // Calculate measurement progress based on subgoals with data
-  const calculateProgress = (): number => {
-    if (!subgoals || subgoals.length === 0) return 0;
+const GoalCard = ({ goal, subgoals, onPreview, onEdit, onArchive, performance }: GoalCardProps) => {
+  // State to hold the performance data
+  const [performanceValue, setPerformanceValue] = useState<number | null>(performance || null);
+  
+  // Fetch performance data if not provided
+  useEffect(() => {
+    // If performance is already provided via props, use that
+    if (performance !== undefined) {
+      setPerformanceValue(performance);
+      return;
+    }
     
-    // Count subgoals with any measurement data (not 'not_started' status)
-    const measuredSubgoals = subgoals.filter(sg => sg.status && sg.status !== 'not_started').length;
+    // Otherwise, fetch the data from the API
+    const fetchPerformance = async () => {
+      try {
+        if (!goal.clientId) {
+          console.warn(`No clientId found for goal ${goal.id}`);
+          return;
+        }
+        
+        const data = await progressDataService.getGoalPerformance(goal.clientId, goal.id);
+        setPerformanceValue(data);
+      } catch (error) {
+        console.error(`Error fetching performance data for goal ${goal.id}:`, error);
+        // Keep the performance as null to show N/A
+      }
+    };
     
-    // For therapeutic context, we're measuring data collection progress, not completion
-    return Math.round((measuredSubgoals / subgoals.length) * 100);
-  };
-
-  const progress = calculateProgress();
+    fetchPerformance();
+  }, [goal.id, goal.clientId, performance]);
 
   // Determine priority color
   const getPriorityColor = (priority: string | null) => {
@@ -118,7 +139,7 @@ const GoalCard = ({ goal, subgoals, onPreview, onEdit, onArchive }: GoalCardProp
               {goal.priority || "No Priority"}
             </Badge>
           </div>
-          <GaugeChart value={progress} />
+          <GaugeChart value={performanceValue} />
         </div>
       </CardHeader>
 
