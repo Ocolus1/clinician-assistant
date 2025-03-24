@@ -1,0 +1,50 @@
+Download the React DevTools for a better development experience: https://reactjs.org/link/react-devtools
+ClientProfile.tsx:87 All URL params: Object
+ClientProfile.tsx:91 Raw ID from URL params: 88
+ClientProfile.tsx:95 Parsed client ID: 88
+ClientProfile.tsx:121 Fetching client data for ID: 88
+ClientProfile.tsx:123 Requesting URL: /api/clients/88
+ClientProfile.tsx:140 Fetching allies for client ID: 88
+ClientProfile.tsx:153 Explicitly fetching goals for client ID: 88
+ClientProfile.tsx:166 Explicitly fetching budget items for client ID: 88
+ClientProfile.tsx:183 Explicitly fetching budget settings for client ID: 88
+ClientProfile.tsx:200 Explicitly fetching ALL budget settings for client 88
+ClientProfile.tsx:217 No goals found, skipping subgoal fetch
+ClientProfile.tsx:131 Client data received: {"id":88,"name":"Radwan-585666","originalName":"Radwan","uniqueIdentifier":"585666","dateOfBirth":"2019-12-13","gender":null,"preferredLanguage":null,"contactEmail":null,"contactPhone":null,"address":null,"medicalHistory":null,"communicationNeeds":null,"therapyPreferences":null,"fundsManagement":"Self-Managed","ndisFunds":"0","onboardingStatus":"complete"}
+ClientProfile.tsx:87 All URL params: Object
+ClientProfile.tsx:91 Raw ID from URL params: 88
+ClientProfile.tsx:95 Parsed client ID: 88
+ClientProfile.tsx:217 No goals found, skipping subgoal fetch
+ClientProfile.tsx:143 Allies data received: [{"id":103,"clientId":88,"name":"Mohamad","relationship":"parent","preferredLanguage":"french","email":"m.chaaban1980@gmail.com","phone":null,"notes":null,"accessTherapeutics":true,"accessFinancials":false,"archived":false},{"id":104,"clientId":88,"name":"Mariam","relationship":"parent","preferredLanguage":"english","email":"Ninja@gmail.com","phone":null,"notes":null,"accessTherapeutics":true,"accessFinancials":true,"archived":false}]
+ClientProfile.tsx:87 All URL params: Object
+ClientProfile.tsx:91 Raw ID from URL params: 88
+ClientProfile.tsx:95 Parsed client ID: 88
+ClientProfile.tsx:217 No goals found, skipping subgoal fetch
+ClientProfile.tsx:190 Budget settings data received: Object
+ClientProfile.tsx:207 Received 1 budget settings: Array(1)
+ClientProfile.tsx:156 Goals data received: Array(3)
+ClientProfile.tsx:87 All URL params: Object
+ClientProfile.tsx:91 Raw ID from URL params: 88
+ClientProfile.tsx:95 Parsed client ID: 88
+ClientProfile.tsx:223 Found 3 goals, fetching subgoals for each goal
+ClientProfile.tsx:234 Fetching subgoals for goal ID: 100, Title: Enhancing Social Communication Skills
+ClientProfile.tsx:87 All URL params: Object
+ClientProfile.tsx:91 Raw ID from URL params: 88
+ClientProfile.tsx:95 Parsed client ID: 88
+ClientProfile.tsx:173 Budget items data received: Array(3)
+ClientProfile.tsx:87 All URL params: Object
+ClientProfile.tsx:91 Raw ID from URL params: 88
+ClientProfile.tsx:95 Parsed client ID: 88
+ClientProfile.tsx:238 Received 3 subgoals for goal 100: Array(3)
+ClientProfile.tsx:234 Fetching subgoals for goal ID: 101, Title: Developing Emotional Regulation
+ClientProfile.tsx:238 Received 3 subgoals for goal 101: Array(3)
+ClientProfile.tsx:234 Fetching subgoals for goal ID: 102, Title: Enhancing Functional Independence
+ClientProfile.tsx:238 Received 3 subgoals for goal 102: Array(3)
+ClientProfile.tsx:252 Final subgoals by goal: Object
+ClientProfile.tsx:87 All URL params: Object
+ClientProfile.tsx:91 Raw ID from URL params: 88
+ClientProfile.tsx:95 Parsed client ID: 88
+ClientProfile.tsx:567 Client data from parent component: {"id":88,"name":"Radwan-585666","originalName":"Radwan","uniqueIdentifier":"585666","dateOfBirth":"2019-12-13","gender":null,"preferredLanguage":null,"contactEmail":null,"contactPhone":null,"address":null,"medicalHistory":null,"communicationNeeds":null,"therapyPreferences":null,"fundsManagement":"Self-Managed","ndisFunds":"0","onboardingStatus":"complete"}
+EnhancedBudgetCardGrid.tsx:57 Rendering EnhancedBudgetCardGrid with plans: Object
+EnhancedBudgetCardGrid.tsx:58 Is Array? false
+EnhancedBudgetCardGrid.tsx:59 Plan length: Not an array

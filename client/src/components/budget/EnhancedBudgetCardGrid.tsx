@@ -27,7 +27,18 @@ export function EnhancedBudgetCardGrid({ clientId, onPlanSelected }: EnhancedBud
       console.log("Budget plans received:", data);
       
       // Ensure we're returning an array of plans
-      return Array.isArray(data) ? data : [data].filter(plan => plan && plan.id);
+      // If data is an empty object or null/undefined, return an empty array
+      if (!data || Object.keys(data).length === 0) {
+        console.log("No budget plans data or empty object received");
+        return [];
+      }
+      
+      // Normalize to array, whether we got a single object or an array from API
+      const plansArray = Array.isArray(data) ? data : [data];
+      console.log("Normalized budget plans to array:", plansArray);
+      
+      // Filter out any invalid items (should have an id)
+      return plansArray.filter(plan => plan && plan.id);
     }
   });
 
@@ -83,13 +94,16 @@ export function EnhancedBudgetCardGrid({ clientId, onPlanSelected }: EnhancedBud
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {budgetPlans && Array.isArray(budgetPlans) && budgetPlans.length > 0 ? (
-          budgetPlans.map((plan: BudgetSettings) => (
-            <BudgetPlanCard 
-              key={plan.id} 
-              plan={plan} 
-              onPreview={() => onPlanSelected(plan.id)}
-            />
-          ))
+          budgetPlans.map((plan: BudgetSettings) => {
+            console.log("Rendering plan:", plan);
+            return (
+              <BudgetPlanCard 
+                key={plan.id} 
+                plan={plan} 
+                onPreview={() => onPlanSelected(plan.id)}
+              />
+            );
+          })
         ) : (
           <Card className="col-span-2">
             <CardHeader>
