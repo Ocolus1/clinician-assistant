@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from "react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import { BudgetFeatureProvider, useBudgetFeature, BudgetPlan } from "./BudgetFeatureContext";
 import { EnhancedBudgetCardGrid } from "./EnhancedBudgetCardGrid";
 import { BudgetPlanFullView } from "./BudgetPlanFullView";
+import { Button } from "../ui/button";
+import { ChevronLeft } from "lucide-react";
 
 interface EnhancedClientBudgetTabProps {
   clientId: number;
@@ -12,10 +13,10 @@ interface EnhancedClientBudgetTabProps {
 
 /**
  * Budget tab contents that use the BudgetFeatureContext
+ * Simplified to show cards directly without tab navigation
  */
 function BudgetTabContents({ clientId }: { clientId: number }) {
-  const [activeTab, setActiveTab] = useState("plans");
-  const { budgetPlans, isLoading, error } = useBudgetFeature();
+  const { budgetPlans, isLoading, error, selectedPlan } = useBudgetFeature();
   
   // Direct fetch for plans as a fallback
   const [directPlans, setDirectPlans] = useState<any[]>([]);
@@ -55,27 +56,34 @@ function BudgetTabContents({ clientId }: { clientId: number }) {
     }
   }, [budgetPlans, clientId, isDirectFetching]);
   
-  // Handler to switch tabs when a plan is selected or unselected
-  const handlePlanSelection = (planId: number | null) => {
-    // If a plan is selected, switch to details tab
-    // If no plan is selected, switch to plans tab
-    setActiveTab(planId ? "details" : "plans");
-  };
-  
   // If both sources have no plans, show direct plans debugging info
   const showNoPlansDebug = 
     (!budgetPlans || (Array.isArray(budgetPlans) && budgetPlans.length === 0)) && 
     directPlans.length > 0;
   
-  return (
-    <Tabs value={activeTab} className="w-full" onValueChange={setActiveTab}>
-      <div className="flex justify-between items-center mb-4">
-        <TabsList>
-          <TabsTrigger value="plans" className="px-4">Plans</TabsTrigger>
-          <TabsTrigger value="details" className="px-4">Plan Details</TabsTrigger>
-        </TabsList>
+  // If we have a selected plan, show its details instead of the grid
+  if (selectedPlan) {
+    return (
+      <div className="space-y-4">
+        <div>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="mb-4" 
+            onClick={() => window.dispatchEvent(new CustomEvent('reset-selected-plan'))}
+          >
+            <ChevronLeft className="h-4 w-4 mr-1" />
+            Back to Budget Plans
+          </Button>
+        </div>
+        
+        <BudgetPlanFullView />
       </div>
-      
+    );
+  }
+  
+  return (
+    <div className="w-full">
       {/* Debug info when we have direct plans but no context plans */}
       {showNoPlansDebug && (
         <div className="mb-4 p-4 border border-yellow-400 bg-yellow-50 rounded-md">
@@ -93,21 +101,9 @@ function BudgetTabContents({ clientId }: { clientId: number }) {
         </div>
       )}
       
-      <TabsContent value="plans" className="mt-0">
-        <EnhancedBudgetCardGrid 
-          clientId={clientId}
-          onPlanSelected={(planId) => {
-            handlePlanSelection(planId);
-          }}
-        />
-      </TabsContent>
-      
-      <TabsContent value="details" className="mt-0">
-        <BudgetPlanFullView 
-          onBackToPlansList={() => handlePlanSelection(null)}
-        />
-      </TabsContent>
-    </Tabs>
+      {/* Show the budget card grid by default */}
+      <EnhancedBudgetCardGrid clientId={clientId} />
+    </div>
   );
 }
 
