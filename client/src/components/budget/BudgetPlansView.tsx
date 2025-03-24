@@ -39,8 +39,18 @@ export function BudgetPlansView({ clientId, onViewPlan }: BudgetPlansViewProps) 
     queryKey: [`/api/clients/${clientId}/budget-settings`, { all: true }],
     queryFn: async () => {
       try {
+        // Debug logging to trace the API call
+        console.log(`Fetching budget plans for client ID: ${clientId}`);
+        
+        // Make the API request
         const res = await apiRequest("GET", `/api/clients/${clientId}/budget-settings?all=true`);
-        return res.json();
+        const data = await res.json();
+        
+        // Log the response for debugging
+        console.log("Budget plans data:", data);
+        
+        // Return the data
+        return data;
       } catch (error) {
         console.error("Error fetching budget plans:", error);
         throw error;

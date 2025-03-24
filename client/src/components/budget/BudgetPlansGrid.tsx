@@ -15,6 +15,7 @@ interface BudgetPlansGridProps {
 export function BudgetPlansGrid({ plans, clientId, onViewPlan }: BudgetPlansGridProps) {
   // Handle empty state
   if (!plans || plans.length === 0) {
+    console.log("No budget plans found, showing empty state");
     return (
       <div className="flex flex-col items-center justify-center p-8 text-center border border-dashed rounded-lg bg-gray-50 h-[300px]">
         <CalendarRange className="h-12 w-12 text-gray-300 mb-4" />
@@ -23,6 +24,9 @@ export function BudgetPlansGrid({ plans, clientId, onViewPlan }: BudgetPlansGrid
       </div>
     );
   }
+  
+  // Log plans for debugging
+  console.log("Rendering grid with plans:", plans);
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">

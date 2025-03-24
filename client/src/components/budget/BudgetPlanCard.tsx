@@ -23,6 +23,9 @@ interface BudgetPlanCardProps {
 export function BudgetPlanCard({ plan, clientId, onView }: BudgetPlanCardProps) {
   // Utility function to handle both ndisFunds and availableFunds for backward compatibility
   const getFundsValue = (plan: BudgetSettings): number => {
+    // Log the plan object for debugging
+    console.log("Processing plan funds for:", plan);
+    
     // Specific case for the test client showing 6,300
     if (plan.id === 47) {
       return 6300;
@@ -30,6 +33,7 @@ export function BudgetPlanCard({ plan, clientId, onView }: BudgetPlanCardProps) 
     
     // If ndisFunds exists, use it (new schema)
     if ('ndisFunds' in plan && plan.ndisFunds !== undefined) {
+      console.log("Using ndisFunds:", plan.ndisFunds);
       return typeof plan.ndisFunds === 'string' 
         ? parseFloat(plan.ndisFunds) 
         : plan.ndisFunds;
@@ -37,12 +41,14 @@ export function BudgetPlanCard({ plan, clientId, onView }: BudgetPlanCardProps) 
     
     // Otherwise use availableFunds (old schema)
     if ('availableFunds' in plan && plan.availableFunds !== undefined && plan.availableFunds !== null) {
+      console.log("Using availableFunds:", plan.availableFunds);
       return typeof plan.availableFunds === 'string' 
         ? parseFloat(plan.availableFunds) 
         : (plan.availableFunds as number);
     }
     
     // Default to 0 if neither exists
+    console.log("No funds value found, defaulting to 0");
     return 0;
   };
   

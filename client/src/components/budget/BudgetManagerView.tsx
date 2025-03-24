@@ -29,10 +29,24 @@ function BudgetManagerContent({ clientId }: BudgetManagerViewProps) {
   useEffect(() => {
     const checkApi = async () => {
       try {
-        const response = await fetch(`/api/clients/${clientId}/budget/plans`);
+        // First try the dedicated plans endpoint
+        let response = await fetch(`/api/clients/${clientId}/budget/plans`);
+        
+        // If that fails, fall back to the budget-settings endpoint which we know works
         if (!response.ok) {
-          setError(`Failed to load budget data: ${response.statusText}`);
+          console.log("Primary budget plans endpoint failed, trying fallback...");
+          response = await fetch(`/api/clients/${clientId}/budget-settings?all=true`);
+          
+          if (!response.ok) {
+            setError(`Failed to load budget data: ${response.statusText}`);
+            setIsLoading(false);
+            return;
+          }
         }
+        
+        // If we got this far, we have data
+        const data = await response.json();
+        console.log("Budget data loaded successfully:", data);
         setIsLoading(false);
       } catch (error) {
         console.error("Error checking budget API:", error);
