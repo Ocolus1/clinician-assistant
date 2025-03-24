@@ -60,6 +60,7 @@ import ClientGoals from "@/components/profile/ClientGoals";
 import ClientClinicians from "@/components/profile/ClientClinicians";
 import { BudgetManagerView } from "@/components/budget/BudgetManagerView";
 import { UnifiedBudgetManager } from "@/components/budget/UnifiedBudgetManager";
+import { BudgetFeatureProvider } from "@/components/budget/BudgetFeatureContext";
 import ClientSessions from "@/components/profile/ClientSessions";
 import { ClientReports } from "@/components/profile/ClientReports";
 import AddAllyDialog from "@/components/profile/AddAllyDialog";
@@ -647,14 +648,30 @@ export default function ClientProfile() {
             </TabsContent>
             
             <TabsContent value="budget" className="mt-0">
-              {/* Restore the UnifiedBudgetManager for budget management */}
+              {/* Wrap UnifiedBudgetManager in BudgetFeatureProvider */}
               <div className="space-y-8">
-                <UnifiedBudgetManager 
-                  clientId={clientId} 
-                  budgetItems={budgetItems}
-                  budgetSettings={budgetSettings}
-                  allBudgetSettings={allBudgetSettings}
-                />
+                <BudgetFeatureProvider 
+                  clientId={clientId}
+                  initialItems={budgetItems}
+                  initialPlan={budgetSettings ? {
+                    id: budgetSettings.id,
+                    clientId: budgetSettings.clientId,
+                    planSerialNumber: budgetSettings.planSerialNumber,
+                    planCode: budgetSettings.planCode,
+                    isActive: true,
+                    ndisFunds: budgetSettings.ndisFunds,
+                    endOfPlan: budgetSettings.endOfPlan,
+                    createdAt: budgetSettings.createdAt,
+                    active: true
+                  } : null}
+                >
+                  <UnifiedBudgetManager 
+                    clientId={clientId} 
+                    budgetItems={budgetItems}
+                    budgetSettings={budgetSettings}
+                    allBudgetSettings={allBudgetSettings}
+                  />
+                </BudgetFeatureProvider>
               </div>
             </TabsContent>
             

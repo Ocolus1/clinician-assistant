@@ -44,10 +44,19 @@ import { CatalogItem, RowBudgetItem } from "./BudgetTypes";
 
 interface UnifiedBudgetManagerProps {
   clientId: number;
+  budgetItems?: any[];
+  budgetSettings?: any;
+  allBudgetSettings?: any[];
   selectedPlanId?: number | null;
 }
 
-export function UnifiedBudgetManager({ clientId, selectedPlanId }: UnifiedBudgetManagerProps) {
+export function UnifiedBudgetManager({ 
+  clientId, 
+  budgetItems: initialBudgetItems, 
+  budgetSettings: initialBudgetSettings,
+  allBudgetSettings,
+  selectedPlanId 
+}: UnifiedBudgetManagerProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
@@ -171,8 +180,19 @@ export function UnifiedBudgetManager({ clientId, selectedPlanId }: UnifiedBudget
     retry: 2 // Add retry logic to handle temporary network issues
   });
 
-  // Set active plan from data (prioritize selected plan ID, then active plans, then first plan)
+  // Set active plan from props or from data (prioritize props, then selected plan ID, then active plans, then first plan)
   useEffect(() => {
+    // First prioritize props if available
+    if (initialBudgetSettings) {
+      console.log("Using initial budget settings from props:", initialBudgetSettings);
+      if (!activePlan || activePlan.id !== initialBudgetSettings.id) {
+        setActivePlan(initialBudgetSettings);
+        setFormInitialized(false);
+      }
+      return;
+    }
+    
+    // Then fallback to query data
     if (plansQuery.data && plansQuery.data.length > 0) {
       // If a specific plan ID is provided, use that one
       if (selectedPlanId) {
@@ -201,7 +221,7 @@ export function UnifiedBudgetManager({ clientId, selectedPlanId }: UnifiedBudget
         }
       }
     }
-  }, [plansQuery.data, activePlan, setActivePlan, selectedPlanId]);
+  }, [plansQuery.data, activePlan, setActivePlan, selectedPlanId, initialBudgetSettings]);
 
   // Form setup with budget items
   const form = useForm<UnifiedBudgetFormValues>({
@@ -214,8 +234,48 @@ export function UnifiedBudgetManager({ clientId, selectedPlanId }: UnifiedBudget
     }
   });
 
-  // Initialize form with data when it's available
+  // Initialize form with data when it's available (from props or queries)
   useEffect(() => {
+    // First prioritize props for initialization if available
+    if (initialBudgetItems && initialBudgetSettings && !formInitialized) {
+      console.log("Initializing form from props data:", initialBudgetItems);
+      
+      const mappedItems = initialBudgetItems.map((item: any) => ({
+        id: item.id,
+        itemCode: item.itemCode,
+        description: item.description,
+        quantity: item.quantity,
+        unitPrice: item.unitPrice,
+        total: item.unitPrice * item.quantity,
+        name: item.name,
+        category: item.category,
+        budgetSettingsId: item.budgetSettingsId,
+        clientId: item.clientId
+      }));
+      
+      // Set budget items in context
+      setBudgetItems(mappedItems);
+      
+      // Mark as initialized to prevent redundant resets
+      setFormInitialized(true);
+      
+      // Calculate totals from the items
+      const totalAllocated = mappedItems.reduce(
+        (sum: number, item: any) => sum + (Number(item.quantity) * Number(item.unitPrice)), 0
+      );
+      
+      // Set form values
+      form.reset({
+        items: mappedItems,
+        totalBudget: totalAllocated,
+        totalAllocated: totalAllocated,
+        remainingBudget: totalAllocated
+      });
+      
+      return;
+    }
+    
+    // Fallback to query data if props aren't available
     // Get the current plan from plansQuery based on targetPlanId
     const currentPlan = plansQuery.data?.find((plan: any) => plan.id === targetPlanId);
     
@@ -266,7 +326,7 @@ export function UnifiedBudgetManager({ clientId, selectedPlanId }: UnifiedBudget
       // Mark form as initialized to prevent redundant resets
       setFormInitialized(true);
     }
-  }, [itemsQuery.data, targetPlanId, plansQuery.data, formInitialized, form, setBudgetItems]);
+  }, [itemsQuery.data, targetPlanId, plansQuery.data, formInitialized, form, setBudgetItems, initialBudgetItems, initialBudgetSettings]);
 
   // Use field array to manage budget items
   const { fields, append, remove, update } = useFieldArray({
