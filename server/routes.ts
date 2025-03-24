@@ -1626,14 +1626,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/clients/:clientId/clinicians", async (req, res) => {
     const clientId = parseInt(req.params.clientId);
     console.log(`POST /api/clients/${clientId}/clinicians - Assigning clinician to client`);
+    console.log("Request body:", req.body);
     
     if (isNaN(clientId) || clientId <= 0) {
       console.error(`Invalid client ID: ${req.params.clientId}`);
       return res.status(400).json({ error: "Invalid client ID" });
     }
+
+    // Ensure clientId is in the body for schema validation
+    const requestWithClientId = {
+      ...req.body,
+      clientId
+    };
     
     try {
-      const result = insertClientClinicianSchema.safeParse(req.body);
+      const result = insertClientClinicianSchema.safeParse(requestWithClientId);
       if (!result.success) {
         console.error("Client-clinician assignment validation error:", result.error);
         return res.status(400).json({ error: result.error });

@@ -61,6 +61,7 @@ export default function ClientClinicians({ clientId }: ClientCliniciansProps) {
   const assignClinician = useMutation({
     mutationFn: async (data: ClinicianAssignmentFormValues) => {
       return apiRequest('POST', `/api/clients/${clientId}/clinicians`, {
+        clientId: clientId,
         clinicianId: parseInt(data.clinicianId),
         role: data.role,
         notes: data.notes || '',
