@@ -538,8 +538,8 @@ export function GoalPerformanceModal({
                       {milestone.title}
                     </div>
                     
-                    {milestone.isEmpty || !milestone.values.some(v => v.score > 0) ? (
-                      // Empty milestone placeholder
+                    {milestone.isEmpty || !milestone.hasValidDataForLine ? (
+                      // Empty milestone placeholder - using hasValidDataForLine as the key condition
                       <div className="flex items-center justify-center h-[150px] text-center">
                         <div className="text-gray-400 text-xs max-w-[200px]">
                           <div className="mb-2">
@@ -561,7 +561,7 @@ export function GoalPerformanceModal({
                         </div>
                       </div>
                     ) : (
-                      // Regular milestone with chart - ONLY when we have actual data
+                      // Regular milestone with chart - ONLY when we have valid data for line (at least 2 data points)
                       <div className="relative h-[150px] pt-2">
                         <div className="absolute left-0 right-0 top-0 bottom-5">
                           <svg width="100%" height="100%" viewBox="0 0 600 150" preserveAspectRatio="none">

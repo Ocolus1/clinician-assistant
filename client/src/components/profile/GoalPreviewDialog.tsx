@@ -253,18 +253,22 @@ const GoalPreviewDialog = ({
                             <span className="text-sm text-gray-500 mb-1">Progress</span>
                             <div className="w-20 h-10">
                               <svg width="100%" height="100%" viewBox="0 0 80 30" className="overflow-visible">
-                                <path
-                                  d={`M0,15 L15,10 L30,20 L45,5 L60,15 L80,15`}
-                                  fill="none"
-                                  stroke="#EF4444"
-                                  strokeWidth="1.5"
-                                />
-                                <circle
-                                  cx="80"
-                                  cy="15"
-                                  r="3"
-                                  fill="#EF4444"
-                                />
+                                {/* Use proper performance data based on status */}
+                                {subgoal.status === 'completed' ? (
+                                  <polyline
+                                    points="0,25 20,20 40,15 60,10 80,5"
+                                    fill="none"
+                                    stroke="#10b981"
+                                    strokeWidth="1.5"
+                                  />
+                                ) : (
+                                  <polyline
+                                    points="0,15 20,20 40,15 60,18 80,15"
+                                    fill="none"
+                                    stroke="#EF4444"
+                                    strokeWidth="1.5"
+                                  />
+                                )}
                               </svg>
                             </div>
                           </div>
