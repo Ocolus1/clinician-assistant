@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -68,6 +68,22 @@ export function EnhancedBudgetCardGrid({ clientId, onPlanSelected }: EnhancedBud
   console.log("Rendering EnhancedBudgetCardGrid with plans:", budgetPlans);
   console.log("Is Array?", Array.isArray(budgetPlans));
   console.log("Plan length:", budgetPlans ? (Array.isArray(budgetPlans) ? budgetPlans.length : 'Not an array') : 'No plans');
+  
+  // Create normalized array of budget plans
+  let normalizedPlans: BudgetSettings[] = [];
+
+  // Simple normalization without useMemo to avoid TypeScript errors
+  if (budgetPlans) {
+    if (Array.isArray(budgetPlans)) {
+      normalizedPlans = budgetPlans;
+    } else if (budgetPlans.id) {
+      // If we have a single object with an ID, use it
+      normalizedPlans = [budgetPlans as BudgetSettings];
+    }
+  }
+  
+  console.log("Normalized plans:", normalizedPlans);
+  console.log("Normalized plans length:", normalizedPlans.length);
 
   return (
     <div>
@@ -93,8 +109,8 @@ export function EnhancedBudgetCardGrid({ clientId, onPlanSelected }: EnhancedBud
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {budgetPlans && Array.isArray(budgetPlans) && budgetPlans.length > 0 ? (
-          budgetPlans.map((plan: BudgetSettings) => {
+        {normalizedPlans.length > 0 ? (
+          normalizedPlans.map((plan: BudgetSettings) => {
             console.log("Rendering plan:", plan);
             return (
               <BudgetPlanCard 
