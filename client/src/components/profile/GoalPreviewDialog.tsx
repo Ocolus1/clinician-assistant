@@ -29,19 +29,19 @@ const DetailedGauge = ({ value, size = 120, strokeWidth = 12 }: { value: number,
   if (value >= 75) {
     color = "stroke-green-500";
     textColor = "text-green-700";
-    statusLabel = "Nearly Complete";
+    statusLabel = "Strong Progress";
   } else if (value >= 50) {
     color = "stroke-blue-500";
     textColor = "text-blue-700";
-    statusLabel = "Making Progress";
+    statusLabel = "Steady Progress";
   } else if (value >= 25) {
     color = "stroke-amber-500";
     textColor = "text-amber-700";
-    statusLabel = "Getting Started";
+    statusLabel = "Initial Progress";
   } else {
     color = "stroke-gray-400";
     textColor = "text-gray-700";
-    statusLabel = "Just Started";
+    statusLabel = "No Data Yet";
   }
 
   return (
@@ -102,11 +102,15 @@ const GoalPreviewDialog = ({
 }: GoalPreviewDialogProps) => {
   if (!goal) return null;
 
-  // Calculate progress based on subgoals status
+  // Calculate measurement progress based on subgoals with data
   const calculateProgress = (): number => {
     if (!subgoals || subgoals.length === 0) return 0;
-    const completedSubgoals = subgoals.filter(sg => sg.status === 'completed').length;
-    return Math.round((completedSubgoals / subgoals.length) * 100);
+    
+    // Count subgoals with any measurement data (not 'not_started' status)
+    const measuredSubgoals = subgoals.filter(sg => sg.status && sg.status !== 'not_started').length;
+    
+    // For therapeutic context, we're measuring data collection progress, not completion
+    return Math.round((measuredSubgoals / subgoals.length) * 100);
   };
 
   const progress = calculateProgress();

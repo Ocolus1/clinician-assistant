@@ -71,8 +71,8 @@ export default function EditSubgoalDialog({
       
       // Show success toast
       toast({
-        title: "Milestone updated",
-        description: "The milestone has been successfully updated.",
+        title: "Measurement Point updated",
+        description: "The measurement point has been successfully updated.",
       });
       
       // Invalidate relevant queries to refetch data
@@ -82,10 +82,10 @@ export default function EditSubgoalDialog({
       queryClient.invalidateQueries({ queryKey: ['/api/clients', 'goals'] });
     },
     onError: (error) => {
-      console.error("Error updating milestone:", error);
+      console.error("Error updating measurement point:", error);
       toast({
         title: "Error",
-        description: "There was an error updating the milestone. Please try again.",
+        description: "There was an error updating the measurement point. Please try again.",
         variant: "destructive",
       });
     },
@@ -99,9 +99,9 @@ export default function EditSubgoalDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>Edit Milestone</DialogTitle>
+          <DialogTitle>Edit Measurement Point</DialogTitle>
           <DialogDescription>
-            Update the milestone details for measurement tracking.
+            Update the measurement point details for progress tracking.
           </DialogDescription>
         </DialogHeader>
         
@@ -112,12 +112,12 @@ export default function EditSubgoalDialog({
               name="title"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Milestone Title</FormLabel>
+                  <FormLabel>Measurement Point Title</FormLabel>
                   <FormControl>
-                    <Input placeholder="Enter milestone title" {...field} />
+                    <Input placeholder="Enter measurement point title" {...field} />
                   </FormControl>
                   <FormDescription>
-                    A clear, specific description of this milestone.
+                    A clear, specific description of this measurement point.
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -132,13 +132,13 @@ export default function EditSubgoalDialog({
                   <FormLabel>Description</FormLabel>
                   <FormControl>
                     <Textarea 
-                      placeholder="Describe the milestone in detail" 
+                      placeholder="Describe the measurement point in detail" 
                       className="min-h-[100px]"
                       {...field} 
                     />
                   </FormControl>
                   <FormDescription>
-                    Provide details about what this milestone represents.
+                    Provide details about what this measurement point is tracking.
                   </FormDescription>
                   <FormMessage />
                 </FormItem>

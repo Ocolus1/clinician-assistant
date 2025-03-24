@@ -71,11 +71,15 @@ interface GoalCardProps {
 }
 
 const GoalCard = ({ goal, subgoals, onPreview, onEdit, onArchive }: GoalCardProps) => {
-  // Calculate progress based on subgoals status
+  // Calculate measurement progress based on subgoals with data
   const calculateProgress = (): number => {
     if (!subgoals || subgoals.length === 0) return 0;
-    const completedSubgoals = subgoals.filter(sg => sg.status === 'completed').length;
-    return Math.round((completedSubgoals / subgoals.length) * 100);
+    
+    // Count subgoals with any measurement data (not 'not_started' status)
+    const measuredSubgoals = subgoals.filter(sg => sg.status && sg.status !== 'not_started').length;
+    
+    // For therapeutic context, we're measuring data collection progress, not completion
+    return Math.round((measuredSubgoals / subgoals.length) * 100);
   };
 
   const progress = calculateProgress();
