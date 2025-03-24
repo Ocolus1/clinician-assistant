@@ -129,7 +129,7 @@ async function createFinancialTestClient() {
           7,
           8,
           9,
-          '[]',
+          '{}',
           productsJson,
           'completed'
         ]
