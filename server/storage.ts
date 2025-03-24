@@ -117,6 +117,9 @@ export interface IStorage {
   getDashboardAppointmentStats(timeframe: 'day' | 'week' | 'month' | 'year'): Promise<AppointmentStats>;
   getBudgetExpirationStats(months: number): Promise<BudgetExpirationStats>;
   getUpcomingTaskStats(months: number): Promise<UpcomingTaskStats>;
+  
+  // Goal Performance Data
+  getGoalPerformanceData(clientId: number, goalId?: number): Promise<Record<number, number | null>>;
 }
 
 /**
@@ -1689,6 +1692,116 @@ export class DBStorage implements IStorage {
       };
     } catch (error) {
       console.error("Error getting upcoming task stats:", error);
+      throw error;
+    }
+  }
+  
+  /**
+   * Get performance data for goals
+   * Returns a map of goalId -> average score (or null if no data)
+   */
+  async getGoalPerformanceData(clientId: number, goalId?: number): Promise<Record<number, number | null>> {
+    console.log(`Getting goal performance data for client ${clientId}${goalId ? ` and goal ${goalId}` : ''}`);
+    
+    try {
+      const result: Record<number, number | null> = {};
+      
+      // If a specific goal is requested
+      if (goalId) {
+        // First, get all subgoals for this goal
+        const goalSubgoals = await this.getSubgoalsByGoal(goalId);
+        
+        if (goalSubgoals.length === 0) {
+          console.log(`No subgoals found for goal ${goalId}, returning null score`);
+          result[goalId] = null;
+          return result;
+        }
+        
+        // Get subgoal IDs
+        const subgoalIds = goalSubgoals.map(sg => sg.id);
+        
+        // Query performance assessments for these subgoals
+        const performanceData = await db
+          .select({
+            subgoalId: performanceAssessments.subgoalId,
+            score: performanceAssessments.score
+          })
+          .from(performanceAssessments)
+          .where(
+            performanceAssessments.subgoalId.in(subgoalIds)
+          );
+        
+        if (performanceData.length === 0) {
+          console.log(`No performance data found for goal ${goalId}, returning null score`);
+          result[goalId] = null;
+          return result;
+        }
+        
+        // Calculate average score
+        const totalScore = performanceData.reduce((sum, item) => sum + Number(item.score || 0), 0);
+        const avgScore = totalScore / performanceData.length;
+        
+        // Convert to percentage (assuming scores are out of 10)
+        const percentage = Math.round((avgScore / 10) * 100);
+        
+        console.log(`Calculated average score for goal ${goalId}: ${avgScore} (${percentage}%)`);
+        result[goalId] = percentage;
+      } else {
+        // Get all goals for this client
+        const clientGoals = await this.getGoalsByClient(clientId);
+        
+        if (clientGoals.length === 0) {
+          console.log(`No goals found for client ${clientId}`);
+          return result;
+        }
+        
+        // Process each goal
+        for (const goal of clientGoals) {
+          // Get subgoals for this goal
+          const goalSubgoals = await this.getSubgoalsByGoal(goal.id);
+          
+          if (goalSubgoals.length === 0) {
+            console.log(`No subgoals found for goal ${goal.id}, setting null score`);
+            result[goal.id] = null;
+            continue;
+          }
+          
+          // Get subgoal IDs
+          const subgoalIds = goalSubgoals.map(sg => sg.id);
+          
+          // Query performance assessments for these subgoals
+          const performanceData = await db
+            .select({
+              subgoalId: performanceAssessments.subgoalId,
+              score: performanceAssessments.score
+            })
+            .from(performanceAssessments)
+            .where(
+              performanceAssessments.subgoalId.in(subgoalIds)
+            );
+          
+          if (performanceData.length === 0) {
+            console.log(`No performance data found for goal ${goal.id}, setting null score`);
+            result[goal.id] = null;
+            continue;
+          }
+          
+          // Calculate average score
+          const totalScore = performanceData.reduce((sum, item) => sum + Number(item.score || 0), 0);
+          const avgScore = totalScore / performanceData.length;
+          
+          // Convert to percentage (assuming scores are out of 10)
+          const percentage = Math.round((avgScore / 10) * 100);
+          
+          console.log(`Calculated average score for goal ${goal.id}: ${avgScore} (${percentage}%)`);
+          result[goal.id] = percentage;
+        }
+      }
+      
+      console.log(`Returning performance data for ${Object.keys(result).length} goals`);
+      return result;
+    } catch (error) {
+      console.error(`Error fetching goal performance data:`, error);
       throw error;
     }
   }
