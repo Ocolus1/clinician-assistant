@@ -61,6 +61,7 @@ import ClientClinicians from "@/components/profile/ClientClinicians";
 import { BudgetManagerView } from "@/components/budget/BudgetManagerView";
 import { UnifiedBudgetManager } from "@/components/budget/UnifiedBudgetManager";
 import { BudgetFeatureProvider } from "@/components/budget/BudgetFeatureContext";
+import { EnhancedBudgetCardGrid } from "@/components/budget/EnhancedBudgetCardGrid";
 import ClientSessions from "@/components/profile/ClientSessions";
 import { ClientReports } from "@/components/profile/ClientReports";
 import AddAllyDialog from "@/components/profile/AddAllyDialog";
@@ -648,7 +649,6 @@ export default function ClientProfile() {
             </TabsContent>
             
             <TabsContent value="budget" className="mt-0">
-              {/* Wrap UnifiedBudgetManager in BudgetFeatureProvider */}
               <div className="space-y-8">
                 <BudgetFeatureProvider 
                   clientId={clientId}
@@ -665,12 +665,40 @@ export default function ClientProfile() {
                     active: true
                   } : null}
                 >
-                  <UnifiedBudgetManager 
-                    clientId={clientId} 
-                    budgetItems={budgetItems}
-                    budgetSettings={budgetSettings}
-                    allBudgetSettings={allBudgetSettings}
-                  />
+                  {/* Add state for showing plan details */}
+                  {(() => {
+                    const [selectedPlanId, setSelectedPlanId] = useState<number | null>(null);
+                    
+                    // Function to show plan details
+                    const handlePlanSelected = (planId: number) => {
+                      setSelectedPlanId(planId);
+                    };
+                    
+                    // Function to go back to grid view
+                    const handleBackToGrid = () => {
+                      setSelectedPlanId(null);
+                    };
+                    
+                    return selectedPlanId ? (
+                      <div>
+                        <Button variant="ghost" onClick={handleBackToGrid} className="mb-4">
+                          <ArrowLeft className="mr-2 h-4 w-4" />
+                          Back to Budget Plans
+                        </Button>
+                        <UnifiedBudgetManager 
+                          clientId={clientId} 
+                          budgetItems={budgetItems}
+                          budgetSettings={budgetSettings}
+                          allBudgetSettings={allBudgetSettings}
+                        />
+                      </div>
+                    ) : (
+                      <EnhancedBudgetCardGrid 
+                        clientId={clientId}
+                        onPlanSelected={handlePlanSelected}
+                      />
+                    );
+                  })()}
                 </BudgetFeatureProvider>
               </div>
             </TabsContent>
