@@ -1,42 +1,43 @@
-import { useState, useEffect } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Button } from "@/components/ui/button";
+import { 
+  Card, CardContent, 
+} from "@/components/ui/card";
+import { useToast } from "@/hooks/use-toast";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { useToast } from "@/hooks/use-toast";
-import { Goal } from "@shared/schema";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import { insertGoalSchema, insertSubgoalSchema } from "@shared/schema";
 import {
   Form,
   FormControl,
   FormField,
   FormItem,
   FormLabel,
+  FormMessage,
 } from "@/components/ui/form";
-import { FormMessageHidden } from "@/components/ui/form-no-message";
 import { Input } from "@/components/ui/input";
+import { 
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { 
+  Alert,
+  AlertTitle,
+  AlertDescription,
+} from "@/components/ui/alert";
+import { ExclamationTriangleIcon } from "@radix-ui/react-icons";
+import { apiRequest } from "@/lib/queryClient";
+import { Goal } from "@shared/schema";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Minus, Trash, Pencil, AlertCircle } from "lucide-react";
-import { insertGoalSchema, insertSubgoalSchema } from "@shared/schema";
-import { z } from "zod";
-import { apiRequest } from "@/lib/utils";
+import { Plus, Pencil, Trash } from "lucide-react";
+
+// Helper component to hide form messages but maintain spacing
+function FormMessageHidden() {
+  return <div className="min-h-[20px]"></div>;
+}
 
 interface GoalsFormProps {
   clientId: number;
@@ -421,9 +422,20 @@ export default function GoalsForm({ clientId, onComplete, onPrevious }: GoalsFor
                   <FormItem className="mb-4">
                     <FormLabel>Description</FormLabel>
                     <FormControl>
-                      <Textarea {...field} />
+                      <Textarea 
+                        {...field} 
+                        onChange={(e) => {
+                          field.onChange(e);
+                          // Re-validate on change to show character limit message if needed
+                          goalForm.trigger("description");
+                        }}
+                        maxLength={200}
+                      />
                     </FormControl>
-                    <FormMessageHidden />
+                    <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                      <FormMessage />
+                      <div>{field.value?.length || 0}/200 characters</div>
+                    </div>
                   </FormItem>
                 )}
               />
@@ -500,22 +512,14 @@ export default function GoalsForm({ clientId, onComplete, onPrevious }: GoalsFor
                 />
 
                 <div className="flex gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="flex-1"
-                    onClick={() => setShowSubgoalForm(false)}
-                  >
-                    <Minus className="w-4 h-4 mr-2" />
+                  <Button variant="ghost" onClick={() => setShowSubgoalForm(false)}>
                     Cancel
                   </Button>
                   <Button 
                     type="submit" 
-                    className="flex-1"
-                    variant="secondary"
+                    className="ml-auto"
                     disabled={createSubgoal.isPending}
                   >
-                    <Plus className="w-4 h-4 mr-2" />
                     Add Subgoal
                   </Button>
                 </div>
@@ -524,220 +528,240 @@ export default function GoalsForm({ clientId, onComplete, onPrevious }: GoalsFor
           </DialogContent>
         </Dialog>
 
-      <AlertDialog open={showGoalDeleteDialog} onOpenChange={setShowGoalDeleteDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Goal?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the goal and all its subgoals.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={() => {
-                if (goalToDelete) {
-                  deleteGoal.mutate(goalToDelete);
-                }
-              }}
-            >
-              {deleteGoal.isPending ? "Deleting..." : "Delete Goal"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      <AlertDialog open={showSubgoalDeleteDialog} onOpenChange={setShowSubgoalDeleteDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Milestone?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete this milestone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={() => {
-                if (subgoalToDelete) {
-                  deleteSubgoal.mutate(subgoalToDelete);
-                  // Don't set dialog state here, it's handled in the mutation's onSuccess/onError
-                }
-              }}
-              disabled={deleteSubgoal.isPending}
-            >
-              {deleteSubgoal.isPending ? "Deleting..." : "Delete Milestone"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      <Dialog open={showGoalEditDialog} onOpenChange={setShowGoalEditDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Edit Goal</DialogTitle>
-          </DialogHeader>
-          <Form {...goalForm}>
-            <form onSubmit={goalForm.handleSubmit((data) => {
-              if (goalToEdit) {
-                editGoal.mutate({ id: goalToEdit.id, data });
-              }
-            })}>
-              <FormField
-                control={goalForm.control}
-                name="title"
-                render={({ field }) => (
-                  <FormItem className="mb-4">
-                    <FormLabel>Goal Title</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
-                    <FormMessageHidden />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={goalForm.control}
-                name="description"
-                render={({ field }) => (
-                  <FormItem className="mb-4">
-                    <FormLabel>Description</FormLabel>
-                    <FormControl>
-                      <Textarea {...field} />
-                    </FormControl>
-                    <FormMessageHidden />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={goalForm.control}
-                name="priority"
-                render={({ field }) => (
-                  <FormItem className="mb-4">
-                    <FormLabel>Priority</FormLabel>
-                    <FormControl>
-                      <select 
-                        className="w-full p-2 border rounded-md"
-                        {...field}
-                      >
-                        <option value="High Priority">High Priority</option>
-                        <option value="Medium Priority">Medium Priority</option>
-                        <option value="Low Priority">Low Priority</option>
-                      </select>
-                    </FormControl>
-                    <FormMessageHidden />
-                  </FormItem>
-                )}
-              />
-
-              <Button 
-                type="submit" 
-                className="w-full"
-                disabled={editGoal.isPending}
-              >
-                {editGoal.isPending ? "Saving..." : "Save Changes"}
-              </Button>
-            </form>
-          </Form>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={showSubgoalEditDialog} onOpenChange={setShowSubgoalEditDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Edit Subgoal</DialogTitle>
-          </DialogHeader>
-          <Form {...subgoalForm}>
-            <form onSubmit={subgoalForm.handleSubmit((data) => {
-              if (subgoalToEdit) {
-                editSubgoal.mutate({ 
-                  id: subgoalToEdit.id, 
-                  data: {
-                    title: data.title,
-                    description: data.description
-                  }
-                });
-              }
-            })} className="space-y-4">
-              <FormField
-                control={subgoalForm.control}
-                name="title"
-                render={({ field }) => (
-                  <FormItem className="mb-4">
-                    <FormLabel>Subgoal Title</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
-                    <FormMessageHidden />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={subgoalForm.control}
-                name="description"
-                render={({ field }) => (
-                  <FormItem className="mb-4">
-                    <FormLabel>Description</FormLabel>
-                    <FormControl>
-                      <Textarea {...field} />
-                    </FormControl>
-                    <FormMessageHidden />
-                  </FormItem>
-                )}
-              />
-
-              <Button 
-                type="submit" 
-                className="w-full"
-                disabled={editSubgoal.isPending}
-              >
-                <span className="flex items-center">
-                  {editSubgoal.isPending && (
-                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                  )}
-                  {editSubgoal.isPending ? "Saving..." : "Save Changes"}
-                </span>
-              </Button>
-            </form>
-          </Form>
-        </DialogContent>
-      </Dialog>
-
-        {validationMessage && (
-          <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-4">
-            <div className="flex items-center">
-              <AlertCircle className="h-4 w-4 text-yellow-400 mr-2" />
-              <p className="text-sm text-yellow-700">{validationMessage}</p>
+        <Dialog open={showGoalDeleteDialog} onOpenChange={setShowGoalDeleteDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Delete Goal</DialogTitle>
+            </DialogHeader>
+            <div className="py-6">
+              <Alert variant="destructive">
+                <ExclamationTriangleIcon className="h-4 w-4" />
+                <AlertTitle>Warning</AlertTitle>
+                <AlertDescription>
+                  Are you sure you want to delete this goal? This action cannot be undone.
+                </AlertDescription>
+              </Alert>
             </div>
-          </div>
-        )}
-        
-        <div className="flex gap-4 mt-6">
-          <Button
-            type="button"
-            variant="outline"
-            className="w-1/3"
-            onClick={onPrevious}
-          >
-            Previous
-          </Button>
-          <Button
-            type="button"
-            className="w-2/3"
-            variant="default"
-            onClick={onComplete}
-            disabled={!canProceed}
-          >
-            Next
-          </Button>
-        </div>
+            <div className="flex gap-2">
+              <Button variant="ghost" onClick={() => setShowGoalDeleteDialog(false)}>
+                Cancel
+              </Button>
+              <Button 
+                variant="destructive" 
+                className="ml-auto"
+                onClick={() => {
+                  if (goalToDelete) {
+                    deleteGoal.mutate(goalToDelete);
+                  }
+                }}
+                disabled={deleteGoal.isPending}
+              >
+                Delete Goal
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={showSubgoalDeleteDialog} onOpenChange={setShowSubgoalDeleteDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Delete Subgoal</DialogTitle>
+            </DialogHeader>
+            <div className="py-6">
+              <Alert variant="destructive">
+                <ExclamationTriangleIcon className="h-4 w-4" />
+                <AlertTitle>Warning</AlertTitle>
+                <AlertDescription>
+                  Are you sure you want to delete this subgoal? This action cannot be undone.
+                </AlertDescription>
+              </Alert>
+            </div>
+            <div className="flex gap-2">
+              <Button variant="ghost" onClick={() => setShowSubgoalDeleteDialog(false)}>
+                Cancel
+              </Button>
+              <Button 
+                variant="destructive" 
+                className="ml-auto"
+                onClick={() => {
+                  if (subgoalToDelete) {
+                    deleteSubgoal.mutate(subgoalToDelete);
+                  }
+                }}
+                disabled={deleteSubgoal.isPending}
+              >
+                Delete Subgoal
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={showGoalEditDialog} onOpenChange={setShowGoalEditDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Edit Goal</DialogTitle>
+            </DialogHeader>
+            <Form {...goalForm}>
+              <form onSubmit={goalForm.handleSubmit((data) => {
+                if (goalToEdit) {
+                  editGoal.mutate({ id: goalToEdit.id, data });
+                }
+              })}>
+                <FormField
+                  control={goalForm.control}
+                  name="title"
+                  render={({ field }) => (
+                    <FormItem className="mb-4">
+                      <FormLabel>Goal Title</FormLabel>
+                      <FormControl>
+                        <Input {...field} />
+                      </FormControl>
+                      <FormMessageHidden />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={goalForm.control}
+                  name="description"
+                  render={({ field }) => (
+                    <FormItem className="mb-4">
+                      <FormLabel>Description</FormLabel>
+                      <FormControl>
+                        <Textarea 
+                          {...field} 
+                          onChange={(e) => {
+                            field.onChange(e);
+                            // Re-validate on change to show character limit message if needed
+                            goalForm.trigger("description");
+                          }}
+                          maxLength={200}
+                        />
+                      </FormControl>
+                      <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                        <FormMessage />
+                        <div>{field.value?.length || 0}/200 characters</div>
+                      </div>
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={goalForm.control}
+                  name="priority"
+                  render={({ field }) => (
+                    <FormItem className="mb-4">
+                      <FormLabel>Priority</FormLabel>
+                      <FormControl>
+                        <select 
+                          className="w-full p-2 border rounded-md"
+                          {...field}
+                        >
+                          <option value="High Priority">High Priority</option>
+                          <option value="Medium Priority">Medium Priority</option>
+                          <option value="Low Priority">Low Priority</option>
+                        </select>
+                      </FormControl>
+                      <FormMessageHidden />
+                    </FormItem>
+                  )}
+                />
+
+                <div className="flex gap-2">
+                  <Button variant="ghost" onClick={() => setShowGoalEditDialog(false)}>
+                    Cancel
+                  </Button>
+                  <Button 
+                    type="submit" 
+                    className="ml-auto"
+                    disabled={editGoal.isPending}
+                  >
+                    Update Goal
+                  </Button>
+                </div>
+              </form>
+            </Form>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={showSubgoalEditDialog} onOpenChange={setShowSubgoalEditDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Edit Subgoal</DialogTitle>
+            </DialogHeader>
+            <Form {...subgoalForm}>
+              <form onSubmit={subgoalForm.handleSubmit((data) => {
+                if (subgoalToEdit) {
+                  editSubgoal.mutate({ id: subgoalToEdit.id, data });
+                }
+              })}>
+                <FormField
+                  control={subgoalForm.control}
+                  name="title"
+                  render={({ field }) => (
+                    <FormItem className="mb-4">
+                      <FormLabel>Subgoal Title</FormLabel>
+                      <FormControl>
+                        <Input {...field} />
+                      </FormControl>
+                      <FormMessageHidden />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={subgoalForm.control}
+                  name="description"
+                  render={({ field }) => (
+                    <FormItem className="mb-4">
+                      <FormLabel>Description</FormLabel>
+                      <FormControl>
+                        <Textarea {...field} />
+                      </FormControl>
+                      <FormMessageHidden />
+                    </FormItem>
+                  )}
+                />
+
+                <div className="flex gap-2">
+                  <Button variant="ghost" onClick={() => setShowSubgoalEditDialog(false)}>
+                    Cancel
+                  </Button>
+                  <Button 
+                    type="submit" 
+                    className="ml-auto"
+                    disabled={editSubgoal.isPending}
+                  >
+                    Update Subgoal
+                  </Button>
+                </div>
+              </form>
+            </Form>
+          </DialogContent>
+        </Dialog>
       </div>
+
+      <div className="col-span-2 flex justify-between">
+        <Button onClick={onPrevious}>Previous</Button>
+        <Button 
+          onClick={onComplete}
+          disabled={!canProceed}
+        >
+          Next
+        </Button>
+      </div>
+
+      {!canProceed && validationMessage && (
+        <div className="col-span-2">
+          <Alert>
+            <ExclamationTriangleIcon className="h-4 w-4" />
+            <AlertTitle>Required</AlertTitle>
+            <AlertDescription>
+              {validationMessage}
+            </AlertDescription>
+          </Alert>
+        </div>
+      )}
     </div>
   );
 }
