@@ -70,10 +70,7 @@ function BudgetTabContents({ clientId }: { clientId: number }) {
             variant="ghost" 
             size="sm" 
             className="mb-4" 
-            onClick={() => {
-              const { resetSelectedPlan } = useBudgetFeature();
-              resetSelectedPlan();
-            }}
+            onClick={resetSelectedPlan}
           >
             <ChevronLeft className="h-4 w-4 mr-1" />
             Back to Budget Plans
