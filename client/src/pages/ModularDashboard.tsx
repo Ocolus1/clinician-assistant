@@ -149,7 +149,10 @@ function ModularDashboardContent() {
           <div className="mt-4">
             <Card className="shadow-sm">
               <div className="h-[60vh]">
-                <BudgetExpirationCard />
+                {/* Render BudgetExpirationCard but hide its header */}
+                <div className="h-full [&>div>div:first-child]:hidden">
+                  <BudgetExpirationCard />
+                </div>
               </div>
             </Card>
           </div>

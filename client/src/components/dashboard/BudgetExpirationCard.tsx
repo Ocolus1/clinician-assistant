@@ -110,6 +110,7 @@ export function BudgetExpirationCard() {
 
   return (
     <Card className="h-full flex flex-col">
+      {/* We keep the main card header */}
       <CardHeader className="pb-2 flex-shrink-0">
         <div className="flex items-center justify-between">
           <div>
@@ -122,67 +123,8 @@ export function BudgetExpirationCard() {
       </CardHeader>
       
       <CardContent className="p-2 flex-grow overflow-auto">
-        <div className="grid grid-rows-[auto_1fr] gap-3 h-full">
-          {/* Top row - Expiring plans visualization - compact height */}
-          <Card className="flex flex-col">
-            <CardHeader className="p-2 pb-1 flex-shrink-0">
-              <CardTitle className="text-sm flex justify-between items-center">
-                <span>Expiring Next Month</span>
-                {expiringCount > 0 && (
-                  <Badge variant="destructive" className="ml-2">
-                    {expiringCount} Plan{expiringCount !== 1 ? 's' : ''}
-                  </Badge>
-                )}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-2 pt-0">
-              {isLoading ? (
-                <div className="space-y-2">
-                  <Skeleton className="h-8 w-full" />
-                  <Skeleton className="h-8 w-full" />
-                </div>
-              ) : expiringCount > 0 ? (
-                <div className="flex flex-wrap gap-2">
-                  {expiringClients.map((client) => {
-                    // Get values from the client data
-                    const daysLeft = client.daysLeft || 30; // Use 30 days as fallback
-                    const unutilizedAmount = client.unutilizedAmount || 0; 
-                    const unutilizedPercentage = client.unutilizedPercentage || 0;
-                    
-                    return (
-                      <div key={`${client.clientId}-${client.planId}`} 
-                        className="flex-1 min-w-[220px] flex justify-between items-center p-2 border rounded-md bg-red-50 border-red-200">
-                        <div className="overflow-hidden flex-grow">
-                          <p className="font-medium text-sm truncate">
-                            {client.clientName} - <span className="text-red-600">{daysLeft} days left</span>
-                          </p>
-                          <p className="text-xs text-muted-foreground flex items-center justify-between pr-2">
-                            <span className="font-medium">{formatCurrency(unutilizedAmount)}</span>
-                            <span>-</span>
-                            <span className="font-medium">{unutilizedPercentage}% Unutilized</span>
-                          </p>
-                        </div>
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          onClick={() => setLocation(`/client/${client.clientId}/budget`)}
-                          className="ml-1 flex-shrink-0"
-                        >
-                          <ArrowRight className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                <div className="flex items-center justify-center h-8 text-muted-foreground text-sm">
-                  No plans expiring next month
-                </div>
-              )}
-            </CardContent>
-          </Card>
-          
-          {/* Bottom row - Funds visualization over time - expanded height */}
+        <div className="grid grid-rows-[1fr_auto] gap-3 h-full">
+          {/* REORDERED: First row - Funds visualization over time - expanded height */}
           <Card className="flex flex-col flex-grow">
             <CardHeader className="p-2 pb-1 flex-shrink-0">
               <CardTitle className="text-sm flex items-center">
@@ -344,6 +286,65 @@ export function BudgetExpirationCard() {
                   )}
                 </div>
               </div>
+            </CardContent>
+          </Card>
+          
+          {/* REORDERED: Second row - Expiring plans visualization - compact height */}
+          <Card className="flex flex-col">
+            <CardHeader className="p-2 pb-1 flex-shrink-0">
+              <CardTitle className="text-sm flex justify-between items-center">
+                <span>Expiring Next Month</span>
+                {expiringCount > 0 && (
+                  <Badge variant="destructive" className="ml-2">
+                    {expiringCount} Plan{expiringCount !== 1 ? 's' : ''}
+                  </Badge>
+                )}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-2 pt-0">
+              {isLoading ? (
+                <div className="space-y-2">
+                  <Skeleton className="h-8 w-full" />
+                  <Skeleton className="h-8 w-full" />
+                </div>
+              ) : expiringCount > 0 ? (
+                <div className="flex flex-wrap gap-2">
+                  {expiringClients.map((client) => {
+                    // Get values from the client data
+                    const daysLeft = client.daysLeft || 30; // Use 30 days as fallback
+                    const unutilizedAmount = client.unutilizedAmount || 0; 
+                    const unutilizedPercentage = client.unutilizedPercentage || 0;
+                    
+                    return (
+                      <div key={`${client.clientId}-${client.planId}`} 
+                        className="flex-1 min-w-[220px] flex justify-between items-center p-2 border rounded-md bg-red-50 border-red-200">
+                        <div className="overflow-hidden flex-grow">
+                          <p className="font-medium text-sm truncate">
+                            {client.clientName} - <span className="text-red-600">{daysLeft} days left</span>
+                          </p>
+                          <p className="text-xs text-muted-foreground flex items-center justify-between pr-2">
+                            <span className="font-medium">{formatCurrency(unutilizedAmount)}</span>
+                            <span>-</span>
+                            <span className="font-medium">{unutilizedPercentage}% Unutilized</span>
+                          </p>
+                        </div>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          onClick={() => setLocation(`/client/${client.clientId}/budget`)}
+                          className="ml-1 flex-shrink-0"
+                        >
+                          <ArrowRight className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="flex items-center justify-center h-8 text-muted-foreground text-sm">
+                  No plans expiring next month
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
