@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
-import { DollarSign } from 'lucide-react';
+import { DollarSign, ChevronDown, ChevronRight } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { useDashboard } from './DashboardProvider';
 import { useLocation } from 'wouter';
 import { BudgetExpirationTimeline } from './BudgetExpirationTimeline';
@@ -38,6 +39,7 @@ function formatCurrency(amount: number): string {
 export function BudgetExpirationCard() {
   const { dashboardData, loadingState } = useDashboard();
   const [, setLocation] = useLocation();
+  const [isTimelineExpanded, setIsTimelineExpanded] = useState(false);
   
   const isLoading = loadingState === 'loading' || loadingState === 'idle';
   const budgetData = dashboardData?.budgets;
@@ -159,174 +161,197 @@ export function BudgetExpirationCard() {
       </CardHeader>
       
       <CardContent className="p-1 flex-grow overflow-auto">
-        <div className="grid grid-rows-[1fr_auto] gap-2 h-full">
-          {/* REORDERED: First row - Funds visualization over time - expanded height */}
-          <Card className="flex flex-col flex-grow">
+        <div className={`grid ${isTimelineExpanded ? 'grid-rows-[auto_1fr]' : 'grid-rows-[1fr_auto]'} gap-2 h-full`}>
+          {/* First section - Funds visualization over time */}
+          <Card className={`flex flex-col ${isTimelineExpanded ? '' : 'flex-grow'}`}>
             <CardHeader className="p-1 pb-0 flex-shrink-0">
               <CardTitle className="text-sm flex items-center">
                 <DollarSign className="mr-1 h-4 w-4" />
                 Remaining Funds (Next 6 Months)
               </CardTitle>
             </CardHeader>
-            <CardContent className="p-1 pt-0 flex-grow overflow-hidden">
-              <div className="grid grid-rows-[3fr_1fr] gap-1 h-full">
-                {/* Main area chart */}
-                <div className="w-full h-full">
-                  {isLoading ? (
-                    <Skeleton className="w-full h-full" />
-                  ) : (
-                    <ResponsiveContainer width="100%" height="100%">
-                      <AreaChart
-                        data={fundsChartData} 
-                        margin={{ top: 5, right: 10, left: 10, bottom: 20 }}
-                        barCategoryGap={10}
-                        barGap={3}
-                      >
-                        <XAxis 
-                          dataKey="month"
-                          tickFormatter={(value) => {
-                            if (!value || typeof value !== 'string') return '';
-                            
-                            try {
-                              // Just extract year and month from YYYY-MM format
-                              const [year, month] = value.split('-');
-                              
-                              // Use short month names without year to save space
-                              const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
-                                                 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-                              return monthNames[parseInt(month) - 1];
-                            } catch (e) {
-                              return value;
-                            }
-                          }}
-                          tick={{ fontSize: 10, fill: '#555555' }}
-                          tickLine={false}
-                          axisLine={false}
-                          textAnchor="middle"
-                          height={30}
-                          interval={0} // Ensures all labels are displayed
-                        />
-                        <YAxis 
-                          hide={true}
-                        />
-                        <Tooltip 
-                          formatter={(value) => formatCurrency(Number(value))}
-                          labelFormatter={(value) => {
-                            // Check if we have a daily date (YYYY-MM-DD) or monthly (YYYY-MM)
-                            const parts = value.split('-');
-                            if (parts.length === 3) {
-                              // Daily format
-                              const [year, month, day] = parts;
-                              const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
-                              return date.toLocaleDateString('en-US', { 
-                                month: 'long',
-                                day: 'numeric', 
-                                year: 'numeric' 
-                              });
-                            } else {
-                              // Monthly format
-                              const [year, month] = parts;
-                              const date = new Date(parseInt(year), parseInt(month) - 1, 1);
-                              return date.toLocaleDateString('en-US', { 
-                                month: 'long',
-                                year: 'numeric' 
-                              });
-                            }
-                          }}
-                          contentStyle={{ 
-                            backgroundColor: 'rgba(255, 255, 255, 0.9)',
-                            border: '1px solid #e2e8f0',
-                            borderRadius: '6px',
-                            padding: '8px',
-                            boxShadow: '0 2px 10px rgba(0, 0, 0, 0.1)',
-                          }}
-                          itemStyle={{ color: '#2563EB' }}
-                          cursor={{ stroke: '#2563EB', strokeWidth: 1, strokeDasharray: '5 5' }}
-                        />
-                        <Area
-                          type="monotone"
-                          dataKey="amount"
-                          name="Remaining Funds"
-                          stroke="#2563EB"
-                          fill="#2563EB"
-                          fillOpacity={0.2}
-                        />
-                      </AreaChart>
-                    </ResponsiveContainer>
-                  )}
-                </div>
-                
-                {/* Plan counts as small bar chart */}
-                <div className="w-full">
-                  {!isLoading && (
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart
-                        data={fundsChartData}
-                        margin={{ top: 0, right: 10, left: 10, bottom: 15 }}
-                        barCategoryGap={20}
-                        barGap={5}
-                      >
-                        <XAxis 
-                          dataKey="month"
-                          tickFormatter={(value) => {
-                            if (!value || typeof value !== 'string') return '';
-                            
-                            try {
-                              // Just extract year and month from YYYY-MM format
-                              const [year, month] = value.split('-');
-                              
-                              // Use short month names with year
-                              const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
-                                                 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-                              return monthNames[parseInt(month) - 1] + ' ' + year;
-                            } catch (e) {
-                              return value;
-                            }
-                          }}
-                          tick={{ fontSize: 9, fill: '#555555' }}
-                          tickLine={false}
-                          axisLine={false}
-                          height={25}
-                          textAnchor="middle"
-                          interval={0} // Ensures all labels are displayed
-                        />
-                        <YAxis 
-                          hide={true}
-                        />
-                        <Tooltip 
-                          labelFormatter={(value) => {
-                            const [year, month] = value.split('-');
-                            const date = new Date(parseInt(year), parseInt(month) - 1, 1);
-                            return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-                          }}
-                          contentStyle={{ 
-                            backgroundColor: 'rgba(255, 255, 255, 0.9)',
-                            border: '1px solid #e2e8f0',
-                            borderRadius: '6px',
-                            padding: '8px',
-                            boxShadow: '0 2px 10px rgba(0, 0, 0, 0.1)',
-                          }}
-                          cursor={{ stroke: '#6B7280', strokeWidth: 1, strokeDasharray: '5 5' }}
-                        />
-                        <Bar
-                          dataKey="planCount"
-                          name="Expiring Plans"
-                          radius={[2, 2, 0, 0]}
+            
+            {/* Show full or compact view based on isTimelineExpanded */}
+            {!isTimelineExpanded ? (
+              // Full view of the area chart when timeline is not expanded
+              <CardContent className="p-1 pt-0 flex-grow overflow-hidden">
+                <div className="grid grid-rows-[3fr_1fr] gap-1 h-full">
+                  {/* Main area chart */}
+                  <div className="w-full h-full">
+                    {isLoading ? (
+                      <Skeleton className="w-full h-full" />
+                    ) : (
+                      <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart
+                          data={fundsChartData} 
+                          margin={{ top: 5, right: 10, left: 10, bottom: 20 }}
+                          barCategoryGap={10}
+                          barGap={3}
                         >
-                          {fundsChartData.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                          ))}
-                        </Bar>
-                      </BarChart>
-                    </ResponsiveContainer>
-                  )}
+                          <XAxis 
+                            dataKey="month"
+                            tickFormatter={(value) => {
+                              if (!value || typeof value !== 'string') return '';
+                              
+                              try {
+                                // Just extract year and month from YYYY-MM format
+                                const [year, month] = value.split('-');
+                                
+                                // Use short month names without year to save space
+                                const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
+                                                   'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                                return monthNames[parseInt(month) - 1];
+                              } catch (e) {
+                                return value;
+                              }
+                            }}
+                            tick={{ fontSize: 10, fill: '#555555' }}
+                            tickLine={false}
+                            axisLine={false}
+                            textAnchor="middle"
+                            height={30}
+                            interval={0} // Ensures all labels are displayed
+                          />
+                          <YAxis 
+                            hide={true}
+                          />
+                          <Tooltip 
+                            formatter={(value) => formatCurrency(Number(value))}
+                            labelFormatter={(value) => {
+                              // Check if we have a daily date (YYYY-MM-DD) or monthly (YYYY-MM)
+                              const parts = value.split('-');
+                              if (parts.length === 3) {
+                                // Daily format
+                                const [year, month, day] = parts;
+                                const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+                                return date.toLocaleDateString('en-US', { 
+                                  month: 'long',
+                                  day: 'numeric', 
+                                  year: 'numeric' 
+                                });
+                              } else {
+                                // Monthly format
+                                const [year, month] = parts;
+                                const date = new Date(parseInt(year), parseInt(month) - 1, 1);
+                                return date.toLocaleDateString('en-US', { 
+                                  month: 'long',
+                                  year: 'numeric' 
+                                });
+                              }
+                            }}
+                            contentStyle={{ 
+                              backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                              border: '1px solid #e2e8f0',
+                              borderRadius: '6px',
+                              padding: '8px',
+                              boxShadow: '0 2px 10px rgba(0, 0, 0, 0.1)',
+                            }}
+                            itemStyle={{ color: '#2563EB' }}
+                            cursor={{ stroke: '#2563EB', strokeWidth: 1, strokeDasharray: '5 5' }}
+                          />
+                          <Area
+                            type="monotone"
+                            dataKey="amount"
+                            name="Remaining Funds"
+                            stroke="#2563EB"
+                            fill="#2563EB"
+                            fillOpacity={0.2}
+                          />
+                        </AreaChart>
+                      </ResponsiveContainer>
+                    )}
+                  </div>
+                  
+                  {/* Plan counts as small bar chart */}
+                  <div className="w-full">
+                    {!isLoading && (
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart
+                          data={fundsChartData}
+                          margin={{ top: 0, right: 10, left: 10, bottom: 15 }}
+                          barCategoryGap={20}
+                          barGap={5}
+                        >
+                          <XAxis 
+                            dataKey="month"
+                            tickFormatter={(value) => {
+                              if (!value || typeof value !== 'string') return '';
+                              
+                              try {
+                                // Just extract year and month from YYYY-MM format
+                                const [year, month] = value.split('-');
+                                
+                                // Use short month names with year
+                                const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
+                                                   'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                                return monthNames[parseInt(month) - 1] + ' ' + year;
+                              } catch (e) {
+                                return value;
+                              }
+                            }}
+                            tick={{ fontSize: 9, fill: '#555555' }}
+                            tickLine={false}
+                            axisLine={false}
+                            height={25}
+                            textAnchor="middle"
+                            interval={0} // Ensures all labels are displayed
+                          />
+                          <YAxis 
+                            hide={true}
+                          />
+                          <Tooltip 
+                            labelFormatter={(value) => {
+                              const [year, month] = value.split('-');
+                              const date = new Date(parseInt(year), parseInt(month) - 1, 1);
+                              return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+                            }}
+                            contentStyle={{ 
+                              backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                              border: '1px solid #e2e8f0',
+                              borderRadius: '6px',
+                              padding: '8px',
+                              boxShadow: '0 2px 10px rgba(0, 0, 0, 0.1)',
+                            }}
+                            cursor={{ stroke: '#6B7280', strokeWidth: 1, strokeDasharray: '5 5' }}
+                          />
+                          <Bar
+                            dataKey="planCount"
+                            name="Expiring Plans"
+                            radius={[2, 2, 0, 0]}
+                          >
+                            {fundsChartData.map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                            ))}
+                          </Bar>
+                        </BarChart>
+                      </ResponsiveContainer>
+                    )}
+                  </div>
                 </div>
-              </div>
-            </CardContent>
+              </CardContent>
+            ) : (
+              // Compact summary when timeline is expanded
+              <CardContent className="p-1 pt-0">
+                {isLoading ? (
+                  <Skeleton className="h-8 w-full" />
+                ) : (
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <p className="text-sm font-medium">Total remaining: {formatCurrency(fundsChartData.reduce((sum, item) => sum + item.amount, 0))}</p>
+                      <p className="text-xs text-muted-foreground">Across {fundsChartData.reduce((sum, item) => sum + item.planCount, 0)} plans</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-medium">Expiring soon: {formatCurrency(totalFundsAtRisk)}</p>
+                      <p className="text-xs text-muted-foreground">{expiringCount} plan{expiringCount !== 1 ? 's' : ''} expiring next month</p>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            )}
           </Card>
           
-          {/* REORDERED: Second row - Expiring plans visualization - improved layout */}
-          <Card className="flex flex-col">
+          {/* Second section - Expiring plans visualization */}
+          <Card className={`flex flex-col ${isTimelineExpanded ? 'flex-grow' : ''}`}>
             <CardHeader className="p-1 pb-0 flex-shrink-0">
               <div className="flex justify-between items-center">
                 <CardTitle className="text-sm flex items-center">
@@ -337,6 +362,21 @@ export function BudgetExpirationCard() {
                     </Badge>
                   )}
                 </CardTitle>
+                
+                {/* Toggle button to expand/collapse */}
+                {expiringCount > 0 && (
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => setIsTimelineExpanded(!isTimelineExpanded)}
+                    className="h-6 w-6 p-0"
+                  >
+                    {isTimelineExpanded ? 
+                      <ChevronDown className="h-4 w-4" /> : 
+                      <ChevronRight className="h-4 w-4" />
+                    }
+                  </Button>
+                )}
               </div>
             </CardHeader>
             
@@ -347,13 +387,49 @@ export function BudgetExpirationCard() {
                   <Skeleton className="h-8 w-full" />
                 </div>
               ) : expiringCount > 0 ? (
-                <BudgetExpirationTimeline 
-                  clients={expiringClients}
-                  maxDays={30}
-                  showStatistics={true}
-                  showHeader={true}
-                  compact={false}
-                />
+                isTimelineExpanded ? (
+                  // Full timeline when expanded
+                  <BudgetExpirationTimeline 
+                    clients={expiringClients}
+                    maxDays={30}
+                    showStatistics={true}
+                    showHeader={true}
+                    compact={false}
+                  />
+                ) : (
+                  // Compact summary when not expanded
+                  <div className="space-y-1">
+                    {criticalClients.length > 0 && (
+                      <div className="flex justify-between items-center p-1.5 bg-red-50 border border-red-200 rounded">
+                        <div className="flex items-center">
+                          <div className="h-2 w-2 rounded-full bg-red-600 mr-2"></div>
+                          <span className="text-sm font-medium">{criticalClients.length} critical</span>
+                        </div>
+                        <span className="text-sm">{formatCurrency(criticalClients.reduce((sum, c) => sum + (c.unutilizedAmount || 0), 0))}</span>
+                      </div>
+                    )}
+                    
+                    {urgentClients.length > 0 && (
+                      <div className="flex justify-between items-center p-1.5 bg-amber-50 border border-amber-200 rounded">
+                        <div className="flex items-center">
+                          <div className="h-2 w-2 rounded-full bg-amber-500 mr-2"></div>
+                          <span className="text-sm font-medium">{urgentClients.length} urgent</span>
+                        </div>
+                        <span className="text-sm">{formatCurrency(urgentClients.reduce((sum, c) => sum + (c.unutilizedAmount || 0), 0))}</span>
+                      </div>
+                    )}
+                    
+                    {monitoringClients.length > 0 && (
+                      <div className="flex justify-between items-center p-1.5 bg-blue-50 border border-blue-200 rounded">
+                        <div className="flex items-center">
+                          <div className="h-2 w-2 rounded-full bg-blue-400 mr-2"></div>
+                          <span className="text-sm font-medium">{monitoringClients.length} monitoring</span>
+                        </div>
+                        <span className="text-sm">{formatCurrency(monitoringClients.reduce((sum, c) => sum + (c.unutilizedAmount || 0), 0))}</span>
+                      </div>
+                    )}
+                  </div>
+                )
               ) : (
                 <div className="flex items-center justify-center h-8 text-muted-foreground text-sm">
                   No plans expiring next month
