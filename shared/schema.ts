@@ -7,6 +7,8 @@ export const FUNDS_MANAGEMENT_OPTIONS = ["Self-Managed", "Advisor-Managed", "Cus
 export const clients = pgTable("clients", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
+  originalName: text("original_name"), // Store original name without identifier
+  uniqueIdentifier: text("unique_identifier"), // Store just the 6-digit identifier
   dateOfBirth: date("date_of_birth").notNull(),
   gender: text("gender"),
   preferredLanguage: text("preferred_language"),

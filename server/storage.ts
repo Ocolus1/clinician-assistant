@@ -112,9 +112,21 @@ export class DBStorage implements IStorage {
   async createClient(client: InsertClient): Promise<Client> {
     console.log(`Creating client:`, JSON.stringify(client));
     
+    // Generate a unique 6-digit identifier
+    const uniqueIdentifier = Math.floor(100000 + Math.random() * 900000).toString();
+    const originalName = client.name;
+    const nameWithIdentifier = `${originalName}-${uniqueIdentifier}`;
+    
+    console.log(`Generated unique identifier: ${uniqueIdentifier}`);
+    console.log(`Original name: ${originalName}`);
+    console.log(`Name with identifier: ${nameWithIdentifier}`);
+    
     // Process client data for storage
     const processedClient = {
       ...client,
+      name: nameWithIdentifier, // Set the name with identifier
+      originalName: originalName, // Store the original name
+      uniqueIdentifier: uniqueIdentifier, // Store just the identifier
       ndisFunds: Number(client.ndisFunds) || 0,
       fundsManagement: client.fundsManagement || null,
       // Make sure these fields are passed through properly
