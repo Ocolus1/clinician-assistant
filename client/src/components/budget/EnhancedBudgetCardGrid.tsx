@@ -116,8 +116,8 @@ function BudgetPlanCard({ plan, onPreview }: BudgetPlanCardProps) {
             <CardTitle>{plan.planCode || 'Budget Plan'}</CardTitle>
             <CardDescription>Serial #: {plan.planSerialNumber || 'N/A'}</CardDescription>
           </div>
-          <Badge variant={plan.active ? "default" : "outline"}>
-            {plan.active ? "Active" : "Inactive"}
+          <Badge variant={plan.isActive ? "default" : "outline"}>
+            {plan.isActive ? "Active" : "Inactive"}
           </Badge>
         </div>
       </CardHeader>
