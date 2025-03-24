@@ -1,6 +1,21 @@
 import { apiRequest } from '@/lib/queryClient';
 import { Goal, Subgoal, Session, PerformanceAssessment, MilestoneAssessment } from '@shared/schema';
 import { ProgressAnalysis } from '@/lib/agent/types';
+import { format, subMonths } from 'date-fns';
+
+/**
+ * Interface for milestone performance data
+ */
+export interface MilestonePerformanceData {
+  id: number;
+  title: string;
+  description?: string;
+  isEmpty: boolean;
+  values: {
+    month: string; // Format: "YYYY-MM"
+    score: number;
+  }[];
+}
 
 /**
  * Service for client progress tracking and analysis
@@ -243,5 +258,152 @@ export const progressDataService = {
     return totalMilestones > 0 
       ? (totalCompleted / totalMilestones) * 100 
       : 0;
+  },
+
+  /**
+   * Get subgoal performance data for visualization
+   * Returns real assessment data organized by month for sparkline visualization
+   * 
+   * @param clientId The client ID
+   * @param goalId The goal ID
+   * @param subgoals Array of subgoals to get performance data for
+   * @returns Array of milestone performance data with monthly scores
+   */
+  async getMilestonePerformanceData(
+    clientId: number,
+    goalId: number,
+    subgoals: Subgoal[]
+  ): Promise<MilestonePerformanceData[]> {
+    try {
+      console.log(`Fetching milestone performance data for goal ${goalId} with ${subgoals.length} subgoals`);
+      
+      // Get the last 6 months for our data points
+      const months = this.getLast6Months();
+      
+      // Fetch all sessions for the client
+      const sessions = await this.fetchSessions(clientId);
+      
+      if (sessions.length === 0) {
+        console.log('No sessions found for client, returning empty performance data');
+        // Return empty data structure with isEmpty = true
+        return subgoals.map(subgoal => ({
+          id: subgoal.id,
+          title: subgoal.title || "Untitled Milestone",
+          description: subgoal.description || "",
+          isEmpty: true,
+          values: months.map(month => ({
+            month: month.value,
+            score: 0
+          }))
+        }));
+      }
+      
+      // Get all session notes with assessments
+      const sessionNotes = await this.getSessionNotesForClient(clientId, sessions);
+      
+      // Find performance assessments for this goal
+      const goalAssessments = sessionNotes
+        .flatMap(note => {
+          // Add the session date to each assessment for time-based organization
+          return (note.performanceAssessments || []).map((assessment: any) => ({
+            ...assessment,
+            date: note.createdAt,
+            sessionDate: sessions.find(s => s.id === note.sessionId)?.sessionDate || note.createdAt
+          }));
+        })
+        .filter(assessment => assessment.goalId === goalId);
+      
+      console.log(`Found ${goalAssessments.length} performance assessments for goal ${goalId}`);
+      
+      // Prepare milestone performance data
+      const milestonePerformanceData: MilestonePerformanceData[] = subgoals.map(subgoal => {
+        // Extract all milestone assessments for this subgoal across all sessions
+        const subgoalAssessments = goalAssessments
+          .flatMap(assessment => (assessment.milestones || [])
+            .filter((milestone: any) => milestone.milestoneId === subgoal.id)
+            .map((milestone: any) => ({
+              ...milestone,
+              sessionDate: assessment.sessionDate,
+              month: format(new Date(assessment.sessionDate), 'yyyy-MM')
+            }))
+          );
+        
+        console.log(`Found ${subgoalAssessments.length} assessments for subgoal ${subgoal.id}`);
+        
+        // Group assessments by month and calculate average scores
+        const monthlyScores = new Map<string, number[]>();
+        
+        // Initialize all months with empty arrays
+        months.forEach(month => {
+          monthlyScores.set(month.value, []);
+        });
+        
+        // Add all scores to their respective month
+        subgoalAssessments.forEach(assessment => {
+          const monthKey = format(new Date(assessment.sessionDate), 'yyyy-MM');
+          if (monthlyScores.has(monthKey)) {
+            monthlyScores.get(monthKey)?.push(assessment.rating);
+          }
+        });
+        
+        // Calculate average score for each month (1-10 scale)
+        const values = months.map(month => {
+          const scores = monthlyScores.get(month.value) || [];
+          const averageScore = scores.length > 0 
+            ? Math.round(scores.reduce((sum, score) => sum + score, 0) / scores.length * 2) // Convert 1-5 scale to 1-10
+            : 0;
+          
+          return {
+            month: month.value,
+            score: Math.min(Math.max(averageScore, 0), 10) // Ensure score is between 0-10
+          };
+        });
+        
+        // Check if we have any real data
+        const hasData = values.some(v => v.score > 0);
+        
+        return {
+          id: subgoal.id,
+          title: subgoal.title || "Untitled Milestone",
+          description: subgoal.description || "",
+          isEmpty: !hasData,
+          values
+        };
+      });
+      
+      return milestonePerformanceData;
+    } catch (error) {
+      console.error('Error fetching milestone performance data:', error);
+      
+      // Return empty data structure
+      return subgoals.map(subgoal => ({
+        id: subgoal.id,
+        title: subgoal.title || "Untitled Milestone",
+        description: subgoal.description || "",
+        isEmpty: true,
+        values: this.getLast6Months().map(month => ({
+          month: month.value,
+          score: 0
+        }))
+      }));
+    }
+  },
+  
+  /**
+   * Get the last 6 months for data visualization
+   * @returns Array of month objects with value (YYYY-MM) and display (MMM) properties
+   */
+  getLast6Months() {
+    const months = [];
+    const currentDate = new Date();
+    
+    for (let i = 5; i >= 0; i--) {
+      const date = subMonths(currentDate, i);
+      const monthStr = format(date, "yyyy-MM");
+      const displayMonth = format(date, "MMM");
+      months.push({ value: monthStr, display: displayMonth });
+    }
+    
+    return months;
   }
 };

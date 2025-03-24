@@ -3,7 +3,7 @@ import * as React from "react";
 import "./FixedDialog.css"; // Import the CSS fix for dialog
 const { useState, useEffect } = React;
 import { format, subMonths, startOfMonth } from "date-fns";
-import { X, Plus } from "lucide-react";
+import { X, Plus, AlertCircle } from "lucide-react";
 
 import {
   Dialog,
@@ -20,6 +20,8 @@ import {
   TooltipProvider,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+import { useQuery } from "@tanstack/react-query";
+import { progressDataService, MilestonePerformanceData } from "@/lib/services/progressDataService";
 
 // Define the milestone performance data structure
 interface MilestonePerformance {
