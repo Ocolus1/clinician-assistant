@@ -42,6 +42,7 @@ async function createFinancialTestClient() {
       clientId: client.id,
       budgetSettingsId: settings.id,
       itemName: 'Speech Therapy',
+      description: 'Regular speech therapy sessions', // Add description field
       unitPrice: 250,
       quantity: 60, // 60 units at $250 each = $15,000 total
       category: 'Therapeutic Support',

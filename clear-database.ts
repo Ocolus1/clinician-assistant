@@ -6,6 +6,19 @@
  */
 
 import { db } from './server/db';
+import { 
+  clients, 
+  allies, 
+  goals, 
+  subgoals, 
+  budgetSettings, 
+  budgetItems, 
+  sessions, 
+  sessionNotes, 
+  performanceAssessments, 
+  milestoneAssessments 
+} from './shared/schema';
+import { eq, sql } from 'drizzle-orm';
 
 async function clearDatabase() {
   try {
@@ -14,35 +27,35 @@ async function clearDatabase() {
     // Delete in reverse order of dependencies to avoid foreign key constraint issues
     // First, delete records from child tables
     console.log('Deleting milestone_assessments records...');
-    await db.execute('DELETE FROM milestone_assessments');
+    await db.delete(milestoneAssessments);
     
     console.log('Deleting performance_assessments records...');
-    await db.execute('DELETE FROM performance_assessments');
+    await db.delete(performanceAssessments);
     
     console.log('Deleting session_notes records...');
-    await db.execute('DELETE FROM session_notes');
+    await db.delete(sessionNotes);
     
     console.log('Deleting sessions records...');
-    await db.execute('DELETE FROM sessions');
+    await db.delete(sessions);
     
     console.log('Deleting subgoals records...');
-    await db.execute('DELETE FROM subgoals');
+    await db.delete(subgoals);
     
     console.log('Deleting goals records...');
-    await db.execute('DELETE FROM goals');
+    await db.delete(goals);
     
     console.log('Deleting budget_items records...');
-    await db.execute('DELETE FROM budget_items');
+    await db.delete(budgetItems);
     
     console.log('Deleting budget_settings records...');
-    await db.execute('DELETE FROM budget_settings');
+    await db.delete(budgetSettings);
     
     console.log('Deleting allies records...');
-    await db.execute('DELETE FROM allies');
+    await db.delete(allies);
     
     // Last, delete records from parent tables
     console.log('Deleting clients records...');
-    await db.execute('DELETE FROM clients');
+    await db.delete(clients);
     
     // Keep strategies and budget_item_catalog as they are reference data
     console.log('Note: keeping strategies and budget_item_catalog as reference data');
