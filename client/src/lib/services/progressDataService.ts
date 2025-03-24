@@ -292,6 +292,7 @@ export const progressDataService = {
           title: subgoal.title || "Untitled Milestone",
           description: subgoal.description || "",
           isEmpty: true,
+          hasValidDataForLine: false, // Add this to ensure consistency
           values: months.map(month => ({
             month: month.value,
             score: 0

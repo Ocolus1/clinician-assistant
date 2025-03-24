@@ -138,6 +138,7 @@ function generatePlaceholderData(goalId: number, goalTitle: string, subgoals: an
           title: "Loading...",
           description: "Loading milestone data",
           isEmpty: true,
+          hasValidDataForLine: false, // Add this to all placeholders to prevent empty sparklines
           values: months.map(month => ({
             month: month.value,
             score: 0
@@ -165,6 +166,7 @@ function generatePlaceholderData(goalId: number, goalTitle: string, subgoals: an
       title: i === 0 ? "Error loading data" : "No milestone data",
       description: i === 0 ? "There was a problem loading the performance data" : "Please try again",
       isEmpty: true,
+      hasValidDataForLine: false, // Add to error case placeholders as well
       values: months.map(month => ({ month: month.value, score: 0 }))
     }));
     
