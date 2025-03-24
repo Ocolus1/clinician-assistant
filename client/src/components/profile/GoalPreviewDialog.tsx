@@ -13,35 +13,7 @@ import { Separator } from "@/components/ui/separator";
 import { Edit, Plus, Archive, Target, CheckCircle, Circle } from "lucide-react";
 import type { Goal, Subgoal } from "@shared/schema";
 
-// Sparkline component for milestone progress
-const SparkLine = ({ data, height = 20, width = 80 }: { data: number[], height?: number, width?: number }) => {
-  // Return null if we don't have at least 2 data points with values
-  if (!data || data.length < 2 || data.filter(v => v > 0).length < 2) {
-    return null;
-  }
-  
-  // Simple implementation - could be enhanced for real data visualization
-  const max = Math.max(...data, 10); // Ensure we have a minimum scale
-  
-  // Create points string for polyline
-  const points = data.map((value, index) => {
-    const x = (index / (data.length - 1)) * width;
-    const y = height - (value / max) * height;
-    return `${x},${y}`;
-  }).join(" ");
-
-  return (
-    <svg width={width} height={height} className="sparkline">
-      {/* Only render a single polyline without circles */}
-      <polyline
-        points={points}
-        fill="none"
-        stroke="#ef4444"
-        strokeWidth="1.5"
-      />
-    </svg>
-  );
-};
+// No longer need the SparkLine component - removed
 
 // Component for the detailed gauge
 const DetailedGauge = ({ value, size = 120, strokeWidth = 12 }: { value: number, size?: number, strokeWidth?: number }) => {
@@ -251,25 +223,11 @@ const GoalPreviewDialog = ({
 
                           <div className="flex flex-col items-start ml-4">
                             <span className="text-sm text-gray-500 mb-1">Progress</span>
-                            <div className="w-20 h-10">
-                              <svg width="100%" height="100%" viewBox="0 0 80 30" className="overflow-visible">
-                                {/* Use proper performance data based on status */}
-                                {subgoal.status === 'completed' ? (
-                                  <polyline
-                                    points="0,25 20,20 40,15 60,10 80,5"
-                                    fill="none"
-                                    stroke="#10b981"
-                                    strokeWidth="1.5"
-                                  />
-                                ) : (
-                                  <polyline
-                                    points="0,15 20,20 40,15 60,18 80,15"
-                                    fill="none"
-                                    stroke="#EF4444"
-                                    strokeWidth="1.5"
-                                  />
-                                )}
-                              </svg>
+                            {/* Empty div in place of sparklines - completely removed */}
+                            <div className="w-20 h-10 flex items-center justify-center">
+                              <span className="text-sm text-gray-500">
+                                {subgoal.status === 'completed' ? "Completed" : "In progress"}
+                              </span>
                             </div>
                           </div>
                         </div>
