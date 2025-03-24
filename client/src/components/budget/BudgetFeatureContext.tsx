@@ -1,4 +1,4 @@
-import { createContext, useContext, ReactNode, useState } from "react";
+import { createContext, useContext, ReactNode, useState, useEffect } from "react";
 import { FIXED_BUDGET_AMOUNT, NDIS_FUNDS_AMOUNT } from "./BudgetFormSchema";
 
 // Define BudgetPlan type directly here to avoid circular dependencies
@@ -43,14 +43,20 @@ interface BudgetFeatureContextType {
   isEditing: boolean;
   setIsEditing: (isEditing: boolean) => void;
   activePlan: BudgetPlan | null;
+  selectedPlan: BudgetPlan | null;
   setActivePlan: (plan: BudgetPlan | null) => void;
+  viewPlanDetails: (planId: number) => void;
+  resetSelectedPlan: () => void;
   budgetItems: BudgetItem[];
   setBudgetItems: (items: BudgetItem[]) => void;
   totalAllocated: number;
   totalBudget: number;
   remainingBudget: number;
   refreshData: () => void;
-  isReadOnly: boolean; // Added to track if the current plan is read-only
+  isReadOnly: boolean;
+  budgetPlans: BudgetPlan[] | null;
+  isLoading: boolean;
+  error: Error | null;
 }
 
 const BudgetFeatureContext = createContext<BudgetFeatureContextType | undefined>(undefined);
@@ -60,6 +66,7 @@ interface BudgetFeatureProviderProps {
   clientId?: number;
   initialPlan?: BudgetPlan | null;
   initialItems?: BudgetItem[];
+  initialBudgetPlans?: BudgetPlan[];
   onRefresh?: () => void;
 }
 
@@ -71,11 +78,46 @@ export function BudgetFeatureProvider({
   clientId,
   initialPlan = null,
   initialItems = [],
+  initialBudgetPlans = [],
   onRefresh
 }: BudgetFeatureProviderProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [activePlan, setActivePlan] = useState<BudgetPlan | null>(initialPlan);
+  const [selectedPlan, setSelectedPlan] = useState<BudgetPlan | null>(null);
   const [budgetItems, setBudgetItems] = useState<BudgetItem[]>(initialItems);
+  const [budgetPlans, setBudgetPlans] = useState<BudgetPlan[] | null>(initialBudgetPlans);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
+  
+  // Function to view a specific plan's details
+  const viewPlanDetails = (planId: number) => {
+    if (!budgetPlans) return;
+    
+    const plan = budgetPlans.find(p => p.id === planId);
+    if (plan) {
+      setSelectedPlan(plan);
+      console.log(`Viewing details for plan ${planId}`);
+    }
+  };
+  
+  // Function to reset selected plan - goes back to plan list view
+  const resetSelectedPlan = () => {
+    setSelectedPlan(null);
+    console.log('Reset selected plan, returning to plan list view');
+  };
+  
+  // Listen for reset-selected-plan events
+  useEffect(() => {
+    const handleResetSelectedPlan = () => {
+      resetSelectedPlan();
+    };
+    
+    window.addEventListener('reset-selected-plan', handleResetSelectedPlan);
+    
+    return () => {
+      window.removeEventListener('reset-selected-plan', handleResetSelectedPlan);
+    };
+  }, []);
   
   // Calculate budget totals using client-specific budget from active plan
   const totalBudget = activePlan?.ndisFunds ?? FIXED_BUDGET_AMOUNT;
@@ -100,14 +142,20 @@ export function BudgetFeatureProvider({
         isEditing,
         setIsEditing,
         activePlan,
+        selectedPlan,
         setActivePlan,
+        viewPlanDetails,
+        resetSelectedPlan,
         budgetItems,
         setBudgetItems,
         totalAllocated,
         totalBudget,
         remainingBudget,
         refreshData,
-        isReadOnly
+        isReadOnly,
+        budgetPlans,
+        isLoading,
+        error
       }}
     >
       {children}

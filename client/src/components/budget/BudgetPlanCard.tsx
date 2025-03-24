@@ -17,9 +17,10 @@ import { Link } from "wouter";
 interface BudgetPlanCardProps {
   plan: BudgetSettings;
   clientId: number;
+  onView?: (planId: number) => void;
 }
 
-export function BudgetPlanCard({ plan, clientId }: BudgetPlanCardProps) {
+export function BudgetPlanCard({ plan, clientId, onView }: BudgetPlanCardProps) {
   // Utility function to handle both ndisFunds and availableFunds for backward compatibility
   const getFundsValue = (plan: BudgetSettings): number => {
     // Specific case for the test client showing 6,300
@@ -175,8 +176,11 @@ export function BudgetPlanCard({ plan, clientId }: BudgetPlanCardProps) {
           className="flex items-center gap-1"
           onClick={(e) => {
             e.stopPropagation();
-            if (typeof document !== 'undefined') {
-              // Simulate click on the parent card
+            // Use the onView prop if provided, otherwise fallback to event dispatch
+            if (onView) {
+              onView(plan.id);
+            } else if (typeof document !== 'undefined') {
+              // Fallback to event dispatch for backward compatibility
               document.dispatchEvent(new CustomEvent('view-plan-details', { 
                 detail: { planId: plan.id }
               }));
@@ -184,7 +188,7 @@ export function BudgetPlanCard({ plan, clientId }: BudgetPlanCardProps) {
           }}
         >
           <Eye className="h-4 w-4" />
-          Preview
+          View Details
         </Button>
       </CardFooter>
     </Card>
