@@ -5,76 +5,55 @@
  * It deletes records from all tables in the correct order to respect foreign key constraints.
  */
 
-import { Pool } from 'pg';
-import * as dotenv from 'dotenv';
-
-// Load environment variables
-dotenv.config();
-
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL
-});
+import { db } from './server/db';
 
 async function clearDatabase() {
-  const client = await pool.connect();
-  
   try {
-    // Start transaction
-    await client.query('BEGIN');
-    
     console.log('Starting database cleanup...');
     
     // Delete in reverse order of dependencies to avoid foreign key constraint issues
     // First, delete records from child tables
     console.log('Deleting milestone_assessments records...');
-    await client.query('DELETE FROM milestone_assessments');
+    await db.execute('DELETE FROM milestone_assessments');
     
     console.log('Deleting performance_assessments records...');
-    await client.query('DELETE FROM performance_assessments');
+    await db.execute('DELETE FROM performance_assessments');
     
     console.log('Deleting session_notes records...');
-    await client.query('DELETE FROM session_notes');
+    await db.execute('DELETE FROM session_notes');
     
     console.log('Deleting sessions records...');
-    await client.query('DELETE FROM sessions');
+    await db.execute('DELETE FROM sessions');
     
     console.log('Deleting subgoals records...');
-    await client.query('DELETE FROM subgoals');
+    await db.execute('DELETE FROM subgoals');
     
     console.log('Deleting goals records...');
-    await client.query('DELETE FROM goals');
+    await db.execute('DELETE FROM goals');
     
     console.log('Deleting budget_items records...');
-    await client.query('DELETE FROM budget_items');
+    await db.execute('DELETE FROM budget_items');
     
     console.log('Deleting budget_settings records...');
-    await client.query('DELETE FROM budget_settings');
+    await db.execute('DELETE FROM budget_settings');
     
     console.log('Deleting allies records...');
-    await client.query('DELETE FROM allies');
+    await db.execute('DELETE FROM allies');
     
     // Last, delete records from parent tables
     console.log('Deleting clients records...');
-    await client.query('DELETE FROM clients');
+    await db.execute('DELETE FROM clients');
     
     // Keep strategies and budget_item_catalog as they are reference data
     console.log('Note: keeping strategies and budget_item_catalog as reference data');
-    
-    // Commit transaction
-    await client.query('COMMIT');
     
     console.log('Database cleanup completed successfully.');
     console.log('The database schema remains intact but all client data has been deleted.');
     console.log('You now have a clean database to work with.');
     
   } catch (error) {
-    // Rollback transaction on error
-    await client.query('ROLLBACK');
     console.error('Error clearing database:', error);
     throw error;
-  } finally {
-    // Release client
-    client.release();
   }
 }
 

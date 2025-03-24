@@ -6,11 +6,8 @@
  */
 
 import { Pool } from 'pg';
-import * as dotenv from 'dotenv';
 
-// Load environment variables
-dotenv.config();
-
+// Use the DATABASE_URL environment variable that's already set in the Replit environment
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL
 });
@@ -40,7 +37,7 @@ async function updateClientDates(clientId: number, creationDate: string | Date) 
       [dateStr, clientId]
     );
     
-    if (clientResult.rowCount === 0) {
+    if (clientResult.rows.length === 0) {
       throw new Error(`Client with ID ${clientId} not found`);
     }
     
@@ -52,7 +49,7 @@ async function updateClientDates(clientId: number, creationDate: string | Date) 
       [dateStr, clientId]
     );
     
-    if (budgetResult.rowCount > 0) {
+    if (budgetResult.rows.length > 0) {
       console.log(`Budget settings createdAt updated to ${dateStr}`);
       
       // Get the budget end date (for logging purposes)

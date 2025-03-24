@@ -1,70 +1,98 @@
 # Database Management Scripts
 
-This document describes utility scripts for managing the database for testing purposes.
+This document describes the utility scripts available for managing the database during development and testing.
 
-## Clear Database Script
+## Clear Database
 
-The `clear-database.ts` script removes all client data from the database while preserving the schema and reference data (strategies and budget item catalog).
+The `clear-database.ts` script allows you to clear all client data from the database while preserving the schema and reference data (strategies and budget item catalog).
 
-### Usage
+### Usage:
 
 ```bash
 npx tsx clear-database.ts
 ```
 
-This script will:
-1. Delete all records from all tables related to clients
-2. Keep the database schema intact
-3. Preserve reference data in the strategies and budget_item_catalog tables
-4. Give you a clean slate to work with
+### What it does:
 
-⚠️ **WARNING**: This action is irreversible and will delete ALL client data from the database.
+1. Deletes all records from the following tables in this order (to respect foreign key constraints):
+   - milestone_assessments
+   - performance_assessments
+   - session_notes
+   - sessions
+   - subgoals
+   - goals
+   - budget_items
+   - budget_settings
+   - allies
+   - clients
 
-## Update Client Dates Script
+2. Preserves reference data:
+   - strategies (therapy strategies)
+   - budget_item_catalog (product catalog items)
 
-The `update-client-dates.ts` script allows you to modify the creation date of a client and their budget plan for testing purposes.
+### Safety Features:
 
-### Usage
+- Uses transactions to ensure atomicity (all-or-nothing operations)
+- Follows correct order of deletions to avoid foreign key constraint errors
+- Logs progress and results
+
+## Update Client Dates
+
+The `update-client-dates.ts` script allows you to modify the creation date of a client and their associated budget plan. This is useful for testing date-based functionality like fund utilization timelines, plan expiration alerts, etc.
+
+### Usage:
 
 ```bash
 npx tsx update-client-dates.ts <clientId> [date]
 ```
 
-#### Parameters:
-- `clientId`: The ID of the client to update (required)
-- `date`: The new creation date to set in ISO format (optional, defaults to January 4, 2025)
+### Parameters:
 
-#### Examples:
+- `clientId`: The ID of the client to update
+- `date` (optional): The new creation date in ISO format. If not provided, defaults to January 4, 2025.
 
-Set client ID 100 to January 4, 2025:
+### Example:
+
 ```bash
-npx tsx update-client-dates.ts 100
+npx tsx update-client-dates.ts 72 2025-01-15T00:00:00.000Z
 ```
 
-Set client ID 100 to a specific date:
+### What it does:
+
+1. Updates the client's `createdAt` field to the specified date
+2. Updates the associated budget settings' `createdAt` field to the same date
+3. Logs information about the budget plan duration based on the new start date
+
+### Safety Features:
+
+- Uses transactions to ensure atomicity
+- Validates client existence before performing updates
+- Provides detailed logging of operations performed
+
+## Financial Test Client
+
+The system includes scripts to manage a special "financial test client" with predefined budget and session data:
+
+- `create-financial-test-client.ts`: Creates a client with specific financial data for testing
+- `delete-financial-test-client.ts`: Removes the test client and all associated data
+- `manage-financial-test-client.ts`: Command-line interface to create or delete the financial test client
+
+### Usage:
+
 ```bash
-npx tsx update-client-dates.ts 100 2025-02-15T10:30:00.000Z
+# Create the financial test client
+npx tsx create-financial-test-client.ts
+
+# Delete the financial test client
+npx tsx delete-financial-test-client.ts
+
+# Manage (create or delete) the financial test client
+npx tsx manage-financial-test-client.ts [create|delete]
 ```
 
-## Workflow for Creating a Test Client
+### Financial Test Client Specifications:
 
-Here's a recommended workflow for setting up a clean test environment:
-
-1. Clear the database:
-   ```bash
-   npx tsx clear-database.ts
-   ```
-
-2. Create a new client through the UI with all necessary data:
-   - Complete the onboarding process
-   - Add a budget plan
-   - Add allies, goals, etc.
-
-3. Update the client's creation date to a specific date for testing:
-   ```bash
-   npx tsx update-client-dates.ts <clientId> 2025-01-04T00:00:00.000Z
-   ```
-
-4. Create sessions with specific dates and products through the UI or API
-
-This approach gives you a clean, controlled environment for testing with predictable dates and values.
+- Creation date: January 18, 2025
+- Total budget: $15,000
+- 6 sessions with products valued at $1,250 each (total: $7,500)
+- Plan expiry: November 12, 2025
