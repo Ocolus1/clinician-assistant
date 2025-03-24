@@ -48,9 +48,10 @@ export default function ClientGoals({
         onOpenChange={setPreviewOpen}
         goal={selectedGoal}
         subgoals={selectedGoal ? (subgoals[selectedGoal.id] || []) : []}
-        onAddMilestone={onAddSubgoal || (() => {})}
-        onEditMilestone={onEditSubgoal || (() => {})}
-        onToggleMilestoneStatus={onToggleSubgoalStatus || (() => {})}
+        onAddMeasurementPoint={onAddSubgoal || (() => {})}
+        onEditMeasurementPoint={onEditSubgoal || (() => {})}
+        onToggleMeasurementStatus={onToggleSubgoalStatus || (() => {})}
+        onArchiveMeasurementPoint={() => {}}
       />
       
       {goals.length === 0 ? (

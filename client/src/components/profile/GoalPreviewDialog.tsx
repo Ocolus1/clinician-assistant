@@ -84,10 +84,10 @@ interface GoalPreviewDialogProps {
   onOpenChange: (open: boolean) => void;
   goal: Goal | null;
   subgoals: Subgoal[];
-  onAddMilestone: (goalId: number) => void;
-  onEditMilestone: (subgoal: Subgoal) => void;
-  onToggleMilestoneStatus: (subgoal: Subgoal) => void;
-  onArchiveMilestone: (subgoal: Subgoal) => void; // Added archive function
+  onAddMeasurementPoint: (goalId: number) => void;
+  onEditMeasurementPoint: (subgoal: Subgoal) => void;
+  onToggleMeasurementStatus: (subgoal: Subgoal) => void;
+  onArchiveMeasurementPoint: (subgoal: Subgoal) => void; // Added archive function
 }
 
 const GoalPreviewDialog = ({ 
@@ -95,10 +95,10 @@ const GoalPreviewDialog = ({
   onOpenChange, 
   goal, 
   subgoals, 
-  onAddMilestone,
-  onEditMilestone,
-  onToggleMilestoneStatus,
-  onArchiveMilestone // Added archive function
+  onAddMeasurementPoint,
+  onEditMeasurementPoint,
+  onToggleMeasurementStatus,
+  onArchiveMeasurementPoint // Added archive function
 }: GoalPreviewDialogProps) => {
   if (!goal) return null;
 
@@ -165,11 +165,11 @@ const GoalPreviewDialog = ({
           <div className="flex justify-between items-center">
             <h3 className="text-lg font-semibold text-gray-900 flex items-center">
               <Target className="h-5 w-5 mr-2 text-primary" />
-              Measurement Milestones
+              Measurement Points
             </h3>
 
             <Button 
-              onClick={() => onAddMilestone(goal.id)}
+              onClick={() => onAddMeasurementPoint(goal.id)}
               className="bg-green-600 hover:bg-green-700"
               size="sm"
             >
@@ -181,10 +181,10 @@ const GoalPreviewDialog = ({
           {subgoals.length === 0 ? (
             <div className="text-center py-8 border border-dashed rounded-md bg-gray-50">
               <Target className="h-10 w-10 text-gray-300 mx-auto mb-3" />
-              <h4 className="text-lg font-medium text-gray-500 mb-2">No measurement milestones set yet</h4>
-              <p className="text-gray-500 mb-4">Add measurement milestones to track therapeutic progress.</p>
+              <h4 className="text-lg font-medium text-gray-500 mb-2">No measurement points set yet</h4>
+              <p className="text-gray-500 mb-4">Add measurement points to track therapeutic progress.</p>
               <Button 
-                onClick={() => onAddMilestone(goal.id)}
+                onClick={() => onAddMeasurementPoint(goal.id)}
                 className="bg-green-600 hover:bg-green-700"
               >
                 <Plus className="h-4 w-4 mr-2" />
@@ -231,7 +231,7 @@ const GoalPreviewDialog = ({
                           variant="ghost" 
                           size="icon"
                           className="ml-2 h-7 w-7 flex-shrink-0" 
-                          onClick={() => onEditMilestone(subgoal)}
+                          onClick={() => onEditMeasurementPoint(subgoal)}
                         >
                           <Edit className="h-3.5 w-3.5" />
                         </Button>
@@ -239,7 +239,7 @@ const GoalPreviewDialog = ({
                           variant="ghost" 
                           size="icon"
                           className="ml-2 h-7 w-7 flex-shrink-0" 
-                          onClick={() => onArchiveMilestone(subgoal)}
+                          onClick={() => onArchiveMeasurementPoint(subgoal)}
                         >
                           <Archive className="h-3.5 w-3.5" />
                         </Button>
