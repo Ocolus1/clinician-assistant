@@ -116,7 +116,7 @@ export default function ClientClinicians({ clientId }: ClientCliniciansProps) {
         notes: data.notes || '',
       });
     },
-    onSuccess: (data) => {
+    onSuccess: (response) => {
       toast({
         title: 'Success',
         description: 'Clinician assigned successfully',
@@ -125,7 +125,9 @@ export default function ClientClinicians({ clientId }: ClientCliniciansProps) {
       form.reset();
       setIsAddDialogOpen(false);
       // Show success animation for the newly added clinician
-      setShowSuccessAnimation(data.id);
+      if (response && typeof response === 'object' && 'id' in response) {
+        setShowSuccessAnimation(response.id);
+      }
     },
     onError: (error) => {
       console.error('Error assigning clinician:', error);

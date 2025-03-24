@@ -29,6 +29,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { apiRequest } from "@/lib/queryClient";
 
 // Create a form schema for client personal information
+// Note: name is included but will be made read-only in the form
 const editClientSchema = z.object({
   name: z.string().min(1, { message: "Name is required" }),
   dateOfBirth: z.string().min(1, { message: "Date of birth is required" }),
@@ -98,7 +99,12 @@ export function EditClientInfoDialog({ open, onOpenChange, client }: EditClientI
 
   const onSubmit = (data: EditClientFormValues) => {
     setIsSubmitting(true);
-    updateClient.mutate(data);
+    // Ensure we preserve the original client name (with uniqueIdentifier) 
+    // by explicitly setting it to the original value
+    updateClient.mutate({
+      ...data,
+      name: client.name // Always use the original name for HIPAA compliance
+    });
   };
 
   return (
@@ -107,7 +113,7 @@ export function EditClientInfoDialog({ open, onOpenChange, client }: EditClientI
         <DialogHeader>
           <DialogTitle>Edit Client Information</DialogTitle>
           <DialogDescription>
-            Update personal details for {client.name}
+            Update personal details for {client.name}. The client ID cannot be changed for compliance reasons.
           </DialogDescription>
         </DialogHeader>
 
@@ -118,15 +124,20 @@ export function EditClientInfoDialog({ open, onOpenChange, client }: EditClientI
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Name</FormLabel>
+                  <FormLabel>Client ID</FormLabel>
                   <FormControl>
                     <Input 
                       placeholder="Client name" 
-                      onChange={field.onChange}
-                      value={field.value} 
+                      value={field.value}
+                      readOnly={true}
+                      disabled={true}
+                      className="bg-muted/40 cursor-not-allowed"
+                      aria-readonly="true"
                     />
                   </FormControl>
-                  <FormMessage />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Client ID cannot be changed for HIPAA compliance
+                  </p>
                 </FormItem>
               )}
             />
