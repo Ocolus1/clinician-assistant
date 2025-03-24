@@ -59,9 +59,9 @@ npx tsx update-client-dates.ts 72 2025-01-15T00:00:00.000Z
 
 ### What it does:
 
-1. Updates the client's `createdAt` field to the specified date
-2. Updates the associated budget settings' `createdAt` field to the same date
-3. Logs information about the budget plan duration based on the new start date
+1. Verifies the client exists in the database
+2. Updates the associated budget settings' `createdAt` field to the specified date
+3. Logs information about the budget plan duration based on the new start date and end date
 
 ### Safety Features:
 

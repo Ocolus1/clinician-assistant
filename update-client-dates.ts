@@ -23,17 +23,16 @@ async function updateClientDates(clientId: number, creationDate: string | Date) 
     
     console.log(`Updating client ID ${clientId} to creation date: ${dateObj.toISOString()}`);
     
-    // Update client creation date
-    const updatedClients = await db.update(clients)
-      .set({ createdAt: dateObj })
-      .where(eq(clients.id, clientId))
-      .returning();
+    // Clients don't have createdAt in our schema, so we'll just retrieve the client
+    const updatedClients = await db.select()
+      .from(clients)
+      .where(eq(clients.id, clientId));
     
     if (updatedClients.length === 0) {
       throw new Error(`Client with ID ${clientId} not found`);
     }
     
-    console.log(`Client createdAt updated to ${dateObj.toISOString()}`);
+    console.log(`Client ID ${clientId} verified to exist`);
     
     // Update budget settings creation date
     const updatedBudgets = await db.update(budgetSettings)
@@ -50,7 +49,9 @@ async function updateClientDates(clientId: number, creationDate: string | Date) 
       
       // Calculate and log the budget duration
       if (endDate) {
-        const durationDays = Math.round((endDate.getTime() - dateObj.getTime()) / (1000 * 60 * 60 * 24));
+        // Since endOfPlan is a string in our schema
+        const endDateObj = new Date(endDate);
+        const durationDays = Math.round((endDateObj.getTime() - dateObj.getTime()) / (1000 * 60 * 60 * 24));
         console.log(`Budget duration: ${durationDays} days`);
       }
     } else {

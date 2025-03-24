@@ -100,14 +100,23 @@ async function createFinancialTestClient() {
       // Create session note with products
       const [note] = await db.insert(sessionNotes).values({
         sessionId: session.id,
-        clientId: client.id, // Add required clientId field
+        clientId: client.id,
         notes: `Financial test session ${i+1}`,
+        // Add observations ratings
+        moodRating: 8,
+        physicalActivityRating: 7,
+        focusRating: 8,
+        cooperationRating: 9,
+        // Add empty array for present allies
+        presentAllies: [],
+        // Add product information
         products: JSON.stringify([{
           "name": "Speech Therapy Session",
           "unitPrice": 250,
           "quantity": 5, // 5 units at $250 each = $1,250 per session
           "code": "ST001"
-        }])
+        }]),
+        status: "completed"
       }).returning();
       
       console.log(`Created session ${i+1} with ID ${session.id} and note ID ${note.id}`);
