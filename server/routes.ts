@@ -1647,7 +1647,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: formatError(error) });
     }
   });
-
+  
+  // Delete clinician assignment
   app.delete("/api/client-clinicians/:id", async (req, res) => {
     const assignmentId = parseInt(req.params.id);
     console.log(`DELETE /api/client-clinicians/${assignmentId} - Removing clinician assignment`);
