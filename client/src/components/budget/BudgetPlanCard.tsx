@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { 
   Card, 
   CardContent, 
@@ -17,11 +18,14 @@ import {
   ExternalLink, 
   Check, 
   ClipboardList, 
-  Banknote 
+  Banknote,
+  AlertTriangle
 } from "lucide-react";
 import { BudgetSettings } from "@shared/schema";
 import { formatCurrency } from "@/lib/utils";
+import { calculateSpentFromSessions } from "@/lib/utils/budgetUtils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface BudgetPlanCardProps {
   plan: BudgetSettings;
@@ -34,16 +38,56 @@ interface BudgetPlanCardProps {
  * Budget Plan Card component for displaying budget plan data in a visual card format
  */
 export function BudgetPlanCard({ plan, clientId, onView, onViewPlan }: BudgetPlanCardProps) {
+  const [sessionsLoaded, setSessionsLoaded] = useState(false);
+  const [usedFunds, setUsedFunds] = useState(0);
+  
   // Format dates
   const startDate = plan.createdAt ? new Date(plan.createdAt).toLocaleDateString() : "N/A";
   const endDate = plan.endOfPlan ? new Date(plan.endOfPlan).toLocaleDateString() : "N/A";
   
+  // Fetch sessions data to calculate usage
+  const { data: sessions = [], isLoading: isLoadingSessions } = useQuery({
+    queryKey: [`/api/clients/${clientId}/sessions`],
+    queryFn: async () => {
+      if (!clientId) return [];
+      try {
+        const response = await fetch(`/api/clients/${clientId}/sessions`);
+        if (!response.ok) {
+          throw new Error(`Failed to fetch sessions: ${response.status}`);
+        }
+        const data = await response.json();
+        console.log(`Fetched ${data.length} sessions for client ${clientId}`);
+        return data;
+      } catch (error) {
+        console.error("Error fetching sessions:", error);
+        return [];
+      }
+    },
+    enabled: !!clientId
+  });
+
+  // Calculate budget utilization when sessions are loaded
+  useEffect(() => {
+    if (sessions && sessions.length > 0 && !sessionsLoaded) {
+      // Filter sessions to only include those created before the plan end date
+      const relevantSessions = plan.endOfPlan 
+        ? sessions.filter((session: any) => {
+            const sessionDate = new Date(session.date);
+            const planEndDate = new Date(plan.endOfPlan as string);
+            return sessionDate <= planEndDate;
+          })
+        : sessions;
+      
+      const spent = calculateSpentFromSessions(relevantSessions);
+      console.log(`Budget plan ${plan.id}: Calculated $${spent} spent from ${relevantSessions.length} sessions`);
+      setUsedFunds(spent);
+      setSessionsLoaded(true);
+    }
+  }, [sessions, plan, sessionsLoaded]);
+  
   // Calculate percentage used (if data is available)
   const totalBudget = typeof plan.ndisFunds === 'string' ? parseFloat(plan.ndisFunds) : plan.ndisFunds || 0;
-  // We don't have usedFunds in our schema yet - this would come from sessions data
-  // We're setting a default to 0 for now, but should calculate from actual sessions in a real implementation
-  const usedFunds = 0; // This should be calculated based on sessions or another field
-  const percentUsed = usedFunds ? Math.min(100, Math.round((usedFunds / totalBudget) * 100)) : 0;
+  const percentUsed = totalBudget > 0 ? Math.min(100, Math.round((usedFunds / totalBudget) * 100)) : 0;
   
   // Format currency values
   const formattedTotal = formatCurrency(totalBudget);
@@ -115,6 +159,16 @@ export function BudgetPlanCard({ plan, clientId, onView, onViewPlan }: BudgetPla
               </span>
             )}
           </div>
+          
+          {/* Warning alert for underutilized funds */}
+          {daysRemaining !== null && daysRemaining < 30 && percentUsed < 60 && (
+            <Alert className="mt-2 py-2 text-xs bg-amber-50 border-amber-200">
+              <AlertTriangle className="h-3.5 w-3.5 text-amber-600" />
+              <AlertDescription className="text-amber-800">
+                Plan expiring soon with {formattedRemaining} ({100 - percentUsed}%) unused funds
+              </AlertDescription>
+            </Alert>
+          )}
         </div>
       </CardContent>
       

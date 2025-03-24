@@ -4,11 +4,12 @@ import { BudgetPlanDetails } from "./BudgetPlanDetailsIntegrated";
 import { BudgetPlanForm } from "./BudgetPlanForm";
 import { BudgetApiDebugger } from "./BudgetApiDebugger";
 import { Button } from "@/components/ui/button";
-import { Plus, ChevronLeft } from "lucide-react";
+import { Plus, ChevronLeft, PieChart } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
 import { BudgetPlansView } from "./BudgetPlansView";
+import { BudgetUtilizationView } from "./BudgetUtilizationView";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface BudgetManagerViewProps {
@@ -109,49 +110,61 @@ function BudgetManagerContent({ clientId }: BudgetManagerViewProps) {
   
   return (
     <div>
-      <div className="space-y-6">
-        {activeView === 'overview' ? (
-          // Simple Plans Overview with cards layout
-          <div className="w-full">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-2xl font-semibold">Budget Plans</h2>
-              <Button
-                onClick={() => setShowCreatePlanForm(true)}
-                variant="default"
-                size="sm"
-                className="flex items-center gap-2"
-              >
-                <Plus className="h-4 w-4" />
-                Create New Plan
-              </Button>
-            </div>
-            
-            {/* Budget Plans View with cards */}
-            <BudgetPlansView clientId={clientId} onViewPlan={handleViewPlanDetails} />
+      {activeView === 'overview' ? (
+        // Overview with tabs for Plans and Utilization
+        <div className="w-full space-y-6">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-2xl font-semibold">Budget Management</h2>
+            <Button
+              onClick={() => setShowCreatePlanForm(true)}
+              variant="default"
+              size="sm"
+              className="flex items-center gap-2"
+            >
+              <Plus className="h-4 w-4" />
+              Create New Plan
+            </Button>
           </div>
-        ) : (
-          <>
-            {/* Budget Plan Details View */}
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-2xl font-semibold">Budget Plan Details</h2>
-              <Button 
-                onClick={() => setActiveView('overview')} 
-                variant="outline"
-                size="sm"
-              >
-                <ChevronLeft className="mr-2 h-4 w-4" />
-                Back to Plans
-              </Button>
-            </div>
+          
+          <Tabs defaultValue="plans" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="plans">Plans</TabsTrigger>
+              <TabsTrigger value="utilization">Utilization</TabsTrigger>
+            </TabsList>
             
-            {/* Budget Plan Details with integrated budget item management */}
-            <BudgetPlanDetails 
-              clientId={clientId}
-              planId={selectedPlanId}
-            />
-          </>
-        )}
-      </div>
+            <TabsContent value="plans" className="mt-4">
+              {/* Budget Plans View with cards */}
+              <BudgetPlansView clientId={clientId} onViewPlan={handleViewPlanDetails} />
+            </TabsContent>
+            
+            <TabsContent value="utilization" className="mt-4">
+              {/* Budget Utilization View with real-time usage data */}
+              <BudgetUtilizationView clientId={clientId} />
+            </TabsContent>
+          </Tabs>
+        </div>
+      ) : (
+        // Detailed plan view
+        <>
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-2xl font-semibold">Budget Plan Details</h2>
+            <Button 
+              onClick={() => setActiveView('overview')} 
+              variant="outline"
+              size="sm"
+            >
+              <ChevronLeft className="mr-2 h-4 w-4" />
+              Back to Budget Management
+            </Button>
+          </div>
+          
+          {/* Budget Plan Details with integrated budget item management */}
+          <BudgetPlanDetails 
+            clientId={clientId}
+            planId={selectedPlanId}
+          />
+        </>
+      )}
       
       {/* Create Plan Form Dialog */}
       <BudgetPlanForm 
