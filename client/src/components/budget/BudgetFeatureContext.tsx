@@ -47,6 +47,7 @@ interface BudgetFeatureContextType {
   setActivePlan: (plan: BudgetPlan | null) => void;
   viewPlanDetails: (planId: number) => void;
   resetSelectedPlan: () => void;
+  clearSelectedPlan: () => void; // Alias for resetSelectedPlan
   budgetItems: BudgetItem[];
   setBudgetItems: (items: BudgetItem[]) => void;
   totalAllocated: number;
@@ -146,6 +147,7 @@ export function BudgetFeatureProvider({
         setActivePlan,
         viewPlanDetails,
         resetSelectedPlan,
+        clearSelectedPlan: resetSelectedPlan, // Alias for resetSelectedPlan
         budgetItems,
         setBudgetItems,
         totalAllocated,

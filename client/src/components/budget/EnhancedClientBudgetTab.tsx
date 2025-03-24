@@ -93,19 +93,23 @@ function BudgetTabContents({ clientId }: { clientId: number }) {
   if (plansToUse) {
     console.log(`[BudgetTabContents] Creating provider with ${plansToUse.length} direct plans`);
     
-    // Format plans for the context
+    // Format plans for the context to match the BudgetPlan interface
     const formattedPlans = plansToUse.map(plan => ({
       id: plan.id,
       clientId: plan.clientId,
-      planName: plan.planSerialNumber || `Plan ${plan.id}`,
+      planSerialNumber: plan.planSerialNumber || null,
       planCode: plan.planCode || null,
       isActive: plan.isActive === true,
-      availableFunds: parseFloat(plan.ndisFunds) || 0,
-      endDate: plan.endOfPlan,
-      startDate: plan.createdAt,
+      ndisFunds: parseFloat(plan.ndisFunds) || 0,
+      endOfPlan: plan.endOfPlan || null,
+      createdAt: plan.createdAt || null,
+      // UI display properties
+      planName: plan.planSerialNumber || `Plan ${plan.id}`,
       totalUsed: 0,
       itemCount: 0,
       percentUsed: 0,
+      startDate: plan.createdAt ? new Date(plan.createdAt).toISOString() : null,
+      endDate: plan.endOfPlan ? new Date(plan.endOfPlan).toISOString() : null,
     }));
     
     return (
@@ -176,16 +180,19 @@ export function EnhancedClientBudgetTab({ clientId, budgetSettings, budgetItems 
     return {
       id: setting.id,
       clientId: setting.clientId,
-      planName: planName,
+      planSerialNumber: setting.planSerialNumber || null,
       planCode: setting.planCode || null,
       isActive: setting.isActive === true, // Ensure boolean
-      availableFunds: parseFloat(setting.availableFunds) || 0,
-      endDate: setting.endOfPlan, // Field name in API is endOfPlan
-      startDate: setting.createdAt,
-      // These will be calculated from budget items later
+      ndisFunds: parseFloat(setting.ndisFunds || setting.availableFunds) || 0,
+      endOfPlan: setting.endOfPlan || null,
+      createdAt: setting.createdAt || null,
+      // UI display properties
+      planName: planName,
       totalUsed: 0,
       itemCount: 0,
       percentUsed: 0,
+      startDate: setting.createdAt ? new Date(setting.createdAt).toISOString() : null,
+      endDate: setting.endOfPlan ? new Date(setting.endOfPlan).toISOString() : null,
     };
   });
   
@@ -241,15 +248,19 @@ export function EnhancedClientBudgetTab({ clientId, budgetSettings, budgetItems 
       const directPlans = fetchedPlans.map((setting: any) => ({
         id: setting.id,
         clientId: setting.clientId,
-        planName: setting.planSerialNumber || `Plan ${setting.id}`,
+        planSerialNumber: setting.planSerialNumber || null,
         planCode: setting.planCode || null,
         isActive: setting.isActive === true,
-        availableFunds: parseFloat(setting.availableFunds) || 0,
-        endDate: setting.endOfPlan,
-        startDate: setting.createdAt,
+        ndisFunds: parseFloat(setting.ndisFunds || setting.availableFunds) || 0,
+        endOfPlan: setting.endOfPlan || null,
+        createdAt: setting.createdAt || null,
+        // UI display properties
+        planName: setting.planSerialNumber || `Plan ${setting.id}`,
         totalUsed: 0,
         itemCount: 0,
         percentUsed: 0,
+        startDate: setting.createdAt ? new Date(setting.createdAt).toISOString() : null,
+        endDate: setting.endOfPlan ? new Date(setting.endOfPlan).toISOString() : null,
       }));
       
       // Our primary fix is to use these direct plans
