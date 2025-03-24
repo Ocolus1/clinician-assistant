@@ -15,30 +15,37 @@ import type { Goal, Subgoal } from "@shared/schema";
 
 // No longer need the SparkLine component - removed
 
-// Component for the detailed gauge
+// Enhanced detailed gauge with tooltip and improved aesthetics
 const DetailedGauge = ({ value, size = 120, strokeWidth = 12 }: { value: number, size?: number, strokeWidth?: number }) => {
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
   const strokeDashoffset = circumference - (value / 100) * circumference;
 
+  // Enhanced color palette with focus on accessibility
   let color = "";
   let textColor = "";
+  let statusLabel = "";
+  
   if (value >= 75) {
     color = "stroke-green-500";
     textColor = "text-green-700";
+    statusLabel = "Nearly Complete";
   } else if (value >= 50) {
     color = "stroke-blue-500";
     textColor = "text-blue-700";
+    statusLabel = "Making Progress";
   } else if (value >= 25) {
     color = "stroke-amber-500";
     textColor = "text-amber-700";
+    statusLabel = "Getting Started";
   } else {
     color = "stroke-gray-400";
     textColor = "text-gray-700";
+    statusLabel = "Just Started";
   }
 
   return (
-    <div className="relative inline-flex items-center justify-center">
+    <div className="relative inline-flex items-center justify-center group">
       <svg width={size} height={size} className="transform -rotate-90">
         <circle
           cx={size / 2}
@@ -62,7 +69,11 @@ const DetailedGauge = ({ value, size = 120, strokeWidth = 12 }: { value: number,
       </svg>
       <div className="absolute flex flex-col items-center justify-center">
         <span className={`text-2xl font-bold ${textColor}`}>{value}%</span>
-        {/* Removed Progress label */}
+      </div>
+      
+      {/* Tooltip on hover */}
+      <div className="absolute z-10 scale-0 group-hover:scale-100 transition-all duration-200 top-full mt-2 -left-1/2 w-32 px-2 py-1 bg-black/80 rounded text-white text-xs">
+        {statusLabel}
       </div>
     </div>
   );
@@ -114,23 +125,11 @@ const GoalPreviewDialog = ({
     return "bg-gray-100 text-gray-700 border-gray-200";
   };
 
-  // Generate mock progress data for sparklines (in real app, would use actual data)
-  const generateMockProgressData = (subgoal: Subgoal): number[] => {
-    // Generate 5 data points that trend upward if completed, or random if not
-    const base = subgoal.id % 5; // Use ID to get varied starting points
-
-    if (subgoal.status === 'completed') {
-      return [base, base + 1, base + 3, base + 6, 10]; // Trending up to maximum
-    } else {
-      // Create some random variation
-      return [
-        base, 
-        base + Math.floor(Math.random() * 3), 
-        base + Math.floor(Math.random() * 4), 
-        base + Math.floor(Math.random() * 5),
-        base + Math.floor(Math.random() * 6),
-      ];
-    }
+  // We've removed the mock data generation for sparklines as we're no longer using them
+  // The function is kept as a placeholder for future real progress tracking implementation
+  const getCompletionDate = (subgoal: Subgoal): string => {
+    // In a real app, this would return the actual completion date from the database
+    return subgoal.status === 'completed' ? 'Recently completed' : '';
   };
 
   return (
@@ -191,7 +190,7 @@ const GoalPreviewDialog = ({
           ) : (
             <div className="space-y-4">
               {subgoals.map((subgoal) => {
-                const progressData = generateMockProgressData(subgoal);
+                const completionInfo = getCompletionDate(subgoal);
 
                 return (
                   <div 
@@ -222,15 +221,15 @@ const GoalPreviewDialog = ({
                           </div>
 
                           <div className="flex flex-col items-start ml-4">
-                            {/* Status indicator - improved styling with status-based colors */}
+                            {/* Status badge with improved styling */}
                             <div className="h-8 flex items-center">
-                              <span className={`text-sm font-medium ${
+                              <Badge variant="outline" className={`text-xs font-medium px-2 py-0.5 ${
                                 subgoal.status === 'completed' 
-                                  ? "text-green-600" 
-                                  : "text-blue-600"
+                                  ? "bg-green-50 text-green-700 border-green-200" 
+                                  : "bg-blue-50 text-blue-700 border-blue-200"
                               }`}>
                                 {subgoal.status === 'completed' ? "Completed" : "In Progress"}
-                              </span>
+                              </Badge>
                             </div>
                           </div>
                         </div>

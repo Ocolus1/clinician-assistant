@@ -5,20 +5,32 @@ import { Button } from "@/components/ui/button";
 import { Target, Edit, Archive, Eye } from "lucide-react";
 import type { Goal, Subgoal } from "@shared/schema";
 
-// Component for the circular gauge
+// Enhanced circular gauge with hover tooltip
 const GaugeChart = ({ value, size = 60, strokeWidth = 8 }: { value: number, size?: number, strokeWidth?: number }) => {
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
   const strokeDashoffset = circumference - (value / 100) * circumference;
 
+  // Dynamic color based on progress with status label
   let color = "";
-  if (value >= 75) color = "stroke-green-500";
-  else if (value >= 50) color = "stroke-blue-500";
-  else if (value >= 25) color = "stroke-amber-500";
-  else color = "stroke-gray-400";
+  let statusLabel = "";
+  
+  if (value >= 75) {
+    color = "stroke-green-500";
+    statusLabel = "Nearly Complete";
+  } else if (value >= 50) {
+    color = "stroke-blue-500";
+    statusLabel = "Making Progress";
+  } else if (value >= 25) {
+    color = "stroke-amber-500";
+    statusLabel = "Getting Started";
+  } else {
+    color = "stroke-gray-400";
+    statusLabel = "Just Started";
+  }
 
   return (
-    <div className="relative inline-flex items-center justify-center">
+    <div className="relative inline-flex items-center justify-center group">
       <svg width={size} height={size} className="transform -rotate-90">
         <circle
           cx={size / 2}
@@ -41,6 +53,11 @@ const GaugeChart = ({ value, size = 60, strokeWidth = 8 }: { value: number, size
         />
       </svg>
       <span className="absolute text-sm font-medium">{value}%</span>
+      
+      {/* Tooltip on hover */}
+      <div className="absolute z-10 scale-0 group-hover:scale-100 transition-all duration-200 top-full mt-2 w-32 px-2 py-1 bg-black/80 rounded text-white text-xs text-center">
+        {statusLabel}
+      </div>
     </div>
   );
 };
