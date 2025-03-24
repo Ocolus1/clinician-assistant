@@ -111,36 +111,28 @@ function BudgetManagerContent({ clientId }: BudgetManagerViewProps) {
     <div>
       <div className="space-y-6">
         {activeView === 'overview' ? (
-          <Tabs defaultValue="overview" className="w-full">
-            <TabsList className="mb-4">
-              <TabsTrigger value="overview">Plans Overview</TabsTrigger>
-              <TabsTrigger value="details">Plan Details</TabsTrigger>
-            </TabsList>
+          // Simple Plans Overview with cards layout
+          <div className="w-full">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-2xl font-semibold">Budget Plans</h2>
+              <Button
+                onClick={() => setShowCreatePlanForm(true)}
+                variant="default"
+                size="sm"
+                className="flex items-center gap-2"
+              >
+                <Plus className="h-4 w-4" />
+                Create New Plan
+              </Button>
+            </div>
             
-            <TabsContent value="overview">
-              <BudgetPlansView clientId={clientId} onViewPlan={handleViewPlanDetails} />
-            </TabsContent>
-            
-            <TabsContent value="details">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-2xl font-semibold">Budget Plan Details</h2>
-                <Button 
-                  onClick={() => setActiveView('overview')} 
-                  variant="outline"
-                  size="sm"
-                >
-                  <ChevronLeft className="mr-2 h-4 w-4" />
-                  Back to Plans
-                </Button>
-              </div>
-              <BudgetPlanDetails 
-                clientId={clientId}
-              />
-            </TabsContent>
-          </Tabs>
+            {/* Budget Plans View with cards */}
+            <BudgetPlansView clientId={clientId} onViewPlan={handleViewPlanDetails} />
+          </div>
         ) : (
           <>
-            <div className="flex justify-between items-center">
+            {/* Budget Plan Details View */}
+            <div className="flex justify-between items-center mb-4">
               <h2 className="text-2xl font-semibold">Budget Plan Details</h2>
               <Button 
                 onClick={() => setActiveView('overview')} 

@@ -1,201 +1,140 @@
-import { useState, useEffect } from "react";
-import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { formatCurrency } from "@/lib/utils";
-import { BudgetSettings } from "@shared/schema";
+import { useState } from "react";
 import { 
+  Card, 
+  CardContent, 
+  CardDescription, 
+  CardFooter, 
+  CardHeader, 
+  CardTitle 
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { 
+  CreditCard, 
   Calendar, 
-  Check, 
-  Clock, 
   DollarSign, 
-  Eye, 
-  AlertCircle,
+  ExternalLink, 
+  Check, 
+  ClipboardList, 
+  Banknote 
 } from "lucide-react";
-import { Link } from "wouter";
+import { BudgetSettings } from "@shared/schema";
+import { formatCurrency } from "@/lib/utils";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface BudgetPlanCardProps {
   plan: BudgetSettings;
-  clientId: number;
-  onView?: (planId: number) => void;
+  onViewPlan: (planId: number) => void;
 }
 
-export function BudgetPlanCard({ plan, clientId, onView }: BudgetPlanCardProps) {
-  // Utility function to handle both ndisFunds and availableFunds for backward compatibility
-  const getFundsValue = (plan: BudgetSettings): number => {
-    // Log the plan object for debugging
-    console.log("Processing plan funds for:", plan);
-    
-    // Specific case for the test client showing 6,300
-    if (plan.id === 47) {
-      return 6300;
-    }
-    
-    // If ndisFunds exists, use it (new schema)
-    if ('ndisFunds' in plan && plan.ndisFunds !== undefined) {
-      console.log("Using ndisFunds:", plan.ndisFunds);
-      return typeof plan.ndisFunds === 'string' 
-        ? parseFloat(plan.ndisFunds) 
-        : plan.ndisFunds;
-    }
-    
-    // Otherwise use availableFunds (old schema)
-    if ('availableFunds' in plan && plan.availableFunds !== undefined && plan.availableFunds !== null) {
-      console.log("Using availableFunds:", plan.availableFunds);
-      return typeof plan.availableFunds === 'string' 
-        ? parseFloat(plan.availableFunds) 
-        : (plan.availableFunds as number);
-    }
-    
-    // Default to 0 if neither exists
-    console.log("No funds value found, defaulting to 0");
-    return 0;
-  };
+/**
+ * Budget Plan Card component for displaying budget plan data in a visual card format
+ */
+export function BudgetPlanCard({ plan, onViewPlan }: BudgetPlanCardProps) {
+  // Format dates
+  const startDate = plan.createdAt ? new Date(plan.createdAt).toLocaleDateString() : "N/A";
+  const endDate = plan.endOfPlan ? new Date(plan.endOfPlan).toLocaleDateString() : "N/A";
   
-  // Calculate total funds by fetching and summing the budget items for this plan
-  const [totalFunds, setTotalFunds] = useState<number>(0);
+  // Calculate percentage used (if data is available)
+  const totalBudget = typeof plan.ndisFunds === 'string' ? parseFloat(plan.ndisFunds) : plan.ndisFunds || 0;
+  // We don't have usedFunds in our schema yet - this would come from sessions data
+  // We're setting a default to 0 for now, but should calculate from actual sessions in a real implementation
+  const usedFunds = 0; // This should be calculated based on sessions or another field
+  const percentUsed = usedFunds ? Math.min(100, Math.round((usedFunds / totalBudget) * 100)) : 0;
   
-  // Fetch budget items for this specific plan and calculate their total
-  useEffect(() => {
-    const fetchBudgetItems = async () => {
-      try {
-        // Get budget items for this specific plan with strict filtering
-        const response = await fetch(`/api/clients/${clientId}/budget-items?budgetSettingsId=${plan.id}&strict=true`);
-        if (response.ok) {
-          const items = await response.json();
-          // Calculate total from item quantity * unitPrice
-          const calculatedTotal = items.reduce((total: number, item: any) => {
-            return total + (item.quantity * item.unitPrice);
-          }, 0);
-          
-          // Update the total funds with the calculated value
-          setTotalFunds(calculatedTotal);
-        }
-      } catch (error) {
-        console.error("Error fetching budget items for plan total:", error);
-      }
-    };
-    
-    fetchBudgetItems();
-  }, [plan.id, clientId]);
+  // Format currency values
+  const formattedTotal = formatCurrency(totalBudget);
+  const formattedUsed = formatCurrency(usedFunds);
+  const formattedRemaining = formatCurrency(Math.max(0, totalBudget - usedFunds));
   
-  // Format date for display
-  const formatDate = (dateString?: string | null) => {
-    if (!dateString) return "No end date";
-    
-    try {
-      const date = new Date(dateString);
-      return date.toLocaleDateString('en-AU', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric'
-      });
-    } catch (error) {
-      return "Invalid date";
-    }
-  };
-  
-  // Calculate days remaining if end date exists
-  const getDaysRemaining = (endDate?: string | null) => {
-    if (!endDate) return null;
-    
-    try {
-      const end = new Date(endDate);
-      const today = new Date();
-      
-      // Set both dates to midnight for accurate day calculation
-      end.setHours(0, 0, 0, 0);
-      today.setHours(0, 0, 0, 0);
-      
-      const diffTime = end.getTime() - today.getTime();
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-      
-      return diffDays;
-    } catch (error) {
-      return null;
-    }
-  };
-  
-  const daysRemaining = getDaysRemaining(plan.endOfPlan);
+  // Days remaining calculation
+  const daysRemaining = plan.endOfPlan ? 
+    Math.max(0, Math.ceil((new Date(plan.endOfPlan).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))) : 
+    null;
   
   return (
-    <Card className="overflow-hidden border border-gray-200 hover:border-primary/40 transition-all duration-200">
-      <CardHeader className="p-4 bg-gray-50 border-b border-gray-200">
+    <Card className={`overflow-hidden hover:shadow-md transition-shadow ${plan.isActive ? 'border-blue-300' : 'border-gray-200'}`}>
+      <div className={`h-2 w-full ${plan.isActive ? 'bg-blue-500' : 'bg-gray-300'}`} />
+      
+      <CardHeader className="pb-2">
         <div className="flex justify-between items-start">
           <div>
-            <h3 className="text-md font-semibold text-gray-800">{plan.planCode || "Unnamed Plan"}</h3>
-            <p className="text-xs text-gray-500">Plan ID: {plan.planSerialNumber || "N/A"}</p>
+            <CardTitle className="text-lg font-semibold line-clamp-1">
+              {plan.planCode || "Untitled Plan"}
+            </CardTitle>
+            <CardDescription className="flex items-center gap-1">
+              <CreditCard className="h-3.5 w-3.5" />
+              {plan.planSerialNumber || "No Reference Number"}
+            </CardDescription>
           </div>
-          <Badge 
-            variant={plan.isActive ? "default" : "outline"}
-            className={plan.isActive ? "bg-green-500 hover:bg-green-600" : "text-gray-500"}
-          >
-            {plan.isActive ? "Active" : "Inactive"}
-          </Badge>
+          
+          {plan.isActive && (
+            <Badge variant="default" className="bg-blue-500 hover:bg-blue-600">
+              <Check className="h-3.5 w-3.5 mr-1" />
+              Active
+            </Badge>
+          )}
         </div>
       </CardHeader>
       
-      <CardContent className="p-4 space-y-4">
-        <div className="grid grid-cols-2 gap-4 text-sm">
+      <CardContent className="pb-3 space-y-4">
+        <div className="grid grid-cols-2 gap-2 text-sm">
+          {/* Date Range */}
           <div className="flex items-center gap-2">
-            <DollarSign className="h-4 w-4 text-gray-400" />
-            <div>
-              <p className="text-xs text-gray-500">Total Funds</p>
-              <p className="font-medium">{formatCurrency(totalFunds)}</p>
-            </div>
+            <Calendar className="h-4 w-4 text-gray-500" />
+            <span className="text-gray-700">{startDate}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-gray-400">→</span>
+            <span className="text-gray-700">{endDate}</span>
           </div>
           
-          <div className="flex items-center gap-2">
-            <Calendar className="h-4 w-4 text-gray-400" />
-            <div>
-              <p className="text-xs text-gray-500">End Date</p>
-              <p className="font-medium">{formatDate(plan.endOfPlan)}</p>
-            </div>
+          {/* Budget Stats */}
+          <div className="flex items-center gap-2 col-span-2 mt-1">
+            <Banknote className="h-4 w-4 text-gray-500" />
+            <span className="text-gray-700 font-medium">{formattedTotal}</span>
+            <span className="text-xs text-gray-500">total</span>
           </div>
         </div>
         
-        {daysRemaining !== null && (
-          <div className="flex items-center gap-2 text-sm">
-            <Clock className="h-4 w-4 text-gray-400" />
-            <div className="flex-1">
-              <p className="text-xs text-gray-500">Time Remaining</p>
-              <div className="flex items-center gap-1">
-                <p className={`font-medium ${daysRemaining < 30 ? "text-amber-600" : ""} ${daysRemaining < 14 ? "text-red-600" : ""}`}>
-                  {daysRemaining <= 0 ? "Expired" : `${daysRemaining} days remaining`}
-                </p>
-                {daysRemaining <= 14 && <AlertCircle className="h-3 w-3 text-red-500" />}
-              </div>
-            </div>
+        {/* Progress bar */}
+        <div className="pt-1">
+          <div className="flex justify-between text-sm mb-1">
+            <span className="text-gray-500">Used: {formattedUsed}</span>
+            <span className="text-gray-500">Remaining: {formattedRemaining}</span>
           </div>
-        )}
+          <Progress value={percentUsed} className="h-2" />
+          <div className="flex justify-between text-xs mt-1">
+            <span>{percentUsed}%</span>
+            {daysRemaining !== null && (
+              <span className={`${daysRemaining < 30 ? 'text-amber-600 font-medium' : 'text-gray-500'}`}>
+                {daysRemaining} days remaining
+              </span>
+            )}
+          </div>
+        </div>
       </CardContent>
       
-      <CardFooter className="p-4 pt-0 flex justify-between">
-        <Button variant="ghost" size="sm" className="text-gray-500 hover:text-gray-700">
-          {plan.isActive && <Check className="h-4 w-4 mr-1 text-green-500" />}
-          {plan.isActive ? "Current Plan" : "Set as Active"}
-        </Button>
-        
-        <Button 
-          variant="outline" 
-          size="sm" 
-          className="flex items-center gap-1"
-          onClick={(e) => {
-            e.stopPropagation();
-            // Use the onView prop if provided, otherwise fallback to event dispatch
-            if (onView) {
-              onView(plan.id);
-            } else if (typeof document !== 'undefined') {
-              // Fallback to event dispatch for backward compatibility
-              document.dispatchEvent(new CustomEvent('view-plan-details', { 
-                detail: { planId: plan.id }
-              }));
-            }
-          }}
-        >
-          <Eye className="h-4 w-4" />
-          View Details
-        </Button>
+      <CardFooter className="pt-0 flex justify-end gap-2">
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="text-sm"
+                onClick={() => onViewPlan(plan.id)}
+              >
+                <ClipboardList className="h-4 w-4 mr-1" />
+                Preview
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>View plan details and manage budget items</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       </CardFooter>
     </Card>
   );

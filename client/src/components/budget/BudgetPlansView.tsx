@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { BudgetPlansGrid } from "./BudgetPlansGrid";
+import { BudgetPlanCard } from "./BudgetPlanCard";
 import { FullScreenBudgetPlanDialog } from "./FullScreenBudgetPlanDialog";
 import { Button } from "@/components/ui/button";
 import { apiRequest, queryClient } from "@/lib/queryClient";
