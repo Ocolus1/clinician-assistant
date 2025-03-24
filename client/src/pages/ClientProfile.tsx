@@ -59,6 +59,7 @@ import ClientAllies from "@/components/profile/ClientAllies";
 import ClientGoals from "@/components/profile/ClientGoals";
 import ClientClinicians from "@/components/profile/ClientClinicians";
 import { BudgetManagerView } from "@/components/budget/BudgetManagerView";
+import { UnifiedBudgetManager } from "@/components/budget/UnifiedBudgetManager";
 import ClientSessions from "@/components/profile/ClientSessions";
 import { ClientReports } from "@/components/profile/ClientReports";
 import AddAllyDialog from "@/components/profile/AddAllyDialog";
@@ -646,9 +647,14 @@ export default function ClientProfile() {
             </TabsContent>
             
             <TabsContent value="budget" className="mt-0">
-              {/* Use the new comprehensive BudgetManagerView for budget management */}
+              {/* Restore the UnifiedBudgetManager for budget management */}
               <div className="space-y-8">
-                <BudgetManagerView clientId={clientId} />
+                <UnifiedBudgetManager 
+                  clientId={clientId} 
+                  budgetItems={budgetItems}
+                  budgetSettings={budgetSettings}
+                  allBudgetSettings={allBudgetSettings}
+                />
               </div>
             </TabsContent>
             
