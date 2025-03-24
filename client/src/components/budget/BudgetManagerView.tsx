@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { BudgetFeatureProvider } from "./BudgetFeatureContext";
 import { BudgetPlanDetails } from "./BudgetPlanDetailsIntegrated";
 import { BudgetPlanForm } from "./BudgetPlanForm";
+import { BudgetApiDebugger } from "./BudgetApiDebugger";
 import { Button } from "@/components/ui/button";
 import { Plus, ChevronLeft } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -80,6 +81,11 @@ function BudgetManagerContent({ clientId }: BudgetManagerViewProps) {
           <CardDescription>Error loading budget data</CardDescription>
         </CardHeader>
         <CardContent>
+          {/* API Debugger to help diagnose the issue */}
+          <div className="mb-6">
+            <BudgetApiDebugger clientId={clientId} />
+          </div>
+          
           <Alert variant="destructive">
             <AlertDescription>{error}</AlertDescription>
           </Alert>
