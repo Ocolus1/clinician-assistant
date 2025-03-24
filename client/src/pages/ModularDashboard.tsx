@@ -2,11 +2,11 @@ import React, { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { 
-  DashboardProvider,
-  AppointmentAnalytics,
-  BudgetExpirationCard, 
-  UpcomingTasksTimeline
+  DashboardProvider
 } from "@/components/dashboard";
+import { AppointmentAnalytics } from "@/components/dashboard/AppointmentAnalytics";
+import { BudgetExpirationCard } from "@/components/dashboard/BudgetExpirationCard";
+import { UpcomingTasksTimeline } from "@/components/dashboard/UpcomingTasksTimeline";
 import { DummyDataToggle } from "@/components/dashboard/DummyDataToggle";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { 
