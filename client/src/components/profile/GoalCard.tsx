@@ -14,16 +14,24 @@ const GaugeChart = ({ value, size = 60, strokeWidth = 8 }: { value: number, size
   // Dynamic color based on measurement data with descriptive label
   let color = "";
   let statusLabel = "";
+  let displayValue = "N/A";
   
-  if (value >= 75) {
-    color = "stroke-green-500";
-    statusLabel = "Strong Progress";
-  } else if (value >= 50) {
-    color = "stroke-blue-500";
-    statusLabel = "Steady Progress";
-  } else if (value >= 25) {
-    color = "stroke-amber-500";
-    statusLabel = "Initial Progress";
+  if (value > 0) {
+    displayValue = `${value}%`;
+    
+    if (value >= 75) {
+      color = "stroke-green-500";
+      statusLabel = "Strong Progress";
+    } else if (value >= 50) {
+      color = "stroke-blue-500";
+      statusLabel = "Steady Progress";
+    } else if (value >= 25) {
+      color = "stroke-amber-500";
+      statusLabel = "Initial Progress";
+    } else {
+      color = "stroke-gray-400";
+      statusLabel = "No Data Yet";
+    }
   } else {
     color = "stroke-gray-400";
     statusLabel = "No Data Yet";
@@ -48,11 +56,11 @@ const GaugeChart = ({ value, size = 60, strokeWidth = 8 }: { value: number, size
           className={color}
           strokeWidth={strokeWidth}
           strokeDasharray={circumference}
-          strokeDashoffset={strokeDashoffset}
+          strokeDashoffset={value > 0 ? strokeDashoffset : circumference}
           strokeLinecap="round"
         />
       </svg>
-      <span className="absolute text-sm font-medium">{value}%</span>
+      <span className="absolute text-sm font-medium">{displayValue}</span>
       
       {/* Tooltip on hover */}
       <div className="absolute z-10 scale-0 group-hover:scale-100 transition-all duration-200 top-full mt-2 w-32 px-2 py-1 bg-black/80 rounded text-white text-xs text-center">
@@ -117,7 +125,7 @@ const GoalCard = ({ goal, subgoals, onPreview, onEdit, onArchive }: GoalCardProp
       <CardContent className="px-6 py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
-            <h4 className="text-sm font-medium">Measurement Points</h4>
+            <h4 className="text-sm font-medium">Number of Milestones</h4>
           </div>
           <div className="flex items-center space-x-1.5">
             {[...Array(5)].map((_, index) => (

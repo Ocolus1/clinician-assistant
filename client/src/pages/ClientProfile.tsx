@@ -325,7 +325,6 @@ export default function ClientProfile() {
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back
           </Button>
-          <Skeleton className="h-8 w-64" />
         </div>
         
         <Card>
@@ -363,7 +362,6 @@ export default function ClientProfile() {
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back
           </Button>
-          <h1 className="text-2xl font-bold">Client Not Found</h1>
         </div>
         
         <Card>
@@ -392,7 +390,6 @@ export default function ClientProfile() {
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back
         </Button>
-        <h1 className="text-2xl font-bold">Client Profile</h1>
       </div>
       
       {/* Edit Client Info Dialog */}
