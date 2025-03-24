@@ -15,46 +15,30 @@ import type { Goal, Subgoal } from "@shared/schema";
 
 // Sparkline component for milestone progress
 const SparkLine = ({ data, height = 20, width = 80 }: { data: number[], height?: number, width?: number }) => {
+  // Return null if we don't have at least 2 data points with values
+  if (!data || data.length < 2 || data.filter(v => v > 0).length < 2) {
+    return null;
+  }
+  
   // Simple implementation - could be enhanced for real data visualization
   const max = Math.max(...data, 10); // Ensure we have a minimum scale
+  
+  // Create points string for polyline
+  const points = data.map((value, index) => {
+    const x = (index / (data.length - 1)) * width;
+    const y = height - (value / max) * height;
+    return `${x},${y}`;
+  }).join(" ");
 
   return (
     <svg width={width} height={height} className="sparkline">
-      {data.map((value, index) => {
-        const x = (index / (data.length - 1)) * width;
-        const y = height - (value / max) * height;
-
-        return (
-          <circle 
-            key={index} 
-            cx={x} 
-            cy={y} 
-            r={2} 
-            className={value >= 7 ? "fill-green-500" : value >= 4 ? "fill-blue-500" : "fill-amber-500"}
-          />
-        );
-      })}
-
-      {data.length > 1 && data.map((value, index) => {
-        if (index === 0) return null;
-
-        const x1 = ((index - 1) / (data.length - 1)) * width;
-        const y1 = height - (data[index - 1] / max) * height;
-        const x2 = (index / (data.length - 1)) * width;
-        const y2 = height - (value / max) * height;
-
-        return (
-          <line 
-            key={`line-${index}`} 
-            x1={x1} 
-            y1={y1} 
-            x2={x2} 
-            y2={y2} 
-            stroke="#cbd5e1" 
-            strokeWidth={1} 
-          />
-        );
-      })}
+      {/* Only render a single polyline without circles */}
+      <polyline
+        points={points}
+        fill="none"
+        stroke="#ef4444"
+        strokeWidth="1.5"
+      />
     </svg>
   );
 };
