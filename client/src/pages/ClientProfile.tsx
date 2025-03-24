@@ -382,7 +382,7 @@ export default function ClientProfile() {
   const isFullScreenTab = activeTab === 'reports' || activeTab === 'budget' || activeTab === 'goals' || activeTab === 'allies' || activeTab === 'sessions' || activeTab === 'personal';
   
   return (
-    <div className={`w-full mx-auto py-6 px-4 sm:px-6 lg:px-8 ${!isReportsTab ? 'max-w-6xl' : ''}`}>
+    <div className={`w-full mx-auto py-6 px-4 sm:px-6 lg:px-8 ${!isFullScreenTab ? 'max-w-6xl' : ''}`}>
       <div className="flex items-center mb-6">
         <Button 
           variant="ghost" 
@@ -552,8 +552,8 @@ export default function ClientProfile() {
           </TabsTrigger>
         </TabsList>
         
-        <Card className={isReportsTab ? 'w-full' : ''}>
-          <CardContent className={isReportsTab ? 'p-6 w-full' : 'p-6'}>
+        <Card className={isFullScreenTab ? 'w-full' : ''}>
+          <CardContent className={isFullScreenTab ? 'p-6 w-full' : 'p-6'}>
             <TabsContent value="personal" className="mt-0">
               <h3 className="text-lg font-medium mb-4">Personal Information</h3>
               <p className="text-gray-500 mb-6">
@@ -572,6 +572,9 @@ export default function ClientProfile() {
                     }}
                     onEdit={() => setShowEditClientDialog(true)} 
                   />
+                  
+                  {/* Add Clinician Assignment Component */}
+                  <ClientClinicians clientId={clientId} />
                 </>
               )}
             </TabsContent>
@@ -663,7 +666,7 @@ export default function ClientProfile() {
             </TabsContent>
             
             <TabsContent value="reports" className="mt-0">
-              <div className={isReportsTab ? 'w-full' : ''}>
+              <div className={isFullScreenTab ? 'w-full' : ''}>
                 {/* Use the ClientReports component */}
                 <ClientReports clientId={clientId} />
               </div>
