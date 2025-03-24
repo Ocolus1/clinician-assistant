@@ -133,7 +133,7 @@ export function BudgetExpirationTimeline({
               <div className="h-0.5 flex-1 bg-gradient-to-r from-red-600 via-amber-500 to-blue-400 mx-1"></div>
               <span className="text-blue-400">Monitoring</span>
             </div>
-            <span className={`${compact ? "w-16" : "w-24"} text-right text-muted-foreground`}>Funds at risk</span>
+            <span className={`${compact ? "w-24" : "w-32"} text-right text-muted-foreground`}>Funds at risk</span>
           </div>
         )}
         
@@ -191,7 +191,10 @@ export function BudgetExpirationTimeline({
                 </div>
               </div>
               
-              <div className={`${compact ? "w-16" : "w-24"} text-right`}>
+              <div 
+                className={`${compact ? "w-24" : "w-32"} text-right cursor-pointer hover:text-blue-600 transition-colors`}
+                onClick={() => setLocation(`/client/${client.clientId}/budget`)}
+              >
                 <div className="text-sm font-medium">
                   {formatCurrency(unutilizedAmount)}
                 </div>
@@ -199,15 +202,6 @@ export function BudgetExpirationTimeline({
                   {unutilizedPercentage}% unused
                 </div>
               </div>
-              
-              <Button 
-                variant="ghost" 
-                size="sm"
-                onClick={() => setLocation(`/client/${client.clientId}/budget`)}
-                className="ml-1 h-6 w-6 p-0"
-              >
-                <ArrowRight className={compact ? "h-2.5 w-2.5" : "h-3 w-3"} />
-              </Button>
             </div>
           );
         })}

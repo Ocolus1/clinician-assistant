@@ -400,32 +400,47 @@ export function BudgetExpirationCard() {
                   // Compact summary when not expanded
                   <div className="space-y-1">
                     {criticalClients.length > 0 && (
-                      <div className="flex justify-between items-center p-1.5 bg-red-50 border border-red-200 rounded">
+                      <div 
+                        className="flex justify-between items-center p-1.5 bg-red-50 border border-red-200 rounded cursor-pointer hover:bg-red-100 transition-colors"
+                        onClick={() => setIsTimelineExpanded(true)}
+                      >
                         <div className="flex items-center">
                           <div className="h-2 w-2 rounded-full bg-red-600 mr-2"></div>
                           <span className="text-sm font-medium">{criticalClients.length} critical</span>
                         </div>
-                        <span className="text-sm">{formatCurrency(criticalClients.reduce((sum, c) => sum + (c.unutilizedAmount || 0), 0))}</span>
+                        <div className="text-right">
+                          <span className="text-sm font-medium">{formatCurrency(criticalClients.reduce((sum, c) => sum + (c.unutilizedAmount || 0), 0))}</span>
+                        </div>
                       </div>
                     )}
                     
                     {urgentClients.length > 0 && (
-                      <div className="flex justify-between items-center p-1.5 bg-amber-50 border border-amber-200 rounded">
+                      <div 
+                        className="flex justify-between items-center p-1.5 bg-amber-50 border border-amber-200 rounded cursor-pointer hover:bg-amber-100 transition-colors"
+                        onClick={() => setIsTimelineExpanded(true)}
+                      >
                         <div className="flex items-center">
                           <div className="h-2 w-2 rounded-full bg-amber-500 mr-2"></div>
                           <span className="text-sm font-medium">{urgentClients.length} urgent</span>
                         </div>
-                        <span className="text-sm">{formatCurrency(urgentClients.reduce((sum, c) => sum + (c.unutilizedAmount || 0), 0))}</span>
+                        <div className="text-right">
+                          <span className="text-sm font-medium">{formatCurrency(urgentClients.reduce((sum, c) => sum + (c.unutilizedAmount || 0), 0))}</span>
+                        </div>
                       </div>
                     )}
                     
                     {monitoringClients.length > 0 && (
-                      <div className="flex justify-between items-center p-1.5 bg-blue-50 border border-blue-200 rounded">
+                      <div 
+                        className="flex justify-between items-center p-1.5 bg-blue-50 border border-blue-200 rounded cursor-pointer hover:bg-blue-100 transition-colors"
+                        onClick={() => setIsTimelineExpanded(true)}
+                      >
                         <div className="flex items-center">
                           <div className="h-2 w-2 rounded-full bg-blue-400 mr-2"></div>
                           <span className="text-sm font-medium">{monitoringClients.length} monitoring</span>
                         </div>
-                        <span className="text-sm">{formatCurrency(monitoringClients.reduce((sum, c) => sum + (c.unutilizedAmount || 0), 0))}</span>
+                        <div className="text-right">
+                          <span className="text-sm font-medium">{formatCurrency(monitoringClients.reduce((sum, c) => sum + (c.unutilizedAmount || 0), 0))}</span>
+                        </div>
                       </div>
                     )}
                   </div>
