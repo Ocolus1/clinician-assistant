@@ -161,7 +161,7 @@ const GoalPreviewDialog = ({
           <div className="flex justify-between items-center">
             <h3 className="text-lg font-semibold text-gray-900 flex items-center">
               <Target className="h-5 w-5 mr-2 text-primary" />
-              Milestones
+              Measurement Milestones
             </h3>
 
             <Button 
@@ -170,21 +170,21 @@ const GoalPreviewDialog = ({
               size="sm"
             >
               <Plus className="h-4 w-4 mr-1" />
-              Add Milestone
+              Add Measurement
             </Button>
           </div>
 
           {subgoals.length === 0 ? (
             <div className="text-center py-8 border border-dashed rounded-md bg-gray-50">
               <Target className="h-10 w-10 text-gray-300 mx-auto mb-3" />
-              <h4 className="text-lg font-medium text-gray-500 mb-2">No milestones set yet</h4>
-              <p className="text-gray-500 mb-4">Add milestones to track progress towards this goal.</p>
+              <h4 className="text-lg font-medium text-gray-500 mb-2">No measurement milestones set yet</h4>
+              <p className="text-gray-500 mb-4">Add measurement milestones to track therapeutic progress.</p>
               <Button 
                 onClick={() => onAddMilestone(goal.id)}
                 className="bg-green-600 hover:bg-green-700"
               >
                 <Plus className="h-4 w-4 mr-2" />
-                Add First Milestone
+                Add First Measurement
               </Button>
             </div>
           ) : (
@@ -212,14 +212,10 @@ const GoalPreviewDialog = ({
                           </div>
 
                           <div className="flex flex-col items-start ml-4">
-                            {/* Status badge with improved styling */}
+                            {/* Data availability indicator */}
                             <div className="h-8 flex items-center">
-                              <Badge variant="outline" className={`text-xs font-medium px-2 py-0.5 ${
-                                subgoal.status === 'completed' 
-                                  ? "bg-green-50 text-green-700 border-green-200" 
-                                  : "bg-blue-50 text-blue-700 border-blue-200"
-                              }`}>
-                                {subgoal.status === 'completed' ? "Completed" : "In Progress"}
+                              <Badge variant="outline" className="text-xs font-medium px-2 py-0.5 bg-gray-50 text-gray-600 border-gray-200">
+                                No data
                               </Badge>
                             </div>
                           </div>
