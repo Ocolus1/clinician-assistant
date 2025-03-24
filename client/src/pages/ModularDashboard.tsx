@@ -7,6 +7,7 @@ import {
   BudgetExpirationCard, 
   UpcomingTasksTimeline
 } from "@/components/dashboard";
+import { DummyDataToggle } from "@/components/dashboard/DummyDataToggle";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { 
   RefreshCw, 
@@ -74,6 +75,9 @@ function ModularDashboardContent() {
         </div>
         
         <div className="flex items-center gap-2">
+          {/* Dummy data toggle */}
+          <DummyDataToggle />
+          
           <Button 
             variant="ghost" 
             size="icon" 
@@ -91,7 +95,7 @@ function ModularDashboardContent() {
           Select a dashboard module to view detailed information
         </h2>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+        <div className="flex flex-wrap gap-6 max-w-6xl mx-auto justify-center">
           {/* Budget Expiration Tile */}
           <DashboardTile 
             title="Budget Expiration" 
@@ -217,7 +221,7 @@ function DashboardTile({
   return (
     <Card 
       className={cn(
-        "p-6 flex flex-col items-center text-center aspect-square transition-all",
+        "p-6 flex flex-col items-center text-center aspect-square transition-all w-64",
         disabled 
           ? "opacity-70 cursor-not-allowed bg-muted" 
           : "hover:shadow-md cursor-pointer hover:translate-y-[-2px]"
