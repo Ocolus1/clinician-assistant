@@ -7,7 +7,7 @@
  * - 6 sessions with products valued at $1,250 each
  * - Plan expiry: November 12, 2025
  */
-import { db } from './server/db';
+import { db, pool } from './server/db';
 import { clients, budgetSettings, budgetItems, sessions, sessionNotes, goals, subgoals } from './shared/schema';
 
 async function createFinancialTestClient() {
@@ -97,27 +97,45 @@ async function createFinancialTestClient() {
         duration: 60,
       }).returning();
       
-      // Create session note with products
-      const [note] = await db.insert(sessionNotes).values({
-        sessionId: session.id,
-        clientId: client.id,
-        notes: `Financial test session ${i+1}`,
-        // Add observations ratings
-        moodRating: 8,
-        physicalActivityRating: 7,
-        focusRating: 8,
-        cooperationRating: 9,
-        // Add empty array for present allies
-        presentAllies: [],
-        // Add product information
-        products: JSON.stringify([{
-          "name": "Speech Therapy Session",
-          "unitPrice": 250,
-          "quantity": 5, // 5 units at $250 each = $1,250 per session
-          "code": "ST001"
-        }]),
-        status: "completed"
-      }).returning();
+      // Create session note with products using SQL directly because of schema mismatch
+      const productsJson = JSON.stringify([{
+        "name": "Speech Therapy Session",
+        "unitPrice": 250,
+        "quantity": 5, // 5 units at $250 each = $1,250 per session
+        "code": "ST001"
+      }]);
+      
+      // Use pool directly to avoid schema validation issues
+      const noteResult = await pool.query(
+        `INSERT INTO session_notes (
+          session_id, 
+          client_id, 
+          notes, 
+          mood_rating, 
+          physical_activity_rating, 
+          focus_rating, 
+          cooperation_rating, 
+          present_allies,
+          products, 
+          status
+        ) 
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+        RETURNING id`,
+        [
+          session.id,
+          client.id,
+          `Financial test session ${i+1}`,
+          8,
+          7,
+          8,
+          9,
+          '[]',
+          productsJson,
+          'completed'
+        ]
+      );
+      
+      const note = { id: noteResult.rows[0].id };
       
       console.log(`Created session ${i+1} with ID ${session.id} and note ID ${note.id}`);
     }
