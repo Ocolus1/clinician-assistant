@@ -533,108 +533,107 @@ export function GoalPerformanceModal({
                       {milestone.title}
                     </div>
                     
-                    {milestone.isEmpty ? (
+                    {milestone.isEmpty || !milestone.values.some(v => v.score > 0) ? (
                       // Empty milestone placeholder
                       <div className="flex items-center justify-center h-[150px] text-center">
                         <div className="text-gray-400 text-xs max-w-[200px]">
                           <div className="mb-2">
-                            <Plus className="h-8 w-8 mx-auto opacity-30" />
+                            {milestone.id < 0 ? (
+                              <Plus className="h-8 w-8 mx-auto opacity-30" />
+                            ) : (
+                              <AlertCircle className="h-8 w-8 mx-auto opacity-40" />
+                            )}
                           </div>
-                          {milestone.description}
-                        </div>
-                      </div>
-                    ) : (
-                      // Regular milestone with chart - no vertical axis
-                      <div className="relative h-[150px] pt-2">
-                        {milestone.values.some(v => v.score > 0) ? (
-                          <>
-                            <div className="absolute left-0 right-0 top-0 bottom-5">
-                              <svg width="100%" height="100%" viewBox="0 0 600 150" preserveAspectRatio="none">
-                                <line x1="0" y1="0" x2="600" y2="0" stroke="#e5e7eb" strokeWidth="1" />
-                                <line x1="0" y1="75" x2="600" y2="75" stroke="#e5e7eb" strokeWidth="1" />
-                                <line x1="0" y1="150" x2="600" y2="150" stroke="#e5e7eb" strokeWidth="1" />
-                                
-                                <polyline
-                                  points={milestone.values
-                                    .map((point, i) => {
-                                      if (point.score === 0) return null;
-                                      const x = (i / (milestone.values.length - 1)) * 600;
-                                      const y = (1 - point.score / 10) * 150;
-                                      return `${x},${y}`;
-                                    })
-                                    .filter(Boolean)
-                                    .join(' ')}
-                                  fill="none"
-                                  stroke="#3B82F6"
-                                  strokeWidth="2"
-                                />
-                                
-                                {milestone.values.map((point, i) => {
-                                  if (point.score === 0) return null;
-                                  
-                                  const x = (i / (milestone.values.length - 1)) * 600;
-                                  const y = (1 - point.score / 10) * 150;
-                                  
-                                  const monthObj = progressDataService.getLast6Months()[i];
-                                  const month = monthObj ? monthObj.display : '';
-                                  
-                                  return (
-                                    <g key={i} className="group">
-                                      <rect 
-                                        x={x-40} 
-                                        y={y-30} 
-                                        width="80" 
-                                        height="25" 
-                                        rx="4"
-                                        fill="#3B82F6" 
-                                        className="opacity-0 group-hover:opacity-90 transition-opacity"
-                                      />
-                                      <text 
-                                        x={x} 
-                                        y={y-15} 
-                                        textAnchor="middle" 
-                                        fill="white" 
-                                        fontSize="11"
-                                        fontWeight="bold"
-                                        className="opacity-0 group-hover:opacity-100 transition-opacity"
-                                      >
-                                        {`${month}: ${point.score}/10`}
-                                      </text>
-                                      
-                                      <circle 
-                                        cx={x} 
-                                        cy={y} 
-                                        r="4" 
-                                        fill="#3B82F6" 
-                                        stroke="#ffffff" 
-                                        strokeWidth="1.5" 
-                                        className="transition-all hover:scale-125"
-                                      />
-                                    </g>
-                                  );
-                                })}
-                              </svg>
-                            </div>
-                            
-                            <div className="absolute left-0 right-0 bottom-[-5px] flex justify-between text-[9px] text-gray-500">
-                              {progressDataService.getLast6Months().map((month, i) => (
-                                <div key={i} className="text-center px-0">{month.display}</div>
-                              ))}
-                            </div>
-                          </>
-                        ) : (
-                          <div className="flex items-center justify-center h-[150px] text-center">
-                            <div className="text-gray-400 text-xs max-w-[200px]">
-                              <div className="mb-2">
-                                <AlertCircle className="h-8 w-8 mx-auto opacity-40" />
-                              </div>
+                          {milestone.id < 0 ? 
+                            milestone.description : 
+                            <>
                               <p>No performance data recorded yet</p>
                               <p className="text-[10px] mt-1 text-gray-400">
                                 Data will appear as sessions are documented
                               </p>
-                            </div>
-                          </div>
-                        )}
+                            </>
+                          }
+                        </div>
+                      </div>
+                    ) : (
+                      // Regular milestone with chart - ONLY when we have actual data
+                      <div className="relative h-[150px] pt-2">
+                        <div className="absolute left-0 right-0 top-0 bottom-5">
+                          <svg width="100%" height="100%" viewBox="0 0 600 150" preserveAspectRatio="none">
+                            <line x1="0" y1="0" x2="600" y2="0" stroke="#e5e7eb" strokeWidth="1" />
+                            <line x1="0" y1="75" x2="600" y2="75" stroke="#e5e7eb" strokeWidth="1" />
+                            <line x1="0" y1="150" x2="600" y2="150" stroke="#e5e7eb" strokeWidth="1" />
+                            
+                            {/* Only render polyline if we have at least 2 valid points */}
+                            {milestone.hasValidDataForLine && (
+                              <polyline
+                                points={milestone.values
+                                  .map((point, i) => {
+                                    if (point.score === 0) return null;
+                                    const x = (i / (milestone.values.length - 1)) * 600;
+                                    const y = (1 - point.score / 10) * 150;
+                                    return `${x},${y}`;
+                                  })
+                                  .filter(Boolean)
+                                  .join(' ')}
+                                fill="none"
+                                stroke="#ff5252"
+                                strokeWidth="2"
+                              />
+                            )}
+                            
+                            {milestone.values.map((point, i) => {
+                              if (point.score === 0) return null;
+                              
+                              const x = (i / (milestone.values.length - 1)) * 600;
+                              const y = (1 - point.score / 10) * 150;
+                              
+                              const monthObj = progressDataService.getLast6Months()[i];
+                              const month = monthObj ? monthObj.display : '';
+                              
+                              return (
+                                <g key={i} className="group">
+                                  <rect 
+                                    x={x-40} 
+                                    y={y-30} 
+                                    width="80" 
+                                    height="25" 
+                                    rx="4"
+                                    fill="#3B82F6" 
+                                    className="opacity-0 group-hover:opacity-90 transition-opacity"
+                                  />
+                                  <text 
+                                    x={x} 
+                                    y={y-15} 
+                                    textAnchor="middle" 
+                                    fill="white" 
+                                    fontSize="11"
+                                    fontWeight="bold"
+                                    className="opacity-0 group-hover:opacity-100 transition-opacity"
+                                  >
+                                    {`${month}: ${point.score}/10`}
+                                  </text>
+                                  
+                                  <circle 
+                                    cx={x} 
+                                    cy={y} 
+                                    r="4" 
+                                    fill="#3B82F6" 
+                                    stroke="#ffffff" 
+                                    strokeWidth="1.5" 
+                                    className="transition-all hover:scale-125"
+                                  />
+                                </g>
+                              );
+                            })}
+                          </svg>
+                        </div>
+                        
+                        <div className="absolute left-0 right-0 bottom-[-5px] flex justify-between text-[9px] text-gray-500">
+                          {progressDataService.getLast6Months().map((month, i) => (
+                            <div key={i} className="text-center px-0">{month.display}</div>
+                          ))}
+                        </div>
                       </div>
                     )}
                   </CardContent>

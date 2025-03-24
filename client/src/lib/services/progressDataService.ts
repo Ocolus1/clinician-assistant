@@ -11,6 +11,7 @@ export interface MilestonePerformanceData {
   title: string;
   description?: string;
   isEmpty: boolean;
+  hasValidDataForLine?: boolean; // Added field to track if we have enough valid points for a line chart
   values: {
     month: string; // Format: "YYYY-MM"
     score: number;
@@ -362,11 +363,15 @@ export const progressDataService = {
         // Check if we have any real data
         const hasData = values.some(v => v.score > 0);
         
+        // Check if we have enough valid data points to draw a line (need at least 2)
+        const hasValidDataForLine = values.filter(v => v.score > 0).length >= 2;
+        
         return {
           id: subgoal.id,
           title: subgoal.title || "Untitled Milestone",
           description: subgoal.description || "",
           isEmpty: !hasData,
+          hasValidDataForLine,
           values
         };
       });
@@ -381,6 +386,7 @@ export const progressDataService = {
         title: subgoal.title || "Untitled Milestone",
         description: subgoal.description || "",
         isEmpty: true,
+        hasValidDataForLine: false,
         values: this.getLast6Months().map(month => ({
           month: month.value,
           score: 0
