@@ -11,10 +11,12 @@ import {
   PerformanceAssessment, InsertPerformanceAssessment,
   MilestoneAssessment, InsertMilestoneAssessment,
   Strategy, InsertStrategy,
+  Clinician, InsertClinician,
+  ClientClinician, InsertClientClinician,
   // Import dashboard data types
   AppointmentStats, BudgetExpirationStats, UpcomingTaskStats, 
   clients, allies, goals, subgoals, budgetItems, budgetSettings, budgetItemCatalog, sessions,
-  sessionNotes, performanceAssessments, milestoneAssessments, strategies
+  sessionNotes, performanceAssessments, milestoneAssessments, strategies, clinicians, clientClinicians
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and } from "drizzle-orm";
@@ -32,6 +34,18 @@ export interface IStorage {
   getAlliesByClient(clientId: number): Promise<Ally[]>;
   updateAlly(id: number, ally: InsertAlly): Promise<Ally>; // Added updateAlly function
   deleteAlly(id: number): Promise<void>; // Added deleteAlly function
+  
+  // Clinicians
+  createClinician(clinician: InsertClinician): Promise<Clinician>;
+  getClinician(id: number): Promise<Clinician | undefined>;
+  getAllClinicians(): Promise<Clinician[]>;
+  updateClinician(id: number, clinician: Partial<InsertClinician>): Promise<Clinician>;
+  deleteClinician(id: number): Promise<void>;
+  
+  // Client-Clinician Assignments
+  assignClinicianToClient(clientId: number, assignment: InsertClientClinician): Promise<ClientClinician>;
+  getCliniciansByClient(clientId: number): Promise<(ClientClinician & { clinician: Clinician })[]>;
+  removeClinicianFromClient(assignmentId: number): Promise<void>;
   
   // Strategies
   getAllStrategies(): Promise<Strategy[]>;

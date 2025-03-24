@@ -4,6 +4,9 @@ import { z } from "zod";
 
 export const FUNDS_MANAGEMENT_OPTIONS = ["Self-Managed", "Advisor-Managed", "Custodian-Managed"] as const;
 
+// Clinician roles
+export const CLINICIAN_ROLES = ["Primary Therapist", "Secondary Therapist", "Supervisor", "Support Staff"] as const;
+
 export const clients = pgTable("clients", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
@@ -241,17 +244,54 @@ export const strategies = pgTable("strategies", {
   description: text("description"),
 });
 
+// Clinicians table for staff that can be assigned to clients
+export const clinicians = pgTable("clinicians", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  title: text("title"),
+  email: text("email").notNull(),
+  specialization: text("specialization"),
+  active: boolean("active").default(true),
+  notes: text("notes"),
+});
+
+// Client-Clinician relationship table for assignments
+export const clientClinicians = pgTable("client_clinicians", {
+  id: serial("id").primaryKey(),
+  clientId: integer("client_id").notNull().references(() => clients.id, { onDelete: "cascade" }),
+  clinicianId: integer("clinician_id").notNull().references(() => clinicians.id, { onDelete: "cascade" }),
+  role: text("role").notNull(), // Primary, Secondary, Support, etc.
+  assignedDate: timestamp("assigned_date").defaultNow(),
+  notes: text("notes"),
+});
+
 // Create insert schemas
 export const insertSessionNoteSchema = createInsertSchema(sessionNotes);
 export const insertPerformanceAssessmentSchema = createInsertSchema(performanceAssessments);
 export const insertMilestoneAssessmentSchema = createInsertSchema(milestoneAssessments);
 export const insertStrategySchema = createInsertSchema(strategies);
 
+// Clinician schemas
+export const insertClinicianSchema = createInsertSchema(clinicians)
+  .omit({ id: true })
+  .extend({
+    name: z.string().min(1, { message: "Name is required" }),
+    email: z.string().email({ message: "Please enter a valid email address" }),
+  });
+
+export const insertClientClinicianSchema = createInsertSchema(clientClinicians)
+  .omit({ id: true, assignedDate: true })
+  .extend({
+    role: z.enum(CLINICIAN_ROLES as unknown as [string, ...string[]]),
+  });
+
 // Define types for inserts
 export type InsertSessionNote = z.infer<typeof insertSessionNoteSchema>;
 export type InsertPerformanceAssessment = z.infer<typeof insertPerformanceAssessmentSchema>;
 export type InsertMilestoneAssessment = z.infer<typeof insertMilestoneAssessmentSchema>;
 export type InsertStrategy = z.infer<typeof insertStrategySchema>;
+export type InsertClinician = z.infer<typeof insertClinicianSchema>;
+export type InsertClientClinician = z.infer<typeof insertClientClinicianSchema>;
 
 // Define types for selects
 export type Session = typeof sessions.$inferSelect;
@@ -260,6 +300,8 @@ export type SessionNote = typeof sessionNotes.$inferSelect;
 export type PerformanceAssessment = typeof performanceAssessments.$inferSelect;
 export type MilestoneAssessment = typeof milestoneAssessments.$inferSelect;
 export type Strategy = typeof strategies.$inferSelect;
+export type Clinician = typeof clinicians.$inferSelect;
+export type ClientClinician = typeof clientClinicians.$inferSelect;
 
 // Dashboard data types
 export type AppointmentStatsEntry = {
