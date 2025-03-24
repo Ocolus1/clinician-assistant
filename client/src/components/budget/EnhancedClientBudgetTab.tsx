@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { BudgetFeatureProvider, useBudgetFeature, BudgetPlan } from "./BudgetFeatureContext";
-import { EnhancedBudgetCardGrid } from "./EnhancedBudgetCardGrid";
-import { BudgetPlanFullView } from "./BudgetPlanFullView";
+import { SimpleBudgetCardGrid } from "./SimpleBudgetCardGrid";
+import { ContextAwareBudgetPlanFullView } from "./ContextAwareBudgetPlanFullView";
 import { Button } from "../ui/button";
 import { ChevronLeft } from "lucide-react";
 
@@ -70,14 +70,17 @@ function BudgetTabContents({ clientId }: { clientId: number }) {
             variant="ghost" 
             size="sm" 
             className="mb-4" 
-            onClick={() => window.dispatchEvent(new CustomEvent('reset-selected-plan'))}
+            onClick={() => {
+              const { resetSelectedPlan } = useBudgetFeature();
+              resetSelectedPlan();
+            }}
           >
             <ChevronLeft className="h-4 w-4 mr-1" />
             Back to Budget Plans
           </Button>
         </div>
         
-        <BudgetPlanFullView />
+        <ContextAwareBudgetPlanFullView />
       </div>
     );
   }
@@ -101,8 +104,8 @@ function BudgetTabContents({ clientId }: { clientId: number }) {
         </div>
       )}
       
-      {/* Show the budget card grid by default */}
-      <EnhancedBudgetCardGrid clientId={clientId} />
+      {/* Show the simplified budget card grid by default */}
+      <SimpleBudgetCardGrid clientId={clientId} />
     </div>
   );
 }
