@@ -4,6 +4,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import NotFound from "@/pages/not-found";
 import Dashboard from "@/pages/Dashboard";
+import ModularDashboard from "@/pages/ModularDashboard";
 import OnboardingForm from "@/pages/OnboardingForm";
 import Summary from "@/pages/Summary";
 import PrintSummary from "@/pages/PrintSummary";
@@ -30,7 +31,8 @@ function Router() {
   const LayoutRoutes = () => (
     <AppLayout>
       <Switch>
-        <Route path="/" component={Dashboard} />
+        <Route path="/" component={ModularDashboard} />
+        <Route path="/dashboard/classic" component={Dashboard} />
         <Route path="/clients/new" component={OnboardingForm} />
         <Route path="/clients" component={EnhancedClientList} />
         <Route path="/clients/legacy" component={ClientList} />
