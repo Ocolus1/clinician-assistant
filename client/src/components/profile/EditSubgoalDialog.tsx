@@ -30,10 +30,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Subgoal, insertSubgoalSchema } from "@shared/schema";
 
 // Create a schema for editing a subgoal
-const editSubgoalSchema = insertSubgoalSchema
-  .extend({
-    status: z.enum(["pending", "in-progress", "completed"]).optional(),
-  });
+// Removed status field as it's not needed in the therapy context
+const editSubgoalSchema = insertSubgoalSchema;
 
 // Type based on the schema
 type EditSubgoalFormValues = z.infer<typeof editSubgoalSchema>;
@@ -53,12 +51,12 @@ export default function EditSubgoalDialog({
   const queryClient = useQueryClient();
   
   // Initialize form with the subgoal's current values
+  // Removed status field as it's not needed in the therapy context
   const form = useForm<EditSubgoalFormValues>({
     resolver: zodResolver(editSubgoalSchema),
     defaultValues: {
       title: subgoal.title,
       description: subgoal.description || "",
-      status: (subgoal.status as "pending" | "in-progress" | "completed") || "pending",
     },
   });
 
@@ -103,7 +101,7 @@ export default function EditSubgoalDialog({
         <DialogHeader>
           <DialogTitle>Edit Milestone</DialogTitle>
           <DialogDescription>
-            Update the milestone details and progress status.
+            Update the milestone details for measurement tracking.
           </DialogDescription>
         </DialogHeader>
         
@@ -147,34 +145,7 @@ export default function EditSubgoalDialog({
               )}
             />
             
-            <FormField
-              control={form.control}
-              name="status"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Status</FormLabel>
-                  <Select 
-                    onValueChange={field.onChange} 
-                    defaultValue={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select status" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="pending">Not Started</SelectItem>
-                      <SelectItem value="in-progress">In Progress</SelectItem>
-                      <SelectItem value="completed">Completed</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormDescription>
-                    Track the progress of this milestone.
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            {/* Status field removed as it's not needed in the therapy context */}
             
             <DialogFooter className="mt-6">
               <Button 

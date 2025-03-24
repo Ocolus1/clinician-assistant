@@ -198,16 +198,7 @@ const GoalPreviewDialog = ({
                     className="border rounded-lg p-4 hover:bg-gray-50 transition-colors"
                   >
                     <div className="flex items-start">
-                      <div 
-                        className="flex-shrink-0 mt-0.5 mr-3 cursor-pointer"
-                        onClick={() => onToggleMilestoneStatus(subgoal)}
-                      >
-                        {subgoal.status === 'completed' ? (
-                          <CheckCircle className="h-5 w-5 text-green-600" />
-                        ) : (
-                          <Circle className="h-5 w-5 text-gray-400" />
-                        )}
-                      </div>
+                      {/* Removed checkmark circles as they're not appropriate for therapy context */}
 
                       <div className="flex-1">
                         <div className="flex justify-between items-start">
