@@ -76,12 +76,11 @@ export default function ClientPersonalInfo({ client, onEdit }: ClientPersonalInf
         </div>
         {onEdit && (
           <Button 
-            size="sm" 
-            className="flex items-center" 
+            variant="ghost"
+            size="icon" 
             onClick={onEdit}
           >
-            <Edit className="h-4 w-4 mr-2" />
-            Edit Information
+            <Edit className="h-4 w-4" />
           </Button>
         )}
       </CardHeader>

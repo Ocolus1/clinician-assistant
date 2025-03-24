@@ -18,11 +18,10 @@ async function main() {
       CREATE TABLE IF NOT EXISTS clinicians (
         id SERIAL PRIMARY KEY,
         name VARCHAR(255) NOT NULL,
-        email VARCHAR(255),
+        email VARCHAR(255) NOT NULL,
         title VARCHAR(255),
         specialization VARCHAR(255),
-        phone VARCHAR(50),
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        notes TEXT,
         active BOOLEAN DEFAULT TRUE
       );
     `;
@@ -38,7 +37,7 @@ async function main() {
         clinician_id INTEGER NOT NULL REFERENCES clinicians(id) ON DELETE CASCADE,
         role VARCHAR(50) NOT NULL,
         notes TEXT,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        assigned_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `;
     
