@@ -29,6 +29,7 @@ interface MilestonePerformance {
   title: string;
   description?: string;
   isEmpty?: boolean;
+  hasValidDataForLine?: boolean; // Add matching property from MilestonePerformanceData
   values: {
     month: string; // Format: "YYYY-MM"
     score: number;
@@ -117,6 +118,7 @@ function generatePlaceholderData(goalId: number, goalTitle: string, subgoals: an
           title: subgoal.title || "Untitled Milestone",
           description: subgoal.description || "",
           isEmpty: true, // Mark as empty since we don't have real data yet
+          hasValidDataForLine: false, // Ensure we don't render polyline for empty data
           values: months.map(month => ({
             month: month.value,
             score: 0 // No data
@@ -349,6 +351,7 @@ export function GoalPerformanceModal({
               title: "No milestone set yet",
               description: "Add a milestone to track progress on specific skill areas",
               isEmpty: true,
+              hasValidDataForLine: false, // Ensure we don't show a line for empty placeholders
               values: months.map(month => ({
                 month: month.value,
                 score: 0
