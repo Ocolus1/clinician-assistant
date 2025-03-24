@@ -57,6 +57,7 @@ import type { Client, Ally, Goal, Subgoal, BudgetSettings, BudgetItem } from "@s
 import ClientPersonalInfo from "@/components/profile/ClientPersonalInfo";
 import ClientAllies from "@/components/profile/ClientAllies";
 import ClientGoals from "@/components/profile/ClientGoals";
+import ClientClinicians from "@/components/profile/ClientClinicians";
 import { BudgetManagerView } from "@/components/budget/BudgetManagerView";
 import ClientSessions from "@/components/profile/ClientSessions";
 import { ClientReports } from "@/components/profile/ClientReports";
@@ -377,8 +378,8 @@ export default function ClientProfile() {
     );
   }
 
-  // Determine if we're on the reports tab for full-width layout
-  const isReportsTab = activeTab === 'reports';
+  // Determine if we're on a tab that should use full-width layout
+  const isFullScreenTab = activeTab === 'reports' || activeTab === 'budget' || activeTab === 'goals' || activeTab === 'allies' || activeTab === 'sessions' || activeTab === 'personal';
   
   return (
     <div className={`w-full mx-auto py-6 px-4 sm:px-6 lg:px-8 ${!isReportsTab ? 'max-w-6xl' : ''}`}>
