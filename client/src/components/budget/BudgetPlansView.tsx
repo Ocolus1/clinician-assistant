@@ -197,12 +197,23 @@ export function BudgetPlansView({ clientId, onViewPlan }: BudgetPlansViewProps) 
         </Button>
       </div>
       
-      {/* Budget Plans Grid */}
-      <BudgetPlansGrid 
-        plans={budgetPlans} 
-        clientId={clientId} 
-        onViewPlan={onViewPlan}
-      />
+      {/* Budget Plans Card Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {budgetPlans.length > 0 ? (
+          budgetPlans.map(plan => (
+            <BudgetPlanCard 
+              key={plan.id}
+              plan={plan}
+              onViewPlan={onViewPlan || (() => {})}
+            />
+          ))
+        ) : (
+          <div className="col-span-full text-center py-10 border rounded-lg bg-gray-50">
+            <h3 className="text-lg font-medium text-gray-700">No Budget Plans</h3>
+            <p className="text-gray-500 mt-2">Click the "Create New Plan" button to create your first budget plan</p>
+          </div>
+        )}
+      </div>
       
       {/* Full Screen Budget Plan Dialog */}
       <FullScreenBudgetPlanDialog
