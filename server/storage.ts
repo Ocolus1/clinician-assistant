@@ -1720,30 +1720,20 @@ export class DBStorage implements IStorage {
         // Get subgoal IDs
         const subgoalIds = goalSubgoals.map(sg => sg.id);
         
-        // Query performance assessments for these subgoals - use multiple OR conditions instead of IN
-        let query = db
-          .select({
-            subgoalId: performanceAssessments.subgoalId,
-            score: performanceAssessments.score
-          })
-          .from(performanceAssessments);
+        // Execute individual queries for each subgoal and combine results
+        const performanceData = [];
         
-        // If we have subgoals, add WHERE conditions one by one
-        if (subgoalIds.length > 0) {
-          const orConditions = subgoalIds.map(id => eq(performanceAssessments.subgoalId, id));
+        for (const subgoalId of subgoalIds) {
+          const result = await db
+            .select({
+              subgoalId: performanceAssessments.subgoalId,
+              score: performanceAssessments.score
+            })
+            .from(performanceAssessments)
+            .where(eq(performanceAssessments.subgoalId, subgoalId));
           
-          // Handle first condition
-          let whereCondition = orConditions[0];
-          
-          // Add OR for remaining conditions
-          for (let i = 1; i < orConditions.length; i++) {
-            whereCondition = or(whereCondition, orConditions[i]);
-          }
-          
-          query = query.where(whereCondition);
+          performanceData.push(...result);
         }
-        
-        const performanceData = await query;
         
         if (performanceData.length === 0) {
           console.log(`No performance data found for goal ${goalId}, returning null score`);
@@ -1783,21 +1773,20 @@ export class DBStorage implements IStorage {
           // Get subgoal IDs
           const subgoalIds = goalSubgoals.map(sg => sg.id);
           
-          // Query performance assessments for these subgoals - use multiple OR conditions
-          let query = db
-            .select({
-              subgoalId: performanceAssessments.subgoalId,
-              score: performanceAssessments.score
-            })
-            .from(performanceAssessments);
+          // Execute individual queries for each subgoal and combine results
+          const performanceData = [];
           
-          // If we have subgoals, add WHERE conditions
-          if (subgoalIds.length > 0) {
-            const conditions = subgoalIds.map(id => eq(performanceAssessments.subgoalId, id));
-            query = query.where(or(...conditions));
+          for (const subgoalId of subgoalIds) {
+            const result = await db
+              .select({
+                subgoalId: performanceAssessments.subgoalId,
+                score: performanceAssessments.score
+              })
+              .from(performanceAssessments)
+              .where(eq(performanceAssessments.subgoalId, subgoalId));
+            
+            performanceData.push(...result);
           }
-          
-          const performanceData = await query;
           
           if (performanceData.length === 0) {
             console.log(`No performance data found for goal ${goal.id}, setting null score`);

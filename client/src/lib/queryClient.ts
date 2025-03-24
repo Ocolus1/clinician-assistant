@@ -116,7 +116,9 @@ export async function apiRequest<T = any>(
     });
 
     await throwIfResNotOk(res);
-    return res;
+    // Return JSON data as the typed response 
+    const responseData = await res.json();
+    return responseData as T;
   } catch (error) {
     console.error(`API Request failed for ${method} ${url}:`, error);
     // Add request details to the error for better debugging
