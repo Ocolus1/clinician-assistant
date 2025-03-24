@@ -207,10 +207,11 @@ export function BudgetItemRow({
   return (
     <div 
       className={cn(
-        "border rounded-md p-3 transition-colors",
-        isEditing ? "border-blue-300 bg-blue-50" : "border-gray-200 hover:border-blue-200 hover:bg-blue-50/50 cursor-pointer",
+        "border rounded-md p-3 transition-all duration-200",
+        isEditing ? "border-blue-300 bg-blue-50" : "border-gray-200 hover:border-blue-200 hover:bg-blue-50/50 hover:shadow-md cursor-pointer",
         item.isNew && "border-green-300 bg-green-50",
-        hasUnsavedChanges && !isEditing && "border-amber-300 bg-amber-50"
+        hasUnsavedChanges && !isEditing && "border-amber-300 bg-amber-50",
+        !isEditing && !isReadOnly && "hover:scale-[1.01]" // Subtle scale effect on hover for non-editing state
       )}
       onClick={!isEditing ? handleCardClick : undefined}
     >

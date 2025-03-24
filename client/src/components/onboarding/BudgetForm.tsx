@@ -450,8 +450,14 @@ export default function BudgetForm({ clientId, onComplete, onPrevious }: BudgetF
     ? Array.from(new Set(catalogItems.map(item => item.category).filter(Boolean) as string[]))
     : [];
 
-  // Filter catalog items based on search term and selected category
+  // Get the list of item codes that are already added to the budget
+  const existingItemCodes = budgetItems.map(item => item.itemCode);
+  
+  // Filter catalog items based on search term, selected category, and exclude already added items
   const filteredCatalogItems = catalogItems.filter(item => {
+    // Filter out items already in the budget
+    const isNotAlreadyAdded = !existingItemCodes.includes(item.itemCode);
+    
     const matchesSearch = searchTerm
       ? item.itemCode.toLowerCase().includes(searchTerm.toLowerCase()) || 
         item.description.toLowerCase().includes(searchTerm.toLowerCase())
@@ -459,7 +465,7 @@ export default function BudgetForm({ clientId, onComplete, onPrevious }: BudgetF
     const matchesCategory = selectedCategory 
       ? item.category === selectedCategory 
       : true;
-    return matchesSearch && matchesCategory && item.isActive;
+    return matchesSearch && matchesCategory && item.isActive && isNotAlreadyAdded;
   });
 
   return (
