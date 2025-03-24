@@ -246,6 +246,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const goals = await storage.getGoalsByClient(parseInt(req.params.clientId));
     res.json(goals);
   });
+  
+  // New endpoint to get goal performance data
+  app.get("/api/clients/:clientId/goals/performance", async (req, res) => {
+    const clientId = parseInt(req.params.clientId);
+    const goalId = req.query.goalId ? parseInt(req.query.goalId as string) : undefined;
+    
+    console.log(`GET /api/clients/${clientId}/goals/performance - Getting goal performance data${goalId ? ` for goal ${goalId}` : ''}`);
+    
+    try {
+      const performanceData = await storage.getGoalPerformanceData(clientId, goalId);
+      res.json(performanceData);
+    } catch (error) {
+      console.error(`Error retrieving goal performance data:`, error);
+      res.status(500).json({ error: formatError(error) });
+    }
+  });
 
   // NOTE: Goal deletion is not directly supported
   app.delete("/api/goals/:id", async (req, res) => {

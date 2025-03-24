@@ -223,6 +223,9 @@ export const performanceAssessments = pgTable("performance_assessments", {
   id: serial("id").primaryKey(),
   sessionNoteId: integer("session_note_id").notNull().references(() => sessionNotes.id, { onDelete: "cascade" }),
   goalId: integer("goal_id").notNull().references(() => goals.id, { onDelete: "cascade" }),
+  subgoalId: integer("subgoal_id").references(() => subgoals.id, { onDelete: "cascade" }),
+  rating: integer("rating"),
+  score: integer("score"),
   notes: text("notes"),
 });
 
