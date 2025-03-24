@@ -1,7 +1,5 @@
 import { ReactNode, useEffect } from "react";
 import { useLocation } from "wouter";
-import { Bell, User } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { FloatingMenu } from "./FloatingMenu";
 import { cn } from "@/lib/utils";
 
@@ -55,19 +53,15 @@ function AppLayoutContent({ children }: AppLayoutProps) {
         className="content-area flex flex-col flex-1 min-h-screen w-full"
         style={{ width: '100%' }}
       >
-        {/* Top navigation bar */}
+        {/* Top navigation bar - now simplified */}
         <header className="bg-white border-b border-gray-200 h-16 flex items-center justify-between px-4 lg:px-6 w-full">
           <div className="flex items-center">
             <h1 className="text-xl font-semibold text-gray-800">{getPageTitle()}</h1>
           </div>
-
+          
+          {/* Secondary navigation controls will be page-specific */}
           <div className="flex items-center space-x-3">
-            <Button variant="ghost" size="icon" className="text-gray-500">
-              <Bell className="h-5 w-5" />
-            </Button>
-            <Button variant="ghost" size="icon" className="text-gray-500">
-              <User className="h-5 w-5" />
-            </Button>
+            {/* Page-specific controls will be rendered by child components */}
           </div>
         </header>
 

@@ -15,13 +15,15 @@ import {
   Shield, 
   Database, 
   Server, 
-  LayoutGrid 
+  LayoutGrid,
+  UserCircle
 } from "lucide-react";
 import { FullscreenProductConfig } from "../components/settings/FullscreenProductConfig";
+import { ProfileSettings } from "../components/settings/ProfileSettings";
 import { Button } from "@/components/ui/button";
 
 export default function Settings() {
-  const [activeTab, setActiveTab] = useState("clinical");
+  const [activeTab, setActiveTab] = useState("profile");
   const [productDialogOpen, setProductDialogOpen] = useState(false);
   
   // Function to handle tab change
@@ -42,15 +44,21 @@ export default function Settings() {
       </div>
       
       <Tabs 
-        defaultValue="clinical" 
+        defaultValue="profile" 
         value={activeTab}
         onValueChange={handleTabChange}
         className="space-y-6"
       >
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="profile">Profile</TabsTrigger>
           <TabsTrigger value="clinical">Clinical</TabsTrigger>
           <TabsTrigger value="administration">Administration</TabsTrigger>
         </TabsList>
+        
+        {/* Profile Settings Tab */}
+        <TabsContent value="profile" className="space-y-6">
+          <ProfileSettings />
+        </TabsContent>
         
         {/* Clinical Settings Tab */}
         <TabsContent value="clinical" className="space-y-6">
