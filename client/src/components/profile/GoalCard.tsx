@@ -11,22 +11,22 @@ const GaugeChart = ({ value, size = 60, strokeWidth = 8 }: { value: number, size
   const circumference = 2 * Math.PI * radius;
   const strokeDashoffset = circumference - (value / 100) * circumference;
 
-  // Dynamic color based on progress with status label
+  // Dynamic color based on measurement data with descriptive label
   let color = "";
   let statusLabel = "";
   
   if (value >= 75) {
     color = "stroke-green-500";
-    statusLabel = "Nearly Complete";
+    statusLabel = "Strong Progress";
   } else if (value >= 50) {
     color = "stroke-blue-500";
-    statusLabel = "Making Progress";
+    statusLabel = "Steady Progress";
   } else if (value >= 25) {
     color = "stroke-amber-500";
-    statusLabel = "Getting Started";
+    statusLabel = "Initial Progress";
   } else {
     color = "stroke-gray-400";
-    statusLabel = "Just Started";
+    statusLabel = "No Data Yet";
   }
 
   return (
@@ -113,14 +113,14 @@ const GoalCard = ({ goal, subgoals, onPreview, onEdit, onArchive }: GoalCardProp
       <CardContent className="px-6 py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
-            <h4 className="text-sm font-medium">Milestones</h4>
+            <h4 className="text-sm font-medium">Measurement Points</h4>
           </div>
           <div className="flex items-center space-x-1.5">
             {[...Array(5)].map((_, index) => (
               <div 
                 key={index}
                 className="relative group"
-                title={index < subgoalCount ? subgoals[index].title : "Empty milestone slot"}
+                title={index < subgoalCount ? subgoals[index].title : "Empty measurement point"}
               >
                 <Target 
                   className={`h-5 w-5 ${
