@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertGoalSchema, insertSubgoalSchema } from "@shared/schema";
+import { z } from "zod";
 import {
   Form,
   FormControl,
@@ -68,6 +69,14 @@ export default function GoalsForm({ clientId, onComplete, onPrevious }: GoalsFor
       .max(200, "Description must be 200 characters or less"),
     priority: z.string().min(1, "Priority is required"),
   });
+  
+  // Enhanced subgoal form schema with required fields and 100-character limit
+  const enhancedSubgoalSchema = insertSubgoalSchema.extend({
+    title: z.string().min(1, "Subgoal title is required"),
+    description: z.string()
+      .min(1, "Description is required")
+      .max(100, "Description must be 100 characters or less"),
+  });
 
   const goalForm = useForm({
     resolver: zodResolver(enhancedGoalSchema),
@@ -79,7 +88,7 @@ export default function GoalsForm({ clientId, onComplete, onPrevious }: GoalsFor
   });
 
   const subgoalForm = useForm({
-    resolver: zodResolver(insertSubgoalSchema),
+    resolver: zodResolver(enhancedSubgoalSchema),
     defaultValues: {
       title: "",
       description: "",
@@ -504,9 +513,20 @@ export default function GoalsForm({ clientId, onComplete, onPrevious }: GoalsFor
                     <FormItem className="mb-4">
                       <FormLabel>Description</FormLabel>
                       <FormControl>
-                        <Textarea {...field} />
+                        <Textarea 
+                          {...field} 
+                          onChange={(e) => {
+                            field.onChange(e);
+                            // Re-validate on change to show character limit message if needed
+                            subgoalForm.trigger("description");
+                          }}
+                          maxLength={100}
+                        />
                       </FormControl>
-                      <FormMessageHidden />
+                      <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                        <FormMessage />
+                        <div>{field.value?.length || 0}/100 characters</div>
+                      </div>
                     </FormItem>
                   )}
                 />
@@ -538,17 +558,17 @@ export default function GoalsForm({ clientId, onComplete, onPrevious }: GoalsFor
                 <ExclamationTriangleIcon className="h-4 w-4" />
                 <AlertTitle>Warning</AlertTitle>
                 <AlertDescription>
-                  Are you sure you want to delete this goal? This action cannot be undone.
+                  This will permanently delete the goal and all associated subgoals.
+                  This action cannot be undone.
                 </AlertDescription>
               </Alert>
             </div>
-            <div className="flex gap-2">
-              <Button variant="ghost" onClick={() => setShowGoalDeleteDialog(false)}>
+            <div className="flex gap-2 justify-end">
+              <Button variant="outline" onClick={() => setShowGoalDeleteDialog(false)}>
                 Cancel
               </Button>
               <Button 
                 variant="destructive" 
-                className="ml-auto"
                 onClick={() => {
                   if (goalToDelete) {
                     deleteGoal.mutate(goalToDelete);
@@ -556,7 +576,7 @@ export default function GoalsForm({ clientId, onComplete, onPrevious }: GoalsFor
                 }}
                 disabled={deleteGoal.isPending}
               >
-                Delete Goal
+                Delete
               </Button>
             </div>
           </DialogContent>
@@ -572,17 +592,17 @@ export default function GoalsForm({ clientId, onComplete, onPrevious }: GoalsFor
                 <ExclamationTriangleIcon className="h-4 w-4" />
                 <AlertTitle>Warning</AlertTitle>
                 <AlertDescription>
-                  Are you sure you want to delete this subgoal? This action cannot be undone.
+                  This will permanently delete the subgoal.
+                  This action cannot be undone.
                 </AlertDescription>
               </Alert>
             </div>
-            <div className="flex gap-2">
-              <Button variant="ghost" onClick={() => setShowSubgoalDeleteDialog(false)}>
+            <div className="flex gap-2 justify-end">
+              <Button variant="outline" onClick={() => setShowSubgoalDeleteDialog(false)}>
                 Cancel
               </Button>
               <Button 
                 variant="destructive" 
-                className="ml-auto"
                 onClick={() => {
                   if (subgoalToDelete) {
                     deleteSubgoal.mutate(subgoalToDelete);
@@ -590,7 +610,7 @@ export default function GoalsForm({ clientId, onComplete, onPrevious }: GoalsFor
                 }}
                 disabled={deleteSubgoal.isPending}
               >
-                Delete Subgoal
+                Delete
               </Button>
             </div>
           </DialogContent>
@@ -676,7 +696,7 @@ export default function GoalsForm({ clientId, onComplete, onPrevious }: GoalsFor
                     className="ml-auto"
                     disabled={editGoal.isPending}
                   >
-                    Update Goal
+                    Save Changes
                   </Button>
                 </div>
               </form>
@@ -716,9 +736,20 @@ export default function GoalsForm({ clientId, onComplete, onPrevious }: GoalsFor
                     <FormItem className="mb-4">
                       <FormLabel>Description</FormLabel>
                       <FormControl>
-                        <Textarea {...field} />
+                        <Textarea 
+                          {...field} 
+                          onChange={(e) => {
+                            field.onChange(e);
+                            // Re-validate on change to show character limit message if needed
+                            subgoalForm.trigger("description");
+                          }}
+                          maxLength={100}
+                        />
                       </FormControl>
-                      <FormMessageHidden />
+                      <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                        <FormMessage />
+                        <div>{field.value?.length || 0}/100 characters</div>
+                      </div>
                     </FormItem>
                   )}
                 />
@@ -732,36 +763,38 @@ export default function GoalsForm({ clientId, onComplete, onPrevious }: GoalsFor
                     className="ml-auto"
                     disabled={editSubgoal.isPending}
                   >
-                    Update Subgoal
+                    Save Changes
                   </Button>
                 </div>
               </form>
             </Form>
           </DialogContent>
         </Dialog>
-      </div>
+        
+        <div className="space-y-4 mt-6">
+          {validationMessage && (
+            <Alert variant={canProceed ? "default" : "destructive"}>
+              <ExclamationTriangleIcon className="h-4 w-4" />
+              <AlertTitle>Validation</AlertTitle>
+              <AlertDescription>
+                {validationMessage}
+              </AlertDescription>
+            </Alert>
+          )}
 
-      <div className="col-span-2 flex justify-between">
-        <Button onClick={onPrevious}>Previous</Button>
-        <Button 
-          onClick={onComplete}
-          disabled={!canProceed}
-        >
-          Next
-        </Button>
-      </div>
-
-      {!canProceed && validationMessage && (
-        <div className="col-span-2">
-          <Alert>
-            <ExclamationTriangleIcon className="h-4 w-4" />
-            <AlertTitle>Required</AlertTitle>
-            <AlertDescription>
-              {validationMessage}
-            </AlertDescription>
-          </Alert>
+          <div className="flex gap-2 mt-4 justify-end">
+            <Button onClick={onPrevious} variant="outline">
+              Previous
+            </Button>
+            <Button 
+              onClick={onComplete} 
+              disabled={!canProceed}
+            >
+              Continue
+            </Button>
+          </div>
         </div>
-      )}
+      </div>
     </div>
   );
 }
