@@ -24,39 +24,40 @@ import AgentVisualization from '@/components/agent/AgentVisualization';
 function Router() {
   const [location] = useLocation();
   
-  // Check if the current route is the print summary page (special layout)
-  const isPrintPage = location.startsWith("/print-summary");
-  
-  // All main routes with consistent layout
-  const LayoutRoutes = () => (
-    <AppLayout>
-      <Switch>
-        <Route path="/" component={ModularDashboard} />
-        <Route path="/dashboard/classic" component={Dashboard} />
-        <Route path="/clients/new" component={OnboardingForm} />
-        <Route path="/clients" component={EnhancedClientList} />
-        <Route path="/clients/legacy" component={ClientList} />
-        <Route path="/clients/:id" component={ClientProfile} />
-        <Route path="/summary/:clientId" component={Summary} />
-        <Route path="/client/:clientId/summary" component={Summary} />
-        <Route path="/client/:id/profile" component={ClientProfile} />
-        <Route path="/clients/:id/profile" component={ClientProfile} />
-        <Route path="/clients/:id/reports" component={Reports} />
-        <Route path="/client/:id/reports" component={Reports} />
-        <Route path="/client/:id/print" component={PrintSummary} />
-        <Route path="/sessions" component={Sessions} />
-        <Route path="/reports" component={Reports} />
-        <Route path="/settings" component={Settings} />
-        <Route component={NotFound} />
-      </Switch>
-    </AppLayout>
-  );
-  
   return (
     <Switch>
-      <Route path="/print-summary/:clientId" component={PrintSummary} />
+      {/* Dashboard with its own layout */}
+      <Route path="/" exact>
+        <ModularDashboard />
+      </Route>
+      
+      {/* Print page with its own layout */}
+      <Route path="/print-summary/:clientId">
+        <PrintSummary />
+      </Route>
+      
+      {/* All other routes wrapped in the standard AppLayout */}
       <Route>
-        <LayoutRoutes />
+        <AppLayout>
+          <Switch>
+            <Route path="/dashboard/classic" component={Dashboard} />
+            <Route path="/clients/new" component={OnboardingForm} />
+            <Route path="/clients" component={EnhancedClientList} />
+            <Route path="/clients/legacy" component={ClientList} />
+            <Route path="/clients/:id" component={ClientProfile} />
+            <Route path="/summary/:clientId" component={Summary} />
+            <Route path="/client/:clientId/summary" component={Summary} />
+            <Route path="/client/:id/profile" component={ClientProfile} />
+            <Route path="/clients/:id/profile" component={ClientProfile} />
+            <Route path="/clients/:id/reports" component={Reports} />
+            <Route path="/client/:id/reports" component={Reports} />
+            <Route path="/client/:id/print" component={PrintSummary} />
+            <Route path="/sessions" component={Sessions} />
+            <Route path="/reports" component={Reports} />
+            <Route path="/settings" component={Settings} />
+            <Route component={NotFound} />
+          </Switch>
+        </AppLayout>
       </Route>
     </Switch>
   );
