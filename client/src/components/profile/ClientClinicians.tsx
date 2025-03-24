@@ -126,7 +126,7 @@ export default function ClientClinicians({ clientId }: ClientCliniciansProps) {
       setIsAddDialogOpen(false);
       // Show success animation for the newly added clinician
       if (response && typeof response === 'object' && 'id' in response) {
-        setShowSuccessAnimation(response.id);
+        setShowSuccessAnimation(Number(response.id));
       }
     },
     onError: (error) => {

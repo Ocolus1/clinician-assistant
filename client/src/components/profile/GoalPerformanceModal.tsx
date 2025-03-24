@@ -283,6 +283,7 @@ export function GoalPerformanceModal({
 }: GoalPerformanceModalProps) {
   const [performanceData, setPerformanceData] = useState<GoalPerformance | null>(null);
   const months = getLast12Months();
+  const clientId = 88; // TODO: Get client ID from context or URL params
   
   // State to store subgoals fetched directly in this component
   const [directSubgoals, setDirectSubgoals] = useState<any[]>([]);
@@ -337,6 +338,30 @@ export function GoalPerformanceModal({
     }
   };
   
+  // Use React Query to fetch real milestone performance data
+  const { 
+    data: realMilestoneData,
+    isLoading: isLoadingRealData,
+    isError: isRealDataError
+  } = useQuery({
+    queryKey: ['milestone-performance', clientId, goalId],
+    queryFn: async () => {
+      if (goalId === null || !open) return null;
+      
+      // Only fetch real data if we have valid subgoals
+      if (directSubgoals.length > 0 && directSubgoals[0].id > 0) {
+        console.log(`Fetching real milestone performance data for goal ${goalId}`);
+        return await progressDataService.getMilestonePerformanceData(
+          clientId,
+          Number(goalId),
+          directSubgoals
+        );
+      }
+      return null;
+    },
+    enabled: open && goalId !== null && directSubgoals.length > 0 && directSubgoals[0].id > 0
+  });
+  
   // Initial load effect - runs once when the modal opens
   useEffect(() => {
     if (goalId !== null && goalId !== undefined && !isNaN(Number(goalId)) && open) {
@@ -367,15 +392,86 @@ export function GoalPerformanceModal({
     }
   }, [goalId, goalTitle, open, subgoals]); // Remove performanceData from dependencies
   
-  // Separate effect for handling direct subgoals - only runs when directSubgoals changes
+  // Updated effect for handling real milestone data
   useEffect(() => {
-    if (goalId !== null && goalId !== undefined && directSubgoals.length > 0 && open) {
-      console.log(`GoalPerformanceModal: Generating performance data with ${directSubgoals.length} direct subgoals`);
+    if (realMilestoneData && realMilestoneData.length > 0 && open) {
+      console.log(`Using REAL milestone performance data for visualization:`, realMilestoneData);
+      
+      // Create goal performance object using real milestone data
+      if (goalId !== null && goalId !== undefined) {
+        const validGoalId = Number(goalId);
+        
+        const months = progressDataService.getLast6Months();
+        
+        // Generate scores for the goal (average of milestone scores)
+        const monthlyScores = months.map(month => {
+          // Calculate average score across all milestones for this month
+          let totalScore = 0;
+          let countWithData = 0;
+          
+          realMilestoneData.forEach(milestone => {
+            const monthData = milestone.values.find(v => v.month === month.value);
+            if (monthData && monthData.score > 0) {
+              totalScore += monthData.score;
+              countWithData++;
+            }
+          });
+          
+          // Calculate average if we have any data points
+          const averageScore = countWithData > 0 
+            ? Math.round(totalScore / countWithData) 
+            : 0;
+          
+          return {
+            month: month.value,
+            score: Math.min(Math.max(averageScore, 0), 10) // Ensure 0-10 range
+          };
+        });
+        
+        // Get current and previous month scores
+        const currentScore = monthlyScores[monthlyScores.length - 1].score || 0;
+        const previousScore = monthlyScores.length > 1 ? monthlyScores[monthlyScores.length - 2].score || 0 : currentScore;
+        
+        // Ensure we have exactly 6 milestone cards by adding empty placeholders if needed
+        let processedMilestones = [...realMilestoneData];
+        const totalSlots = 6;
+        const emptySlots = Math.max(0, totalSlots - processedMilestones.length);
+        
+        if (emptySlots > 0) {
+          for (let i = 0; i < emptySlots; i++) {
+            processedMilestones.push({
+              id: -1 - i,
+              title: "No milestone set yet",
+              description: "Add a milestone to track progress on specific skill areas",
+              isEmpty: true,
+              values: months.map(month => ({
+                month: month.value,
+                score: 0
+              }))
+            });
+          }
+        }
+        
+        const data = {
+          id: validGoalId,
+          title: goalTitle || "Untitled Goal",
+          description: goalTitle ? `Working towards ${goalTitle.toLowerCase()}` : "Goal details",
+          currentScore,
+          previousScore,
+          monthlyScores,
+          milestones: processedMilestones as MilestonePerformance[]
+        };
+        
+        setPerformanceData(data);
+      }
+    } else if (goalId !== null && goalId !== undefined && directSubgoals.length > 0 && open && !isLoadingRealData) {
+      // Fallback to generated data if no real data is available yet
+      console.log(`Falling back to generated performance data with ${directSubgoals.length} direct subgoals`);
       const validGoalId = Number(goalId);
       const data = generatePerformanceData(validGoalId, goalTitle, directSubgoals);
       setPerformanceData(data);
     }
-  }, [directSubgoals, goalId, goalTitle, open]);
+  }, [realMilestoneData, isLoadingRealData, directSubgoals, goalId, goalTitle, open]);
 
   // Calculate difference for current vs previous month
   const scoreDifference = performanceData 
@@ -545,79 +641,95 @@ export function GoalPerformanceModal({
                     ) : (
                       // Regular milestone with chart - no vertical axis
                       <div className="relative h-[150px] pt-2">
-                        {/* Line chart - full width */}
-                        <div className="absolute left-0 right-0 top-0 bottom-5">
-                          <svg width="100%" height="100%" viewBox="0 0 600 150" preserveAspectRatio="none">
-                            {/* Background grid lines */}
-                            <line x1="0" y1="0" x2="600" y2="0" stroke="#e5e7eb" strokeWidth="1" />
-                            <line x1="0" y1="75" x2="600" y2="75" stroke="#e5e7eb" strokeWidth="1" />
-                            <line x1="0" y1="150" x2="600" y2="150" stroke="#e5e7eb" strokeWidth="1" />
-                            
-                            {/* Performance line */}
-                            <polyline
-                              points={milestone.values.map((point, i) => {
-                                const x = (i / (milestone.values.length - 1)) * 600;
-                                const y = (1 - point.score / 10) * 150;
-                                return `${x},${y}`;
-                              }).join(' ')}
-                              fill="none"
-                              stroke="#3B82F6"
-                              strokeWidth="2"
-                            />
-                            
-                            {/* Data points with tooltips */}
-                            {milestone.values.map((point, i) => {
-                              const x = (i / (milestone.values.length - 1)) * 600;
-                              const y = (1 - point.score / 10) * 150;
-                              const month = months[i]?.display || '';
-                              return (
-                                <g key={i} className="group">
-                                  {/* Tooltip box that appears on hover */}
-                                  <rect 
-                                    x={x-30} 
-                                    y={y-25} 
-                                    width="60" 
-                                    height="20" 
-                                    rx="3"
-                                    fill="#3B82F6" 
-                                    opacity="0"
-                                    className="opacity-0 group-hover:opacity-100 transition-opacity"
-                                  />
-                                  <text 
-                                    x={x} 
-                                    y={y-12} 
-                                    textAnchor="middle" 
-                                    fill="white" 
-                                    fontSize="10"
-                                    fontWeight="bold"
-                                    opacity="0"
-                                    className="opacity-0 group-hover:opacity-100 transition-opacity"
-                                  >
-                                    {`${month}: ${point.score}`}
-                                  </text>
+                        {milestone.values.some(v => v.score > 0) ? (
+                          <>
+                            <div className="absolute left-0 right-0 top-0 bottom-5">
+                              <svg width="100%" height="100%" viewBox="0 0 600 150" preserveAspectRatio="none">
+                                <line x1="0" y1="0" x2="600" y2="0" stroke="#e5e7eb" strokeWidth="1" />
+                                <line x1="0" y1="75" x2="600" y2="75" stroke="#e5e7eb" strokeWidth="1" />
+                                <line x1="0" y1="150" x2="600" y2="150" stroke="#e5e7eb" strokeWidth="1" />
+                                
+                                <polyline
+                                  points={milestone.values
+                                    .map((point, i) => {
+                                      if (point.score === 0) return null;
+                                      const x = (i / (milestone.values.length - 1)) * 600;
+                                      const y = (1 - point.score / 10) * 150;
+                                      return `${x},${y}`;
+                                    })
+                                    .filter(Boolean)
+                                    .join(' ')}
+                                  fill="none"
+                                  stroke="#3B82F6"
+                                  strokeWidth="2"
+                                />
+                                
+                                {milestone.values.map((point, i) => {
+                                  if (point.score === 0) return null;
                                   
-                                  {/* Filled circle data point */}
-                                  <circle 
-                                    cx={x} 
-                                    cy={y} 
-                                    r="3.5" 
-                                    fill="#3B82F6" 
-                                    stroke="#ffffff" 
-                                    strokeWidth="1" 
-                                    className="transition-all"
-                                  />
-                                </g>
-                              );
-                            })}
-                          </svg>
-                        </div>
-                        
-                        {/* X-axis month labels - show all 12 months */}
-                        <div className="absolute left-0 right-0 bottom-[-5px] flex justify-between text-[9px] text-gray-500">
-                          {months.map((month, i) => (
-                            <div key={i} className="text-center px-0">{month.display}</div>
-                          ))}
-                        </div>
+                                  const x = (i / (milestone.values.length - 1)) * 600;
+                                  const y = (1 - point.score / 10) * 150;
+                                  
+                                  const monthObj = progressDataService.getLast6Months()[i];
+                                  const month = monthObj ? monthObj.display : '';
+                                  
+                                  return (
+                                    <g key={i} className="group">
+                                      <rect 
+                                        x={x-40} 
+                                        y={y-30} 
+                                        width="80" 
+                                        height="25" 
+                                        rx="4"
+                                        fill="#3B82F6" 
+                                        className="opacity-0 group-hover:opacity-90 transition-opacity"
+                                      />
+                                      <text 
+                                        x={x} 
+                                        y={y-15} 
+                                        textAnchor="middle" 
+                                        fill="white" 
+                                        fontSize="11"
+                                        fontWeight="bold"
+                                        className="opacity-0 group-hover:opacity-100 transition-opacity"
+                                      >
+                                        {`${month}: ${point.score}/10`}
+                                      </text>
+                                      
+                                      <circle 
+                                        cx={x} 
+                                        cy={y} 
+                                        r="4" 
+                                        fill="#3B82F6" 
+                                        stroke="#ffffff" 
+                                        strokeWidth="1.5" 
+                                        className="transition-all hover:scale-125"
+                                      />
+                                    </g>
+                                  );
+                                })}
+                              </svg>
+                            </div>
+                            
+                            <div className="absolute left-0 right-0 bottom-[-5px] flex justify-between text-[9px] text-gray-500">
+                              {progressDataService.getLast6Months().map((month, i) => (
+                                <div key={i} className="text-center px-0">{month.display}</div>
+                              ))}
+                            </div>
+                          </>
+                        ) : (
+                          <div className="flex items-center justify-center h-[150px] text-center">
+                            <div className="text-gray-400 text-xs max-w-[200px]">
+                              <div className="mb-2">
+                                <AlertCircle className="h-8 w-8 mx-auto opacity-40" />
+                              </div>
+                              <p>No performance data recorded yet</p>
+                              <p className="text-[10px] mt-1 text-gray-400">
+                                Data will appear as sessions are documented
+                              </p>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     )}
                   </CardContent>
