@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { BudgetPlanCard } from "./BudgetPlanCard";
+import { BudgetPlansGrid } from "./BudgetPlansGrid";
 import { FullScreenBudgetPlanDialog } from "./FullScreenBudgetPlanDialog";
 import { Button } from "@/components/ui/button";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -39,18 +39,8 @@ export function BudgetPlansView({ clientId, onViewPlan }: BudgetPlansViewProps) 
     queryKey: [`/api/clients/${clientId}/budget-settings`, { all: true }],
     queryFn: async () => {
       try {
-        // Debug logging to trace the API call
-        console.log(`Fetching budget plans for client ID: ${clientId}`);
-        
-        // Make the API request
         const res = await apiRequest("GET", `/api/clients/${clientId}/budget-settings?all=true`);
-        const data = await res.json();
-        
-        // Log the response for debugging
-        console.log("Budget plans data:", data);
-        
-        // Return the data
-        return data;
+        return res.json();
       } catch (error) {
         console.error("Error fetching budget plans:", error);
         throw error;
@@ -197,23 +187,12 @@ export function BudgetPlansView({ clientId, onViewPlan }: BudgetPlansViewProps) 
         </Button>
       </div>
       
-      {/* Budget Plans Card Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {budgetPlans.length > 0 ? (
-          budgetPlans.map(plan => (
-            <BudgetPlanCard 
-              key={plan.id}
-              plan={plan}
-              onViewPlan={onViewPlan || (() => {})}
-            />
-          ))
-        ) : (
-          <div className="col-span-full text-center py-10 border rounded-lg bg-gray-50">
-            <h3 className="text-lg font-medium text-gray-700">No Budget Plans</h3>
-            <p className="text-gray-500 mt-2">Click the "Create New Plan" button to create your first budget plan</p>
-          </div>
-        )}
-      </div>
+      {/* Budget Plans Grid */}
+      <BudgetPlansGrid 
+        plans={budgetPlans} 
+        clientId={clientId} 
+        onViewPlan={onViewPlan}
+      />
       
       {/* Full Screen Budget Plan Dialog */}
       <FullScreenBudgetPlanDialog

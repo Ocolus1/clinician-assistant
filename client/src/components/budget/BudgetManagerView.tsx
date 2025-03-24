@@ -2,14 +2,12 @@ import React, { useState, useEffect } from "react";
 import { BudgetFeatureProvider } from "./BudgetFeatureContext";
 import { BudgetPlanDetails } from "./BudgetPlanDetailsIntegrated";
 import { BudgetPlanForm } from "./BudgetPlanForm";
-import { BudgetApiDebugger } from "./BudgetApiDebugger";
 import { Button } from "@/components/ui/button";
-import { Plus, ChevronLeft, PieChart } from "lucide-react";
+import { Plus, ChevronLeft } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
 import { BudgetPlansView } from "./BudgetPlansView";
-import { BudgetUtilizationView } from "./BudgetUtilizationView";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface BudgetManagerViewProps {
@@ -31,24 +29,10 @@ function BudgetManagerContent({ clientId }: BudgetManagerViewProps) {
   useEffect(() => {
     const checkApi = async () => {
       try {
-        // First try the dedicated plans endpoint
-        let response = await fetch(`/api/clients/${clientId}/budget/plans`);
-        
-        // If that fails, fall back to the budget-settings endpoint which we know works
+        const response = await fetch(`/api/clients/${clientId}/budget/plans`);
         if (!response.ok) {
-          console.log("Primary budget plans endpoint failed, trying fallback...");
-          response = await fetch(`/api/clients/${clientId}/budget-settings?all=true`);
-          
-          if (!response.ok) {
-            setError(`Failed to load budget data: ${response.statusText}`);
-            setIsLoading(false);
-            return;
-          }
+          setError(`Failed to load budget data: ${response.statusText}`);
         }
-        
-        // If we got this far, we have data
-        const data = await response.json();
-        console.log("Budget data loaded successfully:", data);
         setIsLoading(false);
       } catch (error) {
         console.error("Error checking budget API:", error);
@@ -82,11 +66,6 @@ function BudgetManagerContent({ clientId }: BudgetManagerViewProps) {
           <CardDescription>Error loading budget data</CardDescription>
         </CardHeader>
         <CardContent>
-          {/* API Debugger to help diagnose the issue */}
-          <div className="mb-6">
-            <BudgetApiDebugger clientId={clientId} />
-          </div>
-          
           <Alert variant="destructive">
             <AlertDescription>{error}</AlertDescription>
           </Alert>
@@ -110,61 +89,57 @@ function BudgetManagerContent({ clientId }: BudgetManagerViewProps) {
   
   return (
     <div>
-      {activeView === 'overview' ? (
-        // Overview with tabs for Plans and Utilization
-        <div className="w-full space-y-6">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-2xl font-semibold">Budget Management</h2>
-            <Button
-              onClick={() => setShowCreatePlanForm(true)}
-              variant="default"
-              size="sm"
-              className="flex items-center gap-2"
-            >
-              <Plus className="h-4 w-4" />
-              Create New Plan
-            </Button>
-          </div>
-          
-          <Tabs defaultValue="plans" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="plans">Plans</TabsTrigger>
-              <TabsTrigger value="utilization">Utilization</TabsTrigger>
+      <div className="space-y-6">
+        {activeView === 'overview' ? (
+          <Tabs defaultValue="overview" className="w-full">
+            <TabsList className="mb-4">
+              <TabsTrigger value="overview">Plans Overview</TabsTrigger>
+              <TabsTrigger value="details">Plan Details</TabsTrigger>
             </TabsList>
             
-            <TabsContent value="plans" className="mt-4">
-              {/* Budget Plans View with cards */}
+            <TabsContent value="overview">
               <BudgetPlansView clientId={clientId} onViewPlan={handleViewPlanDetails} />
             </TabsContent>
             
-            <TabsContent value="utilization" className="mt-4">
-              {/* Budget Utilization View with real-time usage data */}
-              <BudgetUtilizationView clientId={clientId} />
+            <TabsContent value="details">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-2xl font-semibold">Budget Plan Details</h2>
+                <Button 
+                  onClick={() => setActiveView('overview')} 
+                  variant="outline"
+                  size="sm"
+                >
+                  <ChevronLeft className="mr-2 h-4 w-4" />
+                  Back to Plans
+                </Button>
+              </div>
+              <BudgetPlanDetails 
+                clientId={clientId}
+              />
             </TabsContent>
           </Tabs>
-        </div>
-      ) : (
-        // Detailed plan view
-        <>
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-2xl font-semibold">Budget Plan Details</h2>
-            <Button 
-              onClick={() => setActiveView('overview')} 
-              variant="outline"
-              size="sm"
-            >
-              <ChevronLeft className="mr-2 h-4 w-4" />
-              Back to Budget Management
-            </Button>
-          </div>
-          
-          {/* Budget Plan Details with integrated budget item management */}
-          <BudgetPlanDetails 
-            clientId={clientId}
-            planId={selectedPlanId}
-          />
-        </>
-      )}
+        ) : (
+          <>
+            <div className="flex justify-between items-center">
+              <h2 className="text-2xl font-semibold">Budget Plan Details</h2>
+              <Button 
+                onClick={() => setActiveView('overview')} 
+                variant="outline"
+                size="sm"
+              >
+                <ChevronLeft className="mr-2 h-4 w-4" />
+                Back to Plans
+              </Button>
+            </div>
+            
+            {/* Budget Plan Details with integrated budget item management */}
+            <BudgetPlanDetails 
+              clientId={clientId}
+              planId={selectedPlanId}
+            />
+          </>
+        )}
+      </div>
       
       {/* Create Plan Form Dialog */}
       <BudgetPlanForm 

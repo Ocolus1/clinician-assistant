@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from "react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import { BudgetFeatureProvider, useBudgetFeature, BudgetPlan } from "./BudgetFeatureContext";
-import { SimpleBudgetCardGrid } from "./SimpleBudgetCardGrid";
-import { ContextAwareBudgetPlanFullView } from "./ContextAwareBudgetPlanFullView";
-import { Button } from "../ui/button";
-import { ChevronLeft } from "lucide-react";
+import { EnhancedBudgetCardGrid } from "./EnhancedBudgetCardGrid";
+import { BudgetPlanFullView } from "./BudgetPlanFullView";
 
 interface EnhancedClientBudgetTabProps {
   clientId: number;
@@ -13,10 +12,10 @@ interface EnhancedClientBudgetTabProps {
 
 /**
  * Budget tab contents that use the BudgetFeatureContext
- * Simplified to show cards directly without tab navigation
  */
 function BudgetTabContents({ clientId }: { clientId: number }) {
-  const { budgetPlans, isLoading, error, selectedPlan } = useBudgetFeature();
+  const [activeTab, setActiveTab] = useState("plans");
+  const { budgetPlans, isLoading, error } = useBudgetFeature();
   
   // Direct fetch for plans as a fallback
   const [directPlans, setDirectPlans] = useState<any[]>([]);
@@ -56,93 +55,59 @@ function BudgetTabContents({ clientId }: { clientId: number }) {
     }
   }, [budgetPlans, clientId, isDirectFetching]);
   
+  // Handler to switch tabs when a plan is selected or unselected
+  const handlePlanSelection = (planId: number | null) => {
+    // If a plan is selected, switch to details tab
+    // If no plan is selected, switch to plans tab
+    setActiveTab(planId ? "details" : "plans");
+  };
+  
   // If both sources have no plans, show direct plans debugging info
   const showNoPlansDebug = 
     (!budgetPlans || (Array.isArray(budgetPlans) && budgetPlans.length === 0)) && 
     directPlans.length > 0;
   
-  // If we have a selected plan, show its details instead of the grid
-  if (selectedPlan) {
-    // Get the clearSelectedPlan function from the context
-    const { clearSelectedPlan } = useBudgetFeature();
-    
-    return (
-      <div className="space-y-4">
-        <div>
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="mb-4" 
-            onClick={clearSelectedPlan}
-          >
-            <ChevronLeft className="h-4 w-4 mr-1" />
-            Back to Budget Plans
-          </Button>
-        </div>
-        
-        <ContextAwareBudgetPlanFullView />
-      </div>
-    );
-  }
-  
-  // Use the direct plans if we have them but not in context
-  const plansToUse = (budgetPlans && budgetPlans.length > 0) ? null : 
-                     (directPlans.length > 0) ? directPlans : null;
-  
-  // If we have direct plans but they're not in context, create a provider with them
-  if (plansToUse) {
-    console.log(`[BudgetTabContents] Creating provider with ${plansToUse.length} direct plans`);
-    
-    // Format plans for the context to match the BudgetPlan interface
-    const formattedPlans = plansToUse.map(plan => ({
-      id: plan.id,
-      clientId: plan.clientId,
-      planSerialNumber: plan.planSerialNumber || null,
-      planCode: plan.planCode || null,
-      isActive: plan.isActive === true,
-      ndisFunds: parseFloat(plan.ndisFunds) || 0,
-      endOfPlan: plan.endOfPlan || null,
-      createdAt: plan.createdAt || null,
-      // UI display properties
-      planName: plan.planSerialNumber || `Plan ${plan.id}`,
-      totalUsed: 0,
-      itemCount: 0,
-      percentUsed: 0,
-      startDate: plan.createdAt ? new Date(plan.createdAt).toISOString() : null,
-      endDate: plan.endOfPlan ? new Date(plan.endOfPlan).toISOString() : null,
-    }));
-    
-    return (
-      <BudgetFeatureProvider clientId={clientId} initialBudgetPlans={formattedPlans}>
-        <SimpleBudgetCardGrid clientId={clientId} />
-      </BudgetFeatureProvider>
-    );
-  }
-  
-  // Handle error state
-  if (error) {
-    return (
-      <div className="rounded-md border border-red-200 bg-red-50 p-4">
-        <div className="flex items-center">
-          <div className="flex-shrink-0 text-red-500">
-            <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-            </svg>
-          </div>
-          <div className="ml-3">
-            <h3 className="text-sm font-medium text-red-800">Failed to load budget plans</h3>
-            <p className="text-sm text-red-700 mt-1">Please try again.</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-  
   return (
-    <div className="w-full">
-      {/* Show the simplified budget card grid by default */}
-      <SimpleBudgetCardGrid clientId={clientId} />
-    </div>
+    <Tabs value={activeTab} className="w-full" onValueChange={setActiveTab}>
+      <div className="flex justify-between items-center mb-4">
+        <TabsList>
+          <TabsTrigger value="plans" className="px-4">Plans</TabsTrigger>
+          <TabsTrigger value="details" className="px-4">Plan Details</TabsTrigger>
+        </TabsList>
+      </div>
+      
+      {/* Debug info when we have direct plans but no context plans */}
+      {showNoPlansDebug && (
+        <div className="mb-4 p-4 border border-yellow-400 bg-yellow-50 rounded-md">
+          <div className="font-semibold mb-2">Debug Info: Context plans missing but plans found in database</div>
+          <div className="text-sm">Found {directPlans.length} plans in database:</div>
+          <ul className="text-xs mt-1 space-y-1">
+            {directPlans.map((plan, idx) => (
+              <li key={idx}>
+                Plan {idx+1}: ID {plan.id} - {plan.planSerialNumber || 'Unnamed'} - 
+                {plan.isActive ? ' (Active)' : ' (Inactive)'} -
+                ${plan.availableFunds}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+      
+      <TabsContent value="plans" className="mt-0">
+        <EnhancedBudgetCardGrid 
+          clientId={clientId}
+          onPlanSelected={(planId) => {
+            handlePlanSelection(planId);
+          }}
+        />
+      </TabsContent>
+      
+      <TabsContent value="details" className="mt-0">
+        <BudgetPlanFullView 
+          onBackToPlansList={() => handlePlanSelection(null)}
+        />
+      </TabsContent>
+    </Tabs>
   );
 }
 
@@ -180,19 +145,16 @@ export function EnhancedClientBudgetTab({ clientId, budgetSettings, budgetItems 
     return {
       id: setting.id,
       clientId: setting.clientId,
-      planSerialNumber: setting.planSerialNumber || null,
+      planName: planName,
       planCode: setting.planCode || null,
       isActive: setting.isActive === true, // Ensure boolean
-      ndisFunds: parseFloat(setting.ndisFunds || setting.availableFunds) || 0,
-      endOfPlan: setting.endOfPlan || null,
-      createdAt: setting.createdAt || null,
-      // UI display properties
-      planName: planName,
+      availableFunds: parseFloat(setting.availableFunds) || 0,
+      endDate: setting.endOfPlan, // Field name in API is endOfPlan
+      startDate: setting.createdAt,
+      // These will be calculated from budget items later
       totalUsed: 0,
       itemCount: 0,
       percentUsed: 0,
-      startDate: setting.createdAt ? new Date(setting.createdAt).toISOString() : null,
-      endDate: setting.endOfPlan ? new Date(setting.endOfPlan).toISOString() : null,
     };
   });
   
@@ -248,19 +210,15 @@ export function EnhancedClientBudgetTab({ clientId, budgetSettings, budgetItems 
       const directPlans = fetchedPlans.map((setting: any) => ({
         id: setting.id,
         clientId: setting.clientId,
-        planSerialNumber: setting.planSerialNumber || null,
+        planName: setting.planSerialNumber || `Plan ${setting.id}`,
         planCode: setting.planCode || null,
         isActive: setting.isActive === true,
-        ndisFunds: parseFloat(setting.ndisFunds || setting.availableFunds) || 0,
-        endOfPlan: setting.endOfPlan || null,
-        createdAt: setting.createdAt || null,
-        // UI display properties
-        planName: setting.planSerialNumber || `Plan ${setting.id}`,
+        availableFunds: parseFloat(setting.availableFunds) || 0,
+        endDate: setting.endOfPlan,
+        startDate: setting.createdAt,
         totalUsed: 0,
         itemCount: 0,
         percentUsed: 0,
-        startDate: setting.createdAt ? new Date(setting.createdAt).toISOString() : null,
-        endDate: setting.endOfPlan ? new Date(setting.endOfPlan).toISOString() : null,
       }));
       
       // Our primary fix is to use these direct plans

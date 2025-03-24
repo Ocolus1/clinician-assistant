@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
 import { 
   Table, 
   TableBody, 
@@ -18,7 +17,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
 import { 
   Select, 
   SelectContent, 
@@ -27,115 +25,28 @@ import {
   SelectTrigger, 
   SelectValue 
 } from "@/components/ui/select";
-import { 
-  Search, 
-  Filter, 
-  ArrowUpDown, 
-  ArrowDown, 
-  ArrowUp, 
-  AlertTriangle, 
-  CheckCircle2, 
-  Loader2 
-} from "lucide-react";
+import { Search, Filter, ArrowUpDown, ArrowDown, ArrowUp } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { BudgetItem } from "@/components/budget/BudgetFeatureContext";
-import { calculateBudgetItemUtilization } from "@/lib/utils/budgetUtils";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface BudgetItemTableProps {
   items: BudgetItem[];
-  clientId?: number;
   onEdit?: (item: BudgetItem) => void;
   onDelete?: (item: BudgetItem) => void;
 }
 
-// Extended BudgetItem with utilization data
-interface EnhancedBudgetItem extends BudgetItem {
-  used?: number;
-  remaining?: number;
-  utilizationRate?: number;
-  totalCost?: number;
-  usedCost?: number;
-  remainingCost?: number;
-  status?: 'normal' | 'warning' | 'critical';
-  usagePattern?: 'accelerating' | 'decelerating' | 'steady' | 'fluctuating';
-}
-
-type SortField = 'itemCode' | 'description' | 'category' | 'unitPrice' | 'quantity' | 'used' | 'remaining';
+type SortField = 'itemCode' | 'description' | 'category' | 'unitPrice' | 'quantity' | 'balanceQuantity';
 type SortDirection = 'asc' | 'desc';
 
 /**
  * A component for displaying and filtering budget items in a table format
  */
-export function BudgetItemTable({ items, clientId, onEdit, onDelete }: BudgetItemTableProps) {
-  const [enhancedItems, setEnhancedItems] = useState<EnhancedBudgetItem[]>([]);
-  const [filteredItems, setFilteredItems] = useState<EnhancedBudgetItem[]>([]);
+export function BudgetItemTable({ items, onEdit, onDelete }: BudgetItemTableProps) {
+  const [filteredItems, setFilteredItems] = useState<BudgetItem[]>(items);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [sortField, setSortField] = useState<SortField>('itemCode');
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
-  const [isLoadingUtilization, setIsLoadingUtilization] = useState(false);
-  
-  // Fetch sessions data to calculate usage
-  const { data: sessions = [], isLoading: isLoadingSessions } = useQuery({
-    queryKey: [`/api/clients/${clientId}/sessions`],
-    queryFn: async () => {
-      if (!clientId) return [];
-      setIsLoadingUtilization(true);
-      try {
-        const response = await fetch(`/api/clients/${clientId}/sessions`);
-        if (!response.ok) {
-          throw new Error(`Failed to fetch sessions: ${response.status}`);
-        }
-        const data = await response.json();
-        console.log(`Fetched ${data.length} sessions for client ${clientId} to calculate budget item utilization`);
-        return data;
-      } catch (error) {
-        console.error("Error fetching sessions:", error);
-        return [];
-      } finally {
-        setIsLoadingUtilization(false);
-      }
-    },
-    enabled: !!clientId
-  });
-  
-  // Calculate budget item utilization when sessions are loaded
-  useEffect(() => {
-    if (items.length > 0 && sessions && sessions.length > 0) {
-      try {
-        // Use the utility function to calculate utilization
-        const itemsWithUtilization = calculateBudgetItemUtilization(items, sessions);
-        console.log(`Calculated utilization for ${itemsWithUtilization.length} budget items from ${sessions.length} sessions`);
-        setEnhancedItems(itemsWithUtilization);
-      } catch (error) {
-        console.error("Error enhancing items with utilization data:", error);
-        // Fall back to original items
-        setEnhancedItems(items.map(item => ({
-          ...item,
-          used: 0,
-          remaining: Number(item.quantity),
-          utilizationRate: 0,
-          totalCost: Number(item.quantity) * Number(item.unitPrice),
-          usedCost: 0,
-          remainingCost: Number(item.quantity) * Number(item.unitPrice),
-          status: 'normal' as const
-        })));
-      }
-    } else {
-      // If no sessions, initialize with zero utilization
-      setEnhancedItems(items.map(item => ({
-        ...item,
-        used: 0,
-        remaining: Number(item.quantity),
-        utilizationRate: 0,
-        totalCost: Number(item.quantity) * Number(item.unitPrice),
-        usedCost: 0,
-        remainingCost: Number(item.quantity) * Number(item.unitPrice),
-        status: 'normal' as const
-      })));
-    }
-  }, [items, sessions]);
   
   // Get unique categories from items
   const categories = Array.from(
@@ -146,9 +57,9 @@ export function BudgetItemTable({ items, clientId, onEdit, onDelete }: BudgetIte
     )
   ) as string[];
   
-  // Filter and sort enhanced items when search term, category, or sort options change
+  // Filter and sort items when search term, category, or sort options change
   useEffect(() => {
-    let result = [...enhancedItems];
+    let result = [...items];
     
     // Apply search filter if search term exists
     if (searchTerm.trim()) {
@@ -169,25 +80,18 @@ export function BudgetItemTable({ items, clientId, onEdit, onDelete }: BudgetIte
     // Apply sorting
     result.sort((a, b) => {
       // Handle different data types appropriately
-      let valueA: any, valueB: any;
+      let valueA, valueB;
       
       switch (sortField) {
         case 'unitPrice':
         case 'quantity':
+        case 'balanceQuantity':
           valueA = Number(a[sortField]);
           valueB = Number(b[sortField]);
           break;
-        case 'used':
-          valueA = Number(a.used || 0);
-          valueB = Number(b.used || 0);
-          break;
-        case 'remaining':
-          valueA = Number(a.remaining || 0);
-          valueB = Number(b.remaining || 0);
-          break;
         default:
-          valueA = String(a[sortField as keyof BudgetItem] || "").toLowerCase();
-          valueB = String(b[sortField as keyof BudgetItem] || "").toLowerCase();
+          valueA = String(a[sortField] || "").toLowerCase();
+          valueB = String(b[sortField] || "").toLowerCase();
       }
       
       // Apply sort direction
@@ -199,7 +103,7 @@ export function BudgetItemTable({ items, clientId, onEdit, onDelete }: BudgetIte
     });
     
     setFilteredItems(result);
-  }, [enhancedItems, searchTerm, selectedCategory, sortField, sortDirection]);
+  }, [items, searchTerm, selectedCategory, sortField, sortDirection]);
   
   // Handle column header click for sorting
   const handleSortChange = (field: SortField) => {
@@ -316,11 +220,11 @@ export function BudgetItemTable({ items, clientId, onEdit, onDelete }: BudgetIte
                 </TableHead>
                 <TableHead 
                   className="text-right cursor-pointer"
-                  onClick={() => handleSortChange('remaining')}
+                  onClick={() => handleSortChange('balanceQuantity')}
                 >
                   <div className="flex items-center justify-end">
                     Balance
-                    {getSortIndicator('remaining')}
+                    {getSortIndicator('balanceQuantity')}
                   </div>
                 </TableHead>
                 <TableHead className="text-right">Total</TableHead>
@@ -328,154 +232,86 @@ export function BudgetItemTable({ items, clientId, onEdit, onDelete }: BudgetIte
               </TableRow>
             </TableHeader>
             <TableBody>
-              {isLoadingUtilization ? (
-                <TableRow>
-                  <TableCell colSpan={(onEdit || onDelete) ? 8 : 7} className="text-center py-6">
-                    <div className="flex justify-center items-center space-x-2">
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      <span className="text-muted-foreground">Loading utilization data...</span>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ) : filteredItems.length > 0 ? (
-                filteredItems.map((item) => {
-                  // Calculate utilization percentage for display
-                  const utilizationPercent = Math.min(100, Math.round((item.used || 0) / Number(item.quantity) * 100));
-                  
-                  // Determine color based on utilization level
-                  let progressColor = "bg-blue-500";
-                  if (utilizationPercent > 90) {
-                    progressColor = "bg-red-500"; // Critical - almost used up
-                  } else if (utilizationPercent > 70) {
-                    progressColor = "bg-amber-500"; // Warning - getting low
-                  } else if (utilizationPercent > 30) {
-                    progressColor = "bg-emerald-500"; // Good - healthy usage
-                  }
-                  
-                  return (
-                    <TableRow key={item.id}>
-                      <TableCell className="font-medium">{item.itemCode}</TableCell>
+              {filteredItems.length > 0 ? (
+                filteredItems.map((item) => (
+                  <TableRow key={item.id}>
+                    <TableCell className="font-medium">{item.itemCode}</TableCell>
+                    <TableCell>{item.description}</TableCell>
+                    <TableCell>
+                      {item.category && (
+                        <Badge variant="outline" className="font-normal">
+                          {item.category}
+                        </Badge>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {formatCurrency(item.unitPrice)}
+                    </TableCell>
+                    <TableCell className="text-right">{item.quantity}</TableCell>
+                    <TableCell className="text-right">
+                      {/* Since no session usage is currently tracked, balance is equal to quantity */}
+                      {item.quantity}
+                    </TableCell>
+                    <TableCell className="text-right font-medium">
+                      {formatCurrency(item.unitPrice * item.quantity)}
+                    </TableCell>
+                    {(onEdit || onDelete) && (
                       <TableCell>
-                        <div className="flex flex-col space-y-1">
-                          <span>{item.description}</span>
-                          
-                          {/* Utilization progress bar */}
-                          <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                            <div 
-                              className={`h-full ${progressColor} rounded-full`} 
-                              style={{ width: `${utilizationPercent}%` }} 
-                            />
-                          </div>
-                          
-                          {/* Utilization percentage */}
-                          <span className="text-xs text-muted-foreground">
-                            {utilizationPercent}% used
-                          </span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        {item.category && (
-                          <Badge variant="outline" className="font-normal">
-                            {item.category}
-                          </Badge>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {formatCurrency(item.unitPrice)}
-                      </TableCell>
-                      <TableCell className="text-right">{item.quantity}</TableCell>
-                      <TableCell className="text-right">
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <span className="cursor-help">
-                                {item.remaining !== undefined ? item.remaining : Number(item.quantity)}
-                              </span>
-                            </TooltipTrigger>
-                            <TooltipContent side="left">
-                              <div className="space-y-1">
-                                <p className="text-xs">
-                                  <strong>Total:</strong> {item.quantity} units
-                                </p>
-                                <p className="text-xs">
-                                  <strong>Used:</strong> {item.used || 0} units
-                                </p>
-                                <p className="text-xs">
-                                  <strong>Remaining:</strong> {item.remaining !== undefined ? item.remaining : Number(item.quantity)} units
-                                </p>
-                              </div>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      </TableCell>
-                      <TableCell className="text-right font-medium">
-                        <div className="flex flex-col items-end">
-                          <span>{formatCurrency(item.unitPrice * item.quantity)}</span>
-                          {item.usedCost !== undefined && (
-                            <span className="text-xs text-muted-foreground">
-                              {formatCurrency(item.usedCost || 0)} used
-                            </span>
+                        <div className="flex justify-end gap-2">
+                          {onEdit && (
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-8 w-8" 
+                              onClick={() => onEdit(item)}
+                              title="Edit item"
+                            >
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                className="h-4 w-4"
+                              >
+                                <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+                                <path d="m15 5 4 4" />
+                              </svg>
+                            </Button>
+                          )}
+                          {onDelete && (
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50" 
+                              onClick={() => onDelete(item)}
+                              title="Delete item"
+                            >
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                className="h-4 w-4"
+                              >
+                                <path d="M3 6h18" />
+                                <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+                                <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+                                <line x1="10" x2="10" y1="11" y2="17" />
+                                <line x1="14" x2="14" y1="11" y2="17" />
+                              </svg>
+                            </Button>
                           )}
                         </div>
                       </TableCell>
-                      {(onEdit || onDelete) && (
-                        <TableCell>
-                          <div className="flex justify-end gap-2">
-                            {onEdit && (
-                              <Button 
-                                variant="ghost" 
-                                size="icon" 
-                                className="h-8 w-8" 
-                                onClick={() => onEdit(item)}
-                                title="Edit item"
-                              >
-                                <svg
-                                  xmlns="http://www.w3.org/2000/svg"
-                                  viewBox="0 0 24 24"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  strokeWidth="2"
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  className="h-4 w-4"
-                                >
-                                  <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
-                                  <path d="m15 5 4 4" />
-                                </svg>
-                              </Button>
-                            )}
-                            {onDelete && (
-                              <Button 
-                                variant="ghost" 
-                                size="icon" 
-                                className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50" 
-                                onClick={() => onDelete(item)}
-                                title="Delete item"
-                              >
-                                <svg
-                                  xmlns="http://www.w3.org/2000/svg"
-                                  viewBox="0 0 24 24"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  strokeWidth="2"
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  className="h-4 w-4"
-                                >
-                                  <path d="M3 6h18" />
-                                  <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
-                                  <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
-                                  <line x1="10" x2="10" y1="11" y2="17" />
-                                  <line x1="14" x2="14" y1="11" y2="17" />
-                                </svg>
-                              </Button>
-                            )}
-                          </div>
-                        </TableCell>
-                      )}
-                    </TableRow>
-                  );
-                })
+                    )}
+                  </TableRow>
+                ))
               ) : (
                 <TableRow>
                   <TableCell colSpan={(onEdit || onDelete) ? 8 : 7} className="text-center py-6 text-muted-foreground">

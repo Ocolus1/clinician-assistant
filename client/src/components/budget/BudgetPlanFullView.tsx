@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { 
   ArrowLeft, 
   CheckCircle, 
@@ -40,7 +40,6 @@ import {
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
 import { BudgetPlanEditDialog } from "./BudgetPlanEditDialog";
-import { useBudgetFeature } from "./BudgetFeatureContext";
 
 /**
  * A full-screen detailed view of a budget plan with its items and usage statistics
