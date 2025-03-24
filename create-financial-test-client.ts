@@ -17,10 +17,10 @@ async function createFinancialTestClient() {
     // 1. Create the client
     const [client] = await db.insert(clients).values({
       name: 'Test Financial Report',
-      dateOfBirth: new Date('2000-01-01'), // Arbitrary birth date
+      dateOfBirth: '2000-01-01', // Arbitrary birth date as string
       onboardingStatus: 'complete',
       fundsManagement: 'Self-Managed',
-      createdAt: new Date('2025-01-18'),
+      ndisFunds: 15000, // Make sure to add ndisFunds as it's required
     }).returning();
     
     console.log(`Created client with ID ${client.id}`);
@@ -28,11 +28,11 @@ async function createFinancialTestClient() {
     // 2. Create budget settings
     const [settings] = await db.insert(budgetSettings).values({
       clientId: client.id,
-      planName: 'Financial Test Plan',
+      planSerialNumber: 'FIN-TEST-001',
+      planCode: 'TEST-PLAN',
       ndisFunds: 15000,
-      startOfPlan: new Date('2025-01-18'),
-      endOfPlan: new Date('2025-11-12'),
-      createdAt: new Date('2025-01-18'),
+      endOfPlan: '2025-11-12',
+      // createdAt will default to now
     }).returning();
     
     console.log(`Created budget settings with ID ${settings.id}`);
@@ -41,12 +41,12 @@ async function createFinancialTestClient() {
     const [budgetItem] = await db.insert(budgetItems).values({
       clientId: client.id,
       budgetSettingsId: settings.id,
-      itemName: 'Speech Therapy',
-      description: 'Regular speech therapy sessions', // Add description field
+      itemCode: 'ST001',
+      name: 'Speech Therapy',
+      description: 'Regular speech therapy sessions',
       unitPrice: 250,
       quantity: 60, // 60 units at $250 each = $15,000 total
       category: 'Therapeutic Support',
-      itemCode: 'ST001',
     }).returning();
     
     console.log(`Created budget item with ID ${budgetItem.id}`);
@@ -89,6 +89,8 @@ async function createFinancialTestClient() {
       const [session] = await db.insert(sessions).values({
         clientId: client.id,
         therapistId: 1, // Arbitrary therapist ID
+        title: `Financial Test Session ${i+1}`, // Add required title field
+        description: `Test session on ${date.toISOString().split('T')[0]}`,
         sessionDate: date,
         status: 'completed',
         location: 'Clinic',
@@ -98,6 +100,7 @@ async function createFinancialTestClient() {
       // Create session note with products
       const [note] = await db.insert(sessionNotes).values({
         sessionId: session.id,
+        clientId: client.id, // Add required clientId field
         notes: `Financial test session ${i+1}`,
         products: JSON.stringify([{
           "name": "Speech Therapy Session",
