@@ -127,13 +127,13 @@ export function BudgetExpirationTimeline({
       <div className={`bg-slate-50 p-2 border rounded-md ${compact ? 'text-xs' : ''}`}>
         {showHeader && (
           <div className="w-full flex items-center text-xs mb-1">
-            <span className={compact ? "w-20" : "w-32"} className="text-muted-foreground">Client</span>
+            <span className={`${compact ? "w-20" : "w-32"} text-muted-foreground`}>Client</span>
             <div className="flex-1 flex items-center">
               <span className="text-red-600 font-medium">Critical</span>
               <div className="h-0.5 flex-1 bg-gradient-to-r from-red-600 via-amber-500 to-blue-400 mx-1"></div>
               <span className="text-blue-400">Monitoring</span>
             </div>
-            <span className={compact ? "w-16" : "w-24"} className="text-right text-muted-foreground">Funds at risk</span>
+            <span className={`${compact ? "w-16" : "w-24"} text-right text-muted-foreground`}>Funds at risk</span>
           </div>
         )}
         
@@ -159,7 +159,7 @@ export function BudgetExpirationTimeline({
               key={`${client.clientId}-${client.planId}`}
               className="flex items-center mb-1.5 group hover:bg-slate-100 px-1 py-0.5 rounded"
             >
-              <div className={compact ? "w-20" : "w-32"} className="truncate text-sm font-medium">{client.clientName}</div>
+              <div className={`${compact ? "w-20" : "w-32"} truncate text-sm font-medium`}>{client.clientName}</div>
               <div className="flex-1 relative h-6">
                 {/* Timeline bar */}
                 <div className="absolute top-0 left-0 w-full h-full bg-gray-100 rounded-full"></div>
@@ -191,7 +191,7 @@ export function BudgetExpirationTimeline({
                 </div>
               </div>
               
-              <div className={compact ? "w-16" : "w-24"} className="text-right">
+              <div className={`${compact ? "w-16" : "w-24"} text-right`}>
                 <div className="text-sm font-medium">
                   {formatCurrency(unutilizedAmount)}
                 </div>

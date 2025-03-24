@@ -2,10 +2,10 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
-import { AlertCircle, DollarSign, ArrowRight } from 'lucide-react';
+import { DollarSign } from 'lucide-react';
 import { useDashboard } from './DashboardProvider';
-import { Button } from '@/components/ui/button';
 import { useLocation } from 'wouter';
+import { BudgetExpirationTimeline } from './BudgetExpirationTimeline';
 import {
   ResponsiveContainer,
   AreaChart,
@@ -337,35 +337,6 @@ export function BudgetExpirationCard() {
                     </Badge>
                   )}
                 </CardTitle>
-                
-                {/* Summary statistics */}
-                {expiringCount > 0 && (
-                  <div className="flex items-center gap-3 text-xs">
-                    <div className="flex items-center">
-                      <div className="h-2 w-2 rounded-full bg-red-600 mr-1"></div>
-                      <span className="text-muted-foreground">
-                        {criticalClients.length} critical
-                      </span>
-                    </div>
-                    <div className="flex items-center">
-                      <div className="h-2 w-2 rounded-full bg-amber-500 mr-1"></div>
-                      <span className="text-muted-foreground">
-                        {urgentClients.length} urgent
-                      </span>
-                    </div>
-                    <div className="flex items-center">
-                      <div className="h-2 w-2 rounded-full bg-blue-400 mr-1"></div>
-                      <span className="text-muted-foreground">
-                        {monitoringClients.length} monitoring
-                      </span>
-                    </div>
-                    <div className="border-l border-gray-200 pl-2">
-                      <span className="font-medium">
-                        {formatCurrency(totalFundsAtRisk)} at risk
-                      </span>
-                    </div>
-                  </div>
-                )}
               </div>
             </CardHeader>
             
@@ -376,95 +347,13 @@ export function BudgetExpirationCard() {
                   <Skeleton className="h-8 w-full" />
                 </div>
               ) : expiringCount > 0 ? (
-                <div className="space-y-1">
-                  {/* Timeline visualization */}
-                  <div className="mb-2 bg-slate-50 p-2 border rounded-md">
-                    <div className="w-full flex items-center text-xs mb-1">
-                      <span className="w-32 text-muted-foreground">Client</span>
-                      <div className="flex-1 flex items-center">
-                        <span className="text-red-600 font-medium">Critical</span>
-                        <div className="h-0.5 flex-1 bg-gradient-to-r from-red-600 via-amber-500 to-blue-400 mx-1"></div>
-                        <span className="text-blue-400">Monitoring</span>
-                      </div>
-                      <span className="w-24 text-right text-muted-foreground">Funds at risk</span>
-                    </div>
-                    
-                    {timelineData.sort((a, b) => (a.daysLeft - b.daysLeft)).map((client) => {
-                      // Get values from the client data
-                      const daysLeft = client.daysLeft;
-                      const unutilizedAmount = client.unutilizedAmount; 
-                      const unutilizedPercentage = client.unutilizedPercentage;
-                      
-                      // Calculate position on the timeline (30 days max)
-                      const position = Math.min(daysLeft / 30, 1) * 100;
-                      
-                      // Determine color based on days left
-                      let color = '#3B82F6'; // blue-500
-                      if (daysLeft <= 7) {
-                        color = '#DC2626'; // red-600
-                      } else if (daysLeft <= 14) {
-                        color = '#F59E0B'; // amber-500
-                      }
-                      
-                      return (
-                        <div 
-                          key={`${client.clientId}-${client.planId}`}
-                          className="flex items-center mb-1.5 group hover:bg-slate-100 px-1 py-0.5 rounded"
-                        >
-                          <div className="w-32 truncate text-sm font-medium">{client.clientName}</div>
-                          <div className="flex-1 relative h-6">
-                            {/* Timeline bar */}
-                            <div className="absolute top-0 left-0 w-full h-full bg-gray-100 rounded-full"></div>
-                            
-                            {/* Position marker */}
-                            <div 
-                              className="absolute top-0 h-6 flex items-center justify-center"
-                              style={{ left: `${position}%` }}
-                            >
-                              <div 
-                                className="h-4 w-4 rounded-full border-2 border-white transition-all group-hover:h-5 group-hover:w-5"
-                                style={{ 
-                                  backgroundColor: color,
-                                  boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
-                                }}
-                              ></div>
-                            </div>
-                            
-                            {/* Days indicator (only shown on hover) */}
-                            <div 
-                              className="absolute top-[-18px] opacity-0 group-hover:opacity-100 transition-opacity bg-white text-xs font-medium shadow rounded px-1 py-0.5"
-                              style={{ 
-                                left: `${position}%`, 
-                                transform: 'translateX(-50%)',
-                                border: `1px solid ${color}`
-                              }}
-                            >
-                              {daysLeft} days
-                            </div>
-                          </div>
-                          
-                          <div className="w-24 text-right">
-                            <div className="text-sm font-medium">
-                              {formatCurrency(unutilizedAmount)}
-                            </div>
-                            <div className="text-xs text-muted-foreground">
-                              {unutilizedPercentage}% unused
-                            </div>
-                          </div>
-                          
-                          <Button 
-                            variant="ghost" 
-                            size="sm"
-                            onClick={() => setLocation(`/client/${client.clientId}/budget`)}
-                            className="ml-1 h-6 w-6 p-0"
-                          >
-                            <ArrowRight className="h-3 w-3" />
-                          </Button>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
+                <BudgetExpirationTimeline 
+                  clients={expiringClients}
+                  maxDays={30}
+                  showStatistics={true}
+                  showHeader={true}
+                  compact={false}
+                />
               ) : (
                 <div className="flex items-center justify-center h-8 text-muted-foreground text-sm">
                   No plans expiring next month
