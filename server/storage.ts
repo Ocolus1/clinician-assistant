@@ -1205,6 +1205,150 @@ export class DBStorage implements IStorage {
     }
   }
 
+  // Clinician methods
+  async createClinician(clinician: InsertClinician): Promise<Clinician> {
+    console.log(`Creating clinician:`, JSON.stringify(clinician));
+    try {
+      const [newClinician] = await db.insert(clinicians)
+        .values(clinician)
+        .returning();
+      
+      console.log(`Successfully created clinician with ID ${newClinician.id}`);
+      return newClinician;
+    } catch (error) {
+      console.error("Error creating clinician:", error);
+      throw error;
+    }
+  }
+
+  async getClinician(id: number): Promise<Clinician | undefined> {
+    console.log(`Getting clinician with ID ${id}`);
+    try {
+      const result = await db.select()
+        .from(clinicians)
+        .where(eq(clinicians.id, id));
+      
+      if (result.length === 0) {
+        console.log(`Clinician with ID ${id} not found`);
+        return undefined;
+      }
+      
+      return result[0];
+    } catch (error) {
+      console.error(`Error fetching clinician with ID ${id}:`, error);
+      throw error;
+    }
+  }
+
+  async getAllClinicians(): Promise<Clinician[]> {
+    console.log("Getting all clinicians");
+    try {
+      const allClinicians = await db.select()
+        .from(clinicians)
+        .where(eq(clinicians.active, true));
+      
+      console.log(`Found ${allClinicians.length} active clinicians`);
+      return allClinicians;
+    } catch (error) {
+      console.error("Error fetching clinicians:", error);
+      throw error;
+    }
+  }
+
+  async updateClinician(id: number, clinician: Partial<InsertClinician>): Promise<Clinician> {
+    console.log(`Updating clinician with ID ${id}:`, JSON.stringify(clinician));
+    try {
+      const [updatedClinician] = await db.update(clinicians)
+        .set(clinician)
+        .where(eq(clinicians.id, id))
+        .returning();
+      
+      if (!updatedClinician) {
+        console.error(`Clinician with ID ${id} not found`);
+        throw new Error("Clinician not found");
+      }
+      
+      console.log(`Successfully updated clinician with ID ${id}`);
+      return updatedClinician;
+    } catch (error) {
+      console.error(`Error updating clinician with ID ${id}:`, error);
+      throw error;
+    }
+  }
+
+  async deleteClinician(id: number): Promise<void> {
+    console.log(`Deleting clinician with ID ${id}`);
+    try {
+      // Soft delete by setting active to false
+      await db.update(clinicians)
+        .set({ active: false })
+        .where(eq(clinicians.id, id));
+        
+      console.log(`Successfully deactivated clinician with ID ${id}`);
+    } catch (error) {
+      console.error(`Error deactivating clinician with ID ${id}:`, error);
+      throw error;
+    }
+  }
+
+  // Client-Clinician Assignment methods
+  async assignClinicianToClient(clientId: number, assignment: InsertClientClinician): Promise<ClientClinician> {
+    console.log(`Assigning clinician to client ${clientId}:`, JSON.stringify(assignment));
+    try {
+      const [newAssignment] = await db.insert(clientClinicians)
+        .values({
+          ...assignment,
+          clientId
+        })
+        .returning();
+      
+      console.log(`Successfully assigned clinician to client with assignment ID ${newAssignment.id}`);
+      return newAssignment;
+    } catch (error) {
+      console.error(`Error assigning clinician to client ${clientId}:`, error);
+      throw error;
+    }
+  }
+
+  async getCliniciansByClient(clientId: number): Promise<(ClientClinician & { clinician: Clinician })[]> {
+    console.log(`Getting clinicians for client ${clientId}`);
+    try {
+      // Join client_clinicians with clinicians to get full clinician info
+      const result = await db.select({
+        assignment: clientClinicians,
+        clinician: clinicians
+      })
+      .from(clientClinicians)
+      .innerJoin(clinicians, eq(clientClinicians.clinicianId, clinicians.id))
+      .where(eq(clientClinicians.clientId, clientId));
+      
+      // Transform the result to match the expected return type
+      const formattedResult = result.map(item => ({
+        ...item.assignment,
+        clinician: item.clinician
+      }));
+      
+      console.log(`Found ${formattedResult.length} clinicians assigned to client ${clientId}`);
+      return formattedResult;
+    } catch (error) {
+      console.error(`Error fetching clinicians for client ${clientId}:`, error);
+      throw error;
+    }
+  }
+
+  async removeClinicianFromClient(assignmentId: number): Promise<void> {
+    console.log(`Removing clinician assignment with ID ${assignmentId}`);
+    try {
+      await db.delete(clientClinicians)
+        .where(eq(clientClinicians.id, assignmentId));
+      
+      console.log(`Successfully removed clinician assignment with ID ${assignmentId}`);
+    } catch (error) {
+      console.error(`Error removing clinician assignment with ID ${assignmentId}:`, error);
+      throw error;
+    }
+  }
+
   // Dashboard Data Methods
   async getDashboardAppointmentStats(timeframe: 'day' | 'week' | 'month' | 'year'): Promise<AppointmentStats> {
     console.log(`Getting dashboard appointment stats with timeframe: ${timeframe}`);

@@ -14,7 +14,10 @@ import {
   insertSessionNoteSchema,
   insertPerformanceAssessmentSchema,
   insertMilestoneAssessmentSchema,
-  insertStrategySchema
+  insertStrategySchema,
+  insertClinicianSchema,
+  insertClientClinicianSchema,
+  CLINICIAN_ROLES
 } from "@shared/schema";
 
 /**
@@ -1498,6 +1501,169 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error fetching budget items for client:', error);
       return res.status(500).json({ error: formatError(error) });
+    }
+  });
+
+  // Clinician routes
+  app.get("/api/clinicians", async (req, res) => {
+    console.log("GET /api/clinicians - Retrieving all clinicians");
+    try {
+      const clinicians = await storage.getAllClinicians();
+      console.log(`Found ${clinicians.length} active clinicians`);
+      res.json(clinicians);
+    } catch (error) {
+      console.error("Error retrieving clinicians:", error);
+      res.status(500).json({ error: formatError(error) });
+    }
+  });
+
+  app.post("/api/clinicians", async (req, res) => {
+    console.log("POST /api/clinicians - Creating new clinician");
+    try {
+      const result = insertClinicianSchema.safeParse(req.body);
+      if (!result.success) {
+        console.error("Clinician validation error:", result.error);
+        return res.status(400).json({ error: result.error });
+      }
+
+      const clinician = await storage.createClinician(result.data);
+      console.log(`Successfully created clinician with ID ${clinician.id}`);
+      res.json(clinician);
+    } catch (error) {
+      console.error("Error creating clinician:", error);
+      res.status(500).json({ error: formatError(error) });
+    }
+  });
+
+  app.get("/api/clinicians/:id", async (req, res) => {
+    const clinicianId = parseInt(req.params.id);
+    console.log(`GET /api/clinicians/${clinicianId} - Fetching clinician`);
+    
+    if (isNaN(clinicianId) || clinicianId <= 0) {
+      console.error(`Invalid clinician ID: ${req.params.id}`);
+      return res.status(400).json({ error: "Invalid clinician ID" });
+    }
+    
+    try {
+      const clinician = await storage.getClinician(clinicianId);
+      
+      if (!clinician) {
+        console.log(`Clinician with ID ${clinicianId} not found`);
+        return res.status(404).json({ error: "Clinician not found" });
+      }
+      
+      res.json(clinician);
+    } catch (error) {
+      console.error(`Error fetching clinician with ID ${clinicianId}:`, error);
+      res.status(500).json({ error: formatError(error) });
+    }
+  });
+
+  app.put("/api/clinicians/:id", async (req, res) => {
+    const clinicianId = parseInt(req.params.id);
+    console.log(`PUT /api/clinicians/${clinicianId} - Updating clinician`);
+    
+    if (isNaN(clinicianId) || clinicianId <= 0) {
+      console.error(`Invalid clinician ID: ${req.params.id}`);
+      return res.status(400).json({ error: "Invalid clinician ID" });
+    }
+    
+    try {
+      const result = insertClinicianSchema.safeParse(req.body);
+      if (!result.success) {
+        console.error("Clinician validation error:", result.error);
+        return res.status(400).json({ error: result.error });
+      }
+      
+      const clinician = await storage.updateClinician(clinicianId, result.data);
+      console.log(`Successfully updated clinician with ID ${clinicianId}`);
+      res.json(clinician);
+    } catch (error) {
+      console.error(`Error updating clinician with ID ${clinicianId}:`, error);
+      res.status(500).json({ error: formatError(error) });
+    }
+  });
+
+  app.delete("/api/clinicians/:id", async (req, res) => {
+    const clinicianId = parseInt(req.params.id);
+    console.log(`DELETE /api/clinicians/${clinicianId} - Deactivating clinician`);
+    
+    if (isNaN(clinicianId) || clinicianId <= 0) {
+      console.error(`Invalid clinician ID: ${req.params.id}`);
+      return res.status(400).json({ error: "Invalid clinician ID" });
+    }
+    
+    try {
+      await storage.deleteClinician(clinicianId);
+      console.log(`Successfully deactivated clinician with ID ${clinicianId}`);
+      res.json({ success: true, message: "Clinician successfully deactivated" });
+    } catch (error) {
+      console.error(`Error deactivating clinician with ID ${clinicianId}:`, error);
+      res.status(500).json({ error: formatError(error) });
+    }
+  });
+
+  // Client-Clinician Assignment routes
+  app.get("/api/clients/:clientId/clinicians", async (req, res) => {
+    const clientId = parseInt(req.params.clientId);
+    console.log(`GET /api/clients/${clientId}/clinicians - Fetching assigned clinicians`);
+    
+    if (isNaN(clientId) || clientId <= 0) {
+      console.error(`Invalid client ID: ${req.params.clientId}`);
+      return res.status(400).json({ error: "Invalid client ID" });
+    }
+    
+    try {
+      const assignments = await storage.getCliniciansByClient(clientId);
+      console.log(`Found ${assignments.length} clinicians assigned to client ${clientId}`);
+      res.json(assignments);
+    } catch (error) {
+      console.error(`Error fetching clinicians for client ${clientId}:`, error);
+      res.status(500).json({ error: formatError(error) });
+    }
+  });
+
+  app.post("/api/clients/:clientId/clinicians", async (req, res) => {
+    const clientId = parseInt(req.params.clientId);
+    console.log(`POST /api/clients/${clientId}/clinicians - Assigning clinician to client`);
+    
+    if (isNaN(clientId) || clientId <= 0) {
+      console.error(`Invalid client ID: ${req.params.clientId}`);
+      return res.status(400).json({ error: "Invalid client ID" });
+    }
+    
+    try {
+      const result = insertClientClinicianSchema.safeParse(req.body);
+      if (!result.success) {
+        console.error("Client-clinician assignment validation error:", result.error);
+        return res.status(400).json({ error: result.error });
+      }
+      
+      const assignment = await storage.assignClinicianToClient(clientId, result.data);
+      console.log(`Successfully assigned clinician to client ${clientId}`);
+      res.json(assignment);
+    } catch (error) {
+      console.error(`Error assigning clinician to client ${clientId}:`, error);
+      res.status(500).json({ error: formatError(error) });
+    }
+  });
+
+  app.delete("/api/client-clinicians/:id", async (req, res) => {
+    const assignmentId = parseInt(req.params.id);
+    console.log(`DELETE /api/client-clinicians/${assignmentId} - Removing clinician assignment`);
+    
+    if (isNaN(assignmentId) || assignmentId <= 0) {
+      console.error(`Invalid assignment ID: ${req.params.id}`);
+      return res.status(400).json({ error: "Invalid assignment ID" });
+    }
+    
+    try {
+      await storage.removeClinicianFromClient(assignmentId);
+      console.log(`Successfully removed clinician assignment with ID ${assignmentId}`);
+      res.json({ success: true, message: "Clinician assignment successfully removed" });
+    } catch (error) {
+      console.error(`Error removing clinician assignment with ID ${assignmentId}:`, error);
+      res.status(500).json({ error: formatError(error) });
     }
   });
 
