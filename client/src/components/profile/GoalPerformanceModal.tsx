@@ -80,158 +80,63 @@ interface SubgoalData {
   description?: string;
 }
 
-// Improved utility function to generate performance data with better error handling
-function generatePerformanceData(goalId: number, goalTitle: string, subgoals: any[]): GoalPerformance {
-  console.log("generatePerformanceData called with:", { goalId, goalTitle, subgoalsType: typeof subgoals, subgoalsLength: subgoals?.length });
+// Utility function to generate loading state placeholder with no synthetic data
+function generatePlaceholderData(goalId: number, goalTitle: string, subgoals: any[]): GoalPerformance {
+  console.log("generatePlaceholderData called with:", { goalId, goalTitle, subgoalsLength: subgoals?.length });
   
-  const months = getLast12Months();
+  // Use progressDataService's helper for month data to ensure consistency
+  const months = progressDataService.getLast6Months();
   
   try {
-    // Generate scores for the goal (consistent 3-8 range)
-    const monthlyScores = months.map((month, index) => {
-      // Use deterministic values based on goalId and index to ensure consistent display
-      const safeGoalId = typeof goalId === 'number' && !isNaN(goalId) ? goalId : 1;
-      const baseValue = ((safeGoalId % 5) + 3) / 10; // 0.3 to 0.8 range
-      const modifier = Math.sin(index * 0.5) * 0.2; // Slight variation
-      const score = Math.min(Math.max(Math.round((baseValue + modifier) * 10), 3), 8);
-      
-      return {
-        month: month.value,
-        score: score
-      };
-    });
+    // Create empty score data - all zeros to represent no data
+    const monthlyScores = months.map(month => ({
+      month: month.value,
+      score: 0 // No synthetic scores
+    }));
     
-    // Current month's score and previous month's score
-    const currentScore = monthlyScores[monthlyScores.length - 1].score;
-    const previousScore = monthlyScores.length > 1 ? monthlyScores[monthlyScores.length - 2].score : currentScore;
+    // Default scores to 0 to indicate no data
+    const currentScore = 0;
+    const previousScore = 0;
     
-    // Enhanced subgoal processing with much more robust checks
-    // Start with a defensive copy
+    // Process subgoals to create placeholder cards
     let processedSubgoals: any[] = [];
     
-    // Log the raw input for debugging
-    console.log(`Raw subgoals input type: ${typeof subgoals}, isArray: ${Array.isArray(subgoals)}, length: ${Array.isArray(subgoals) ? subgoals.length : 'N/A'}`);
-    
-    // Ensure we're working with an array
+    // Ensure we're working with an array and validate subgoals
     if (Array.isArray(subgoals)) {
-      processedSubgoals = [...subgoals]; // safe copy
-    } else if (subgoals && typeof subgoals === 'object') {
-      // Try to extract from object if it's not an array
-      // Type assertion helps TypeScript understand that we're checking for nested properties
-      const anySubgoals = subgoals as any;
-      
-      if (anySubgoals.data && Array.isArray(anySubgoals.data)) {
-        processedSubgoals = anySubgoals.data;
-        console.log("Extracted subgoals from data property:", processedSubgoals);
-      } else {
-        // Last resort - try to extract any array-like properties
-        const possibleArrayProps = Object.entries(anySubgoals)
-          .filter(([_, value]) => Array.isArray(value))
-          .map(([key, value]) => ({ key, length: (value as any[]).length }))
-          .sort((a, b) => b.length - a.length); // Sort by array length descending
-        
-        if (possibleArrayProps.length > 0) {
-          const bestProp = possibleArrayProps[0];
-          processedSubgoals = anySubgoals[bestProp.key];
-          console.log(`Extracted ${processedSubgoals.length} subgoals from ${bestProp.key} property`);
-        }
-      }
+      processedSubgoals = subgoals.filter(s => s && typeof s === 'object' && s.id !== undefined && s.title);
     }
     
-    // Handle edge cases where subgoals might be nested or in unexpected formats
-    if (processedSubgoals.length === 1 && Array.isArray(processedSubgoals[0])) {
-      console.log("Detected nested subgoals array, flattening:", processedSubgoals[0]);
-      processedSubgoals = processedSubgoals[0];
-    }
+    // Generate milestone placeholder cards - no synthetic scores
+    const milestones: MilestonePerformance[] = [];
     
-    // Special handling for when subgoal data might be in a different format
-    if (processedSubgoals.length === 1 && processedSubgoals[0] && typeof processedSubgoals[0] === 'object') {
-      const firstItem = processedSubgoals[0] as any;
-      
-      if (firstItem.subgoals && Array.isArray(firstItem.subgoals)) {
-        console.log("Detected subgoals nested in 'subgoals' property:", firstItem.subgoals);
-        processedSubgoals = firstItem.subgoals;
-      } else if (firstItem.data && Array.isArray(firstItem.data)) {
-        console.log("Detected subgoals nested in 'data' property:", firstItem.data);
-        processedSubgoals = firstItem.data;
-      }
-    }
-    
-    // Super robust filtering to ensure subgoals have required properties, with detailed logging
-    const validSubgoals = Array.isArray(processedSubgoals) 
-      ? processedSubgoals.filter(s => {
-          // Detailed validity check
-          if (!s) {
-            console.warn("Subgoal is null or undefined");
-            return false;
-          }
-          
-          if (typeof s !== 'object') {
-            console.warn(`Subgoal is not an object, type: ${typeof s}`);
-            return false;
-          }
-          
-          if (s.id === undefined) {
-            console.warn("Subgoal missing id property:", s);
-            return false;
-          }
-          
-          if (!s.title) {
-            console.warn("Subgoal missing title property:", s);
-            return false;
-          }
-          
-          return true;
-        }) as SubgoalData[] 
-      : [];
-    
-    console.log(`Processed ${processedSubgoals.length} raw subgoals into ${validSubgoals.length} valid subgoals for goal ${goalId}: ${goalTitle}`);
-    
-    // Generate milestone (subgoal) performance data
-    let milestones: MilestonePerformance[] = [];
-    
-    // Add actual subgoals first
-    if (validSubgoals.length > 0) {
-      console.log(`Creating milestone visualizations for ${validSubgoals.length} subgoals`);
-      milestones = validSubgoals.map(subgoal => {
-        // Generate deterministic values based on subgoal.id
-        const safeId = typeof subgoal.id === 'number' && !isNaN(subgoal.id) ? subgoal.id : 1;
-        
-        return {
-          id: safeId,
+    if (processedSubgoals.length > 0) {
+      // Create placeholders for valid subgoals
+      processedSubgoals.forEach(subgoal => {
+        milestones.push({
+          id: subgoal.id,
           title: subgoal.title || "Untitled Milestone",
           description: subgoal.description || "",
-          isEmpty: false,
-          values: months.map((month, index) => {
-            // Use a more reliable formula based on goal ID and subgoal ID
-            const seed = (safeId * 17 + goalId * 13) % 100;
-            const baseValue = (seed % 10 + 1) / 10; // 0.1 to 1.0 range
-            const modifier = Math.cos(index * 0.7) * 0.3; // Variation
-            const score = Math.min(Math.max(Math.round((baseValue + modifier) * 10), 1), 10);
-            
-            return {
-              month: month.value,
-              score: score
-            };
-          })
-        };
+          isEmpty: true, // Mark as empty since we don't have real data yet
+          values: months.map(month => ({
+            month: month.value,
+            score: 0 // No data
+          }))
+        });
       });
     }
     
-    // Always ensure we have exactly 6 milestone cards (3x2 grid)
-    // Fill remaining slots with empty placeholders
+    // Fill remaining slots with empty placeholders to reach 6 cards
     const totalSlots = 6;
     const emptySlots = totalSlots - milestones.length;
     
-    // Generate empty placeholder milestone cards
     if (emptySlots > 0) {
       for (let i = 0; i < emptySlots; i++) {
         milestones.push({
           id: -1 - i, // Negative IDs to avoid conflicts
-          title: "No milestone set yet",
-          description: "Add a milestone to track progress on specific skill areas",
+          title: "Loading...",
+          description: "Loading milestone data",
           isEmpty: true,
-          values: months.map((month) => ({
+          values: months.map(month => ({
             month: month.value,
             score: 0
           }))
@@ -249,14 +154,14 @@ function generatePerformanceData(goalId: number, goalTitle: string, subgoals: an
       milestones
     };
   } catch (error) {
-    console.error("Error in generatePerformanceData:", error);
+    console.error("Error in generatePlaceholderData:", error);
     
-    // Create fallback performance data in case of error
-    const fallbackScores = months.map(() => ({ month: "", score: 5 }));
-    const fallbackMilestones: MilestonePerformance[] = Array(6).fill(null).map((_, i) => ({
+    // Create minimal error state with no synthetic data
+    const emptyScores = months.map(month => ({ month: month.value, score: 0 }));
+    const errorMilestones: MilestonePerformance[] = Array(6).fill(null).map((_, i) => ({
       id: -1 - i,
-      title: i === 0 ? "Error creating performance data" : "No milestone data",
-      description: i === 0 ? "There was a problem generating the performance data" : "Placeholder milestone",
+      title: i === 0 ? "Error loading data" : "No milestone data",
+      description: i === 0 ? "There was a problem loading the performance data" : "Please try again",
       isEmpty: true,
       values: months.map(month => ({ month: month.value, score: 0 }))
     }));
@@ -264,11 +169,11 @@ function generatePerformanceData(goalId: number, goalTitle: string, subgoals: an
     return {
       id: goalId,
       title: goalTitle || "Error Loading Goal",
-      description: "Error generating performance data",
-      currentScore: 5,
-      previousScore: 5,
-      monthlyScores: fallbackScores,
-      milestones: fallbackMilestones
+      description: "Error loading performance data",
+      currentScore: 0,
+      previousScore: 0,
+      monthlyScores: emptyScores,
+      milestones: errorMilestones
     };
   }
 }
@@ -377,8 +282,8 @@ export function GoalPerformanceModal({
       // Try to show initial UI with passed subgoals if available
       if (Array.isArray(subgoals) && subgoals.length > 0) {
         console.log(`GoalPerformanceModal: Parent passed ${subgoals.length} subgoals`);
-        // Generate UI with the passed subgoals first for faster loading
-        const data = generatePerformanceData(validGoalId, goalTitle, subgoals);
+        // Generate loading placeholder UI with the passed subgoals 
+        const data = generatePlaceholderData(validGoalId, goalTitle, subgoals);
         setPerformanceData(data);
       }
       
@@ -465,10 +370,10 @@ export function GoalPerformanceModal({
         setPerformanceData(data);
       }
     } else if (goalId !== null && goalId !== undefined && directSubgoals.length > 0 && open && !isLoadingRealData) {
-      // Fallback to generated data if no real data is available yet
-      console.log(`Falling back to generated performance data with ${directSubgoals.length} direct subgoals`);
+      // Show placeholder with empty state when no real data is available
+      console.log(`Showing empty state placeholder with ${directSubgoals.length} direct subgoals`);
       const validGoalId = Number(goalId);
-      const data = generatePerformanceData(validGoalId, goalTitle, directSubgoals);
+      const data = generatePlaceholderData(validGoalId, goalTitle, directSubgoals);
       setPerformanceData(data);
     }
   }, [realMilestoneData, isLoadingRealData, directSubgoals, goalId, goalTitle, open]);
