@@ -480,7 +480,7 @@ export default function EnhancedClientList() {
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
-              <div className="flex items-center">
+              <div className="flex items-center w-full">
                 <Sparkline 
                   data={client.progress || [0, 0, 0]} 
                   width={80} 
@@ -511,25 +511,42 @@ export default function EnhancedClientList() {
           </Tooltip>
         </TooltipProvider>
       ),
-      width: "120px",
-      alignment: "start"
+      width: "100px",
+      alignment: "center"
     },
     {
       id: "budget",
       header: "Budget Usage",
       accessorFn: (client) => {
-        // Calculate budget usage
+        // Ensure ndisFunds is a number - this is our total budget
+        const rawNdisFunds = client.budgetSettings?.ndisFunds || 0;
+        const totalFunds = typeof rawNdisFunds === 'string' ? parseFloat(rawNdisFunds) : (rawNdisFunds || 0);
+        
+        // Calculate total budget allocated
         const totalBudget = client.budgetItems.reduce((acc, item) => {
           const unitPrice = typeof item.unitPrice === 'string' ? parseFloat(item.unitPrice) : item.unitPrice;
           const quantity = typeof item.quantity === 'string' ? parseInt(item.quantity) : item.quantity;
           return acc + (unitPrice * quantity);
         }, 0);
         
-        // Ensure ndisFunds is a number - this is our total budget
-        const rawNdisFunds = client.budgetSettings?.ndisFunds || 0;
-        const totalFunds = typeof rawNdisFunds === 'string' ? parseFloat(rawNdisFunds) : (rawNdisFunds || 0);
-        
-        const usagePercentage = totalFunds > 0 ? (totalBudget / totalFunds) * 100 : 0;
+        // Calculate actual usage from sessions (products used)
+        const usedBudget = client.sessions && client.sessions.length > 0
+          ? client.sessions.reduce((acc, session) => {
+              // Check if session has products data
+              const sessionProducts = session.products ? 
+                (typeof session.products === 'string' ? 
+                  JSON.parse(session.products) : session.products) : [];
+                
+              // Sum up product costs if any
+              const sessionCost = Array.isArray(sessionProducts) ? 
+                sessionProducts.reduce((sum, product) => sum + (product.price || 0), 0) : 0;
+                
+              return acc + sessionCost;
+            }, 0)
+          : 0;
+          
+        // Calculate usage percentage based on actual used amount
+        const usagePercentage = totalFunds > 0 ? (usedBudget / totalFunds) * 100 : 0;
         const formattedUsage = Math.round(usagePercentage) + '%';
         
         // Determine color based on usage
@@ -553,9 +570,9 @@ export default function EnhancedClientList() {
               <TooltipContent>
                 <div className="text-xs">
                   <div className="font-bold mb-1">Budget Usage</div>
-                  <div>Used: ${Number(totalBudget).toFixed(2)}</div>
+                  <div>Used: ${Number(usedBudget).toFixed(2)}</div>
                   <div>Total: ${Number(totalFunds).toFixed(2)}</div>
-                  <div>Remaining: ${Number(totalFunds - totalBudget).toFixed(2)}</div>
+                  <div>Remaining: ${Number(totalFunds - usedBudget).toFixed(2)}</div>
                 </div>
               </TooltipContent>
             </Tooltip>
@@ -766,27 +783,46 @@ export default function EnhancedClientList() {
             bValue = b.score || 0;
             break;
           case 'budget':
-            // Sort by budget usage percentage
-            const aTotalBudget = a.budgetItems.reduce((acc, item) => {
-              const unitPrice = typeof item.unitPrice === 'string' ? parseFloat(item.unitPrice) : item.unitPrice;
-              const quantity = typeof item.quantity === 'string' ? parseInt(item.quantity) : item.quantity;
-              return acc + (unitPrice * quantity);
-            }, 0);
-            
-            const bTotalBudget = b.budgetItems.reduce((acc, item) => {
-              const unitPrice = typeof item.unitPrice === 'string' ? parseFloat(item.unitPrice) : item.unitPrice;
-              const quantity = typeof item.quantity === 'string' ? parseInt(item.quantity) : item.quantity;
-              return acc + (unitPrice * quantity);
-            }, 0);
-            
+            // Sort by budget usage percentage from actual session usage
             const aRawNdisFunds = a.budgetSettings?.ndisFunds || 0;
             const bRawNdisFunds = b.budgetSettings?.ndisFunds || 0;
             
             const aTotalFunds = typeof aRawNdisFunds === 'string' ? parseFloat(aRawNdisFunds) : (aRawNdisFunds || 0);
             const bTotalFunds = typeof bRawNdisFunds === 'string' ? parseFloat(bRawNdisFunds) : (bRawNdisFunds || 0);
             
-            aValue = aTotalFunds > 0 ? (aTotalBudget / aTotalFunds) * 100 : 0;
-            bValue = bTotalFunds > 0 ? (bTotalBudget / bTotalFunds) * 100 : 0;
+            // Calculate actual usage from sessions (products used)
+            const aUsedBudget = a.sessions && a.sessions.length > 0
+              ? a.sessions.reduce((acc, session) => {
+                  // Check if session has products data
+                  const sessionProducts = session.products ? 
+                    (typeof session.products === 'string' ? 
+                      JSON.parse(session.products) : session.products) : [];
+                    
+                  // Sum up product costs if any
+                  const sessionCost = Array.isArray(sessionProducts) ? 
+                    sessionProducts.reduce((sum, product) => sum + (product.price || 0), 0) : 0;
+                    
+                  return acc + sessionCost;
+                }, 0)
+              : 0;
+              
+            const bUsedBudget = b.sessions && b.sessions.length > 0
+              ? b.sessions.reduce((acc, session) => {
+                  // Check if session has products data
+                  const sessionProducts = session.products ? 
+                    (typeof session.products === 'string' ? 
+                      JSON.parse(session.products) : session.products) : [];
+                    
+                  // Sum up product costs if any
+                  const sessionCost = Array.isArray(sessionProducts) ? 
+                    sessionProducts.reduce((sum, product) => sum + (product.price || 0), 0) : 0;
+                    
+                  return acc + sessionCost;
+                }, 0)
+              : 0;
+            
+            aValue = aTotalFunds > 0 ? (aUsedBudget / aTotalFunds) * 100 : 0;
+            bValue = bTotalFunds > 0 ? (bUsedBudget / bTotalFunds) * 100 : 0;
             break;
           case 'status':
             aValue = a.status || '';
