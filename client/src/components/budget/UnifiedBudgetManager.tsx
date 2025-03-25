@@ -305,25 +305,29 @@ export function UnifiedBudgetManager({
         (sum: number, item: any) => sum + (Number(item.quantity) * Number(item.unitPrice)), 0
       );
 
-      // Calculate total budget as the sum of all budget items
-      const totalBudget = initialItems.reduce(
-        (sum: number, item: any) => sum + (Number(item.quantity) * Number(item.unitPrice)), 0
-      );
-
-      // Calculate remaining budget as total budget minus used (not allocated)
-      // For now, this is the same as total budget since we start with no usage
-      const remainingBudget = totalBudget; 
+      // Get the fixed budget amount for this plan
+      // IMPORTANT: Use the ndisFunds value from the active plan which is a fixed amount
+      // This ensures the total budget stays constant regardless of item changes
+      const planBudget = currentPlan.ndisFunds 
+        ? typeof currentPlan.ndisFunds === 'string' 
+          ? parseFloat(currentPlan.ndisFunds) 
+          : currentPlan.ndisFunds
+        : FIXED_BUDGET_AMOUNT;
       
-      console.log(`Form initialization: Found ${initialItems.length} items, total: $${totalBudget}`);
+      // Calculate remaining budget as fixed plan budget minus allocated amount
+      // This allows remaining funds to properly reflect available money for new items
+      const remainingBudget = planBudget - totalAllocated;
+      
+      console.log(`Form initialization: Found ${initialItems.length} items, total allocated: $${totalAllocated}, fixed budget: $${planBudget}`);
       console.log("Initial items detail:", initialItems);
 
       // Set default values with real data
       console.log("Attempting to reset form with initialItems:", initialItems);
       
-      // First reset the form with default values
+      // First reset the form with default values - use fixed planBudget for totalBudget
       form.reset({
         items: initialItems,
-        totalBudget: totalBudget,
+        totalBudget: planBudget, // Use fixed plan budget instead of calculated total
         totalAllocated: totalAllocated,
         remainingBudget: remainingBudget
       });
@@ -463,8 +467,9 @@ export function UnifiedBudgetManager({
     // Update the allocated total
     form.setValue("totalAllocated", newTotalAllocated);
     
-    // Update remainingBudget with client-specific budget
-    form.setValue("remainingBudget", getClientBudget());
+    // Calculate remaining budget as the difference between fixed budget and allocated amount
+    const fixedBudget = getClientBudget();
+    form.setValue("remainingBudget", fixedBudget - newTotalAllocated);
     
     // Show success notification
     toast({
@@ -515,8 +520,9 @@ export function UnifiedBudgetManager({
     const newTotalAllocated = currentAllocated + difference;
     form.setValue("totalAllocated", newTotalAllocated);
     
-    // Update remainingBudget with client-specific budget
-    form.setValue("remainingBudget", getClientBudget());
+    // Calculate remaining budget as the difference between fixed budget and allocated amount
+    const fixedBudget = getClientBudget();
+    form.setValue("remainingBudget", fixedBudget - newTotalAllocated);
   };
 
   // Handle deleting an item
@@ -532,8 +538,9 @@ export function UnifiedBudgetManager({
     const newTotalAllocated = currentAllocated - itemTotal;
     form.setValue("totalAllocated", newTotalAllocated);
     
-    // Update remainingBudget with client-specific budget 
-    form.setValue("remainingBudget", getClientBudget());
+    // Calculate remaining budget as the difference between fixed budget and allocated amount
+    const fixedBudget = getClientBudget();
+    form.setValue("remainingBudget", fixedBudget - newTotalAllocated);
     
     // Remove from field array
     remove(index);
@@ -954,7 +961,7 @@ export function UnifiedBudgetManager({
             <BudgetValidation 
               totalBudget={getClientBudget()} // Use client-specific budget from active plan
               totalAllocated={form.watch("totalAllocated") || 0}
-              remainingBudget={getClientBudget()} // Total remaining budget is client budget minus used (not allocated)
+              remainingBudget={form.watch("remainingBudget") || (getClientBudget() - (form.watch("totalAllocated") || 0))} // Use form's remaining budget value
               originalAllocated={getClientBudget()} // The client's original allocated budget amount
             />
             
