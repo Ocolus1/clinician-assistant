@@ -524,7 +524,7 @@ export function UnifiedBudgetManager({
     
     // Update item
     const updatedItem = {
-      ...item,
+      ...formItem,
       quantity: newQuantity,
       total: newTotal
     };
