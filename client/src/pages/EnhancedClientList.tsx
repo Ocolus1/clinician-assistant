@@ -337,10 +337,10 @@ export default function EnhancedClientList() {
       id: "name",
       header: "Client Name",
       accessorFn: (client) => (
-        <div className="font-medium">{client.name}</div>
+        <div className="font-medium pl-1">{client.name}</div>
       ),
       sortable: true,
-      width: "220px",
+      width: "200px",
       alignment: "start"
     },
     {
@@ -480,7 +480,7 @@ export default function EnhancedClientList() {
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
-              <div className="flex items-center w-full">
+              <div className="flex items-center">
                 <Sparkline 
                   data={client.progress || [0, 0, 0]} 
                   width={80} 
@@ -512,7 +512,7 @@ export default function EnhancedClientList() {
         </TooltipProvider>
       ),
       width: "100px",
-      alignment: "center"
+      alignment: "start"
     },
     {
       id: "budget",
@@ -559,7 +559,7 @@ export default function EnhancedClientList() {
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <div className="w-full max-w-[140px]">
+                <div className="w-full max-w-[140px] pl-1">
                   <div className="flex justify-between items-center text-xs mb-1">
                     <span>{formattedUsage}</span>
                     <DollarSign className="h-3 w-3 text-gray-400" />
@@ -1159,7 +1159,7 @@ export default function EnhancedClientList() {
                         className={`px-3 py-3.5 text-sm font-semibold text-gray-900 ${
                           column.alignment === 'center' ? 'text-center' : 
                           column.alignment === 'end' ? 'text-right' : 'text-left'
-                        } ${column.width ? `w-[${column.width}]` : ''}`}
+                        } ${column.width ? `w-[${column.width}]` : ''} ${column.id === 'name' ? 'pl-4' : ''}`}
                       >
                         {column.sortable ? (
                           <button 
@@ -1195,7 +1195,7 @@ export default function EnhancedClientList() {
                           className={`whitespace-nowrap px-3 py-4 text-sm ${
                             column.alignment === 'center' ? 'text-center' : 
                             column.alignment === 'end' ? 'text-right' : 'text-left'
-                          }`}
+                          } ${column.id === 'name' ? 'pl-4' : ''}`}
                         >
                           {column.accessorFn(client)}
                         </td>
