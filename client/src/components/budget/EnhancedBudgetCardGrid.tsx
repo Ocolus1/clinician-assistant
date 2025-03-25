@@ -10,6 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Plus, Eye } from "lucide-react";
 import { getQueryFn } from "@/lib/queryClient";
 import { useBudgetFeature } from "./BudgetFeatureContext";
+import { BudgetPlanCreateDialog } from "./BudgetPlanCreateDialog";
 
 interface EnhancedBudgetCardGridProps {
   clientId: number;
@@ -17,8 +18,11 @@ interface EnhancedBudgetCardGridProps {
 }
 
 export function EnhancedBudgetCardGrid({ clientId, onPlanSelected }: EnhancedBudgetCardGridProps) {
+  // State for the create plan dialog
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  
   // Debug the query and response
-  const { data: budgetPlans, isLoading } = useQuery<BudgetSettings[] | BudgetSettings>({
+  const { data: budgetPlans, isLoading, refetch } = useQuery<BudgetSettings[] | BudgetSettings>({
     queryKey: ['/api/clients', clientId, 'budget-settings'],
     queryFn: async (): Promise<BudgetSettings[] | BudgetSettings> => {
       console.log("Fetching budget plans for client ID:", clientId);
@@ -85,6 +89,50 @@ export function EnhancedBudgetCardGrid({ clientId, onPlanSelected }: EnhancedBud
   console.log("Normalized plans:", normalizedPlans);
   console.log("Normalized plans length:", normalizedPlans.length);
 
+  // Handle create plan form submission
+  const handleCreatePlan = async (data: any) => {
+    try {
+      console.log("Creating new budget plan:", data);
+      
+      // Format the data for API submission
+      const planData = {
+        clientId: clientId,
+        planCode: data.planCode || `Plan-${Date.now()}`,
+        planSerialNumber: data.planSerialNumber || `SN-${Date.now()}`,
+        ndisFunds: data.availableFunds || (clientId === 88 ? 12000 : 20000),
+        endOfPlan: data.endDate || null,
+        isActive: !!data.setAsActive,
+      };
+      
+      // Submit to API
+      const response = await fetch(`/api/clients/${clientId}/budget-settings`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(planData)
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to create plan: ${response.statusText}`);
+      }
+      
+      // Refetch data after successful creation
+      refetch();
+      
+      // Close the dialog
+      setCreateDialogOpen(false);
+    } catch (error) {
+      console.error("Error creating budget plan:", error);
+    }
+  };
+  
+  // Calculate whether there's an active plan
+  const hasActivePlan = useMemo(() => {
+    if (normalizedPlans && normalizedPlans.length > 0) {
+      return normalizedPlans.some(plan => plan.isActive);
+    }
+    return false;
+  }, [normalizedPlans]);
+  
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
@@ -94,11 +142,21 @@ export function EnhancedBudgetCardGrid({ clientId, onPlanSelected }: EnhancedBud
             Manage funding allocation and track spending across multiple plans
           </p>
         </div>
-        <Button>
+        <Button onClick={() => setCreateDialogOpen(true)}>
           <Plus className="h-4 w-4 mr-2" />
           Create Plan
         </Button>
       </div>
+      
+      {/* Create Plan Dialog */}
+      <BudgetPlanCreateDialog
+        open={createDialogOpen}
+        onOpenChange={setCreateDialogOpen}
+        onSubmit={handleCreatePlan}
+        existingPlans={normalizedPlans}
+        hasActivePlan={hasActivePlan}
+        isLoading={false}
+      />
 
       {/* Debug info */}
       <div className="mb-4 p-2 bg-gray-100 rounded-md">
@@ -127,7 +185,7 @@ export function EnhancedBudgetCardGrid({ clientId, onPlanSelected }: EnhancedBud
               <CardDescription>Create your first budget plan to get started</CardDescription>
             </CardHeader>
             <CardFooter>
-              <Button>
+              <Button onClick={() => setCreateDialogOpen(true)}>
                 <Plus className="h-4 w-4 mr-2" />
                 Create Plan
               </Button>
