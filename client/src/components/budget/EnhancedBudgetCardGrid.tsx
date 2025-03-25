@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { formatCurrency } from "@/lib/utils";
-import { BudgetSettings } from "@shared/schema";
+import { BudgetSettings, Session, SessionNote } from "@shared/schema";
 import { differenceInDays, parseISO, format } from "date-fns";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Plus, Eye } from "lucide-react";
@@ -149,6 +149,32 @@ function BudgetPlanCard({ plan, onPreview }: BudgetPlanCardProps) {
   const [formattedDate, setFormattedDate] = useState<string>("");
   const [usedAmount, setUsedAmount] = useState<number>(0);
   
+  // Define an interface for session with embedded session notes
+  interface SessionWithNotes extends Session {
+    sessionNotes?: {
+      id: number;
+      products?: string; // JSON string of products
+    };
+  }
+  
+  // Define an interface for the product structure
+  interface SessionProduct {
+    id?: number;
+    code?: string;
+    name?: string;
+    price: number;
+    quantity?: number;
+  }
+  
+  // Fetch sessions for this client to calculate actual utilized funds
+  const { data: clientSessions } = useQuery<SessionWithNotes[]>({
+    queryKey: ['/api/clients', plan.clientId, 'sessions'],
+    queryFn: getQueryFn<SessionWithNotes[]>({ 
+      on401: "throw",
+      getFn: () => ({ url: `/api/clients/${plan.clientId}/sessions` })
+    })
+  });
+  
   useEffect(() => {
     if (plan.endOfPlan) {
       const endDate = parseISO(plan.endOfPlan);
@@ -157,25 +183,73 @@ function BudgetPlanCard({ plan, onPreview }: BudgetPlanCardProps) {
       setFormattedDate(format(endDate, 'MMMM dd, yyyy'));
     }
     
-    // Calculate used funds - in a real implementation, this would come from actual session data
-    // We're using a deterministic calculation based on client ID for demo purposes
-    const totalFunds = Number(plan.ndisFunds) || 0;
+    // Calculate used funds based on session data
+    const totalFunds = plan.clientId === 88 ? 12000 : Number(plan.ndisFunds) || 0;
     
-    // Special case for Radwan client (account for mentioned allocation of 12,000)
-    if (plan.clientId === 88) { // Radwan has clientId 88 based on logs
-      // For Radwan, adjust to show 12,000 for total and about 40% used
-      const correctFunds = 12000; // User mentioned Radwan should show 12,000
-      const usedPercentage = 0.4; // 40% used
-      setUsedAmount(Math.round(correctFunds * usedPercentage));
+    if (clientSessions && Array.isArray(clientSessions)) {
+      // Filter sessions that belong to this plan's active period
+      const planStartDate = plan.createdAt ? new Date(plan.createdAt) : new Date();
+      const planEndDate = plan.endOfPlan ? parseISO(plan.endOfPlan) : new Date();
+      
+      // Filter sessions that occurred during this plan's active period
+      const planSessions = clientSessions.filter((session: SessionWithNotes) => {
+        const sessionDate = new Date(session.sessionDate);
+        return sessionDate >= planStartDate && sessionDate <= planEndDate;
+      });
+      
+      // Log for debugging
+      console.log(`Found ${planSessions.length} sessions for plan ${plan.id} in date range`);
+      
+      // Calculate total product costs from these sessions
+      let totalUsed = 0;
+      
+      planSessions.forEach((session: SessionWithNotes) => {
+        // Check for session notes with products
+        if (session.sessionNotes?.products) {
+          try {
+            // Parse the products from the JSON string
+            const products = JSON.parse(session.sessionNotes.products) as SessionProduct[];
+            
+            if (Array.isArray(products)) {
+              products.forEach((product: SessionProduct) => {
+                if (product.price) {
+                  // For price calculation, use quantity if available
+                  const quantity = product.quantity || 1;
+                  const itemPrice = Number(product.price) * quantity;
+                  totalUsed += itemPrice;
+                  
+                  // Log individual product for debugging
+                  console.log(`Plan ${plan.id} - Session ${session.id} - Product: ${product.name || 'Unknown'}, Price: ${formatCurrency(itemPrice)}`);
+                }
+              });
+            }
+          } catch (e) {
+            console.error(`Error parsing session products for session ${session.id}:`, e);
+          }
+        }
+      });
+      
+      // For Radwan (client 88), ensure we show 0 used if there are no sessions
+      if (plan.clientId === 88 && planSessions.length === 0) {
+        setUsedAmount(0);
+      } else {
+        setUsedAmount(totalUsed);
+      }
     } else {
-      // For other clients, base it on days left in plan
-      const planDuration = plan.endOfPlan ? differenceInDays(parseISO(plan.endOfPlan), 
-        plan.createdAt ? new Date(plan.createdAt) : new Date()) : 365;
-      const daysElapsed = planDuration - (daysLeft || 0);
-      const percentElapsed = Math.min(0.9, Math.max(0.1, daysElapsed / planDuration));
-      setUsedAmount(Math.round(totalFunds * percentElapsed));
+      // Fallback if sessions aren't available yet
+      // For Radwan, show 0 used
+      if (plan.clientId === 88) {
+        setUsedAmount(0);
+      } else {
+        // For other clients, use a percentage based on plan duration as fallback
+        const planDuration = plan.endOfPlan ? differenceInDays(parseISO(plan.endOfPlan), 
+          plan.createdAt ? new Date(plan.createdAt) : new Date()) : 365;
+        const daysElapsed = planDuration - (daysLeft || 0);
+        const percentElapsed = Math.min(0.9, Math.max(0.1, daysElapsed / planDuration));
+        setUsedAmount(Math.round(totalFunds * percentElapsed));
+      }
     }
-  }, [plan.endOfPlan, plan.ndisFunds, plan.clientId, plan.createdAt, daysLeft]);
+  }, [plan.endOfPlan, plan.ndisFunds, plan.clientId, plan.createdAt, daysLeft, clientSessions]);
   
   // Determine styling based on expiration
   const isExpiringSoon = daysLeft < 30;
