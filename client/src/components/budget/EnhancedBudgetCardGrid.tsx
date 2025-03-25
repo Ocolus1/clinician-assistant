@@ -18,9 +18,9 @@ interface EnhancedBudgetCardGridProps {
 
 export function EnhancedBudgetCardGrid({ clientId, onPlanSelected }: EnhancedBudgetCardGridProps) {
   // Debug the query and response
-  const { data: budgetPlans, isLoading } = useQuery({
+  const { data: budgetPlans, isLoading } = useQuery<BudgetSettings[] | BudgetSettings>({
     queryKey: ['/api/clients', clientId, 'budget-settings'],
-    queryFn: async () => {
+    queryFn: async (): Promise<BudgetSettings[] | BudgetSettings> => {
       console.log("Fetching budget plans for client ID:", clientId);
       const response = await fetch(`/api/clients/${clientId}/budget-settings?all=true`);
       const data = await response.json();
@@ -76,7 +76,7 @@ export function EnhancedBudgetCardGrid({ clientId, onPlanSelected }: EnhancedBud
   if (budgetPlans) {
     if (Array.isArray(budgetPlans)) {
       normalizedPlans = budgetPlans;
-    } else if (budgetPlans.id) {
+    } else if (budgetPlans && typeof budgetPlans === 'object' && 'id' in budgetPlans) {
       // If we have a single object with an ID, use it
       normalizedPlans = [budgetPlans as BudgetSettings];
     }

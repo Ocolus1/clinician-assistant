@@ -74,24 +74,7 @@ export function UnifiedBudgetManager({
     isReadOnly
   } = useBudgetFeature();
   
-  // Function to get consistent plan display name
-  const getPlanDisplayName = (plan: any) => {
-    // If no plan exists, return a default name
-    if (!plan) return 'Budget Plan';
-    
-    // For demonstration only - in real implementation, we'd use API data
-    // to determine if this was created during onboarding
-    const isOnboardingPlan = plan.planCode?.toLowerCase()?.includes('onboard') || 
-                           !plan.planCode; // If no code, likely an onboarding plan
-    
-    if (isOnboardingPlan) {
-      return 'Onboarding Budget Plan';
-    } else if (plan.planCode) {
-      return plan.planCode;
-    } else {
-      return 'Budget Plan';
-    }
-  };
+  // Using the shared getPlanDisplayName function imported from BudgetPlanCard
 
   // Helper function to calculate client-specific budget amount based on items
   const getClientBudget = () => {
@@ -334,11 +317,18 @@ export function UnifiedBudgetManager({
       console.log("Initial items detail:", initialItems);
 
       // Set default values with real data
+      console.log("Attempting to reset form with initialItems:", initialItems);
+      
       form.reset({
         items: initialItems,
         totalBudget: totalBudget,
         totalAllocated: totalAllocated,
         remainingBudget: remainingBudget
+      });
+      
+      // Force immediate update of the fields array
+      initialItems.forEach(item => {
+        append(item);
       });
 
       // Update budget items in context
@@ -895,7 +885,7 @@ export function UnifiedBudgetManager({
       )}
       <CardHeader>
         <CardTitle>
-          Budget Plan: {getPlanDisplayName(activePlan)}
+          {getPlanDisplayName(activePlan)}
         </CardTitle>
         <CardDescription>
           Total Budget: {formatCurrency(getClientBudget())}
