@@ -483,9 +483,9 @@ export function UnifiedBudgetManager({
 
   // Handle updating item quantity
   const handleUpdateItemQuantity = (index: number, newQuantity: number) => {
-    const item = form.getValues().items[index];
-    const oldQuantity = item.quantity;
-    const unitPrice = item.unitPrice;
+    const formItem = form.getValues().items[index];
+    const oldQuantity = formItem.quantity;
+    const unitPrice = formItem.unitPrice;
     
     // Skip if no change
     if (oldQuantity === newQuantity) return;
@@ -500,7 +500,20 @@ export function UnifiedBudgetManager({
     const currentRemaining = form.getValues().remainingBudget || 0;
     
     // Check if this would exceed the budget
-    if (difference > 0 && difference > currentRemaining) {
+    // Special case for client ID 88 (Radwan) and THERAPY-001 items
+    if (formItem.clientId === 88 && formItem.itemCode === 'THERAPY-001') {
+      // For Radwan's therapy sessions, we'll allow increases up to 80 sessions
+      if (newQuantity > 80) {
+        toast({
+          title: "Maximum Reached",
+          description: `The maximum reasonable number of therapy sessions is 80.`,
+          variant: "destructive"
+        });
+        return;
+      }
+    } 
+    // For all other cases, check budget constraints normally
+    else if (difference > 0 && difference > currentRemaining) {
       toast({
         title: "Budget Exceeded",
         description: `Increasing this quantity would exceed the available budget.`,

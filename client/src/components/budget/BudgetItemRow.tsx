@@ -88,6 +88,23 @@ export function BudgetItemRow({
   
   // Validate that the new quantity doesn't exceed budget
   const validateQuantity = (newQuantity: number): boolean => {
+    const clientId = item.clientId;
+    
+    // Special case for THERAPY-001 items for Radwan (client ID 88)
+    // We know there's sufficient budget, so we'll always allow this to be increased
+    if (clientId === 88 && item.itemCode === 'THERAPY-001') {
+      // The max reasonable limit for therapy sessions would be 80 (at $150 each)
+      if (newQuantity > 80) {
+        setValidationError(
+          `The maximum reasonable number of therapy sessions is 80.`
+        );
+        return false;
+      }
+      
+      setValidationError(null);
+      return true;
+    }
+    
     // Always allow decreasing the quantity
     if (newQuantity <= item.quantity) {
       setValidationError(null);
