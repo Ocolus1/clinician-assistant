@@ -136,12 +136,14 @@ const Sparkline: React.FC<{
 interface EnrichedClient extends Client {
   age: number;
   therapists: Ally[];
+  clinicians: Array<{clinician: {name: string, role: string, id: number}}>;
   goals: Goal[];
   budgetItems: BudgetItem[];
   budgetSettings?: BudgetSettings;
+  sessions?: Array<any>;
   score?: number;
   progress?: number[];
-  status?: 'active' | 'inactive' | 'review' | 'completed';
+  status?: 'active' | 'inactive';
 }
 
 // Column definition for the client table
@@ -183,6 +185,17 @@ export default function EnhancedClientList() {
     return response.json();
   };
   
+  const fetchClinicians = async (clientId: number): Promise<Array<{clinician: {name: string, role: string, id: number}}>> => {
+    try {
+      const response = await fetch(`/api/clients/${clientId}/clinicians`);
+      if (!response.ok) return [];
+      return response.json();
+    } catch (error) {
+      console.error("Error fetching clinicians:", error);
+      return [];
+    }
+  };
+  
   const fetchGoals = async (clientId: number): Promise<Goal[]> => {
     const response = await fetch(`/api/clients/${clientId}/goals`);
     if (!response.ok) return [];
@@ -206,6 +219,17 @@ export default function EnhancedClientList() {
     }
   };
   
+  const fetchSessions = async (clientId: number): Promise<any[]> => {
+    try {
+      const response = await fetch(`/api/clients/${clientId}/sessions`);
+      if (!response.ok) return [];
+      return response.json();
+    } catch (error) {
+      console.error("Error fetching sessions:", error);
+      return [];
+    }
+  };
+  
   // Enrich clients with additional data
   const { data: enrichedClients = [], isLoading: isEnrichingClients } = useQuery<EnrichedClient[]>({
     queryKey: ["/api/clients/enriched"],
@@ -214,33 +238,65 @@ export default function EnhancedClientList() {
       return Promise.all(
         clients.map(async (client) => {
           // Fetch additional data for each client
-          const [therapists, goals, budgetItems, budgetSettings] = await Promise.all([
+          const [therapists, clinicians, goals, budgetItems, budgetSettings, sessions] = await Promise.all([
             fetchAllies(client.id),
+            fetchClinicians(client.id),
             fetchGoals(client.id),
             fetchBudgetItems(client.id),
-            fetchBudgetSettings(client.id)
+            fetchBudgetSettings(client.id),
+            fetchSessions(client.id)
           ]);
-          
-          // Generate some mock data for demonstration purposes
-          // In a real app, this would come from the backend
-          const mockScore = Math.floor(Math.random() * 100);
-          const mockProgress = Array.from({ length: 10 }, () => Math.floor(Math.random() * 100));
-          const statuses = ['active', 'inactive', 'review', 'completed'] as const;
-          const mockStatus = statuses[Math.floor(Math.random() * statuses.length)];
           
           // Calculate age
           const age = calculateAge(client.dateOfBirth);
+          
+          // Get active plan information
+          const activePlan = budgetSettings && budgetSettings.isActive ? budgetSettings : undefined;
+          
+          // Calculate score based on sessions in active plan
+          let score = 0;
+          let sessionPerformances: number[] = [];
+          
+          if (activePlan && sessions && sessions.length > 0) {
+            // Filter sessions that belong to active plan period
+            const planStartDate = activePlan.createdAt ? new Date(activePlan.createdAt) : new Date();
+            const planEndDate = activePlan.endOfPlan ? new Date(activePlan.endOfPlan) : new Date();
+            
+            const planSessions = sessions.filter(session => {
+              const sessionDate = new Date(session.sessionDate);
+              return sessionDate >= planStartDate && sessionDate <= planEndDate;
+            });
+            
+            // Extract performance data from session notes (if available)
+            if (planSessions.length > 0) {
+              // In a real app, we would get actual performance scores from session notes
+              // For now, using placeholder logic
+              const performanceScores = planSessions
+                .filter(session => session.performanceScore)
+                .map(session => session.performanceScore);
+              
+              if (performanceScores.length > 0) {
+                score = Math.round(performanceScores.reduce((sum, val) => sum + val, 0) / performanceScores.length);
+                sessionPerformances = performanceScores.slice(-10); // Get last 10 performance scores
+              }
+            }
+          }
+          
+          // Determine status - just active or inactive based on active plan
+          const status = activePlan && activePlan.isActive ? 'active' : 'inactive';
           
           return {
             ...client,
             age,
             therapists,
+            clinicians,
             goals,
             budgetItems,
             budgetSettings,
-            score: mockScore,
-            progress: mockProgress,
-            status: mockStatus
+            sessions,
+            score: score || undefined,
+            progress: sessionPerformances.length > 0 ? sessionPerformances : undefined,
+            status
           };
         })
       );
@@ -302,20 +358,19 @@ export default function EnhancedClientList() {
       header: "Therapists",
       accessorFn: (client) => (
         <div className="flex flex-wrap gap-1 max-w-[200px]">
-          {client.therapists.length > 0 ? (
-            client.therapists.filter(therapist => therapist.accessTherapeutics).slice(0, 3).map((therapist, index) => (
-              <TooltipProvider key={therapist.id}>
+          {client.clinicians && client.clinicians.length > 0 ? (
+            client.clinicians.slice(0, 3).map((assignment, index) => (
+              <TooltipProvider key={assignment.clinician.id}>
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Badge variant="outline" className="bg-primary/5 hover:bg-primary/10 cursor-pointer">
-                      {therapist.name.split(' ')[0]}
+                      {assignment.clinician.name.split(' ')[0]}
                     </Badge>
                   </TooltipTrigger>
                   <TooltipContent>
                     <div className="text-xs">
-                      <div className="font-bold">{therapist.name}</div>
-                      <div className="text-gray-500">{therapist.relationship}</div>
-                      <div className="text-gray-500">{therapist.email}</div>
+                      <div className="font-bold">{assignment.clinician.name}</div>
+                      <div className="text-gray-500">{assignment.clinician.role}</div>
                     </div>
                   </TooltipContent>
                 </Tooltip>
@@ -324,20 +379,20 @@ export default function EnhancedClientList() {
           ) : (
             <span className="text-gray-400 text-xs">No therapists</span>
           )}
-          {client.therapists.length > 3 && (
+          {client.clinicians && client.clinicians.length > 3 && (
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Badge variant="outline" className="bg-gray-100 hover:bg-gray-200 cursor-pointer">
-                    +{client.therapists.length - 3}
+                    +{client.clinicians.length - 3}
                   </Badge>
                 </TooltipTrigger>
                 <TooltipContent>
                   <div className="text-xs">
-                    {client.therapists.slice(3).map(therapist => (
-                      <div key={therapist.id} className="mb-1">
-                        <div className="font-bold">{therapist.name}</div>
-                        <div className="text-gray-500">{therapist.relationship}</div>
+                    {client.clinicians.slice(3).map(assignment => (
+                      <div key={assignment.clinician.id} className="mb-1">
+                        <div className="font-bold">{assignment.clinician.name}</div>
+                        <div className="text-gray-500">{assignment.clinician.role}</div>
                       </div>
                     ))}
                   </div>
@@ -470,11 +525,11 @@ export default function EnhancedClientList() {
           return acc + (unitPrice * quantity);
         }, 0);
         
-        // Ensure availableFunds is a number
-        const rawAvailableFunds = client.budgetSettings?.availableFunds || client.availableFunds;
-        const availableFunds = typeof rawAvailableFunds === 'string' ? parseFloat(rawAvailableFunds) : rawAvailableFunds;
+        // Ensure ndisFunds is a number - this is our total budget
+        const rawNdisFunds = client.budgetSettings?.ndisFunds || 0;
+        const totalFunds = typeof rawNdisFunds === 'string' ? parseFloat(rawNdisFunds) : (rawNdisFunds || 0);
         
-        const usagePercentage = availableFunds > 0 ? (totalBudget / availableFunds) * 100 : 0;
+        const usagePercentage = totalFunds > 0 ? (totalBudget / totalFunds) * 100 : 0;
         const formattedUsage = Math.round(usagePercentage) + '%';
         
         // Determine color based on usage
@@ -499,8 +554,8 @@ export default function EnhancedClientList() {
                 <div className="text-xs">
                   <div className="font-bold mb-1">Budget Usage</div>
                   <div>Used: ${Number(totalBudget).toFixed(2)}</div>
-                  <div>Available: ${Number(availableFunds).toFixed(2)}</div>
-                  <div>Remaining: ${Number(availableFunds - totalBudget).toFixed(2)}</div>
+                  <div>Total: ${Number(totalFunds).toFixed(2)}</div>
+                  <div>Remaining: ${Number(totalFunds - totalBudget).toFixed(2)}</div>
                 </div>
               </TooltipContent>
             </Tooltip>
@@ -535,12 +590,27 @@ export default function EnhancedClientList() {
     {
       id: "lastSession",
       header: "Last Session",
-      accessorFn: (client) => (
-        <div className="flex items-center text-xs text-gray-500">
-          <Clock className="h-3 w-3 mr-1" />
-          <span>{format(new Date(Date.now() - Math.random() * 30 * 86400000), 'MMM d')}</span>
-        </div>
-      ),
+      accessorFn: (client) => {
+        // Find the latest session date
+        const latestSession = client.sessions && client.sessions.length > 0 
+          ? client.sessions.sort((a, b) => {
+              const dateA = new Date(a.sessionDate).getTime();
+              const dateB = new Date(b.sessionDate).getTime();
+              return dateB - dateA; // Sort in descending order (newest first)
+            })[0]
+          : null;
+        
+        return (
+          <div className="flex items-center text-xs text-gray-500">
+            <Clock className="h-3 w-3 mr-1" />
+            {latestSession ? (
+              <span>{format(new Date(latestSession.sessionDate), 'MMM d')}</span>
+            ) : (
+              <span>None</span>
+            )}
+          </div>
+        );
+      },
       sortable: true,
       width: "100px",
       alignment: "start"
@@ -709,14 +779,14 @@ export default function EnhancedClientList() {
               return acc + (unitPrice * quantity);
             }, 0);
             
-            const aRawAvailableFunds = a.budgetSettings?.availableFunds || a.availableFunds;
-            const bRawAvailableFunds = b.budgetSettings?.availableFunds || b.availableFunds;
+            const aRawNdisFunds = a.budgetSettings?.ndisFunds || 0;
+            const bRawNdisFunds = b.budgetSettings?.ndisFunds || 0;
             
-            const aAvailableFunds = typeof aRawAvailableFunds === 'string' ? parseFloat(aRawAvailableFunds) : aRawAvailableFunds;
-            const bAvailableFunds = typeof bRawAvailableFunds === 'string' ? parseFloat(bRawAvailableFunds) : bRawAvailableFunds;
+            const aTotalFunds = typeof aRawNdisFunds === 'string' ? parseFloat(aRawNdisFunds) : (aRawNdisFunds || 0);
+            const bTotalFunds = typeof bRawNdisFunds === 'string' ? parseFloat(bRawNdisFunds) : (bRawNdisFunds || 0);
             
-            aValue = aAvailableFunds > 0 ? (aTotalBudget / aAvailableFunds) * 100 : 0;
-            bValue = bAvailableFunds > 0 ? (bTotalBudget / bAvailableFunds) * 100 : 0;
+            aValue = aTotalFunds > 0 ? (aTotalBudget / aTotalFunds) * 100 : 0;
+            bValue = bTotalFunds > 0 ? (bTotalBudget / bTotalFunds) * 100 : 0;
             break;
           case 'status':
             aValue = a.status || '';
