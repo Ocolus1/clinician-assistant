@@ -14,6 +14,24 @@ import {
 } from "lucide-react";
 import { Link } from "wouter";
 
+// Shared utility for consistent plan naming across components
+export const getPlanDisplayName = (plan?: BudgetSettings | any) => {
+  // If no plan exists, return a default name
+  if (!plan) return 'Budget Plan';
+  
+  // For onboarding detection
+  const isOnboardingPlan = plan.planCode?.toLowerCase()?.includes('onboard') || 
+                         !plan.planCode; // If no code, likely an onboarding plan
+  
+  if (isOnboardingPlan) {
+    return 'Onboarding Budget Plan';
+  } else if (plan.planCode) {
+    return plan.planCode;
+  } else {
+    return plan.planSerialNumber || 'Budget Plan';
+  }
+};
+
 interface BudgetPlanCardProps {
   plan: BudgetSettings;
   clientId: number;
@@ -116,7 +134,7 @@ export function BudgetPlanCard({ plan, clientId }: BudgetPlanCardProps) {
       <CardHeader className="p-4 bg-gray-50 border-b border-gray-200">
         <div className="flex justify-between items-start">
           <div>
-            <h3 className="text-md font-semibold text-gray-800">{plan.planCode || "Unnamed Plan"}</h3>
+            <h3 className="text-md font-semibold text-gray-800">{getPlanDisplayName(plan)}</h3>
             <p className="text-xs text-gray-500">Plan ID: {plan.planSerialNumber || "N/A"}</p>
           </div>
           <Badge 
