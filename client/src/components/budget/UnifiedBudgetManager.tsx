@@ -57,7 +57,8 @@ export function UnifiedBudgetManager({
   budgetItems: initialBudgetItems, 
   budgetSettings: initialBudgetSettings,
   allBudgetSettings,
-  selectedPlanId 
+  selectedPlanId,
+  onBackToGrid
 }: UnifiedBudgetManagerProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -801,6 +802,11 @@ export function UnifiedBudgetManager({
       
       // Mark form as pristine without keeping any stale data
       form.reset();
+      
+      // Return to budget plan grid view after saving
+      if (onBackToGrid) {
+        setTimeout(() => onBackToGrid(), 200); // Small delay for stability
+      }
     },
     onError: (error: any) => {
       console.error('Error details:', error);

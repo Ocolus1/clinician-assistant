@@ -59,6 +59,7 @@ export function BudgetPlanView({
             budgetItems={budgetItems}
             budgetSettings={budgetSettings}
             allBudgetSettings={allBudgetSettings}
+            onBackToGrid={handleBackToGrid}
           />
         </div>
       ) : (
