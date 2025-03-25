@@ -108,7 +108,7 @@ export function EnhancedBudgetCardGrid({ clientId, onPlanSelected }: EnhancedBud
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {normalizedPlans.length > 0 ? (
           normalizedPlans.map((plan: BudgetSettings) => {
             console.log("Rendering plan:", plan);
@@ -148,6 +148,7 @@ function BudgetPlanCard({ plan, onPreview }: BudgetPlanCardProps) {
   const [daysLeft, setDaysLeft] = useState<number>(0);
   const [formattedDate, setFormattedDate] = useState<string>("");
   const [usedAmount, setUsedAmount] = useState<number>(0);
+  const [allocatedAmount, setAllocatedAmount] = useState<number>(0);
   
   // Define an interface for session with embedded session notes
   interface SessionWithNotes extends Session {
@@ -166,6 +167,16 @@ function BudgetPlanCard({ plan, onPreview }: BudgetPlanCardProps) {
     quantity?: number;
   }
   
+  // Fetch budget items to calculate allocated funds
+  const { data: budgetItems } = useQuery({
+    queryKey: ['/api/clients', plan.clientId, 'budget-items'],
+    queryFn: async () => {
+      const response = await fetch(`/api/clients/${plan.clientId}/budget-items`);
+      const data = await response.json();
+      return data;
+    }
+  });
+  
   // Fetch sessions for this client to calculate actual utilized funds
   const { data: clientSessions } = useQuery<SessionWithNotes[]>({
     queryKey: ['/api/clients', plan.clientId, 'sessions'],
@@ -181,6 +192,16 @@ function BudgetPlanCard({ plan, onPreview }: BudgetPlanCardProps) {
       const today = new Date();
       setDaysLeft(differenceInDays(endDate, today));
       setFormattedDate(format(endDate, 'MMMM dd, yyyy'));
+    }
+    
+    // Calculate allocated funds based on budget items
+    if (budgetItems && Array.isArray(budgetItems)) {
+      // Filter budget items for this plan
+      const planItems = budgetItems.filter(item => item.budgetSettingsId === plan.id);
+      const totalAllocated = planItems.reduce((total, item) => {
+        return total + (Number(item.unitPrice) * Number(item.quantity));
+      }, 0);
+      setAllocatedAmount(totalAllocated);
     }
     
     // Calculate used funds based on session data
@@ -249,7 +270,7 @@ function BudgetPlanCard({ plan, onPreview }: BudgetPlanCardProps) {
         setUsedAmount(Math.round(totalFunds * percentElapsed));
       }
     }
-  }, [plan.endOfPlan, plan.ndisFunds, plan.clientId, plan.createdAt, daysLeft, clientSessions]);
+  }, [plan.endOfPlan, plan.ndisFunds, plan.clientId, plan.createdAt, daysLeft, clientSessions, budgetItems, plan.id]);
   
   // Determine styling based on expiration
   const isExpiringSoon = daysLeft < 30;
@@ -270,18 +291,19 @@ function BudgetPlanCard({ plan, onPreview }: BudgetPlanCardProps) {
     }
   };
   
-  // Calculate remaining funds and percentage
+  // Calculate fund metrics
   // For Radwan (ID 88), override with the correct total of 12,000
   const totalFunds = plan.clientId === 88 ? 12000 : Number(plan.ndisFunds) || 0;
   const remainingFunds = totalFunds - usedAmount;
   const usedPercentage = totalFunds > 0 ? Math.round((usedAmount / totalFunds) * 100) : 0;
+  const unallocatedFunds = totalFunds - allocatedAmount;
   
   return (
     <Card className="w-full aspect-square shadow-md hover:shadow-lg transition-all duration-200 border border-gray-100 flex flex-col">
       <CardHeader className="pb-2 pt-4">
         <div className="flex justify-between items-start">
           <div>
-            <CardTitle className="text-lg font-semibold truncate max-w-[160px]">{getPlanName()}</CardTitle>
+            <CardTitle className="text-lg font-semibold truncate max-w-[210px]">{getPlanName()}</CardTitle>
             <CardDescription className="text-xs text-gray-500">Serial #: {plan.planSerialNumber || 'N/A'}</CardDescription>
           </div>
           <Badge 
@@ -298,6 +320,18 @@ function BudgetPlanCard({ plan, onPreview }: BudgetPlanCardProps) {
             <span className="text-sm text-muted-foreground font-medium">Total:</span>
             <span className="font-semibold text-base">{formatCurrency(totalFunds)}</span>
           </div>
+          
+          <div className="flex justify-between items-center border-b border-gray-100 pb-1.5">
+            <span className="text-sm text-muted-foreground font-medium">Allocated:</span>
+            <span className="font-semibold text-base">{formatCurrency(allocatedAmount)}</span>
+          </div>
+          
+          {unallocatedFunds > 0 && (
+            <div className="flex justify-between items-center border-b border-gray-100 pb-1.5">
+              <span className="text-sm text-muted-foreground font-medium">Unallocated:</span>
+              <span className="font-semibold text-base text-blue-600">{formatCurrency(unallocatedFunds)}</span>
+            </div>
+          )}
           
           <div className="flex justify-between items-center border-b border-gray-100 pb-1.5">
             <span className="text-sm text-muted-foreground font-medium">Remaining:</span>
