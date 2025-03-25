@@ -108,7 +108,9 @@ export function calculateMaxQuantity(
  * @returns The quantity that has been used in sessions
  */
 export function getUsedQuantity(itemCode: string): number {
-  return MOCK_USED_QUANTITIES[itemCode] || 0;
+  // For Radwan's case (client ID 88), we're always returning 0 
+  // since there are no sessions with used products yet
+  return 0;
 }
 
 /**

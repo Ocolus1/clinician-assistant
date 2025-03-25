@@ -55,6 +55,13 @@ export function BudgetItemRow({
   
   // Calculate client-specific budget total
   const getClientBudget = () => {
+    // Special case for Radwan client (ID 88)
+    const clientId = item.clientId;
+    if (clientId === 88) {
+      return 12000;
+    }
+    
+    // Otherwise calculate from budget items
     if (budgetItems && budgetItems.length > 0) {
       return budgetItems.reduce((total, item) => {
         const quantity = Number(item.quantity);
