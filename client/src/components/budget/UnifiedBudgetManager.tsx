@@ -319,6 +319,7 @@ export function UnifiedBudgetManager({
       // Set default values with real data
       console.log("Attempting to reset form with initialItems:", initialItems);
       
+      // First reset the form with default values
       form.reset({
         items: initialItems,
         totalBudget: totalBudget,
@@ -326,10 +327,29 @@ export function UnifiedBudgetManager({
         remainingBudget: remainingBudget
       });
       
-      // Force immediate update of the fields array
-      initialItems.forEach(item => {
-        append(item);
-      });
+      // Wait for next render cycle then force update of the fields array
+      setTimeout(() => {
+        // First clear any existing fields
+        remove();
+        
+        // Then add each item properly
+        initialItems.forEach(item => {
+          console.log("Forcibly appending item to fields array:", item);
+          append({
+            id: item.id,
+            itemCode: item.itemCode,
+            description: item.description || "",
+            quantity: Number(item.quantity),
+            unitPrice: Number(item.unitPrice),
+            total: Number(item.quantity) * Number(item.unitPrice),
+            name: item.name || "",
+            category: item.category || "Other",
+            clientId: item.clientId,
+            budgetSettingsId: item.budgetSettingsId,
+            isNew: false
+          });
+        });
+      }, 100);
 
       // Update budget items in context
       setBudgetItems(initialItems);
@@ -345,11 +365,38 @@ export function UnifiedBudgetManager({
     name: "items"
   });
 
-  // Debug fields content
+  // Debug fields content and fix missing items
   useEffect(() => {
     console.log("Fields array updated, current length:", fields.length);
     console.log("Fields content:", fields);
-  }, [fields]);
+    
+    // If we have items in budgetItems context but no fields, force populate fields
+    if (budgetItems.length > 0 && fields.length === 0 && formInitialized) {
+      console.log("*** FIXING MISSING FIELDS: Budget items exist but fields array is empty! ***");
+      console.log("Budget items:", budgetItems);
+      
+      // Clear and repopulate the fields array
+      remove();
+      
+      // Add each item to the fields array
+      budgetItems.forEach(item => {
+        console.log("Appending item to fields:", item);
+        append({
+          id: item.id,
+          itemCode: item.itemCode,
+          description: item.description || "",
+          quantity: Number(item.quantity),
+          unitPrice: Number(item.unitPrice),
+          total: Number(item.quantity) * Number(item.unitPrice),
+          name: item.name || "",
+          category: item.category || "Other",
+          clientId: item.clientId,
+          budgetSettingsId: item.budgetSettingsId,
+          isNew: false
+        });
+      });
+    }
+  }, [fields, budgetItems, formInitialized, append, remove]);
 
   // Items from form state
   const items = form.watch("items") || [];
@@ -703,8 +750,16 @@ export function UnifiedBudgetManager({
               // Then add all refreshed items
               uniqueItems.forEach(item => {
                 append({
-                  ...item,
+                  id: item.id,
+                  itemCode: item.itemCode,
+                  description: item.description || "",
+                  quantity: Number(item.quantity),
+                  unitPrice: Number(item.unitPrice),
                   total: Number(item.quantity) * Number(item.unitPrice),
+                  name: item.name || "",
+                  category: item.category || "Other",
+                  clientId: item.clientId,
+                  budgetSettingsId: item.budgetSettingsId,
                   isNew: false
                 });
               });
