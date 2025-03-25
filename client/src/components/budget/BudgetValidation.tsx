@@ -70,9 +70,10 @@ export function BudgetValidation({
     : 0;
   
   // Segments for the progress bar - Used, Allocated, Available
+  // Using gray background with blue for utilization as requested
   const segments = [
     { value: percentUsed, color: 'bg-blue-600', label: 'Used' },
-    { value: percentAllocated - percentUsed, color: 'bg-amber-500', label: 'Allocated' },
+    { value: percentAllocated - percentUsed, color: 'bg-gray-300', label: 'Allocated' },
     { value: 100 - percentAllocated, color: 'bg-gray-200', label: 'Available' }
   ];
   
