@@ -94,8 +94,9 @@ app.use((req, res, next) => {
     serveStatic(app);
   }
 
-  // Try to serve the app on port 5000, fall back to other ports if needed
-  const startServer = (port = 5000, maxRetries = 3, retryCount = 0) => {
+  // Try to serve the app on port 5002, fall back to other ports if needed
+  // Changed from port 5000 to 5002 to avoid conflicts
+  const startServer = (port = 5002, maxRetries = 3, retryCount = 0) => {
     server.listen({
       port,
       host: "0.0.0.0",
