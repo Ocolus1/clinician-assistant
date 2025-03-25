@@ -525,7 +525,7 @@ export default function ClientProfile() {
       
       {/* Tabs section */}
       <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-        <TabsList className="w-full grid grid-cols-2 md:grid-cols-6 mb-6">
+        <TabsList className="w-full grid grid-cols-2 md:grid-cols-6 mb-8">
           <TabsTrigger value="personal" className="flex items-center">
             <User className="h-4 w-4 mr-2" />
             <span className="hidden md:inline">Personal Info</span>
