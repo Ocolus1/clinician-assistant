@@ -157,15 +157,7 @@ export function EnhancedBudgetCardGrid({ clientId, onPlanSelected }: EnhancedBud
         hasActivePlan={hasActivePlan}
         isLoading={false}
       />
-
-      {/* Debug info */}
-      <div className="mb-4 p-2 bg-gray-100 rounded-md">
-        <h4 className="text-sm font-medium mb-1">Debug Info (only shown in development)</h4>
-        <div className="text-xs">
-          <p>Budget Plans: {JSON.stringify(budgetPlans)}</p>
-        </div>
-      </div>
-
+      
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {normalizedPlans.length > 0 ? (
           normalizedPlans.map((plan: BudgetSettings) => {
