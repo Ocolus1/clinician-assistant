@@ -73,6 +73,25 @@ export function UnifiedBudgetManager({
     isReadOnly
   } = useBudgetFeature();
   
+  // Function to get consistent plan display name
+  const getPlanDisplayName = (plan: any) => {
+    // If no plan exists, return a default name
+    if (!plan) return 'Budget Plan';
+    
+    // For demonstration only - in real implementation, we'd use API data
+    // to determine if this was created during onboarding
+    const isOnboardingPlan = plan.planCode?.toLowerCase()?.includes('onboard') || 
+                           !plan.planCode; // If no code, likely an onboarding plan
+    
+    if (isOnboardingPlan) {
+      return 'Onboarding Budget Plan';
+    } else if (plan.planCode) {
+      return plan.planCode;
+    } else {
+      return 'Budget Plan';
+    }
+  };
+
   // Helper function to calculate client-specific budget amount based on items
   const getClientBudget = () => {
     // Calculate total budget from all budget items
@@ -311,6 +330,7 @@ export function UnifiedBudgetManager({
       const remainingBudget = totalBudget; 
       
       console.log(`Form initialization: Found ${initialItems.length} items, total: $${totalBudget}`);
+      console.log("Initial items detail:", initialItems);
 
       // Set default values with real data
       form.reset({
@@ -333,6 +353,12 @@ export function UnifiedBudgetManager({
     control: form.control,
     name: "items"
   });
+
+  // Debug fields content
+  useEffect(() => {
+    console.log("Fields array updated, current length:", fields.length);
+    console.log("Fields content:", fields);
+  }, [fields]);
 
   // Items from form state
   const items = form.watch("items") || [];
