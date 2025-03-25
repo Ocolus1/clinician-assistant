@@ -337,10 +337,10 @@ export default function EnhancedClientList() {
       id: "name",
       header: "Client Name",
       accessorFn: (client) => (
-        <div className="font-medium pl-1">{client.name}</div>
+        <div className="font-medium">{client.name}</div>
       ),
       sortable: true,
-      width: "200px",
+      width: "180px",
       alignment: "start"
     },
     {
@@ -1156,10 +1156,11 @@ export default function EnhancedClientList() {
                     {columns.slice(1).map((column) => (
                       <th 
                         key={column.id} 
-                        className={`px-3 py-3.5 text-sm font-semibold text-gray-900 ${
-                          column.alignment === 'center' ? 'text-center' : 
-                          column.alignment === 'end' ? 'text-right' : 'text-left'
-                        } ${column.width ? `w-[${column.width}]` : ''} ${column.id === 'name' ? 'pl-4' : ''}`}
+                        className={`py-3.5 text-sm font-semibold text-gray-900 ${
+                          column.alignment === 'center' ? 'text-center px-3' : 
+                          column.alignment === 'end' ? 'text-right px-3' : 
+                          column.id === 'name' ? 'text-left pl-1' : 'text-left px-3'
+                        } ${column.width ? `w-[${column.width}]` : ''}`}
                       >
                         {column.sortable ? (
                           <button 
@@ -1192,10 +1193,11 @@ export default function EnhancedClientList() {
                       {columns.map((column) => (
                         <td 
                           key={`${client.id}-${column.id}`} 
-                          className={`whitespace-nowrap px-3 py-4 text-sm ${
-                            column.alignment === 'center' ? 'text-center' : 
-                            column.alignment === 'end' ? 'text-right' : 'text-left'
-                          } ${column.id === 'name' ? 'pl-4' : ''}`}
+                          className={`whitespace-nowrap py-4 text-sm ${
+                            column.alignment === 'center' ? 'text-center px-3' : 
+                            column.alignment === 'end' ? 'text-right px-3' : 
+                            column.id === 'name' ? 'text-left pl-1' : 'text-left px-3'
+                          }`}
                         >
                           {column.accessorFn(client)}
                         </td>
