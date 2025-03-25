@@ -12,7 +12,8 @@ This document outlines additional guidelines and lessons learned from recent dev
 6. [Client-Specific Implementation Patterns](#client-specific-implementation-patterns)
 7. [Budget Component Architecture](#budget-component-architecture)
 8. [Form Validation and Submission](#form-validation-and-submission)
-9. [Agentic Assistant Implementation](#agentic-assistant-implementation)
+9. [Change Scope Management](#change-scope-management)
+10. [Agentic Assistant Implementation](#agentic-assistant-implementation)
 
 ## Asset Management
 
@@ -504,3 +505,72 @@ function validateBudget(items: BudgetItem[]): boolean {
 - **Callback Props**: Pass callback functions from parent components for navigation after submission
 - **Navigation Timing**: Add brief delays when navigating after async operations
 - **Success Confirmation**: Provide visual confirmation of successful submissions before navigation
+
+## Change Scope Management
+
+### Strict Scope Boundaries
+- **Task-Specific Modifications**: Only modify files and components directly related to the specified task
+- **Explicit Permission**: Always seek explicit permission before modifying files outside the stated scope
+- **Component Isolation**: Maintain clear boundaries between feature components to prevent accidental modifications
+- **Feature Coupling Awareness**: Document dependencies between features to understand potential impacts
+
+### ✅ Good Example: Controlled Scope Implementation
+```tsx
+// TASK: Fix validation in GoalForm component
+
+// First, identify all files that need to be modified
+// 1. client/src/components/goals/GoalForm.tsx - Main component needing changes
+// 2. client/src/components/goals/GoalValidation.ts - Validation logic
+
+// Implement changes only in identified files
+// client/src/components/goals/GoalValidation.ts
+export function validateGoalForm(data: GoalFormData): ValidationResult {
+  const errors: Record<string, string> = {};
+  
+  if (!data.title.trim()) {
+    errors.title = "Title is required";
+  }
+  
+  if (data.description && data.description.length > 500) {
+    errors.description = "Description must be less than 500 characters";
+  }
+  
+  return {
+    valid: Object.keys(errors).length === 0,
+    errors
+  };
+}
+
+// Do NOT modify unrelated files like:
+// - client/src/components/budget/BudgetForm.tsx
+// - client/src/components/goals/GoalCard.tsx (unless specified in task)
+```
+
+### ❌ Bad Example: Scope Creep
+```tsx
+// TASK: Fix validation in GoalForm component
+
+// Bad: Modifying files outside the specified scope
+// client/src/components/layout/Sidebar.tsx - Unrelated to goal validation
+function Sidebar() {
+  // Unrelated changes to the sidebar component
+}
+
+// Bad: Changing unrelated feature (budget) while working on goals
+// client/src/components/budget/BudgetForm.tsx
+export function validateBudgetForm() {
+  // Making "improvements" to budget validation while working on goals
+}
+```
+
+### File Impact Analysis
+- **Pre-Implementation Review**: List all files that will be modified before implementing changes
+- **Change Classification**: Clearly classify files as "required changes" versus "optional improvements"
+- **Potential Side Effects**: Document potential side effects before making changes
+- **Progressive Implementation**: Make changes incrementally with verification after each step
+
+### Implementation Documentation
+- **Change Planning**: Document planned changes with pseudocode or comments before implementation
+- **Component Mapping**: Create visual or documented maps of component relationships for complex features
+- **Decision Records**: Record implementation decisions and their rationales
+- **Test Coverage**: Document test cases for verifying changes work as expected
