@@ -49,6 +49,7 @@ interface UnifiedBudgetManagerProps {
   budgetSettings?: any;
   allBudgetSettings?: any[];
   selectedPlanId?: number | null;
+  onBackToGrid?: () => void;
 }
 
 export function UnifiedBudgetManager({ 
