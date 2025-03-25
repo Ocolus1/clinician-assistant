@@ -868,7 +868,7 @@ export function UnifiedBudgetManager({
       )}
       <CardHeader>
         <CardTitle>
-          Budget Plan: {activePlan?.planCode || 'Default Plan'}
+          Budget Plan: {getPlanDisplayName(activePlan)}
         </CardTitle>
         <CardDescription>
           Total Budget: {formatCurrency(getClientBudget())}
