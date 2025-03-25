@@ -9,7 +9,10 @@ This document outlines additional guidelines and lessons learned from recent dev
 3. [UI Integration Approaches](#ui-integration-approaches)
 4. [Development Workflow Improvements](#development-workflow-improvements)
 5. [Data Integration Patterns](#data-integration-patterns)
-6. [Agentic Assistant Implementation](#agentic-assistant-implementation)
+6. [Client-Specific Implementation Patterns](#client-specific-implementation-patterns)
+7. [Budget Component Architecture](#budget-component-architecture)
+8. [Form Validation and Submission](#form-validation-and-submission)
+9. [Agentic Assistant Implementation](#agentic-assistant-implementation)
 
 ## Asset Management
 
@@ -290,3 +293,214 @@ export async function handleBudgetQuery(query: string, clientId: number): Promis
 - **Intent Recognition**: Implement intent recognition for common therapy-related queries
 - **Entity Extraction**: Extract key entities from user queries (client names, dates, etc.)
 - **Contextual Understanding**: Maintain conversation context for follow-up questions
+
+## Client-Specific Implementation Patterns
+
+### Special Case Handling
+- **Client-Specific Logic**: Implement special case handling for clients with unique requirements
+- **ID-Based Variations**: Use client ID as a reliable identifier for applying special rules
+- **Helper Functions**: Create helper functions that encapsulate client-specific logic to keep components clean
+- **Config Parameters**: Pass configuration parameters to components rather than hardcoding special behaviors
+
+### ✅ Good Example: Client-Specific Logic
+```tsx
+// Helper function that centralizes client-specific logic
+function getClientBudget(clientId: number, defaultBudget: number): number {
+  // Special case for specific clients
+  if (clientId === 88) { // Radwan's ID
+    return 12000; // Specific budget allocation for this client
+  }
+  
+  // Default case for other clients
+  return defaultBudget;
+}
+
+// Component using the helper function
+function BudgetSummary({ clientId }: { clientId: number }) {
+  // Use the helper function to get the correct budget amount
+  const totalBudget = getClientBudget(clientId, 20000);
+  
+  return (
+    <div className="budget-summary">
+      <h3>Budget Summary</h3>
+      <p>Total Allocated: ${formatCurrency(totalBudget)}</p>
+      {/* Other budget information */}
+    </div>
+  );
+}
+```
+
+### ❌ Bad Example: Hardcoded Special Cases
+```tsx
+// Avoid: Scattering client-specific logic throughout components
+function BudgetDisplay({ clientId }: { clientId: number }) {
+  // Bad: Hardcoded special cases inside components
+  const budget = clientId === 88 ? 12000 : 20000;
+  
+  // More hardcoded special cases
+  const maxSessions = clientId === 88 ? 80 : 100;
+  const showSpecialWarning = clientId === 88;
+  
+  return (
+    <div>
+      <p>Budget: ${budget}</p>
+      <p>Maximum Sessions: {maxSessions}</p>
+      {showSpecialWarning && <Warning>Special rules apply</Warning>}
+    </div>
+  );
+}
+```
+
+### Data Source Centralization
+- **Centralized Configuration**: Store client-specific settings in a central location
+- **Dynamic Loading**: Load client-specific configurations dynamically based on client ID
+- **Default Fallbacks**: Provide sensible defaults for configuration values
+- **Structure Consistency**: Maintain consistent data structure regardless of client-specific rules
+
+## Budget Component Architecture
+
+### Component Hierarchy
+- **Consistent Navigation Flow**: Implement clear navigation patterns between list and detail views
+- **Grid-to-Detail Pattern**: Use a grid-to-detail pattern for budget plans with consistent back navigation
+- **Context Providers**: Wrap complex component hierarchies in dedicated context providers
+- **Feature Containment**: Keep all budget-related components in a dedicated feature directory
+
+### ✅ Good Example: Component Communication with Callbacks
+```tsx
+// Parent component managing view state
+function BudgetPlanView({ clientId }: { clientId: number }) {
+  const [selectedPlanId, setSelectedPlanId] = useState<number | null>(null);
+  
+  // Navigation callback for returning to grid view
+  const handleBackToGrid = useCallback(() => {
+    setSelectedPlanId(null);
+  }, []);
+  
+  return (
+    <div className="budget-plan-view">
+      {selectedPlanId ? (
+        <UnifiedBudgetManager 
+          clientId={clientId}
+          planId={selectedPlanId}
+          onBackToGrid={handleBackToGrid} // Pass callback to child component
+        />
+      ) : (
+        <EnhancedBudgetCardGrid
+          clientId={clientId}
+          onSelectPlan={setSelectedPlanId}
+        />
+      )}
+    </div>
+  );
+}
+```
+
+### ❌ Bad Example: Inconsistent Navigation
+```tsx
+// Avoid: Handling navigation inconsistently
+function BudgetComponent({ clientId }: { clientId: number }) {
+  const [view, setView] = useState('grid');
+  const [planId, setPlanId] = useState<number | null>(null);
+  
+  // Bad: Inconsistent navigation handlers
+  function handleViewBudget(id: number) {
+    setPlanId(id);
+    setView('detail');
+  }
+  
+  // Bad: Direct manipulation of window location
+  function handleBack() {
+    window.location.href = `/clients/${clientId}/profile?tab=budget`;
+  }
+  
+  return (
+    <div>
+      {view === 'grid' ? (
+        <BudgetGrid onSelect={handleViewBudget} />
+      ) : (
+        <BudgetDetail planId={planId} onBack={handleBack} />
+      )}
+    </div>
+  );
+}
+```
+
+### Context Management
+- **State Isolation**: Keep budget form state isolated from other component states
+- **Context Initialization**: Initialize context with sensible defaults
+- **Provider Composition**: Compose multiple context providers for complex features
+- **Consumer Patterns**: Use consistent patterns for consuming context data
+
+## Form Validation and Submission
+
+### Budget Validation Rules
+- **Validate Against Real Data**: Validate budget items against real usage data, not just current form state
+- **Rule Consistency**: Apply consistent validation rules across all budget-related forms
+- **Edge Cases**: Handle edge cases such as zero values, undefined values, and maximum constraints
+- **Validation Timing**: Perform validation at appropriate times (on blur, on change, on submit)
+
+### ✅ Good Example: Comprehensive Validation
+```tsx
+// Validation function with comprehensive rules
+function validateBudgetItem(
+  item: BudgetItemFormData, 
+  usedAmount: number, 
+  totalBudget: number, 
+  currentTotal: number
+): ValidationResult {
+  const errors: Record<string, string> = {};
+  
+  // Validate quantity is positive
+  if (item.quantity <= 0) {
+    errors.quantity = "Quantity must be greater than zero";
+  }
+  
+  // Validate unit price is positive
+  if (item.unitPrice <= 0) {
+    errors.unitPrice = "Unit price must be greater than zero";
+  }
+  
+  // Calculate item total
+  const itemTotal = item.quantity * item.unitPrice;
+  
+  // Validate against used amount
+  if (itemTotal < usedAmount) {
+    errors.quantity = `Cannot reduce below used amount of $${formatCurrency(usedAmount)}`;
+  }
+  
+  // Validate against total budget constraint
+  const newTotal = currentTotal - (item.originalTotal || 0) + itemTotal;
+  if (newTotal > totalBudget) {
+    errors.general = `Total budget of $${formatCurrency(totalBudget)} would be exceeded by $${formatCurrency(newTotal - totalBudget)}`;
+  }
+  
+  return {
+    valid: Object.keys(errors).length === 0,
+    errors
+  };
+}
+```
+
+### ❌ Bad Example: Incomplete Validation
+```tsx
+// Avoid: Overly simplistic validation that misses edge cases
+function validateBudget(items: BudgetItem[]): boolean {
+  // Bad: Only validates total is positive
+  const total = items.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0);
+  
+  // Bad: Doesn't check against used amounts or budget constraints
+  return total > 0;
+}
+```
+
+### Form Submission Patterns
+- **Multi-Stage Validation**: Implement client-side validation before API calls
+- **Adaptive Submission**: Adapt form submission based on validation results
+- **User Feedback**: Provide clear feedback during and after form submission
+- **Error Recovery**: Implement error recovery strategies for failed submissions
+
+### Navigation After Submission
+- **Consistent Patterns**: Use consistent navigation patterns after form submission
+- **Callback Props**: Pass callback functions from parent components for navigation after submission
+- **Navigation Timing**: Add brief delays when navigating after async operations
+- **Success Confirmation**: Provide visual confirmation of successful submissions before navigation
