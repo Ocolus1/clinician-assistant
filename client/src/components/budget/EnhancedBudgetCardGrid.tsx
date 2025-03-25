@@ -157,34 +157,46 @@ function BudgetPlanCard({ plan, onPreview }: BudgetPlanCardProps) {
     }
   }, [plan.endOfPlan]);
   
+  // Determine styling based on expiration
+  const isExpiringSoon = daysLeft < 30;
+  
   return (
-    <Card className="w-full">
-      <CardHeader>
+    <Card className="w-full shadow-md hover:shadow-lg transition-all duration-200 border border-gray-100">
+      <CardHeader className="pb-3">
         <div className="flex justify-between items-start">
           <div>
-            <CardTitle>{plan.planCode || 'Budget Plan'}</CardTitle>
-            <CardDescription>Serial #: {plan.planSerialNumber || 'N/A'}</CardDescription>
+            <CardTitle className="text-lg font-semibold">{plan.planCode || 'Budget Plan'}</CardTitle>
+            <CardDescription className="text-sm text-gray-500">Serial #: {plan.planSerialNumber || 'N/A'}</CardDescription>
           </div>
-          <Badge variant={plan.isActive ? "default" : "outline"}>
+          <Badge 
+            variant={plan.isActive ? "default" : "outline"}
+            className={plan.isActive ? "bg-green-100 text-green-800 hover:bg-green-200 border-green-200" : ""}
+          >
             {plan.isActive ? "Active" : "Inactive"}
           </Badge>
         </div>
       </CardHeader>
-      <CardContent>
-        <div className="space-y-2">
-          <div className="flex justify-between">
-            <span className="text-sm text-muted-foreground">Total Funds:</span>
-            <span className="font-medium">{formatCurrency(Number(plan.ndisFunds) || 0)}</span>
+      <CardContent className="pt-0">
+        <div className="space-y-3">
+          <div className="flex justify-between items-center border-b border-gray-100 pb-2">
+            <span className="text-sm text-muted-foreground font-medium">Total Funds:</span>
+            <span className="font-semibold text-base">{formatCurrency(Number(plan.ndisFunds) || 0)}</span>
           </div>
-          <div className="flex justify-between">
-            <span className="text-sm text-muted-foreground">Expires:</span>
-            <span className="font-medium">{formattedDate} ({daysLeft} days)</span>
+          <div className="flex justify-between items-center">
+            <span className="text-sm text-muted-foreground font-medium">Expires:</span>
+            <span className={`font-medium ${isExpiringSoon ? 'text-amber-600' : ''}`}>
+              {formattedDate} <span className="text-sm">({daysLeft} days)</span>
+            </span>
           </div>
         </div>
       </CardContent>
-      <CardFooter className="flex justify-end">
-        <Button variant="outline" onClick={onPreview}>
-          <Eye className="h-4 w-4 mr-2" />
+      <CardFooter className="flex justify-end pt-2 border-t border-gray-100 mt-2">
+        <Button 
+          variant="outline" 
+          onClick={onPreview}
+          className="rounded-full px-4 hover:bg-gray-50 transition-colors duration-200"
+        >
+          <Eye className="h-4 w-4 mr-2 text-gray-600" />
           Preview
         </Button>
       </CardFooter>
