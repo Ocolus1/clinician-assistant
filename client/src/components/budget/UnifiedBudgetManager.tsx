@@ -76,18 +76,10 @@ export function UnifiedBudgetManager({
   
   // Using the shared getPlanDisplayName function imported from BudgetPlanCard
 
-  // Helper function to calculate client-specific budget amount based on items
+  // Helper function to get the fixed budget amount for the client's plan
+  // This should NOT be recalculated based on current items - once a plan is created, the budget is fixed
   const getClientBudget = () => {
-    // Calculate total budget from all budget items
-    if (budgetItems && budgetItems.length > 0) {
-      return budgetItems.reduce((total: number, item: BudgetItem) => {
-        const quantity = Number(item.quantity);
-        const unitPrice = Number(item.unitPrice);
-        return total + (quantity * unitPrice);
-      }, 0);
-    }
-    
-    // Fallback to active plan's ndisFunds if items not available
+    // Always prioritize the active plan's ndisFunds - this is the fixed budget amount
     if (activePlan && activePlan.ndisFunds) {
       // Convert string values to numbers if needed
       return typeof activePlan.ndisFunds === 'string' 
@@ -95,8 +87,17 @@ export function UnifiedBudgetManager({
         : activePlan.ndisFunds;
     }
     
+    // If no plan is available yet, use the sum of items as fallback ONLY during initial plan creation
+    if (budgetItems && budgetItems.length > 0 && !activePlan) {
+      return budgetItems.reduce((total: number, item: BudgetItem) => {
+        const quantity = Number(item.quantity);
+        const unitPrice = Number(item.unitPrice);
+        return total + (quantity * unitPrice);
+      }, 0);
+    }
+    
     // Final fallback if nothing else is available
-    return 0;
+    return FIXED_BUDGET_AMOUNT;
   };
 
   // Get active budget plan
