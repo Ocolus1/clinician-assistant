@@ -57,9 +57,10 @@ export function AttendeeSelectionDialog({
     }
   }, [open, allies, toast]);
   
-  // Filter allies by search term, but don't exclude selected allies
+  // Filter allies by search term and non-archived status
   const filteredAllies = allies.filter(ally => 
-    searchTerm === '' || ally.name.toLowerCase().includes(searchTerm.toLowerCase())
+    (searchTerm === '' || ally.name.toLowerCase().includes(searchTerm.toLowerCase())) 
+    && !ally.archived // Only include non-archived allies
   );
   
   // Find truly available allies (those that haven't been selected yet)  

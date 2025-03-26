@@ -1073,6 +1073,31 @@ export function FullScreenSessionForm({ open, onOpenChange, defaultValues, clien
     }
   };
   
+  // Handle removing attendee by index
+  const handleRemoveAttendeeByIndex = (index: number) => {
+    try {
+      console.log(`Removing attendee at index ${index}`);
+      
+      // Get current values
+      const currentNames = form.getValues("sessionNote.presentAllies") || [];
+      const currentIds = form.getValues("sessionNote.presentAllyIds") || [];
+      
+      console.log("Current allies before removal:", { currentNames, currentIds });
+      
+      // Filter out the specified index
+      const newNames = currentNames.filter((_, i) => i !== index);
+      const newIds = currentIds.filter((_, i) => i !== index);
+      
+      console.log("Updated allies after removal:", { newNames, newIds });
+      
+      // Update form state
+      form.setValue("sessionNote.presentAllies", newNames);
+      form.setValue("sessionNote.presentAllyIds", newIds);
+    } catch (error) {
+      console.error("Error removing attendee:", error);
+    }
+  };
+  
   // Handle adding attendees to the session
   const handleAddAttendees = (selectedAllies: Ally[]) => {
     try {
@@ -1083,17 +1108,26 @@ export function FullScreenSessionForm({ open, onOpenChange, defaultValues, clien
       
       console.log("Adding attendees:", selectedAllies);
       
-      // Get current values
+      // Get current values (defaulting to empty arrays if they don't exist)
       const currentNames = form.getValues("sessionNote.presentAllies") || [];
       const currentIds = form.getValues("sessionNote.presentAllyIds") || [];
       
-      // Extract new ally names and IDs
-      const newAttendeeNames = selectedAllies.map(ally => ally.name || "");
-      const newAttendeeIds = selectedAllies.map(ally => ally.id || 0);
+      console.log("Current attendees before adding:", { currentNames, currentIds });
+      
+      // Extract new ally names and IDs - filter out any archived allies
+      const newAttendeeNames = selectedAllies
+        .filter(ally => !ally.archived)
+        .map(ally => ally.name || "");
+      
+      const newAttendeeIds = selectedAllies
+        .filter(ally => !ally.archived)
+        .map(ally => ally.id || 0);
       
       // Combine with existing values without duplicates
       const uniqueNames = Array.from(new Set([...currentNames, ...newAttendeeNames]));
       const uniqueIds = Array.from(new Set([...currentIds, ...newAttendeeIds]));
+      
+      console.log("Updated attendees after adding:", { uniqueNames, uniqueIds });
       
       console.log("Combined allies:", uniqueNames);
       
@@ -1455,18 +1489,7 @@ export function FullScreenSessionForm({ open, onOpenChange, defaultValues, clien
                             variant="ghost"
                             size="icon"
                             className="h-4 w-4 ml-1 p-0 hover:bg-transparent"
-                            onClick={() => {
-                              // Remove this attendee
-                              const currentNames = form.getValues("sessionNote.presentAllies") || [];
-                              const currentIds = form.getValues("sessionNote.presentAllyIds") || [];
-                              
-                              // Remove the attendee at this index
-                              const newNames = currentNames.filter((_, i) => i !== index);
-                              const newIds = currentIds.filter((_, i) => i !== index);
-                              
-                              form.setValue("sessionNote.presentAllies", newNames);
-                              form.setValue("sessionNote.presentAllyIds", newIds);
-                            }}
+                            onClick={() => handleRemoveAttendeeByIndex(index)}
                           >
                             <X className="h-3 w-3" />
                           </Button>
@@ -1952,7 +1975,14 @@ export function FullScreenSessionForm({ open, onOpenChange, defaultValues, clien
       
       {/* Attendee Selection Dialog */}
       {/* Debug allies */}
-      {attendeeSelectionOpen && console.log("FullScreenSessionForm - alliesData:", JSON.stringify(alliesData))}
+      {attendeeSelectionOpen && (
+        <>
+          {console.log("FullScreenSessionForm - alliesData:", JSON.stringify(alliesData))}
+          {console.log("FullScreenSessionForm - Allies count:", (alliesData || []).length)}
+          {console.log("FullScreenSessionForm - Allies filtered by archived:", (alliesData || []).filter(ally => !ally.archived).length)}
+          {console.log("FullScreenSessionForm - Each ally details:", (alliesData || []).map(ally => ({ id: ally.id, name: ally.name, archived: ally.archived })))}
+        </>
+      )}
       
       <AttendeeSelectionDialog
         open={attendeeSelectionOpen}
