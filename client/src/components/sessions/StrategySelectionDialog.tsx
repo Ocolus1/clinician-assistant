@@ -89,7 +89,7 @@ export function StrategySelectionDialog({
         
         <div className="mb-2">
           <p className="text-sm text-muted-foreground">
-            Selected: {selectedStrategies.length}/{maxStrategies}
+            Selected: {selectedStrategies?.length || 0}/{maxStrategies}
           </p>
         </div>
 
@@ -109,8 +109,8 @@ export function StrategySelectionDialog({
                   <h3 className="text-sm font-medium mb-2">{category}</h3>
                   <div className="space-y-2">
                     {categoryStrategies.map((strategy) => {
-                      const isSelected = selectedStrategies.includes(strategy.name);
-                      const isDisabled = !isSelected && selectedStrategies.length >= maxStrategies;
+                      const isSelected = selectedStrategies?.includes(strategy.name) || false;
+                      const isDisabled = !isSelected && (selectedStrategies?.length || 0) >= maxStrategies;
                       
                       return (
                         <div 

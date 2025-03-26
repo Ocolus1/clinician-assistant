@@ -928,120 +928,167 @@ export function FullScreenSessionForm({ open, onOpenChange, defaultValues, clien
   const handleAddStrategy = (strategies: Strategy[]) => {
     if (currentGoalIndex === -1 || currentMilestoneIndex === -1) return;
     
-    const performanceAssessments = form.getValues().performanceAssessments;
-    const currentAssessment = performanceAssessments[currentGoalIndex];
-    const currentMilestone = currentAssessment.milestones[currentMilestoneIndex];
-    
-    // Extract strategy names
-    const strategyNames = strategies.map(s => s.name);
-    
-    const updatedMilestone = {
-      ...currentMilestone,
-      strategies: [...currentMilestone.strategies, ...strategyNames],
-    };
-    
-    const updatedMilestones = [...currentAssessment.milestones];
-    updatedMilestones[currentMilestoneIndex] = updatedMilestone;
-    
-    const updatedAssessment = {
-      ...currentAssessment,
-      milestones: updatedMilestones,
-    };
-    
-    const updatedAssessments = [...performanceAssessments];
-    updatedAssessments[currentGoalIndex] = updatedAssessment;
-    
-    form.setValue("performanceAssessments", updatedAssessments);
+    try {
+      const performanceAssessments = form.getValues().performanceAssessments || [];
+      if (!performanceAssessments[currentGoalIndex]) return;
+      
+      const currentAssessment = performanceAssessments[currentGoalIndex];
+      if (!currentAssessment.milestones || !currentAssessment.milestones[currentMilestoneIndex]) return;
+      
+      const currentMilestone = currentAssessment.milestones[currentMilestoneIndex];
+      
+      // Extract strategy names
+      const strategyNames = strategies.map(s => s.name);
+      
+      // Ensure strategies array exists
+      const currentStrategies = currentMilestone.strategies || [];
+      
+      const updatedMilestone = {
+        ...currentMilestone,
+        strategies: [...currentStrategies, ...strategyNames],
+      };
+      
+      const updatedMilestones = [...currentAssessment.milestones];
+      updatedMilestones[currentMilestoneIndex] = updatedMilestone;
+      
+      const updatedAssessment = {
+        ...currentAssessment,
+        milestones: updatedMilestones,
+      };
+      
+      const updatedAssessments = [...performanceAssessments];
+      updatedAssessments[currentGoalIndex] = updatedAssessment;
+      
+      form.setValue("performanceAssessments", updatedAssessments);
+    } catch (error) {
+      console.error("Error adding strategy:", error);
+    }
   };
   
   // Handle removing a strategy from a milestone
   const handleRemoveStrategy = (goalIndex: number, milestoneIndex: number, strategyIndex: number) => {
-    const performanceAssessments = form.getValues().performanceAssessments;
-    const currentAssessment = performanceAssessments[goalIndex];
-    const currentMilestone = currentAssessment.milestones[milestoneIndex];
-    
-    const updatedStrategies = currentMilestone.strategies.filter((_, index) => index !== strategyIndex);
-    
-    const updatedMilestone = {
-      ...currentMilestone,
-      strategies: updatedStrategies,
-    };
-    
-    const updatedMilestones = [...currentAssessment.milestones];
-    updatedMilestones[milestoneIndex] = updatedMilestone;
-    
-    const updatedAssessment = {
-      ...currentAssessment,
-      milestones: updatedMilestones,
-    };
-    
-    const updatedAssessments = [...performanceAssessments];
-    updatedAssessments[goalIndex] = updatedAssessment;
-    
-    form.setValue("performanceAssessments", updatedAssessments);
+    try {
+      const performanceAssessments = form.getValues().performanceAssessments || [];
+      if (!performanceAssessments[goalIndex]) return;
+      
+      const currentAssessment = performanceAssessments[goalIndex];
+      if (!currentAssessment.milestones || !currentAssessment.milestones[milestoneIndex]) return;
+      
+      const currentMilestone = currentAssessment.milestones[milestoneIndex];
+      if (!currentMilestone.strategies) return;
+      
+      const updatedStrategies = currentMilestone.strategies.filter((_, index) => index !== strategyIndex);
+      
+      const updatedMilestone = {
+        ...currentMilestone,
+        strategies: updatedStrategies,
+      };
+      
+      const updatedMilestones = [...currentAssessment.milestones];
+      updatedMilestones[milestoneIndex] = updatedMilestone;
+      
+      const updatedAssessment = {
+        ...currentAssessment,
+        milestones: updatedMilestones,
+      };
+      
+      const updatedAssessments = [...performanceAssessments];
+      updatedAssessments[goalIndex] = updatedAssessment;
+      
+      form.setValue("performanceAssessments", updatedAssessments);
+    } catch (error) {
+      console.error("Error removing strategy:", error);
+    }
   };
   
   // Handle adding a product to the session
   const handleAddProduct = (product: BudgetItem & { availableQuantity: number }, quantity: number) => {
-    const currentProducts = form.getValues().sessionNote.products;
-    
-    // Check if product already exists
-    const existingIndex = currentProducts.findIndex(p => p.budgetItemId === product.id);
-    
-    if (existingIndex >= 0) {
-      // Update existing product quantity
-      const updatedProducts = [...currentProducts];
-      updatedProducts[existingIndex] = {
-        ...updatedProducts[existingIndex],
-        quantity: updatedProducts[existingIndex].quantity + quantity,
-      };
+    try {
+      if (!product || !quantity) {
+        console.error("Invalid product or quantity:", product, quantity);
+        return;
+      }
       
-      form.setValue("sessionNote.products", updatedProducts);
+      const currentProducts = form.getValues()?.sessionNote?.products || [];
       
-      toast({
-        title: "Product Updated",
-        description: `Added ${quantity} more units of ${product.description} to the session`,
-      });
-    } else {
-      // Add new product
-      const newProduct = {
-        budgetItemId: product.id,
-        productCode: product.itemCode || "",
-        productDescription: product.description || "",
-        quantity,
-        unitPrice: product.unitPrice || 0,
-        availableQuantity: product.availableQuantity,
-        originalQuantity: product.quantity,
-      };
+      // Check if product already exists
+      const existingIndex = currentProducts.findIndex(p => p.budgetItemId === product.id);
       
-      form.setValue("sessionNote.products", [...currentProducts, newProduct]);
-      
-      toast({
-        title: "Product Added",
-        description: `Added ${product.description} to the session`,
-      });
+      if (existingIndex >= 0) {
+        // Update existing product quantity
+        const updatedProducts = [...currentProducts];
+        updatedProducts[existingIndex] = {
+          ...updatedProducts[existingIndex],
+          quantity: updatedProducts[existingIndex].quantity + quantity,
+        };
+        
+        form.setValue("sessionNote.products", updatedProducts);
+        
+        toast({
+          title: "Product Updated",
+          description: `Added ${quantity} more units of ${product.description || "product"} to the session`,
+        });
+      } else {
+        // Add new product
+        const newProduct = {
+          budgetItemId: product.id,
+          productCode: product.itemCode || "",
+          productDescription: product.description || "",
+          quantity,
+          unitPrice: product.unitPrice || 0,
+          availableQuantity: product.availableQuantity || 0,
+          originalQuantity: product.quantity || 0,
+        };
+        
+        form.setValue("sessionNote.products", [...currentProducts, newProduct]);
+        
+        toast({
+          title: "Product Added",
+          description: `Added ${product.description || "product"} to the session`,
+        });
+      }
+    } catch (error) {
+      console.error("Error adding product:", error);
     }
   };
   
   // Handle removing a product from the session
   const handleRemoveProduct = (index: number) => {
-    const currentProducts = form.getValues().sessionNote.products;
-    const updatedProducts = currentProducts.filter((_, i) => i !== index);
-    form.setValue("sessionNote.products", updatedProducts);
-    
-    toast({
-      title: "Product Removed",
-      description: "Product has been removed from the session",
-    });
+    try {
+      const currentProducts = form.getValues()?.sessionNote?.products || [];
+      if (index < 0 || index >= currentProducts.length) {
+        console.error("Invalid product index:", index, "for products:", currentProducts);
+        return;
+      }
+      
+      const updatedProducts = currentProducts.filter((_, i) => i !== index);
+      form.setValue("sessionNote.products", updatedProducts);
+      
+      toast({
+        title: "Product Removed",
+        description: "Product has been removed from the session",
+      });
+    } catch (error) {
+      console.error("Error removing product:", error);
+    }
   };
   
   // Handle adding attendees to the session
   const handleAddAttendees = (selectedAllies: Ally[]) => {
-    const attendeeNames = selectedAllies.map(ally => ally.name);
-    const attendeeIds = selectedAllies.map(ally => ally.id);
-    
-    form.setValue("sessionNote.presentAllies", attendeeNames);
-    form.setValue("sessionNote.presentAllyIds", attendeeIds);
+    try {
+      if (!selectedAllies || !Array.isArray(selectedAllies)) {
+        console.error("Invalid selectedAllies:", selectedAllies);
+        return;
+      }
+      
+      const attendeeNames = selectedAllies.map(ally => ally.name || "");
+      const attendeeIds = selectedAllies.map(ally => ally.id || 0);
+      
+      form.setValue("sessionNote.presentAllies", attendeeNames);
+      form.setValue("sessionNote.presentAllyIds", attendeeIds);
+    } catch (error) {
+      console.error("Error adding attendees:", error);
+    }
   };
   
   // Handle form submission
@@ -1840,7 +1887,9 @@ export function FullScreenSessionForm({ open, onOpenChange, defaultValues, clien
       <StrategySelectionDialog
         open={strategySelectionOpen}
         onOpenChange={setStrategySelectionOpen}
-        onSelectStrategies={handleAddStrategy}
+        selectedStrategies={currentGoalIndex >= 0 && currentMilestoneIndex >= 0 && form.getValues().performanceAssessments[currentGoalIndex]?.milestones[currentMilestoneIndex]?.strategies || []}
+        milestoneId={currentGoalIndex >= 0 && currentMilestoneIndex >= 0 && form.getValues().performanceAssessments[currentGoalIndex]?.milestones[currentMilestoneIndex]?.milestoneId || 0}
+        onSelectStrategy={(strategy) => handleAddStrategy([strategy])}
       />
       
       {/* Product Selection Dialog */}
@@ -1856,9 +1905,11 @@ export function FullScreenSessionForm({ open, onOpenChange, defaultValues, clien
         open={attendeeSelectionOpen}
         onOpenChange={setAttendeeSelectionOpen}
         allies={alliesData || []}
-        selectedAllies={alliesData?.filter(ally => 
-          form.getValues().sessionNote.presentAllyIds.includes(ally.id)
-        ) || []}
+        selectedAllies={alliesData && form.getValues()?.sessionNote?.presentAllyIds ? 
+          alliesData.filter(ally => 
+            form.getValues()?.sessionNote?.presentAllyIds?.includes(ally.id)
+          ) : []
+        }
         onSelectAttendees={handleAddAttendees}
       />
     </ThreeColumnLayout>
