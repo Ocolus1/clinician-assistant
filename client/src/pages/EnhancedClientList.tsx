@@ -584,6 +584,66 @@ export default function EnhancedClientList() {
       alignment: "start"
     },
     {
+      id: "expiry",
+      header: "Expiry",
+      accessorFn: (client) => {
+        // Get the plan end date from budget settings
+        const endOfPlan = client.budgetSettings?.endOfPlan;
+        
+        if (!endOfPlan || !client.budgetSettings?.isActive) {
+          return (
+            <span className="text-gray-400 text-xs">N/A</span>
+          );
+        }
+        
+        // Calculate days left until expiration
+        const today = new Date();
+        const expiryDate = new Date(endOfPlan);
+        const daysLeft = Math.ceil((expiryDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+        
+        // Determine color based on days left
+        let textColor = "text-gray-600";
+        let bgColor = "bg-gray-100";
+        
+        if (daysLeft <= 30) {
+          textColor = "text-red-700";
+          bgColor = "bg-red-100";
+        } else if (daysLeft <= 60) {
+          textColor = "text-amber-700";
+          bgColor = "bg-amber-100";
+        } else if (daysLeft <= 90) {
+          textColor = "text-blue-700";
+          bgColor = "bg-blue-100";
+        } else {
+          textColor = "text-green-700";
+          bgColor = "bg-green-100";
+        }
+        
+        return (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${bgColor} ${textColor}`}>
+                  <Clock className="h-3 w-3 mr-1" />
+                  {daysLeft} days
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                <div className="text-xs">
+                  <div className="font-bold mb-1">Plan Expiration</div>
+                  <div>Expires on: {format(expiryDate, 'MMM d, yyyy')}</div>
+                  <div>{daysLeft} days remaining</div>
+                </div>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        );
+      },
+      sortable: true,
+      width: "100px",
+      alignment: "start"
+    },
+    {
       id: "status",
       header: "Status",
       accessorFn: (client) => {
@@ -824,6 +884,28 @@ export default function EnhancedClientList() {
             aValue = aTotalFunds > 0 ? (aUsedBudget / aTotalFunds) * 100 : 0;
             bValue = bTotalFunds > 0 ? (bUsedBudget / bTotalFunds) * 100 : 0;
             break;
+          case 'expiry':
+            // Calculate days left until expiration
+            const aEndOfPlan = a.budgetSettings?.endOfPlan;
+            const bEndOfPlan = b.budgetSettings?.endOfPlan;
+            
+            // If no end of plan or inactive, sort to the end
+            if (!aEndOfPlan || !a.budgetSettings?.isActive) {
+              aValue = Number.MAX_SAFE_INTEGER;
+            } else {
+              const today = new Date();
+              const aExpiryDate = new Date(aEndOfPlan);
+              aValue = Math.ceil((aExpiryDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+            }
+            
+            if (!bEndOfPlan || !b.budgetSettings?.isActive) {
+              bValue = Number.MAX_SAFE_INTEGER;
+            } else {
+              const today = new Date();
+              const bExpiryDate = new Date(bEndOfPlan);
+              bValue = Math.ceil((bExpiryDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+            }
+            break;
           case 'status':
             aValue = a.status || '';
             bValue = b.status || '';
@@ -897,7 +979,8 @@ export default function EnhancedClientList() {
                 <Skeleton className="h-8 w-[10%]" />
                 <Skeleton className="h-8 w-[10%]" />
                 <Skeleton className="h-8 w-[10%]" />
-                <Skeleton className="h-8 w-[15%]" />
+                <Skeleton className="h-8 w-[10%]" />
+                <Skeleton className="h-8 w-[10%]" />
                 <Skeleton className="h-8 w-[10%]" />
               </div>
               
@@ -910,7 +993,8 @@ export default function EnhancedClientList() {
                   <Skeleton className="h-14 w-[10%]" />
                   <Skeleton className="h-14 w-[10%]" />
                   <Skeleton className="h-14 w-[10%]" />
-                  <Skeleton className="h-14 w-[15%]" />
+                  <Skeleton className="h-14 w-[10%]" />
+                  <Skeleton className="h-14 w-[10%]" />
                   <Skeleton className="h-14 w-[10%]" />
                 </div>
               ))}

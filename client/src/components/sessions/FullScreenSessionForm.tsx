@@ -30,7 +30,7 @@ import {
 } from "lucide-react";
 import "./session-form.css";
 import { ThreeColumnLayout } from "./ThreeColumnLayout";
-import { Ally, BudgetItem, BudgetSettings, Client, Goal, Subgoal, Strategy, insertSessionSchema } from "@shared/schema";
+import { Ally, BudgetItem, BudgetSettings, Client, Goal, Subgoal, Strategy, insertSessionSchema, ClientClinician } from "@shared/schema";
 import { NumericRating } from "@/components/sessions/NumericRating";
 import { apiRequest } from "@/lib/queryClient";
 import { useSafeForm } from "@/hooks/use-safe-hooks";
@@ -758,8 +758,27 @@ export function FullScreenSessionForm({
     enabled: open && !!clientId,
   });
   
+  // Fetch assigned clinicians for the selected client for clinician selection dropdown
+  const cliniciansQuery = useQuery<(ClientClinician & { clinician: { id: number, name: string, role: string } })[]>({
+    queryKey: ["/api/clients", clientId, "clinicians"],
+    queryFn: async () => {
+      console.log("Fetching clinicians for client ID:", clientId);
+      const response = await fetch(`/api/clients/${clientId}/clinicians`);
+      if (!response.ok) {
+        throw new Error(`Error fetching clinicians: ${response.status}`);
+      }
+      const data = await response.json();
+      console.log("Clinicians data received:", JSON.stringify(data));
+      return data;
+    },
+    enabled: open && !!clientId,
+  });
+  
   // Extract allies data and handle logs separately to avoid TypeScript errors
   const allies = alliesQuery.data || [];
+  
+  // Extract clinicians data for the dropdown
+  const assignedClinicians = cliniciansQuery.data || [];
   
   // Log allies info when data changes - this helps debug when client selection changes
   useEffect(() => {
@@ -773,6 +792,19 @@ export function FullScreenSessionForm({
       console.error("Error details:", alliesQuery.error);
     }
   }, [alliesQuery.data, alliesQuery.error, clientId]);
+  
+  // Log clinicians info when data changes - this helps debug when client selection changes
+  useEffect(() => {
+    if (cliniciansQuery.data) {
+      console.log("Clinicians fetched successfully for client ID:", clientId);
+      console.log("Clinicians data:", cliniciansQuery.data);
+      console.log("Clinicians count:", cliniciansQuery.data.length);
+    }
+    if (cliniciansQuery.error) {
+      console.error("Error fetching clinicians for client ID:", clientId);
+      console.error("Error details:", cliniciansQuery.error);
+    }
+  }, [cliniciansQuery.data, cliniciansQuery.error, clientId]);
 
   // Fetch goals for assessment
   const { data: goals = [], error: goalsError, isLoading: isLoadingGoals } = useQuery<Goal[]>({
@@ -1835,11 +1867,15 @@ export function FullScreenSessionForm({
                                     </SelectTrigger>
                                   </FormControl>
                                   <SelectContent>
-                                    {/* Populate with allies from the client's allies list */}
-                                    {allies.length > 0 ? (
-                                      allies.map((ally) => (
-                                        <SelectItem key={ally.id} value={ally.id.toString()}>
-                                          {ally.name}
+                                    {/* Populate with assigned clinicians from the client's clinicians list */}
+                                    {cliniciansQuery.isLoading ? (
+                                      <SelectItem value="0" disabled>
+                                        Loading clinicians...
+                                      </SelectItem>
+                                    ) : assignedClinicians.length > 0 ? (
+                                      assignedClinicians.map((assignment) => (
+                                        <SelectItem key={assignment.clinician.id} value={assignment.clinician.id.toString()}>
+                                          {assignment.clinician.name} ({assignment.clinician.role})
                                         </SelectItem>
                                       ))
                                     ) : (
