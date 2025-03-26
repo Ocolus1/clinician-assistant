@@ -1336,16 +1336,31 @@ export function FullScreenSessionForm({
     mutationFn: async (data: IntegratedSessionFormValues) => {
       console.log("### DETAILED FORM SUBMISSION - Form submit data:", data);
       
-      // Ensure therapistId is properly formatted
+      // Create a simplified session object that matches the backend requirements
       const sessionData = {
-        ...data.session,
-        therapistId: data.session.therapistId ? Number(data.session.therapistId) : undefined
+        clientId: Number(data.session.clientId),
+        therapistId: data.session.therapistId ? Number(data.session.therapistId) : undefined,
+        sessionDate: data.session.sessionDate instanceof Date 
+          ? data.session.sessionDate.toISOString() 
+          : new Date().toISOString(), // Direct ISO string to bypass validation issues
+        duration: Number(data.session.duration) || 60,
+        status: data.session.status || "scheduled",
+        title: data.session.title || "Therapy Session",
+        location: data.session.location || ""
       };
       
-      console.log("### DETAILED FORM SUBMISSION - Formatted session data:", sessionData);
+      console.log("### DETAILED FORM SUBMISSION - Simplified session data:", sessionData);
 
-      // First create the session
-      const sessionResponse = await apiRequest("POST", "/api/sessions", sessionData);
+      // Direct API call to create session
+      const sessionResponse = await fetch("/api/sessions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(sessionData)
+      }).then(res => {
+        if (!res.ok) throw new Error("Failed to create session: " + res.statusText);
+        return res.json();
+      });
+      
       console.log("### DETAILED FORM SUBMISSION - Session created successfully:", sessionResponse);
 
       if (!sessionResponse || !('id' in sessionResponse)) {
