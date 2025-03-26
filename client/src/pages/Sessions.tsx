@@ -39,7 +39,8 @@ import { useToast } from "@/hooks/use-toast";
 
 // Import our components
 import { SessionDetails } from "@/components/sessions/SessionDetails";
-import { FullScreenSessionForm } from "@/components/sessions/FullScreenSessionForm";
+import { SimpleSessionForm } from "@/temp/SimpleSessionForm";
+// import { FullScreenSessionForm } from "@/components/sessions/FullScreenSessionForm";
 
 // Session status badge helper - moved outside component for global access
 const getStatusBadge = (status: string) => {
@@ -226,8 +227,8 @@ export default function Sessions() {
             </div>
           </div>
           
-          {/* Open the FullScreenSessionForm component */}
-          <FullScreenSessionForm 
+          {/* Open the SimpleSessionForm component */}
+          <SimpleSessionForm 
             open={createSessionDialogOpen} 
             onOpenChange={setCreateSessionDialogOpen}
           />
