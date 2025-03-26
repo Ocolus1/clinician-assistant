@@ -78,7 +78,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Progress } from "@/components/ui/progress";
-import { RichTextEditor } from "@/components/ui/rich-text-editor";
+
 import {
   Command,
   CommandEmpty,
@@ -3141,11 +3141,11 @@ export function FullScreenSessionForm({
                           render={({ field }) => (
                             <FormItem>
                               <FormControl>
-                                <RichTextEditor
+                                <Textarea
                                   value={field.value || ""}
-                                  onChange={(value) => {
-                                    // Only update the notes field, not selectedValue
-                                    field.onChange(value);
+                                  onChange={(e) => {
+                                    // Update the notes field with the textarea value
+                                    field.onChange(e.target.value);
                                     
                                     // Set selectedValue to null explicitly to avoid validation errors
                                     form.setValue("sessionNote.selectedValue", null, { 
