@@ -101,19 +101,21 @@ import {
   AlertTitle,
 } from "@/components/ui/alert";
 
-// Session form schema
+// Session form schema - With improved error handling and relaxed validation
 const sessionFormSchema = insertSessionSchema.extend({
   sessionDate: z.coerce.date({
     required_error: "Session date is required",
-  }),
+  }).or(z.string().transform(val => new Date(val))), // Allow string date values
   clientId: z.coerce.number({
     required_error: "Client is required",
-  }),
-  therapistId: z.coerce.number().optional(), // Using coerce.number() to handle string values from Select
-  timeFrom: z.string().optional(),
-  timeTo: z.string().optional(),
-  location: z.string().optional(),
-  sessionId: z.string().optional(), // Added session ID field for display
+  }).or(z.string().transform(val => parseInt(val, 10))), // Handle string IDs
+  therapistId: z.coerce.number().optional().or(z.string().transform(val => parseInt(val, 10))), // Better string → number handling
+  timeFrom: z.string().optional().or(z.null()),
+  timeTo: z.string().optional().or(z.null()),
+  location: z.string().optional().or(z.null()),
+  sessionId: z.string().optional().or(z.null()), // More tolerant of null values
+  title: z.string().optional().default("Therapy Session"), // Provide default title
+  duration: z.number().optional().or(z.null()), // Make duration field more flexible
 });
 
 // Performance assessment schema
@@ -1355,15 +1357,48 @@ export function FullScreenSessionForm({
   });
 
   function onSubmit(data: IntegratedSessionFormValues) {
+    // ENHANCED DEBUGGING: Log critical information when submission is attempted
+    console.log("SUBMIT ATTEMPT: Form submission started");
+    console.log("SUBMIT ATTEMPT: Form validation state:", form.formState.isValid);
+    console.log("SUBMIT ATTEMPT: Form errors:", form.formState.errors);
+    
     // Safety check - if we're showing one of our internal dialogs, don't submit
     if (showAttendeeDialog || showProductDialog || showGoalDialog || showMilestoneDialog || showStrategyDialog) {
-      console.log("Preventing submission while dialog is open");
+      console.log("SUBMIT BLOCKED: Preventing submission while dialog is open");
       return;
     }
     
     // ADDITIONAL SAFETY CHECK: If there's a mutation in progress, don't submit again
     if (createSessionMutation.isPending) {
-      console.log("Preventing duplicate submission - mutation already in progress");
+      console.log("SUBMIT BLOCKED: Preventing duplicate submission - mutation already in progress");
+      return;
+    }
+    
+    // Check for validation errors - this might help identify why the button isn't working
+    if (Object.keys(form.formState.errors).length > 0) {
+      console.error("VALIDATION ERROR: Form has errors:", form.formState.errors);
+      
+      // Show detailed error messages for better debugging
+      const errorMessages = Object.entries(form.formState.errors)
+        .map(([key, error]) => `${key}: ${error?.message || 'Invalid value'}`)
+        .join(', ');
+      
+      toast({
+        title: "Form has errors",
+        description: `Please fix the following issues: ${errorMessages}`,
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    // Ensure required client ID is set
+    if (!data.session.clientId) {
+      console.error("VALIDATION ERROR: Client ID is required");
+      toast({
+        title: "Client selection required",
+        description: "Please select a client for this session",
+        variant: "destructive"
+      });
       return;
     }
     
@@ -1390,19 +1425,53 @@ export function FullScreenSessionForm({
       data.session.title = 'Therapy Session';
     }
     
-    // Add logging for debugging
-    console.log("Submitting session form with data:", JSON.stringify(data, null, 2));
+    // Add enhanced logging for debugging
+    console.log("SUBMIT PROGRESS: Preparing to submit session form with data:", JSON.stringify(data, null, 2));
     
     // Use a safe wrapper to prevent duplicate submissions
     if (!isFormSubmitting) {
+      console.log("SUBMIT PROGRESS: Setting form submission state to true");
       setIsFormSubmitting(true);
-      createSessionMutation.mutate(data, {
-        onSettled: () => {
-          setIsFormSubmitting(false);
-        }
-      });
+      
+      try {
+        console.log("SUBMIT PROGRESS: Calling mutation function");
+        createSessionMutation.mutate(data, {
+          onSuccess: (result) => {
+            console.log("SUBMIT SUCCESS: Session created successfully", result);
+            toast({
+              title: "Success",
+              description: "Session created successfully",
+            });
+            setIsFormSubmitting(false);
+            if (onOpenChange) {
+              onOpenChange(false);
+            }
+          },
+          onError: (error) => {
+            console.error("SUBMIT ERROR: Failed to create session", error);
+            toast({
+              title: "Error creating session",
+              description: "Please try again or check the console for details",
+              variant: "destructive",
+            });
+            setIsFormSubmitting(false);
+          },
+          onSettled: () => {
+            console.log("SUBMIT SETTLED: Submission process complete");
+            setIsFormSubmitting(false);
+          }
+        });
+      } catch (error) {
+        console.error("SUBMIT EXCEPTION: Unexpected error during form submission", error);
+        setIsFormSubmitting(false);
+        toast({
+          title: "Unexpected error",
+          description: "An error occurred while submitting the form",
+          variant: "destructive",
+        });
+      }
     } else {
-      console.log("Form submission prevented - already in progress");
+      console.log("SUBMIT BLOCKED: Form submission already in progress");
       toast({
         title: "Submission in progress",
         description: "Please wait while your session is being created",
@@ -3002,12 +3071,53 @@ export function FullScreenSessionForm({
                       type="submit"
                       disabled={isFormSubmitting || form.formState.isSubmitting}
                       onClick={(e) => {
-                        // Make sure we're triggering the form submission properly
-                        console.log("Create New Session button in footer clicked");
+                        // Enhanced logging for button click
+                        console.log("BUTTON EVENT: Create New Session button in footer clicked");
                         e.preventDefault();
-                        // Manually trigger form submission
-                        form.handleSubmit(onSubmit)();
+                        
+                        // Show loading toast
+                        toast({
+                          title: "Processing...",
+                          description: "Creating your session. This may take a moment.",
+                        });
+                        
+                        // Pre-submission validation check
+                        if (Object.keys(form.formState.errors).length > 0) {
+                          console.error("VALIDATION ERROR: Form has errors before submission:", form.formState.errors);
+                          const errorMessages = Object.entries(form.formState.errors)
+                            .map(([key, error]) => `${key}: ${error?.message || 'Invalid value'}`)
+                            .join(', ');
+                          
+                          toast({
+                            title: "Form has errors",
+                            description: `Please fix the following issues: ${errorMessages}`,
+                            variant: "destructive"
+                          });
+                          return;
+                        }
+                        
+                        console.log("BUTTON EVENT: Triggering form submission manually");
+                        // Set a flag to track submission attempt
+                        try {
+                          // Get form values for logging
+                          const formValues = form.getValues();
+                          console.log("BUTTON EVENT: Current form values:", formValues);
+                          
+                          // Manually trigger form submission
+                          form.handleSubmit((data) => {
+                            console.log("BUTTON EVENT: Form submission handler called with data:", data);
+                            onSubmit(data);
+                          })();
+                        } catch (error) {
+                          console.error("BUTTON EVENT: Error during form submission:", error);
+                          toast({
+                            title: "Submission Error",
+                            description: "An unexpected error occurred. Please try again.",
+                            variant: "destructive"
+                          });
+                        }
                       }}
+                      className="bg-green-600 hover:bg-green-700"
                     >
                       {isFormSubmitting || form.formState.isSubmitting ? (
                         <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
