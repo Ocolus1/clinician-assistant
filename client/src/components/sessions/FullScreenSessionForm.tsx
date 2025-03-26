@@ -1081,11 +1081,25 @@ export function FullScreenSessionForm({ open, onOpenChange, defaultValues, clien
         return;
       }
       
-      const attendeeNames = selectedAllies.map(ally => ally.name || "");
-      const attendeeIds = selectedAllies.map(ally => ally.id || 0);
+      console.log("Adding attendees:", selectedAllies);
       
-      form.setValue("sessionNote.presentAllies", attendeeNames);
-      form.setValue("sessionNote.presentAllyIds", attendeeIds);
+      // Get current values
+      const currentNames = form.getValues("sessionNote.presentAllies") || [];
+      const currentIds = form.getValues("sessionNote.presentAllyIds") || [];
+      
+      // Extract new ally names and IDs
+      const newAttendeeNames = selectedAllies.map(ally => ally.name || "");
+      const newAttendeeIds = selectedAllies.map(ally => ally.id || 0);
+      
+      // Combine with existing values without duplicates
+      const uniqueNames = Array.from(new Set([...currentNames, ...newAttendeeNames]));
+      const uniqueIds = Array.from(new Set([...currentIds, ...newAttendeeIds]));
+      
+      console.log("Combined allies:", uniqueNames);
+      
+      // Update form with combined values
+      form.setValue("sessionNote.presentAllies", uniqueNames);
+      form.setValue("sessionNote.presentAllyIds", uniqueIds);
     } catch (error) {
       console.error("Error adding attendees:", error);
     }
@@ -1429,9 +1443,33 @@ export function FullScreenSessionForm({ open, onOpenChange, defaultValues, clien
                   {form.watch("sessionNote.presentAllies")?.length > 0 ? (
                     <div className="flex flex-wrap gap-2">
                       {form.watch("sessionNote.presentAllies").map((name, index) => (
-                        <Badge key={index} variant="secondary">
+                        <Badge 
+                          key={index} 
+                          variant="secondary"
+                          className="flex items-center space-x-1"
+                        >
                           <UserCheck className="h-3 w-3 mr-1" />
                           {name}
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-4 w-4 ml-1 p-0 hover:bg-transparent"
+                            onClick={() => {
+                              // Remove this attendee
+                              const currentNames = form.getValues("sessionNote.presentAllies") || [];
+                              const currentIds = form.getValues("sessionNote.presentAllyIds") || [];
+                              
+                              // Remove the attendee at this index
+                              const newNames = currentNames.filter((_, i) => i !== index);
+                              const newIds = currentIds.filter((_, i) => i !== index);
+                              
+                              form.setValue("sessionNote.presentAllies", newNames);
+                              form.setValue("sessionNote.presentAllyIds", newIds);
+                            }}
+                          >
+                            <X className="h-3 w-3" />
+                          </Button>
                         </Badge>
                       ))}
                     </div>
@@ -1913,12 +1951,16 @@ export function FullScreenSessionForm({ open, onOpenChange, defaultValues, clien
       />
       
       {/* Attendee Selection Dialog */}
+      {/* Debug allies */}
+      {attendeeSelectionOpen && console.log("FullScreenSessionForm - alliesData:", JSON.stringify(alliesData))}
+      
       <AttendeeSelectionDialog
         open={attendeeSelectionOpen}
         onOpenChange={setAttendeeSelectionOpen}
         allies={alliesData || []}
         selectedAllies={form.getValues()?.sessionNote?.presentAllies || []}
         onSelectAttendee={(ally) => {
+          console.log("Selected ally:", JSON.stringify(ally));
           if (ally) {
             const allies = [ally]; // Create array with the single ally
             handleAddAttendees(allies);

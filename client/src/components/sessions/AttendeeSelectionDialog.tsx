@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Ally } from "@shared/schema";
-import { UserIcon, AlertCircle, Users } from "lucide-react";
+import { UserIcon, AlertCircle, Users, Check as CheckIcon } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -57,10 +57,14 @@ export function AttendeeSelectionDialog({
     }
   }, [open, allies, toast]);
   
-  // Filter out allies that are already selected and match search term
-  const availableAllies = allies.filter(ally => 
-    !selectedAllies.includes(ally.name) && 
-    (searchTerm === '' || ally.name.toLowerCase().includes(searchTerm.toLowerCase()))
+  // Filter allies by search term, but don't exclude selected allies
+  const filteredAllies = allies.filter(ally => 
+    searchTerm === '' || ally.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+  
+  // Find truly available allies (those that haven't been selected yet)  
+  const availableAllies = filteredAllies.filter(ally => 
+    !selectedAllies.includes(ally.name)
   );
   
   // Handle search input change
@@ -71,9 +75,14 @@ export function AttendeeSelectionDialog({
   // Log for debugging
   useEffect(() => {
     if (open) {
-      console.log("AttendeeSelectionDialog - Available allies:", availableAllies);
-      console.log("AttendeeSelectionDialog - Selected allies:", selectedAllies);
-      console.log("AttendeeSelectionDialog - All allies:", allies);
+      console.log("AttendeeSelectionDialog - Available allies:", JSON.stringify(availableAllies));
+      console.log("AttendeeSelectionDialog - Selected allies:", JSON.stringify(selectedAllies));
+      console.log("AttendeeSelectionDialog - All allies:", JSON.stringify(allies));
+      
+      // Add more detailed info about each ally
+      allies.forEach(ally => {
+        console.log(`Ally details - id: ${ally.id}, name: ${ally.name}, archived: ${ally.archived}`);
+      });
     }
   }, [open, availableAllies, selectedAllies, allies]);
   
@@ -161,17 +170,21 @@ export function AttendeeSelectionDialog({
                     Close
                   </Button>
                 </div>
-              ) : availableAllies.length === 0 ? (
+              ) : filteredAllies.length === 0 ? (
                 <div className="text-center p-6">
                   <p className="text-muted-foreground">
-                    {searchTerm ? 'No matching attendees found' : 'All attendees have been added'}
+                    {searchTerm ? 'No matching attendees found' : 'No attendees available'}
                   </p>
                 </div>
               ) : (
-                availableAllies.map(ally => (
+                filteredAllies.map(ally => (
                   <Card 
                     key={ally.id} 
-                    className="cursor-pointer hover:bg-accent transition-colors"
+                    className={`cursor-pointer transition-colors ${
+                      selectedAllies.includes(ally.name) 
+                        ? 'bg-primary/10 border-primary/30' 
+                        : 'hover:bg-accent'
+                    }`}
                     onClick={(e) => {
                       // Prevent all default events to avoid form submission
                       e.preventDefault();
@@ -182,22 +195,33 @@ export function AttendeeSelectionDialog({
                         e.nativeEvent.stopImmediatePropagation();
                       }
                       
-                      // Use the safe handler with added protections
-                      safelySelectAttendee(ally);
+                      // Only add if not already selected
+                      if (!selectedAllies.includes(ally.name)) {
+                        // Use the safe handler with added protections
+                        safelySelectAttendee(ally);
+                      }
                       
                       // Return false to prevent default behavior in older browsers
                       return false;
                     }}
                   >
                     <CardContent className="p-3">
-                      <div className="flex items-center">
-                        <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center mr-3">
-                          <UserIcon className="h-4 w-4 text-primary" />
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center">
+                          <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center mr-3">
+                            <UserIcon className="h-4 w-4 text-primary" />
+                          </div>
+                          <div>
+                            <p className="font-medium text-sm">{ally.name}</p>
+                            <p className="text-xs text-muted-foreground">{ally.relationship || "Supporter"}</p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="font-medium text-sm">{ally.name}</p>
-                          <p className="text-xs text-muted-foreground">{ally.relationship || "Supporter"}</p>
-                        </div>
+                        
+                        {selectedAllies.includes(ally.name) && (
+                          <div className="bg-primary/20 rounded-full p-1">
+                            <CheckIcon className="h-4 w-4 text-primary" />
+                          </div>
+                        )}
                       </div>
                     </CardContent>
                   </Card>
