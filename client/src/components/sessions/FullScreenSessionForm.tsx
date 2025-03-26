@@ -79,6 +79,7 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Progress } from "@/components/ui/progress";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
+import { FormRichTextEditor } from "@/components/ui/form-rich-text-editor";
 import {
   Command,
   CommandEmpty,
@@ -155,7 +156,7 @@ const sessionProductSchema = z.object({
 });
 
 // Session notes schema
-// Apply passthrough directly to the schema to handle RichTextEditor's internal state
+// Apply specific handling for RichTextEditor's content
 const sessionNoteSchema = z.object({
   presentAllies: z.array(z.string()).default([]),
   presentAllyIds: z.array(z.number()).default([]), // Store ally IDs for data integrity
@@ -163,12 +164,11 @@ const sessionNoteSchema = z.object({
   focusRating: z.number().min(0).max(10).default(5),
   cooperationRating: z.number().min(0).max(10).default(5),
   physicalActivityRating: z.number().min(0).max(10).default(5),
-  notes: z.string().optional(),
+  // Accept any valid string for notes, including empty string
+  notes: z.string().optional().transform(val => val || ""),
   products: z.array(sessionProductSchema).default([]),
   status: z.enum(["draft", "completed"]).default("draft"),
-  // Explicitly handle the selectedValue field that comes from RichTextEditor
-  selectedValue: z.any().optional(),
-}).passthrough();
+}).passthrough(); // Use passthrough to accept any additional fields from the editor
 
 // Complete form schema
 const integratedSessionFormSchema = z.object({
@@ -671,8 +671,8 @@ export function FullScreenSessionForm({
       physicalActivityRating: 5,
       notes: "",
       products: [], // Products used in the session
-      status: "draft",
-      selectedValue: {}, // Use an empty object instead of null to match how the editor component works
+      status: "draft"
+      // Removed selectedValue completely - let the editor manage its internal state
     },
     performanceAssessments: [],
   };
@@ -3112,19 +3112,12 @@ export function FullScreenSessionForm({
                           render={({ field }) => (
                             <FormItem>
                               <FormControl>
-                                <RichTextEditor
+                                <FormRichTextEditor
+                                  name={field.name}
                                   value={field.value || ""}
                                   onChange={(value) => {
-                                    // Update the notes field with the new value
+                                    // Using our specialized component that handles state isolation
                                     field.onChange(value);
-                                    
-                                    // Instead of setting to null, set to an empty object
-                                    // This helps prevent validation errors while not interfering with the editor
-                                    form.setValue("sessionNote.selectedValue", {}, { 
-                                      shouldValidate: false,
-                                      shouldDirty: false,
-                                      shouldTouch: false
-                                    });
                                   }}
                                   placeholder="Enter detailed session notes here..."
                                   className="min-h-[400px]"
