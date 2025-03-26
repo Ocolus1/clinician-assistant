@@ -165,6 +165,7 @@ const sessionNoteSchema = z.object({
   notes: z.string().optional(),
   products: z.array(sessionProductSchema).default([]),
   status: z.enum(["draft", "completed"]).default("draft"),
+  selectedValue: z.any().optional(), // Add this field to handle RichTextEditor's internal state
 });
 
 // Complete form schema
