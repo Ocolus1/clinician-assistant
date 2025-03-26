@@ -1227,7 +1227,7 @@ export default function EnhancedClientList() {
             </div>
           ) : (
             <div className="overflow-auto !p-0">
-              <table className="w-full divide-y divide-gray-200 border-collapse">
+              <table className="w-full table-fixed divide-y divide-gray-200 border-collapse">
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 w-[40px]">
@@ -1245,7 +1245,7 @@ export default function EnhancedClientList() {
                           column.alignment === 'end' ? 'text-right px-3' : 
                           column.id === 'name' ? 'text-left pl-3 pr-3' : 'text-left px-3'
                         }`}
-                        style={column.width ? { width: column.width } : {}}
+                        style={column.width ? { width: column.width, minWidth: column.width } : {}}
                       >
                         {column.sortable ? (
                           <button 
@@ -1283,7 +1283,7 @@ export default function EnhancedClientList() {
                             column.alignment === 'end' ? 'text-right px-3' : 
                             column.id === 'name' ? 'text-left pl-3 pr-3' : 'text-left px-3'
                           }`}
-                          style={column.width ? { width: column.width } : {}}
+                          style={column.width ? { width: column.width, minWidth: column.width } : {}}
                         >
                           {column.accessorFn(client)}
                         </td>
