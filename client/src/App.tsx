@@ -14,6 +14,7 @@ import ClientProfile from "@/pages/ClientProfile";
 import Sessions from "@/pages/Sessions";
 import Reports from "@/pages/Reports";
 import Settings from "@/pages/Settings";
+import TestBudget from "@/pages/TestBudget";
 import { AppLayout } from "@/components/layout/AppLayout";
 // Agent components
 import { AgentProvider } from '@/components/agent/AgentContext';
@@ -53,6 +54,7 @@ function Router() {
         <Route path="/sessions" component={Sessions} />
         <Route path="/reports" component={Reports} />
         <Route path="/settings" component={Settings} />
+        <Route path="/test-budget" component={TestBudget} />
         <Route component={NotFound} />
       </Switch>
     </AppLayout>
