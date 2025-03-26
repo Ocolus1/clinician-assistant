@@ -282,7 +282,12 @@ export class DBStorage implements IStorage {
     try {
       const clientAllies = await db.select()
         .from(allies)
-        .where(eq(allies.clientId, clientId));
+        .where(
+          and(
+            eq(allies.clientId, clientId),
+            eq(allies.archived, false) // Only return non-archived allies
+          )
+        );
       
       console.log(`Found ${clientAllies.length} allies for client ${clientId}`);
       return clientAllies;
