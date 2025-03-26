@@ -130,7 +130,6 @@ const sessionProductSchema = z.object({
   availableQuantity: z.number(),
 });
 
-// Apply passthrough directly to the schema to better handle RichTextEditor's internal state
 const sessionNoteSchema = z.object({
   presentAllies: z.array(z.string()).default([]),
   presentAllyIds: z.array(z.number()).default([]),
@@ -141,12 +140,11 @@ const sessionNoteSchema = z.object({
   notes: z.string().optional(),
   products: z.array(sessionProductSchema).default([]),
   status: z.enum(["draft", "completed"]).default("draft"),
-  // Removed selectedValue field 
 });
 
 const integratedSessionFormSchema = z.object({
   session: sessionFormSchema,
-  sessionNote: sessionNoteSchema, // sessionNoteSchema already has passthrough applied
+  sessionNote: sessionNoteSchema,
   performanceAssessments: z.array(performanceAssessmentSchema).default([]),
 });
 
@@ -419,7 +417,7 @@ export function IntegratedSessionForm({
       physicalActivityRating: 5,
       notes: "",
       products: [],
-      status: "draft"
+      status: "draft",
     },
     performanceAssessments: [],
   };
@@ -1966,10 +1964,6 @@ const ProductSelectionDialog = ({
                                   placeholder="Enter general notes about the session..."
                                   className="resize-none min-h-[300px] border-primary/10 focus:border-primary/30"
                                   {...field}
-                                  onChange={(e) => {
-                                    // Apply normal onChange handler
-                                    field.onChange(e);
-                                  }}
                                 />
                               </FormControl>
                               <FormMessage />

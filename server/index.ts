@@ -96,83 +96,28 @@ app.use((req, res, next) => {
     serveStatic(app);
   }
 
-  // STEP 5: Create a dual-port system for Replit compatibility
-  console.log("STEP 5: Starting server with proxy for Replit workflow");
-  
-  const startServer = () => {
-    // Use an alternative port for the actual server since 5000 seems to be in use
-    const ACTUAL_PORT = 3333; // Using an uncommon port to avoid conflicts
-    const WORKFLOW_PORT = 5000; // The port the workflow is waiting for
-    
-    // First start the actual application on our alternative port
-    console.log(`Starting main application server on port ${ACTUAL_PORT}...`);
+  // Try to serve the app on port 5000, which is what Replit workflow expects
+  console.log("STEP 5: Starting server on port 5000");
+  const startServer = (port = 5000, maxRetries = 3, retryCount = 0) => {
+    console.log(`Attempting to start server on port ${port} (attempt ${retryCount + 1}/${maxRetries + 1})`);
     
     server.listen({
-      port: ACTUAL_PORT,
+      port,
       host: "0.0.0.0",
+      reusePort: false, // Changed to false to avoid potential port conflicts
     }, () => {
-      console.log(`SUCCESS: Main application server listening on port ${ACTUAL_PORT}`);
-      log(`serving on port ${ACTUAL_PORT}`);
-      
-      // Now create a minimal HTTP server on port 5000 that just sends a message
-      // This is purely for the workflow to detect activity on port 5000
-      console.log(`Creating workflow detection server on port ${WORKFLOW_PORT}...`);
-      
-      import * as http from 'http';
-      const proxyServer = http.createServer((req: any, res: any) => {
-        // Tell the client about our actual server
-        res.writeHead(200, { 'Content-Type': 'text/html' });
-        res.end(`
-          <!DOCTYPE html>
-          <html>
-          <head>
-            <meta http-equiv="refresh" content="0;url=http://${req.headers.host.replace('5000', ACTUAL_PORT.toString())}${req.url}" />
-            <title>Redirecting...</title>
-          </head>
-          <body>
-            <p>Redirecting to main server port...</p>
-            <script>
-              window.location.href = "http://${req.headers.host.replace('5000', ACTUAL_PORT.toString())}${req.url}";
-            </script>
-          </body>
-          </html>
-        `);
-      });
-      
-      proxyServer.on('error', (err: any) => {
-        console.error(`Note: Workflow detection server error: ${err.message}`);
-        console.error(`The application is still running on port ${ACTUAL_PORT}`);
-        
-        // If the port is in use, try a more aggressive approach (Replit specific)
-        if (err.code === 'EADDRINUSE') {
-          console.log(`Port ${WORKFLOW_PORT} is in use, but the app is still accessible on port ${ACTUAL_PORT}`);
-          log(`Port ${WORKFLOW_PORT} is in use, but app is running on ${ACTUAL_PORT}`);
-        }
-      });
-      
-      // The main application is already running, so just try to bind the proxy
-      // without causing the entire application to fail if it can't
-      proxyServer.listen(WORKFLOW_PORT, "0.0.0.0", () => {
-        console.log(`SUCCESS: Workflow detection server listening on port ${WORKFLOW_PORT}`);
-        log(`Workflow detection active on port ${WORKFLOW_PORT}`);
-      });
+      console.log(`SUCCESS: Server is now listening on port ${port}`);
+      log(`serving on port ${port}`);
     }).on('error', (err: any) => {
-      console.error(`ERROR starting main server on port ${ACTUAL_PORT}:`, err.message);
-      
-      // If the main server fails, that's a real problem - try one more time on another port
-      const FALLBACK_PORT = 4444;
-      console.log(`Trying fallback port ${FALLBACK_PORT}...`);
-      
-      server.listen({
-        port: FALLBACK_PORT,
-        host: "0.0.0.0",
-      }, () => {
-        console.log(`SUCCESS: Server is now listening on fallback port ${FALLBACK_PORT}`);
-        log(`serving on fallback port ${FALLBACK_PORT}`);
-      }).on('error', (fallbackErr: any) => {
-        console.error(`FATAL: Could not start server on any port: ${fallbackErr.message}`);
-        console.error("Please restart the workflow.");
-      });
+      if (err.code === 'EADDRINUSE' && retryCount < maxRetries) {
+        console.log(`WARNING: Port ${port} is busy, trying port ${port + 1}...`);
+        log(`Port ${port} is busy, trying port ${port + 1}...`);
+        // Try the next port
+        startServer(port + 1, maxRetries, retryCount + 1);
+      } else {
+        console.error('CRITICAL ERROR: Server startup failed:', err);
+        process.exit(1);
+      }
     });
   };
   

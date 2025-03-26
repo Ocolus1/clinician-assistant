@@ -246,40 +246,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const goals = await storage.getGoalsByClient(parseInt(req.params.clientId));
     res.json(goals);
   });
-
-  // New top-level goals endpoint for cross-client goal queries
-  app.get("/api/goals", async (req, res) => {
-    try {
-      // Check if clientId is provided as a query parameter
-      const clientId = req.query.clientId ? parseInt(req.query.clientId as string) : undefined;
-      
-      console.log(`GET /api/goals - Getting all goals${clientId ? ` for client ${clientId}` : ''}`);
-      
-      if (clientId) {
-        // If clientId is provided, use the existing method
-        const goals = await storage.getGoalsByClient(clientId);
-        console.log(`Found ${goals.length} goals for client ${clientId}`);
-        res.json(goals);
-      } else {
-        // If no clientId is provided, return goals for all clients
-        // Since we don't have a direct method for this, we'll get all clients first
-        const clients = await storage.getAllClients();
-        
-        // Then fetch goals for each client and combine them
-        const allGoals = [];
-        for (const client of clients) {
-          const goals = await storage.getGoalsByClient(client.id);
-          allGoals.push(...goals);
-        }
-        
-        console.log(`Found ${allGoals.length} goals across all clients`);
-        res.json(allGoals);
-      }
-    } catch (error) {
-      console.error(`Error retrieving goals:`, error);
-      res.status(500).json({ error: formatError(error) });
-    }
-  });
   
   // New endpoint to get goal performance data
   app.get("/api/clients/:clientId/goals/performance", async (req, res) => {
