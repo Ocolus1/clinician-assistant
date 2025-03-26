@@ -437,7 +437,7 @@ const ProductSelectionDialog = ({
               <p className="text-sm text-muted-foreground mt-1">Add products to the client's active budget plan first.</p>
             </div>
           ) : (
-            <>
+            <div className="product-selection-container">
               {/* Search bar */}
               <div className="relative">
                 <Input
@@ -536,7 +536,7 @@ const ProductSelectionDialog = ({
                   </div>
                 </div>
               )}
-            </>
+            </div>
           )}
         </div>
         
