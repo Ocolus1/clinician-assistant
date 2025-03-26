@@ -761,11 +761,10 @@ export function FullScreenSessionForm({ open, onOpenChange, defaultValues, clien
         focusRating: 5,
         cooperationRating: 5,
         physicalActivityRating: 5,
-        notes: "",
+        generalNotes: "",
         homeRecommendations: "",
         activitySummary: "",
         products: [],
-        status: "draft",
       },
       performanceAssessments: [],
     };
@@ -782,29 +781,26 @@ export function FullScreenSessionForm({ open, onOpenChange, defaultValues, clien
   
   // Fetch subgoals for selected goals
   useEffect(() => {
-    // Only run this effect if form is initialized
-    if (form) {
-      const selectedGoalIds = form.getValues().performanceAssessments.map(pa => pa.goalId);
-      
-      selectedGoalIds.forEach(goalId => {
-        if (!subgoalsByGoalId[goalId]) {
-          // Fetch subgoals for this goal
-          fetch(`/api/goals/${goalId}/subgoals`)
-            .then(response => response.json())
-            .then(data => {
-              console.log(`Subgoals for goal ${goalId}:`, data);
-              setSubgoalsByGoalId(prev => ({
-                ...prev,
-                [goalId]: data
-              }));
-            })
-            .catch(error => {
-              console.error(`Error fetching subgoals for goal ${goalId}:`, error);
-            });
-        }
-      });
-    }
-  }, [form, subgoalsByGoalId]);
+    const selectedGoalIds = form.getValues().performanceAssessments.map(pa => pa.goalId);
+    
+    selectedGoalIds.forEach(goalId => {
+      if (!subgoalsByGoalId[goalId]) {
+        // Fetch subgoals for this goal
+        fetch(`/api/goals/${goalId}/subgoals`)
+          .then(response => response.json())
+          .then(data => {
+            console.log(`Subgoals for goal ${goalId}:`, data);
+            setSubgoalsByGoalId(prev => ({
+              ...prev,
+              [goalId]: data
+            }));
+          })
+          .catch(error => {
+            console.error(`Error fetching subgoals for goal ${goalId}:`, error);
+          });
+      }
+    });
+  }, [form.getValues, subgoalsByGoalId]);
 
   // Format budget items for product selection
   const availableProducts = useMemo(() => {
