@@ -48,6 +48,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Slider } from "@/components/ui/slider";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -591,9 +592,11 @@ export function FullScreenSessionForm({ open, onOpenChange, defaultValues, clien
   const [isSaving, setIsSaving] = useState(false);
   
   // Fetch client data for the form
-  const { data: clientData } = useQuery({
+  const { data: clientData, isLoading: isLoadingClient } = useQuery({
     queryKey: ['/api/clients', clientId],
     enabled: !!clientId,
+    staleTime: 0, // Don't use stale data
+    refetchOnMount: true, // Always refetch when component mounts
   });
   
   // Fetch existing session if in edit mode
@@ -612,6 +615,11 @@ export function FullScreenSessionForm({ open, onOpenChange, defaultValues, clien
   const { data: alliesData = [], isLoading: isLoadingAllies } = useQuery({
     queryKey: ['/api/clients', clientId, 'allies'],
     enabled: !!clientId,
+    staleTime: 0, // Don't use stale data
+    refetchOnMount: true, // Always refetch when component mounts
+    retry: 3, // Retry failed requests up to 3 times
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
   });
   
   // Fetch budget items for the client
@@ -1185,7 +1193,11 @@ export function FullScreenSessionForm({ open, onOpenChange, defaultValues, clien
                 <CardTitle className="text-md">Client</CardTitle>
               </CardHeader>
               <CardContent>
-                <p>{clientData?.name || "Loading client information..."}</p>
+                {isLoadingClient ? (
+                  <Skeleton className="h-6 w-[120px]" />
+                ) : (
+                  <p>{clientData?.name || "No client information available"}</p>
+                )}
               </CardContent>
             </Card>
             
@@ -1987,7 +1999,7 @@ export function FullScreenSessionForm({ open, onOpenChange, defaultValues, clien
       <AttendeeSelectionDialog
         open={attendeeSelectionOpen}
         onOpenChange={setAttendeeSelectionOpen}
-        allies={alliesData || []}
+        allies={Array.isArray(alliesData) ? alliesData.filter(ally => !ally.archived) : []}
         selectedAllies={form.getValues()?.sessionNote?.presentAllies || []}
         onSelectAttendee={(ally) => {
           console.log("Selected ally:", JSON.stringify(ally));
@@ -1996,6 +2008,7 @@ export function FullScreenSessionForm({ open, onOpenChange, defaultValues, clien
             handleAddAttendees(allies);
           }
         }}
+        isLoading={isLoadingAllies}
       />
     </ThreeColumnLayout>
   );

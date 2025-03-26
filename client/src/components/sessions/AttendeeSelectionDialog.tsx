@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Dialog,
   DialogContent,
@@ -28,6 +29,7 @@ interface AttendeeSelectionDialogProps {
   allies: Ally[];
   selectedAllies: string[];
   onSelectAttendee: (ally: Ally) => void;
+  isLoading?: boolean;
 }
 
 export function AttendeeSelectionDialog({
@@ -35,7 +37,8 @@ export function AttendeeSelectionDialog({
   onOpenChange,
   allies,
   selectedAllies,
-  onSelectAttendee
+  onSelectAttendee,
+  isLoading = false
 }: AttendeeSelectionDialogProps) {
   // State for search input
   const [searchTerm, setSearchTerm] = useState('');
@@ -137,7 +140,17 @@ export function AttendeeSelectionDialog({
         </DialogHeader>
         
         <div className="py-4">
-          {allies.length === 0 ? (
+          {isLoading ? (
+            <div className="space-y-4">
+              <Skeleton className="h-10 w-full" /> {/* Search input skeleton */}
+              <Skeleton className="h-4 w-full" /> {/* Count info skeleton */}
+              <div className="space-y-2">
+                <Skeleton className="h-16 w-full" />
+                <Skeleton className="h-16 w-full" />
+                <Skeleton className="h-16 w-full" />
+              </div>
+            </div>
+          ) : allies.length === 0 ? (
             <Alert variant="destructive" className="mb-4">
               <AlertCircle className="h-4 w-4" />
               <AlertTitle>No allies found</AlertTitle>
@@ -168,7 +181,16 @@ export function AttendeeSelectionDialog({
           
           <ScrollArea className="h-[300px] pr-4">
             <div className="space-y-2">
-              {allies.length === 0 ? (
+              {isLoading ? (
+                // Loading skeletons for ally cards
+                <>
+                  <Skeleton className="h-16 w-full" />
+                  <Skeleton className="h-16 w-full" />
+                  <Skeleton className="h-16 w-full" />
+                  <Skeleton className="h-16 w-full" />
+                  <Skeleton className="h-16 w-full" />
+                </>
+              ) : allies.length === 0 ? (
                 <div className="text-center p-6">
                   <Button 
                     variant="outline" 
