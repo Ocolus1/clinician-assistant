@@ -48,16 +48,18 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  console.log("Registering knowledge API routes for the agentic assistant");
+  console.log("SERVER STARTUP: Beginning application initialization");
+  
+  console.log("STEP 1: Registering knowledge API routes");
   registerKnowledgeRoutes(app);
   
-  console.log("Registering report API routes");
+  console.log("STEP 2: Registering report API routes");
   registerReportRoutes(app);
   
+  console.log("STEP 3: Registering main API routes");
   const server = await registerRoutes(app);
   
-  console.log("Successfully registered knowledge API routes");
-  console.log("Successfully registered report API routes");
+  console.log("STEP 4: All routes registered successfully");
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
@@ -94,22 +96,26 @@ app.use((req, res, next) => {
     serveStatic(app);
   }
 
-  // Try to serve the app on port 5002, fall back to other ports if needed
-  // Changed from port 5000 to 5002 to avoid conflicts
-  const startServer = (port = 5002, maxRetries = 3, retryCount = 0) => {
+  // Try to serve the app on port 5000, which is what Replit workflow expects
+  console.log("STEP 5: Starting server on port 5000");
+  const startServer = (port = 5000, maxRetries = 3, retryCount = 0) => {
+    console.log(`Attempting to start server on port ${port} (attempt ${retryCount + 1}/${maxRetries + 1})`);
+    
     server.listen({
       port,
       host: "0.0.0.0",
-      reusePort: true,
+      reusePort: false, // Changed to false to avoid potential port conflicts
     }, () => {
+      console.log(`SUCCESS: Server is now listening on port ${port}`);
       log(`serving on port ${port}`);
     }).on('error', (err: any) => {
       if (err.code === 'EADDRINUSE' && retryCount < maxRetries) {
+        console.log(`WARNING: Port ${port} is busy, trying port ${port + 1}...`);
         log(`Port ${port} is busy, trying port ${port + 1}...`);
         // Try the next port
         startServer(port + 1, maxRetries, retryCount + 1);
       } else {
-        console.error('Server startup error:', err);
+        console.error('CRITICAL ERROR: Server startup failed:', err);
         process.exit(1);
       }
     });
