@@ -3256,20 +3256,15 @@ export function FullScreenSessionForm({
                           console.log("BUTTON EVENT: Creating basic direct submission payload");
                           
                           // Create a new payload directly with just the minimum required fields
+                          // NOTE: For session POST route we need to send session data directly, not wrapped in session property
                           const directPayload = {
-                            session: {
-                              clientId: rawData.session.clientId,
-                              therapistId: rawData.session.therapistId,
-                              title: "Therapy Session",
-                              sessionDate: new Date().toISOString(), // Use ISO string format
-                              duration: 60,
-                              status: "scheduled",
-                              location: rawData.session.location || "Clinic"
-                            },
-                            sessionNote: {
-                              presentAllies: rawData.sessionNote?.presentAllies || [],
-                              presentAllyIds: rawData.sessionNote?.presentAllyIds || []
-                            }
+                            clientId: rawData.session.clientId,
+                            therapistId: rawData.session.therapistId,
+                            title: "Therapy Session",
+                            sessionDate: new Date().toISOString(), // Use ISO string format
+                            duration: 60,
+                            status: "scheduled",
+                            location: rawData.session.location || "Clinic"
                           };
                           
                           console.log("BUTTON EVENT: Calling mutate with direct payload:", directPayload);
