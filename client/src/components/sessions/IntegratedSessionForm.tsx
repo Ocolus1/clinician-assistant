@@ -140,11 +140,12 @@ const sessionNoteSchema = z.object({
   notes: z.string().optional(),
   products: z.array(sessionProductSchema).default([]),
   status: z.enum(["draft", "completed"]).default("draft"),
+  selectedValue: z.any().optional(), // Add this field to handle RichTextEditor's internal state
 });
 
 const integratedSessionFormSchema = z.object({
   session: sessionFormSchema,
-  sessionNote: sessionNoteSchema,
+  sessionNote: sessionNoteSchema.passthrough(), // Add passthrough to handle any extra fields that might be added dynamically
   performanceAssessments: z.array(performanceAssessmentSchema).default([]),
 });
 
@@ -418,6 +419,7 @@ export function IntegratedSessionForm({
       notes: "",
       products: [],
       status: "draft",
+      selectedValue: null, // Add this to match FullScreenSessionForm implementation
     },
     performanceAssessments: [],
   };
@@ -1964,6 +1966,16 @@ const ProductSelectionDialog = ({
                                   placeholder="Enter general notes about the session..."
                                   className="resize-none min-h-[300px] border-primary/10 focus:border-primary/30"
                                   {...field}
+                                  onChange={(e) => {
+                                    // Apply normal onChange handler
+                                    field.onChange(e);
+                                    
+                                    // Set selectedValue to null explicitly to avoid validation errors
+                                    form.setValue("sessionNote.selectedValue", null, { 
+                                      shouldValidate: false,
+                                      shouldDirty: false
+                                    });
+                                  }}
                                 />
                               </FormControl>
                               <FormMessage />

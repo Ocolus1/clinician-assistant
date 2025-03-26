@@ -78,6 +78,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Progress } from "@/components/ui/progress";
+import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import {
   Command,
   CommandEmpty,
@@ -164,12 +165,13 @@ const sessionNoteSchema = z.object({
   notes: z.string().optional(),
   products: z.array(sessionProductSchema).default([]),
   status: z.enum(["draft", "completed"]).default("draft"),
+  selectedValue: z.any().optional(), // Add this field to handle RichTextEditor's internal state
 });
 
 // Complete form schema
 const integratedSessionFormSchema = z.object({
   session: sessionFormSchema,
-  sessionNote: sessionNoteSchema, // Removed passthrough as we don't need it anymore
+  sessionNote: sessionNoteSchema.passthrough(), // Add passthrough to handle any extra fields that might be added dynamically
   performanceAssessments: z.array(performanceAssessmentSchema).default([]),
 });
 
@@ -668,6 +670,7 @@ export function FullScreenSessionForm({
       notes: "",
       products: [], // Products used in the session
       status: "draft",
+      selectedValue: null, // Explicitly add this to prevent the validation error
     },
     performanceAssessments: [],
   };
@@ -3138,10 +3141,20 @@ export function FullScreenSessionForm({
                           render={({ field }) => (
                             <FormItem>
                               <FormControl>
-                                <Textarea
-                                  {...field}
+                                <RichTextEditor
+                                  value={field.value || ""}
+                                  onChange={(value) => {
+                                    // Only update the notes field, not selectedValue
+                                    field.onChange(value);
+                                    
+                                    // Set selectedValue to null explicitly to avoid validation errors
+                                    form.setValue("sessionNote.selectedValue", null, { 
+                                      shouldValidate: false,
+                                      shouldDirty: false
+                                    });
+                                  }}
                                   placeholder="Enter detailed session notes here..."
-                                  className="min-h-[400px] resize-y"
+                                  className="min-h-[400px]"
                                 />
                               </FormControl>
                               <FormMessage />
