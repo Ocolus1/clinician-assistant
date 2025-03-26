@@ -337,7 +337,7 @@ export default function EnhancedClientList() {
       id: "name",
       header: "Client Name",
       accessorFn: (client) => (
-        <div className="font-medium !pl-0 !ml-0 -translate-x-3 relative" style={{ paddingLeft: 0, marginLeft: '-0.75rem', position: 'relative', left: '-12px' }}>{client.name}</div>
+        <div className="font-medium">{client.name}</div>
       ),
       sortable: true,
       width: "160px",
@@ -1159,8 +1159,9 @@ export default function EnhancedClientList() {
                         className={`py-3.5 text-sm font-semibold text-gray-900 ${
                           column.alignment === 'center' ? 'text-center px-3' : 
                           column.alignment === 'end' ? 'text-right px-3' : 
-                          column.id === 'name' ? 'text-left !pl-0 !pr-3' : 'text-left px-3'
-                        } ${column.width ? `w-[${column.width}]` : ''}`}
+                          column.id === 'name' ? 'text-left pl-3 pr-3' : 'text-left px-3'
+                        }`}
+                        style={column.width ? { width: column.width } : {}}
                       >
                         {column.sortable ? (
                           <button 
@@ -1196,8 +1197,9 @@ export default function EnhancedClientList() {
                           className={`whitespace-nowrap py-4 text-sm ${
                             column.alignment === 'center' ? 'text-center px-3' : 
                             column.alignment === 'end' ? 'text-right px-3' : 
-                            column.id === 'name' ? 'text-left !pl-0 !pr-3' : 'text-left px-3'
+                            column.id === 'name' ? 'text-left pl-3 pr-3' : 'text-left px-3'
                           }`}
+                          style={column.width ? { width: column.width } : {}}
                         >
                           {column.accessorFn(client)}
                         </td>
