@@ -741,6 +741,41 @@ export function FullScreenSessionForm({ open, onOpenChange, defaultValues, clien
     }
   });
   
+  // Function to get initial values for form
+  const getInitialValues = (): IntegratedSessionFormValues => {
+    return {
+      session: {
+        sessionDate: existingSessionId && sessionData ? new Date(sessionData.sessionDate) : new Date(),
+        clientId: clientId || 0,
+        therapistId: null,
+        location: "",
+        status: "scheduled",
+        notes: "",
+        timeFrom: "09:00",
+        timeTo: "10:00",
+      },
+      sessionNote: {
+        presentAllies: [],
+        presentAllyIds: [],
+        moodRating: 5,
+        focusRating: 5,
+        cooperationRating: 5,
+        physicalActivityRating: 5,
+        generalNotes: "",
+        homeRecommendations: "",
+        activitySummary: "",
+        products: [],
+      },
+      performanceAssessments: [],
+    };
+  };
+  
+  // Initialize form with values
+  const form = useSafeForm<IntegratedSessionFormValues>({
+    resolver: zodResolver(integratedSessionFormSchema),
+    defaultValues: getInitialValues(),
+  });
+
   // Store available subgoals indexed by goalId for quick lookup
   const [subgoalsByGoalId, setSubgoalsByGoalId] = useState<Record<number, Subgoal[]>>({});
   
@@ -765,7 +800,7 @@ export function FullScreenSessionForm({ open, onOpenChange, defaultValues, clien
           });
       }
     });
-  }, [form?.getValues, subgoalsByGoalId]);
+  }, [form.getValues, subgoalsByGoalId]);
 
   // Format budget items for product selection
   const availableProducts = useMemo(() => {
@@ -778,40 +813,7 @@ export function FullScreenSessionForm({ open, onOpenChange, defaultValues, clien
     }));
   }, [budgetItemsData]);
   
-  // Get initial form values
-  const getInitialValues = (): IntegratedSessionFormValues => {
-    const currentDate = new Date();
-    
-    return defaultValues || {
-      session: {
-        clientId: clientId || 0,
-        sessionDate: currentDate,
-        status: "scheduled",
-        therapistId: undefined,
-        timeFrom: undefined,
-        timeTo: undefined,
-        location: undefined,
-      },
-      sessionNote: {
-        presentAllies: [],
-        presentAllyIds: [],
-        moodRating: 5,
-        focusRating: 5,
-        cooperationRating: 5,
-        physicalActivityRating: 5,
-        notes: "",
-        products: [],
-        status: "draft",
-      },
-      performanceAssessments: [],
-    };
-  };
-  
-  // Initialize form with values
-  const form = useSafeForm<IntegratedSessionFormValues>({
-    resolver: zodResolver(integratedSessionFormSchema),
-    defaultValues: getInitialValues(),
-  });
+  // form is already defined above
 
   // Update form when session data changes (for edit mode)
   useEffect(() => {
