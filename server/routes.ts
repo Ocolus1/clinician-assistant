@@ -867,66 +867,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/sessions", async (req, res) => {
     console.log("POST /api/sessions - Creating a new session");
     try {
-      // Handle special case for raw request body
-      const requestBody = req.body.session || req.body;
-      
-      // Force today's date to bypass any validation issues with sessionDate
-      requestBody.sessionDate = new Date().toISOString();
-      
-      console.log("Sanitized request body for session creation:", requestBody);
-      
-      // Skip schema validation entirely if needed
-      let validatedData;
-      try {
-        const result = insertSessionSchema.safeParse(requestBody);
-        if (result.success) {
-          validatedData = result.data;
-        } else {
-          console.warn("Session validation skipped due to errors, using direct data:", result.error);
-          validatedData = {
-            ...requestBody,
-            sessionDate: new Date(),
-            duration: Number(requestBody.duration) || 60,
-            status: requestBody.status || "scheduled",
-            title: requestBody.title || "Therapy Session"
-          };
-        }
-      } catch (validationError) {
-        console.error("Validation completely failed, using fallback:", validationError);
-        validatedData = {
-          clientId: Number(requestBody.clientId),
-          therapistId: Number(requestBody.therapistId),
-          sessionDate: new Date(),
-          duration: 60,
-          status: "scheduled",
-          title: "Therapy Session"
-        };
+      const result = insertSessionSchema.safeParse(req.body);
+      if (!result.success) {
+        console.error("Session validation error:", result.error);
+        return res.status(400).json({ error: result.error });
       }
-      
-      console.log("Final validated data:", validatedData);
 
       // Ensure client exists
-      const client = await storage.getClient(validatedData.clientId);
+      const client = await storage.getClient(result.data.clientId);
       if (!client) {
         return res.status(404).json({ error: "Client not found" });
       }
 
-      // If a therapistId is provided, ensure it's a valid number
-      if (validatedData.therapistId) {
-        try {
-          validatedData.therapistId = Number(validatedData.therapistId);
-        } catch (e) {
-          console.warn("Could not convert therapistId to number, using as is");
+      // If a therapistId is provided, ensure it exists as an ally
+      if (result.data.therapistId) {
+        const allies = await storage.getAlliesByClient(result.data.clientId);
+        const therapistExists = allies.some(ally => ally.id === result.data.therapistId);
+        if (!therapistExists) {
+          return res.status(400).json({ error: "Therapist not found among client's allies" });
         }
-        
-        // Skip ally validation to allow direct creation
-        console.log("Skipping therapist validation for direct session creation");
       }
 
-      // Direct session creation with sanitized data
-      const session = await storage.createSession(validatedData);
-      console.log("Session created successfully:", session);
-      
+      const session = await storage.createSession(result.data);
       res.status(201).json(session);
     } catch (error) {
       console.error("Error creating session:", error);

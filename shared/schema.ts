@@ -185,14 +185,7 @@ export const sessions = pgTable("sessions", {
 export const insertSessionSchema = createInsertSchema(sessions)
   .omit({ id: true })
   .extend({
-    // Accept any valid date string or Date object
-    sessionDate: z.union([
-      z.string().transform(val => new Date(val)), 
-      z.date()
-    ]).transform(val => {
-      // Ensure we always return a valid date
-      return !isNaN(val.getTime()) ? val : new Date();
-    }),
+    sessionDate: z.coerce.date(),
     duration: z.coerce.number().min(1, { message: "Duration must be at least 1 minute" }),
   });
 

@@ -78,7 +78,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Progress } from "@/components/ui/progress";
-
+import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import {
   Command,
   CommandEmpty,
@@ -101,32 +101,19 @@ import {
   AlertTitle,
 } from "@/components/ui/alert";
 
-// Session form schema - Complete rewrite to match backend exactly
-const sessionFormSchema = z.object({
-  // MOST PERMISSIVE DATE HANDLING APPROACH
-  sessionDate: z.any().transform((val) => {
-    // Accept any input and convert to a valid Date
-    if (val instanceof Date) return val;
-    if (typeof val === 'string') return new Date(val);
-    if (typeof val === 'number') return new Date(val);
-    return new Date(); // Last resort fallback
+// Session form schema
+const sessionFormSchema = insertSessionSchema.extend({
+  sessionDate: z.coerce.date({
+    required_error: "Session date is required",
   }),
-  
-  // Use proper coercion for numeric fields
   clientId: z.coerce.number({
-    invalid_type_error: "Client ID must be a number",
-    required_error: "Client ID is required"
+    required_error: "Client is required",
   }),
-  
-  // Simple validations for optional fields
-  therapistId: z.coerce.number().optional(),
-  timeFrom: z.string().optional().nullable(),
-  timeTo: z.string().optional().nullable(),
-  location: z.string().optional().nullable(),
-  sessionId: z.string().optional().nullable(),
-  title: z.string().default("Therapy Session"),
-  duration: z.coerce.number().default(60),
-  status: z.string().default("scheduled")
+  therapistId: z.coerce.number().optional(), // Using coerce.number() to handle string values from Select
+  timeFrom: z.string().optional(),
+  timeTo: z.string().optional(),
+  location: z.string().optional(),
+  sessionId: z.string().optional(), // Added session ID field for display
 });
 
 // Performance assessment schema
@@ -165,13 +152,12 @@ const sessionNoteSchema = z.object({
   notes: z.string().optional(),
   products: z.array(sessionProductSchema).default([]),
   status: z.enum(["draft", "completed"]).default("draft"),
-  selectedValue: z.any().optional(), // Add this field to handle RichTextEditor's internal state
 });
 
 // Complete form schema
 const integratedSessionFormSchema = z.object({
   session: sessionFormSchema,
-  sessionNote: sessionNoteSchema.passthrough(), // Add passthrough to handle any extra fields that might be added dynamically
+  sessionNote: sessionNoteSchema,
   performanceAssessments: z.array(performanceAssessmentSchema).default([]),
 });
 
@@ -631,25 +617,10 @@ export function FullScreenSessionForm({
     return `ST-${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}-${Math.floor(1000 + Math.random() * 9000)}`;
   }, []);
 
-  // Default form values with safer date initialization
+  // Default form values
   const defaultValues: Partial<IntegratedSessionFormValues> = {
     session: {
-      // Ensure the date is properly formatted and valid
-      sessionDate: (() => {
-        try {
-          const today = new Date();
-          console.log("FORM DATE: Creating default date:", today.toISOString());
-          // Validate the date is valid
-          if (isNaN(today.getTime())) {
-            console.error("FORM DATE: Created an invalid date, using fallback");
-            return new Date(Date.now()); // Fallback to current timestamp
-          }
-          return today;
-        } catch (error) {
-          console.error("FORM DATE: Error creating default date:", error);
-          return new Date(Date.now()); // Fallback to current timestamp
-        }
-      })(),
+      sessionDate: new Date(),
       location: "Clinic",
       clientId: initialClient?.id || 0,
       therapistId: undefined,    // Clinician field (newly added)
@@ -670,7 +641,6 @@ export function FullScreenSessionForm({
       notes: "",
       products: [], // Products used in the session
       status: "draft",
-      selectedValue: null, // Explicitly add this to prevent the validation error
     },
     performanceAssessments: [],
   };
@@ -709,22 +679,7 @@ export function FullScreenSessionForm({
           session: {
             ...defaultValues.session,
             sessionId: newSessionId,
-            // Create a safe date that's guaranteed to be valid
-            sessionDate: (() => {
-              try {
-                const today = new Date();
-                console.log("FORM RESET: Creating session date:", today.toISOString());
-                // Validate the date is valid
-                if (isNaN(today.getTime())) {
-                  console.error("FORM RESET: Created an invalid date, using fallback");
-                  return new Date(Date.now()); // Fallback to current timestamp
-                }
-                return today;
-              } catch (error) {
-                console.error("FORM RESET: Error creating session date:", error);
-                return new Date(Date.now()); // Fallback to current timestamp
-              }
-            })(),
+            sessionDate: new Date(),
             clientId: initialClient?.id || 0
           }
         });
@@ -1338,31 +1293,16 @@ export function FullScreenSessionForm({
     mutationFn: async (data: IntegratedSessionFormValues) => {
       console.log("### DETAILED FORM SUBMISSION - Form submit data:", data);
       
-      // Create a simplified session object that matches the backend requirements
+      // Ensure therapistId is properly formatted
       const sessionData = {
-        clientId: Number(data.session.clientId),
-        therapistId: data.session.therapistId ? Number(data.session.therapistId) : undefined,
-        sessionDate: data.session.sessionDate instanceof Date 
-          ? data.session.sessionDate.toISOString() 
-          : new Date().toISOString(), // Direct ISO string to bypass validation issues
-        duration: Number(data.session.duration) || 60,
-        status: data.session.status || "scheduled",
-        title: data.session.title || "Therapy Session",
-        location: data.session.location || ""
+        ...data.session,
+        therapistId: data.session.therapistId ? Number(data.session.therapistId) : undefined
       };
       
-      console.log("### DETAILED FORM SUBMISSION - Simplified session data:", sessionData);
+      console.log("### DETAILED FORM SUBMISSION - Formatted session data:", sessionData);
 
-      // Direct API call to create session
-      const sessionResponse = await fetch("/api/sessions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(sessionData)
-      }).then(res => {
-        if (!res.ok) throw new Error("Failed to create session: " + res.statusText);
-        return res.json();
-      });
-      
+      // First create the session
+      const sessionResponse = await apiRequest("POST", "/api/sessions", sessionData);
       console.log("### DETAILED FORM SUBMISSION - Session created successfully:", sessionResponse);
 
       if (!sessionResponse || !('id' in sessionResponse)) {
@@ -1415,93 +1355,15 @@ export function FullScreenSessionForm({
   });
 
   function onSubmit(data: IntegratedSessionFormValues) {
-    // ENHANCED DEBUGGING: Log critical information when submission is attempted
-    console.log("SUBMIT ATTEMPT: Form submission started");
-    console.log("SUBMIT ATTEMPT: Form validation state:", form.formState.isValid);
-    console.log("SUBMIT ATTEMPT: Form errors:", form.formState.errors);
-    
     // Safety check - if we're showing one of our internal dialogs, don't submit
     if (showAttendeeDialog || showProductDialog || showGoalDialog || showMilestoneDialog || showStrategyDialog) {
-      console.log("SUBMIT BLOCKED: Preventing submission while dialog is open");
+      console.log("Preventing submission while dialog is open");
       return;
     }
     
     // ADDITIONAL SAFETY CHECK: If there's a mutation in progress, don't submit again
     if (createSessionMutation.isPending) {
-      console.log("SUBMIT BLOCKED: Preventing duplicate submission - mutation already in progress");
-      return;
-    }
-    
-    // Check for validation errors - this might help identify why the button isn't working
-    if (Object.keys(form.formState.errors).length > 0) {
-      console.error("VALIDATION ERROR: Form has errors:", form.formState.errors);
-      
-      // Show detailed error messages for better debugging
-      const errorMessages = Object.entries(form.formState.errors)
-        .map(([key, error]) => `${key}: ${error?.message || 'Invalid value'}`)
-        .join(', ');
-      
-      toast({
-        title: "Form has errors",
-        description: `Please fix the following issues: ${errorMessages}`,
-        variant: "destructive"
-      });
-      return;
-    }
-    
-    // Fix date issue: Ensure we have a proper date object for sessionDate
-    if (data.session.sessionDate) {
-      try {
-        // Ensure we have a valid Date object - handle both string and Date cases
-        const dateValue = data.session.sessionDate;
-        let fixedDate: Date;
-        
-        if (typeof dateValue === 'string') {
-          // Parse string to date
-          fixedDate = new Date(dateValue);
-        } else if (dateValue instanceof Date) {
-          // Already a Date, use directly
-          fixedDate = dateValue;
-        } else {
-          // Fallback to current date
-          fixedDate = new Date();
-        }
-        
-        // Validate the fixed date
-        if (!isNaN(fixedDate.getTime())) {
-          console.log("DATE FIX: Fixed session date from:", dateValue, "to:", fixedDate);
-          data.session.sessionDate = fixedDate;
-        } else {
-          console.error("DATE ERROR: Could not create valid date:", dateValue);
-          toast({
-            title: "Invalid date",
-            description: "Please select a valid session date",
-            variant: "destructive"
-          });
-          return;
-        }
-      } catch (error) {
-        console.error("DATE ERROR: Failed to process session date:", error);
-        return;
-      }
-    } else {
-      console.error("DATE ERROR: Session date is missing");
-      toast({
-        title: "Date required",
-        description: "Please select a session date",
-        variant: "destructive"
-      });
-      return;
-    }
-    
-    // Ensure required client ID is set
-    if (!data.session.clientId) {
-      console.error("VALIDATION ERROR: Client ID is required");
-      toast({
-        title: "Client selection required",
-        description: "Please select a client for this session",
-        variant: "destructive"
-      });
+      console.log("Preventing duplicate submission - mutation already in progress");
       return;
     }
     
@@ -1528,53 +1390,19 @@ export function FullScreenSessionForm({
       data.session.title = 'Therapy Session';
     }
     
-    // Add enhanced logging for debugging
-    console.log("SUBMIT PROGRESS: Preparing to submit session form with data:", JSON.stringify(data, null, 2));
+    // Add logging for debugging
+    console.log("Submitting session form with data:", JSON.stringify(data, null, 2));
     
     // Use a safe wrapper to prevent duplicate submissions
     if (!isFormSubmitting) {
-      console.log("SUBMIT PROGRESS: Setting form submission state to true");
       setIsFormSubmitting(true);
-      
-      try {
-        console.log("SUBMIT PROGRESS: Calling mutation function");
-        createSessionMutation.mutate(data, {
-          onSuccess: (result) => {
-            console.log("SUBMIT SUCCESS: Session created successfully", result);
-            toast({
-              title: "Success",
-              description: "Session created successfully",
-            });
-            setIsFormSubmitting(false);
-            if (onOpenChange) {
-              onOpenChange(false);
-            }
-          },
-          onError: (error) => {
-            console.error("SUBMIT ERROR: Failed to create session", error);
-            toast({
-              title: "Error creating session",
-              description: "Please try again or check the console for details",
-              variant: "destructive",
-            });
-            setIsFormSubmitting(false);
-          },
-          onSettled: () => {
-            console.log("SUBMIT SETTLED: Submission process complete");
-            setIsFormSubmitting(false);
-          }
-        });
-      } catch (error) {
-        console.error("SUBMIT EXCEPTION: Unexpected error during form submission", error);
-        setIsFormSubmitting(false);
-        toast({
-          title: "Unexpected error",
-          description: "An error occurred while submitting the form",
-          variant: "destructive",
-        });
-      }
+      createSessionMutation.mutate(data, {
+        onSettled: () => {
+          setIsFormSubmitting(false);
+        }
+      });
     } else {
-      console.log("SUBMIT BLOCKED: Form submission already in progress");
+      console.log("Form submission prevented - already in progress");
       toast({
         title: "Submission in progress",
         description: "Please wait while your session is being created",
@@ -2047,7 +1875,7 @@ export function FullScreenSessionForm({
                                     ) : assignedClinicians.length > 0 ? (
                                       assignedClinicians.map((assignment) => (
                                         <SelectItem key={assignment.clinician.id} value={assignment.clinician.id.toString()}>
-                                          {assignment.clinician.name}
+                                          {assignment.clinician.name} ({assignment.clinician.role})
                                         </SelectItem>
                                       ))
                                     ) : (
@@ -2089,30 +1917,8 @@ export function FullScreenSessionForm({
                                     <Calendar
                                       mode="single"
                                       selected={field.value}
-                                      onSelect={(date) => {
-                                        console.log("DATE SELECTION: User selected a date");
-                                        // OVERRIDE approach - always use today's date
-                                        const today = new Date();
-                                        
-                                        console.log("DATE SELECTION: Overriding with today's date:", today);
-                                        
-                                        // Direct field.onChange instead of form.setValue
-                                        field.onChange(today);
-                                        
-                                        // Also make the direct form value assignment as backup
-                                        form.setValue("session.sessionDate", today, {
-                                          shouldValidate: false,  // Skip validation
-                                          shouldDirty: true
-                                        });
-                                        
-                                        // Add a delay before closing the popover
-                                        setTimeout(() => {
-                                          // Auto-close the popover
-                                          document.body.click();
-                                        }, 100);
-                                      }}
+                                      onSelect={field.onChange}
                                       initialFocus
-                                      disabled={(date) => date < new Date("2022-01-01")}
                                     />
                                   </PopoverContent>
                                 </Popover>
@@ -2752,7 +2558,12 @@ export function FullScreenSessionForm({
                             {form.watch("session.location") || "Not set"}
                           </p>
                         </div>
-
+                        <div className="flex justify-between">
+                          <p className="text-sm text-muted-foreground">Status</p>
+                          <p className="text-sm font-medium">
+                            {form.watch("session.status") || "Not set"}
+                          </p>
+                        </div>
                       </div>
 
                       <div className="pt-2 border-t">
@@ -2931,7 +2742,93 @@ export function FullScreenSessionForm({
                     </CardContent>
                   </Card>
                   
-
+                  {/* EMERGENCY FIXED SUBMIT BUTTON - Independent of form context */}
+                  <div className="mt-6 flex justify-center">
+                    <Button 
+                      type="button"
+                      className="w-full max-w-md bg-green-600 hover:bg-green-700 text-white"
+                      disabled={isFormSubmitting}
+                      onClick={async () => {
+                        console.log("### EMERGENCY DIRECT SUBMIT BUTTON CLICKED ###");
+                        
+                        // Mark form as submitting
+                        setIsFormSubmitting(true);
+                        
+                        try {
+                          // Get all form values without validation
+                          const formData = form.getValues();
+                          console.log("Emergency submit - Form data:", formData);
+                          
+                          // Process data like we do in onSubmit
+                          if (formData.session.timeFrom && formData.session.timeTo) {
+                            const [fromHours, fromMinutes] = formData.session.timeFrom.split(':').map(Number);
+                            const [toHours, toMinutes] = formData.session.timeTo.split(':').map(Number);
+                            
+                            const fromTimeInMinutes = fromHours * 60 + fromMinutes;
+                            const toTimeInMinutes = toHours * 60 + toMinutes;
+                            
+                            let durationInMinutes = toTimeInMinutes - fromTimeInMinutes;
+                            if (durationInMinutes < 0) {
+                              durationInMinutes += 24 * 60;
+                            }
+                            
+                            formData.session.duration = durationInMinutes;
+                          }
+                          
+                          // Set default title if needed
+                          if (!formData.session.title || formData.session.title.trim() === '') {
+                            formData.session.title = 'Therapy Session';
+                          }
+                          
+                          // Direct API call instead of using the mutation
+                          console.log("### DIRECT API CALL - Creating session with data:", formData.session);
+                          const sessionResponse = await apiRequest("POST", "/api/sessions", formData.session);
+                          
+                          console.log("### DIRECT API CALL - Session created successfully:", sessionResponse);
+                          
+                          toast({
+                            title: "Session Created",
+                            description: "The session was created successfully.",
+                            variant: "default",
+                          });
+                          
+                          // Close the form dialog
+                          setTimeout(() => {
+                            onOpenChange(false);
+                            
+                            // Refresh the sessions list
+                            queryClient.invalidateQueries({ queryKey: ['/api/sessions'] });
+                            if (clientId) {
+                              queryClient.invalidateQueries({ queryKey: [`/api/clients/${clientId}/sessions`] });
+                            }
+                          }, 500);
+                        } catch (error) {
+                          console.error("### DIRECT API CALL ERROR:", error);
+                          
+                          toast({
+                            title: "Error",
+                            description: "Failed to create session. Please try again.",
+                            variant: "destructive",
+                          });
+                        } finally {
+                          // Always reset submitting state
+                          setIsFormSubmitting(false);
+                        }
+                      }}
+                    >
+                      {isFormSubmitting ? (
+                        <span className="flex items-center justify-center">
+                          <RefreshCw className="h-5 w-5 mr-2 animate-spin" /> 
+                          Creating Session...
+                        </span>
+                      ) : (
+                        <span className="flex items-center justify-center">
+                          <ShoppingCart className="h-5 w-5 mr-2" />
+                          Create New Session
+                        </span>
+                      )}
+                    </Button>
+                  </div>
                 </div>
               </TabsContent>
 
@@ -3141,18 +3038,9 @@ export function FullScreenSessionForm({
                           render={({ field }) => (
                             <FormItem>
                               <FormControl>
-                                <Textarea
+                                <RichTextEditor
                                   value={field.value || ""}
-                                  onChange={(e) => {
-                                    // Update the notes field with the textarea value
-                                    field.onChange(e.target.value);
-                                    
-                                    // Set selectedValue to null explicitly to avoid validation errors
-                                    form.setValue("sessionNote.selectedValue", null, { 
-                                      shouldValidate: false,
-                                      shouldDirty: false
-                                    });
-                                  }}
+                                  onChange={field.onChange}
                                   placeholder="Enter detailed session notes here..."
                                   className="min-h-[400px]"
                                 />
@@ -3188,173 +3076,32 @@ export function FullScreenSessionForm({
                 </Button>
               </div>
               <div className="flex gap-2">
+                <Button 
+                  type="button" 
+                  variant="outline"
+                  onClick={() => {
+                    if (onOpenChange) {
+                      onOpenChange(false);
+                    }
+                  }}
+                >
+                  Cancel
+                </Button>
                 {activeTab === "summary" && (
-                  <>
-                    <Button 
-                      type="button" 
-                      variant="outline"
-                      onClick={() => {
-                        if (onOpenChange) {
-                          onOpenChange(false);
-                        }
-                      }}
-                    >
-                      Cancel
-                    </Button>
-                    <Button 
-                      type="submit"
-                      disabled={isFormSubmitting || form.formState.isSubmitting}
-                      onClick={(e) => {
-                        // Enhanced logging for button click
-                        console.log("BUTTON EVENT: Create New Session button in footer clicked");
-                        e.preventDefault();
-                        
-                        // Show loading toast
-                        toast({
-                          title: "Processing...",
-                          description: "Creating your session. This may take a moment.",
-                        });
-                        
-                        // Pre-submission validation check
-                        if (Object.keys(form.formState.errors).length > 0) {
-                          console.error("VALIDATION ERROR: Form has errors before submission:", form.formState.errors);
-                          const errorMessages = Object.entries(form.formState.errors)
-                            .map(([key, error]) => `${key}: ${error?.message || 'Invalid value'}`)
-                            .join(', ');
-                          
-                          toast({
-                            title: "Form has errors",
-                            description: `Please fix the following issues: ${errorMessages}`,
-                            variant: "destructive"
-                          });
-                          return;
-                        }
-                        
-                        console.log("BUTTON EVENT: Triggering form submission manually");
-                        // Set a flag to track submission attempt
-                        try {
-                          // Get form values for logging
-                          const formValues = form.getValues();
-                          console.log("BUTTON EVENT: Current form values:", formValues);
-                          
-                          // CRITICAL FIX: Direct submission without schema validation
-                          console.log("BUTTON EVENT: Direct submission bypassing validation");
-                          
-                          // Get raw form values
-                          const rawData = form.getValues();
-                          console.log("BUTTON EVENT: Raw form values:", rawData);
-                          
-                          // EXTREME FALLBACK APPROACH - Ignore any date-related validation
-                          console.log("BUTTON EVENT: Using most extreme date handling approach");
-                          
-                          // Just directly assign a new Date for the session
-                          const today = new Date();
-                          console.log("BUTTON EVENT: Setting session date directly to today:", today);
-                          
-                          // Raw modification of data bypassing all validation
-                          rawData.session.sessionDate = today;
-                          
-                          // Additional diagnostics of raw data
-                          console.log("BUTTON EVENT: Raw data object keys:", Object.keys(rawData));
-                          console.log("BUTTON EVENT: Session object keys:", Object.keys(rawData.session));
-                          
-                          // Ensure all required fields are present
-                          rawData.session.title = rawData.session.title || "Therapy Session";
-                          rawData.session.duration = rawData.session.duration || 60;
-                          rawData.session.status = "scheduled";
-                          
-                          // Skip validation and call the mutate function directly
-                          console.log("BUTTON EVENT: Creating basic direct submission payload");
-                          
-                          // Create a new payload directly with just the minimum required fields
-                          const directPayload = {
-                            session: {
-                              clientId: rawData.session.clientId,
-                              therapistId: rawData.session.therapistId,
-                              title: "Therapy Session",
-                              sessionDate: new Date().toISOString(), // Use ISO string format
-                              duration: 60,
-                              status: "scheduled",
-                              location: rawData.session.location || "Clinic"
-                            },
-                            sessionNote: {
-                              presentAllies: rawData.sessionNote?.presentAllies || [],
-                              presentAllyIds: rawData.sessionNote?.presentAllyIds || []
-                            }
-                          };
-                          
-                          console.log("BUTTON EVENT: Calling mutate with direct payload:", directPayload);
-                          
-                          try {
-                            // Directly call fetch API instead of using the mutation
-                            fetch("/api/sessions", {
-                              method: "POST",
-                              headers: {
-                                "Content-Type": "application/json"
-                              },
-                              body: JSON.stringify(directPayload)
-                            })
-                            .then(response => {
-                              if (response.ok) {
-                                return response.json();
-                              }
-                              throw new Error("Failed to create session: " + response.statusText);
-                            })
-                            .then(result => {
-                              console.log("SUCCESS: Session created by direct API call", result);
-                              toast({
-                                title: "Success!",
-                                description: "Session created successfully using direct API call",
-                              });
-                              onOpenChange(false);
-                            })
-                            .catch(error => {
-                              console.error("ERROR: Direct API call failed", error);
-                              toast({
-                                title: "Error",
-                                description: "Session creation failed with direct API approach: " + error.message,
-                                variant: "destructive",
-                              });
-                            });
-                          } catch (error) {
-                            console.error("ERROR: Exception during direct API call setup", error);
-                            toast({
-                              title: "Exception",
-                              description: "Failed to initiate API request: " + (error as Error).message,
-                              variant: "destructive",
-                            });
-                          }
-                        } catch (error) {
-                          console.error("BUTTON EVENT: Error during form submission:", error);
-                          toast({
-                            title: "Submission Error",
-                            description: "An unexpected error occurred. Please try again.",
-                            variant: "destructive"
-                          });
-                        }
-                      }}
-                      className="bg-green-600 hover:bg-green-700"
-                    >
-                      {isFormSubmitting || form.formState.isSubmitting ? (
-                        <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                      ) : (
-                        <Save className="mr-2 h-4 w-4" />
-                      )}
-                      Create New Session
-                    </Button>
-                  </>
-                )}
-                {activeTab !== "summary" && (
                   <Button 
-                    type="button" 
-                    variant="outline"
-                    onClick={() => {
-                      if (onOpenChange) {
-                        onOpenChange(false);
-                      }
+                    type="submit"
+                    disabled={isFormSubmitting || form.formState.isSubmitting}
+                    onClick={(e) => {
+                      // The form's onSubmit handler will handle this
+                      console.log("Create New Session button in footer clicked");
                     }}
                   >
-                    Cancel
+                    {isFormSubmitting || form.formState.isSubmitting ? (
+                      <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <Save className="mr-2 h-4 w-4" />
+                    )}
+                    Create New Session
                   </Button>
                 )}
                 {activeTab !== "summary" && (
