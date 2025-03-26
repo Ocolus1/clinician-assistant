@@ -2558,12 +2558,7 @@ export function FullScreenSessionForm({
                             {form.watch("session.location") || "Not set"}
                           </p>
                         </div>
-                        <div className="flex justify-between">
-                          <p className="text-sm text-muted-foreground">Status</p>
-                          <p className="text-sm font-medium">
-                            {form.watch("session.status") || "Not set"}
-                          </p>
-                        </div>
+
                       </div>
 
                       <div className="pt-2 border-t">
@@ -2742,93 +2737,7 @@ export function FullScreenSessionForm({
                     </CardContent>
                   </Card>
                   
-                  {/* EMERGENCY FIXED SUBMIT BUTTON - Independent of form context */}
-                  <div className="mt-6 flex justify-center">
-                    <Button 
-                      type="button"
-                      className="w-full max-w-md bg-green-600 hover:bg-green-700 text-white"
-                      disabled={isFormSubmitting}
-                      onClick={async () => {
-                        console.log("### EMERGENCY DIRECT SUBMIT BUTTON CLICKED ###");
-                        
-                        // Mark form as submitting
-                        setIsFormSubmitting(true);
-                        
-                        try {
-                          // Get all form values without validation
-                          const formData = form.getValues();
-                          console.log("Emergency submit - Form data:", formData);
-                          
-                          // Process data like we do in onSubmit
-                          if (formData.session.timeFrom && formData.session.timeTo) {
-                            const [fromHours, fromMinutes] = formData.session.timeFrom.split(':').map(Number);
-                            const [toHours, toMinutes] = formData.session.timeTo.split(':').map(Number);
-                            
-                            const fromTimeInMinutes = fromHours * 60 + fromMinutes;
-                            const toTimeInMinutes = toHours * 60 + toMinutes;
-                            
-                            let durationInMinutes = toTimeInMinutes - fromTimeInMinutes;
-                            if (durationInMinutes < 0) {
-                              durationInMinutes += 24 * 60;
-                            }
-                            
-                            formData.session.duration = durationInMinutes;
-                          }
-                          
-                          // Set default title if needed
-                          if (!formData.session.title || formData.session.title.trim() === '') {
-                            formData.session.title = 'Therapy Session';
-                          }
-                          
-                          // Direct API call instead of using the mutation
-                          console.log("### DIRECT API CALL - Creating session with data:", formData.session);
-                          const sessionResponse = await apiRequest("POST", "/api/sessions", formData.session);
-                          
-                          console.log("### DIRECT API CALL - Session created successfully:", sessionResponse);
-                          
-                          toast({
-                            title: "Session Created",
-                            description: "The session was created successfully.",
-                            variant: "default",
-                          });
-                          
-                          // Close the form dialog
-                          setTimeout(() => {
-                            onOpenChange(false);
-                            
-                            // Refresh the sessions list
-                            queryClient.invalidateQueries({ queryKey: ['/api/sessions'] });
-                            if (clientId) {
-                              queryClient.invalidateQueries({ queryKey: [`/api/clients/${clientId}/sessions`] });
-                            }
-                          }, 500);
-                        } catch (error) {
-                          console.error("### DIRECT API CALL ERROR:", error);
-                          
-                          toast({
-                            title: "Error",
-                            description: "Failed to create session. Please try again.",
-                            variant: "destructive",
-                          });
-                        } finally {
-                          // Always reset submitting state
-                          setIsFormSubmitting(false);
-                        }
-                      }}
-                    >
-                      {isFormSubmitting ? (
-                        <span className="flex items-center justify-center">
-                          <RefreshCw className="h-5 w-5 mr-2 animate-spin" /> 
-                          Creating Session...
-                        </span>
-                      ) : (
-                        <span className="flex items-center justify-center">
-                          <ShoppingCart className="h-5 w-5 mr-2" />
-                          Create New Session
-                        </span>
-                      )}
-                    </Button>
-                  </div>
+
                 </div>
               </TabsContent>
 
@@ -3076,32 +2985,47 @@ export function FullScreenSessionForm({
                 </Button>
               </div>
               <div className="flex gap-2">
-                <Button 
-                  type="button" 
-                  variant="outline"
-                  onClick={() => {
-                    if (onOpenChange) {
-                      onOpenChange(false);
-                    }
-                  }}
-                >
-                  Cancel
-                </Button>
                 {activeTab === "summary" && (
+                  <>
+                    <Button 
+                      type="button" 
+                      variant="outline"
+                      onClick={() => {
+                        if (onOpenChange) {
+                          onOpenChange(false);
+                        }
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                    <Button 
+                      type="submit"
+                      disabled={isFormSubmitting || form.formState.isSubmitting}
+                      onClick={(e) => {
+                        // The form's onSubmit handler will handle this
+                        console.log("Create New Session button in footer clicked");
+                      }}
+                    >
+                      {isFormSubmitting || form.formState.isSubmitting ? (
+                        <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                      ) : (
+                        <Save className="mr-2 h-4 w-4" />
+                      )}
+                      Create New Session
+                    </Button>
+                  </>
+                )}
+                {activeTab !== "summary" && (
                   <Button 
-                    type="submit"
-                    disabled={isFormSubmitting || form.formState.isSubmitting}
-                    onClick={(e) => {
-                      // The form's onSubmit handler will handle this
-                      console.log("Create New Session button in footer clicked");
+                    type="button" 
+                    variant="outline"
+                    onClick={() => {
+                      if (onOpenChange) {
+                        onOpenChange(false);
+                      }
                     }}
                   >
-                    {isFormSubmitting || form.formState.isSubmitting ? (
-                      <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                    ) : (
-                      <Save className="mr-2 h-4 w-4" />
-                    )}
-                    Create New Session
+                    Cancel
                   </Button>
                 )}
                 {activeTab !== "summary" && (
