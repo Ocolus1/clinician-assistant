@@ -781,26 +781,32 @@ export function FullScreenSessionForm({ open, onOpenChange, defaultValues, clien
   
   // Fetch subgoals for selected goals
   useEffect(() => {
-    const selectedGoalIds = form.getValues().performanceAssessments.map(pa => pa.goalId);
-    
-    selectedGoalIds.forEach(goalId => {
-      if (!subgoalsByGoalId[goalId]) {
-        // Fetch subgoals for this goal
-        fetch(`/api/goals/${goalId}/subgoals`)
-          .then(response => response.json())
-          .then(data => {
-            console.log(`Subgoals for goal ${goalId}:`, data);
-            setSubgoalsByGoalId(prev => ({
-              ...prev,
-              [goalId]: data
-            }));
-          })
-          .catch(error => {
-            console.error(`Error fetching subgoals for goal ${goalId}:`, error);
-          });
+    if (form) {  // Only proceed if form is defined
+      try {
+        const selectedGoalIds = form.getValues().performanceAssessments.map(pa => pa.goalId);
+        
+        selectedGoalIds.forEach(goalId => {
+          if (!subgoalsByGoalId[goalId]) {
+            // Fetch subgoals for this goal
+            fetch(`/api/goals/${goalId}/subgoals`)
+              .then(response => response.json())
+              .then(data => {
+                console.log(`Subgoals for goal ${goalId}:`, data);
+                setSubgoalsByGoalId(prev => ({
+                  ...prev,
+                  [goalId]: data
+                }));
+              })
+              .catch(error => {
+                console.error(`Error fetching subgoals for goal ${goalId}:`, error);
+              });
+          }
+        });
+      } catch (error) {
+        console.error("Error accessing form values:", error);
       }
-    });
-  }, [form.getValues, subgoalsByGoalId]);
+    }
+  }, [form, subgoalsByGoalId]);
 
   // Format budget items for product selection
   const availableProducts = useMemo(() => {
@@ -1055,9 +1061,16 @@ export function FullScreenSessionForm({ open, onOpenChange, defaultValues, clien
   
   // Total products value calculation
   const totalProductValue = useMemo(() => {
-    const products = form.getValues()?.sessionNote?.products || [];
-    return products.reduce((total, product) => total + (product.unitPrice * product.quantity), 0);
-  }, [form.watch("sessionNote.products")]);
+    if (!form) return 0;
+    
+    try {
+      const products = form.getValues()?.sessionNote?.products || [];
+      return products.reduce((total, product) => total + (product.unitPrice * product.quantity), 0);
+    } catch (error) {
+      console.error("Error calculating product value:", error);
+      return 0;
+    }
+  }, [form, form?.watch("sessionNote.products")]);
   
   if (!open) return null;
 
