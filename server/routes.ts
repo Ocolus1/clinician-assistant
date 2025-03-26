@@ -1691,21 +1691,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Register knowledge API routes for the agentic assistant
-  try {
-    console.log("Registering knowledge API routes for the agentic assistant");
-    
-    // Import and register knowledge routes - use dynamic import
-    import('./routes/knowledge').then(module => {
-      const { registerKnowledgeRoutes } = module;
-      registerKnowledgeRoutes(app);
-      console.log("Successfully registered knowledge API routes");
-    }).catch(error => {
-      console.error("Error importing knowledge routes:", error);
-    });
-  } catch (error) {
-    console.error("Error registering knowledge routes:", error);
-  }
+  // Agent Assistant functionality has been removed
   
   // Register report API routes
   try {

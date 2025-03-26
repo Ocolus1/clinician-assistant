@@ -48,7 +48,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "
 import { Switch } from "@/components/ui/switch";
 import { CaretSortIcon, CheckIcon } from "@radix-ui/react-icons";
 import { cn } from "@/lib/utils";
-import { useAgent } from "@/components/agent/AgentContext";
+
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -83,8 +83,7 @@ export default function ClientProfile() {
   // Initialize toast hook
   const { toast } = useToast();
   
-  // Initialize agent context
-  const { setActiveClient } = useAgent();
+  // Agent functionality has been removed
   
   // The route parameter is 'id' not 'clientId'
   const params = useParams();
@@ -320,17 +319,7 @@ export default function ClientProfile() {
   // Calculate client age - Safely handle this to avoid errors
   const clientAge = client && client.dateOfBirth ? calculateAge(client.dateOfBirth) : null;
 
-  // Use useEffect to update the agent context with the active client
-  useEffect(() => {
-    if (client) {
-      console.log("Setting active client in agent context:", client.id, client.name);
-      setActiveClient({
-        id: client.id,
-        name: client.name,
-        dateOfBirth: client.dateOfBirth
-      });
-    }
-  }, [client, setActiveClient]);
+  // Agent context integration has been removed
 
   // Now we can have conditional returns after ALL hooks have been defined
   if (isLoading) {

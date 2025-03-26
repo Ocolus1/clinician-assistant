@@ -16,11 +16,6 @@ import Reports from "@/pages/Reports";
 import Settings from "@/pages/Settings";
 import TestBudget from "@/pages/TestBudget";
 import { AppLayout } from "@/components/layout/AppLayout";
-// Agent components
-import { AgentProvider } from '@/components/agent/AgentContext';
-import AgentBubble from '@/components/agent/AgentBubble';
-import AgentPanel from '@/components/agent/AgentPanel';
-import AgentVisualization from '@/components/agent/AgentVisualization';
 
 function Router() {
   const [location] = useLocation();
@@ -64,13 +59,8 @@ function Router() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <AgentProvider>
-        <Router />
-        <AgentBubble />
-        <AgentPanel />
-        <AgentVisualization type="NONE" />
-        <Toaster />
-      </AgentProvider>
+      <Router />
+      <Toaster />
     </QueryClientProvider>
   );
 }
