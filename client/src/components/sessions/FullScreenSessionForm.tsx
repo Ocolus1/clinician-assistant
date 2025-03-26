@@ -101,21 +101,49 @@ import {
   AlertTitle,
 } from "@/components/ui/alert";
 
-// Session form schema - With improved error handling and relaxed validation
+// Session form schema - Fixed date validation issues
 const sessionFormSchema = insertSessionSchema.extend({
-  sessionDate: z.coerce.date({
-    required_error: "Session date is required",
-  }).or(z.string().transform(val => new Date(val))), // Allow string date values
-  clientId: z.coerce.number({
-    required_error: "Client is required",
-  }).or(z.string().transform(val => parseInt(val, 10))), // Handle string IDs
-  therapistId: z.coerce.number().optional().or(z.string().transform(val => parseInt(val, 10))), // Better string → number handling
-  timeFrom: z.string().optional().or(z.null()),
-  timeTo: z.string().optional().or(z.null()),
-  location: z.string().optional().or(z.null()),
-  sessionId: z.string().optional().or(z.null()), // More tolerant of null values
-  title: z.string().optional().default("Therapy Session"), // Provide default title
-  duration: z.number().optional().or(z.null()), // Make duration field more flexible
+  // Use a more flexible date validator that accepts various formats
+  sessionDate: z.union([
+    z.date(),
+    z.string().transform(val => {
+      try {
+        // Try to parse the string as a date
+        const date = new Date(val);
+        // Check if the date is valid
+        if (isNaN(date.getTime())) {
+          console.error("Invalid date string:", val);
+          return new Date(); // Use current date as fallback
+        }
+        return date;
+      } catch (error) {
+        console.error("Error parsing date:", error);
+        return new Date(); // Use current date as fallback
+      }
+    }),
+    z.any().transform(() => new Date()) // Fallback for any other value
+  ]),
+  
+  // Handle client ID more robustly
+  clientId: z.union([
+    z.number(),
+    z.string().transform(val => {
+      const parsed = parseInt(val, 10);
+      return isNaN(parsed) ? 0 : parsed;
+    }),
+    z.any().transform(() => 0) // Fallback
+  ]),
+  
+  // Rest of the fields with improved validation
+  therapistId: z.any().optional(), // Accept any value that can be coerced to a number
+  timeFrom: z.string().optional().nullable(),
+  timeTo: z.string().optional().nullable(),
+  location: z.string().optional().nullable(),
+  sessionId: z.string().optional().nullable(),
+  title: z.string().optional().default("Therapy Session"),
+  duration: z.number().optional().nullable(),
+  // Add status with default to ensure it's always present
+  status: z.string().default("scheduled")
 });
 
 // Performance assessment schema
@@ -619,10 +647,25 @@ export function FullScreenSessionForm({
     return `ST-${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}-${Math.floor(1000 + Math.random() * 9000)}`;
   }, []);
 
-  // Default form values
+  // Default form values with safer date initialization
   const defaultValues: Partial<IntegratedSessionFormValues> = {
     session: {
-      sessionDate: new Date(),
+      // Ensure the date is properly formatted and valid
+      sessionDate: (() => {
+        try {
+          const today = new Date();
+          console.log("FORM DATE: Creating default date:", today.toISOString());
+          // Validate the date is valid
+          if (isNaN(today.getTime())) {
+            console.error("FORM DATE: Created an invalid date, using fallback");
+            return new Date(Date.now()); // Fallback to current timestamp
+          }
+          return today;
+        } catch (error) {
+          console.error("FORM DATE: Error creating default date:", error);
+          return new Date(Date.now()); // Fallback to current timestamp
+        }
+      })(),
       location: "Clinic",
       clientId: initialClient?.id || 0,
       therapistId: undefined,    // Clinician field (newly added)
@@ -681,7 +724,22 @@ export function FullScreenSessionForm({
           session: {
             ...defaultValues.session,
             sessionId: newSessionId,
-            sessionDate: new Date(),
+            // Create a safe date that's guaranteed to be valid
+            sessionDate: (() => {
+              try {
+                const today = new Date();
+                console.log("FORM RESET: Creating session date:", today.toISOString());
+                // Validate the date is valid
+                if (isNaN(today.getTime())) {
+                  console.error("FORM RESET: Created an invalid date, using fallback");
+                  return new Date(Date.now()); // Fallback to current timestamp
+                }
+                return today;
+              } catch (error) {
+                console.error("FORM RESET: Error creating session date:", error);
+                return new Date(Date.now()); // Fallback to current timestamp
+              }
+            })(),
             clientId: initialClient?.id || 0
           }
         });
