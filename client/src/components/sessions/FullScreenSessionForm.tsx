@@ -101,58 +101,29 @@ import {
   AlertTitle,
 } from "@/components/ui/alert";
 
-// Session form schema - Emergency fix to bypass validation
-const sessionFormSchema = insertSessionSchema.extend({
-  // CRITICAL FIX: Accept any value for session date and transform it to valid date
-  sessionDate: z.any().transform(value => {
-    console.log("TRANSFORM: Session date input value:", value, "type:", typeof value);
-    
-    // Always return a valid date object
-    try {
-      // Try to use the value if it's a date
-      if (value instanceof Date && !isNaN(value.getTime())) {
-        console.log("TRANSFORM: Valid date object provided");
-        return value;
-      }
-      
-      // Try to parse the string
-      if (typeof value === 'string' && value.trim() !== '') {
-        const parsed = new Date(value);
-        if (!isNaN(parsed.getTime())) {
-          console.log("TRANSFORM: Successfully parsed date string");
-          return parsed;
-        }
-      }
-      
-      // When all else fails, use today's date
-      console.log("TRANSFORM: Using today's date as fallback");
-      return new Date();
-    } catch (e) {
-      console.error("TRANSFORM: Error during date transformation:", e);
-      return new Date();
-    }
+// Session form schema - Complete rewrite to match backend exactly
+const sessionFormSchema = z.object({
+  // CRITICAL FIX: Use exact same approach as server schema (coerce.date())
+  sessionDate: z.coerce.date({
+    invalid_type_error: "Session date must be a valid date",
+    required_error: "Session date is required"
   }),
   
-  // Simplified clientId validation
-  clientId: z.any().transform(value => {
-    console.log("TRANSFORM: Client ID input value:", value, "type:", typeof value);
-    if (typeof value === 'number') return value;
-    if (typeof value === 'string') {
-      const parsed = parseInt(value, 10);
-      return isNaN(parsed) ? 0 : parsed;
-    }
-    return 0;
+  // Use proper coercion for numeric fields
+  clientId: z.coerce.number({
+    invalid_type_error: "Client ID must be a number",
+    required_error: "Client ID is required"
   }),
   
-  // Accept any values for these fields
-  therapistId: z.any().optional(),
-  timeFrom: z.any().optional(),
-  timeTo: z.any().optional(),
-  location: z.any().optional(),
-  sessionId: z.any().optional(),
-  title: z.any().transform(val => val || "Therapy Session"),
-  duration: z.any().optional(),
-  status: z.any().transform(val => val || "scheduled")
+  // Simple validations for optional fields
+  therapistId: z.coerce.number().optional(),
+  timeFrom: z.string().optional().nullable(),
+  timeTo: z.string().optional().nullable(),
+  location: z.string().optional().nullable(),
+  sessionId: z.string().optional().nullable(),
+  title: z.string().default("Therapy Session"),
+  duration: z.coerce.number().default(60),
+  status: z.string().default("scheduled")
 });
 
 // Performance assessment schema
