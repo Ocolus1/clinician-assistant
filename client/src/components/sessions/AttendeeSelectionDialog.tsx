@@ -76,14 +76,21 @@ export function AttendeeSelectionDialog({
   // Log for debugging
   useEffect(() => {
     if (open) {
-      console.log("AttendeeSelectionDialog - Available allies:", JSON.stringify(availableAllies));
-      console.log("AttendeeSelectionDialog - Selected allies:", JSON.stringify(selectedAllies));
-      console.log("AttendeeSelectionDialog - All allies:", JSON.stringify(allies));
+      console.log("AttendeeSelectionDialog - Available allies count:", availableAllies.length);
+      console.log("AttendeeSelectionDialog - Selected allies count:", selectedAllies.length);
+      console.log("AttendeeSelectionDialog - All allies count:", allies.length);
+      console.log("AttendeeSelectionDialog - Non-archived allies count:", allies.filter(ally => !ally.archived).length);
       
       // Add more detailed info about each ally
+      console.log("Detailed ally information:");
       allies.forEach(ally => {
-        console.log(`Ally details - id: ${ally.id}, name: ${ally.name}, archived: ${ally.archived}`);
+        console.log(`Ally details - id: ${ally.id}, name: ${ally.name}, archived: ${ally.archived}, relationship: ${ally.relationship}`);
       });
+      
+      // Log filtered allies
+      console.log("Filtered allies (non-archived only):", 
+        allies.filter(ally => !ally.archived).map(ally => ({id: ally.id, name: ally.name}))
+      );
     }
   }, [open, availableAllies, selectedAllies, allies]);
   
