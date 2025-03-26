@@ -2044,8 +2044,28 @@ export function FullScreenSessionForm({
                                     <Calendar
                                       mode="single"
                                       selected={field.value}
-                                      onSelect={field.onChange}
+                                      onSelect={(date) => {
+                                        // Ensure we're passing a valid date object
+                                        if (date) {
+                                          // Log successful date selection
+                                          console.log("DATE SELECTION: Valid date selected:", date.toISOString());
+                                          
+                                          // Set the field value through the form API to ensure validation
+                                          form.setValue("session.sessionDate", date, {
+                                            shouldValidate: true,
+                                            shouldDirty: true
+                                          });
+                                        } else {
+                                          console.error("DATE SELECTION: Null date selected");
+                                          // Default to today's date if no date is selected
+                                          form.setValue("session.sessionDate", new Date(), {
+                                            shouldValidate: true,
+                                            shouldDirty: true
+                                          });
+                                        }
+                                      }}
                                       initialFocus
+                                      disabled={(date) => date < new Date("2022-01-01")}
                                     />
                                   </PopoverContent>
                                 </Popover>
@@ -3161,11 +3181,31 @@ export function FullScreenSessionForm({
                           const formValues = form.getValues();
                           console.log("BUTTON EVENT: Current form values:", formValues);
                           
-                          // Manually trigger form submission
-                          form.handleSubmit((data) => {
-                            console.log("BUTTON EVENT: Form submission handler called with data:", data);
-                            onSubmit(data);
-                          })();
+                          // Ensure session date is valid before submission
+                          const formData = form.getValues();
+                          console.log("BUTTON EVENT: Current session date value:", formData.session.sessionDate);
+                          
+                          // Make sure the session date is a valid date object
+                          if (!(formData.session.sessionDate instanceof Date) || isNaN(formData.session.sessionDate.getTime())) {
+                            console.log("BUTTON EVENT: Session date is invalid, setting to today's date");
+                            form.setValue("session.sessionDate", new Date(), { 
+                              shouldValidate: true, 
+                              shouldDirty: true 
+                            });
+                          }
+                          
+                          // Check for validation errors after fixing the date
+                          setTimeout(() => {
+                            form.handleSubmit((data) => {
+                              console.log("BUTTON EVENT: Form submission handler called with data:", data);
+                              // Log the session date specifically for debugging
+                              console.log("BUTTON EVENT: Session date in submission:", 
+                                data.session.sessionDate instanceof Date ? data.session.sessionDate.toISOString() : 
+                                typeof data.session.sessionDate);
+                              
+                              onSubmit(data);
+                            })();
+                          }, 100); // Small delay to ensure state updates
                         } catch (error) {
                           console.error("BUTTON EVENT: Error during form submission:", error);
                           toast({
