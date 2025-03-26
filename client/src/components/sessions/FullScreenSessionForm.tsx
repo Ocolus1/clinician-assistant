@@ -1429,6 +1429,51 @@ export function FullScreenSessionForm({
       return;
     }
     
+    // Fix date issue: Ensure we have a proper date object for sessionDate
+    if (data.session.sessionDate) {
+      try {
+        // Ensure we have a valid Date object - handle both string and Date cases
+        const dateValue = data.session.sessionDate;
+        let fixedDate: Date;
+        
+        if (typeof dateValue === 'string') {
+          // Parse string to date
+          fixedDate = new Date(dateValue);
+        } else if (dateValue instanceof Date) {
+          // Already a Date, use directly
+          fixedDate = dateValue;
+        } else {
+          // Fallback to current date
+          fixedDate = new Date();
+        }
+        
+        // Validate the fixed date
+        if (!isNaN(fixedDate.getTime())) {
+          console.log("DATE FIX: Fixed session date from:", dateValue, "to:", fixedDate);
+          data.session.sessionDate = fixedDate;
+        } else {
+          console.error("DATE ERROR: Could not create valid date:", dateValue);
+          toast({
+            title: "Invalid date",
+            description: "Please select a valid session date",
+            variant: "destructive"
+          });
+          return;
+        }
+      } catch (error) {
+        console.error("DATE ERROR: Failed to process session date:", error);
+        return;
+      }
+    } else {
+      console.error("DATE ERROR: Session date is missing");
+      toast({
+        title: "Date required",
+        description: "Please select a session date",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     // Ensure required client ID is set
     if (!data.session.clientId) {
       console.error("VALIDATION ERROR: Client ID is required");
@@ -3168,10 +3213,41 @@ export function FullScreenSessionForm({
                           const rawData = form.getValues();
                           console.log("BUTTON EVENT: Raw form values:", rawData);
                           
-                          // Force a valid session date
-                          if (!rawData.session.sessionDate || 
-                              !(rawData.session.sessionDate instanceof Date) || 
-                              isNaN(rawData.session.sessionDate.getTime())) {
+                          // Fix the session date format - critical for validation
+                          if (rawData.session.sessionDate) {
+                            try {
+                              // Handle various date format possibilities
+                              const dateValue = rawData.session.sessionDate;
+                              let fixedDate: Date;
+                              
+                              console.log("BUTTON EVENT: Processing session date:", 
+                                dateValue, "Type:", typeof dateValue);
+                              
+                              if (typeof dateValue === 'string') {
+                                fixedDate = new Date(dateValue);
+                                console.log("BUTTON EVENT: Converted string date to Date object");
+                              } else if (dateValue instanceof Date) {
+                                fixedDate = dateValue;
+                                console.log("BUTTON EVENT: Using existing Date object");
+                              } else {
+                                console.log("BUTTON EVENT: Creating new date as fallback");
+                                fixedDate = new Date();
+                              }
+                              
+                              // Validate the fixed date and use it
+                              if (!isNaN(fixedDate.getTime())) {
+                                console.log("BUTTON EVENT: Final valid date:", fixedDate);
+                                rawData.session.sessionDate = fixedDate;
+                              } else {
+                                console.error("BUTTON EVENT: Failed to create valid date");
+                                rawData.session.sessionDate = new Date(); // Last resort fallback
+                              }
+                            } catch (error) {
+                              console.error("BUTTON EVENT: Date conversion error:", error);
+                              rawData.session.sessionDate = new Date();
+                            }
+                          } else {
+                            console.log("BUTTON EVENT: No session date found, creating new date");
                             rawData.session.sessionDate = new Date();
                           }
                           
