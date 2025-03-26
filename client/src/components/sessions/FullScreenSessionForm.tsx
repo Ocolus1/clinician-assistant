@@ -670,6 +670,7 @@ export function FullScreenSessionForm({
       notes: "",
       products: [], // Products used in the session
       status: "draft",
+      selectedValue: null, // Explicitly add this to prevent the validation error
     },
     performanceAssessments: [],
   };
@@ -3142,7 +3143,16 @@ export function FullScreenSessionForm({
                               <FormControl>
                                 <RichTextEditor
                                   value={field.value || ""}
-                                  onChange={field.onChange}
+                                  onChange={(value) => {
+                                    // Only update the notes field, not selectedValue
+                                    field.onChange(value);
+                                    
+                                    // Set selectedValue to null explicitly to avoid validation errors
+                                    form.setValue("sessionNote.selectedValue", null, { 
+                                      shouldValidate: false,
+                                      shouldDirty: false
+                                    });
+                                  }}
                                   placeholder="Enter detailed session notes here..."
                                   className="min-h-[400px]"
                                 />
