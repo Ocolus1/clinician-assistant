@@ -1966,6 +1966,16 @@ const ProductSelectionDialog = ({
                                   placeholder="Enter general notes about the session..."
                                   className="resize-none min-h-[300px] border-primary/10 focus:border-primary/30"
                                   {...field}
+                                  onChange={(e) => {
+                                    // Apply normal onChange handler
+                                    field.onChange(e);
+                                    
+                                    // Set selectedValue to null explicitly to avoid validation errors
+                                    form.setValue("sessionNote.selectedValue", null, { 
+                                      shouldValidate: false,
+                                      shouldDirty: false
+                                    });
+                                  }}
                                 />
                               </FormControl>
                               <FormMessage />
