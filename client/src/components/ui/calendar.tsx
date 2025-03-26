@@ -22,15 +22,15 @@ function Calendar({
       classNames={{
         months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
         month: "space-y-4",
-        caption: "flex justify-center pt-1 relative items-center px-8",
-        caption_label: "text-sm font-medium mx-2",
-        nav: "space-x-1 flex items-center",
+        caption: "flex justify-center pt-1 relative items-center px-10", // Increased padding for arrow space
+        caption_label: "text-sm font-medium",
+        nav: "space-x-1 flex items-center justify-between absolute w-full left-0 top-0",  // Adjusted for better positioning
         nav_button: cn(
           buttonVariants({ variant: "outline" }),
-          "h-7 w-7 bg-transparent p-0 opacity-70 hover:opacity-100 z-10"
+          "h-8 w-8 bg-background p-0 opacity-100 hover:opacity-80 z-20 border border-input" // Enhanced visibility and size
         ),
-        nav_button_previous: "absolute left-1 border-2 bg-background",
-        nav_button_next: "absolute right-1 border-2 bg-background",
+        nav_button_previous: "absolute left-1.5",
+        nav_button_next: "absolute right-1.5",
         table: "w-full border-collapse space-y-1",
         head_row: "flex",
         head_cell:
@@ -54,8 +54,8 @@ function Calendar({
         ...classNames,
       }}
       components={{
-        IconLeft: ({ ...props }) => <ChevronLeft className="h-4 w-4 text-foreground" />,
-        IconRight: ({ ...props }) => <ChevronRight className="h-4 w-4 text-foreground" />,
+        IconLeft: ({ ...props }) => <ChevronLeft className="h-5 w-5 text-foreground" />, // Larger icons
+        IconRight: ({ ...props }) => <ChevronRight className="h-5 w-5 text-foreground" />, // Larger icons
       }}
       {...props}
     />
