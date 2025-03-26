@@ -78,7 +78,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Progress } from "@/components/ui/progress";
-import { RichTextEditor } from "@/components/ui/rich-text-editor";
+// RichTextEditor removed
 import {
   Command,
   CommandEmpty,
@@ -155,7 +155,6 @@ const sessionProductSchema = z.object({
 });
 
 // Session notes schema
-// Apply passthrough directly to the schema to handle RichTextEditor's internal state
 const sessionNoteSchema = z.object({
   presentAllies: z.array(z.string()).default([]),
   presentAllyIds: z.array(z.number()).default([]), // Store ally IDs for data integrity
@@ -166,14 +165,12 @@ const sessionNoteSchema = z.object({
   notes: z.string().optional(),
   products: z.array(sessionProductSchema).default([]),
   status: z.enum(["draft", "completed"]).default("draft"),
-  // Explicitly handle the selectedValue field that comes from RichTextEditor
-  selectedValue: z.any().optional(),
-}).passthrough();
+});
 
 // Complete form schema
 const integratedSessionFormSchema = z.object({
   session: sessionFormSchema,
-  sessionNote: sessionNoteSchema, // sessionNoteSchema already has passthrough applied
+  sessionNote: sessionNoteSchema,
   performanceAssessments: z.array(performanceAssessmentSchema).default([]),
 });
 
@@ -671,8 +668,7 @@ export function FullScreenSessionForm({
       physicalActivityRating: 5,
       notes: "",
       products: [], // Products used in the session
-      status: "draft",
-      selectedValue: {}, // Use an empty object instead of null to match how the editor component works
+      status: "draft"
     },
     performanceAssessments: [],
   };
@@ -891,7 +887,7 @@ export function FullScreenSessionForm({
   const selectedPerformanceAssessments = form.watch("performanceAssessments") || [];
   const selectedGoalIds = selectedPerformanceAssessments.map(assessment => assessment.goalId);
   
-  // Debug logs for goals fetching and selection process
+  // Debug logs for goals fetching and selection process - selectedGoalIds removed from deps
   useEffect(() => {
     if (open && clientId) {
       console.log(`DEBUG GOALS: Fetching status for client ${clientId}, showGoalDialog=${showGoalDialog}`);
@@ -912,14 +908,14 @@ export function FullScreenSessionForm({
       // Add explicit logging when dialog is opened
       if (showGoalDialog) {
         console.log("GOAL DIALOG OPENED with these goals:", goals);
-        console.log("Selected goal IDs when dialog opened:", selectedGoalIds);
-        
-        // Additional logging about selected assessments
-        const assessments = form.getValues("performanceAssessments") || [];
-        console.log("Current performance assessments:", assessments);
+        // Get the current values directly when needed rather than relying on watch
+        const currentAssessments = form.getValues("performanceAssessments") || [];
+        const currentGoalIds = currentAssessments.map(a => a.goalId);
+        console.log("Selected goal IDs when dialog opened:", currentGoalIds);
+        console.log("Current performance assessments:", currentAssessments);
       }
     }
-  }, [open, clientId, goals, goalsError, showGoalDialog, isLoadingGoals, selectedGoalIds, form]);
+  }, [open, clientId, goals, goalsError, showGoalDialog, isLoadingGoals, form]);
 
   // Fetch subgoals for the currently selected goal
   const { data: subgoals = [] } = useQuery<Subgoal[]>({
@@ -3112,20 +3108,8 @@ export function FullScreenSessionForm({
                           render={({ field }) => (
                             <FormItem>
                               <FormControl>
-                                <RichTextEditor
-                                  value={field.value || ""}
-                                  onChange={(value) => {
-                                    // Update the notes field with the new value
-                                    field.onChange(value);
-                                    
-                                    // Instead of setting to null, set to an empty object
-                                    // This helps prevent validation errors while not interfering with the editor
-                                    form.setValue("sessionNote.selectedValue", {}, { 
-                                      shouldValidate: false,
-                                      shouldDirty: false,
-                                      shouldTouch: false
-                                    });
-                                  }}
+                                <Textarea
+                                  {...field}
                                   placeholder="Enter detailed session notes here..."
                                   className="min-h-[400px]"
                                 />

@@ -141,8 +141,8 @@ const sessionNoteSchema = z.object({
   notes: z.string().optional(),
   products: z.array(sessionProductSchema).default([]),
   status: z.enum(["draft", "completed"]).default("draft"),
-  // Remove explicit selectedValue validation and use passthrough instead
-}).passthrough();
+  // Removed selectedValue field 
+});
 
 const integratedSessionFormSchema = z.object({
   session: sessionFormSchema,
@@ -419,8 +419,7 @@ export function IntegratedSessionForm({
       physicalActivityRating: 5,
       notes: "",
       products: [],
-      status: "draft",
-      selectedValue: null, // Add explicit null for RichTextEditor
+      status: "draft"
     },
     performanceAssessments: [],
   };
@@ -1970,12 +1969,6 @@ const ProductSelectionDialog = ({
                                   onChange={(e) => {
                                     // Apply normal onChange handler
                                     field.onChange(e);
-                                    
-                                    // Set selectedValue to null explicitly to avoid validation errors
-                                    form.setValue("sessionNote.selectedValue", null, { 
-                                      shouldValidate: false,
-                                      shouldDirty: false
-                                    });
                                   }}
                                 />
                               </FormControl>
