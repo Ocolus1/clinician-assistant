@@ -337,10 +337,10 @@ export default function EnhancedClientList() {
       id: "name",
       header: "Client Name",
       accessorFn: (client) => (
-        <div className="font-medium">{client.name}</div>
+        <div className="font-medium pl-0">{client.name}</div>
       ),
       sortable: true,
-      width: "180px",
+      width: "160px",
       alignment: "start"
     },
     {
@@ -1159,7 +1159,7 @@ export default function EnhancedClientList() {
                         className={`py-3.5 text-sm font-semibold text-gray-900 ${
                           column.alignment === 'center' ? 'text-center px-3' : 
                           column.alignment === 'end' ? 'text-right px-3' : 
-                          column.id === 'name' ? 'text-left pl-1' : 'text-left px-3'
+                          column.id === 'name' ? 'text-left pl-0' : 'text-left px-3'
                         } ${column.width ? `w-[${column.width}]` : ''}`}
                       >
                         {column.sortable ? (
@@ -1196,7 +1196,7 @@ export default function EnhancedClientList() {
                           className={`whitespace-nowrap py-4 text-sm ${
                             column.alignment === 'center' ? 'text-center px-3' : 
                             column.alignment === 'end' ? 'text-right px-3' : 
-                            column.id === 'name' ? 'text-left pl-1' : 'text-left px-3'
+                            column.id === 'name' ? 'text-left pl-0' : 'text-left px-3'
                           }`}
                         >
                           {column.accessorFn(client)}
