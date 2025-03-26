@@ -1887,9 +1887,21 @@ export function FullScreenSessionForm({ open, onOpenChange, defaultValues, clien
       <StrategySelectionDialog
         open={strategySelectionOpen}
         onOpenChange={setStrategySelectionOpen}
-        selectedStrategies={currentGoalIndex >= 0 && currentMilestoneIndex >= 0 && form.getValues().performanceAssessments[currentGoalIndex]?.milestones[currentMilestoneIndex]?.strategies || []}
-        milestoneId={currentGoalIndex >= 0 && currentMilestoneIndex >= 0 && form.getValues().performanceAssessments[currentGoalIndex]?.milestones[currentMilestoneIndex]?.milestoneId || 0}
-        onSelectStrategy={(strategy) => handleAddStrategy([strategy])}
+        selectedStrategies={
+          currentGoalIndex >= 0 && 
+          currentMilestoneIndex >= 0 && 
+          form.getValues()?.performanceAssessments?.[currentGoalIndex]?.milestones?.[currentMilestoneIndex]?.strategies || []
+        }
+        milestoneId={
+          currentGoalIndex >= 0 && 
+          currentMilestoneIndex >= 0 && 
+          form.getValues()?.performanceAssessments?.[currentGoalIndex]?.milestones?.[currentMilestoneIndex]?.milestoneId || 0
+        }
+        onSelectStrategy={(strategy) => {
+          if (strategy) {
+            handleAddStrategy([strategy]);
+          }
+        }}
       />
       
       {/* Product Selection Dialog */}
@@ -1905,12 +1917,13 @@ export function FullScreenSessionForm({ open, onOpenChange, defaultValues, clien
         open={attendeeSelectionOpen}
         onOpenChange={setAttendeeSelectionOpen}
         allies={alliesData || []}
-        selectedAllies={alliesData && form.getValues()?.sessionNote?.presentAllyIds ? 
-          alliesData.filter(ally => 
-            form.getValues()?.sessionNote?.presentAllyIds?.includes(ally.id)
-          ) : []
-        }
-        onSelectAttendees={handleAddAttendees}
+        selectedAllies={form.getValues()?.sessionNote?.presentAllies || []}
+        onSelectAttendee={(ally) => {
+          if (ally) {
+            const allies = [ally]; // Create array with the single ally
+            handleAddAttendees(allies);
+          }
+        }}
       />
     </ThreeColumnLayout>
   );
