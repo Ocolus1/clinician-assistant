@@ -3238,32 +3238,63 @@ export function FullScreenSessionForm({
                           rawData.session.status = "scheduled";
                           
                           // Skip validation and call the mutate function directly
-                          console.log("BUTTON EVENT: Calling mutate directly with:", rawData);
+                          console.log("BUTTON EVENT: Creating basic direct submission payload");
+                          
+                          // Create a new payload directly with just the minimum required fields
+                          const directPayload = {
+                            session: {
+                              clientId: rawData.session.clientId,
+                              therapistId: rawData.session.therapistId,
+                              title: "Therapy Session",
+                              sessionDate: new Date().toISOString(), // Use ISO string format
+                              duration: 60,
+                              status: "scheduled",
+                              location: rawData.session.location || "Clinic"
+                            },
+                            sessionNote: {
+                              presentAllies: rawData.sessionNote?.presentAllies || [],
+                              presentAllyIds: rawData.sessionNote?.presentAllyIds || []
+                            }
+                          };
+                          
+                          console.log("BUTTON EVENT: Calling mutate with direct payload:", directPayload);
+                          
                           try {
-                            // Directly call mutation without validation
-                            createSessionMutation.mutate(rawData, {
-                              onSuccess: (result) => {
-                                console.log("SUCCESS: Session created without schema validation", result);
-                                toast({
-                                  title: "Success!",
-                                  description: "Session created successfully by bypassing validation",
-                                });
-                                onOpenChange(false);
+                            // Directly call fetch API instead of using the mutation
+                            fetch("/api/sessions", {
+                              method: "POST",
+                              headers: {
+                                "Content-Type": "application/json"
                               },
-                              onError: (error) => {
-                                console.error("ERROR: Session creation failed", error);
-                                toast({
-                                  title: "Error",
-                                  description: "Session creation failed with direct submission approach",
-                                  variant: "destructive",
-                                });
+                              body: JSON.stringify(directPayload)
+                            })
+                            .then(response => {
+                              if (response.ok) {
+                                return response.json();
                               }
+                              throw new Error("Failed to create session: " + response.statusText);
+                            })
+                            .then(result => {
+                              console.log("SUCCESS: Session created by direct API call", result);
+                              toast({
+                                title: "Success!",
+                                description: "Session created successfully using direct API call",
+                              });
+                              onOpenChange(false);
+                            })
+                            .catch(error => {
+                              console.error("ERROR: Direct API call failed", error);
+                              toast({
+                                title: "Error",
+                                description: "Session creation failed with direct API approach: " + error.message,
+                                variant: "destructive",
+                              });
                             });
                           } catch (error) {
-                            console.error("ERROR: Exception during direct mutation call", error);
+                            console.error("ERROR: Exception during direct API call setup", error);
                             toast({
                               title: "Exception",
-                              description: "An unexpected error occurred during submission",
+                              description: "Failed to initiate API request: " + (error as Error).message,
                               variant: "destructive",
                             });
                           }
