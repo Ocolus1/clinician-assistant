@@ -2047,7 +2047,7 @@ export function FullScreenSessionForm({
                                     ) : assignedClinicians.length > 0 ? (
                                       assignedClinicians.map((assignment) => (
                                         <SelectItem key={assignment.clinician.id} value={assignment.clinician.id.toString()}>
-                                          {assignment.clinician.name} ({assignment.clinician.role})
+                                          {assignment.clinician.name}
                                         </SelectItem>
                                       ))
                                     ) : (
