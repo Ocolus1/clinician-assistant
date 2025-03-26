@@ -155,6 +155,7 @@ const sessionProductSchema = z.object({
 });
 
 // Session notes schema
+// Apply passthrough directly to the schema to handle RichTextEditor's internal state
 const sessionNoteSchema = z.object({
   presentAllies: z.array(z.string()).default([]),
   presentAllyIds: z.array(z.number()).default([]), // Store ally IDs for data integrity
@@ -165,13 +166,13 @@ const sessionNoteSchema = z.object({
   notes: z.string().optional(),
   products: z.array(sessionProductSchema).default([]),
   status: z.enum(["draft", "completed"]).default("draft"),
-  selectedValue: z.any().optional(), // Add this field to handle RichTextEditor's internal state
-});
+  // Remove explicit selectedValue validation and use passthrough instead
+}).passthrough();
 
 // Complete form schema
 const integratedSessionFormSchema = z.object({
   session: sessionFormSchema,
-  sessionNote: sessionNoteSchema.passthrough(), // Add passthrough to handle any extra fields that might be added dynamically
+  sessionNote: sessionNoteSchema, // sessionNoteSchema already has passthrough applied
   performanceAssessments: z.array(performanceAssessmentSchema).default([]),
 });
 
