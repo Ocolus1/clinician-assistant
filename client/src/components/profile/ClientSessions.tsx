@@ -11,7 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Session, Client } from "@shared/schema";
 import { format } from "date-fns";
-import { SimpleSessionForm } from '@/temp/SimpleSessionForm';
+import { FullScreenSessionForm } from '@/components/sessions/FullScreenSessionForm';
 
 import { 
   Calendar, 
@@ -166,9 +166,10 @@ export default function ClientSessions() {
       </div>
       
       {/* Session creation form */}
-      <SimpleSessionForm 
+      <FullScreenSessionForm 
         open={createSessionDialogOpen} 
         onOpenChange={setCreateSessionDialogOpen}
+        initialClient={client}
       />
       
       <div className="mb-6">
