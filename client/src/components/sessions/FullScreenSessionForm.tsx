@@ -2531,7 +2531,8 @@ export function FullScreenSessionForm({
                           <p className="text-sm text-muted-foreground">Clinician</p>
                           <p className="text-sm font-medium">
                             {form.watch("session.therapistId") 
-                              ? allies.find(ally => ally.id === form.watch("session.therapistId"))?.name || "Not found"
+                              ? assignedClinicians.find(assignment => 
+                                  assignment.clinician.id === form.watch("session.therapistId"))?.clinician.name || "Not found"
                               : "Not selected"}
                           </p>
                         </div>
