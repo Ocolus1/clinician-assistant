@@ -3002,8 +3002,11 @@ export function FullScreenSessionForm({
                       type="submit"
                       disabled={isFormSubmitting || form.formState.isSubmitting}
                       onClick={(e) => {
-                        // The form's onSubmit handler will handle this
+                        // Make sure we're triggering the form submission properly
                         console.log("Create New Session button in footer clicked");
+                        e.preventDefault();
+                        // Manually trigger form submission
+                        form.handleSubmit(onSubmit)();
                       }}
                     >
                       {isFormSubmitting || form.formState.isSubmitting ? (
