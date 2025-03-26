@@ -337,7 +337,7 @@ export default function EnhancedClientList() {
       id: "name",
       header: "Client Name",
       accessorFn: (client) => (
-        <div className="font-medium pl-0">{client.name}</div>
+        <div className="font-medium !pl-0 !ml-0 -translate-x-3 relative" style={{ paddingLeft: 0, marginLeft: '-0.75rem', position: 'relative', left: '-12px' }}>{client.name}</div>
       ),
       sortable: true,
       width: "160px",
@@ -1142,8 +1142,8 @@ export default function EnhancedClientList() {
               )}
             </div>
           ) : (
-            <div className="overflow-auto">
-              <table className="w-full divide-y divide-gray-200">
+            <div className="overflow-auto !p-0">
+              <table className="w-full divide-y divide-gray-200 border-collapse">
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 w-[40px]">
@@ -1159,12 +1159,12 @@ export default function EnhancedClientList() {
                         className={`py-3.5 text-sm font-semibold text-gray-900 ${
                           column.alignment === 'center' ? 'text-center px-3' : 
                           column.alignment === 'end' ? 'text-right px-3' : 
-                          column.id === 'name' ? 'text-left pl-0' : 'text-left px-3'
+                          column.id === 'name' ? 'text-left !pl-0 !pr-3' : 'text-left px-3'
                         } ${column.width ? `w-[${column.width}]` : ''}`}
                       >
                         {column.sortable ? (
                           <button 
-                            className="group inline-flex items-center"
+                            className={`group inline-flex items-center ${column.id === 'name' ? '!pl-0 -translate-x-3' : ''}`}
                             onClick={() => handleSortChange(column.id)}
                           >
                             {column.header}
@@ -1196,7 +1196,7 @@ export default function EnhancedClientList() {
                           className={`whitespace-nowrap py-4 text-sm ${
                             column.alignment === 'center' ? 'text-center px-3' : 
                             column.alignment === 'end' ? 'text-right px-3' : 
-                            column.id === 'name' ? 'text-left pl-0' : 'text-left px-3'
+                            column.id === 'name' ? 'text-left !pl-0 !pr-3' : 'text-left px-3'
                           }`}
                         >
                           {column.accessorFn(client)}
