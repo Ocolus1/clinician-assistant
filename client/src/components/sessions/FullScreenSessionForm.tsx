@@ -170,7 +170,7 @@ const sessionNoteSchema = z.object({
 // Complete form schema
 const integratedSessionFormSchema = z.object({
   session: sessionFormSchema,
-  sessionNote: sessionNoteSchema,
+  sessionNote: sessionNoteSchema.passthrough(), // Add passthrough to handle any extra fields that might be added dynamically
   performanceAssessments: z.array(performanceAssessmentSchema).default([]),
 });
 
