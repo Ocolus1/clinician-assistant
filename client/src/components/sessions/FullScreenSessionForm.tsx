@@ -166,7 +166,8 @@ const sessionNoteSchema = z.object({
   notes: z.string().optional(),
   products: z.array(sessionProductSchema).default([]),
   status: z.enum(["draft", "completed"]).default("draft"),
-  // Remove explicit selectedValue validation and use passthrough instead
+  // Explicitly handle the selectedValue field that comes from RichTextEditor
+  selectedValue: z.any().optional(),
 }).passthrough();
 
 // Complete form schema
@@ -671,7 +672,7 @@ export function FullScreenSessionForm({
       notes: "",
       products: [], // Products used in the session
       status: "draft",
-      selectedValue: null, // Explicitly add this to prevent the validation error
+      selectedValue: {}, // Use an empty object instead of null to match how the editor component works
     },
     performanceAssessments: [],
   };
@@ -891,37 +892,6 @@ export function FullScreenSessionForm({
   const selectedGoalIds = selectedPerformanceAssessments.map(assessment => assessment.goalId);
   
   // Debug logs for goals fetching and selection process
-  useEffect(() => {
-    if (open && clientId) {
-      console.log(`DEBUG GOALS: Fetching status for client ${clientId}, showGoalDialog=${showGoalDialog}`);
-      console.log(`DEBUG GOALS: isLoading=${isLoadingGoals}, goals count=${goals?.length || 0}`);
-      
-      if (goals && goals.length > 0) {
-        console.log("DEBUG GOALS: Goals data available:", 
-          goals.map(g => ({id: g.id, title: g.title}))
-        );
-      } else {
-        console.log("DEBUG GOALS: No goals data available yet");
-      }
-      
-      if (goalsError) {
-        console.error("Error fetching goals:", goalsError);
-      }
-      
-      // Add explicit logging when dialog is opened
-      if (showGoalDialog) {
-        console.log("GOAL DIALOG OPENED with these goals:", goals);
-        console.log("Selected goal IDs when dialog opened:", selectedGoalIds);
-        
-        // Additional logging about selected assessments
-        const assessments = form.getValues("performanceAssessments") || [];
-        console.log("Current performance assessments:", assessments);
-      }
-    }
-  }, [open, clientId, goals, goalsError, showGoalDialog, isLoadingGoals, selectedGoalIds, form]);
-
-  // Debug logs for goals fetching
-  // Enhanced debugging for goals fetching and selection process
   useEffect(() => {
     if (open && clientId) {
       console.log(`DEBUG GOALS: Fetching status for client ${clientId}, showGoalDialog=${showGoalDialog}`);
@@ -3145,13 +3115,15 @@ export function FullScreenSessionForm({
                                 <RichTextEditor
                                   value={field.value || ""}
                                   onChange={(value) => {
-                                    // Only update the notes field, not selectedValue
+                                    // Update the notes field with the new value
                                     field.onChange(value);
                                     
-                                    // Set selectedValue to null explicitly to avoid validation errors
-                                    form.setValue("sessionNote.selectedValue", null, { 
+                                    // Instead of setting to null, set to an empty object
+                                    // This helps prevent validation errors while not interfering with the editor
+                                    form.setValue("sessionNote.selectedValue", {}, { 
                                       shouldValidate: false,
-                                      shouldDirty: false
+                                      shouldDirty: false,
+                                      shouldTouch: false
                                     });
                                   }}
                                   placeholder="Enter detailed session notes here..."
