@@ -419,7 +419,7 @@ export function IntegratedSessionForm({
       notes: "",
       products: [],
       status: "draft",
-      selectedValue: null, // Add this to match FullScreenSessionForm implementation
+      selectedValue: null, // Add explicit null for RichTextEditor
     },
     performanceAssessments: [],
   };
