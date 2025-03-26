@@ -1,0 +1,185 @@
+
+> rest-express@1.0.0 dev
+SERVER STARTUP: Beginning application initialization
+STEP 1: Registering knowledge API routes
+STEP 2: Registering report API routes
+STEP 3: Registering main API routes
+Registering knowledge API routes for the agentic assistant
+Registering report API routes
+STEP 4: All routes registered successfully
+Successfully registered knowledge API routes
+Successfully registered report API routes
+STEP 5: Starting server on port 5000
+Attempting to start server on port 5000 (attempt 1/4)
+SUCCESS: Server is now listening on port 5000
+11:05:47 PM [express] serving on port 5000
+GET /dashboard-api - Retrieving consolidated dashboard data (direct route)
+Getting dashboard appointment stats with timeframe: day
+Getting budget expiration stats for the next 6 months
+Getting upcoming task stats for the next 6 months
+Found 0 sessions in database
+Dashboard data (direct route) retrieved successfully
+GET /dashboard-api - Retrieving consolidated dashboard data (direct route)
+Getting dashboard appointment stats with timeframe: day
+Getting budget expiration stats for the next 6 months
+Getting upcoming task stats for the next 6 months
+Found 0 sessions in database
+Dashboard data (direct route) retrieved successfully
+GET /api/clients/88 - Fetching client with ID: 88
+Attempting to get client with ID: 88
+Found client with ID 88: {"id":88,"name":"Radwan-585666","originalName":"Radwan","uniqueIdentifier":"585666","dateOfBirth":"2019-12-13","gender":null,"preferredLanguage":null,"contactEmail":null,"contactPhone":null,"address":null,"medicalHistory":null,"communicationNeeds":null,"therapyPreferences":null,"fundsManagement":"Self-Managed","ndisFunds":"0","onboardingStatus":"complete"}
+Client with ID 88 found: {
+  id: 88,
+  name: 'Radwan-585666',
+  originalName: 'Radwan',
+  uniqueIdentifier: '585666',
+  dateOfBirth: '2019-12-13',
+  gender: null,
+  preferredLanguage: null,
+  contactEmail: null,
+  contactPhone: null,
+  address: null,
+  medicalHistory: null,
+  communicationNeeds: null,
+  therapyPreferences: null,
+  fundsManagement: 'Self-Managed',
+  ndisFunds: '0',
+  onboardingStatus: 'complete'
+}
+11:06:08 PM [express] GET /api/clients/88 304 in 40ms :: {"id":88,"name":"Radwan-585666","originalNam…
+Getting goals for client 88
+Getting allies for client 88
+GET /api/clients/88/budget-items - Fetching budget items for client
+Getting budget items for client 88
+Getting budget settings for client 88, all=false
+Getting active budget setting for client 88
+Getting budget settings for client 88
+Found 3 goals for client 88
+11:06:08 PM [express] GET /api/clients/88/goals 304 in 25ms :: [{"id":100,"clientId":88,"title":"Enha…
+Found 3 budget items for client 88
+Found 3 budget items for client 88
+Getting all budget settings for client 88
+Found 2 allies for client 88
+11:06:08 PM [express] GET /api/clients/88/allies 304 in 29ms :: [{"id":103,"clientId":88,"name":"Moha…
+Found 1 budget settings for client 88
+Returning 3 enhanced budget items
+11:06:09 PM [express] GET /api/clients/88/budget-items 304 in 46ms :: [{"id":117,"clientId":88,"budge…
+Getting budget settings for client 88, all=true
+Getting all budget settings for client 88
+Getting all budget settings for client 88
+Found 1 budget settings for client 88
+Found 1 budget settings for client 88
+11:06:09 PM [express] GET /api/clients/88/budget-settings 304 in 22ms :: [{"id":70,"clientId":88,"pla…
+Found budget settings for client 88
+Found budget settings for client 88
+11:06:09 PM [express] GET /api/clients/88/budget-settings 304 in 94ms :: {"id":70,"clientId":88,"plan…
+GET /dashboard-api/appointments - Retrieving appointment statistics (direct route)
+Getting dashboard appointment stats with timeframe: day
+Found 0 sessions in database
+Appointment stats (direct route) retrieved successfully for timeframe: day
+GET /dashboard-api - Retrieving consolidated dashboard data (direct route)
+Getting dashboard appointment stats with timeframe: day
+Getting budget expiration stats for the next 6 months
+Getting upcoming task stats for the next 6 months
+Found 0 sessions in database
+Getting subgoals for goal 100
+Found 3 subgoals for goal 100
+11:06:09 PM [express] GET /api/goals/100/subgoals 304 in 29ms :: [{"id":219,"goalId":100,"title":"Ini…
+Dashboard data (direct route) retrieved successfully
+Getting subgoals for goal 101
+Found 3 subgoals for goal 101
+11:06:09 PM [express] GET /api/goals/101/subgoals 304 in 25ms :: [{"id":222,"goalId":101,"title":"Ide…
+GET /dashboard-api/appointments - Retrieving appointment statistics (direct route)
+Getting dashboard appointment stats with timeframe: day
+Found 0 sessions in database
+Appointment stats (direct route) retrieved successfully for timeframe: day
+Getting subgoals for goal 102
+Found 3 subgoals for goal 102
+11:06:09 PM [express] GET /api/goals/102/subgoals 304 in 22ms :: [{"id":225,"goalId":102,"title":"Imp…
+GET /api/clinicians - Retrieving all clinicians
+Getting all clinicians
+GET /api/clients/88/clinicians - Fetching assigned clinicians
+Getting clinicians for client 88
+Found 3 active clinicians
+Found 3 active clinicians
+11:06:10 PM [express] GET /api/clinicians 304 in 33ms :: [{"id":1,"name":"Rayan Ahmed","title":"MS, C…
+Found 2 clinicians assigned to client 88
+Found 2 clinicians assigned to client 88
+11:06:10 PM [express] GET /api/clients/88/clinicians 304 in 35ms :: [{"id":1,"clientId":88,"clinician…
+Getting allies for client 88
+GET /api/clients/88 - Fetching client with ID: 88
+Attempting to get client with ID: 88
+GET /api/clients/88/budget-items - Fetching budget items for client
+Getting budget items for client 88
+Getting budget settings for client 88, all=false
+Getting active budget setting for client 88
+Getting budget settings for client 88
+Getting goals for client 88
+Getting budget settings for client 88, all=true
+Getting all budget settings for client 88
+Getting all budget settings for client 88
+Found 2 allies for client 88
+11:06:52 PM [express] GET /api/clients/88/allies 304 in 116ms :: [{"id":103,"clientId":88,"name":"Moh…
+Found budget settings for client 88
+Found budget settings for client 88
+11:06:52 PM [express] GET /api/clients/88/budget-settings 304 in 121ms :: {"id":70,"clientId":88,"pla…
+Found 3 budget items for client 88
+Found 3 budget items for client 88
+Getting all budget settings for client 88
+Found 1 budget settings for client 88
+Found 1 budget settings for client 88
+11:06:52 PM [express] GET /api/clients/88/budget-settings 304 in 119ms :: [{"id":70,"clientId":88,"pl…
+Found 3 goals for client 88
+11:06:52 PM [express] GET /api/clients/88/goals 304 in 126ms :: [{"id":100,"clientId":88,"title":"Enh…
+Found 1 budget settings for client 88
+Returning 3 enhanced budget items
+11:06:52 PM [express] GET /api/clients/88/budget-items 304 in 147ms :: [{"id":117,"clientId":88,"budg…
+Found client with ID 88: {"id":88,"name":"Radwan-585666","originalName":"Radwan","uniqueIdentifier":"585666","dateOfBirth":"2019-12-13","gender":null,"preferredLanguage":null,"contactEmail":null,"contactPhone":null,"address":null,"medicalHistory":null,"communicationNeeds":null,"therapyPreferences":null,"fundsManagement":"Self-Managed","ndisFunds":"0","onboardingStatus":"complete"}
+Client with ID 88 found: {
+  id: 88,
+  name: 'Radwan-585666',
+  originalName: 'Radwan',
+  uniqueIdentifier: '585666',
+  dateOfBirth: '2019-12-13',
+  gender: null,
+  preferredLanguage: null,
+  contactEmail: null,
+  contactPhone: null,
+  address: null,
+  medicalHistory: null,
+  communicationNeeds: null,
+  therapyPreferences: null,
+  fundsManagement: 'Self-Managed',
+  ndisFunds: '0',
+  onboardingStatus: 'complete'
+}
+11:06:52 PM [express] GET /api/clients/88 304 in 170ms :: {"id":88,"name":"Radwan-585666","originalNa…
+Getting subgoals for goal 100
+Found 3 subgoals for goal 100
+11:06:52 PM [express] GET /api/goals/100/subgoals 304 in 23ms :: [{"id":219,"goalId":100,"title":"Ini…
+Getting subgoals for goal 101
+Found 3 subgoals for goal 101
+11:06:52 PM [express] GET /api/goals/101/subgoals 304 in 23ms :: [{"id":222,"goalId":101,"title":"Ide…
+Getting subgoals for goal 102
+Found 3 subgoals for goal 102
+11:06:53 PM [express] GET /api/goals/102/subgoals 304 in 23ms :: [{"id":225,"goalId":102,"title":"Imp…
+GET /api/clients/88/sessions - Retrieving sessions for client
+Getting sessions for client 88
+Found 0 sessions for client 88
+Found 0 sessions for client 88
+11:06:53 PM [express] GET /api/clients/88/sessions 304 in 24ms :: []
+GET /api/clinicians - Retrieving all clinicians
+Getting all clinicians
+Found 3 active clinicians
+Found 3 active clinicians
+11:06:53 PM [express] GET /api/clinicians 304 in 25ms :: [{"id":1,"name":"Rayan Ahmed","title":"MS, C…
+GET /dashboard-api - Retrieving consolidated dashboard data (direct route)
+Getting dashboard appointment stats with timeframe: day
+Getting budget expiration stats for the next 6 months
+Getting upcoming task stats for the next 6 months
+Found 0 sessions in database
+Dashboard data (direct route) retrieved successfully
+GET /dashboard-api/appointments - Retrieving appointment statistics (direct route)
+Getting dashboard appointment stats with timeframe: day
+Found 0 sessions in database
+Appointment stats (direct route) retrieved successfully for timeframe: day

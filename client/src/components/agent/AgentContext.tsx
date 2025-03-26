@@ -32,7 +32,7 @@ export const AgentProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [conversationHistory, setConversationHistory] = useState<Message[]>([]);
   const [activeClient, setActiveClient] = useState<Client | null>(null);
   const [queryConfidence, setQueryConfidence] = useState<number>(0);
-  const [isAgentVisible, setIsAgentVisible] = useState<boolean>(false);
+  const [isAgentVisible, setIsAgentVisible] = useState<boolean>(true); // Set to true by default to show the agent
   const [isProcessingQuery, setIsProcessingQuery] = useState<boolean>(false);
   const [latestVisualization, setLatestVisualization] = useState<VisualizationHint>('NONE');
   
