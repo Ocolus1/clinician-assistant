@@ -488,73 +488,114 @@ export function NewSessionForm({
   }, [sessionNoteValues.products]);
   
   // Attendee Selection Dialog
-  const AttendeeSelectionDialog = () => (
-    <Dialog open={attendeeDialogOpen} onOpenChange={setAttendeeDialogOpen}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Select Attendees</DialogTitle>
-          <DialogDescription>
-            Choose allies who attended this session
-          </DialogDescription>
-        </DialogHeader>
-        
-        <div className="py-4">
-          <div className="mb-4">
-            <Label>Search Allies</Label>
-            <div className="flex items-center space-x-2">
-              <Search className="w-4 h-4 text-muted-foreground" />
-              <Input placeholder="Search by name..." />
+  const AttendeeSelectionDialog = () => {
+    // State for search input
+    const [searchTerm, setSearchTerm] = useState('');
+    
+    // Reset search term when dialog opens
+    useEffect(() => {
+      if (attendeeDialogOpen) {
+        setSearchTerm('');
+      }
+    }, [attendeeDialogOpen]);
+    
+    // Get currently selected allies
+    const selectedAllies = form.watch("sessionNote.presentAllies") || [];
+    
+    // Filter allies by search term and exclude already selected allies
+    const filteredAllies = allies.filter(ally => 
+      (searchTerm === '' || ally.name.toLowerCase().includes(searchTerm.toLowerCase())) &&
+      !ally.archived &&
+      !selectedAllies.includes(ally.name)
+    );
+    
+    // Handle search input change
+    const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      setSearchTerm(e.target.value);
+    };
+    
+    // Modified add attendee function that also closes the dialog
+    const handleAddAttendee = (ally: Ally) => {
+      addAttendee(ally);
+      setAttendeeDialogOpen(false); // Close dialog after selection
+    };
+    
+    return (
+      <Dialog open={attendeeDialogOpen} onOpenChange={setAttendeeDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Select Attendees</DialogTitle>
+            <DialogDescription>
+              Choose allies who attended this session
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="py-4">
+            <div className="mb-4">
+              <Label>Search Allies</Label>
+              <div className="flex items-center space-x-2">
+                <Search className="w-4 h-4 text-muted-foreground" />
+                <Input 
+                  placeholder="Search by name..." 
+                  value={searchTerm}
+                  onChange={handleSearchChange}
+                />
+              </div>
             </div>
+            
+            <ScrollArea className="h-[300px]">
+              <div className="space-y-2">
+                {alliesLoading ? (
+                  <Skeleton className="h-10 w-full" />
+                ) : allies.length === 0 ? (
+                  <p className="text-muted-foreground text-sm p-2">No allies found</p>
+                ) : filteredAllies.length === 0 ? (
+                  <p className="text-muted-foreground text-sm p-2">
+                    {searchTerm ? 'No matching allies found' : 'All allies have been selected'}
+                  </p>
+                ) : (
+                  filteredAllies.map((ally: Ally) => (
+                    <div 
+                      key={ally.id} 
+                      className="flex items-center justify-between p-2 hover:bg-muted rounded-md cursor-pointer"
+                      onClick={() => handleAddAttendee(ally)}
+                    >
+                      <div>
+                        <p className="font-medium">{ally.name}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {ally.relationship} • {ally.preferredLanguage || "English"}
+                        </p>
+                      </div>
+                      <Button 
+                        size="sm" 
+                        variant="secondary" 
+                        className="h-8"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleAddAttendee(ally);
+                        }}
+                      >
+                        Add
+                      </Button>
+                    </div>
+                  ))
+                )}
+              </div>
+            </ScrollArea>
           </div>
           
-          <ScrollArea className="h-[300px]">
-            <div className="space-y-2">
-              {alliesLoading ? (
-                <Skeleton className="h-10 w-full" />
-              ) : allies.length === 0 ? (
-                <p className="text-muted-foreground text-sm p-2">No allies found</p>
-              ) : (
-                allies.map((ally: Ally) => (
-                  <div 
-                    key={ally.id} 
-                    className="flex items-center justify-between p-2 hover:bg-muted rounded-md cursor-pointer"
-                    onClick={() => addAttendee(ally)}
-                  >
-                    <div>
-                      <p className="font-medium">{ally.name}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {ally.relationship} • {ally.preferredLanguage || "English"}
-                      </p>
-                    </div>
-                    <Button 
-                      size="sm" 
-                      variant="secondary" 
-                      className="h-8"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        addAttendee(ally);
-                      }}
-                    >
-                      Add
-                    </Button>
-                  </div>
-                ))
-              )}
-            </div>
-          </ScrollArea>
-        </div>
-        
-        <DialogFooter>
-          <Button 
-            variant="outline" 
-            onClick={() => setAttendeeDialogOpen(false)}
-          >
-            Done
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => setAttendeeDialogOpen(false)}
+            >
+              Cancel
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    );
+  };
   
   // Product Selection Dialog
   const ProductSelectionDialog = () => (
