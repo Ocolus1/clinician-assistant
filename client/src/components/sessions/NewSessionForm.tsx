@@ -1595,7 +1595,7 @@ export function NewSessionForm({
                               </div>
                             ) : (
                               <div className="space-y-4">
-                                {sessionNoteValues.products.map((product, index) => (
+                                {sessionNoteValues.products.map((product: any, index: number) => (
                                   <div 
                                     key={index}
                                     className="flex items-center justify-between p-3 bg-muted/50 rounded-md"
@@ -1683,7 +1683,7 @@ export function NewSessionForm({
                               </div>
                             ) : (
                               <div className="space-y-6">
-                                {performanceAssessments.map((assessment, goalIndex) => (
+                                {performanceAssessments.map((assessment: any, goalIndex: number) => (
                                   <div key={assessment.goalId} className="border rounded-md p-4">
                                     {/* Goal header with remove button */}
                                     <div className="flex items-center justify-between mb-4">
@@ -1729,7 +1729,7 @@ export function NewSessionForm({
                                     
                                     {/* List of subgoals */}
                                     <div className="space-y-6">
-                                      {assessment.subgoals.map((subgoal, subgoalIndex) => (
+                                      {assessment.subgoals.map((subgoal: any, subgoalIndex: number) => (
                                         <div key={subgoal.subgoalId} className="border-t pt-4">
                                           {/* Subgoal header with remove button */}
                                           <div className="flex items-center justify-between mb-3">
@@ -1774,7 +1774,7 @@ export function NewSessionForm({
                                             
                                             {subgoal.strategies.length > 0 ? (
                                               <div className="flex flex-wrap gap-2 mt-1">
-                                                {subgoal.strategies.map((strategy) => (
+                                                {subgoal.strategies.map((strategy: string) => (
                                                   <Badge 
                                                     key={strategy} 
                                                     variant="secondary"
@@ -1924,7 +1924,7 @@ export function NewSessionForm({
                       {sessionNoteValues.products.length > 0 ? (
                         <div>
                           <ul className="space-y-1">
-                            {sessionNoteValues.products.map((product, i) => (
+                            {sessionNoteValues.products.map((product: any, i: number) => (
                               <li key={i} className="text-sm">
                                 {product.productDescription} (x{product.quantity})
                               </li>
@@ -1947,7 +1947,7 @@ export function NewSessionForm({
                       {performanceAssessments.length > 0 ? (
                         <div>
                           <ul className="space-y-1">
-                            {performanceAssessments.map((assessment) => (
+                            {performanceAssessments.map((assessment: any) => (
                               <li key={assessment.goalId} className="text-sm">
                                 {assessment.goalTitle} ({assessment.subgoals.length} subgoals)
                               </li>
