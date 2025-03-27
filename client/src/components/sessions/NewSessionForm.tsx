@@ -373,7 +373,7 @@ export function NewSessionForm({
     return toMinutesTotal - fromMinutesTotal;
   };
   
-  // Function to add a goal assessment
+  // Function to add a goal assessment (without subgoals)
   const addGoalAssessment = (goalId: number) => {
     const goal = goals.find((g: Goal) => g.id === goalId);
     if (!goal) return;
@@ -387,26 +387,59 @@ export function NewSessionForm({
       return;
     }
     
-    // Add goal assessment with subgoals
-    const goalSubgoals = subgoalsByGoal[goalId] || [];
-    
+    // Add goal assessment without subgoals (new behavior)
     const newAssessment = {
       goalId,
       goalTitle: goal.title,
       notes: "",
-      subgoals: goalSubgoals.map(subgoal => ({
-        subgoalId: subgoal.id,
-        subgoalTitle: subgoal.title,
-        rating: 5, // Default rating
-        strategies: [],
-        notes: "",
-      })),
+      subgoals: [], // Empty array - subgoals will be added individually
     };
     
     form.setValue("performanceAssessments", [
       ...performanceAssessments,
       newAssessment
     ]);
+  };
+  
+  // Function to add a subgoal to a goal assessment
+  const addSubgoalToAssessment = (goalId: number, subgoalId: number) => {
+    const goalIndex = performanceAssessments.findIndex(a => a.goalId === goalId);
+    if (goalIndex === -1) return;
+    
+    const subgoal = subgoalsByGoal[goalId]?.find(s => s.id === subgoalId);
+    if (!subgoal) return;
+    
+    // Check if subgoal is already added
+    const subgoalExists = performanceAssessments[goalIndex].subgoals.some(
+      s => s.subgoalId === subgoalId
+    );
+    
+    if (subgoalExists) return;
+    
+    // Add the subgoal to the assessment
+    const newAssessments = [...performanceAssessments];
+    newAssessments[goalIndex].subgoals.push({
+      subgoalId,
+      subgoalTitle: subgoal.title,
+      rating: 5, // Default rating
+      strategies: [],
+      notes: "",
+    });
+    
+    form.setValue("performanceAssessments", newAssessments);
+  };
+  
+  // Function to remove a subgoal from a goal assessment
+  const removeSubgoalFromAssessment = (goalId: number, subgoalId: number) => {
+    const goalIndex = performanceAssessments.findIndex(a => a.goalId === goalId);
+    if (goalIndex === -1) return;
+    
+    const newAssessments = [...performanceAssessments];
+    newAssessments[goalIndex].subgoals = newAssessments[goalIndex].subgoals.filter(
+      s => s.subgoalId !== subgoalId
+    );
+    
+    form.setValue("performanceAssessments", newAssessments);
   };
   
   // Function to remove a goal assessment
@@ -503,7 +536,7 @@ export function NewSessionForm({
     const selectedAllies = form.watch("sessionNote.presentAllies") || [];
     
     // Filter allies by search term and exclude already selected allies
-    const filteredAllies = allies.filter(ally => 
+    const filteredAllies = allies.filter((ally: Ally) => 
       (searchTerm === '' || ally.name.toLowerCase().includes(searchTerm.toLowerCase())) &&
       !ally.archived &&
       !selectedAllies.includes(ally.name)
@@ -614,7 +647,7 @@ export function NewSessionForm({
     const selectedProductIds = selectedProducts.map(p => p.budgetItemId);
     
     // Filter budget items by search term and exclude already selected products
-    const filteredProducts = budgetItems.filter(item => 
+    const filteredProducts = budgetItems.filter((item: BudgetItem) => 
       (searchTerm === '' || 
        item.description?.toLowerCase().includes(searchTerm.toLowerCase()) || 
        item.itemCode?.toLowerCase().includes(searchTerm.toLowerCase())) && 
@@ -711,6 +744,68 @@ export function NewSessionForm({
     );
   };
   
+  // State for subgoal dialog
+  const [subgoalDialogOpen, setSubgoalDialogOpen] = useState(false);
+  const [selectedGoalForSubgoals, setSelectedGoalForSubgoals] = useState<number | null>(null);
+  
+  // State for strategy dialog
+  const [strategyDialogOpen, setStrategyDialogOpen] = useState(false);
+  const [selectedSubgoalForStrategies, setSelectedSubgoalForStrategies] = useState<{goalId: number, subgoalId: number} | null>(null);
+  
+  // Function to open subgoal selection dialog
+  const openSubgoalDialog = (goalId: number) => {
+    setSelectedGoalForSubgoals(goalId);
+    setSubgoalDialogOpen(true);
+  };
+  
+  // Function to open strategy selection dialog
+  const openStrategyDialog = (goalId: number, subgoalId: number) => {
+    setSelectedSubgoalForStrategies({goalId, subgoalId});
+    setStrategyDialogOpen(true);
+  };
+  
+  // Add a strategy to a subgoal
+  const addStrategyToSubgoal = (goalId: number, subgoalId: number, strategy: string) => {
+    const goalIndex = performanceAssessments.findIndex(a => a.goalId === goalId);
+    if (goalIndex === -1) return;
+    
+    const subgoalIndex = performanceAssessments[goalIndex].subgoals.findIndex(
+      s => s.subgoalId === subgoalId
+    );
+    if (subgoalIndex === -1) return;
+    
+    // Check if strategy already exists
+    const strategies = performanceAssessments[goalIndex].subgoals[subgoalIndex].strategies;
+    if (strategies.includes(strategy)) return;
+    
+    // Maximum 5 strategies
+    if (strategies.length >= 5) return;
+    
+    // Add the strategy
+    const newAssessments = [...performanceAssessments];
+    newAssessments[goalIndex].subgoals[subgoalIndex].strategies.push(strategy);
+    
+    form.setValue("performanceAssessments", newAssessments);
+  };
+  
+  // Remove a strategy from a subgoal
+  const removeStrategyFromSubgoal = (goalId: number, subgoalId: number, strategy: string) => {
+    const goalIndex = performanceAssessments.findIndex(a => a.goalId === goalId);
+    if (goalIndex === -1) return;
+    
+    const subgoalIndex = performanceAssessments[goalIndex].subgoals.findIndex(
+      s => s.subgoalId === subgoalId
+    );
+    if (subgoalIndex === -1) return;
+    
+    // Remove the strategy
+    const newAssessments = [...performanceAssessments];
+    newAssessments[goalIndex].subgoals[subgoalIndex].strategies = 
+      newAssessments[goalIndex].subgoals[subgoalIndex].strategies.filter(s => s !== strategy);
+    
+    form.setValue("performanceAssessments", newAssessments);
+  };
+  
   // Goal Selection Dialog
   const GoalSelectionDialog = () => {
     // State for search input
@@ -727,7 +822,7 @@ export function NewSessionForm({
     const selectedGoalIds = performanceAssessments.map(a => a.goalId);
     
     // Filter goals by search term and filter out already selected goals
-    const filteredGoals = goals.filter(goal => 
+    const filteredGoals = goals.filter((goal: Goal) => 
       (searchTerm === '' || 
        goal.title.toLowerCase().includes(searchTerm.toLowerCase())) && 
       !selectedGoalIds.includes(goal.id)
@@ -814,6 +909,269 @@ export function NewSessionForm({
               onClick={() => setGoalDialogOpen(false)}
             >
               Cancel
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    );
+  };
+  
+  // Subgoal Selection Dialog
+  const SubgoalSelectionDialog = () => {
+    const [searchTerm, setSearchTerm] = useState('');
+    
+    // Reset search term when dialog opens
+    useEffect(() => {
+      if (subgoalDialogOpen) {
+        setSearchTerm('');
+      }
+    }, [subgoalDialogOpen]);
+    
+    if (!selectedGoalForSubgoals) return null;
+    
+    const goalIndex = performanceAssessments.findIndex(a => a.goalId === selectedGoalForSubgoals);
+    if (goalIndex === -1) return null;
+    
+    // Get subgoals for the selected goal
+    const goalSubgoals = subgoalsByGoal[selectedGoalForSubgoals] || [];
+    
+    // Get already selected subgoal IDs
+    const selectedSubgoalIds = performanceAssessments[goalIndex].subgoals.map(s => s.subgoalId);
+    
+    // Filter subgoals that haven't been selected yet
+    const filteredSubgoals = goalSubgoals.filter((subgoal: Subgoal) => 
+      (searchTerm === '' || 
+       subgoal.title.toLowerCase().includes(searchTerm.toLowerCase())) && 
+      !selectedSubgoalIds.includes(subgoal.id)
+    );
+    
+    // Handle search input change
+    const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      setSearchTerm(e.target.value);
+    };
+    
+    // Add subgoal and close dialog
+    const handleAddSubgoal = (subgoalId: number) => {
+      addSubgoalToAssessment(selectedGoalForSubgoals, subgoalId);
+      setSubgoalDialogOpen(false);
+    };
+    
+    return (
+      <Dialog open={subgoalDialogOpen} onOpenChange={setSubgoalDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add Subgoal</DialogTitle>
+            <DialogDescription>
+              Select a subgoal to assess for this goal
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="py-4">
+            <div className="mb-4">
+              <Label>Search Subgoals</Label>
+              <div className="flex items-center space-x-2">
+                <Search className="w-4 h-4 text-muted-foreground" />
+                <Input 
+                  placeholder="Search by title..." 
+                  value={searchTerm}
+                  onChange={handleSearchChange}
+                />
+              </div>
+            </div>
+            
+            <ScrollArea className="h-[300px]">
+              <div className="space-y-2">
+                {filteredSubgoals.length === 0 ? (
+                  <p className="text-muted-foreground text-sm p-2">
+                    {searchTerm ? 'No matching subgoals found' : 'All subgoals have been selected'}
+                  </p>
+                ) : (
+                  filteredSubgoals.map((subgoal) => (
+                    <div 
+                      key={subgoal.id} 
+                      className="flex items-center justify-between p-2 hover:bg-muted rounded-md cursor-pointer"
+                      onClick={() => handleAddSubgoal(subgoal.id)}
+                    >
+                      <div>
+                        <p className="font-medium">{subgoal.title}</p>
+                        <p className="text-sm text-muted-foreground line-clamp-1">
+                          {subgoal.description}
+                        </p>
+                      </div>
+                      <Button 
+                        size="sm" 
+                        variant="secondary" 
+                        className="h-8"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleAddSubgoal(subgoal.id);
+                        }}
+                      >
+                        Add
+                      </Button>
+                    </div>
+                  ))
+                )}
+              </div>
+            </ScrollArea>
+          </div>
+          
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => setSubgoalDialogOpen(false)}
+            >
+              Cancel
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    );
+  };
+  
+  // Strategy Selection Dialog
+  const StrategySelectionDialog = () => {
+    const [searchTerm, setSearchTerm] = useState('');
+    const [strategies] = useState<string[]>([
+      "Visual Supports", "Sensory Integration", "Positive Reinforcement",
+      "Social Stories", "Video Modeling", "Structured Teaching",
+      "AAC Devices", "Verbal Behavior Approach", "Prompting",
+      "Scaffolding", "Task Analysis", "Naturalistic Teaching",
+      "Pivotal Response Training", "Self-Management", "Peer-Mediated Strategies"
+    ]);
+    
+    // Reset search term when dialog opens
+    useEffect(() => {
+      if (strategyDialogOpen) {
+        setSearchTerm('');
+      }
+    }, [strategyDialogOpen]);
+    
+    if (!selectedSubgoalForStrategies) return null;
+    
+    const { goalId, subgoalId } = selectedSubgoalForStrategies;
+    
+    const goalIndex = performanceAssessments.findIndex(a => a.goalId === goalId);
+    if (goalIndex === -1) return null;
+    
+    const subgoalIndex = performanceAssessments[goalIndex].subgoals.findIndex(
+      s => s.subgoalId === subgoalId
+    );
+    if (subgoalIndex === -1) return null;
+    
+    // Get already selected strategies
+    const selectedStrategies = performanceAssessments[goalIndex].subgoals[subgoalIndex].strategies;
+    
+    // Filter strategies that haven't been selected yet
+    const filteredStrategies = strategies.filter((strategy: string) => 
+      (searchTerm === '' || 
+       strategy.toLowerCase().includes(searchTerm.toLowerCase())) && 
+      !selectedStrategies.includes(strategy)
+    );
+    
+    // Handle search input change
+    const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      setSearchTerm(e.target.value);
+    };
+    
+    // Add strategy and close dialog if we've reached 5 strategies
+    const handleAddStrategy = (strategy: string) => {
+      addStrategyToSubgoal(goalId, subgoalId, strategy);
+      
+      // If we now have 5 strategies, close the dialog
+      const currentStrategies = [...performanceAssessments[goalIndex].subgoals[subgoalIndex].strategies, strategy];
+      if (currentStrategies.length >= 5) {
+        setStrategyDialogOpen(false);
+      }
+    };
+    
+    return (
+      <Dialog open={strategyDialogOpen} onOpenChange={setStrategyDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add Strategies</DialogTitle>
+            <DialogDescription>
+              Select up to 5 strategies used for this subgoal
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="py-4">
+            <div className="mb-4">
+              <Label>Search Strategies</Label>
+              <div className="flex items-center space-x-2">
+                <Search className="w-4 h-4 text-muted-foreground" />
+                <Input 
+                  placeholder="Search by name..." 
+                  value={searchTerm}
+                  onChange={handleSearchChange}
+                />
+              </div>
+            </div>
+            
+            <div className="mb-3">
+              <Label>Selected ({selectedStrategies.length}/5):</Label>
+              <div className="flex flex-wrap gap-2 mt-2">
+                {selectedStrategies.map((strategy) => (
+                  <Badge 
+                    key={strategy} 
+                    variant="secondary"
+                    className="px-2 py-1 gap-1"
+                  >
+                    {strategy}
+                    <X 
+                      className="h-3 w-3 cursor-pointer" 
+                      onClick={() => removeStrategyFromSubgoal(goalId, subgoalId, strategy)} 
+                    />
+                  </Badge>
+                ))}
+                {selectedStrategies.length === 0 && (
+                  <p className="text-sm text-muted-foreground">No strategies selected yet</p>
+                )}
+              </div>
+            </div>
+            
+            <ScrollArea className="h-[200px]">
+              <div className="space-y-2">
+                {filteredStrategies.length === 0 ? (
+                  <p className="text-muted-foreground text-sm p-2">
+                    {searchTerm ? 'No matching strategies found' : 
+                     selectedStrategies.length >= 5 ? 'Maximum of 5 strategies reached' : 'All strategies have been selected'}
+                  </p>
+                ) : (
+                  filteredStrategies.map((strategy) => (
+                    <div 
+                      key={strategy} 
+                      className="flex items-center justify-between p-2 hover:bg-muted rounded-md cursor-pointer"
+                      onClick={() => handleAddStrategy(strategy)}
+                    >
+                      <div>
+                        <p className="font-medium">{strategy}</p>
+                      </div>
+                      <Button 
+                        size="sm" 
+                        variant="secondary" 
+                        className="h-8"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleAddStrategy(strategy);
+                        }}
+                        disabled={selectedStrategies.length >= 5}
+                      >
+                        Add
+                      </Button>
+                    </div>
+                  ))
+                )}
+              </div>
+            </ScrollArea>
+          </div>
+          
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => setStrategyDialogOpen(false)}
+            >
+              Done
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1327,22 +1685,64 @@ export function NewSessionForm({
                               <div className="space-y-6">
                                 {performanceAssessments.map((assessment, goalIndex) => (
                                   <div key={assessment.goalId} className="border rounded-md p-4">
+                                    {/* Goal header with remove button */}
                                     <div className="flex items-center justify-between mb-4">
                                       <h3 className="font-medium">{assessment.goalTitle}</h3>
-                                      <Button
-                                        type="button"
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => removeGoalAssessment(assessment.goalId)}
-                                      >
-                                        <X className="h-4 w-4" />
-                                      </Button>
+                                      <div className="flex items-center space-x-2">
+                                        <Button
+                                          type="button"
+                                          variant="outline"
+                                          size="sm"
+                                          onClick={() => openSubgoalDialog(assessment.goalId)}
+                                          className="h-8"
+                                        >
+                                          <Plus className="h-3 w-3 mr-1" />
+                                          Add Subgoal
+                                        </Button>
+                                        <Button
+                                          type="button"
+                                          variant="ghost"
+                                          size="sm"
+                                          onClick={() => removeGoalAssessment(assessment.goalId)}
+                                        >
+                                          <X className="h-4 w-4" />
+                                        </Button>
+                                      </div>
                                     </div>
                                     
+                                    {/* No subgoals message */}
+                                    {assessment.subgoals.length === 0 && (
+                                      <div className="text-center py-6 border border-dashed rounded-lg">
+                                        <p className="text-muted-foreground">No subgoals added</p>
+                                        <Button
+                                          type="button"
+                                          variant="outline"
+                                          size="sm"
+                                          onClick={() => openSubgoalDialog(assessment.goalId)}
+                                          className="mt-2"
+                                        >
+                                          <Plus className="h-3 w-3 mr-1" />
+                                          Add Subgoal
+                                        </Button>
+                                      </div>
+                                    )}
+                                    
+                                    {/* List of subgoals */}
                                     <div className="space-y-6">
                                       {assessment.subgoals.map((subgoal, subgoalIndex) => (
                                         <div key={subgoal.subgoalId} className="border-t pt-4">
-                                          <h4 className="font-medium mb-3">{subgoal.subgoalTitle}</h4>
+                                          {/* Subgoal header with remove button */}
+                                          <div className="flex items-center justify-between mb-3">
+                                            <h4 className="font-medium">{subgoal.subgoalTitle}</h4>
+                                            <Button
+                                              type="button"
+                                              variant="ghost"
+                                              size="sm"
+                                              onClick={() => removeSubgoalFromAssessment(assessment.goalId, subgoal.subgoalId)}
+                                            >
+                                              <X className="h-3 w-3" />
+                                            </Button>
+                                          </div>
                                           
                                           {/* Rating */}
                                           <NumericRating
@@ -1355,6 +1755,45 @@ export function NewSessionForm({
                                             label="Performance Rating"
                                             description="Rate progress on this subgoal"
                                           />
+                                          
+                                          {/* Strategies */}
+                                          <div className="mt-4">
+                                            <div className="flex items-center justify-between mb-2">
+                                              <Label>Strategies</Label>
+                                              <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => openStrategyDialog(assessment.goalId, subgoal.subgoalId)}
+                                                disabled={subgoal.strategies.length >= 5}
+                                              >
+                                                <Plus className="h-3 w-3 mr-1" />
+                                                {subgoal.strategies.length >= 5 ? 'Max (5)' : 'Add'}
+                                              </Button>
+                                            </div>
+                                            
+                                            {subgoal.strategies.length > 0 ? (
+                                              <div className="flex flex-wrap gap-2 mt-1">
+                                                {subgoal.strategies.map((strategy) => (
+                                                  <Badge 
+                                                    key={strategy} 
+                                                    variant="secondary"
+                                                    className="px-2 py-1 gap-1"
+                                                  >
+                                                    {strategy}
+                                                    <X 
+                                                      className="h-3 w-3 cursor-pointer" 
+                                                      onClick={() => removeStrategyFromSubgoal(assessment.goalId, subgoal.subgoalId, strategy)} 
+                                                    />
+                                                  </Badge>
+                                                ))}
+                                              </div>
+                                            ) : (
+                                              <p className="text-sm text-muted-foreground mt-1">
+                                                No strategies selected
+                                              </p>
+                                            )}
+                                          </div>
                                           
                                           {/* Notes */}
                                           <div className="mt-4">
@@ -1382,6 +1821,10 @@ export function NewSessionForm({
                             )}
                           </CardContent>
                         </Card>
+                        
+                        {/* Include dialog components */}
+                        <SubgoalSelectionDialog />
+                        <StrategySelectionDialog />
                       </TabsContent>
                     </Tabs>
                   </div>
@@ -1527,6 +1970,8 @@ export function NewSessionForm({
       <AttendeeSelectionDialog />
       <ProductSelectionDialog />
       <GoalSelectionDialog />
+      <SubgoalSelectionDialog />
+      <StrategySelectionDialog />
     </div>
   );
 }
