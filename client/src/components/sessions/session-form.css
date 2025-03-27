@@ -3,11 +3,21 @@
   position: fixed;
   top: 0;
   left: 0;
-  width: 100vw;
-  height: 100vh;
+  right: 0;
+  bottom: 0;
   z-index: 50;
+  background-color: hsl(var(--background));
+  display: flex;
+  flex-direction: column;
   overflow: hidden;
-  background-color: white;
+}
+
+.fullscreen-form .h-full {
+  height: 100% !important;
+}
+
+.fullscreen-form .overflow-hidden {
+  overflow: hidden !important;
 }
 
 .fullscreen-dialog {
@@ -25,11 +35,11 @@
   .session-form-tabs {
     flex-direction: column;
   }
-  
+
   .session-form-content {
     padding: 0.5rem;
   }
-  
+
   .session-form-footer {
     position: sticky;
     bottom: 0;

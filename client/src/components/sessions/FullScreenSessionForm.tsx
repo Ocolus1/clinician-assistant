@@ -265,13 +265,13 @@ const MilestoneSelectionDialog = ({
     if (open) {
       console.log("MilestoneSelectionDialog opened with subgoals:", subgoals);
       console.log("Selected milestone IDs:", selectedMilestoneIds);
-      
+
       // Additional debug logging to check subgoals data structure
       if (subgoals && subgoals.length > 0) {
         console.log("First subgoal example:", subgoals[0]);
       } else {
         console.warn("WARNING: No subgoals available to display in the milestone selection dialog");
-        
+
         // Use the toast function directly instead of a custom event
         setTimeout(() => {
           toast({
@@ -357,7 +357,7 @@ const ProductSelectionDialog = ({
       setSearchTerm("");
     }
   }, [open]);
-  
+
   // Log products for debugging when dialog opens
   useEffect(() => {
     if (open) {
@@ -371,15 +371,15 @@ const ProductSelectionDialog = ({
       console.log("No products available for filtering");
       return [];
     }
-    
+
     if (!searchTerm.trim()) return products;
     const searchTermLower = searchTerm.toLowerCase();
-    
+
     const filtered = products.filter(product => 
       (product.description?.toLowerCase() || "").includes(searchTermLower) ||
       (product.itemCode?.toLowerCase() || "").includes(searchTermLower)
     );
-    
+
     console.log("Filtered products:", filtered);
     return filtered;
   }, [products, searchTerm]);
@@ -392,11 +392,11 @@ const ProductSelectionDialog = ({
       minimumFractionDigits: 2
     }).format(amount || 0);
   };
-  
+
   // Handle quantity validation and changes
   const handleQuantityChange = (value: number) => {
     if (!selectedProduct) return;
-    
+
     if (value < 1) {
       setQuantity(1);
       toast({
@@ -406,7 +406,7 @@ const ProductSelectionDialog = ({
       });
       return;
     }
-    
+
     if (value > selectedProduct.availableQuantity) {
       setQuantity(selectedProduct.availableQuantity);
       toast({
@@ -416,7 +416,7 @@ const ProductSelectionDialog = ({
       });
       return;
     }
-    
+
     setQuantity(value);
   };
 
@@ -429,7 +429,7 @@ const ProductSelectionDialog = ({
             Select a product from the active budget plan to add to this session.
           </DialogDescription>
         </DialogHeader>
-        
+
         <div className="space-y-4 py-2">
           {products.length === 0 ? (
             <div className="text-center p-6 border rounded-md bg-muted/20">
@@ -530,7 +530,7 @@ const ProductSelectionDialog = ({
                     >
                       <Plus className="h-4 w-4" />
                     </Button>
-                    
+
                     <div className="ml-4 flex-grow">
                       <p className="text-sm font-medium">Total: {formatCurrency(selectedProduct.unitPrice * quantity)}</p>
                     </div>
@@ -540,7 +540,7 @@ const ProductSelectionDialog = ({
             </div>
           )}
         </div>
-        
+
         <DialogFooter className="mt-4">
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
@@ -590,7 +590,7 @@ export function FullScreenSessionForm({ open, onOpenChange, defaultValues, clien
   const [activeTab, setActiveTab] = useState("session");
   const [mode, setMode] = useState<"create" | "edit">(existingSessionId ? "edit" : "create");
   const [isSaving, setIsSaving] = useState(false);
-  
+
   // Fetch client data for the form
   const { data: clientData, isLoading: isLoadingClient } = useQuery<Client>({
     queryKey: ['/api/clients', clientId],
@@ -598,7 +598,7 @@ export function FullScreenSessionForm({ open, onOpenChange, defaultValues, clien
     staleTime: 0, // Don't use stale data
     refetchOnMount: true, // Always refetch when component mounts
   });
-  
+
   // Debug effect for client data
   useEffect(() => {
     if (clientData) {
@@ -607,29 +607,29 @@ export function FullScreenSessionForm({ open, onOpenChange, defaultValues, clien
       console.log("Client data type:", typeof clientData);
       console.log("Has originalName:", 'originalName' in clientData);
       console.log("Has name:", 'name' in clientData);
-      
+
       // Check if client data has expected properties
       const expectedProps = ['id', 'name', 'originalName', 'uniqueIdentifier', 'email'];
       const missingProps = expectedProps.filter(prop => !(prop in clientData));
       console.log("Missing properties:", missingProps);
-      
+
       // Iterate through all properties
       console.log("All properties:", Object.keys(clientData));
     }
   }, [clientData]);
-  
+
   // Fetch existing session if in edit mode
   const { data: sessionData, isLoading: isLoadingSession } = useQuery({
     queryKey: ['/api/sessions', existingSessionId],
     enabled: !!existingSessionId && mode === "edit",
   });
-  
+
   // Fetch goals for the client
   const { data: goalsData = [], isLoading: isLoadingGoals } = useQuery<Goal[]>({
     queryKey: ['/api/clients', clientId, 'goals'],
     enabled: !!clientId,
   });
-  
+
   // Fetch allies for the client
   const { data: alliesData = [], isLoading: isLoadingAllies } = useQuery<Ally[]>({
     queryKey: ['/api/clients', clientId, 'allies'],
@@ -640,7 +640,7 @@ export function FullScreenSessionForm({ open, onOpenChange, defaultValues, clien
     refetchOnWindowFocus: true,
     refetchOnReconnect: true,
   });
-  
+
   // Fetch budget items for the client
   const { data: budgetItemsData = [], isLoading: isLoadingBudgetItems } = useQuery<BudgetItem[]>({
     queryKey: ['/api/clients', clientId, 'budget-items'],
@@ -651,28 +651,28 @@ export function FullScreenSessionForm({ open, onOpenChange, defaultValues, clien
   const { data: cliniciansData = [] } = useQuery<Clinician[]>({
     queryKey: ['/api/clinicians'],
   });
-  
+
   // Create or update session mutation
   const sessionMutation = useMutation({
     mutationFn: (data: IntegratedSessionFormValues) => {
       console.log("Submitting session data:", data);
-      
+
       // Create session first
       if (mode === "create") {
         return apiRequest("POST", "/api/sessions", data.session)
           .then(session => {
             console.log("Session created:", session);
-            
+
             // Create session note with the session ID
             const sessionNote = {
               ...data.sessionNote,
               sessionId: session.id
             };
-            
+
             return apiRequest("POST", "/api/session-notes", sessionNote)
               .then(note => {
                 console.log("Session note created:", note);
-                
+
                 // Create performance assessments
                 const assessmentPromises = data.performanceAssessments.map(assessment => {
                   const performanceAssessment = {
@@ -680,11 +680,11 @@ export function FullScreenSessionForm({ open, onOpenChange, defaultValues, clien
                     goalId: assessment.goalId,
                     notes: assessment.notes || ""
                   };
-                  
+
                   return apiRequest("POST", "/api/performance-assessments", performanceAssessment)
                     .then(pa => {
                       console.log("Performance assessment created:", pa);
-                      
+
                       // Create milestone assessments for each subgoal
                       const milestonePromises = assessment.milestones.map(milestone => {
                         const milestoneAssessment = {
@@ -694,14 +694,14 @@ export function FullScreenSessionForm({ open, onOpenChange, defaultValues, clien
                           notes: milestone.notes || "",
                           strategies: milestone.strategies || []
                         };
-                        
+
                         return apiRequest("POST", "/api/milestone-assessments", milestoneAssessment);
                       });
-                      
+
                       return Promise.all(milestonePromises);
                     });
                 });
-                
+
                 return Promise.all(assessmentPromises)
                   .then(() => ({ session, note }));
               });
@@ -709,7 +709,7 @@ export function FullScreenSessionForm({ open, onOpenChange, defaultValues, clien
       } else {
         // Update existing session
         const updateSessionPromise = apiRequest("PUT", `/api/sessions/${existingSessionId}`, data.session);
-        
+
         // Get existing session note ID
         return updateSessionPromise.then(() => {
           return apiRequest("GET", `/api/session-notes/session/${existingSessionId}`)
@@ -731,7 +731,7 @@ export function FullScreenSessionForm({ open, onOpenChange, defaultValues, clien
             })
             .then(note => {
               console.log("Session note updated:", note);
-              
+
               // TODO: Update performance assessments
               // For brevity, we'll just return the note here
               return { session: { id: existingSessionId }, note };
@@ -741,25 +741,25 @@ export function FullScreenSessionForm({ open, onOpenChange, defaultValues, clien
     },
     onSuccess: () => {
       setIsSaving(false);
-      
+
       toast({
         title: mode === "create" ? "Session Created" : "Session Updated",
         description: mode === "create"
           ? "New session has been created successfully."
           : "Session has been updated successfully.",
       });
-      
+
       // Invalidate relevant queries
       queryClient.invalidateQueries({ queryKey: ['/api/sessions'] });
       queryClient.invalidateQueries({ queryKey: ['/api/clients', clientId, 'sessions'] });
-      
+
       // Close the dialog
       onOpenChange(false);
     },
     onError: (error) => {
       setIsSaving(false);
       console.error("Error creating/updating session:", error);
-      
+
       toast({
         title: "Error",
         description: `Failed to ${mode === "create" ? "create" : "update"} session. Please try again.`,
@@ -767,7 +767,7 @@ export function FullScreenSessionForm({ open, onOpenChange, defaultValues, clien
       });
     }
   });
-  
+
   // Function to get initial values for form
   const getInitialValues = (): IntegratedSessionFormValues => {
     return {
@@ -796,7 +796,7 @@ export function FullScreenSessionForm({ open, onOpenChange, defaultValues, clien
       performanceAssessments: [],
     };
   };
-  
+
   // Initialize form with values
   const form = useSafeForm<IntegratedSessionFormValues>({
     resolver: zodResolver(integratedSessionFormSchema),
@@ -805,13 +805,13 @@ export function FullScreenSessionForm({ open, onOpenChange, defaultValues, clien
 
   // Store available subgoals indexed by goalId for quick lookup
   const [subgoalsByGoalId, setSubgoalsByGoalId] = useState<Record<number, Subgoal[]>>({});
-  
+
   // Fetch subgoals for selected goals
   useEffect(() => {
     if (form) {  // Only proceed if form is defined
       try {
         const selectedGoalIds = form.getValues().performanceAssessments.map(pa => pa.goalId);
-        
+
         selectedGoalIds.forEach(goalId => {
           if (!subgoalsByGoalId[goalId]) {
             // Fetch subgoals for this goal
@@ -838,14 +838,14 @@ export function FullScreenSessionForm({ open, onOpenChange, defaultValues, clien
   // Format budget items for product selection
   const availableProducts = useMemo(() => {
     if (!budgetItemsData) return [];
-    
+
     // Convert budget items to products with available quantity
     return budgetItemsData.map(item => ({
       ...item,
       availableQuantity: item.quantity || 0, // Default to 0 if quantity is not available
     }));
   }, [budgetItemsData]);
-  
+
   // form is already defined above
 
   // Update form when session data changes (for edit mode)
@@ -855,7 +855,7 @@ export function FullScreenSessionForm({ open, onOpenChange, defaultValues, clien
       console.log("Loading session data for editing:", sessionData);
     }
   }, [sessionData, mode]);
-  
+
   // Handle adding a new goal assessment
   const handleAddGoalAssessment = (goal: Goal) => {
     const currentAssessments = form.getValues().performanceAssessments;
@@ -865,12 +865,12 @@ export function FullScreenSessionForm({ open, onOpenChange, defaultValues, clien
       notes: "",
       milestones: [] as any[],
     };
-    
+
     form.setValue("performanceAssessments", [...currentAssessments, newAssessment]);
-    
+
     // Automatically open milestone selection for the new goal
     setCurrentGoalIndex(currentAssessments.length);
-    
+
     // Fetch subgoals for this goal if not already loaded
     if (!subgoalsByGoalId[goal.id]) {
       fetch(`/api/goals/${goal.id}/subgoals`)
@@ -881,13 +881,13 @@ export function FullScreenSessionForm({ open, onOpenChange, defaultValues, clien
             ...prev,
             [goal.id]: data
           }));
-          
+
           // Open milestone selection dialog after subgoals are loaded
           setTimeout(() => setMilestoneSelectionOpen(true), 100);
         })
         .catch(error => {
           console.error(`Error fetching subgoals for goal ${goal.id}:`, error);
-          
+
           toast({
             title: "Error",
             description: "Failed to load milestones for this goal. Please try again.",
@@ -899,14 +899,14 @@ export function FullScreenSessionForm({ open, onOpenChange, defaultValues, clien
       setTimeout(() => setMilestoneSelectionOpen(true), 100);
     }
   };
-  
+
   // Handle adding a milestone to a goal assessment
   const handleAddMilestone = (subgoal: Subgoal) => {
     if (currentGoalIndex === -1) return;
-    
+
     const performanceAssessments = form.getValues().performanceAssessments;
     const currentAssessment = performanceAssessments[currentGoalIndex];
-    
+
     const newMilestone = {
       milestoneId: subgoal.id,
       milestoneTitle: subgoal.title,
@@ -914,120 +914,120 @@ export function FullScreenSessionForm({ open, onOpenChange, defaultValues, clien
       strategies: [],
       notes: "",
     };
-    
+
     const updatedMilestones = [...currentAssessment.milestones, newMilestone];
     const updatedAssessment = {
       ...currentAssessment,
       milestones: updatedMilestones,
     };
-    
+
     const updatedAssessments = [...performanceAssessments];
     updatedAssessments[currentGoalIndex] = updatedAssessment;
-    
+
     form.setValue("performanceAssessments", updatedAssessments);
   };
-  
+
   // Handle removing a milestone from a goal assessment
   const handleRemoveMilestone = (goalIndex: number, milestoneIndex: number) => {
     const performanceAssessments = form.getValues().performanceAssessments;
     const currentAssessment = performanceAssessments[goalIndex];
-    
+
     const updatedMilestones = currentAssessment.milestones.filter((_, index) => index !== milestoneIndex);
     const updatedAssessment = {
       ...currentAssessment,
       milestones: updatedMilestones,
     };
-    
+
     const updatedAssessments = [...performanceAssessments];
     updatedAssessments[goalIndex] = updatedAssessment;
-    
+
     form.setValue("performanceAssessments", updatedAssessments);
   };
-  
+
   // Handle removing a goal assessment
-  const handleRemoveGoalAssessment = (index: number) => {
+  const handleRemoveGoalAssessment =(index: number) => {
     const performanceAssessments = form.getValues().performanceAssessments;
     const updatedAssessments = performanceAssessments.filter((_, i) => i !== index);
     form.setValue("performanceAssessments", updatedAssessments);
   };
-  
+
   // Handle adding a strategy to a milestone
   const handleAddStrategy = (strategies: Strategy[]) => {
     if (currentGoalIndex === -1 || currentMilestoneIndex === -1) return;
-    
+
     try {
       const performanceAssessments = form.getValues().performanceAssessments || [];
       if (!performanceAssessments[currentGoalIndex]) return;
-      
+
       const currentAssessment = performanceAssessments[currentGoalIndex];
       if (!currentAssessment.milestones || !currentAssessment.milestones[currentMilestoneIndex]) return;
-      
+
       const currentMilestone = currentAssessment.milestones[currentMilestoneIndex];
-      
+
       // Extract strategy names
       const strategyNames = strategies.map(s => s.name);
-      
+
       // Ensure strategies array exists
       const currentStrategies = currentMilestone.strategies || [];
-      
+
       const updatedMilestone = {
         ...currentMilestone,
         strategies: [...currentStrategies, ...strategyNames],
       };
-      
+
       const updatedMilestones = [...currentAssessment.milestones];
       updatedMilestones[currentMilestoneIndex] = updatedMilestone;
-      
+
       const updatedAssessment = {
         ...currentAssessment,
         milestones: updatedMilestones,
       };
-      
+
       const updatedAssessments = [...performanceAssessments];
       updatedAssessments[currentGoalIndex] = updatedAssessment;
-      
+
       form.setValue("performanceAssessments", updatedAssessments);
     } catch (error) {
       console.error("Error adding strategy:", error);
     }
   };
-  
+
   // Handle removing a strategy from a milestone
   const handleRemoveStrategy = (goalIndex: number, milestoneIndex: number, strategyIndex: number) => {
     try {
       const performanceAssessments = form.getValues().performanceAssessments || [];
       if (!performanceAssessments[goalIndex]) return;
-      
+
       const currentAssessment = performanceAssessments[goalIndex];
       if (!currentAssessment.milestones || !currentAssessment.milestones[milestoneIndex]) return;
-      
+
       const currentMilestone = currentAssessment.milestones[milestoneIndex];
       if (!currentMilestone.strategies) return;
-      
+
       const updatedStrategies = currentMilestone.strategies.filter((_, index) => index !== strategyIndex);
-      
+
       const updatedMilestone = {
         ...currentMilestone,
         strategies: updatedStrategies,
       };
-      
+
       const updatedMilestones = [...currentAssessment.milestones];
       updatedMilestones[milestoneIndex] = updatedMilestone;
-      
+
       const updatedAssessment = {
         ...currentAssessment,
         milestones: updatedMilestones,
       };
-      
+
       const updatedAssessments = [...performanceAssessments];
       updatedAssessments[goalIndex] = updatedAssessment;
-      
+
       form.setValue("performanceAssessments", updatedAssessments);
     } catch (error) {
       console.error("Error removing strategy:", error);
     }
   };
-  
+
   // Handle adding a product to the session
   const handleAddProduct = (product: BudgetItem & { availableQuantity: number }, quantity: number) => {
     try {
@@ -1035,12 +1035,12 @@ export function FullScreenSessionForm({ open, onOpenChange, defaultValues, clien
         console.error("Invalid product or quantity:", product, quantity);
         return;
       }
-      
+
       const currentProducts = form.getValues()?.sessionNote?.products || [];
-      
+
       // Check if product already exists
       const existingIndex = currentProducts.findIndex(p => p.budgetItemId === product.id);
-      
+
       if (existingIndex >= 0) {
         // Update existing product quantity
         const updatedProducts = [...currentProducts];
@@ -1048,9 +1048,9 @@ export function FullScreenSessionForm({ open, onOpenChange, defaultValues, clien
           ...updatedProducts[existingIndex],
           quantity: updatedProducts[existingIndex].quantity + quantity,
         };
-        
+
         form.setValue("sessionNote.products", updatedProducts);
-        
+
         toast({
           title: "Product Updated",
           description: `Added ${quantity} more units of ${product.description || "product"} to the session`,
@@ -1066,9 +1066,9 @@ export function FullScreenSessionForm({ open, onOpenChange, defaultValues, clien
           availableQuantity: product.availableQuantity || 0,
           originalQuantity: product.quantity || 0,
         };
-        
+
         form.setValue("sessionNote.products", [...currentProducts, newProduct]);
-        
+
         toast({
           title: "Product Added",
           description: `Added ${product.description || "product"} to the session`,
@@ -1078,7 +1078,7 @@ export function FullScreenSessionForm({ open, onOpenChange, defaultValues, clien
       console.error("Error adding product:", error);
     }
   };
-  
+
   // Handle removing a product from the session
   const handleRemoveProduct = (index: number) => {
     try {
@@ -1087,10 +1087,10 @@ export function FullScreenSessionForm({ open, onOpenChange, defaultValues, clien
         console.error("Invalid product index:", index, "for products:", currentProducts);
         return;
       }
-      
+
       const updatedProducts = currentProducts.filter((_, i) => i !== index);
       form.setValue("sessionNote.products", updatedProducts);
-      
+
       toast({
         title: "Product Removed",
         description: "Product has been removed from the session",
@@ -1099,24 +1099,24 @@ export function FullScreenSessionForm({ open, onOpenChange, defaultValues, clien
       console.error("Error removing product:", error);
     }
   };
-  
+
   // Handle removing attendee by index
   const handleRemoveAttendeeByIndex = (index: number) => {
     try {
       console.log(`Removing attendee at index ${index}`);
-      
+
       // Get current values
       const currentNames = form.getValues("sessionNote.presentAllies") || [];
       const currentIds = form.getValues("sessionNote.presentAllyIds") || [];
-      
+
       console.log("Current allies before removal:", { currentNames, currentIds });
-      
+
       // Filter out the specified index
       const newNames = currentNames.filter((_, i) => i !== index);
       const newIds = currentIds.filter((_, i) => i !== index);
-      
+
       console.log("Updated allies after removal:", { newNames, newIds });
-      
+
       // Update form state
       form.setValue("sessionNote.presentAllies", newNames);
       form.setValue("sessionNote.presentAllyIds", newIds);
@@ -1124,7 +1124,7 @@ export function FullScreenSessionForm({ open, onOpenChange, defaultValues, clien
       console.error("Error removing attendee:", error);
     }
   };
-  
+
   // Handle adding attendees to the session
   const handleAddAttendees = (selectedAllies: Ally[]) => {
     try {
@@ -1132,32 +1132,32 @@ export function FullScreenSessionForm({ open, onOpenChange, defaultValues, clien
         console.error("Invalid selectedAllies:", selectedAllies);
         return;
       }
-      
+
       console.log("Adding attendees:", selectedAllies);
-      
+
       // Get current values (defaulting to empty arrays if they don't exist)
       const currentNames = form.getValues("sessionNote.presentAllies") || [];
       const currentIds = form.getValues("sessionNote.presentAllyIds") || [];
-      
+
       console.log("Current attendees before adding:", { currentNames, currentIds });
-      
+
       // Extract new ally names and IDs - filter out any archived allies
       const newAttendeeNames = selectedAllies
         .filter(ally => !ally.archived)
         .map(ally => ally.name || "");
-      
+
       const newAttendeeIds = selectedAllies
         .filter(ally => !ally.archived)
         .map(ally => ally.id || 0);
-      
+
       // Combine with existing values without duplicates
       const uniqueNames = Array.from(new Set([...currentNames, ...newAttendeeNames]));
       const uniqueIds = Array.from(new Set([...currentIds, ...newAttendeeIds]));
-      
+
       console.log("Updated attendees after adding:", { uniqueNames, uniqueIds });
-      
+
       console.log("Combined allies:", uniqueNames);
-      
+
       // Update form with combined values
       form.setValue("sessionNote.presentAllies", uniqueNames);
       form.setValue("sessionNote.presentAllyIds", uniqueIds);
@@ -1165,14 +1165,14 @@ export function FullScreenSessionForm({ open, onOpenChange, defaultValues, clien
       console.error("Error adding attendees:", error);
     }
   };
-  
+
   // Handle form submission
   const onSubmit = (data: IntegratedSessionFormValues) => {
     console.log("Form submitted with data:", data);
     setIsSaving(true);
     sessionMutation.mutate(data);
   };
-  
+
   // Handle time entry generation for select dropdown
   const timeOptions = useMemo(() => {
     return [...Array(24)].flatMap((_, hour) => [
@@ -1180,11 +1180,11 @@ export function FullScreenSessionForm({ open, onOpenChange, defaultValues, clien
       { value: `${hour.toString().padStart(2, '0')}:30`, label: `${hour.toString().padStart(2, '0')}:30` }
     ]);
   }, []);
-  
+
   // Total products value calculation
   const totalProductValue = useMemo(() => {
     if (!form) return 0;
-    
+
     try {
       const products = form.getValues()?.sessionNote?.products || [];
       return products.reduce((total, product) => total + (product.unitPrice * product.quantity), 0);
@@ -1193,7 +1193,7 @@ export function FullScreenSessionForm({ open, onOpenChange, defaultValues, clien
       return 0;
     }
   }, [form, form?.watch("sessionNote.products")]);
-  
+
   if (!open) return null;
 
   return (
@@ -1205,7 +1205,7 @@ export function FullScreenSessionForm({ open, onOpenChange, defaultValues, clien
       rightColumn={
         <div className="space-y-4 p-4 w-full">
           <h2 className="text-lg font-semibold">Session Summary</h2>
-          
+
           <div className="space-y-4">
             <Card>
               <CardHeader className="pb-2">
@@ -1213,7 +1213,7 @@ export function FullScreenSessionForm({ open, onOpenChange, defaultValues, clien
               </CardHeader>
               <CardContent>
                 {/* Debug console logs moved to useEffect to avoid invalid React nodes */}
-                
+
                 {isLoadingClient ? (
                   <Skeleton className="h-6 w-[120px]" />
                 ) : (
@@ -1236,7 +1236,7 @@ export function FullScreenSessionForm({ open, onOpenChange, defaultValues, clien
                     )}
                   </div>
                 )}
-                
+
                 {/* Show raw client data */}
                 <div className="mt-2 text-xs text-muted-foreground border-t pt-2">
                   <p>Raw client data available: {clientData ? "Yes" : "No"}</p>
@@ -1248,7 +1248,7 @@ export function FullScreenSessionForm({ open, onOpenChange, defaultValues, clien
                 </div>
               </CardContent>
             </Card>
-            
+
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-md">Date & Time</CardTitle>
@@ -1266,7 +1266,7 @@ export function FullScreenSessionForm({ open, onOpenChange, defaultValues, clien
                 </p>
               </CardContent>
             </Card>
-            
+
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-md">Products</CardTitle>
@@ -1292,7 +1292,7 @@ export function FullScreenSessionForm({ open, onOpenChange, defaultValues, clien
                 )}
               </CardContent>
             </Card>
-            
+
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-md">Assessments</CardTitle>
@@ -1352,7 +1352,7 @@ export function FullScreenSessionForm({ open, onOpenChange, defaultValues, clien
                 </div>
               </TabsTrigger>
             </TabsList>
-            
+
             <TabsContent value="session" className="space-y-4 pt-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Session Date */}
@@ -1397,7 +1397,7 @@ export function FullScreenSessionForm({ open, onOpenChange, defaultValues, clien
                     </FormItem>
                   )}
                 />
-                
+
                 {/* Therapist Selection */}
                 <FormField
                   control={form.control}
@@ -1426,7 +1426,7 @@ export function FullScreenSessionForm({ open, onOpenChange, defaultValues, clien
                     </FormItem>
                   )}
                 />
-                
+
                 {/* Time From */}
                 <FormField
                   control={form.control}
@@ -1455,7 +1455,7 @@ export function FullScreenSessionForm({ open, onOpenChange, defaultValues, clien
                     </FormItem>
                   )}
                 />
-                
+
                 {/* Time To */}
                 <FormField
                   control={form.control}
@@ -1484,7 +1484,7 @@ export function FullScreenSessionForm({ open, onOpenChange, defaultValues, clien
                     </FormItem>
                   )}
                 />
-                
+
                 {/* Location */}
                 <FormField
                   control={form.control}
@@ -1516,7 +1516,7 @@ export function FullScreenSessionForm({ open, onOpenChange, defaultValues, clien
                   )}
                 />
               </div>
-              
+
               {/* Attendees */}
               <Card>
                 <CardHeader className="pb-3">
@@ -1562,7 +1562,7 @@ export function FullScreenSessionForm({ open, onOpenChange, defaultValues, clien
                 </CardContent>
               </Card>
             </TabsContent>
-            
+
             <TabsContent value="details" className="space-y-4 pt-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 <Card className={cn(borderStyles.base, "col-span-1 sm:col-span-2")}>
@@ -1588,7 +1588,7 @@ export function FullScreenSessionForm({ open, onOpenChange, defaultValues, clien
                     />
                   </CardContent>
                 </Card>
-                
+
                 <Card className={cn(borderStyles.base)}>
                   <CardHeader className="pb-3">
                     <CardTitle className="text-md">Client Behavior</CardTitle>
@@ -1608,7 +1608,7 @@ export function FullScreenSessionForm({ open, onOpenChange, defaultValues, clien
                         </FormItem>
                       )}
                     />
-                    
+
                     <FormField
                       control={form.control}
                       name="sessionNote.focusRating"
@@ -1625,7 +1625,7 @@ export function FullScreenSessionForm({ open, onOpenChange, defaultValues, clien
                     />
                   </CardContent>
                 </Card>
-                
+
                 <Card className={cn(borderStyles.base)}>
                   <CardHeader className="pb-3">
                     <CardTitle className="text-md">Participation</CardTitle>
@@ -1645,7 +1645,7 @@ export function FullScreenSessionForm({ open, onOpenChange, defaultValues, clien
                         </FormItem>
                       )}
                     />
-                    
+
                     <FormField
                       control={form.control}
                       name="sessionNote.physicalActivityRating"
@@ -1664,7 +1664,7 @@ export function FullScreenSessionForm({ open, onOpenChange, defaultValues, clien
                 </Card>
               </div>
             </TabsContent>
-            
+
             <TabsContent value="products" className="space-y-4 pt-4">
               <Card className={cn(borderStyles.base)}>
                 <CardHeader className="pb-3">
@@ -1717,7 +1717,7 @@ export function FullScreenSessionForm({ open, onOpenChange, defaultValues, clien
                           </CardContent>
                         </Card>
                       ))}
-                      
+
                       <div className="border-t pt-4 mt-2">
                         <div className="flex justify-between items-center">
                           <span className="font-medium">Total</span>
@@ -1739,7 +1739,7 @@ export function FullScreenSessionForm({ open, onOpenChange, defaultValues, clien
                 </CardContent>
               </Card>
             </TabsContent>
-            
+
             <TabsContent value="assessment" className="space-y-4 pt-4">
               <Card className={cn(borderStyles.base)}>
                 <CardHeader className="pb-3">
@@ -1819,7 +1819,7 @@ export function FullScreenSessionForm({ open, onOpenChange, defaultValues, clien
                                 </FormItem>
                               )}
                             />
-                            
+
                             {/* Milestones */}
                             <div className="space-y-2">
                               <div className="flex justify-between items-center mb-1">
@@ -1838,7 +1838,7 @@ export function FullScreenSessionForm({ open, onOpenChange, defaultValues, clien
                                   Add Milestone
                                 </Button>
                               </div>
-                              
+
                               {assessment.milestones.length === 0 ? (
                                 <div className="text-sm text-muted-foreground p-2 text-center border rounded-md">
                                   No milestones added yet
@@ -1859,7 +1859,7 @@ export function FullScreenSessionForm({ open, onOpenChange, defaultValues, clien
                                           <X className="h-3 w-3" />
                                         </Button>
                                       </div>
-                                      
+
                                       {/* Milestone Rating */}
                                       <FormField
                                         control={form.control}
@@ -1886,7 +1886,7 @@ export function FullScreenSessionForm({ open, onOpenChange, defaultValues, clien
                                           </FormItem>
                                         )}
                                       />
-                                      
+
                                       {/* Milestone Strategies */}
                                       <div className="mb-3">
                                         <div className="flex justify-between items-center mb-1">
@@ -1895,7 +1895,7 @@ export function FullScreenSessionForm({ open, onOpenChange, defaultValues, clien
                                             type="button"
                                             variant="ghost"
                                             size="sm"
-                                            className="h-6 text-xs px-2"
+                                            className           "h-6 text-xs px-2"
                                             onClick={() => {
                                               setCurrentGoalIndex(goalIndex);
                                               setCurrentMilestoneIndex(milestoneIndex);
@@ -1906,7 +1906,7 @@ export function FullScreenSessionForm({ open, onOpenChange, defaultValues, clien
                                             Add
                                           </Button>
                                         </div>
-                                        
+
                                         {milestone.strategies.length === 0 ? (
                                           <div className="text-xs text-muted-foreground p-1.5 text-center border rounded-md">
                                             No strategies added
@@ -1934,7 +1934,7 @@ export function FullScreenSessionForm({ open, onOpenChange, defaultValues, clien
                                           </div>
                                         )}
                                       </div>
-                                      
+
                                       {/* Milestone Notes */}
                                       <FormField
                                         control={form.control}
@@ -1967,7 +1967,7 @@ export function FullScreenSessionForm({ open, onOpenChange, defaultValues, clien
               </Card>
             </TabsContent>
           </Tabs>
-          
+
           <div className="flex justify-between items-center pt-4 border-t">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
@@ -1981,7 +1981,7 @@ export function FullScreenSessionForm({ open, onOpenChange, defaultValues, clien
           </div>
         </form>
       </Form>
-      
+
       {/* Goal Selection Dialog */}
       <GoalSelectionDialog
         open={goalSelectionOpen}
@@ -1990,7 +1990,7 @@ export function FullScreenSessionForm({ open, onOpenChange, defaultValues, clien
         selectedGoalIds={form.getValues().performanceAssessments.map(pa => pa.goalId)}
         onSelectGoal={handleAddGoalAssessment}
       />
-      
+
       {/* Milestone Selection Dialog */}
       <MilestoneSelectionDialog
         open={milestoneSelectionOpen}
@@ -2003,7 +2003,7 @@ export function FullScreenSessionForm({ open, onOpenChange, defaultValues, clien
           : []}
         onSelectMilestone={handleAddMilestone}
       />
-      
+
       {/* Strategy Selection Dialog */}
       <StrategySelectionDialog
         open={strategySelectionOpen}
@@ -2024,7 +2024,7 @@ export function FullScreenSessionForm({ open, onOpenChange, defaultValues, clien
           }
         }}
       />
-      
+
       {/* Product Selection Dialog */}
       <ProductSelectionDialog
         open={productSelectionOpen}
@@ -2032,7 +2032,7 @@ export function FullScreenSessionForm({ open, onOpenChange, defaultValues, clien
         products={availableProducts}
         onSelectProduct={handleAddProduct}
       />
-      
+
       {/* Attendee Selection Dialog */}
       {/* Debug allies */}
       {attendeeSelectionOpen && (
@@ -2043,7 +2043,7 @@ export function FullScreenSessionForm({ open, onOpenChange, defaultValues, clien
           {console.log("FullScreenSessionForm - Each ally details:", (alliesData || []).map(ally => ({ id: ally.id, name: ally.name, archived: ally.archived })))}
         </>
       )}
-      
+
       <AttendeeSelectionDialog
         open={attendeeSelectionOpen}
         onOpenChange={setAttendeeSelectionOpen}
