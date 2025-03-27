@@ -599,6 +599,25 @@ export function FullScreenSessionForm({ open, onOpenChange, defaultValues, clien
     refetchOnMount: true, // Always refetch when component mounts
   });
   
+  // Debug effect for client data
+  useEffect(() => {
+    if (clientData) {
+      console.log("*** CLIENT DATA DEBUGGING ***");
+      console.log("Raw client data:", clientData);
+      console.log("Client data type:", typeof clientData);
+      console.log("Has originalName:", 'originalName' in clientData);
+      console.log("Has name:", 'name' in clientData);
+      
+      // Check if client data has expected properties
+      const expectedProps = ['id', 'name', 'originalName', 'uniqueIdentifier', 'email'];
+      const missingProps = expectedProps.filter(prop => !(prop in clientData));
+      console.log("Missing properties:", missingProps);
+      
+      // Iterate through all properties
+      console.log("All properties:", Object.keys(clientData));
+    }
+  }, [clientData]);
+  
   // Fetch existing session if in edit mode
   const { data: sessionData, isLoading: isLoadingSession } = useQuery({
     queryKey: ['/api/sessions', existingSessionId],
@@ -1193,28 +1212,40 @@ export function FullScreenSessionForm({ open, onOpenChange, defaultValues, clien
                 <CardTitle className="text-md">Client</CardTitle>
               </CardHeader>
               <CardContent>
-                {/* Debug information as comments instead of console.log to prevent React node errors */}
-                {/* ClientData type: {typeof clientData} */}
-                {/* ClientData keys: {clientData ? Object.keys(clientData).join(', ') : "null"} */}
-                {/* originalName: {clientData?.originalName} */}
-                {/* name property: {clientData?.name} */}
+                {/* Debug console logs moved to useEffect to avoid invalid React nodes */}
                 
                 {isLoadingClient ? (
                   <Skeleton className="h-6 w-[120px]" />
                 ) : (
                   <div>
                     {clientData ? (
-                      <>
-                        <p>{clientData.originalName || clientData.name || "No client name available"}</p>
-                        <p className="text-xs text-muted-foreground">
-                          Client ID: {clientData.id}
-                        </p>
-                      </>
+                      <p className="font-medium">{
+(() => {
+                          try {
+                            // Safe extraction of client name with type checking
+                            const clientName = clientData?.originalName || clientData?.name || null;
+                            return clientName || "Client Name Unavailable";
+                          } catch (e) {
+                            console.error("Error extracting client name:", e);
+                            return "Error Getting Client Name";
+                          }
+                        })()
+                      }</p>
                     ) : (
                       <p>No client information available</p>
                     )}
                   </div>
                 )}
+                
+                {/* Show raw client data */}
+                <div className="mt-2 text-xs text-muted-foreground border-t pt-2">
+                  <p>Raw client data available: {clientData ? "Yes" : "No"}</p>
+                  {clientData && (
+                    <pre className="mt-1 bg-muted/30 p-1 rounded text-[10px] overflow-auto max-h-20">
+                      {JSON.stringify(clientData, null, 2)}
+                    </pre>
+                  )}
+                </div>
               </CardContent>
             </Card>
             
