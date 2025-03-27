@@ -119,6 +119,9 @@ export function AttendeeSelectionDialog({
       
       // Use a try-catch to prevent any errors from propagating to the form
       onSelectAttendee(ally);
+      
+      // Close the dialog after selecting an attendee
+      onOpenChange(false);
     } catch (error) {
       console.error("Error selecting attendee:", error);
       toast({
@@ -200,21 +203,17 @@ export function AttendeeSelectionDialog({
                     Close
                   </Button>
                 </div>
-              ) : filteredAllies.length === 0 ? (
+              ) : availableAllies.length === 0 ? (
                 <div className="text-center p-6">
                   <p className="text-muted-foreground">
-                    {searchTerm ? 'No matching attendees found' : 'No attendees available'}
+                    {searchTerm ? 'No matching attendees found' : 'All attendees have been selected'}
                   </p>
                 </div>
               ) : (
-                filteredAllies.map(ally => (
+                availableAllies.map(ally => (
                   <Card 
                     key={ally.id} 
-                    className={`cursor-pointer transition-colors ${
-                      selectedAllies.includes(ally.name) 
-                        ? 'bg-primary/10 border-primary/30' 
-                        : 'hover:bg-accent'
-                    }`}
+                    className="cursor-pointer transition-colors hover:bg-accent"
                     onClick={(e) => {
                       // Prevent all default events to avoid form submission
                       e.preventDefault();
@@ -225,11 +224,9 @@ export function AttendeeSelectionDialog({
                         e.nativeEvent.stopImmediatePropagation();
                       }
                       
-                      // Only add if not already selected
-                      if (!selectedAllies.includes(ally.name)) {
-                        // Use the safe handler with added protections
-                        safelySelectAttendee(ally);
-                      }
+                      // Since we're only showing available allies in the list,
+                      // we know this ally hasn't been selected yet
+                      safelySelectAttendee(ally);
                       
                       // Return false to prevent default behavior in older browsers
                       return false;
@@ -247,11 +244,7 @@ export function AttendeeSelectionDialog({
                           </div>
                         </div>
                         
-                        {selectedAllies.includes(ally.name) && (
-                          <div className="bg-primary/20 rounded-full p-1">
-                            <CheckIcon className="h-4 w-4 text-primary" />
-                          </div>
-                        )}
+                        {/* No need for checkmark since we're only showing unselected allies */}
                       </div>
                     </CardContent>
                   </Card>
