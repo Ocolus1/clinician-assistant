@@ -1188,9 +1188,6 @@ export function FullScreenSessionForm({ open, onOpenChange, defaultValues, clien
           <h2 className="text-lg font-semibold">Session Summary</h2>
           
           <div className="space-y-4">
-            {console.log("Debug - clientData:", clientData)}
-            {console.log("Debug - isLoadingClient:", isLoadingClient)}
-            {console.log("Debug - clientData?.name:", clientData?.name)}
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-md">Client</CardTitle>
@@ -1199,7 +1196,7 @@ export function FullScreenSessionForm({ open, onOpenChange, defaultValues, clien
                 {isLoadingClient ? (
                   <Skeleton className="h-6 w-[120px]" />
                 ) : (
-                  <p>{clientData?.name || "No client information available"}</p>
+                  <p>{clientData?.originalName || clientData?.name || "No client information available"}</p>
                 )}
               </CardContent>
             </Card>
