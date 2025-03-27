@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { format } from "date-fns";
+import { format, differenceInYears } from "date-fns"; // Import differenceInYears
 import { Link, useLocation } from "wouter";
 import { 
   Calendar as CalendarIcon,
@@ -575,9 +575,10 @@ interface FullScreenSessionFormProps {
   defaultValues?: Partial<IntegratedSessionFormValues>;
   clientId?: number;
   existingSessionId?: number;
+  clients: Client[]; // Added clients prop
 }
 
-export function FullScreenSessionForm({ open, onOpenChange, defaultValues, clientId, existingSessionId }: FullScreenSessionFormProps) {
+export function FullScreenSessionForm({ open, onOpenChange, defaultValues, clientId, existingSessionId, clients }: FullScreenSessionFormProps) { // Added clients prop
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [goalSelectionOpen, setGoalSelectionOpen] = useState(false);
@@ -1236,16 +1237,8 @@ export function FullScreenSessionForm({ open, onOpenChange, defaultValues, clien
                     )}
                   </div>
                 )}
-
                 {/* Show raw client data */}
-                <div className="mt-2 text-xs text-muted-foreground border-t pt-2">
-                  <p>Raw client data available: {clientData ? "Yes" : "No"}</p>
-                  {clientData && (
-                    <pre className="mt-1 bg-muted/30 p-1 rounded text-[10px] overflow-auto max-h-20">
-                      {JSON.stringify(clientData, null, 2)}
-                    </pre>
-                  )}
-                </div>
+                {/* Removed "Raw client data available: Yes" section */}
               </CardContent>
             </Card>
 
