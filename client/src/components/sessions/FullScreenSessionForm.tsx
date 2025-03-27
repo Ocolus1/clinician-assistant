@@ -1212,40 +1212,66 @@ export function FullScreenSessionForm({ open, onOpenChange, defaultValues, clien
                 <CardTitle className="text-md">Client</CardTitle>
               </CardHeader>
               <CardContent>
-                {/* Debug console logs moved to useEffect to avoid invalid React nodes */}
-
                 {isLoadingClient ? (
-                  <Skeleton className="h-6 w-[120px]" />
+                  <div className="space-y-2">
+                    <Skeleton className="h-6 w-[120px]" />
+                    <Skeleton className="h-6 w-[160px]" />
+                    <Skeleton className="h-6 w-[140px]" />
+                  </div>
                 ) : (
-                  <div>
+                  <div className="space-y-2">
                     {clientData ? (
-                      <p className="font-medium">{
-(() => {
-                          try {
-                            // Safe extraction of client name with type checking
-                            const clientName = clientData?.originalName || clientData?.name || null;
-                            return clientName || "Client Name Unavailable";
-                          } catch (e) {
-                            console.error("Error extracting client name:", e);
-                            return "Error Getting Client Name";
-                          }
-                        })()
-                      }</p>
+                      <>
+                        {/* Name with identifier */}
+                        <div className="grid grid-cols-[100px_1fr] gap-1">
+                          <div className="text-muted-foreground text-sm">Name:</div>
+                          <div className="font-medium">
+                            {(() => {
+                              try {
+                                // Display name with identifier
+                                if (clientData.originalName && clientData.uniqueIdentifier) {
+                                  return `${clientData.originalName} (${clientData.uniqueIdentifier})`;
+                                }
+                                return clientData.name || "Client Name Unavailable";
+                              } catch (e) {
+                                console.error("Error extracting client name:", e);
+                                return "Error Getting Client Name";
+                              }
+                            })()}
+                          </div>
+                        </div>
+                        
+                        {/* Date of birth with age */}
+                        <div className="grid grid-cols-[100px_1fr] gap-1">
+                          <div className="text-muted-foreground text-sm">Date of Birth:</div>
+                          <div>
+                            {(() => {
+                              try {
+                                if (clientData.dateOfBirth) {
+                                  const dob = new Date(clientData.dateOfBirth);
+                                  const age = new Date().getFullYear() - dob.getFullYear();
+                                  return `${dob.toLocaleDateString()} (${age} years)`;
+                                }
+                                return "Not provided";
+                              } catch (e) {
+                                console.error("Error calculating age:", e);
+                                return "Date of birth unavailable";
+                              }
+                            })()}
+                          </div>
+                        </div>
+                        
+                        {/* Funds management type */}
+                        <div className="grid grid-cols-[100px_1fr] gap-1">
+                          <div className="text-muted-foreground text-sm">Funds Type:</div>
+                          <div>{clientData.fundsManagement || "Not specified"}</div>
+                        </div>
+                      </>
                     ) : (
                       <p>No client information available</p>
                     )}
                   </div>
                 )}
-
-                {/* Show raw client data */}
-                <div className="mt-2 text-xs text-muted-foreground border-t pt-2">
-                  <p>Raw client data available: {clientData ? "Yes" : "No"}</p>
-                  {clientData && (
-                    <pre className="mt-1 bg-muted/30 p-1 rounded text-[10px] overflow-auto max-h-20">
-                      {JSON.stringify(clientData, null, 2)}
-                    </pre>
-                  )}
-                </div>
               </CardContent>
             </Card>
 
