@@ -30,7 +30,7 @@ import {
 } from "lucide-react";
 import "./session-form.css";
 import { ThreeColumnLayout } from "./ThreeColumnLayout";
-import { Ally, BudgetItem, BudgetSettings, Client, Goal, Subgoal, Strategy, insertSessionSchema, ClientClinician } from "@shared/schema";
+import { Ally, BudgetItem, BudgetSettings, Client, Goal, Subgoal, Strategy, insertSessionSchema, ClientClinician, Clinician } from "@shared/schema";
 import { NumericRating } from "@/components/sessions/NumericRating";
 import { apiRequest } from "@/lib/queryClient";
 import { useSafeForm } from "@/hooks/use-safe-hooks";
@@ -592,7 +592,7 @@ export function FullScreenSessionForm({ open, onOpenChange, defaultValues, clien
   const [isSaving, setIsSaving] = useState(false);
   
   // Fetch client data for the form
-  const { data: clientData, isLoading: isLoadingClient } = useQuery({
+  const { data: clientData, isLoading: isLoadingClient } = useQuery<Client>({
     queryKey: ['/api/clients', clientId],
     enabled: !!clientId,
     staleTime: 0, // Don't use stale data
@@ -606,13 +606,13 @@ export function FullScreenSessionForm({ open, onOpenChange, defaultValues, clien
   });
   
   // Fetch goals for the client
-  const { data: goalsData = [], isLoading: isLoadingGoals } = useQuery({
+  const { data: goalsData = [], isLoading: isLoadingGoals } = useQuery<Goal[]>({
     queryKey: ['/api/clients', clientId, 'goals'],
     enabled: !!clientId,
   });
   
   // Fetch allies for the client
-  const { data: alliesData = [], isLoading: isLoadingAllies } = useQuery({
+  const { data: alliesData = [], isLoading: isLoadingAllies } = useQuery<Ally[]>({
     queryKey: ['/api/clients', clientId, 'allies'],
     enabled: !!clientId,
     staleTime: 0, // Don't use stale data
@@ -623,13 +623,13 @@ export function FullScreenSessionForm({ open, onOpenChange, defaultValues, clien
   });
   
   // Fetch budget items for the client
-  const { data: budgetItemsData = [], isLoading: isLoadingBudgetItems } = useQuery({
+  const { data: budgetItemsData = [], isLoading: isLoadingBudgetItems } = useQuery<BudgetItem[]>({
     queryKey: ['/api/clients', clientId, 'budget-items'],
     enabled: !!clientId,
   });
 
   // Fetch clinicians for dropdown
-  const { data: cliniciansData = [] } = useQuery({
+  const { data: cliniciansData = [] } = useQuery<Clinician[]>({
     queryKey: ['/api/clinicians'],
   });
   
@@ -1193,10 +1193,27 @@ export function FullScreenSessionForm({ open, onOpenChange, defaultValues, clien
                 <CardTitle className="text-md">Client</CardTitle>
               </CardHeader>
               <CardContent>
+                {/* Debug information as comments instead of console.log to prevent React node errors */}
+                {/* ClientData type: {typeof clientData} */}
+                {/* ClientData keys: {clientData ? Object.keys(clientData).join(', ') : "null"} */}
+                {/* originalName: {clientData?.originalName} */}
+                {/* name property: {clientData?.name} */}
+                
                 {isLoadingClient ? (
                   <Skeleton className="h-6 w-[120px]" />
                 ) : (
-                  <p>{clientData?.originalName || clientData?.name || "No client information available"}</p>
+                  <div>
+                    {clientData ? (
+                      <>
+                        <p>{clientData.originalName || clientData.name || "No client name available"}</p>
+                        <p className="text-xs text-muted-foreground">
+                          Client ID: {clientData.id}
+                        </p>
+                      </>
+                    ) : (
+                      <p>No client information available</p>
+                    )}
+                  </div>
                 )}
               </CardContent>
             </Card>
