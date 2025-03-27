@@ -712,33 +712,77 @@ export function NewSessionForm({
   };
   
   // Goal Selection Dialog
-  const GoalSelectionDialog = () => (
-    <Dialog open={goalDialogOpen} onOpenChange={setGoalDialogOpen}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Add Goal Assessment</DialogTitle>
-          <DialogDescription>
-            Select a goal to assess for this session
-          </DialogDescription>
-        </DialogHeader>
-        
-        <div className="py-4">
-          <ScrollArea className="h-[300px]">
-            <div className="space-y-2">
-              {goalsLoading ? (
-                <Skeleton className="h-10 w-full" />
-              ) : goals.length === 0 ? (
-                <p className="text-muted-foreground text-sm p-2">No goals found</p>
-              ) : (
-                goals.map((goal: Goal) => {
-                  const isAlreadyAdded = performanceAssessments.some(
-                    a => a.goalId === goal.id
-                  );
-                  
-                  return (
+  const GoalSelectionDialog = () => {
+    // State for search input
+    const [searchTerm, setSearchTerm] = useState('');
+    
+    // Reset search term when dialog opens
+    useEffect(() => {
+      if (goalDialogOpen) {
+        setSearchTerm('');
+      }
+    }, [goalDialogOpen]);
+    
+    // Get currently selected goal IDs
+    const selectedGoalIds = performanceAssessments.map(a => a.goalId);
+    
+    // Filter goals by search term and filter out already selected goals
+    const filteredGoals = goals.filter(goal => 
+      (searchTerm === '' || 
+       goal.title.toLowerCase().includes(searchTerm.toLowerCase())) && 
+      !selectedGoalIds.includes(goal.id)
+    );
+    
+    // Handle search input change
+    const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      setSearchTerm(e.target.value);
+    };
+    
+    // Modified add goal function that also closes the dialog
+    const handleAddGoal = (goalId: number) => {
+      addGoalAssessment(goalId);
+      setGoalDialogOpen(false); // Close dialog after selection
+    };
+    
+    return (
+      <Dialog open={goalDialogOpen} onOpenChange={setGoalDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add Goal Assessment</DialogTitle>
+            <DialogDescription>
+              Select a goal to assess for this session
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="py-4">
+            <div className="mb-4">
+              <Label>Search Goals</Label>
+              <div className="flex items-center space-x-2">
+                <Search className="w-4 h-4 text-muted-foreground" />
+                <Input 
+                  placeholder="Search by title..." 
+                  value={searchTerm}
+                  onChange={handleSearchChange}
+                />
+              </div>
+            </div>
+            
+            <ScrollArea className="h-[300px]">
+              <div className="space-y-2">
+                {goalsLoading ? (
+                  <Skeleton className="h-10 w-full" />
+                ) : goals.length === 0 ? (
+                  <p className="text-muted-foreground text-sm p-2">No goals found</p>
+                ) : filteredGoals.length === 0 ? (
+                  <p className="text-muted-foreground text-sm p-2">
+                    {searchTerm ? 'No matching goals found' : 'All goals have been selected'}
+                  </p>
+                ) : (
+                  filteredGoals.map((goal: Goal) => (
                     <div 
                       key={goal.id} 
                       className="flex items-center justify-between p-2 hover:bg-muted rounded-md cursor-pointer"
+                      onClick={() => handleAddGoal(goal.id)}
                     >
                       <div>
                         <p className="font-medium">{goal.title}</p>
@@ -746,50 +790,36 @@ export function NewSessionForm({
                           {(subgoalsByGoal[goal.id]?.length || 0)} subgoals
                         </p>
                       </div>
-                      {isAlreadyAdded ? (
-                        <Button 
-                          size="sm" 
-                          variant="outline" 
-                          className="h-8"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            removeGoalAssessment(goal.id);
-                          }}
-                        >
-                          Remove
-                        </Button>
-                      ) : (
-                        <Button 
-                          size="sm" 
-                          variant="secondary" 
-                          className="h-8"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            addGoalAssessment(goal.id);
-                          }}
-                        >
-                          Add
-                        </Button>
-                      )}
+                      <Button 
+                        size="sm" 
+                        variant="secondary" 
+                        className="h-8"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleAddGoal(goal.id);
+                        }}
+                      >
+                        Add
+                      </Button>
                     </div>
-                  );
-                })
-              )}
-            </div>
-          </ScrollArea>
-        </div>
-        
-        <DialogFooter>
-          <Button 
-            variant="outline" 
-            onClick={() => setGoalDialogOpen(false)}
-          >
-            Done
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
+                  ))
+                )}
+              </div>
+            </ScrollArea>
+          </div>
+          
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => setGoalDialogOpen(false)}
+            >
+              Cancel
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    );
+  };
 
   // Check if form is in a loading state
   const isDataLoading = clientLoading || 
