@@ -598,75 +598,118 @@ export function NewSessionForm({
   };
   
   // Product Selection Dialog
-  const ProductSelectionDialog = () => (
-    <Dialog open={productDialogOpen} onOpenChange={setProductDialogOpen}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Add Products</DialogTitle>
-          <DialogDescription>
-            Select products and services from the client's budget
-          </DialogDescription>
-        </DialogHeader>
-        
-        <div className="py-4">
-          <div className="mb-4">
-            <Label>Search Products</Label>
-            <div className="flex items-center space-x-2">
-              <Search className="w-4 h-4 text-muted-foreground" />
-              <Input placeholder="Search by name or code..." />
+  const ProductSelectionDialog = () => {
+    // State for search input
+    const [searchTerm, setSearchTerm] = useState('');
+    
+    // Reset search term when dialog opens
+    useEffect(() => {
+      if (productDialogOpen) {
+        setSearchTerm('');
+      }
+    }, [productDialogOpen]);
+    
+    // Get currently selected products
+    const selectedProducts = form.watch("sessionNote.products") || [];
+    const selectedProductIds = selectedProducts.map(p => p.budgetItemId);
+    
+    // Filter budget items by search term and exclude already selected products
+    const filteredProducts = budgetItems.filter(item => 
+      (searchTerm === '' || 
+       item.description?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+       item.itemCode?.toLowerCase().includes(searchTerm.toLowerCase())) && 
+      !selectedProductIds.includes(item.id)
+    );
+    
+    // Handle search input change
+    const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      setSearchTerm(e.target.value);
+    };
+    
+    // Modified add product function that also closes the dialog
+    const handleAddProduct = (item: BudgetItem) => {
+      addProduct(item);
+      setProductDialogOpen(false); // Close dialog after selection
+    };
+    
+    return (
+      <Dialog open={productDialogOpen} onOpenChange={setProductDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add Products</DialogTitle>
+            <DialogDescription>
+              Select products and services from the client's budget
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="py-4">
+            <div className="mb-4">
+              <Label>Search Products</Label>
+              <div className="flex items-center space-x-2">
+                <Search className="w-4 h-4 text-muted-foreground" />
+                <Input 
+                  placeholder="Search by name or code..." 
+                  value={searchTerm}
+                  onChange={handleSearchChange}
+                />
+              </div>
             </div>
+            
+            <ScrollArea className="h-[300px]">
+              <div className="space-y-2">
+                {budgetItemsLoading ? (
+                  <Skeleton className="h-10 w-full" />
+                ) : budgetItems.length === 0 ? (
+                  <p className="text-muted-foreground text-sm p-2">No budget items found</p>
+                ) : filteredProducts.length === 0 ? (
+                  <p className="text-muted-foreground text-sm p-2">
+                    {searchTerm ? 'No matching products found' : 'All products have been selected'}
+                  </p>
+                ) : (
+                  filteredProducts.map((item: BudgetItem) => (
+                    <div 
+                      key={item.id} 
+                      className="flex items-center justify-between p-2 hover:bg-muted rounded-md cursor-pointer"
+                      onClick={() => handleAddProduct(item)}
+                    >
+                      <div>
+                        <p className="font-medium">{item.description}</p>
+                        <div className="flex text-sm text-muted-foreground space-x-2">
+                          <span>{item.itemCode}</span>
+                          <span>•</span>
+                          <span>${item.unitPrice} each</span>
+                        </div>
+                      </div>
+                      <Button 
+                        size="sm" 
+                        variant="secondary" 
+                        className="h-8"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleAddProduct(item);
+                        }}
+                      >
+                        Add
+                      </Button>
+                    </div>
+                  ))
+                )}
+              </div>
+            </ScrollArea>
           </div>
           
-          <ScrollArea className="h-[300px]">
-            <div className="space-y-2">
-              {budgetItemsLoading ? (
-                <Skeleton className="h-10 w-full" />
-              ) : budgetItems.length === 0 ? (
-                <p className="text-muted-foreground text-sm p-2">No budget items found</p>
-              ) : (
-                budgetItems.map((item: BudgetItem) => (
-                  <div 
-                    key={item.id} 
-                    className="flex items-center justify-between p-2 hover:bg-muted rounded-md cursor-pointer"
-                    onClick={() => addProduct(item)}
-                  >
-                    <div>
-                      <p className="font-medium">{item.description}</p>
-                      <div className="flex text-sm text-muted-foreground space-x-2">
-                        <span>{item.itemCode}</span>
-                        <span>•</span>
-                        <span>${item.unitPrice} each</span>
-                      </div>
-                    </div>
-                    <Button 
-                      size="sm" 
-                      variant="secondary" 
-                      className="h-8"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        addProduct(item);
-                      }}
-                    >
-                      Add
-                    </Button>
-                  </div>
-                ))
-              )}
-            </div>
-          </ScrollArea>
-        </div>
-        
-        <DialogFooter>
-          <Button 
-            variant="outline" 
-            onClick={() => setProductDialogOpen(false)}
-          >
-            Done
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => setProductDialogOpen(false)}
+            >
+              Cancel
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    );
+  };
   
   // Goal Selection Dialog
   const GoalSelectionDialog = () => (
