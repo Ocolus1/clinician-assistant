@@ -1,0 +1,73 @@
+Create a new React component called NewSessionForm.tsx in the client/src/components/sessions directory that implements a comprehensive therapy session entry form. The form should:
+
+Core Structure
+Use a tabbed interface with sections for:
+
+Basic session details (date, time, location, therapist)
+Attendees selection
+Session notes and observations
+Products/billable items
+Goal and subgoal assessments
+Implement a two-column layout with:
+
+Main form on the left
+Live summary panel on the right showing current selections
+Data Management
+Fetch and properly display client data with proper type checking:
+
+Use optional chaining for all data access
+Extract the client's original name for display
+Implement proper loading states with skeletons
+Implement hierarchical data selection for goals and subgoals:
+
+Select goals first, then fetch related subgoals
+Maintain separate state for each selected goal's subgoals
+Preserve goal → subgoal → strategy relationships
+Use React Query's strong typing with proper interfaces:
+
+Define all form value types explicitly
+Use Zod schemas for validation
+Handle loading, error, and empty states consistently
+Interaction Design
+Implement progressive disclosure for complex selections:
+
+Only show subgoal selection after a goal is selected
+Only show strategy options after a subgoal is added
+Use dedicated dialogs for multi-select interfaces
+Build proper validation and error handling:
+
+Form validation errors with clear messages
+API error handling with retry options
+Loading states for all async operations
+Special Considerations
+Ensure attendance tracking works correctly:
+
+Select allies from a fetched list
+Store both ID and name values
+Allow removing attendees
+Build a rating system for evaluations:
+
+Scale from 1-10 for each assessment
+Clear visual indicators of rating values
+Notes field for qualitative assessments
+Implement proper product/billing selection:
+
+Select from available budget items
+Calculate totals dynamically
+Track quantity used
+Technical Implementation
+Use React's latest patterns:
+
+Custom hooks for complex logic
+Memoization for expensive calculations
+Effect cleanup for all subscriptions
+Structure the code for maintainability:
+
+Split complex sections into subcomponents
+Consistent naming conventions
+Clear separation of UI and logic
+Ensure the form works for both creation and editing:
+
+Load existing data when in edit mode
+Properly handle updates vs inserts
+Maintain consistent state management approach
