@@ -425,9 +425,6 @@ export function NewSessionForm({
     if (!currentPresentAllyIds.includes(ally.id)) {
       form.setValue("sessionNote.presentAllies", [...currentPresentAllies, ally.name]);
       form.setValue("sessionNote.presentAllyIds", [...currentPresentAllyIds, ally.id]);
-      
-      // Close the dialog after selecting an attendee
-      setAttendeeDialogOpen(false);
     }
   };
   
@@ -491,83 +488,73 @@ export function NewSessionForm({
   }, [sessionNoteValues.products]);
   
   // Attendee Selection Dialog
-  const AttendeeSelectionDialog = () => {
-    // Get currently selected ally IDs
-    const selectedAllyIds = form.getValues("sessionNote.presentAllyIds");
-    
-    // Filter allies to only show those not already selected
-    const availableAllies = allies.filter((ally: Ally) => 
-      !selectedAllyIds.includes(ally.id)
-    );
-    
-    return (
-      <Dialog open={attendeeDialogOpen} onOpenChange={setAttendeeDialogOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Select Attendees</DialogTitle>
-            <DialogDescription>
-              Choose allies who attended this session
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="py-4">
-            <div className="mb-4">
-              <Label>Search Allies</Label>
-              <div className="flex items-center space-x-2">
-                <Search className="w-4 h-4 text-muted-foreground" />
-                <Input placeholder="Search by name..." />
-              </div>
+  const AttendeeSelectionDialog = () => (
+    <Dialog open={attendeeDialogOpen} onOpenChange={setAttendeeDialogOpen}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Select Attendees</DialogTitle>
+          <DialogDescription>
+            Choose allies who attended this session
+          </DialogDescription>
+        </DialogHeader>
+        
+        <div className="py-4">
+          <div className="mb-4">
+            <Label>Search Allies</Label>
+            <div className="flex items-center space-x-2">
+              <Search className="w-4 h-4 text-muted-foreground" />
+              <Input placeholder="Search by name..." />
             </div>
-            
-            <ScrollArea className="h-[300px]">
-              <div className="space-y-2">
-                {alliesLoading ? (
-                  <Skeleton className="h-10 w-full" />
-                ) : availableAllies.length === 0 ? (
-                  <p className="text-muted-foreground text-sm p-2">No additional allies available</p>
-                ) : (
-                  availableAllies.map((ally: Ally) => (
-                    <div 
-                      key={ally.id} 
-                      className="flex items-center justify-between p-2 hover:bg-muted rounded-md cursor-pointer"
-                      onClick={() => addAttendee(ally)}
-                    >
-                      <div>
-                        <p className="font-medium">{ally.name}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {ally.relationship} • {ally.preferredLanguage || "English"}
-                        </p>
-                      </div>
-                      <Button 
-                        size="sm" 
-                        variant="secondary" 
-                        className="h-8"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          addAttendee(ally);
-                        }}
-                      >
-                        Add
-                      </Button>
-                    </div>
-                  ))
-                )}
-              </div>
-            </ScrollArea>
           </div>
           
-          <DialogFooter>
-            <Button 
-              variant="outline" 
-              onClick={() => setAttendeeDialogOpen(false)}
-            >
-              Done
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    );
-  };
+          <ScrollArea className="h-[300px]">
+            <div className="space-y-2">
+              {alliesLoading ? (
+                <Skeleton className="h-10 w-full" />
+              ) : allies.length === 0 ? (
+                <p className="text-muted-foreground text-sm p-2">No allies found</p>
+              ) : (
+                allies.map((ally: Ally) => (
+                  <div 
+                    key={ally.id} 
+                    className="flex items-center justify-between p-2 hover:bg-muted rounded-md cursor-pointer"
+                    onClick={() => addAttendee(ally)}
+                  >
+                    <div>
+                      <p className="font-medium">{ally.name}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {ally.relationship} • {ally.preferredLanguage || "English"}
+                      </p>
+                    </div>
+                    <Button 
+                      size="sm" 
+                      variant="secondary" 
+                      className="h-8"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        addAttendee(ally);
+                      }}
+                    >
+                      Add
+                    </Button>
+                  </div>
+                ))
+              )}
+            </div>
+          </ScrollArea>
+        </div>
+        
+        <DialogFooter>
+          <Button 
+            variant="outline" 
+            onClick={() => setAttendeeDialogOpen(false)}
+          >
+            Done
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
   
   // Product Selection Dialog
   const ProductSelectionDialog = () => (
@@ -748,14 +735,684 @@ export function NewSessionForm({
           </Button>
         </div>
         
-        {/* Form content would go here - this is a shortened version */}
-        {/* Add all your form content as needed */}
-        
-        {/* Dialogs */}
-        <AttendeeSelectionDialog />
-        <ProductSelectionDialog />
-        <GoalSelectionDialog />
+        {/* Main Content */}
+        <div className="flex-1 overflow-hidden">
+          <div className="h-full flex flex-col md:flex-row">
+            {/* Left Side - Form */}
+            <div className="md:w-3/4 h-full overflow-y-auto p-4">
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                  <div className="space-y-6">
+                    <h2 className="text-lg font-medium">Session Details</h2>
+                    
+                    <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                      <TabsList className="w-full grid grid-cols-4">
+                        <TabsTrigger value="session" className="flex items-center">
+                          <Clock className="h-4 w-4 mr-2" />
+                          Session
+                        </TabsTrigger>
+                        <TabsTrigger value="details" className="flex items-center">
+                          <ClipboardList className="h-4 w-4 mr-2" />
+                          Details
+                        </TabsTrigger>
+                        <TabsTrigger value="products" className="flex items-center">
+                          <ShoppingCart className="h-4 w-4 mr-2" />
+                          Products
+                        </TabsTrigger>
+                        <TabsTrigger value="assessment" className="flex items-center">
+                          <ListChecks className="h-4 w-4 mr-2" />
+                          Assessment
+                        </TabsTrigger>
+                      </TabsList>
+                      
+                      {/* Session Tab */}
+                      <TabsContent value="session" className="py-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <div>
+                            <FormField
+                              control={form.control}
+                              name="session.sessionDate"
+                              render={({ field }) => (
+                                <FormItem className="flex flex-col">
+                                  <FormLabel>Session Date</FormLabel>
+                                  <Popover>
+                                    <PopoverTrigger asChild>
+                                      <FormControl>
+                                        <Button
+                                          variant={"outline"}
+                                          className={cn(
+                                            "pl-3 text-left font-normal",
+                                            !field.value && "text-muted-foreground"
+                                          )}
+                                        >
+                                          {field.value ? (
+                                            format(field.value, "PPP")
+                                          ) : (
+                                            <span>Pick a date</span>
+                                          )}
+                                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                        </Button>
+                                      </FormControl>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-auto p-0" align="start">
+                                      <Calendar
+                                        mode="single"
+                                        selected={field.value}
+                                        onSelect={field.onChange}
+                                        initialFocus
+                                      />
+                                    </PopoverContent>
+                                  </Popover>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          </div>
+                          
+                          <div>
+                            <FormField
+                              control={form.control}
+                              name="session.therapistId"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Therapist</FormLabel>
+                                  <Select
+                                    onValueChange={(value) => field.onChange(parseInt(value))}
+                                    defaultValue={field.value?.toString()}
+                                  >
+                                    <FormControl>
+                                      <SelectTrigger>
+                                        <SelectValue placeholder="Select therapist" />
+                                      </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                      {clinicians.map((clinician: Clinician) => (
+                                        <SelectItem
+                                          key={clinician.id}
+                                          value={clinician.id.toString()}
+                                        >
+                                          {clinician.name}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          </div>
+
+                          <div>
+                            <FormField
+                              control={form.control}
+                              name="session.timeFrom"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Start Time</FormLabel>
+                                  <Select
+                                    onValueChange={field.onChange}
+                                    defaultValue={field.value}
+                                  >
+                                    <FormControl>
+                                      <SelectTrigger>
+                                        <SelectValue placeholder="Select time" />
+                                      </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                      {Array.from({ length: 24 }).map((_, hour) => (
+                                        <>
+                                          <SelectItem
+                                            key={`${hour}:00`}
+                                            value={`${hour.toString().padStart(2, '0')}:00`}
+                                          >
+                                            {`${hour.toString().padStart(2, '0')}:00`}
+                                          </SelectItem>
+                                          <SelectItem
+                                            key={`${hour}:30`}
+                                            value={`${hour.toString().padStart(2, '0')}:30`}
+                                          >
+                                            {`${hour.toString().padStart(2, '0')}:30`}
+                                          </SelectItem>
+                                        </>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          </div>
+
+                          <div>
+                            <FormField
+                              control={form.control}
+                              name="session.timeTo"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>End Time</FormLabel>
+                                  <Select
+                                    onValueChange={field.onChange}
+                                    defaultValue={field.value}
+                                  >
+                                    <FormControl>
+                                      <SelectTrigger>
+                                        <SelectValue placeholder="Select time" />
+                                      </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                      {Array.from({ length: 24 }).map((_, hour) => (
+                                        <>
+                                          <SelectItem
+                                            key={`${hour}:00`}
+                                            value={`${hour.toString().padStart(2, '0')}:00`}
+                                          >
+                                            {`${hour.toString().padStart(2, '0')}:00`}
+                                          </SelectItem>
+                                          <SelectItem
+                                            key={`${hour}:30`}
+                                            value={`${hour.toString().padStart(2, '0')}:30`}
+                                          >
+                                            {`${hour.toString().padStart(2, '0')}:30`}
+                                          </SelectItem>
+                                        </>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          </div>
+
+                          <div className="md:col-span-2">
+                            <FormField
+                              control={form.control}
+                              name="session.location"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Location</FormLabel>
+                                  <FormControl>
+                                    <div className="relative">
+                                      <Input
+                                        placeholder="Enter session location"
+                                        {...field}
+                                      />
+                                      <MapPin className="absolute right-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                                    </div>
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          </div>
+                          
+                          <div className="md:col-span-2">
+                            <Card className={cn(borderStyles.card.border, borderStyles.card.radius, borderStyles.card.shadow)}>
+                              <CardHeader className="pb-3">
+                                <CardTitle className="text-md">Attendees</CardTitle>
+                              </CardHeader>
+                              <CardContent>
+                                {sessionNoteValues.presentAllies.length === 0 ? (
+                                  <div className="text-center py-4 text-muted-foreground">
+                                    <p>No attendees selected</p>
+                                  </div>
+                                ) : (
+                                  <div className="space-y-2">
+                                    {sessionNoteValues.presentAllies.map((name, index) => (
+                                      <div
+                                        key={index}
+                                        className="flex items-center justify-between bg-muted/50 rounded-md p-2"
+                                      >
+                                        <span>{name}</span>
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          onClick={() => removeAttendee(index)}
+                                        >
+                                          <X className="h-4 w-4" />
+                                        </Button>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  className="mt-4"
+                                  onClick={() => setAttendeeDialogOpen(true)}
+                                >
+                                  <User className="h-4 w-4 mr-2" />
+                                  Select
+                                </Button>
+                              </CardContent>
+                            </Card>
+                          </div>
+                        </div>
+                      </TabsContent>
+                      
+                      {/* Details Tab */}
+                      <TabsContent value="details" className="py-4">
+                        <div className="space-y-4">
+                          <Card className={cn(borderStyles.card.border, borderStyles.card.radius, borderStyles.card.shadow)}>
+                            <CardHeader className="pb-3">
+                              <CardTitle className="text-md">Session Notes</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                              <FormField
+                                control={form.control}
+                                name="sessionNote.notes"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormControl>
+                                      <RichTextEditor
+                                        value={field.value || ""}
+                                        onChange={field.onChange}
+                                        placeholder="Enter detailed notes about the session..."
+                                      />
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+                            </CardContent>
+                          </Card>
+                          
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <Card className={cn(borderStyles.card.border, borderStyles.card.radius, borderStyles.card.shadow)}>
+                              <CardHeader className="pb-3">
+                                <CardTitle className="text-md">Client Behavior</CardTitle>
+                              </CardHeader>
+                              <CardContent className="space-y-6">
+                                <FormField
+                                  control={form.control}
+                                  name="sessionNote.moodRating"
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <RatingSlider
+                                        value={field.value}
+                                        onChange={field.onChange}
+                                        label="Mood"
+                                        description="Rate the client's mood during the session"
+                                      />
+                                    </FormItem>
+                                  )}
+                                />
+                                
+                                <FormField
+                                  control={form.control}
+                                  name="sessionNote.focusRating"
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <RatingSlider
+                                        value={field.value}
+                                        onChange={field.onChange}
+                                        label="Focus"
+                                        description="Rate the client's ability to focus during the session"
+                                      />
+                                    </FormItem>
+                                  )}
+                                />
+                              </CardContent>
+                            </Card>
+                            
+                            <Card className={cn(borderStyles.card.border, borderStyles.card.radius, borderStyles.card.shadow)}>
+                              <CardHeader className="pb-3">
+                                <CardTitle className="text-md">Participation</CardTitle>
+                              </CardHeader>
+                              <CardContent className="space-y-6">
+                                <FormField
+                                  control={form.control}
+                                  name="sessionNote.cooperationRating"
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <RatingSlider
+                                        value={field.value}
+                                        onChange={field.onChange}
+                                        label="Cooperation"
+                                        description="Rate the client's cooperation during the session"
+                                      />
+                                    </FormItem>
+                                  )}
+                                />
+                                
+                                <FormField
+                                  control={form.control}
+                                  name="sessionNote.physicalActivityRating"
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <RatingSlider
+                                        value={field.value}
+                                        onChange={field.onChange}
+                                        label="Physical Activity"
+                                        description="Rate the client's physical activity during the session"
+                                      />
+                                    </FormItem>
+                                  )}
+                                />
+                              </CardContent>
+                            </Card>
+                          </div>
+                        </div>
+                      </TabsContent>
+                      
+                      {/* Products Tab */}
+                      <TabsContent value="products" className="py-4">
+                        <Card className={cn(borderStyles.card.border, borderStyles.card.radius, borderStyles.card.shadow)}>
+                          <CardHeader className="pb-3 flex flex-row items-center justify-between">
+                            <CardTitle className="text-md">Products & Services</CardTitle>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              onClick={() => setProductDialogOpen(true)}
+                              className="h-8"
+                            >
+                              <Plus className="h-4 w-4 mr-2" />
+                              Add Product
+                            </Button>
+                          </CardHeader>
+                          <CardContent>
+                            {sessionNoteValues.products.length === 0 ? (
+                              <div className="text-center py-12 border border-dashed rounded-lg">
+                                <ShoppingCart className="mx-auto h-10 w-10 text-muted-foreground mb-4" />
+                                <p className="text-muted-foreground">No products added</p>
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  Add products from the client's budget to track utilization
+                                </p>
+                              </div>
+                            ) : (
+                              <div className="space-y-4">
+                                {sessionNoteValues.products.map((product, index) => (
+                                  <div 
+                                    key={index}
+                                    className="flex items-center justify-between p-3 bg-muted/50 rounded-md"
+                                  >
+                                    <div className="flex-1">
+                                      <p className="font-medium">{product.productDescription}</p>
+                                      <div className="flex text-sm text-muted-foreground space-x-2">
+                                        <span>{product.productCode}</span>
+                                        <span>•</span>
+                                        <span>${product.unitPrice.toFixed(2)} each</span>
+                                      </div>
+                                    </div>
+                                    <div className="flex items-center space-x-4">
+                                      <div className="w-20">
+                                        <Label htmlFor={`quantity-${index}`} className="sr-only">
+                                          Quantity
+                                        </Label>
+                                        <Input
+                                          id={`quantity-${index}`}
+                                          type="number"
+                                          min="0.01"
+                                          step="0.01"
+                                          value={product.quantity}
+                                          onChange={(e) => {
+                                            const newProducts = [...sessionNoteValues.products];
+                                            newProducts[index].quantity = parseFloat(e.target.value);
+                                            form.setValue("sessionNote.products", newProducts);
+                                          }}
+                                          className="text-right"
+                                        />
+                                      </div>
+                                      <div className="w-24 text-right font-medium">
+                                        ${(product.quantity * product.unitPrice).toFixed(2)}
+                                      </div>
+                                      <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => removeProduct(index)}
+                                      >
+                                        <X className="h-4 w-4" />
+                                      </Button>
+                                    </div>
+                                  </div>
+                                ))}
+                                
+                                <div className="flex justify-end pt-4 border-t">
+                                  <div className="w-40 text-right">
+                                    <p className="text-muted-foreground">Total</p>
+                                    <p className="font-medium text-lg">
+                                      ${totalProductCost.toFixed(2)}
+                                    </p>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+                          </CardContent>
+                        </Card>
+                      </TabsContent>
+                      
+                      {/* Assessment Tab */}
+                      <TabsContent value="assessment" className="py-4">
+                        <Card className={cn(borderStyles.card.border, borderStyles.card.radius, borderStyles.card.shadow)}>
+                          <CardHeader className="pb-3 flex flex-row items-center justify-between">
+                            <CardTitle className="text-md">Goal Assessments</CardTitle>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              onClick={() => setGoalDialogOpen(true)}
+                              className="h-8"
+                            >
+                              <Plus className="h-4 w-4 mr-2" />
+                              Add Goal
+                            </Button>
+                          </CardHeader>
+                          <CardContent>
+                            {performanceAssessments.length === 0 ? (
+                              <div className="text-center py-12 border border-dashed rounded-lg">
+                                <ListChecks className="mx-auto h-10 w-10 text-muted-foreground mb-4" />
+                                <p className="text-muted-foreground">No goals available</p>
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  Add goals to the client profile first
+                                </p>
+                              </div>
+                            ) : (
+                              <div className="space-y-6">
+                                {performanceAssessments.map((assessment, goalIndex) => (
+                                  <div key={assessment.goalId} className="border rounded-md p-4">
+                                    <div className="flex items-center justify-between mb-4">
+                                      <h3 className="font-medium">{assessment.goalTitle}</h3>
+                                      <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => removeGoalAssessment(assessment.goalId)}
+                                      >
+                                        <X className="h-4 w-4" />
+                                      </Button>
+                                    </div>
+                                    
+                                    <div className="space-y-6">
+                                      {assessment.subgoals.map((subgoal, subgoalIndex) => (
+                                        <div key={subgoal.subgoalId} className="border-t pt-4">
+                                          <h4 className="font-medium mb-3">{subgoal.subgoalTitle}</h4>
+                                          
+                                          {/* Rating */}
+                                          <NumericRating
+                                            value={subgoal.rating || 5}
+                                            onChange={(value) => {
+                                              const newAssessments = [...performanceAssessments];
+                                              newAssessments[goalIndex].subgoals[subgoalIndex].rating = value;
+                                              form.setValue("performanceAssessments", newAssessments);
+                                            }}
+                                            label="Performance Rating"
+                                            description="Rate progress on this subgoal"
+                                          />
+                                          
+                                          {/* Notes */}
+                                          <div className="mt-4">
+                                            <Label htmlFor={`subgoal-notes-${subgoal.subgoalId}`}>
+                                              Notes
+                                            </Label>
+                                            <Textarea
+                                              id={`subgoal-notes-${subgoal.subgoalId}`}
+                                              placeholder="Enter notes about progress on this subgoal..."
+                                              value={subgoal.notes || ""}
+                                              onChange={(e) => {
+                                                const newAssessments = [...performanceAssessments];
+                                                newAssessments[goalIndex].subgoals[subgoalIndex].notes = e.target.value;
+                                                form.setValue("performanceAssessments", newAssessments);
+                                              }}
+                                              className="mt-1"
+                                            />
+                                          </div>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </CardContent>
+                        </Card>
+                      </TabsContent>
+                    </Tabs>
+                  </div>
+                  
+                  <div className="flex justify-between">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => onOpenChange(false)}
+                    >
+                      Cancel
+                    </Button>
+                    <Button type="submit">
+                      {isEdit ? "Update Session" : "Create Session"}
+                    </Button>
+                  </div>
+                </form>
+              </Form>
+            </div>
+            
+            {/* Right Side - Session Summary */}
+            <div className="md:w-1/4 h-full overflow-y-auto bg-gray-50 p-4">
+              <div className="sticky top-0">
+                <div className="flex justify-between items-center mb-4">
+                  <h2 className="text-lg font-medium">Session Summary</h2>
+                  <Button variant="ghost" size="sm">
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+                
+                <div className="space-y-4">
+                  {/* Client Info */}
+                  <Card>
+                    <CardContent className="p-4">
+                      <h3 className="font-medium mb-2">Client</h3>
+                      {selectedClient ? (
+                        <div className="space-y-2">
+                          {/* Name with identifier */}
+                          <div className="grid grid-cols-[80px_1fr] gap-1">
+                            <div className="text-muted-foreground text-xs">Name:</div>
+                            <div className="font-medium">
+                              {clientData?.originalName && clientData?.uniqueIdentifier 
+                                ? `${clientData.originalName} (${clientData.uniqueIdentifier})`
+                                : selectedClient.name
+                              }
+                            </div>
+                          </div>
+                          
+                          {/* Date of birth with age */}
+                          <div className="grid grid-cols-[80px_1fr] gap-1">
+                            <div className="text-muted-foreground text-xs">Date of Birth:</div>
+                            <div className="text-sm">
+                              {clientData?.dateOfBirth
+                                ? (() => {
+                                    const dob = new Date(clientData.dateOfBirth);
+                                    const age = new Date().getFullYear() - dob.getFullYear();
+                                    return `${dob.toLocaleDateString()} (${age} years)`;
+                                  })()
+                                : "Not provided"
+                              }
+                            </div>
+                          </div>
+                          
+                          {/* Funds management type */}
+                          <div className="grid grid-cols-[80px_1fr] gap-1">
+                            <div className="text-muted-foreground text-xs">Funds Type:</div>
+                            <div className="text-sm">{clientData?.fundsManagement || "Not specified"}</div>
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="text-muted-foreground">No client information available</p>
+                      )}
+                    </CardContent>
+                  </Card>
+                  
+                  {/* Date & Time */}
+                  <Card>
+                    <CardContent className="p-4">
+                      <h3 className="font-medium mb-2">Date & Time</h3>
+                      {sessionValues.sessionDate ? (
+                        <>
+                          <p>{format(sessionValues.sessionDate, "d MMM yyyy")}</p>
+                          <p className="text-muted-foreground">
+                            {sessionValues.timeFrom} - {sessionValues.timeTo}
+                          </p>
+                        </>
+                      ) : (
+                        <p className="text-muted-foreground">No date selected</p>
+                      )}
+                    </CardContent>
+                  </Card>
+                  
+                  {/* Products */}
+                  <Card>
+                    <CardContent className="p-4">
+                      <h3 className="font-medium mb-2">Products</h3>
+                      {sessionNoteValues.products.length > 0 ? (
+                        <div>
+                          <ul className="space-y-1">
+                            {sessionNoteValues.products.map((product, i) => (
+                              <li key={i} className="text-sm">
+                                {product.productDescription} (x{product.quantity})
+                              </li>
+                            ))}
+                          </ul>
+                          <p className="text-sm font-medium mt-2">
+                            Total: ${totalProductCost.toFixed(2)}
+                          </p>
+                        </div>
+                      ) : (
+                        <p className="text-muted-foreground">No products added</p>
+                      )}
+                    </CardContent>
+                  </Card>
+                  
+                  {/* Assessments */}
+                  <Card>
+                    <CardContent className="p-4">
+                      <h3 className="font-medium mb-2">Assessments</h3>
+                      {performanceAssessments.length > 0 ? (
+                        <div>
+                          <ul className="space-y-1">
+                            {performanceAssessments.map((assessment) => (
+                              <li key={assessment.goalId} className="text-sm">
+                                {assessment.goalTitle} ({assessment.subgoals.length} subgoals)
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      ) : (
+                        <p className="text-muted-foreground">No goal assessments added</p>
+                      )}
+                    </CardContent>
+                  </Card>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
+      
+      {/* Dialogs */}
+      <AttendeeSelectionDialog />
+      <ProductSelectionDialog />
+      <GoalSelectionDialog />
     </div>
   );
 }
