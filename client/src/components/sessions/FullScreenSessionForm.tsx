@@ -1895,7 +1895,7 @@ export function FullScreenSessionForm({ open, onOpenChange, defaultValues, clien
                                             type="button"
                                             variant="ghost"
                                             size="sm"
-                                            className           "h-6 text-xs px-2"
+                                            className="h-6 text-xs px-2"
                                             onClick={() => {
                                               setCurrentGoalIndex(goalIndex);
                                               setCurrentMilestoneIndex(milestoneIndex);
