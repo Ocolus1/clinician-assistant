@@ -6,7 +6,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { format } from "date-fns";
 import { Calendar as CalendarIcon } from "lucide-react";
-import { MapPin, X, Plus, Clock, User, Search, ShoppingCart, ClipboardList, ListChecks } from "lucide-react";
+import { MapPin, X, Plus, Clock, User, UserPlus, Users, Search, ShoppingCart, ClipboardList, ClipboardPen, ListChecks, Target } from "lucide-react";
 
 // UI Components
 import { Button } from "@/components/ui/button";
@@ -1190,19 +1190,23 @@ export function NewSessionForm({
   return (
     <div className="fixed inset-0 z-50 bg-white flex flex-col">
       <div className="h-full w-full flex flex-col px-0 py-4 md:px-0">
-        {/* Form Header */}
-        <div className="flex justify-between items-center py-4 px-4 border-b">
+        {/* Form Header with subtle gradient background */}
+        <div className="flex justify-between items-center py-5 px-6 border-b bg-gradient-to-r from-blue-50 to-white shadow-sm">
           <div>
-            <h1 className="text-xl font-semibold">
+            <h1 className="text-2xl font-semibold text-blue-900">
               {isEdit ? "Edit Session" : "New Session"}
             </h1>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-blue-600/80 mt-1">
               {selectedClient ? 
                 `Client: ${selectedClient.originalName || selectedClient.name}` : 
                 "Please select a client"}
             </p>
           </div>
-          <Button variant="ghost" onClick={() => onOpenChange(false)}>
+          <Button 
+            variant="ghost" 
+            onClick={() => onOpenChange(false)}
+            className="hover:bg-blue-100 transition-colors"
+          >
             <X className="h-5 w-5" />
           </Button>
         </div>
@@ -1215,23 +1219,35 @@ export function NewSessionForm({
               <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                   <div className="space-y-6">
-                    <h2 className="text-lg font-medium">Session Details</h2>
+                    <h2 className="text-xl font-semibold text-blue-800 mb-2">Session Details</h2>
                     
                     <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                      <TabsList className="w-full grid grid-cols-4">
-                        <TabsTrigger value="session" className="flex items-center">
+                      <TabsList className="w-full grid grid-cols-4 p-1 bg-blue-50 rounded-xl">
+                        <TabsTrigger 
+                          value="session" 
+                          className="flex items-center data-[state=active]:bg-white data-[state=active]:text-blue-700 data-[state=active]:shadow-md transition-all"
+                        >
                           <Clock className="h-4 w-4 mr-2" />
                           Session
                         </TabsTrigger>
-                        <TabsTrigger value="details" className="flex items-center">
+                        <TabsTrigger 
+                          value="details" 
+                          className="flex items-center data-[state=active]:bg-white data-[state=active]:text-blue-700 data-[state=active]:shadow-md transition-all"
+                        >
                           <ClipboardList className="h-4 w-4 mr-2" />
                           Details
                         </TabsTrigger>
-                        <TabsTrigger value="products" className="flex items-center">
+                        <TabsTrigger 
+                          value="products" 
+                          className="flex items-center data-[state=active]:bg-white data-[state=active]:text-blue-700 data-[state=active]:shadow-md transition-all"
+                        >
                           <ShoppingCart className="h-4 w-4 mr-2" />
                           Products
                         </TabsTrigger>
-                        <TabsTrigger value="assessment" className="flex items-center">
+                        <TabsTrigger 
+                          value="assessment" 
+                          className="flex items-center data-[state=active]:bg-white data-[state=active]:text-blue-700 data-[state=active]:shadow-md transition-all"
+                        >
                           <ListChecks className="h-4 w-4 mr-2" />
                           Assessment
                         </TabsTrigger>
@@ -1419,13 +1435,17 @@ export function NewSessionForm({
                           </div>
                           
                           <div className="md:col-span-2">
-                            <Card className={cn(borderStyles.card.border, borderStyles.card.radius, borderStyles.card.shadow)}>
-                              <CardHeader className="pb-3">
-                                <CardTitle className="text-md">Attendees</CardTitle>
+                            <Card className="border border-blue-100 rounded-xl shadow-md hover:shadow-lg transition-shadow">
+                              <CardHeader className="pb-3 bg-gradient-to-r from-blue-50 to-white border-b border-blue-50">
+                                <CardTitle className="text-md font-semibold text-blue-800 flex items-center">
+                                  <Users className="h-4 w-4 mr-2 text-blue-600" />
+                                  Attendees
+                                </CardTitle>
                               </CardHeader>
-                              <CardContent>
+                              <CardContent className="p-5">
                                 {sessionNoteValues.presentAllies.length === 0 ? (
-                                  <div className="text-center py-4 text-muted-foreground">
+                                  <div className="text-center py-6 text-muted-foreground bg-gray-50/80 rounded-lg border border-dashed border-gray-200">
+                                    <User className="h-10 w-10 mx-auto mb-2 text-gray-300" />
                                     <p>No attendees selected</p>
                                   </div>
                                 ) : (
@@ -1433,13 +1453,17 @@ export function NewSessionForm({
                                     {sessionNoteValues.presentAllies.map((name, index) => (
                                       <div
                                         key={index}
-                                        className="flex items-center justify-between bg-muted/50 rounded-md p-2"
+                                        className="flex items-center justify-between bg-blue-50/50 rounded-md p-3 border border-blue-100"
                                       >
-                                        <span>{name}</span>
+                                        <span className="font-medium text-blue-900 flex items-center">
+                                          <User className="h-4 w-4 mr-2 text-blue-600" />
+                                          {name}
+                                        </span>
                                         <Button
                                           variant="ghost"
                                           size="sm"
                                           onClick={() => removeAttendee(index)}
+                                          className="hover:bg-blue-100/50 hover:text-red-500 transition-colors"
                                         >
                                           <X className="h-4 w-4" />
                                         </Button>
@@ -1451,11 +1475,11 @@ export function NewSessionForm({
                                   type="button"
                                   variant="outline"
                                   size="sm"
-                                  className="mt-4"
+                                  className="mt-5 border-blue-200 hover:bg-blue-50 hover:text-blue-700 transition-colors"
                                   onClick={() => setAttendeeDialogOpen(true)}
                                 >
-                                  <User className="h-4 w-4 mr-2" />
-                                  Select
+                                  <UserPlus className="h-4 w-4 mr-2 text-blue-600" />
+                                  Select Attendees
                                 </Button>
                               </CardContent>
                             </Card>
@@ -1466,11 +1490,14 @@ export function NewSessionForm({
                       {/* Details Tab */}
                       <TabsContent value="details" className="py-4">
                         <div className="space-y-4">
-                          <Card className={cn(borderStyles.card.border, borderStyles.card.radius, borderStyles.card.shadow)}>
-                            <CardHeader className="pb-3">
-                              <CardTitle className="text-md">Session Notes</CardTitle>
+                          <Card className="border border-blue-100 rounded-xl shadow-md hover:shadow-lg transition-shadow">
+                            <CardHeader className="pb-3 bg-gradient-to-r from-blue-50 to-white border-b border-blue-50">
+                              <CardTitle className="text-md font-semibold text-blue-800 flex items-center">
+                                <ClipboardPen className="h-4 w-4 mr-2 text-blue-600" />
+                                Session Notes
+                              </CardTitle>
                             </CardHeader>
-                            <CardContent>
+                            <CardContent className="p-5">
                               <FormField
                                 control={form.control}
                                 name="sessionNote.notes"
@@ -1481,6 +1508,7 @@ export function NewSessionForm({
                                         value={field.value || ""}
                                         onChange={field.onChange}
                                         placeholder="Enter detailed notes about the session..."
+                                        className="min-h-[200px] border-blue-100 focus-within:border-blue-300 focus-within:ring-blue-200"
                                       />
                                     </FormControl>
                                     <FormMessage />
@@ -1490,12 +1518,15 @@ export function NewSessionForm({
                             </CardContent>
                           </Card>
                           
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <Card className={cn(borderStyles.card.border, borderStyles.card.radius, borderStyles.card.shadow)}>
-                              <CardHeader className="pb-3">
-                                <CardTitle className="text-md">Client Behavior</CardTitle>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <Card className="border border-blue-100 rounded-xl shadow-md hover:shadow-lg transition-shadow">
+                              <CardHeader className="pb-3 bg-gradient-to-r from-blue-50 to-white border-b border-blue-50">
+                                <CardTitle className="text-md font-semibold text-blue-800 flex items-center">
+                                  <User className="h-4 w-4 mr-2 text-blue-600" />
+                                  Client Behavior
+                                </CardTitle>
                               </CardHeader>
-                              <CardContent className="space-y-6">
+                              <CardContent className="p-5 space-y-6">
                                 <FormField
                                   control={form.control}
                                   name="sessionNote.moodRating"
@@ -1528,11 +1559,14 @@ export function NewSessionForm({
                               </CardContent>
                             </Card>
                             
-                            <Card className={cn(borderStyles.card.border, borderStyles.card.radius, borderStyles.card.shadow)}>
-                              <CardHeader className="pb-3">
-                                <CardTitle className="text-md">Participation</CardTitle>
+                            <Card className="border border-blue-100 rounded-xl shadow-md hover:shadow-lg transition-shadow">
+                              <CardHeader className="pb-3 bg-gradient-to-r from-blue-50 to-white border-b border-blue-50">
+                                <CardTitle className="text-md font-semibold text-blue-800 flex items-center">
+                                  <ClipboardList className="h-4 w-4 mr-2 text-blue-600" />
+                                  Participation
+                                </CardTitle>
                               </CardHeader>
-                              <CardContent className="space-y-6">
+                              <CardContent className="p-5 space-y-6">
                                 <FormField
                                   control={form.control}
                                   name="sessionNote.cooperationRating"
@@ -1570,26 +1604,29 @@ export function NewSessionForm({
                       
                       {/* Products Tab */}
                       <TabsContent value="products" className="py-4">
-                        <Card className={cn(borderStyles.card.border, borderStyles.card.radius, borderStyles.card.shadow)}>
-                          <CardHeader className="pb-3 flex flex-row items-center justify-between">
-                            <CardTitle className="text-md">Products & Services</CardTitle>
+                        <Card className="border border-blue-100 rounded-xl shadow-md hover:shadow-lg transition-shadow">
+                          <CardHeader className="pb-3 bg-gradient-to-r from-blue-50 to-white border-b border-blue-50 flex flex-row items-center justify-between">
+                            <CardTitle className="text-md font-semibold text-blue-800 flex items-center">
+                              <ShoppingCart className="h-4 w-4 mr-2 text-blue-600" />
+                              Products & Services
+                            </CardTitle>
                             <Button
                               type="button"
                               size="sm"
                               variant="outline"
                               onClick={() => setProductDialogOpen(true)}
-                              className="h-8"
+                              className="h-8 border-blue-200 hover:bg-blue-50 hover:text-blue-700 transition-colors"
                             >
-                              <Plus className="h-4 w-4 mr-2" />
+                              <Plus className="h-4 w-4 mr-2 text-blue-600" />
                               Add Product
                             </Button>
                           </CardHeader>
-                          <CardContent>
+                          <CardContent className="p-5">
                             {sessionNoteValues.products.length === 0 ? (
-                              <div className="text-center py-12 border border-dashed rounded-lg">
-                                <ShoppingCart className="mx-auto h-10 w-10 text-muted-foreground mb-4" />
-                                <p className="text-muted-foreground">No products added</p>
-                                <p className="text-xs text-muted-foreground mt-1">
+                              <div className="text-center py-12 border border-dashed border-blue-100 rounded-lg bg-blue-50/20">
+                                <ShoppingCart className="mx-auto h-12 w-12 text-blue-200 mb-4" />
+                                <p className="text-blue-700 font-medium">No products added</p>
+                                <p className="text-xs text-blue-500/70 mt-2">
                                   Add products from the client's budget to track utilization
                                 </p>
                               </div>
@@ -1598,11 +1635,11 @@ export function NewSessionForm({
                                 {sessionNoteValues.products.map((product: any, index: number) => (
                                   <div 
                                     key={index}
-                                    className="flex items-center justify-between p-3 bg-muted/50 rounded-md"
+                                    className="flex items-center justify-between p-4 bg-blue-50/30 rounded-lg border border-blue-100 hover:shadow-sm transition-shadow"
                                   >
                                     <div className="flex-1">
-                                      <p className="font-medium">{product.productDescription}</p>
-                                      <div className="flex text-sm text-muted-foreground space-x-2">
+                                      <p className="font-medium text-blue-900">{product.productDescription}</p>
+                                      <div className="flex text-sm text-blue-600/80 space-x-2 mt-1">
                                         <span>{product.productCode}</span>
                                         <span>•</span>
                                         <span>${product.unitPrice.toFixed(2)} each</span>
@@ -1624,10 +1661,10 @@ export function NewSessionForm({
                                             newProducts[index].quantity = parseFloat(e.target.value);
                                             form.setValue("sessionNote.products", newProducts);
                                           }}
-                                          className="text-right"
+                                          className="text-right border-blue-200 focus:border-blue-400 focus:ring-blue-200"
                                         />
                                       </div>
-                                      <div className="w-24 text-right font-medium">
+                                      <div className="w-24 text-right font-medium text-blue-900">
                                         ${(product.quantity * product.unitPrice).toFixed(2)}
                                       </div>
                                       <Button
@@ -1635,6 +1672,7 @@ export function NewSessionForm({
                                         variant="ghost"
                                         size="sm"
                                         onClick={() => removeProduct(index)}
+                                        className="hover:bg-blue-100/50 hover:text-red-500 transition-colors"
                                       >
                                         <X className="h-4 w-4" />
                                       </Button>
@@ -1642,10 +1680,10 @@ export function NewSessionForm({
                                   </div>
                                 ))}
                                 
-                                <div className="flex justify-end pt-4 border-t">
+                                <div className="flex justify-end pt-5 mt-4 border-t border-blue-100">
                                   <div className="w-40 text-right">
-                                    <p className="text-muted-foreground">Total</p>
-                                    <p className="font-medium text-lg">
+                                    <p className="text-blue-600/70">Total</p>
+                                    <p className="font-semibold text-lg text-blue-900">
                                       ${totalProductCost.toFixed(2)}
                                     </p>
                                   </div>
@@ -1658,45 +1696,48 @@ export function NewSessionForm({
                       
                       {/* Assessment Tab */}
                       <TabsContent value="assessment" className="py-4">
-                        <Card className={cn(borderStyles.card.border, borderStyles.card.radius, borderStyles.card.shadow)}>
-                          <CardHeader className="pb-3 flex flex-row items-center justify-between">
-                            <CardTitle className="text-md">Goal Assessments</CardTitle>
+                        <Card className="border border-blue-100 rounded-xl shadow-md hover:shadow-lg transition-shadow">
+                          <CardHeader className="pb-3 bg-gradient-to-r from-blue-50 to-white border-b border-blue-50 flex flex-row items-center justify-between">
+                            <CardTitle className="text-md font-semibold text-blue-800 flex items-center">
+                              <ListChecks className="h-4 w-4 mr-2 text-blue-600" />
+                              Goal Assessments
+                            </CardTitle>
                             <Button
                               type="button"
                               size="sm"
                               variant="outline"
                               onClick={() => setGoalDialogOpen(true)}
-                              className="h-8"
+                              className="h-8 border-blue-200 hover:bg-blue-50 hover:text-blue-700 transition-colors"
                             >
-                              <Plus className="h-4 w-4 mr-2" />
+                              <Plus className="h-4 w-4 mr-2 text-blue-600" />
                               Add Goal
                             </Button>
                           </CardHeader>
-                          <CardContent>
+                          <CardContent className="p-5">
                             {performanceAssessments.length === 0 ? (
-                              <div className="text-center py-12 border border-dashed rounded-lg">
-                                <ListChecks className="mx-auto h-10 w-10 text-muted-foreground mb-4" />
-                                <p className="text-muted-foreground">No goals available</p>
-                                <p className="text-xs text-muted-foreground mt-1">
+                              <div className="text-center py-12 border border-dashed border-blue-100 rounded-lg bg-blue-50/20">
+                                <ListChecks className="mx-auto h-12 w-12 text-blue-200 mb-4" />
+                                <p className="text-blue-700 font-medium">No goals available</p>
+                                <p className="text-xs text-blue-500/70 mt-2">
                                   Add goals to the client profile first
                                 </p>
                               </div>
                             ) : (
                               <div className="space-y-6">
                                 {performanceAssessments.map((assessment: any, goalIndex: number) => (
-                                  <div key={assessment.goalId} className="border rounded-md p-4">
+                                  <div key={assessment.goalId} className="border border-blue-100 rounded-lg p-5 bg-white shadow-sm hover:shadow-md transition-shadow">
                                     {/* Goal header with remove button */}
-                                    <div className="flex items-center justify-between mb-4">
-                                      <h3 className="font-medium">{assessment.goalTitle}</h3>
+                                    <div className="flex items-center justify-between mb-4 pb-2 border-b border-blue-50">
+                                      <h3 className="font-semibold text-blue-900">{assessment.goalTitle}</h3>
                                       <div className="flex items-center space-x-2">
                                         <Button
                                           type="button"
                                           variant="outline"
                                           size="sm"
                                           onClick={() => openSubgoalDialog(assessment.goalId)}
-                                          className="h-8"
+                                          className="h-8 border-blue-200 hover:bg-blue-50 hover:text-blue-700 transition-colors"
                                         >
-                                          <Plus className="h-3 w-3 mr-1" />
+                                          <Plus className="h-3 w-3 mr-1 text-blue-600" />
                                           Add Subgoal
                                         </Button>
                                         <Button
@@ -1704,6 +1745,7 @@ export function NewSessionForm({
                                           variant="ghost"
                                           size="sm"
                                           onClick={() => removeGoalAssessment(assessment.goalId)}
+                                          className="hover:bg-blue-50 hover:text-red-500 transition-colors"
                                         >
                                           <X className="h-4 w-4" />
                                         </Button>
@@ -1712,16 +1754,16 @@ export function NewSessionForm({
                                     
                                     {/* No subgoals message */}
                                     {assessment.subgoals.length === 0 && (
-                                      <div className="text-center py-6 border border-dashed rounded-lg">
-                                        <p className="text-muted-foreground">No subgoals added</p>
+                                      <div className="text-center py-6 border border-dashed border-blue-100 rounded-lg bg-blue-50/20">
+                                        <p className="text-blue-600">No subgoals added</p>
                                         <Button
                                           type="button"
                                           variant="outline"
                                           size="sm"
                                           onClick={() => openSubgoalDialog(assessment.goalId)}
-                                          className="mt-2"
+                                          className="mt-2 border-blue-200 hover:bg-blue-50 hover:text-blue-700 transition-colors"
                                         >
-                                          <Plus className="h-3 w-3 mr-1" />
+                                          <Plus className="h-3 w-3 mr-1 text-blue-600" />
                                           Add Subgoal
                                         </Button>
                                       </div>
@@ -1730,44 +1772,51 @@ export function NewSessionForm({
                                     {/* List of subgoals */}
                                     <div className="space-y-6">
                                       {assessment.subgoals.map((subgoal: any, subgoalIndex: number) => (
-                                        <div key={subgoal.subgoalId} className="border-t pt-4">
+                                        <div key={subgoal.subgoalId} className="border-t border-blue-100 pt-5 mt-4">
                                           {/* Subgoal header with remove button */}
                                           <div className="flex items-center justify-between mb-3">
-                                            <h4 className="font-medium">{subgoal.subgoalTitle}</h4>
+                                            <h4 className="font-medium text-blue-800 flex items-center">
+                                              <Target className="h-3 w-3 mr-2 text-blue-600" />
+                                              {subgoal.subgoalTitle}
+                                            </h4>
                                             <Button
                                               type="button"
                                               variant="ghost"
                                               size="sm"
                                               onClick={() => removeSubgoalFromAssessment(assessment.goalId, subgoal.subgoalId)}
+                                              className="hover:bg-blue-50 hover:text-red-500 transition-colors"
                                             >
                                               <X className="h-3 w-3" />
                                             </Button>
                                           </div>
                                           
                                           {/* Rating */}
-                                          <NumericRating
-                                            value={subgoal.rating || 5}
-                                            onChange={(value) => {
-                                              const newAssessments = [...performanceAssessments];
-                                              newAssessments[goalIndex].subgoals[subgoalIndex].rating = value;
-                                              form.setValue("performanceAssessments", newAssessments);
-                                            }}
-                                            label="Performance Rating"
-                                            description="Rate progress on this subgoal"
-                                          />
+                                          <div className="bg-blue-50/30 rounded-md p-4 border border-blue-100">
+                                            <NumericRating
+                                              value={subgoal.rating || 5}
+                                              onChange={(value) => {
+                                                const newAssessments = [...performanceAssessments];
+                                                newAssessments[goalIndex].subgoals[subgoalIndex].rating = value;
+                                                form.setValue("performanceAssessments", newAssessments);
+                                              }}
+                                              label="Performance Rating"
+                                              description="Rate progress on this subgoal"
+                                            />
+                                          </div>
                                           
                                           {/* Strategies */}
                                           <div className="mt-4">
                                             <div className="flex items-center justify-between mb-2">
-                                              <Label>Strategies</Label>
+                                              <Label className="text-blue-700 font-medium">Strategies</Label>
                                               <Button
                                                 type="button"
                                                 variant="ghost"
                                                 size="sm"
                                                 onClick={() => openStrategyDialog(assessment.goalId, subgoal.subgoalId)}
                                                 disabled={subgoal.strategies.length >= 5}
+                                                className="hover:bg-blue-50 hover:text-blue-700 transition-colors"
                                               >
-                                                <Plus className="h-3 w-3 mr-1" />
+                                                <Plus className="h-3 w-3 mr-1 text-blue-600" />
                                                 {subgoal.strategies.length >= 5 ? 'Max (5)' : 'Add'}
                                               </Button>
                                             </div>
@@ -1778,18 +1827,18 @@ export function NewSessionForm({
                                                   <Badge 
                                                     key={strategy} 
                                                     variant="secondary"
-                                                    className="px-2 py-1 gap-1"
+                                                    className="px-2 py-1 gap-1 bg-blue-100 text-blue-800 hover:bg-blue-200 transition-colors"
                                                   >
                                                     {strategy}
                                                     <X 
-                                                      className="h-3 w-3 cursor-pointer" 
+                                                      className="h-3 w-3 cursor-pointer hover:text-red-500" 
                                                       onClick={() => removeStrategyFromSubgoal(assessment.goalId, subgoal.subgoalId, strategy)} 
                                                     />
                                                   </Badge>
                                                 ))}
                                               </div>
                                             ) : (
-                                              <p className="text-sm text-muted-foreground mt-1">
+                                              <p className="text-sm text-blue-500/70 mt-1">
                                                 No strategies selected
                                               </p>
                                             )}
@@ -1797,7 +1846,7 @@ export function NewSessionForm({
                                           
                                           {/* Notes */}
                                           <div className="mt-4">
-                                            <Label htmlFor={`subgoal-notes-${subgoal.subgoalId}`}>
+                                            <Label htmlFor={`subgoal-notes-${subgoal.subgoalId}`} className="text-blue-700 font-medium">
                                               Notes
                                             </Label>
                                             <Textarea
@@ -1809,7 +1858,7 @@ export function NewSessionForm({
                                                 newAssessments[goalIndex].subgoals[subgoalIndex].notes = e.target.value;
                                                 form.setValue("performanceAssessments", newAssessments);
                                               }}
-                                              className="mt-1"
+                                              className="mt-1 border-blue-200 focus:border-blue-400 focus:ring-blue-200"
                                             />
                                           </div>
                                         </div>
