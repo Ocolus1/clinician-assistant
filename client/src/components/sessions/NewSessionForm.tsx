@@ -1189,7 +1189,7 @@ export function NewSessionForm({
   
   return (
     <div className="fixed inset-0 z-50 bg-white flex flex-col">
-      <div className="h-full w-full flex flex-col px-0 py-4 md:px-0">
+      <div className="h-full w-full flex flex-col px-0 md:px-0">
         {/* Form Header */}
         <div className="flex justify-between items-center py-5 px-6 border-b shadow-sm">
           <div>
