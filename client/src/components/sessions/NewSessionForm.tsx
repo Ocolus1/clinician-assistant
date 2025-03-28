@@ -456,7 +456,9 @@ export function NewSessionForm({
     const currentPresentAllyIds = form.getValues("sessionNote.presentAllyIds");
     
     if (!currentPresentAllyIds.includes(ally.id)) {
-      form.setValue("sessionNote.presentAllies", [...currentPresentAllies, ally.name]);
+      // Format the ally information as "Name - Relationship - Preferred language"
+      const formattedAllyInfo = `${ally.name} - ${ally.relationship} - ${ally.preferredLanguage}`;
+      form.setValue("sessionNote.presentAllies", [...currentPresentAllies, formattedAllyInfo]);
       form.setValue("sessionNote.presentAllyIds", [...currentPresentAllyIds, ally.id]);
     }
   };
@@ -536,11 +538,14 @@ export function NewSessionForm({
     const selectedAllies = form.watch("sessionNote.presentAllies") || [];
     
     // Filter allies by search term and exclude already selected allies
-    const filteredAllies = allies.filter((ally: Ally) => 
-      (searchTerm === '' || ally.name.toLowerCase().includes(searchTerm.toLowerCase())) &&
-      !ally.archived &&
-      !selectedAllies.includes(ally.name)
-    );
+    const filteredAllies = allies.filter((ally: Ally) => {
+      // Format the ally information as it would appear in the selectedAllies array
+      const formattedAllyInfo = `${ally.name} - ${ally.relationship} - ${ally.preferredLanguage}`;
+      
+      return (searchTerm === '' || ally.name.toLowerCase().includes(searchTerm.toLowerCase())) &&
+        !ally.archived &&
+        !selectedAllies.includes(formattedAllyInfo);
+    });
     
     // Handle search input change
     const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1966,7 +1971,7 @@ export function NewSessionForm({
                             <span className="text-slate-600 text-sm">Therapist:</span>
                             <span className="text-sm">
                               {sessionValues.therapistId ? 
-                                clinicians.find(c => c.id === sessionValues.therapistId)?.name || "Unknown" 
+                                clinicians.find((c: Clinician) => c.id === sessionValues.therapistId)?.name || "Unknown" 
                                 : "Not selected"}
                             </span>
                           </div>
