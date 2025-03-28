@@ -650,12 +650,14 @@ export function NewSessionForm({
     const selectedProducts = form.watch("sessionNote.products") || [];
     const selectedProductIds = selectedProducts.map(p => p.budgetItemId);
     
-    // Filter budget items by search term and exclude already selected products
+    // Filter budget items by search term, exclude already selected products, and exclude items with zero quantity
     const filteredProducts = budgetItems.filter((item: BudgetItem) => 
       (searchTerm === '' || 
        item.description?.toLowerCase().includes(searchTerm.toLowerCase()) || 
        item.itemCode?.toLowerCase().includes(searchTerm.toLowerCase())) && 
-      !selectedProductIds.includes(item.id)
+      !selectedProductIds.includes(item.id) &&
+      // Only include items with quantity greater than 0
+      (parseFloat(String(item.quantity || "0")) > 0)
     );
     
     // Handle search input change
@@ -715,6 +717,8 @@ export function NewSessionForm({
                           <span>{item.itemCode}</span>
                           <span>•</span>
                           <span>${item.unitPrice} each</span>
+                          <span>•</span>
+                          <span>Available: {parseFloat(String(item.quantity || "0")).toFixed(2)}</span>
                         </div>
                       </div>
                       <Button 
