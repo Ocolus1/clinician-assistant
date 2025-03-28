@@ -1635,6 +1635,8 @@ export function NewSessionForm({
                                         <span>{product.productCode}</span>
                                         <span>•</span>
                                         <span>${product.unitPrice.toFixed(2)} each</span>
+                                        <span>•</span>
+                                        <span>{product.quantity} of {product.availableQuantity} Units</span>
                                       </div>
                                     </div>
                                     <div className="flex items-center space-x-4">
@@ -2017,7 +2019,7 @@ export function NewSessionForm({
                           <ul className="space-y-1">
                             {sessionNoteValues.products.map((product: any, i: number) => (
                               <li key={i} className="text-sm">
-                                {product.productDescription} (x{product.quantity})
+                                {product.productDescription} ({product.quantity} of {product.availableQuantity} Units)
                               </li>
                             ))}
                           </ul>
