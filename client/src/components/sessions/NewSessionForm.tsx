@@ -1965,16 +1965,93 @@ export function NewSessionForm({
                   </div>
                   
                   <div className="flex justify-between px-4">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => onOpenChange(false)}
-                    >
-                      Cancel
-                    </Button>
-                    <Button type="submit">
-                      {isEdit ? "Update Session" : "Create Session"}
-                    </Button>
+                    {/* Navigation buttons based on active tab */}
+                    {activeTab === "session" && (
+                      <>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => onOpenChange(false)}
+                        >
+                          Cancel
+                        </Button>
+                        <Button 
+                          type="button" 
+                          onClick={() => setActiveTab("details")}
+                        >
+                          Next
+                        </Button>
+                      </>
+                    )}
+                    
+                    {activeTab === "details" && (
+                      <>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => setActiveTab("session")}
+                        >
+                          Previous
+                        </Button>
+                        <Button 
+                          type="button" 
+                          onClick={() => setActiveTab("products")}
+                        >
+                          Next
+                        </Button>
+                      </>
+                    )}
+                    
+                    {activeTab === "products" && (
+                      <>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => setActiveTab("details")}
+                        >
+                          Previous
+                        </Button>
+                        <Button 
+                          type="button" 
+                          onClick={() => setActiveTab("assessment")}
+                        >
+                          Next
+                        </Button>
+                      </>
+                    )}
+                    
+                    {activeTab === "assessment" && (
+                      <>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => setActiveTab("products")}
+                        >
+                          Previous
+                        </Button>
+                        <Button 
+                          type="button" 
+                          onClick={() => setActiveTab("session-notes")}
+                        >
+                          Next
+                        </Button>
+                      </>
+                    )}
+                    
+                    {activeTab === "session-notes" && (
+                      <>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => setActiveTab("assessment")}
+                        >
+                          Previous
+                        </Button>
+                        <Button type="submit">
+                          {isEdit ? "Update Session" : "Create Session"}
+                        </Button>
+                      </>
+                    )}
                   </div>
                 </form>
               </Form>
