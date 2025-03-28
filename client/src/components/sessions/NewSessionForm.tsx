@@ -1255,216 +1255,216 @@ export function NewSessionForm({
                       
                       {/* Session Tab */}
                       <TabsContent value="session" className="py-4">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                          <div>
-                            <FormField
-                              control={form.control}
-                              name="session.sessionDate"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>Session Date</FormLabel>
-                                  <Popover>
-                                    <PopoverTrigger asChild>
+                        <div className="space-y-6">
+                          <div className="flex flex-col space-y-4">
+                            {/* Date */}
+                            <div className="flex items-start">
+                              <span className="font-medium text-slate-700 min-w-[100px]">Date:</span>
+                              <FormField
+                                control={form.control}
+                                name="session.sessionDate"
+                                render={({ field }) => (
+                                  <FormItem className="flex-1">
+                                    <Popover>
+                                      <PopoverTrigger asChild>
+                                        <FormControl>
+                                          <Button
+                                            variant={"outline"}
+                                            className={cn(
+                                              "w-full justify-start text-left font-normal",
+                                              !field.value && "text-muted-foreground"
+                                            )}
+                                          >
+                                            {field.value ? (
+                                              format(field.value, "dd MMM yyyy")
+                                            ) : (
+                                              <span>Pick a date</span>
+                                            )}
+                                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                          </Button>
+                                        </FormControl>
+                                      </PopoverTrigger>
+                                      <PopoverContent className="w-auto p-0" align="start">
+                                        <Calendar
+                                          mode="single"
+                                          selected={field.value}
+                                          onSelect={field.onChange}
+                                          initialFocus
+                                        />
+                                      </PopoverContent>
+                                    </Popover>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+                            </div>
+
+                            {/* Time */}
+                            <div className="flex items-start">
+                              <span className="font-medium text-slate-700 min-w-[100px]">Time:</span>
+                              <div className="flex-1 space-x-2 flex items-center">
+                                <FormField
+                                  control={form.control}
+                                  name="session.timeFrom"
+                                  render={({ field }) => (
+                                    <FormItem className="flex-1">
+                                      <Select
+                                        onValueChange={field.onChange}
+                                        defaultValue={field.value}
+                                      >
+                                        <FormControl>
+                                          <SelectTrigger>
+                                            <SelectValue placeholder="Start" />
+                                          </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                          {Array.from({ length: 24 }).map((_, hour) => (
+                                            <>
+                                              <SelectItem
+                                                key={`${hour}:00`}
+                                                value={`${hour.toString().padStart(2, '0')}:00`}
+                                              >
+                                                {`${hour.toString().padStart(2, '0')}:00`}
+                                              </SelectItem>
+                                              <SelectItem
+                                                key={`${hour}:30`}
+                                                value={`${hour.toString().padStart(2, '0')}:30`}
+                                              >
+                                                {`${hour.toString().padStart(2, '0')}:30`}
+                                              </SelectItem>
+                                            </>
+                                          ))}
+                                        </SelectContent>
+                                      </Select>
+                                      <FormMessage />
+                                    </FormItem>
+                                  )}
+                                />
+                                <span className="text-slate-500">-</span>
+                                <FormField
+                                  control={form.control}
+                                  name="session.timeTo"
+                                  render={({ field }) => (
+                                    <FormItem className="flex-1">
+                                      <Select
+                                        onValueChange={field.onChange}
+                                        defaultValue={field.value}
+                                      >
+                                        <FormControl>
+                                          <SelectTrigger>
+                                            <SelectValue placeholder="End" />
+                                          </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                          {Array.from({ length: 24 }).map((_, hour) => (
+                                            <>
+                                              <SelectItem
+                                                key={`${hour}:00`}
+                                                value={`${hour.toString().padStart(2, '0')}:00`}
+                                              >
+                                                {`${hour.toString().padStart(2, '0')}:00`}
+                                              </SelectItem>
+                                              <SelectItem
+                                                key={`${hour}:30`}
+                                                value={`${hour.toString().padStart(2, '0')}:30`}
+                                              >
+                                                {`${hour.toString().padStart(2, '0')}:30`}
+                                              </SelectItem>
+                                            </>
+                                          ))}
+                                        </SelectContent>
+                                      </Select>
+                                      <FormMessage />
+                                    </FormItem>
+                                  )}
+                                />
+                              </div>
+                            </div>
+
+                            {/* Location */}
+                            <div className="flex items-start">
+                              <span className="font-medium text-slate-700 min-w-[100px]">Location:</span>
+                              <FormField
+                                control={form.control}
+                                name="session.location"
+                                render={({ field }) => (
+                                  <FormItem className="flex-1">
+                                    <FormControl>
+                                      <div className="relative">
+                                        <Input
+                                          placeholder="Enter session location"
+                                          {...field}
+                                        />
+                                        <MapPin className="absolute right-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                                      </div>
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+                            </div>
+
+                            {/* Therapist */}
+                            <div className="flex items-start">
+                              <span className="font-medium text-slate-700 min-w-[100px]">Therapist:</span>
+                              <FormField
+                                control={form.control}
+                                name="session.therapistId"
+                                render={({ field }) => (
+                                  <FormItem className="flex-1">
+                                    <Select
+                                      onValueChange={(value) => field.onChange(parseInt(value))}
+                                      defaultValue={field.value?.toString()}
+                                    >
                                       <FormControl>
-                                        <Button
-                                          variant={"outline"}
-                                          className={cn(
-                                            "w-full justify-start text-left font-normal",
-                                            !field.value && "text-muted-foreground"
-                                          )}
-                                        >
-                                          {field.value ? (
-                                            format(field.value, "PPP")
-                                          ) : (
-                                            <span>Pick a date</span>
-                                          )}
-                                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                        </Button>
+                                        <SelectTrigger>
+                                          <SelectValue placeholder="Select therapist" />
+                                        </SelectTrigger>
                                       </FormControl>
-                                    </PopoverTrigger>
-                                    <PopoverContent className="w-auto p-0" align="start">
-                                      <Calendar
-                                        mode="single"
-                                        selected={field.value}
-                                        onSelect={field.onChange}
-                                        initialFocus
-                                      />
-                                    </PopoverContent>
-                                  </Popover>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-                          </div>
-                          
-                          <div>
-                            <FormField
-                              control={form.control}
-                              name="session.therapistId"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>Therapist</FormLabel>
-                                  <Select
-                                    onValueChange={(value) => field.onChange(parseInt(value))}
-                                    defaultValue={field.value?.toString()}
-                                  >
-                                    <FormControl>
-                                      <SelectTrigger>
-                                        <SelectValue placeholder="Select therapist" />
-                                      </SelectTrigger>
-                                    </FormControl>
-                                    <SelectContent>
-                                      {clinicians.map((clinician: Clinician) => (
-                                        <SelectItem
-                                          key={clinician.id}
-                                          value={clinician.id.toString()}
-                                        >
-                                          {clinician.name}
-                                        </SelectItem>
-                                      ))}
-                                    </SelectContent>
-                                  </Select>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-                          </div>
+                                      <SelectContent>
+                                        {clinicians.map((clinician: Clinician) => (
+                                          <SelectItem
+                                            key={clinician.id}
+                                            value={clinician.id.toString()}
+                                          >
+                                            {clinician.name}
+                                          </SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+                            </div>
 
-                          <div>
-                            <FormField
-                              control={form.control}
-                              name="session.timeFrom"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>Start Time</FormLabel>
-                                  <Select
-                                    onValueChange={field.onChange}
-                                    defaultValue={field.value}
-                                  >
-                                    <FormControl>
-                                      <SelectTrigger>
-                                        <SelectValue placeholder="Select time" />
-                                      </SelectTrigger>
-                                    </FormControl>
-                                    <SelectContent>
-                                      {Array.from({ length: 24 }).map((_, hour) => (
-                                        <>
-                                          <SelectItem
-                                            key={`${hour}:00`}
-                                            value={`${hour.toString().padStart(2, '0')}:00`}
-                                          >
-                                            {`${hour.toString().padStart(2, '0')}:00`}
-                                          </SelectItem>
-                                          <SelectItem
-                                            key={`${hour}:30`}
-                                            value={`${hour.toString().padStart(2, '0')}:30`}
-                                          >
-                                            {`${hour.toString().padStart(2, '0')}:30`}
-                                          </SelectItem>
-                                        </>
-                                      ))}
-                                    </SelectContent>
-                                  </Select>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-                          </div>
-
-                          <div>
-                            <FormField
-                              control={form.control}
-                              name="session.timeTo"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>End Time</FormLabel>
-                                  <Select
-                                    onValueChange={field.onChange}
-                                    defaultValue={field.value}
-                                  >
-                                    <FormControl>
-                                      <SelectTrigger>
-                                        <SelectValue placeholder="Select time" />
-                                      </SelectTrigger>
-                                    </FormControl>
-                                    <SelectContent>
-                                      {Array.from({ length: 24 }).map((_, hour) => (
-                                        <>
-                                          <SelectItem
-                                            key={`${hour}:00`}
-                                            value={`${hour.toString().padStart(2, '0')}:00`}
-                                          >
-                                            {`${hour.toString().padStart(2, '0')}:00`}
-                                          </SelectItem>
-                                          <SelectItem
-                                            key={`${hour}:30`}
-                                            value={`${hour.toString().padStart(2, '0')}:30`}
-                                          >
-                                            {`${hour.toString().padStart(2, '0')}:30`}
-                                          </SelectItem>
-                                        </>
-                                      ))}
-                                    </SelectContent>
-                                  </Select>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-                          </div>
-
-                          <div className="md:col-span-2">
-                            <FormField
-                              control={form.control}
-                              name="session.location"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>Location</FormLabel>
-                                  <FormControl>
-                                    <div className="relative">
-                                      <Input
-                                        placeholder="Enter session location"
-                                        {...field}
-                                      />
-                                      <MapPin className="absolute right-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                                    </div>
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-                          </div>
-                          
-                          <div className="md:col-span-2">
-                            <Card className="border border-slate-200 rounded-lg shadow-sm hover:shadow transition-shadow">
-                              <CardHeader className="pb-3">
-                                <CardTitle className="text-md font-medium flex items-center">
-                                  <Users className="h-4 w-4 mr-2 text-slate-500" />
-                                  Attendees
-                                </CardTitle>
-                              </CardHeader>
-                              <CardContent className="p-5">
+                            {/* Attendees */}
+                            <div className="flex items-start">
+                              <span className="font-medium text-slate-700 min-w-[100px] pt-1">Attendees:</span>
+                              <div className="flex-1">
                                 {sessionNoteValues.presentAllies.length === 0 ? (
-                                  <div className="text-center py-6 text-muted-foreground bg-slate-50 rounded-lg border border-dashed border-slate-200">
-                                    <User className="h-10 w-10 mx-auto mb-2 text-slate-300" />
-                                    <p>No attendees selected</p>
+                                  <div className="text-center py-4 text-muted-foreground bg-slate-50 rounded-lg border border-dashed border-slate-200">
+                                    <User className="h-6 w-6 mx-auto mb-2 text-slate-300" />
+                                    <p className="text-sm">No attendees selected</p>
                                   </div>
                                 ) : (
-                                  <div className="space-y-2">
+                                  <div className="space-y-1">
                                     {sessionNoteValues.presentAllies.map((name, index) => (
                                       <div
                                         key={index}
-                                        className="flex items-center justify-between bg-slate-50/50 rounded-md p-3 border border-slate-200"
+                                        className="flex items-center justify-between rounded-md py-1.5"
                                       >
-                                        <span className="font-medium text-slate-800 flex items-center">
-                                          <User className="h-4 w-4 mr-2 text-slate-500" />
+                                        <span className="text-slate-800 flex items-center">
+                                          <User className="h-3.5 w-3.5 mr-2 text-slate-500" />
                                           {name}
                                         </span>
                                         <Button
                                           variant="ghost"
                                           size="sm"
                                           onClick={() => removeAttendee(index)}
+                                          className="h-6 w-6 p-0"
                                         >
-                                          <X className="h-4 w-4" />
+                                          <X className="h-3.5 w-3.5" />
                                         </Button>
                                       </div>
                                     ))}
@@ -1474,14 +1474,14 @@ export function NewSessionForm({
                                   type="button"
                                   variant="outline"
                                   size="sm"
-                                  className="mt-5"
+                                  className="mt-3"
                                   onClick={() => setAttendeeDialogOpen(true)}
                                 >
-                                  <UserPlus className="h-4 w-4 mr-2" />
+                                  <UserPlus className="h-3.5 w-3.5 mr-1.5" />
                                   Select Attendees
                                 </Button>
-                              </CardContent>
-                            </Card>
+                              </div>
+                            </div>
                           </div>
                         </div>
                       </TabsContent>
@@ -1944,19 +1944,49 @@ export function NewSessionForm({
                     </CardContent>
                   </Card>
                   
-                  {/* Date & Time */}
+                  {/* Session Info */}
                   <Card>
                     <CardContent className="p-4">
-                      <h3 className="font-medium mb-2">Date & Time</h3>
+                      <h3 className="font-medium mb-2">Session</h3>
                       {sessionValues.sessionDate ? (
-                        <>
-                          <p>{format(sessionValues.sessionDate, "d MMM yyyy")}</p>
-                          <p className="text-muted-foreground">
-                            {sessionValues.timeFrom} - {sessionValues.timeTo}
-                          </p>
-                        </>
+                        <div className="space-y-1">
+                          <div className="grid grid-cols-[80px_1fr] gap-1">
+                            <span className="text-slate-600 text-sm">Date:</span>
+                            <span className="text-sm">{format(sessionValues.sessionDate, "dd MMM yyyy")}</span>
+                          </div>
+                          <div className="grid grid-cols-[80px_1fr] gap-1">
+                            <span className="text-slate-600 text-sm">Time:</span>
+                            <span className="text-sm">{sessionValues.timeFrom} - {sessionValues.timeTo}</span>
+                          </div>
+                          <div className="grid grid-cols-[80px_1fr] gap-1">
+                            <span className="text-slate-600 text-sm">Location:</span>
+                            <span className="text-sm">{sessionValues.location || "Not specified"}</span>
+                          </div>
+                          <div className="grid grid-cols-[80px_1fr] gap-1">
+                            <span className="text-slate-600 text-sm">Therapist:</span>
+                            <span className="text-sm">
+                              {sessionValues.therapistId ? 
+                                clinicians.find(c => c.id === sessionValues.therapistId)?.name || "Unknown" 
+                                : "Not selected"}
+                            </span>
+                          </div>
+                          <div className="grid grid-cols-[80px_1fr] gap-1">
+                            <span className="text-slate-600 text-sm align-top">Attendees:</span>
+                            <div className="text-sm">
+                              {sessionNoteValues.presentAllies.length > 0 ? (
+                                <div className="space-y-0.5">
+                                  {sessionNoteValues.presentAllies.map((name, idx) => (
+                                    <div key={idx}>{name}</div>
+                                  ))}
+                                </div>
+                              ) : (
+                                <span className="text-slate-500">None selected</span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
                       ) : (
-                        <p className="text-muted-foreground">No date selected</p>
+                        <p className="text-slate-500 text-sm">No session details provided</p>
                       )}
                     </CardContent>
                   </Card>
