@@ -1189,9 +1189,9 @@ export function NewSessionForm({
   
   return (
     <div className="fixed inset-0 z-50 bg-white flex flex-col">
-      <div className="h-full w-full flex flex-col px-0 md:px-0">
+      <div className="h-full w-full flex flex-col">
         {/* Form Header */}
-        <div className="flex justify-between items-center py-5 px-6 border-b shadow-sm">
+        <div className="flex justify-between items-center py-4 px-6 border-b shadow-sm">
           <div>
             <h1 className="text-2xl font-semibold text-slate-800">
               {isEdit ? "Edit Session" : "New Session"}
