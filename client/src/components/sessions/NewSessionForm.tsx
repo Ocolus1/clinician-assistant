@@ -1189,9 +1189,9 @@ export function NewSessionForm({
   
   return (
     <div className="fixed inset-0 z-50 bg-white flex flex-col">
-      <div className="container mx-auto h-full flex flex-col px-4 py-4 md:px-6">
+      <div className="h-full w-full flex flex-col px-0 py-4 md:px-0">
         {/* Form Header */}
-        <div className="flex justify-between items-center py-4 border-b">
+        <div className="flex justify-between items-center py-4 px-4 border-b">
           <div>
             <h1 className="text-xl font-semibold">
               {isEdit ? "Edit Session" : "New Session"}
@@ -1211,7 +1211,7 @@ export function NewSessionForm({
         <div className="flex-1 overflow-hidden">
           <div className="h-full flex flex-col md:flex-row">
             {/* Left Side - Form */}
-            <div className="md:w-3/4 h-full overflow-y-auto p-4">
+            <div className="md:w-4/5 h-full overflow-y-auto p-4">
               <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                   <div className="space-y-6">
@@ -1829,7 +1829,7 @@ export function NewSessionForm({
                     </Tabs>
                   </div>
                   
-                  <div className="flex justify-between">
+                  <div className="flex justify-between px-4">
                     <Button
                       type="button"
                       variant="outline"
@@ -1846,7 +1846,7 @@ export function NewSessionForm({
             </div>
             
             {/* Right Side - Session Summary */}
-            <div className="md:w-1/4 h-full overflow-y-auto bg-gray-50 p-4">
+            <div className="md:w-1/5 h-full overflow-y-auto bg-gray-50 p-4">
               <div className="sticky top-0">
                 <div className="flex justify-between items-center mb-4">
                   <h2 className="text-lg font-medium">Session Summary</h2>
