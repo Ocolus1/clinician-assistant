@@ -1834,23 +1834,7 @@ export function NewSessionForm({
                                             )}
                                           </div>
                                           
-                                          {/* Notes */}
-                                          <div className="mt-4">
-                                            <Label htmlFor={`subgoal-notes-${subgoal.subgoalId}`} className="text-slate-700 font-medium">
-                                              Notes
-                                            </Label>
-                                            <Textarea
-                                              id={`subgoal-notes-${subgoal.subgoalId}`}
-                                              placeholder="Enter notes about progress on this subgoal..."
-                                              value={subgoal.notes || ""}
-                                              onChange={(e) => {
-                                                const newAssessments = [...performanceAssessments];
-                                                newAssessments[goalIndex].subgoals[subgoalIndex].notes = e.target.value;
-                                                form.setValue("performanceAssessments", newAssessments);
-                                              }}
-                                              className="mt-1"
-                                            />
-                                          </div>
+
                                         </div>
                                       ))}
                                     </div>
