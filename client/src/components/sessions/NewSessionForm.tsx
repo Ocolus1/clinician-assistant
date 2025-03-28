@@ -1917,50 +1917,6 @@ export function NewSessionForm({
                 </div>
                 
                 <div className="space-y-4">
-                  {/* Client Info */}
-                  <Card>
-                    <CardContent className="p-4">
-                      <h3 className="font-medium mb-2">Client</h3>
-                      {selectedClient ? (
-                        <div className="space-y-2">
-                          {/* Name with identifier */}
-                          <div className="grid grid-cols-[80px_1fr] gap-1">
-                            <div className="text-muted-foreground text-xs">Name:</div>
-                            <div className="font-medium">
-                              {clientData?.originalName && clientData?.uniqueIdentifier 
-                                ? `${clientData.originalName} (${clientData.uniqueIdentifier})`
-                                : selectedClient.name
-                              }
-                            </div>
-                          </div>
-                          
-                          {/* Date of birth with age */}
-                          <div className="grid grid-cols-[80px_1fr] gap-1">
-                            <div className="text-muted-foreground text-xs">Date of Birth:</div>
-                            <div className="text-sm">
-                              {clientData?.dateOfBirth
-                                ? (() => {
-                                    const dob = new Date(clientData.dateOfBirth);
-                                    const age = new Date().getFullYear() - dob.getFullYear();
-                                    return `${dob.toLocaleDateString()} (${age} years)`;
-                                  })()
-                                : "Not provided"
-                              }
-                            </div>
-                          </div>
-                          
-                          {/* Funds management type */}
-                          <div className="grid grid-cols-[80px_1fr] gap-1">
-                            <div className="text-muted-foreground text-xs">Funds Type:</div>
-                            <div className="text-sm">{clientData?.fundsManagement || "Not specified"}</div>
-                          </div>
-                        </div>
-                      ) : (
-                        <p className="text-muted-foreground">No client information available</p>
-                      )}
-                    </CardContent>
-                  </Card>
-                  
                   {/* Session Info */}
                   <Card>
                     <CardContent className="p-4">
