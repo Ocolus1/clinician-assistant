@@ -226,6 +226,11 @@ export function NewSessionForm({
   const sessionValues = form.watch("session");
   const sessionNoteValues = form.watch("sessionNote");
   const performanceAssessments = form.watch("performanceAssessments");
+  
+  // Log session note changes for debugging
+  useEffect(() => {
+    console.log("Session notes updated:", sessionNoteValues?.notes);
+  }, [sessionNoteValues?.notes]);
 
   // Fetch client data if needed
   const { data: clientData, isLoading: clientLoading } = useQuery({
@@ -1895,19 +1900,25 @@ export function NewSessionForm({
                               <FormField
                                 control={form.control}
                                 name="sessionNote.notes"
-                                render={({ field }) => (
-                                  <FormItem>
-                                    <FormControl>
-                                      <RichTextEditor
-                                        value={field.value || ''}
-                                        onChange={field.onChange}
-                                        placeholder="Enter detailed session notes here..."
-                                        minHeight="min-h-[300px]"
-                                      />
-                                    </FormControl>
-                                    <FormMessage />
-                                  </FormItem>
-                                )}
+                                render={({ field }) => {
+                                  console.log("Rich text editor field value:", field.value);
+                                  return (
+                                    <FormItem>
+                                      <FormControl>
+                                        <RichTextEditor
+                                          value={field.value || ''}
+                                          onChange={(value) => {
+                                            console.log("Rich text editor onChange:", value);
+                                            field.onChange(value);
+                                          }}
+                                          placeholder="Enter detailed session notes here..."
+                                          minHeight="min-h-[300px]"
+                                        />
+                                      </FormControl>
+                                      <FormMessage />
+                                    </FormItem>
+                                  );
+                                }}
                               />
                             </CardContent>
                             <CardFooter className="pt-0 pb-4 px-6 flex justify-between">
@@ -1928,7 +1939,17 @@ export function NewSessionForm({
                                   variant="secondary"
                                   size="sm"
                                   onClick={() => {
-                                    // Save as draft functionality would go here
+                                    // Test setting notes directly
+                                    const testNotes = "<p>This is a test note to verify session notes functionality.</p>";
+                                    form.setValue("sessionNote.notes", testNotes);
+                                    console.log("Set test notes:", testNotes);
+                                    
+                                    // Log complete form state for debugging
+                                    const formValues = form.getValues();
+                                    console.log("Complete form state:", JSON.stringify(formValues));
+                                    console.log("Session note value:", formValues.sessionNote?.notes);
+                                    console.log("Watch result:", form.watch("sessionNote.notes"));
+                                    
                                     toast({
                                       title: "Draft saved",
                                       description: "Your notes have been saved as a draft",
@@ -2186,6 +2207,25 @@ export function NewSessionForm({
                         </div>
                       ) : (
                         <p className="text-muted-foreground">No goal assessments added</p>
+                      )}
+                    </CardContent>
+                  </Card>
+
+                  {/* Session Notes */}
+                  <Card className="mt-4">
+                    <CardContent className="p-4">
+                      <h3 className="font-medium mb-2">Session Notes</h3>
+                      {/* Debugging information */}
+                      {(() => { console.log("Rendering session notes summary:", sessionNoteValues); return null; })()}
+                      {sessionNoteValues?.notes ? (
+                        <div className="text-sm prose prose-sm max-w-none">
+                          <div 
+                            dangerouslySetInnerHTML={{ __html: sessionNoteValues.notes }} 
+                            className="p-2 border border-slate-100 rounded-md bg-white"
+                          />
+                        </div>
+                      ) : (
+                        <p className="text-sm text-slate-500">No session notes added (Value: {JSON.stringify(sessionNoteValues)})</p>
                       )}
                     </CardContent>
                   </Card>
