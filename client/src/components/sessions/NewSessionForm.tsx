@@ -1190,13 +1190,13 @@ export function NewSessionForm({
   return (
     <div className="fixed inset-0 z-50 bg-white flex flex-col">
       <div className="h-full w-full flex flex-col px-0 py-4 md:px-0">
-        {/* Form Header with subtle gradient background */}
-        <div className="flex justify-between items-center py-5 px-6 border-b bg-gradient-to-r from-blue-50 to-white shadow-sm">
+        {/* Form Header */}
+        <div className="flex justify-between items-center py-5 px-6 border-b shadow-sm">
           <div>
-            <h1 className="text-2xl font-semibold text-blue-900">
+            <h1 className="text-2xl font-semibold text-slate-800">
               {isEdit ? "Edit Session" : "New Session"}
             </h1>
-            <p className="text-sm text-blue-600/80 mt-1">
+            <p className="text-sm text-slate-500 mt-1">
               {selectedClient ? 
                 `Client: ${selectedClient.originalName || selectedClient.name}` : 
                 "Please select a client"}
@@ -1205,7 +1205,7 @@ export function NewSessionForm({
           <Button 
             variant="ghost" 
             onClick={() => onOpenChange(false)}
-            className="hover:bg-blue-100 transition-colors"
+            className="hover:bg-slate-100 transition-colors"
           >
             <X className="h-5 w-5" />
           </Button>
@@ -1219,34 +1219,34 @@ export function NewSessionForm({
               <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                   <div className="space-y-6">
-                    <h2 className="text-xl font-semibold text-blue-800 mb-2">Session Details</h2>
+                    <h2 className="text-xl font-semibold text-slate-800 mb-2">Session Details</h2>
                     
                     <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                      <TabsList className="w-full grid grid-cols-4 p-1 bg-blue-50 rounded-xl">
+                      <TabsList className="w-full grid grid-cols-4 p-1 bg-slate-100 rounded-lg">
                         <TabsTrigger 
                           value="session" 
-                          className="flex items-center data-[state=active]:bg-white data-[state=active]:text-blue-700 data-[state=active]:shadow-md transition-all"
+                          className="flex items-center data-[state=active]:bg-white data-[state=active]:text-slate-800 data-[state=active]:shadow-sm transition-all"
                         >
                           <Clock className="h-4 w-4 mr-2" />
                           Session
                         </TabsTrigger>
                         <TabsTrigger 
                           value="details" 
-                          className="flex items-center data-[state=active]:bg-white data-[state=active]:text-blue-700 data-[state=active]:shadow-md transition-all"
+                          className="flex items-center data-[state=active]:bg-white data-[state=active]:text-slate-800 data-[state=active]:shadow-sm transition-all"
                         >
                           <ClipboardList className="h-4 w-4 mr-2" />
                           Details
                         </TabsTrigger>
                         <TabsTrigger 
                           value="products" 
-                          className="flex items-center data-[state=active]:bg-white data-[state=active]:text-blue-700 data-[state=active]:shadow-md transition-all"
+                          className="flex items-center data-[state=active]:bg-white data-[state=active]:text-slate-800 data-[state=active]:shadow-sm transition-all"
                         >
                           <ShoppingCart className="h-4 w-4 mr-2" />
                           Products
                         </TabsTrigger>
                         <TabsTrigger 
                           value="assessment" 
-                          className="flex items-center data-[state=active]:bg-white data-[state=active]:text-blue-700 data-[state=active]:shadow-md transition-all"
+                          className="flex items-center data-[state=active]:bg-white data-[state=active]:text-slate-800 data-[state=active]:shadow-sm transition-all"
                         >
                           <ListChecks className="h-4 w-4 mr-2" />
                           Assessment
@@ -1261,7 +1261,7 @@ export function NewSessionForm({
                               control={form.control}
                               name="session.sessionDate"
                               render={({ field }) => (
-                                <FormItem className="flex flex-col">
+                                <FormItem>
                                   <FormLabel>Session Date</FormLabel>
                                   <Popover>
                                     <PopoverTrigger asChild>
@@ -1269,7 +1269,7 @@ export function NewSessionForm({
                                         <Button
                                           variant={"outline"}
                                           className={cn(
-                                            "pl-3 text-left font-normal",
+                                            "w-full justify-start text-left font-normal",
                                             !field.value && "text-muted-foreground"
                                           )}
                                         >
@@ -1435,17 +1435,17 @@ export function NewSessionForm({
                           </div>
                           
                           <div className="md:col-span-2">
-                            <Card className="border border-blue-100 rounded-xl shadow-md hover:shadow-lg transition-shadow">
-                              <CardHeader className="pb-3 bg-gradient-to-r from-blue-50 to-white border-b border-blue-50">
-                                <CardTitle className="text-md font-semibold text-blue-800 flex items-center">
-                                  <Users className="h-4 w-4 mr-2 text-blue-600" />
+                            <Card className="border border-slate-200 rounded-lg shadow-sm hover:shadow transition-shadow">
+                              <CardHeader className="pb-3">
+                                <CardTitle className="text-md font-medium flex items-center">
+                                  <Users className="h-4 w-4 mr-2 text-slate-500" />
                                   Attendees
                                 </CardTitle>
                               </CardHeader>
                               <CardContent className="p-5">
                                 {sessionNoteValues.presentAllies.length === 0 ? (
-                                  <div className="text-center py-6 text-muted-foreground bg-gray-50/80 rounded-lg border border-dashed border-gray-200">
-                                    <User className="h-10 w-10 mx-auto mb-2 text-gray-300" />
+                                  <div className="text-center py-6 text-muted-foreground bg-slate-50 rounded-lg border border-dashed border-slate-200">
+                                    <User className="h-10 w-10 mx-auto mb-2 text-slate-300" />
                                     <p>No attendees selected</p>
                                   </div>
                                 ) : (
@@ -1453,17 +1453,16 @@ export function NewSessionForm({
                                     {sessionNoteValues.presentAllies.map((name, index) => (
                                       <div
                                         key={index}
-                                        className="flex items-center justify-between bg-blue-50/50 rounded-md p-3 border border-blue-100"
+                                        className="flex items-center justify-between bg-slate-50/50 rounded-md p-3 border border-slate-200"
                                       >
-                                        <span className="font-medium text-blue-900 flex items-center">
-                                          <User className="h-4 w-4 mr-2 text-blue-600" />
+                                        <span className="font-medium text-slate-800 flex items-center">
+                                          <User className="h-4 w-4 mr-2 text-slate-500" />
                                           {name}
                                         </span>
                                         <Button
                                           variant="ghost"
                                           size="sm"
                                           onClick={() => removeAttendee(index)}
-                                          className="hover:bg-blue-100/50 hover:text-red-500 transition-colors"
                                         >
                                           <X className="h-4 w-4" />
                                         </Button>
@@ -1475,10 +1474,10 @@ export function NewSessionForm({
                                   type="button"
                                   variant="outline"
                                   size="sm"
-                                  className="mt-5 border-blue-200 hover:bg-blue-50 hover:text-blue-700 transition-colors"
+                                  className="mt-5"
                                   onClick={() => setAttendeeDialogOpen(true)}
                                 >
-                                  <UserPlus className="h-4 w-4 mr-2 text-blue-600" />
+                                  <UserPlus className="h-4 w-4 mr-2" />
                                   Select Attendees
                                 </Button>
                               </CardContent>
