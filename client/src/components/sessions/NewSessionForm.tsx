@@ -1506,33 +1506,6 @@ export function NewSessionForm({
                       {/* Details Tab */}
                       <TabsContent value="details" className="py-4">
                         <div className="space-y-4">
-                          <Card className="border border-slate-200 rounded-lg shadow-sm hover:shadow transition-shadow">
-                            <CardHeader className="pb-3">
-                              <CardTitle className="text-md font-medium flex items-center">
-                                <ClipboardPen className="h-4 w-4 mr-2 text-slate-500" />
-                                Session Notes
-                              </CardTitle>
-                            </CardHeader>
-                            <CardContent className="p-5">
-                              <FormField
-                                control={form.control}
-                                name="sessionNote.notes"
-                                render={({ field }) => (
-                                  <FormItem>
-                                    <FormControl>
-                                      <RichTextEditor
-                                        value={field.value || ""}
-                                        onChange={field.onChange}
-                                        placeholder="Enter detailed notes about the session..."
-                                        className="min-h-[200px]"
-                                      />
-                                    </FormControl>
-                                    <FormMessage />
-                                  </FormItem>
-                                )}
-                              />
-                            </CardContent>
-                          </Card>
                           
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <Card className="border border-slate-200 rounded-lg shadow-sm hover:shadow transition-shadow">
