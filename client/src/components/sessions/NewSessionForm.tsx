@@ -6,7 +6,25 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { format } from "date-fns";
 import { Calendar as CalendarIcon } from "lucide-react";
-import { MapPin, X, Plus, Clock, User, UserPlus, Users, Search, ShoppingCart, ClipboardList, ClipboardPen, ListChecks, Target } from "lucide-react";
+import { 
+  MapPin, 
+  X, 
+  Plus, 
+  Clock, 
+  User, 
+  UserPlus, 
+  Users, 
+  Search, 
+  ShoppingCart, 
+  ClipboardList, 
+  ClipboardPen, 
+  ListChecks, 
+  Target,
+  ArrowRight,
+  Eraser,
+  Save,
+  Check
+} from "lucide-react";
 
 // UI Components
 import { Button } from "@/components/ui/button";
@@ -80,6 +98,7 @@ import {
 import { apiRequest } from "@/lib/queryClient";
 import { cn } from "@/lib/utils";
 import { borderStyles } from "@/lib/border-styles";
+import { useToast } from "@/hooks/use-toast";
 
 // Form schemas
 const sessionFormSchema = insertSessionSchema.extend({
@@ -158,6 +177,7 @@ export function NewSessionForm({
   initialData,
   isEdit = false 
 }: NewSessionFormProps) {
+  const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("session");
   const [selectedClient, setSelectedClient] = useState<Client | null>(initialClient || null);
   
@@ -1243,7 +1263,7 @@ export function NewSessionForm({
                     <h2 className="text-xl font-semibold text-slate-800 mb-2">Session Details</h2>
                     
                     <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                      <TabsList className="w-full grid grid-cols-4 p-1 bg-slate-100 rounded-lg">
+                      <TabsList className="w-full grid grid-cols-5 p-1 bg-slate-100 rounded-lg">
                         <TabsTrigger 
                           value="session" 
                           className="flex items-center data-[state=active]:bg-white data-[state=active]:text-slate-800 data-[state=active]:shadow-sm transition-all"
@@ -1271,6 +1291,13 @@ export function NewSessionForm({
                         >
                           <ListChecks className="h-4 w-4 mr-2" />
                           Assessment
+                        </TabsTrigger>
+                        <TabsTrigger 
+                          value="session-notes" 
+                          className="flex items-center data-[state=active]:bg-white data-[state=active]:text-slate-800 data-[state=active]:shadow-sm transition-all"
+                        >
+                          <ClipboardPen className="h-4 w-4 mr-2" />
+                          Session Notes
                         </TabsTrigger>
                       </TabsList>
                       
@@ -1849,6 +1876,85 @@ export function NewSessionForm({
                         {/* Include dialog components */}
                         <SubgoalSelectionDialog />
                         <StrategySelectionDialog />
+                      </TabsContent>
+
+                      {/* Session Notes Tab */}
+                      <TabsContent value="session-notes" className="py-4">
+                        <div className="space-y-6">
+                          <Card className="border border-slate-200 rounded-lg shadow-sm">
+                            <CardHeader className="pb-3">
+                              <CardTitle className="text-md font-medium flex items-center">
+                                <ClipboardPen className="h-4 w-4 mr-2 text-slate-500" />
+                                Session Notes
+                              </CardTitle>
+                              <CardDescription>
+                                Enter detailed notes about the session
+                              </CardDescription>
+                            </CardHeader>
+                            <CardContent className="p-5">
+                              <FormField
+                                control={form.control}
+                                name="sessionNote.notes"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormControl>
+                                      <RichTextEditor
+                                        value={field.value || ''}
+                                        onChange={field.onChange}
+                                        placeholder="Enter detailed session notes here..."
+                                        minHeight="min-h-[300px]"
+                                      />
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+                            </CardContent>
+                            <CardFooter className="pt-0 pb-4 px-6 flex justify-between">
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  form.setValue('sessionNote.notes', '');
+                                }}
+                              >
+                                <Eraser className="h-3.5 w-3.5 mr-1.5" />
+                                Clear Notes
+                              </Button>
+                              <div className="flex space-x-2">
+                                <Button
+                                  type="button"
+                                  variant="secondary"
+                                  size="sm"
+                                  onClick={() => {
+                                    // Save as draft functionality would go here
+                                    toast({
+                                      title: "Draft saved",
+                                      description: "Your notes have been saved as a draft",
+                                    });
+                                  }}
+                                >
+                                  <Save className="h-3.5 w-3.5 mr-1.5" />
+                                  Save Draft
+                                </Button>
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  onClick={() => {
+                                    if (activeTab === "session-notes") {
+                                      // Move to next tab or submission
+                                      setActiveTab("assessment");
+                                    }
+                                  }}
+                                >
+                                  Continue
+                                  <ArrowRight className="h-3.5 w-3.5 ml-1.5" />
+                                </Button>
+                              </div>
+                            </CardFooter>
+                          </Card>
+                        </div>
                       </TabsContent>
                     </Tabs>
                   </div>
