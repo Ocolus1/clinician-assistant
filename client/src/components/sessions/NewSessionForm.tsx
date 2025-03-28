@@ -46,7 +46,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 // Custom components
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
-import { RatingSlider } from "@/components/sessions/RatingSlider";
 import { NumericRating } from "@/components/sessions/NumericRating";
 import {
   Dialog,
@@ -1252,7 +1251,7 @@ export function NewSessionForm({
                           className="flex items-center data-[state=active]:bg-white data-[state=active]:text-slate-800 data-[state=active]:shadow-sm transition-all"
                         >
                           <ClipboardList className="h-4 w-4 mr-2" />
-                          Details
+                          Observations
                         </TabsTrigger>
                         <TabsTrigger 
                           value="products" 
@@ -1503,7 +1502,7 @@ export function NewSessionForm({
                         </div>
                       </TabsContent>
                       
-                      {/* Details Tab */}
+                      {/* Observations Tab */}
                       <TabsContent value="details" className="py-4">
                         <div className="space-y-4">
                           
@@ -1521,7 +1520,7 @@ export function NewSessionForm({
                                   name="sessionNote.moodRating"
                                   render={({ field }) => (
                                     <FormItem>
-                                      <RatingSlider
+                                      <NumericRating
                                         value={field.value}
                                         onChange={field.onChange}
                                         label="Mood"
@@ -1536,7 +1535,7 @@ export function NewSessionForm({
                                   name="sessionNote.focusRating"
                                   render={({ field }) => (
                                     <FormItem>
-                                      <RatingSlider
+                                      <NumericRating
                                         value={field.value}
                                         onChange={field.onChange}
                                         label="Focus"
@@ -1561,7 +1560,7 @@ export function NewSessionForm({
                                   name="sessionNote.cooperationRating"
                                   render={({ field }) => (
                                     <FormItem>
-                                      <RatingSlider
+                                      <NumericRating
                                         value={field.value}
                                         onChange={field.onChange}
                                         label="Cooperation"
@@ -1576,7 +1575,7 @@ export function NewSessionForm({
                                   name="sessionNote.physicalActivityRating"
                                   render={({ field }) => (
                                     <FormItem>
-                                      <RatingSlider
+                                      <NumericRating
                                         value={field.value}
                                         onChange={field.onChange}
                                         label="Physical Activity"
