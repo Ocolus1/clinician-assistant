@@ -1928,35 +1928,6 @@ export function NewSessionForm({
                                 <Eraser className="h-3.5 w-3.5 mr-1.5" />
                                 Clear Notes
                               </Button>
-                              <div className="flex space-x-2">
-                                <Button
-                                  type="button"
-                                  variant="secondary"
-                                  size="sm"
-                                  onClick={() => {
-                                    toast({
-                                      title: "Draft saved",
-                                      description: "Your notes have been saved as a draft",
-                                    });
-                                  }}
-                                >
-                                  <Save className="h-3.5 w-3.5 mr-1.5" />
-                                  Save Draft
-                                </Button>
-                                <Button
-                                  type="button"
-                                  size="sm"
-                                  onClick={() => {
-                                    if (activeTab === "session-notes") {
-                                      // Move to next tab or submission
-                                      setActiveTab("assessment");
-                                    }
-                                  }}
-                                >
-                                  Continue
-                                  <ArrowRight className="h-3.5 w-3.5 ml-1.5" />
-                                </Button>
-                              </div>
                             </CardFooter>
                           </Card>
                         </div>
