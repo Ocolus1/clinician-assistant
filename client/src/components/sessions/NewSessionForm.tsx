@@ -43,6 +43,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 
 // Custom components
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
@@ -2022,14 +2023,60 @@ export function NewSessionForm({
                     <CardContent className="p-4">
                       <h3 className="font-medium mb-2">Assessments</h3>
                       {performanceAssessments.length > 0 ? (
-                        <div>
-                          <ul className="space-y-1">
-                            {performanceAssessments.map((assessment: any) => (
-                              <li key={assessment.goalId} className="text-sm">
-                                {assessment.goalTitle} ({assessment.subgoals.length} subgoals)
-                              </li>
-                            ))}
-                          </ul>
+                        <div className="space-y-2">
+                          {performanceAssessments.map((assessment: any) => (
+                            <Accordion key={assessment.goalId} type="single" collapsible className="border rounded-md">
+                              <AccordionItem value="item-1" className="border-none">
+                                <AccordionTrigger className="px-3 py-2 text-sm hover:no-underline">
+                                  <span className="font-medium">{assessment.goalTitle}</span>
+                                  <span className="ml-2 text-xs text-slate-500">({assessment.subgoals.length} subgoals)</span>
+                                </AccordionTrigger>
+                                <AccordionContent className="px-3 pb-3 pt-0">
+                                  {assessment.subgoals.length > 0 ? (
+                                    <div className="space-y-3">
+                                      {assessment.subgoals.map((subgoal: any) => (
+                                        <div key={subgoal.subgoalId} className="border-t border-slate-100 pt-2">
+                                          <div className="flex items-center justify-between">
+                                            <p className="text-sm font-medium">{subgoal.subgoalTitle}</p>
+                                            <div className="flex items-center">
+                                              <span 
+                                                className={`inline-flex items-center justify-center h-6 w-6 rounded-full mr-1 text-xs
+                                                  ${subgoal.rating >= 8 ? "bg-green-500 text-white" : 
+                                                  subgoal.rating >= 5 ? "bg-blue-500 text-white" : 
+                                                  subgoal.rating >= 3 ? "bg-yellow-500 text-white" : 
+                                                  "bg-red-500 text-white"}`}
+                                              >
+                                                {subgoal.rating || 0}
+                                              </span>
+                                              <span className="text-xs text-slate-600">/10</span>
+                                            </div>
+                                          </div>
+                                          
+                                          {subgoal.strategies && subgoal.strategies.length > 0 && (
+                                            <div className="mt-2">
+                                              <p className="text-xs text-slate-500 mb-1">Strategies:</p>
+                                              <div className="flex flex-wrap gap-1">
+                                                {subgoal.strategies.map((strategy: string) => (
+                                                  <span 
+                                                    key={strategy} 
+                                                    className="inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-semibold bg-slate-50"
+                                                  >
+                                                    {strategy}
+                                                  </span>
+                                                ))}
+                                              </div>
+                                            </div>
+                                          )}
+                                        </div>
+                                      ))}
+                                    </div>
+                                  ) : (
+                                    <p className="text-xs text-slate-500">No subgoals added</p>
+                                  )}
+                                </AccordionContent>
+                              </AccordionItem>
+                            </Accordion>
+                          ))}
                         </div>
                       ) : (
                         <p className="text-muted-foreground">No goal assessments added</p>
