@@ -227,10 +227,7 @@ export function NewSessionForm({
   const sessionNoteValues = form.watch("sessionNote");
   const performanceAssessments = form.watch("performanceAssessments");
   
-  // Log session note changes for debugging
-  useEffect(() => {
-    console.log("Session notes updated:", sessionNoteValues?.notes);
-  }, [sessionNoteValues?.notes]);
+
 
   // Fetch client data if needed
   const { data: clientData, isLoading: clientLoading } = useQuery({
@@ -1901,14 +1898,12 @@ export function NewSessionForm({
                                 control={form.control}
                                 name="sessionNote.notes"
                                 render={({ field }) => {
-                                  console.log("Rich text editor field value:", field.value);
                                   return (
                                     <FormItem>
                                       <FormControl>
                                         <RichTextEditor
                                           value={field.value || ''}
                                           onChange={(value) => {
-                                            console.log("Rich text editor onChange:", value);
                                             field.onChange(value);
                                           }}
                                           placeholder="Enter detailed session notes here..."
@@ -1939,17 +1934,6 @@ export function NewSessionForm({
                                   variant="secondary"
                                   size="sm"
                                   onClick={() => {
-                                    // Test setting notes directly
-                                    const testNotes = "<p>This is a test note to verify session notes functionality.</p>";
-                                    form.setValue("sessionNote.notes", testNotes);
-                                    console.log("Set test notes:", testNotes);
-                                    
-                                    // Log complete form state for debugging
-                                    const formValues = form.getValues();
-                                    console.log("Complete form state:", JSON.stringify(formValues));
-                                    console.log("Session note value:", formValues.sessionNote?.notes);
-                                    console.log("Watch result:", form.watch("sessionNote.notes"));
-                                    
                                     toast({
                                       title: "Draft saved",
                                       description: "Your notes have been saved as a draft",
@@ -2215,31 +2199,7 @@ export function NewSessionForm({
                   <Card className="mt-4">
                     <CardContent className="p-4">
                       <h3 className="font-medium mb-2">Session Notes</h3>
-                      {/* Debugging information */}
-                      {(() => { 
-                        console.log("Rendering session notes summary:", sessionNoteValues); 
-                        console.log("Form values:", form.getValues());
-                        console.log("Notes value in form:", form.getValues("sessionNote")?.notes);
-                        return null; 
-                      })()}
-                      
-                      {/* Force display of the test note to verify rendering works */}
-                      <div className="text-sm prose prose-sm max-w-none mb-2 bg-blue-50 p-2 rounded-md">
-                        <strong>Debug Mode:</strong> Currently displaying test notes for verification
-                      </div>
-                      
-                      <div className="text-sm prose prose-sm max-w-none">
-                        <div 
-                          dangerouslySetInnerHTML={{ 
-                            __html: sessionNoteValues?.notes || 
-                                   "<p>This is a test note to verify session notes functionality.</p>" 
-                          }} 
-                          className="p-2 border border-slate-100 rounded-md bg-white"
-                        />
-                      </div>
-                      
-                      {/* Original conditional rendering (commented for debugging) */}
-                      {/* {sessionNoteValues?.notes ? (
+                      {sessionNoteValues?.notes ? (
                         <div className="text-sm prose prose-sm max-w-none">
                           <div 
                             dangerouslySetInnerHTML={{ __html: sessionNoteValues.notes }} 
@@ -2247,8 +2207,8 @@ export function NewSessionForm({
                           />
                         </div>
                       ) : (
-                        <p className="text-sm text-slate-500">No session notes added (Value: {JSON.stringify(sessionNoteValues)})</p>
-                      )} */}
+                        <p className="text-sm text-slate-500">No session notes added</p>
+                      )}
                     </CardContent>
                   </Card>
                 </div>
