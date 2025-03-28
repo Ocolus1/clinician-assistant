@@ -1211,7 +1211,7 @@ export function NewSessionForm({
         <div className="flex-1 overflow-hidden">
           <div className="h-full flex flex-col md:flex-row">
             {/* Left Side - Form */}
-            <div className="md:w-4/5 h-full overflow-y-auto p-4">
+            <div className="md:w-2/3 h-full overflow-y-auto p-4">
               <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                   <div className="space-y-6">
@@ -1846,7 +1846,7 @@ export function NewSessionForm({
             </div>
             
             {/* Right Side - Session Summary */}
-            <div className="md:w-1/5 h-full overflow-y-auto bg-gray-50 p-4">
+            <div className="md:w-1/3 h-full overflow-y-auto bg-gray-50 p-4">
               <div className="sticky top-0">
                 <div className="flex justify-between items-center mb-4">
                   <h2 className="text-lg font-medium">Session Summary</h2>
