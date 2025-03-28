@@ -1203,7 +1203,19 @@ export function NewSessionForm({
             </h1>
             <p className="text-sm text-slate-500 mt-1">
               {selectedClient ? 
-                `Client: ${selectedClient.originalName || selectedClient.name}` : 
+                (() => {
+                  // Calculate age
+                  const age = selectedClient.dateOfBirth ? 
+                    new Date().getFullYear() - new Date(selectedClient.dateOfBirth).getFullYear() : 
+                    null;
+                  
+                  // Format the client information with age and funds management
+                  return `Client: ${selectedClient.originalName || selectedClient.name}${
+                    age ? ` - ${age} years old` : ''
+                  }${
+                    selectedClient.fundsManagement ? ` - ${selectedClient.fundsManagement}` : ''
+                  }`;
+                })() : 
                 "Please select a client"}
             </p>
           </div>
