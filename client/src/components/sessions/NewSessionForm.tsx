@@ -189,10 +189,10 @@ export function NewSessionForm({
       sessionNote: {
         presentAllies: [],
         presentAllyIds: [],
-        moodRating: 5,
-        focusRating: 5,
-        cooperationRating: 5,
-        physicalActivityRating: 5,
+        moodRating: 0,
+        focusRating: 0,
+        cooperationRating: 0,
+        physicalActivityRating: 0,
         notes: "",
         products: [],
         status: "draft",
@@ -420,7 +420,7 @@ export function NewSessionForm({
     newAssessments[goalIndex].subgoals.push({
       subgoalId,
       subgoalTitle: subgoal.title,
-      rating: 5, // Default rating
+      rating: 0, // Default rating
       strategies: [],
       notes: "",
     });
@@ -1778,7 +1778,7 @@ export function NewSessionForm({
                                           {/* Rating */}
                                           <div className="bg-slate-50 rounded-md p-4 border border-slate-200">
                                             <NumericRating
-                                              value={subgoal.rating || 5}
+                                              value={subgoal.rating || 0}
                                               onChange={(value) => {
                                                 const newAssessments = [...performanceAssessments];
                                                 newAssessments[goalIndex].subgoals[subgoalIndex].rating = value;
