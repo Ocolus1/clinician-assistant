@@ -1936,6 +1936,74 @@ export function NewSessionForm({
                     </CardContent>
                   </Card>
                   
+                  {/* Observations */}
+                  <Card>
+                    <CardContent className="p-4">
+                      <h3 className="font-medium mb-2">Observations</h3>
+                      <div className="space-y-2">
+                        <div className="grid grid-cols-[100px_1fr] gap-1 items-center">
+                          <span className="text-slate-600 text-sm">Mood:</span>
+                          <div className="flex items-center">
+                            <span className={`inline-flex items-center justify-center h-6 w-6 rounded-full mr-1 text-xs
+                              ${sessionNoteValues.moodRating >= 8 ? "bg-green-500 text-white" : 
+                                sessionNoteValues.moodRating >= 5 ? "bg-blue-500 text-white" : 
+                                sessionNoteValues.moodRating >= 3 ? "bg-yellow-500 text-white" : 
+                                "bg-red-500 text-white"}`}
+                            >
+                              {sessionNoteValues.moodRating}
+                            </span>
+                            <span className="text-sm text-slate-600">/10</span>
+                          </div>
+                        </div>
+                        
+                        <div className="grid grid-cols-[100px_1fr] gap-1 items-center">
+                          <span className="text-slate-600 text-sm">Focus:</span>
+                          <div className="flex items-center">
+                            <span className={`inline-flex items-center justify-center h-6 w-6 rounded-full mr-1 text-xs
+                              ${sessionNoteValues.focusRating >= 8 ? "bg-green-500 text-white" : 
+                                sessionNoteValues.focusRating >= 5 ? "bg-blue-500 text-white" : 
+                                sessionNoteValues.focusRating >= 3 ? "bg-yellow-500 text-white" : 
+                                "bg-red-500 text-white"}`}
+                            >
+                              {sessionNoteValues.focusRating}
+                            </span>
+                            <span className="text-sm text-slate-600">/10</span>
+                          </div>
+                        </div>
+                        
+                        <div className="grid grid-cols-[100px_1fr] gap-1 items-center">
+                          <span className="text-slate-600 text-sm">Cooperation:</span>
+                          <div className="flex items-center">
+                            <span className={`inline-flex items-center justify-center h-6 w-6 rounded-full mr-1 text-xs
+                              ${sessionNoteValues.cooperationRating >= 8 ? "bg-green-500 text-white" : 
+                                sessionNoteValues.cooperationRating >= 5 ? "bg-blue-500 text-white" : 
+                                sessionNoteValues.cooperationRating >= 3 ? "bg-yellow-500 text-white" : 
+                                "bg-red-500 text-white"}`}
+                            >
+                              {sessionNoteValues.cooperationRating}
+                            </span>
+                            <span className="text-sm text-slate-600">/10</span>
+                          </div>
+                        </div>
+                        
+                        <div className="grid grid-cols-[100px_1fr] gap-1 items-center">
+                          <span className="text-slate-600 text-sm">Physical:</span>
+                          <div className="flex items-center">
+                            <span className={`inline-flex items-center justify-center h-6 w-6 rounded-full mr-1 text-xs
+                              ${sessionNoteValues.physicalActivityRating >= 8 ? "bg-green-500 text-white" : 
+                                sessionNoteValues.physicalActivityRating >= 5 ? "bg-blue-500 text-white" : 
+                                sessionNoteValues.physicalActivityRating >= 3 ? "bg-yellow-500 text-white" : 
+                                "bg-red-500 text-white"}`}
+                            >
+                              {sessionNoteValues.physicalActivityRating}
+                            </span>
+                            <span className="text-sm text-slate-600">/10</span>
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  
                   {/* Products */}
                   <Card>
                     <CardContent className="p-4">
