@@ -2289,7 +2289,10 @@ export function NewSessionForm({
             </Button>
             <Button 
               variant="destructive" 
-              onClick={() => onOpenChange(false)}
+              onClick={() => {
+                setConfirmDialogOpen(false);
+                onOpenChange(false);
+              }}
             >
               Exit without saving
             </Button>
