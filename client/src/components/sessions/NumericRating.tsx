@@ -18,14 +18,14 @@ export function NumericRating({ value, onChange, label, description }: NumericRa
     
     // Only apply color to the selected number
     if (isSelected) {
-      if (value >= 8) return "bg-green-500 text-white";
-      if (value >= 5) return "bg-blue-500 text-white";
-      if (value >= 3) return "bg-yellow-500 text-white";
-      return "bg-red-500 text-white";
+      if (value >= 8) return "bg-success-500 text-white";
+      if (value >= 5) return "bg-primary-blue-500 text-white";
+      if (value >= 3) return "bg-warning-500 text-white";
+      return "bg-error-500 text-white";
     }
     
     // Subtle styling for unselected numbers
-    return "bg-gray-100 text-gray-500 hover:bg-gray-200";
+    return "bg-gray-50 text-gray-500 hover:bg-gray-100";
   };
   
   // Get text label for the rating to give meaning to the numbers

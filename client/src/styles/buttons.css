@@ -3,9 +3,6 @@
  * Following specified design system with consistent styling
  */
 
-/* Import our global color system */
-@import url('./colors.css');
-
 /* Button Base - Common attributes shared by all buttons */
 .btn {
   display: inline-flex;

@@ -18,7 +18,7 @@ export default {
         "primary-blue": {
           900: "#1E4E8C", // For darkest accents and hover states
           700: "#2A69DD", // For strong emphasis and important elements
-          500: "#3A86FF", // Main primary color
+          500: "#3B82F6", // Main primary color
           300: "#7EB0FF", // For lighter UI elements and highlights
           100: "#C7DDFF", // For very subtle blue backgrounds
         },
