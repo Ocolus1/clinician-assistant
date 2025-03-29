@@ -179,6 +179,7 @@ export function NewSessionForm({
 }: NewSessionFormProps) {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("session");
+  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [selectedClient, setSelectedClient] = useState<Client | null>(initialClient || null);
   
   // State for attendee selection dialog
@@ -1247,7 +1248,7 @@ export function NewSessionForm({
           </div>
           <Button 
             variant="ghost" 
-            onClick={() => onOpenChange(false)}
+            onClick={() => setConfirmDialogOpen(true)}
             className="hover:bg-slate-100 transition-colors"
           >
             <X className="h-5 w-5" />
@@ -1942,7 +1943,7 @@ export function NewSessionForm({
                         <Button
                           type="button"
                           variant="outline"
-                          onClick={() => onOpenChange(false)}
+                          onClick={() => setConfirmDialogOpen(true)}
                         >
                           Cancel
                         </Button>
@@ -2269,6 +2270,32 @@ export function NewSessionForm({
       <GoalSelectionDialog />
       <SubgoalSelectionDialog />
       <StrategySelectionDialog />
+      
+      {/* Exit Confirmation Dialog */}
+      <Dialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Exit Session Form</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to exit? All unsaved changes will be lost.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex space-x-2 justify-end">
+            <Button 
+              variant="outline" 
+              onClick={() => setConfirmDialogOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={() => onOpenChange(false)}
+            >
+              Exit without saving
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
