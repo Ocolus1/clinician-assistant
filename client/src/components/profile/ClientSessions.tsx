@@ -21,8 +21,17 @@ import {
   Filter,
   Search,
   Plus,
-  Calendar as CalendarIcon
+  Calendar as CalendarIcon,
+  File,
+  ChevronDown
 } from "lucide-react";
+
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 // Helper function to get status badge
 const getStatusBadge = (status: string) => {
@@ -53,15 +62,18 @@ function SessionCard({ session, onClick }: SessionCardProps) {
   const sessionDate = new Date(session.sessionDate);
   
   return (
-    <Card className="mb-3 hover:shadow-md transition-shadow duration-200" onClick={onClick}>
-      <CardContent className="p-4">
-        <div className="flex items-center justify-between">
+    <Card 
+      className="hover:shadow-md transition-shadow duration-200 h-full flex flex-col" 
+      onClick={onClick}
+    >
+      <CardContent className="p-4 flex-1 flex flex-col">
+        <div className="flex items-center justify-between mb-3">
           <div className="flex items-center">
-            <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center mr-3">
-              <Calendar className="h-5 w-5 text-blue-600" />
+            <div className="h-10 w-10 rounded-full bg-slate-100 flex items-center justify-center mr-3">
+              <Calendar className="h-5 w-5 text-slate-600" />
             </div>
             <div>
-              <h5 className="font-medium">{session.title}</h5>
+              <h5 className="font-medium line-clamp-1">{session.title}</h5>
               <div className="text-sm text-gray-500">
                 {format(sessionDate, 'MMM d, yyyy')} · {session.duration} min
               </div>
@@ -69,25 +81,33 @@ function SessionCard({ session, onClick }: SessionCardProps) {
           </div>
           {getStatusBadge(session.status)}
         </div>
-        <div className="mt-3 grid grid-cols-2 gap-2">
-          {session.description && (
-            <div className="text-sm col-span-2">
-              <span className="text-gray-500">Notes:</span> {session.description}
-            </div>
-          )}
+        
+        {session.description && (
+          <div className="mt-2 text-sm line-clamp-2 flex-grow">
+            <span className="text-gray-500 font-medium">Notes: </span>
+            <span className="text-gray-600">{session.description}</span>
+          </div>
+        )}
+        
+        <div className="grid grid-cols-1 gap-1 mt-3">
           {session.therapistId && (
-            <div className="text-sm">
-              <span className="text-gray-500">Therapist:</span> ID: {session.therapistId}
+            <div className="text-xs flex items-center text-gray-500">
+              <User className="h-3 w-3 mr-1" />
+              <span>Therapist ID: {session.therapistId}</span>
             </div>
           )}
           {session.location && (
-            <div className="text-sm">
-              <span className="text-gray-500">Location:</span> {session.location}
+            <div className="text-xs flex items-center text-gray-500">
+              <MapPin className="h-3 w-3 mr-1" />
+              <span>{session.location}</span>
             </div>
           )}
         </div>
-        <div className="flex justify-end mt-3">
-          <Button variant="outline" size="sm" onClick={onClick}>View Details</Button>
+        
+        <div className="flex justify-end mt-4">
+          <Button variant="outline" size="sm" onClick={onClick}>
+            View Details
+          </Button>
         </div>
       </CardContent>
     </Card>
@@ -99,6 +119,8 @@ export default function ClientSessions() {
   const clientId = params.id ? parseInt(params.id) : undefined;
   const [selectedSession, setSelectedSession] = useState<Session | null>(null);
   const [createSessionDialogOpen, setCreateSessionDialogOpen] = useState(false);
+  // New state to track which content view is currently active
+  const [activeView, setActiveView] = useState<'list' | 'newSession'>('list');
   
   // Fetch client details
   const { data: client } = useQuery<Client>({
@@ -144,6 +166,18 @@ export default function ClientSessions() {
     new Date(b.sessionDate).getTime() - new Date(a.sessionDate).getTime()
   );
   
+  // Handle creating a new session
+  const handleCreateNewSession = () => {
+    setCreateSessionDialogOpen(true);
+  };
+  
+  // Handle creating a new document (placeholder for now)
+  const handleCreateNewDocument = () => {
+    // Placeholder for document creation functionality
+    console.log("Create new document requested");
+    alert("Document creation will be implemented in a future update");
+  };
+  
   if (isLoading) {
     return (
       <div className="space-y-6">
@@ -157,12 +191,30 @@ export default function ClientSessions() {
   
   return (
     <div className="space-y-6">
-      {/* Add Session button */}
+      {/* Session List View */}
       <div className="flex justify-between items-center mb-4">
         <h3 className="text-lg font-medium">Therapy Sessions</h3>
-        <Button onClick={() => setCreateSessionDialogOpen(true)}>
-          <Plus className="h-4 w-4 mr-2" /> Add Session
-        </Button>
+        
+        {/* New dropdown menu button */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button className="bg-slate-800 hover:bg-slate-700">
+              <Plus className="h-4 w-4 mr-2" /> 
+              New
+              <ChevronDown className="h-4 w-4 ml-2" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={handleCreateNewSession} className="cursor-pointer">
+              <Calendar className="mr-2 h-4 w-4" />
+              <span>New Session</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={handleCreateNewDocument} className="cursor-pointer">
+              <File className="mr-2 h-4 w-4" />
+              <span>New Document</span>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
       
       {/* Session creation form */}
@@ -173,26 +225,30 @@ export default function ClientSessions() {
       />
       
       <div className="mb-6">
-        <h4 className="font-medium mb-4">Therapy Sessions</h4>
+        <div className="flex justify-between items-center mb-4">
+          <h4 className="font-medium">Session History</h4>
+        </div>
         
         {sortedSessions.length === 0 ? (
           <div className="text-center py-8 bg-gray-50 rounded-lg">
             <Clock className="h-10 w-10 text-gray-300 mx-auto mb-3" />
             <h5 className="text-md font-medium text-gray-500 mb-2">No sessions found</h5>
-            <p className="text-gray-500">Add a new session to get started.</p>
+            <p className="text-gray-500">Create a new session to get started.</p>
           </div>
         ) : (
-          sortedSessions.map(session => (
-            <SessionCard 
-              key={session.id} 
-              session={session} 
-              onClick={() => setSelectedSession(session)}
-            />
-          ))
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {sortedSessions.map(session => (
+              <SessionCard 
+                key={session.id} 
+                session={session} 
+                onClick={() => setSelectedSession(session)}
+              />
+            ))}
+          </div>
         )}
       </div>
       
-      {/* Session details modal could be added here */}
+      {/* Session details modal */}
       {selectedSession && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
