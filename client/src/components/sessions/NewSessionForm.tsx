@@ -21,6 +21,7 @@ import {
   ListChecks, 
   Target,
   ArrowRight,
+  ArrowLeft,
   Eraser,
   Save,
   Check
@@ -1797,23 +1798,24 @@ export function NewSessionForm({
                                       {assessment.subgoals.map((subgoal: any, subgoalIndex: number) => (
                                         <div key={subgoal.subgoalId} className="border-t border-slate-200 pt-5 mt-4">
                                           {/* Subgoal header with remove button */}
-                                          <div className="flex items-center justify-between mb-3">
-                                            <h4 className="font-medium text-slate-700 flex items-center">
-                                              <Target className="h-3 w-3 mr-2 text-slate-500" />
+                                          <div className="flex items-center justify-between mb-3 pb-2 border-b border-gray-100">
+                                            <h4 className="text-label text-text-primary flex items-center">
+                                              <Target className="h-4 w-4 mr-2 text-primary-blue-500" />
                                               {subgoal.subgoalTitle}
                                             </h4>
                                             <Button
                                               type="button"
                                               variant="ghost"
                                               size="sm"
+                                              className="button-icon-sm"
                                               onClick={() => removeSubgoalFromAssessment(assessment.goalId, subgoal.subgoalId)}
                                             >
-                                              <X className="h-3 w-3" />
+                                              <X className="h-3.5 w-3.5 text-text-tertiary" />
                                             </Button>
                                           </div>
                                           
                                           {/* Rating */}
-                                          <div className="bg-slate-50 rounded-md p-4 border border-slate-200">
+                                          <div className="p-4 bg-white rounded-md shadow-sm">
                                             <NumericRating
                                               value={subgoal.rating || 0}
                                               onChange={(value) => {
@@ -1827,41 +1829,44 @@ export function NewSessionForm({
                                           </div>
                                           
                                           {/* Strategies */}
-                                          <div className="mt-4">
+                                          <div className="mt-4 p-4 bg-white rounded-md shadow-sm">
                                             <div className="flex items-center justify-between mb-2">
-                                              <Label className="text-slate-700 font-medium">Strategies</Label>
+                                              <Label className="text-label text-text-secondary">Applied Strategies</Label>
                                               <Button
                                                 type="button"
-                                                variant="ghost"
+                                                variant="outline"
                                                 size="sm"
+                                                className="button-tertiary h-8"
                                                 onClick={() => openStrategyDialog(assessment.goalId, subgoal.subgoalId)}
                                                 disabled={subgoal.strategies.length >= 5}
                                               >
-                                                <Plus className="h-3 w-3 mr-1" />
-                                                {subgoal.strategies.length >= 5 ? 'Max (5)' : 'Add'}
+                                                <Plus className="h-3.5 w-3.5 mr-1.5" />
+                                                {subgoal.strategies.length >= 5 ? 'Max (5)' : 'Add Strategy'}
                                               </Button>
                                             </div>
                                             
                                             {subgoal.strategies.length > 0 ? (
-                                              <div className="flex flex-wrap gap-2 mt-1">
+                                              <div className="flex flex-wrap gap-2 mt-3">
                                                 {subgoal.strategies.map((strategy: string) => (
                                                   <Badge 
                                                     key={strategy} 
                                                     variant="secondary"
-                                                    className="px-2 py-1 gap-1"
+                                                    className="tag px-2.5 py-1.5 gap-1.5"
                                                   >
                                                     {strategy}
-                                                    <X 
-                                                      className="h-3 w-3 cursor-pointer" 
-                                                      onClick={() => removeStrategyFromSubgoal(assessment.goalId, subgoal.subgoalId, strategy)} 
-                                                    />
+                                                    <span 
+                                                      className="tag-close inline-flex items-center justify-center ml-1 cursor-pointer" 
+                                                      onClick={() => removeStrategyFromSubgoal(assessment.goalId, subgoal.subgoalId, strategy)}
+                                                    >
+                                                      <X className="h-3 w-3" />
+                                                    </span>
                                                   </Badge>
                                                 ))}
                                               </div>
                                             ) : (
-                                              <p className="text-sm text-slate-500 mt-1">
-                                                No strategies selected
-                                              </p>
+                                              <div className="mt-3 text-sm text-text-tertiary p-3 bg-gray-50 rounded-md text-center">
+                                                No strategies selected yet
+                                              </div>
                                             )}
                                           </div>
                                           
@@ -1936,22 +1941,25 @@ export function NewSessionForm({
                     </Tabs>
                   </div>
                   
-                  <div className="flex justify-between px-4">
+                  <div className="flex justify-between px-4 mt-6 py-4 border-t border-gray-100">
                     {/* Navigation buttons based on active tab */}
                     {activeTab === "session" && (
                       <>
                         <Button
                           type="button"
                           variant="outline"
+                          className="button-secondary w-28 h-10"
                           onClick={() => setConfirmDialogOpen(true)}
                         >
                           Cancel
                         </Button>
                         <Button 
-                          type="button" 
+                          type="button"
+                          className="button-primary w-28 h-10"
                           onClick={() => setActiveTab("details")}
                         >
                           Next
+                          <ArrowRight className="ml-1 h-4 w-4" />
                         </Button>
                       </>
                     )}
@@ -1961,15 +1969,19 @@ export function NewSessionForm({
                         <Button
                           type="button"
                           variant="outline"
+                          className="button-secondary w-28 h-10"
                           onClick={() => setActiveTab("session")}
                         >
+                          <ArrowLeft className="mr-1 h-4 w-4" />
                           Previous
                         </Button>
                         <Button 
-                          type="button" 
+                          type="button"
+                          className="button-primary w-28 h-10"
                           onClick={() => setActiveTab("products")}
                         >
                           Next
+                          <ArrowRight className="ml-1 h-4 w-4" />
                         </Button>
                       </>
                     )}
@@ -1979,15 +1991,19 @@ export function NewSessionForm({
                         <Button
                           type="button"
                           variant="outline"
+                          className="button-secondary w-28 h-10"
                           onClick={() => setActiveTab("details")}
                         >
+                          <ArrowLeft className="mr-1 h-4 w-4" />
                           Previous
                         </Button>
                         <Button 
-                          type="button" 
+                          type="button"
+                          className="button-primary w-28 h-10"
                           onClick={() => setActiveTab("assessment")}
                         >
                           Next
+                          <ArrowRight className="ml-1 h-4 w-4" />
                         </Button>
                       </>
                     )}
@@ -1997,15 +2013,19 @@ export function NewSessionForm({
                         <Button
                           type="button"
                           variant="outline"
+                          className="button-secondary w-28 h-10"
                           onClick={() => setActiveTab("products")}
                         >
+                          <ArrowLeft className="mr-1 h-4 w-4" />
                           Previous
                         </Button>
                         <Button 
-                          type="button" 
+                          type="button"
+                          className="button-primary w-28 h-10"
                           onClick={() => setActiveTab("session-notes")}
                         >
                           Next
+                          <ArrowRight className="ml-1 h-4 w-4" />
                         </Button>
                       </>
                     )}
@@ -2015,11 +2035,17 @@ export function NewSessionForm({
                         <Button
                           type="button"
                           variant="outline"
+                          className="button-secondary w-28 h-10"
                           onClick={() => setActiveTab("assessment")}
                         >
+                          <ArrowLeft className="mr-1 h-4 w-4" />
                           Previous
                         </Button>
-                        <Button type="submit">
+                        <Button 
+                          type="submit" 
+                          className="button-primary-action w-36 h-10"
+                        >
+                          <Check className="mr-1.5 h-4 w-4" />
                           {isEdit ? "Update Session" : "Create Session"}
                         </Button>
                       </>

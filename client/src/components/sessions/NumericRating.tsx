@@ -8,7 +8,8 @@ interface NumericRatingProps {
 }
 
 /**
- * A component that visualizes ratings from 0-10 with numbered circles
+ * A refined component that visualizes ratings from 0-10 with numbered circles
+ * Designed to be less visually dominant while still providing clear selection
  */
 export function NumericRating({ value, onChange, label, description }: NumericRatingProps) {
   // Get appropriate color based on the rating value
@@ -23,38 +24,50 @@ export function NumericRating({ value, onChange, label, description }: NumericRa
       return "bg-red-500 text-white";
     }
     
-    return "bg-slate-100 text-slate-600 hover:bg-slate-200";
+    // Subtle styling for unselected numbers
+    return "bg-gray-100 text-gray-500 hover:bg-gray-200";
+  };
+  
+  // Get text label for the rating to give meaning to the numbers
+  const getRatingLabel = () => {
+    if (value >= 9) return "Excellent";
+    if (value >= 7) return "Good";
+    if (value >= 5) return "Average";
+    if (value >= 3) return "Fair";
+    if (value >= 1) return "Poor";
+    return "Not observed";
   };
   
   return (
-    <div className="space-y-2">
-      <div className="flex justify-between">
+    <div className="space-y-2 mb-4">
+      <div className="flex justify-between items-center">
         <div>
-          <div className="font-medium">{label}</div>
-          {description && <div className="text-sm text-muted-foreground">{description}</div>}
+          <div className="text-label font-medium text-text-secondary">{label}</div>
+          {description && <div className="text-caption text-text-tertiary">{description}</div>}
         </div>
-        <div className="font-medium">
-          <span className={`inline-block h-6 w-6 rounded-full mr-2 text-center ${getColorClass(value)}`}>
+        <div className="flex items-center">
+          <span className={`inline-flex items-center justify-center h-6 w-6 rounded-full mr-2 text-xs font-medium ${getColorClass(value)}`}>
             {value}
           </span>
-          <span>/10</span>
+          <span className="text-text-secondary text-sm">{getRatingLabel()}</span>
         </div>
       </div>
       
-      <div className="flex justify-between gap-1 mt-2">
+      <div className="rating-scale mt-2">
         {Array.from({ length: 11 }).map((_, i) => (
           <button
             key={i}
             type="button"
             onClick={() => onChange(i)}
-            className={`h-8 w-8 rounded-full flex items-center justify-center text-sm transition-colors ${getColorClass(i)}`}
+            className={`rating-number ${value === i ? 'selected' : ''}`}
+            aria-label={`Rate ${i} out of 10`}
           >
             {i}
           </button>
         ))}
       </div>
       
-      <div className="flex justify-between text-xs text-muted-foreground mt-1">
+      <div className="flex justify-between text-xs text-text-tertiary mt-1 px-1">
         <span>Low</span>
         <span>High</span>
       </div>

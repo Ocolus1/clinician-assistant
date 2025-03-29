@@ -1,0 +1,271 @@
+/**
+ * Typography System
+ * 
+ * This file defines the typography styles for the application.
+ * It implements a cohesive system of font sizes, weights, and spacing.
+ */
+
+:root {
+  /* Text colors */
+  --text-primary: #292524;    /* Warm dark gray instead of pure black */
+  --text-secondary: #57534e;  /* Dark stone for secondary text */
+  --text-tertiary: #78716c;   /* Stone for hint text */
+  --text-disabled: #a8a29e;   /* Light stone for disabled text */
+  --text-inverse: #ffffff;    /* White text for dark backgrounds */
+  
+  /* Font sizes (based on 1rem = 16px) */
+  --text-xs: 0.75rem;     /* 12px */
+  --text-sm: 0.875rem;    /* 14px */
+  --text-base: 1rem;      /* 16px */
+  --text-lg: 1.125rem;    /* 18px */
+  --text-xl: 1.25rem;     /* 20px */
+  --text-2xl: 1.5rem;     /* 24px */
+  --text-3xl: 1.875rem;   /* 30px */
+  --text-4xl: 2.25rem;    /* 36px */
+  
+  /* Line heights */
+  --leading-none: 1;        /* No extra line height */
+  --leading-tight: 1.25;    /* Tight */
+  --leading-snug: 1.375;    /* Slightly tighter than normal */
+  --leading-normal: 1.5;    /* Normal */
+  --leading-relaxed: 1.625; /* Slightly looser than normal */
+  --leading-loose: 2;       /* Very loose */
+  
+  /* Font weights */
+  --font-thin: 100;
+  --font-extralight: 200;
+  --font-light: 300;
+  --font-normal: 400;
+  --font-medium: 500;
+  --font-semibold: 600;
+  --font-bold: 700;
+  --font-extrabold: 800;
+  --font-black: 900;
+  
+  /* Letter spacing */
+  --tracking-tighter: -0.05em;
+  --tracking-tight: -0.025em;
+  --tracking-normal: 0em;
+  --tracking-wide: 0.025em;
+  --tracking-wider: 0.05em;
+  --tracking-widest: 0.1em;
+  
+  /* Shadows for text */
+  --text-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  --text-shadow-lg: 0 3px 6px rgba(0, 0, 0, 0.15);
+  
+  /* Shadows for elements */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  
+  /* Border colors */
+  --border-subtle: #e5e7eb;  /* Subtle light gray */
+  --border-default: #d1d5db; /* Default medium light gray */
+  --border-strong: #9ca3af;  /* Stronger medium gray */
+  
+  /* Divider color */
+  --divider: rgba(229, 231, 235, 0.8); /* Semi-transparent light gray */
+}
+
+/* Heading styles */
+h1, .h1 {
+  font-size: var(--text-3xl);
+  font-weight: var(--font-semibold);
+  line-height: var(--leading-tight);
+  color: var(--text-primary);
+  margin-bottom: 0.75rem;
+}
+
+h2, .h2 {
+  font-size: var(--text-2xl);
+  font-weight: var(--font-medium);
+  line-height: var(--leading-tight);
+  color: var(--text-primary);
+  margin-bottom: 0.5rem;
+}
+
+h3, .h3 {
+  font-size: var(--text-xl);
+  font-weight: var(--font-medium);
+  line-height: var(--leading-normal);
+  color: var(--text-primary);
+  margin-bottom: 0.5rem;
+}
+
+h4, .h4 {
+  font-size: var(--text-lg);
+  font-weight: var(--font-medium);
+  line-height: var(--leading-normal);
+  color: var(--text-primary);
+  margin-bottom: 0.5rem;
+}
+
+h5, .h5 {
+  font-size: var(--text-base);
+  font-weight: var(--font-semibold);
+  line-height: var(--leading-normal);
+  color: var(--text-primary);
+  margin-bottom: 0.25rem;
+}
+
+h6, .h6 {
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  line-height: var(--leading-normal);
+  color: var(--text-primary);
+  margin-bottom: 0.25rem;
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
+}
+
+/* Body text styles */
+.text-xs {
+  font-size: var(--text-xs);
+  line-height: var(--leading-normal);
+}
+
+.text-sm {
+  font-size: var(--text-sm);
+  line-height: var(--leading-normal);
+}
+
+.text-base {
+  font-size: var(--text-base);
+  line-height: var(--leading-normal);
+}
+
+.text-lg {
+  font-size: var(--text-lg);
+  line-height: var(--leading-normal);
+}
+
+.text-xl {
+  font-size: var(--text-xl);
+  line-height: var(--leading-normal);
+}
+
+/* Text colors */
+.text-primary {
+  color: var(--text-primary);
+}
+
+.text-secondary {
+  color: var(--text-secondary);
+}
+
+.text-tertiary {
+  color: var(--text-tertiary);
+}
+
+.text-disabled {
+  color: var(--text-disabled);
+}
+
+.text-inverse {
+  color: var(--text-inverse);
+}
+
+/* Font weights */
+.font-thin {
+  font-weight: var(--font-thin);
+}
+
+.font-extralight {
+  font-weight: var(--font-extralight);
+}
+
+.font-light {
+  font-weight: var(--font-light);
+}
+
+.font-normal {
+  font-weight: var(--font-normal);
+}
+
+.font-medium {
+  font-weight: var(--font-medium);
+}
+
+.font-semibold {
+  font-weight: var(--font-semibold);
+}
+
+.font-bold {
+  font-weight: var(--font-bold);
+}
+
+.font-extrabold {
+  font-weight: var(--font-extrabold);
+}
+
+.font-black {
+  font-weight: var(--font-black);
+}
+
+/* Special text styles */
+.text-caption {
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+  line-height: var(--leading-snug);
+}
+
+.text-overline {
+  font-size: var(--text-xs);
+  font-weight: var(--font-medium);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wider);
+  color: var(--text-tertiary);
+}
+
+.text-label {
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  color: var(--text-secondary);
+}
+
+.text-paragraph {
+  font-size: var(--text-base);
+  line-height: var(--leading-relaxed);
+  color: var(--text-secondary);
+  margin-bottom: 1rem;
+}
+
+/* Links */
+a, .link {
+  color: #2563eb; /* Blue 600 */
+  text-decoration: none;
+  transition: color 0.15s ease-in-out;
+}
+
+a:hover, .link:hover {
+  color: #1d4ed8; /* Blue 700 */
+  text-decoration: underline;
+}
+
+/* Truncate text with ellipsis */
+.truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Text alignment */
+.text-left {
+  text-align: left;
+}
+
+.text-center {
+  text-align: center;
+}
+
+.text-right {
+  text-align: right;
+}
+
+.text-justify {
+  text-align: justify;
+}

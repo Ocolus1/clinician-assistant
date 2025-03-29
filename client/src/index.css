@@ -1,6 +1,7 @@
 /* Import our global styling system */
 @import url('./styles/colors.css');
 @import url('./styles/buttons.css');
+@import url('./styles/typography.css');
 
 @tailwind base;
 @tailwind components;
@@ -25,6 +26,23 @@
     padding: 0;
     overflow-x: hidden;
     width: 100%;
+  }
+  
+  /* Text styles */
+  .text-label {
+    @apply text-sm font-medium;
+  }
+  
+  .text-text-primary {
+    @apply text-gray-800;
+  }
+  
+  .text-text-secondary {
+    @apply text-gray-600;
+  }
+  
+  .text-text-tertiary {
+    @apply text-gray-500;
   }
 
   h1 {
@@ -60,21 +78,61 @@
     @apply ml-sidebar min-h-screen p-8 bg-gray-50;
   }
 
-  /* Button styles */
+  /* Button styles with clear hierarchy */
   .button-primary {
-    @apply bg-primary-blue-500 text-white px-6 py-2 rounded hover:bg-primary-blue-700 transition-colors;
+    @apply bg-primary-blue-500 text-white px-6 py-2 rounded transition-colors font-medium;
+    height: 40px; /* Slightly larger */
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  }
+  .button-primary:hover {
+    @apply bg-primary-blue-700;
+  }
+  
+  .button-primary-action {
+    @apply bg-primary-blue-500 text-white px-6 py-2 rounded transition-colors font-medium;
+    height: 40px; /* Slightly larger */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+  .button-primary-action:hover {
+    @apply bg-primary-blue-700;
   }
   
   .button-secondary {
-    @apply bg-white text-primary-blue-500 border border-primary-blue-500 px-6 py-2 rounded hover:bg-primary-blue-100 transition-colors;
+    @apply bg-white text-primary-blue-500 border border-primary-blue-500 px-5 py-1.5 rounded transition-colors;
+    height: 36px; /* Standard size */
+    border-width: 1px;
+  }
+  .button-secondary:hover {
+    @apply bg-primary-blue-100;
   }
   
   .button-tertiary {
-    @apply bg-transparent text-primary-blue-500 px-6 py-2 rounded hover:bg-primary-blue-100 transition-colors;
+    @apply bg-transparent text-primary-blue-500 px-4 py-1 rounded transition-colors;
+    height: 32px; /* Smaller size */
+  }
+  .button-tertiary:hover {
+    @apply bg-primary-blue-100;
   }
   
   .button-danger {
-    @apply bg-error-500 text-white px-6 py-2 rounded hover:bg-error-700 transition-colors;
+    @apply bg-error-500 text-white px-6 py-2 rounded transition-colors;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  }
+  .button-danger:hover {
+    @apply bg-error-700;
+  }
+  
+  /* Icon buttons with consistent sizing */
+  .button-icon {
+    @apply p-2 rounded-full transition-colors inline-flex items-center justify-center;
+    width: 32px;
+    height: 32px;
+  }
+  
+  .button-icon-sm {
+    @apply p-1 rounded-full transition-colors inline-flex items-center justify-center;
+    width: 28px;
+    height: 28px;
   }
   
   /* Status indicators */
@@ -92,15 +150,24 @@
   
   /* Card styles */
   .card {
-    @apply bg-white border border-gray-200 rounded-lg p-4 shadow-sm;
+    @apply bg-white rounded-lg p-4 shadow-sm;
+    box-shadow: var(--shadow-sm);
+    background-color: #ffffff;
   }
   
   .card-header {
-    @apply pb-3 mb-3 border-b border-gray-200;
+    @apply pb-3 mb-3;
+    border-bottom: 1px solid var(--divider);
   }
   
   .card-title {
-    @apply text-gray-800 font-semibold text-lg;
+    @apply font-semibold text-lg;
+    color: var(--text-primary);
+  }
+  
+  /* Enhanced cards with different elevation levels */
+  .card-elevated {
+    box-shadow: var(--shadow-md);
   }
 }
 
@@ -141,4 +208,129 @@
   flex: 1 1 0 !important;
   min-width: 0 !important;
   width: calc(33.333% - 1rem) !important;
+}
+
+/* Enhanced form control styling */
+.form-field {
+  margin-bottom: 1rem;
+}
+
+.form-label {
+  display: block;
+  color: var(--text-secondary);
+  font-size: 14px;
+  margin-bottom: 0.25rem;
+}
+
+.form-input,
+.form-select,
+.form-textarea {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: 0.25rem;
+  background-color: #ffffff;
+  font-size: 14px;
+  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.form-input:focus,
+.form-select:focus,
+.form-textarea:focus {
+  border-color: #3b82f6;
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+}
+
+/* Tags styling (for strategies) */
+.tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.5rem;
+  background-color: #f3f4f6;
+  color: var(--text-primary);
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  margin-right: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.tag-close {
+  margin-left: 0.25rem;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--text-secondary);
+}
+
+.tag-close:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+/* Rating system with better spacing */
+.rating-scale {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0.5rem 0;
+  gap: 0.35rem; /* Reduced spacing between numbers by 40% */
+}
+
+.rating-number {
+  width: 1.75rem;
+  height: 1.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  transition: all 0.2s ease;
+}
+
+.rating-number:hover {
+  background-color: #f3f4f6;
+}
+
+.rating-number.selected {
+  background-color: #3b82f6;
+  color: white;
+  font-weight: 500;
+}
+
+/* Observations display styling */
+.observation-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+
+.observation-label {
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+}
+
+.observation-value {
+  display: flex;
+  align-items: center;
+}
+
+.observation-bar {
+  width: 2.5rem;
+  height: 0.25rem;
+  border-radius: 0.125rem;
+  background-color: #e5e7eb;
+  margin-right: 0.5rem;
+  overflow: hidden;
+}
+
+.observation-bar-fill {
+  height: 100%;
+  border-radius: 0.125rem;
 }
