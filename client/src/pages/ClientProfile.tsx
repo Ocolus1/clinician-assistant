@@ -671,8 +671,8 @@ export default function ClientProfile() {
                 Schedule and track therapy sessions, view session history and notes.
               </p>
               
-              {/* Use the ClientSessions component */}
-              <ClientSessions />
+              {/* Use the ClientSessions component with explicit client ID */}
+              <ClientSessions key={clientId} clientId={clientId} />
             </TabsContent>
             
             <TabsContent value="reports" className="mt-0">

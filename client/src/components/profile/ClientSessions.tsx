@@ -6,11 +6,16 @@ import { Button } from "@/components/ui/button";
 import { Session, Client } from "@shared/schema";
 import { format } from "date-fns";
 import { NewSessionForm } from '@/components/sessions';
-import SessionsListView from '@/components/sessions/SessionsListView';
+import { SessionsListView } from '@/components/sessions';
 
-export default function ClientSessions() {
+interface ClientSessionsProps {
+  clientId?: number;
+}
+
+export default function ClientSessions({ clientId: propClientId }: ClientSessionsProps) {
   const params = useParams();
-  const clientId = params.id ? parseInt(params.id) : undefined;
+  // Use the prop clientId if provided, otherwise try to get it from the URL
+  const clientId = propClientId || (params.id ? parseInt(params.id) : undefined);
   const [selectedSession, setSelectedSession] = useState<Session | null>(null);
   const [createSessionDialogOpen, setCreateSessionDialogOpen] = useState(false);
   
