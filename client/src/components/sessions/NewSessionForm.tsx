@@ -2033,9 +2033,6 @@ export function NewSessionForm({
               <div className="sticky top-0">
                 <div className="flex justify-between items-center mb-4">
                   <h2 className="text-lg font-medium">Session Summary</h2>
-                  <Button variant="ghost" size="sm">
-                    <X className="h-4 w-4" />
-                  </Button>
                 </div>
                 
                 <div className="space-y-4">
