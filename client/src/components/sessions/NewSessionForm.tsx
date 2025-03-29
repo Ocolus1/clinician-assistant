@@ -1220,7 +1220,7 @@ export function NewSessionForm({
   
   return (
     <div className="fixed inset-0 z-50 bg-white flex flex-col">
-      <div className="h-full w-full flex flex-col">
+      <div className="h-screen w-full flex flex-col">
         {/* Form Header */}
         <div className="flex justify-between items-center py-4 px-6 border-b shadow-sm">
           <div>
@@ -1255,7 +1255,7 @@ export function NewSessionForm({
         </div>
         
         {/* Main Content */}
-        <div className="flex-1 overflow-hidden">
+        <div className="flex-1 overflow-hidden h-full">
           <div className="h-full flex flex-col md:flex-row">
             {/* Left Side - Form */}
             <div className="md:w-2/3 h-full overflow-y-auto p-4">
