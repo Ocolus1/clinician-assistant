@@ -67,6 +67,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 // Custom components
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { NumericRating } from "@/components/sessions/NumericRating";
+import { RatingDots } from "@/components/sessions/RatingDots";
 import {
   Dialog,
   DialogContent,
@@ -2161,66 +2162,57 @@ export function NewSessionForm({
                   <Card>
                     <CardContent className="p-4">
                       <h3 className="font-medium mb-2">Observations</h3>
-                      <div className="space-y-2">
-                        <div className="grid grid-cols-[100px_1fr] gap-1 items-center">
+                      <div className="space-y-3">
+                        {/* Thin separator line at the top */}
+                        <div className="h-px w-full bg-slate-100"></div>
+                        
+                        {/* Mood Rating */}
+                        <div className="grid grid-cols-[100px_1fr] gap-1 items-center py-1.5">
                           <span className="text-slate-600 text-sm">Mood:</span>
-                          <div className="flex items-center">
-                            <span className={`inline-flex items-center justify-center h-6 w-6 rounded-full mr-1 text-xs
-                              ${sessionNoteValues.moodRating >= 8 ? "bg-green-500 text-white" : 
-                                sessionNoteValues.moodRating >= 5 ? "bg-blue-500 text-white" : 
-                                sessionNoteValues.moodRating >= 3 ? "bg-yellow-500 text-white" : 
-                                "bg-red-500 text-white"}`}
-                            >
-                              {sessionNoteValues.moodRating}
-                            </span>
-                            <span className="text-sm text-slate-600">/10</span>
-                          </div>
+                          <RatingDots 
+                            rating={sessionNoteValues.moodRating} 
+                            label={`Mood rating: ${sessionNoteValues.moodRating}/10`}
+                          />
                         </div>
                         
-                        <div className="grid grid-cols-[100px_1fr] gap-1 items-center">
+                        {/* Thin separator line */}
+                        <div className="h-px w-full bg-slate-100"></div>
+                        
+                        {/* Focus Rating */}
+                        <div className="grid grid-cols-[100px_1fr] gap-1 items-center py-1.5">
                           <span className="text-slate-600 text-sm">Focus:</span>
-                          <div className="flex items-center">
-                            <span className={`inline-flex items-center justify-center h-6 w-6 rounded-full mr-1 text-xs
-                              ${sessionNoteValues.focusRating >= 8 ? "bg-green-500 text-white" : 
-                                sessionNoteValues.focusRating >= 5 ? "bg-blue-500 text-white" : 
-                                sessionNoteValues.focusRating >= 3 ? "bg-yellow-500 text-white" : 
-                                "bg-red-500 text-white"}`}
-                            >
-                              {sessionNoteValues.focusRating}
-                            </span>
-                            <span className="text-sm text-slate-600">/10</span>
-                          </div>
+                          <RatingDots 
+                            rating={sessionNoteValues.focusRating} 
+                            label={`Focus rating: ${sessionNoteValues.focusRating}/10`}
+                          />
                         </div>
                         
-                        <div className="grid grid-cols-[100px_1fr] gap-1 items-center">
+                        {/* Thin separator line */}
+                        <div className="h-px w-full bg-slate-100"></div>
+                        
+                        {/* Cooperation Rating */}
+                        <div className="grid grid-cols-[100px_1fr] gap-1 items-center py-1.5">
                           <span className="text-slate-600 text-sm">Cooperation:</span>
-                          <div className="flex items-center">
-                            <span className={`inline-flex items-center justify-center h-6 w-6 rounded-full mr-1 text-xs
-                              ${sessionNoteValues.cooperationRating >= 8 ? "bg-green-500 text-white" : 
-                                sessionNoteValues.cooperationRating >= 5 ? "bg-blue-500 text-white" : 
-                                sessionNoteValues.cooperationRating >= 3 ? "bg-yellow-500 text-white" : 
-                                "bg-red-500 text-white"}`}
-                            >
-                              {sessionNoteValues.cooperationRating}
-                            </span>
-                            <span className="text-sm text-slate-600">/10</span>
-                          </div>
+                          <RatingDots 
+                            rating={sessionNoteValues.cooperationRating} 
+                            label={`Cooperation rating: ${sessionNoteValues.cooperationRating}/10`}
+                          />
                         </div>
                         
-                        <div className="grid grid-cols-[100px_1fr] gap-1 items-center">
+                        {/* Thin separator line */}
+                        <div className="h-px w-full bg-slate-100"></div>
+                        
+                        {/* Physical Rating */}
+                        <div className="grid grid-cols-[100px_1fr] gap-1 items-center py-1.5">
                           <span className="text-slate-600 text-sm">Physical:</span>
-                          <div className="flex items-center">
-                            <span className={`inline-flex items-center justify-center h-6 w-6 rounded-full mr-1 text-xs
-                              ${sessionNoteValues.physicalActivityRating >= 8 ? "bg-green-500 text-white" : 
-                                sessionNoteValues.physicalActivityRating >= 5 ? "bg-blue-500 text-white" : 
-                                sessionNoteValues.physicalActivityRating >= 3 ? "bg-yellow-500 text-white" : 
-                                "bg-red-500 text-white"}`}
-                            >
-                              {sessionNoteValues.physicalActivityRating}
-                            </span>
-                            <span className="text-sm text-slate-600">/10</span>
-                          </div>
+                          <RatingDots 
+                            rating={sessionNoteValues.physicalActivityRating} 
+                            label={`Physical activity rating: ${sessionNoteValues.physicalActivityRating}/10`}
+                          />
                         </div>
+                        
+                        {/* Bottom separator line */}
+                        <div className="h-px w-full bg-slate-100"></div>
                       </div>
                     </CardContent>
                   </Card>
