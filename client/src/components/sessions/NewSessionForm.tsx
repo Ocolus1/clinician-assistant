@@ -1635,9 +1635,8 @@ export function NewSessionForm({
                       {/* Products Tab */}
                       <TabsContent value="products" className="py-4">
                         <Card className="border border-slate-200 rounded-lg shadow-sm hover:shadow transition-shadow relative overflow-hidden">
-                          {/* Blue accent line */}
-                          <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-500"></div>
-                          <CardHeader className="pb-3 pl-6 flex flex-row items-center justify-between">
+                          {/* No blue accent line for Products & Services as requested */}
+                          <CardHeader className="pb-3 flex flex-row items-center justify-between">
                             <CardTitle className="text-md font-medium flex items-center">
                               <ShoppingCart className="h-4 w-4 mr-2 text-slate-500" />
                               Products & Services
@@ -1653,7 +1652,7 @@ export function NewSessionForm({
                               Add Product
                             </Button>
                           </CardHeader>
-                          <CardContent className="p-5 pl-6">
+                          <CardContent className="p-5">
                             {sessionNoteValues.products.length === 0 ? (
                               <div className="text-center py-12 border border-dashed border-slate-200 rounded-lg bg-slate-50">
                                 <ShoppingCart className="mx-auto h-12 w-12 text-slate-300 mb-4" />
