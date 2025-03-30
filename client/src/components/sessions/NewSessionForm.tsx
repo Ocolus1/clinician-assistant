@@ -2063,50 +2063,97 @@ export function NewSessionForm({
                 </div>
                 
                 <div className="space-y-4">
-                  {/* Session Info */}
-                  <Card>
-                    <CardContent className="p-4">
-                      <h3 className="font-medium mb-2">Session</h3>
+                  {/* Session Info - Enhanced UI */}
+                  <Card className="relative overflow-hidden transition-all duration-200 hover:shadow-md group">
+                    {/* Blue accent line on the left */}
+                    <div className="absolute top-0 left-0 w-1 h-full bg-primary-blue-500"></div>
+                    
+                    <CardContent className="p-4 pl-5">
+                      <h3 className="font-medium mb-3 text-primary-blue-700 flex items-center">
+                        <Clock className="w-4 h-4 mr-2 text-primary-blue-500" /> 
+                        Session
+                      </h3>
+                      
                       {sessionValues.sessionDate ? (
-                        <div className="space-y-1">
-                          <div className="grid grid-cols-[80px_1fr] gap-1">
-                            <span className="text-slate-600 text-sm">Date:</span>
-                            <span className="text-sm">{format(sessionValues.sessionDate, "dd MMM yyyy")}</span>
+                        <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+                          {/* Column 1: Date & Time */}
+                          <div className="space-y-2">
+                            <div className="flex items-start">
+                              <CalendarIcon className="w-4 h-4 mr-2 mt-0.5 text-slate-500" />
+                              <div>
+                                <p className="text-xs font-medium text-slate-500 mb-0.5">Date</p>
+                                <p className="text-sm font-medium">{format(sessionValues.sessionDate, "dd MMM yyyy")}</p>
+                              </div>
+                            </div>
+                            
+                            <div className="flex items-start">
+                              <Clock className="w-4 h-4 mr-2 mt-0.5 text-slate-500" />
+                              <div>
+                                <p className="text-xs font-medium text-slate-500 mb-0.5">Time</p>
+                                <p className="text-sm font-medium">{sessionValues.timeFrom} - {sessionValues.timeTo}</p>
+                              </div>
+                            </div>
                           </div>
-                          <div className="grid grid-cols-[80px_1fr] gap-1">
-                            <span className="text-slate-600 text-sm">Time:</span>
-                            <span className="text-sm">{sessionValues.timeFrom} - {sessionValues.timeTo}</span>
+                          
+                          {/* Column 2: Location & Therapist */}
+                          <div className="space-y-2">
+                            <div className="flex items-start">
+                              <MapPin className="w-4 h-4 mr-2 mt-0.5 text-slate-500" />
+                              <div>
+                                <p className="text-xs font-medium text-slate-500 mb-0.5">Location</p>
+                                {sessionValues.location ? (
+                                  <p className="text-sm font-medium">{sessionValues.location}</p>
+                                ) : (
+                                  <p className="text-sm italic text-slate-400 border border-dashed border-slate-200 rounded px-1.5 py-0.5">Not specified</p>
+                                )}
+                              </div>
+                            </div>
+                            
+                            <div className="flex items-start">
+                              <User className="w-4 h-4 mr-2 mt-0.5 text-slate-500" />
+                              <div>
+                                <p className="text-xs font-medium text-slate-500 mb-0.5">Therapist</p>
+                                {sessionValues.therapistId ? (
+                                  <p className="text-sm font-medium">
+                                    {clinicians.find((c: Clinician) => c.id === sessionValues.therapistId)?.name || "Unknown"}
+                                  </p>
+                                ) : (
+                                  <p className="text-sm italic text-slate-400 border border-dashed border-slate-200 rounded px-1.5 py-0.5">Not selected</p>
+                                )}
+                              </div>
+                            </div>
                           </div>
-                          <div className="grid grid-cols-[80px_1fr] gap-1">
-                            <span className="text-slate-600 text-sm">Location:</span>
-                            <span className="text-sm">{sessionValues.location || "Not specified"}</span>
-                          </div>
-                          <div className="grid grid-cols-[80px_1fr] gap-1">
-                            <span className="text-slate-600 text-sm">Therapist:</span>
-                            <span className="text-sm">
-                              {sessionValues.therapistId ? 
-                                clinicians.find((c: Clinician) => c.id === sessionValues.therapistId)?.name || "Unknown" 
-                                : "Not selected"}
-                            </span>
-                          </div>
-                          <div className="grid grid-cols-[80px_1fr] gap-1">
-                            <span className="text-slate-600 text-sm align-top">Attendees:</span>
-                            <div className="text-sm">
-                              {sessionNoteValues.presentAllies.length > 0 ? (
-                                <div className="space-y-0.5">
-                                  {sessionNoteValues.presentAllies.map((name, idx) => (
-                                    <div key={idx}>{name}</div>
-                                  ))}
-                                </div>
-                              ) : (
-                                <span className="text-slate-500">None selected</span>
-                              )}
+                          
+                          {/* Full width: Attendees */}
+                          <div className="col-span-2 mt-1">
+                            <div className="flex items-start">
+                              <Users className="w-4 h-4 mr-2 mt-0.5 text-slate-500" />
+                              <div className="flex-1">
+                                <p className="text-xs font-medium text-slate-500 mb-0.5">Attendees</p>
+                                {sessionNoteValues.presentAllies.length > 0 ? (
+                                  <div className="space-y-1 mt-1">
+                                    {sessionNoteValues.presentAllies.map((name, idx) => (
+                                      <div key={idx} className="text-sm bg-slate-50 px-2 py-1 rounded-sm">{name}</div>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <p className="text-sm italic text-slate-400 border border-dashed border-slate-200 rounded px-1.5 py-0.5">None selected</p>
+                                )}
+                              </div>
                             </div>
                           </div>
                         </div>
                       ) : (
-                        <p className="text-slate-500 text-sm">No session details provided</p>
+                        <div className="flex items-center justify-center p-4 border border-dashed border-slate-200 rounded-md">
+                          <p className="text-slate-400 text-sm flex items-center">
+                            <CalendarIcon className="w-4 h-4 mr-2" />
+                            No session details provided
+                          </p>
+                        </div>
                       )}
+                      
+                      {/* Visual feedback on hover - subtle scale effect */}
+                      <div className="absolute inset-0 bg-primary-blue-50 opacity-0 group-hover:opacity-10 transition-opacity duration-200"></div>
                     </CardContent>
                   </Card>
                   
