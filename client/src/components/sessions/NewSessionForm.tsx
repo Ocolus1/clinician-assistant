@@ -2133,7 +2133,7 @@ export function NewSessionForm({
                                 {sessionNoteValues.presentAllies.length > 0 ? (
                                   <div className="space-y-1 mt-1">
                                     {sessionNoteValues.presentAllies.map((name, idx) => (
-                                      <div key={idx} className="text-sm font-medium text-gray-800 bg-slate-50 px-2 py-1 rounded-sm">{name}</div>
+                                      <div key={idx} className="text-sm font-medium bg-slate-50 px-2 py-1 rounded-sm">{name}</div>
                                     ))}
                                   </div>
                                 ) : (
