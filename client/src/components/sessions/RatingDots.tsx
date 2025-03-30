@@ -22,14 +22,14 @@ export const RatingDots: React.FC<RatingDotsProps> = ({
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
-          <div className="flex items-center space-x-1">
-            <div className="flex space-x-0.5">
-              {/* First 5 dots with a slight gap after */}
-              <div className="flex space-x-0.5 mr-1">
+          <div className="flex items-center">
+            <div className="flex">
+              {/* First 5 dots with a gap after */}
+              <div className="flex space-x-2.5 mr-4">
                 {dots.slice(0, 5).map((dotIndex) => (
                   <div
                     key={`dot-${dotIndex}`}
-                    className={`h-2 w-2 rounded-full border ${
+                    className={`h-4 w-4 rounded-full border-[1.5px] ${
                       isFilled(dotIndex)
                         ? 'bg-blue-500 border-blue-500'
                         : 'bg-transparent border-slate-300'
@@ -39,11 +39,11 @@ export const RatingDots: React.FC<RatingDotsProps> = ({
               </div>
               
               {/* Last 5 dots */}
-              <div className="flex space-x-0.5">
+              <div className="flex space-x-2.5">
                 {dots.slice(5, 10).map((dotIndex) => (
                   <div
                     key={`dot-${dotIndex}`}
-                    className={`h-2 w-2 rounded-full border ${
+                    className={`h-4 w-4 rounded-full border-[1.5px] ${
                       isFilled(dotIndex)
                         ? 'bg-blue-500 border-blue-500'
                         : 'bg-transparent border-slate-300'
@@ -52,36 +52,10 @@ export const RatingDots: React.FC<RatingDotsProps> = ({
                 ))}
               </div>
             </div>
-            
-            {/* Simple sparkline-like element (static for now) */}
-            <div className="h-5 w-10 ml-3 relative flex items-center">
-              <div className="absolute inset-0 flex items-center">
-                <div className="h-px w-full bg-slate-200"></div>
-              </div>
-              <div className="w-full flex justify-between relative">
-                <div className="w-1 h-1 rounded-full bg-blue-500"></div>
-                <div className="w-1 h-1 rounded-full bg-blue-500" style={{ transform: 'translateY(-3px)' }}></div>
-                <div className="w-1 h-1 rounded-full bg-blue-500" style={{ transform: 'translateY(-1px)' }}></div>
-                <div className="w-1 h-1 rounded-full bg-blue-500" style={{ transform: 'translateY(2px)' }}></div>
-                <div className="w-1 h-1 rounded-full bg-blue-500"></div>
-              </div>
-              {/* Connect dots with line for sparkline effect */}
-              <svg className="absolute inset-0 w-full h-full" viewBox="0 0 40 20" preserveAspectRatio="none">
-                <polyline
-                  points="0,10 10,7 20,9 30,2 40,10"
-                  fill="none"
-                  stroke="#3b82f6"
-                  strokeWidth="1"
-                />
-              </svg>
-            </div>
-            
-            {/* Numeric value display */}
-            <span className="text-xs font-medium text-slate-500 ml-1">{rating}/10</span>
           </div>
         </TooltipTrigger>
         <TooltipContent side="right">
-          <p className="text-xs">{label || `Rating: ${rating}/10`}</p>
+          <p className="text-sm font-medium text-slate-700">{label || `Rating: ${rating}/10`}</p>
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>

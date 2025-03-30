@@ -24,7 +24,8 @@ import {
   ArrowLeft,
   Eraser,
   Save,
-  Check
+  Check,
+  Eye
 } from "lucide-react";
 
 // UI Components
@@ -1544,14 +1545,16 @@ export function NewSessionForm({
                         <div className="space-y-4">
                           
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <Card className="border border-slate-200 rounded-lg shadow-sm hover:shadow transition-shadow">
-                              <CardHeader className="pb-3">
+                            <Card className="border border-slate-200 rounded-lg shadow-sm hover:shadow transition-shadow relative overflow-hidden">
+                              {/* Blue accent line */}
+                              <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-500"></div>
+                              <CardHeader className="pb-3 pl-6">
                                 <CardTitle className="text-md font-medium flex items-center">
                                   <User className="h-4 w-4 mr-2 text-slate-500" />
                                   Client Behavior
                                 </CardTitle>
                               </CardHeader>
-                              <CardContent className="p-5 space-y-6">
+                              <CardContent className="p-5 pl-6 space-y-6">
                                 <FormField
                                   control={form.control}
                                   name="sessionNote.moodRating"
@@ -1584,14 +1587,16 @@ export function NewSessionForm({
                               </CardContent>
                             </Card>
                             
-                            <Card className="border border-slate-200 rounded-lg shadow-sm hover:shadow transition-shadow">
-                              <CardHeader className="pb-3">
+                            <Card className="border border-slate-200 rounded-lg shadow-sm hover:shadow transition-shadow relative overflow-hidden">
+                              {/* Blue accent line */}
+                              <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-500"></div>
+                              <CardHeader className="pb-3 pl-6">
                                 <CardTitle className="text-md font-medium flex items-center">
                                   <ClipboardList className="h-4 w-4 mr-2 text-slate-500" />
                                   Participation
                                 </CardTitle>
                               </CardHeader>
-                              <CardContent className="p-5 space-y-6">
+                              <CardContent className="p-5 pl-6 space-y-6">
                                 <FormField
                                   control={form.control}
                                   name="sessionNote.cooperationRating"
@@ -1629,8 +1634,10 @@ export function NewSessionForm({
                       
                       {/* Products Tab */}
                       <TabsContent value="products" className="py-4">
-                        <Card className="border border-slate-200 rounded-lg shadow-sm hover:shadow transition-shadow">
-                          <CardHeader className="pb-3 flex flex-row items-center justify-between">
+                        <Card className="border border-slate-200 rounded-lg shadow-sm hover:shadow transition-shadow relative overflow-hidden">
+                          {/* Blue accent line */}
+                          <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-500"></div>
+                          <CardHeader className="pb-3 pl-6 flex flex-row items-center justify-between">
                             <CardTitle className="text-md font-medium flex items-center">
                               <ShoppingCart className="h-4 w-4 mr-2 text-slate-500" />
                               Products & Services
@@ -1646,7 +1653,7 @@ export function NewSessionForm({
                               Add Product
                             </Button>
                           </CardHeader>
-                          <CardContent className="p-5">
+                          <CardContent className="p-5 pl-6">
                             {sessionNoteValues.products.length === 0 ? (
                               <div className="text-center py-12 border border-dashed border-slate-200 rounded-lg bg-slate-50">
                                 <ShoppingCart className="mx-auto h-12 w-12 text-slate-300 mb-4" />
@@ -1722,8 +1729,10 @@ export function NewSessionForm({
                       
                       {/* Assessment Tab */}
                       <TabsContent value="assessment" className="py-4">
-                        <Card className="border border-slate-200 rounded-lg shadow-sm hover:shadow transition-shadow">
-                          <CardHeader className="pb-3 flex flex-row items-center justify-between">
+                        <Card className="border border-slate-200 rounded-lg shadow-sm hover:shadow transition-shadow relative overflow-hidden">
+                          {/* Blue accent line */}
+                          <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-500"></div>
+                          <CardHeader className="pb-3 pl-6 flex flex-row items-center justify-between">
                             <CardTitle className="text-md font-medium flex items-center">
                               <ListChecks className="h-4 w-4 mr-2 text-slate-500" />
                               Goal Assessments
@@ -1739,7 +1748,7 @@ export function NewSessionForm({
                               Add Goal
                             </Button>
                           </CardHeader>
-                          <CardContent className="p-5">
+                          <CardContent className="p-5 pl-6">
                             {performanceAssessments.length === 0 ? (
                               <div className="text-center py-12 border border-dashed border-slate-200 rounded-lg bg-slate-50">
                                 <ListChecks className="mx-auto h-12 w-12 text-slate-300 mb-4" />
@@ -1890,8 +1899,10 @@ export function NewSessionForm({
                       {/* Session Notes Tab */}
                       <TabsContent value="session-notes" className="py-4">
                         <div className="space-y-6">
-                          <Card className="border border-slate-200 rounded-lg shadow-sm">
-                            <CardHeader className="pb-3">
+                          <Card className="border border-slate-200 rounded-lg shadow-sm relative overflow-hidden">
+                            {/* Blue accent line */}
+                            <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-500"></div>
+                            <CardHeader className="pb-3 pl-6">
                               <CardTitle className="text-md font-medium flex items-center">
                                 <ClipboardPen className="h-4 w-4 mr-2 text-slate-500" />
                                 Session Notes
@@ -1900,7 +1911,7 @@ export function NewSessionForm({
                                 Enter detailed notes about the session
                               </CardDescription>
                             </CardHeader>
-                            <CardContent className="p-5">
+                            <CardContent className="p-5 pl-6">
                               <FormField
                                 control={form.control}
                                 name="sessionNote.notes"
@@ -2159,12 +2170,16 @@ export function NewSessionForm({
                   </Card>
                   
                   {/* Observations */}
-                  <Card>
-                    <CardContent className="p-4">
-                      <h3 className="font-medium mb-2">Observations</h3>
+                  <Card className="relative overflow-hidden transition-all duration-200 hover:shadow-md group">
+                    {/* Blue accent line on the left */}
+                    <div className="absolute top-0 left-0 w-1 h-full bg-primary-blue-500"></div>
+                    
+                    <CardContent className="p-4 pl-5">
+                      <h3 className="font-medium mb-3 text-primary-blue-700 flex items-center">
+                        <Eye className="w-4 h-4 mr-2 text-primary-blue-500" /> 
+                        Observations
+                      </h3>
                       <div className="space-y-3">
-                        {/* Thin separator line at the top */}
-                        <div className="h-px w-full bg-slate-100"></div>
                         
                         {/* Mood Rating */}
                         <div className="grid grid-cols-[100px_1fr] gap-1 items-center py-1.5">
@@ -2218,9 +2233,15 @@ export function NewSessionForm({
                   </Card>
                   
                   {/* Products */}
-                  <Card>
-                    <CardContent className="p-4">
-                      <h3 className="font-medium mb-2">Products</h3>
+                  <Card className="relative overflow-hidden transition-all duration-200 hover:shadow-md group">
+                    {/* Blue accent line on the left */}
+                    <div className="absolute top-0 left-0 w-1 h-full bg-primary-blue-500"></div>
+                    
+                    <CardContent className="p-4 pl-5">
+                      <h3 className="font-medium mb-3 text-primary-blue-700 flex items-center">
+                        <ShoppingCart className="w-4 h-4 mr-2 text-primary-blue-500" /> 
+                        Products
+                      </h3>
                       {sessionNoteValues.products.length > 0 ? (
                         <div>
                           <ul className="space-y-1">
@@ -2241,9 +2262,15 @@ export function NewSessionForm({
                   </Card>
                   
                   {/* Assessments */}
-                  <Card>
-                    <CardContent className="p-4">
-                      <h3 className="font-medium mb-2">Assessments</h3>
+                  <Card className="relative overflow-hidden transition-all duration-200 hover:shadow-md group">
+                    {/* Blue accent line on the left */}
+                    <div className="absolute top-0 left-0 w-1 h-full bg-primary-blue-500"></div>
+                    
+                    <CardContent className="p-4 pl-5">
+                      <h3 className="font-medium mb-3 text-primary-blue-700 flex items-center">
+                        <Target className="w-4 h-4 mr-2 text-primary-blue-500" /> 
+                        Assessments
+                      </h3>
                       {performanceAssessments.length > 0 ? (
                         <div className="space-y-2">
                           {performanceAssessments.map((assessment: any) => (
@@ -2307,9 +2334,15 @@ export function NewSessionForm({
                   </Card>
 
                   {/* Session Notes */}
-                  <Card className="mt-4">
-                    <CardContent className="p-4">
-                      <h3 className="font-medium mb-2">Session Notes</h3>
+                  <Card className="mt-4 relative overflow-hidden transition-all duration-200 hover:shadow-md group">
+                    {/* Blue accent line on the left */}
+                    <div className="absolute top-0 left-0 w-1 h-full bg-primary-blue-500"></div>
+                    
+                    <CardContent className="p-4 pl-5">
+                      <h3 className="font-medium mb-3 text-primary-blue-700 flex items-center">
+                        <ClipboardPen className="w-4 h-4 mr-2 text-primary-blue-500" /> 
+                        Session Notes
+                      </h3>
                       {sessionNoteValues?.notes ? (
                         <div className="text-sm prose prose-sm max-w-none">
                           <div 
