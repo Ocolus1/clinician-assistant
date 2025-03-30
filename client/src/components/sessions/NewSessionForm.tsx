@@ -2064,57 +2064,42 @@ export function NewSessionForm({
                 
                 <div className="space-y-4">
                   {/* Session Info */}
-                  <Card className="shadow-sm hover:shadow-md transition-all border-l-4 border-l-primary-blue-500">
+                  <Card>
                     <CardContent className="p-4">
-                      <h3 className="font-medium mb-3">Session</h3>
+                      <h3 className="font-medium mb-2">Session</h3>
                       {sessionValues.sessionDate ? (
-                        <div className="space-y-2">
-                          <div className="flex items-center">
-                            <Calendar className="h-4 w-4 mr-2 text-primary-blue-500" />
-                            <span className="text-slate-600 text-sm w-16">Date:</span>
+                        <div className="space-y-1">
+                          <div className="grid grid-cols-[80px_1fr] gap-1">
+                            <span className="text-slate-600 text-sm">Date:</span>
                             <span className="text-sm">{format(sessionValues.sessionDate, "dd MMM yyyy")}</span>
                           </div>
-                          
-                          <div className="flex items-center">
-                            <Clock className="h-4 w-4 mr-2 text-primary-blue-500" />
-                            <span className="text-slate-600 text-sm w-16">Time:</span>
+                          <div className="grid grid-cols-[80px_1fr] gap-1">
+                            <span className="text-slate-600 text-sm">Time:</span>
                             <span className="text-sm">{sessionValues.timeFrom} - {sessionValues.timeTo}</span>
                           </div>
-                          
-                          <div className="flex items-center">
-                            <MapPin className="h-4 w-4 mr-2 text-primary-blue-500" />
-                            <span className="text-slate-600 text-sm w-16">Location:</span>
-                            {sessionValues.location ? (
-                              <span className="text-sm">{sessionValues.location}</span>
-                            ) : (
-                              <span className="text-sm text-slate-400 italic">Not specified</span>
-                            )}
+                          <div className="grid grid-cols-[80px_1fr] gap-1">
+                            <span className="text-slate-600 text-sm">Location:</span>
+                            <span className="text-sm">{sessionValues.location || "Not specified"}</span>
                           </div>
-                          
-                          <div className="flex items-center">
-                            <User className="h-4 w-4 mr-2 text-primary-blue-500" />
-                            <span className="text-slate-600 text-sm w-16">Therapist:</span>
-                            {sessionValues.therapistId ? (
-                              <span className="text-sm">
-                                {clinicians.find((c: Clinician) => c.id === sessionValues.therapistId)?.name || "Unknown"}
-                              </span>
-                            ) : (
-                              <span className="text-sm text-slate-400 italic">Not selected</span>
-                            )}
+                          <div className="grid grid-cols-[80px_1fr] gap-1">
+                            <span className="text-slate-600 text-sm">Therapist:</span>
+                            <span className="text-sm">
+                              {sessionValues.therapistId ? 
+                                clinicians.find((c: Clinician) => c.id === sessionValues.therapistId)?.name || "Unknown" 
+                                : "Not selected"}
+                            </span>
                           </div>
-                          
-                          <div className="flex items-start">
-                            <Users className="h-4 w-4 mr-2 mt-0.5 text-primary-blue-500" />
-                            <span className="text-slate-600 text-sm w-16">Attendees:</span>
-                            <div className="flex-1 text-sm">
+                          <div className="grid grid-cols-[80px_1fr] gap-1">
+                            <span className="text-slate-600 text-sm align-top">Attendees:</span>
+                            <div className="text-sm">
                               {sessionNoteValues.presentAllies.length > 0 ? (
-                                <div>
+                                <div className="space-y-0.5">
                                   {sessionNoteValues.presentAllies.map((name, idx) => (
                                     <div key={idx}>{name}</div>
                                   ))}
                                 </div>
                               ) : (
-                                <span className="text-slate-400 italic">None selected</span>
+                                <span className="text-slate-500">None selected</span>
                               )}
                             </div>
                           </div>
