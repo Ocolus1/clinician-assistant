@@ -1729,8 +1729,6 @@ export function NewSessionForm({
                       {/* Assessment Tab */}
                       <TabsContent value="assessment" className="py-4">
                         <Card className="border border-slate-200 rounded-lg shadow-sm hover:shadow transition-shadow relative overflow-hidden">
-                          {/* Blue accent line */}
-                          <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-500"></div>
                           <CardHeader className="pb-3 pl-6 flex flex-row items-center justify-between">
                             <CardTitle className="text-md font-medium flex items-center">
                               <ListChecks className="h-4 w-4 mr-2 text-slate-500" />
@@ -1789,16 +1787,6 @@ export function NewSessionForm({
                                     {assessment.subgoals.length === 0 && (
                                       <div className="text-center py-6 border border-dashed border-slate-200 rounded-lg bg-slate-50">
                                         <p className="text-slate-600">No subgoals added</p>
-                                        <Button
-                                          type="button"
-                                          variant="outline"
-                                          size="sm"
-                                          onClick={() => openSubgoalDialog(assessment.goalId)}
-                                          className="mt-2"
-                                        >
-                                          <Plus className="h-3 w-3 mr-1" />
-                                          Add Subgoal
-                                        </Button>
                                       </div>
                                     )}
                                     
@@ -2243,16 +2231,52 @@ export function NewSessionForm({
                       </h3>
                       {sessionNoteValues.products.length > 0 ? (
                         <div>
-                          <ul className="space-y-1">
+                          <div className="space-y-3">
                             {sessionNoteValues.products.map((product: any, i: number) => (
-                              <li key={i} className="text-sm">
-                                {product.productDescription} ({product.quantity} of {product.availableQuantity} Units)
-                              </li>
+                              <div 
+                                key={i} 
+                                className="bg-slate-50 rounded-md p-2.5 border-l-2 border-slate-200"
+                              >
+                                <div className="grid grid-cols-[2fr_1fr] gap-2">
+                                  {/* Left Column - Product Name */}
+                                  <div>
+                                    <p className="text-sm font-medium text-slate-800">
+                                      {product.productDescription}
+                                    </p>
+                                    <p className="text-xs text-slate-500 mt-0.5">
+                                      Unit Price: ${product.unitPrice.toFixed(2)}
+                                    </p>
+                                  </div>
+                                  
+                                  {/* Right Column - Units & Costs */}
+                                  <div className="text-right">
+                                    <p className="text-sm font-medium text-slate-800">
+                                      ${(product.quantity * product.unitPrice).toFixed(2)}
+                                    </p>
+                                    <p className="text-xs text-slate-500 mt-0.5">
+                                      {product.quantity} of {product.availableQuantity} Units
+                                    </p>
+                                  </div>
+                                </div>
+                                
+                                {/* Progress Bar for Units Used */}
+                                <div className="w-full h-1.5 bg-slate-200 rounded-full mt-2">
+                                  <div 
+                                    className="h-full bg-primary-blue-400 rounded-full" 
+                                    style={{ width: `${Math.min(100, (product.quantity / product.availableQuantity) * 100)}%` }}
+                                  ></div>
+                                </div>
+                              </div>
                             ))}
-                          </ul>
-                          <p className="text-sm font-medium mt-2">
-                            Total: ${totalProductCost.toFixed(2)}
-                          </p>
+                          </div>
+                          
+                          {/* Total Section with separator */}
+                          <div className="mt-3 pt-2 border-t border-slate-200">
+                            <p className="text-sm font-semibold flex justify-between items-center">
+                              <span>Total:</span>
+                              <span className="text-base text-primary-blue-700">${totalProductCost.toFixed(2)}</span>
+                            </p>
+                          </div>
                         </div>
                       ) : (
                         <p className="text-muted-foreground">No products added</p>
