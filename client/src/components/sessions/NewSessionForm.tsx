@@ -1943,7 +1943,7 @@ export function NewSessionForm({
                                                   <Badge 
                                                     key={strategy} 
                                                     variant="secondary"
-                                                    className="tag px-2.5 py-1.5 gap-1.5 bg-blue-50 text-blue-700 border border-blue-100"
+                                                    className="tag px-2.5 py-1.5 gap-1.5 bg-blue-50 text-blue-700 border-0"
                                                   >
                                                     {strategy}
                                                     <span 
