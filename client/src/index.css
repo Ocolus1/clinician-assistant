@@ -287,14 +287,14 @@
   align-items: center;
   justify-content: flex-start;
   margin: 0.5rem 0;
-  gap: 0.25rem; /* More spacing between the larger circles */
+  gap: 0.5rem; /* Doubled spacing between circles as requested */
   width: auto; /* Prevent full-width stretch */
   max-width: 100%; /* Ensure it doesn't overflow its container */
 }
 
 .rating-number {
-  width: 1.75rem;
-  height: 1.75rem;
+  width: 1.6rem;
+  height: 1.6rem;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -304,6 +304,7 @@
   color: var(--text-secondary);
   transition: all 0.2s ease;
   border: 1px solid #e5e7eb;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
 .rating-number:hover {
