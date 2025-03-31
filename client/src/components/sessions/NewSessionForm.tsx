@@ -1822,7 +1822,7 @@ export function NewSessionForm({
                               <div className="space-y-6">
                                 {performanceAssessments.map((assessment: any, goalIndex: number) => (
                                   <div key={assessment.goalId} className="border border-slate-200 rounded-lg p-5 bg-white shadow-sm hover:shadow transition-shadow relative overflow-hidden mb-6">
-                                    {/* Blue accent line for goal card - wider and using blue-600 for better visibility */}
+                                    {/* Blue accent line for goal card with 100% intensity */}
                                     <div className="absolute left-0 top-0 bottom-0 w-2 bg-blue-600"></div>
                                     {/* Goal header with remove button */}
                                     <div className="flex items-center justify-between mb-4 pb-2 border-b border-slate-100 pl-3">
