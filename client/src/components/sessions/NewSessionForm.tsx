@@ -1803,9 +1803,9 @@ export function NewSessionForm({
                             <Button
                               type="button"
                               size="sm"
-                              variant="outline"
+                              variant="default"
                               onClick={() => setGoalDialogOpen(true)}
-                              className="h-8 border-blue-600 text-blue-600 hover:bg-blue-50 hover:text-blue-700"
+                              className="h-8 bg-blue-600 text-white hover:bg-blue-700"
                             >
                               <Plus className="h-4 w-4 mr-2" />
                               Add Goal
@@ -1832,10 +1832,10 @@ export function NewSessionForm({
                                       <div className="flex items-center space-x-2">
                                         <Button
                                           type="button"
-                                          variant="outline"
+                                          variant="default"
                                           size="sm"
                                           onClick={() => openSubgoalDialog(assessment.goalId)}
-                                          className="h-8 border-blue-400 text-blue-500 hover:bg-blue-50 hover:text-blue-600"
+                                          className="h-8 bg-blue-400 text-white hover:bg-blue-500"
                                         >
                                           <Plus className="h-3 w-3 mr-1" />
                                           Add Subgoal
@@ -1926,9 +1926,9 @@ export function NewSessionForm({
                                               <Label className="text-label text-text-secondary">Applied Strategies</Label>
                                               <Button
                                                 type="button"
-                                                variant="outline"
+                                                variant="default"
                                                 size="sm"
-                                                className="h-8 border-blue-200 text-blue-500 hover:bg-blue-50 hover:text-blue-600"
+                                                className="h-8 bg-blue-50 text-blue-700 hover:bg-blue-100"
                                                 onClick={() => openStrategyDialog(assessment.goalId, subgoal.subgoalId)}
                                                 disabled={subgoal.strategies.length >= 5}
                                               >
