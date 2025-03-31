@@ -1860,8 +1860,8 @@ export function NewSessionForm({
                                     <div className="space-y-4">
                                       {assessment.subgoals.map((subgoal: any, subgoalIndex: number) => (
                                         <div key={subgoal.subgoalId} className="border-t border-slate-200 pt-5 mt-3 pl-6 relative">
-                                          {/* Light blue accent line for subgoal with increased spacing from goal line */}
-                                          <div className="absolute left-3 top-5 bottom-0 w-1 bg-blue-300"></div>
+                                          {/* Light blue accent line (66% of goal accent color) */}
+                                          <div className="absolute left-3 top-5 bottom-0 w-1 bg-blue-400"></div>
                                           {/* Subgoal header with remove button */}
                                           <div className="flex items-center justify-between mb-3 pb-2 border-b border-gray-100">
                                             <h4 className="text-label text-text-primary flex items-center">
@@ -1939,7 +1939,7 @@ export function NewSessionForm({
                                                   <Badge 
                                                     key={strategy} 
                                                     variant="secondary"
-                                                    className="tag px-2.5 py-1.5 gap-1.5"
+                                                    className="tag px-2.5 py-1.5 gap-1.5 bg-blue-100 text-blue-700 border border-blue-200"
                                                   >
                                                     {strategy}
                                                     <span 
