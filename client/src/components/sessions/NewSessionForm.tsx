@@ -112,12 +112,7 @@ const NumericRating = ({ value, onChange, label, description }: {
             {description && <div className="text-caption text-text-tertiary">{description}</div>}
           </div>
         )}
-        <div className="flex items-center">
-          <span className={`inline-flex items-center justify-center h-6 w-6 rounded-full mr-2 text-xs font-medium ${getColorClass(value)}`}>
-            {value}
-          </span>
-          <span className="text-text-secondary text-sm">{getRatingLabel()}</span>
-        </div>
+        {/* Removed the rating display div (now shown in the subgoal header) */}
       </div>
       
       <div className="rating-scale mt-2">
@@ -1870,7 +1865,29 @@ export function NewSessionForm({
                                           <div className="flex items-center justify-between mb-3 pb-2 border-b border-gray-100">
                                             <h4 className="text-label text-text-primary flex items-center">
                                               <Target className="h-4 w-4 mr-2 text-blue-500" />
-                                              {subgoal.subgoalTitle}
+                                              <div className="flex items-center">
+                                                <span>{subgoal.subgoalTitle}</span>
+                                                {(subgoal.rating > 0) && (
+                                                  <>
+                                                    <span className="mx-2 text-gray-400">•</span>
+                                                    <span className={`inline-flex items-center justify-center h-5 w-5 rounded-full mr-1 text-xs font-medium 
+                                                      ${subgoal.rating >= 8 ? "bg-success-500 text-white" : 
+                                                        subgoal.rating >= 5 ? "bg-primary-blue-500 text-white" : 
+                                                        subgoal.rating >= 3 ? "bg-warning-500 text-white" : 
+                                                        "bg-error-500 text-white"}`}>
+                                                      {subgoal.rating}
+                                                    </span>
+                                                    <span className="text-sm text-gray-600">
+                                                      {subgoal.rating >= 9 ? "Excellent" : 
+                                                        subgoal.rating >= 7 ? "Good" : 
+                                                        subgoal.rating >= 5 ? "Average" : 
+                                                        subgoal.rating >= 3 ? "Fair" : 
+                                                        subgoal.rating >= 1 ? "Poor" : 
+                                                        "Not observed"}
+                                                    </span>
+                                                  </>
+                                                )}
+                                              </div>
                                             </h4>
                                             <Button
                                               type="button"
@@ -1883,7 +1900,7 @@ export function NewSessionForm({
                                             </Button>
                                           </div>
                                           
-                                          {/* Rating - simplified without text labels */}
+                                          {/* Rating - without label display (now moved to header) */}
                                           <div className="p-4 bg-white rounded-md shadow-sm">
                                             <NumericRating
                                               value={subgoal.rating || 0}
