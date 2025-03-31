@@ -1811,7 +1811,9 @@ export function FullScreenSessionForm({ open, onOpenChange, defaultValues, clien
                     <div className="space-y-4">
                       {form.watch("performanceAssessments").map((assessment, goalIndex) => (
                         <Card key={goalIndex} className={cn(borderStyles.ghost, "relative overflow-hidden")}>
-                          <CardHeader className="pb-3">
+                          {/* Blue accent line for goal card with 100% intensity */}
+                          <div className="absolute left-0 top-0 bottom-0 w-2 bg-blue-600"></div>
+                          <CardHeader className="pb-3 pl-6">
                             <div className="flex justify-between items-center">
                               <CardTitle className="text-base">{assessment.goalTitle}</CardTitle>
                               <Button
@@ -1872,8 +1874,10 @@ export function FullScreenSessionForm({ open, onOpenChange, defaultValues, clien
                               ) : (
                                 <div className="space-y-3">
                                   {assessment.milestones.map((milestone, milestoneIndex) => (
-                                    <Card key={milestoneIndex} className="border p-3">
-                                      <div className="flex justify-between items-start mb-2">
+                                    <Card key={milestoneIndex} className="border p-3 relative overflow-hidden">
+                                      {/* Light blue accent line (66% of goal accent color) */}
+                                      <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-400"></div>
+                                      <div className="flex justify-between items-start mb-2 pl-3">
                                         <h4 className="text-sm font-medium">{milestone.milestoneTitle}</h4>
                                         <Button
                                           type="button"
@@ -1943,7 +1947,7 @@ export function FullScreenSessionForm({ open, onOpenChange, defaultValues, clien
                                               <Badge 
                                                 key={strategyIndex} 
                                                 variant="outline"
-                                                className="pl-1.5 pr-0.5 py-0 h-5 text-xs flex items-center"
+                                                className="pl-1.5 pr-0.5 py-0 h-5 text-xs flex items-center bg-blue-100 text-blue-700 border border-blue-200"
                                               >
                                                 {strategy}
                                                 <Button
