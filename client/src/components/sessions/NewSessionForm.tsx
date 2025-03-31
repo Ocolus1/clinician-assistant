@@ -1805,7 +1805,7 @@ export function NewSessionForm({
                               size="sm"
                               variant="outline"
                               onClick={() => setGoalDialogOpen(true)}
-                              className="h-8"
+                              className="h-8 border-blue-600 text-blue-600 hover:bg-blue-50 hover:text-blue-700"
                             >
                               <Plus className="h-4 w-4 mr-2" />
                               Add Goal
@@ -1835,7 +1835,7 @@ export function NewSessionForm({
                                           variant="outline"
                                           size="sm"
                                           onClick={() => openSubgoalDialog(assessment.goalId)}
-                                          className="h-8"
+                                          className="h-8 border-blue-400 text-blue-500 hover:bg-blue-50 hover:text-blue-600"
                                         >
                                           <Plus className="h-3 w-3 mr-1" />
                                           Add Subgoal
@@ -1928,7 +1928,7 @@ export function NewSessionForm({
                                                 type="button"
                                                 variant="outline"
                                                 size="sm"
-                                                className="button-tertiary h-8"
+                                                className="h-8 border-blue-200 text-blue-500 hover:bg-blue-50 hover:text-blue-600"
                                                 onClick={() => openStrategyDialog(assessment.goalId, subgoal.subgoalId)}
                                                 disabled={subgoal.strategies.length >= 5}
                                               >
