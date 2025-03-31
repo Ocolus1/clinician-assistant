@@ -1759,7 +1759,7 @@ export function NewSessionForm({
                                 {performanceAssessments.map((assessment: any, goalIndex: number) => (
                                   <div key={assessment.goalId} className="border border-slate-200 rounded-lg p-5 bg-white shadow-sm hover:shadow transition-shadow relative overflow-hidden">
                                     {/* Blue accent line for goal card */}
-                                    <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-primary-blue-600"></div>
+                                    <div className="absolute left-0 top-0 bottom-0 w-2 bg-blue-600"></div>
                                     {/* Goal header with remove button */}
                                     <div className="flex items-center justify-between mb-4 pb-2 border-b border-slate-100 pl-3">
                                       <h3 className="font-medium text-slate-800">{assessment.goalTitle}</h3>
@@ -1797,11 +1797,11 @@ export function NewSessionForm({
                                       {assessment.subgoals.map((subgoal: any, subgoalIndex: number) => (
                                         <div key={subgoal.subgoalId} className="border-t border-slate-200 pt-5 mt-4 pl-4 relative">
                                           {/* Light blue accent line for subgoal */}
-                                          <div className="absolute left-0 top-5 bottom-0 w-1 bg-primary-blue-300"></div>
+                                          <div className="absolute left-0 top-5 bottom-0 w-1 bg-blue-300"></div>
                                           {/* Subgoal header with remove button */}
                                           <div className="flex items-center justify-between mb-3 pb-2 border-b border-gray-100">
                                             <h4 className="text-label text-text-primary flex items-center">
-                                              <Target className="h-4 w-4 mr-2 text-primary-blue-500" />
+                                              <Target className="h-4 w-4 mr-2 text-blue-500" />
                                               {subgoal.subgoalTitle}
                                             </h4>
                                             <Button
@@ -2069,11 +2069,11 @@ export function NewSessionForm({
                   {/* Session Info - Enhanced UI */}
                   <Card className="relative overflow-hidden transition-all duration-200 hover:shadow-md group">
                     {/* Blue accent line on the left */}
-                    <div className="absolute top-0 left-0 w-1 h-full bg-primary-blue-500"></div>
+                    <div className="absolute top-0 left-0 w-1 h-full bg-blue-600"></div>
                     
                     <CardContent className="p-4 pl-5">
-                      <h3 className="font-medium mb-3 text-primary-blue-700 flex items-center">
-                        <Clock className="w-4 h-4 mr-2 text-primary-blue-500" /> 
+                      <h3 className="font-medium mb-3 text-blue-700 flex items-center">
+                        <Clock className="w-4 h-4 mr-2 text-blue-500" /> 
                         Session
                       </h3>
                       
@@ -2156,18 +2156,18 @@ export function NewSessionForm({
                       )}
                       
                       {/* Visual feedback on hover - subtle scale effect */}
-                      <div className="absolute inset-0 bg-primary-blue-50 opacity-0 group-hover:opacity-10 transition-opacity duration-200"></div>
+                      <div className="absolute inset-0 bg-blue-50 opacity-0 group-hover:opacity-10 transition-opacity duration-200"></div>
                     </CardContent>
                   </Card>
                   
                   {/* Observations */}
                   <Card className="relative overflow-hidden transition-all duration-200 hover:shadow-md group">
                     {/* Blue accent line on the left */}
-                    <div className="absolute top-0 left-0 w-1 h-full bg-primary-blue-500"></div>
+                    <div className="absolute top-0 left-0 w-1 h-full bg-blue-600"></div>
                     
                     <CardContent className="p-4 pl-5">
-                      <h3 className="font-medium mb-3 text-primary-blue-700 flex items-center">
-                        <Eye className="w-4 h-4 mr-2 text-primary-blue-500" /> 
+                      <h3 className="font-medium mb-3 text-blue-700 flex items-center">
+                        <Eye className="w-4 h-4 mr-2 text-blue-500" /> 
                         Observations
                       </h3>
                       <div className="space-y-3">
@@ -2226,11 +2226,11 @@ export function NewSessionForm({
                   {/* Products */}
                   <Card className="relative overflow-hidden transition-all duration-200 hover:shadow-md group">
                     {/* Blue accent line on the left */}
-                    <div className="absolute top-0 left-0 w-1 h-full bg-primary-blue-500"></div>
+                    <div className="absolute top-0 left-0 w-1 h-full bg-blue-600"></div>
                     
                     <CardContent className="p-4 pl-5">
-                      <h3 className="font-medium mb-3 text-primary-blue-700 flex items-center">
-                        <ShoppingCart className="w-4 h-4 mr-2 text-primary-blue-500" /> 
+                      <h3 className="font-medium mb-3 text-blue-700 flex items-center">
+                        <ShoppingCart className="w-4 h-4 mr-2 text-blue-500" /> 
                         Products
                       </h3>
                       {sessionNoteValues.products.length > 0 ? (
@@ -2266,7 +2266,7 @@ export function NewSessionForm({
                                 {/* Progress Bar for Units Used */}
                                 <div className="w-full h-1.5 bg-slate-200 rounded-full mt-2">
                                   <div 
-                                    className="h-full bg-primary-blue-400 rounded-full" 
+                                    className="h-full bg-blue-400 rounded-full" 
                                     style={{ width: `${Math.min(100, (product.quantity / product.availableQuantity) * 100)}%` }}
                                   ></div>
                                 </div>
@@ -2278,7 +2278,7 @@ export function NewSessionForm({
                           <div className="mt-3 pt-2 border-t border-slate-200">
                             <p className="text-sm font-semibold flex justify-between items-center">
                               <span>Total:</span>
-                              <span className="text-base text-primary-blue-700">${totalProductCost.toFixed(2)}</span>
+                              <span className="text-base text-blue-700">${totalProductCost.toFixed(2)}</span>
                             </p>
                           </div>
                         </div>
@@ -2291,11 +2291,11 @@ export function NewSessionForm({
                   {/* Assessments */}
                   <Card className="relative overflow-hidden transition-all duration-200 hover:shadow-md group">
                     {/* Blue accent line on the left */}
-                    <div className="absolute top-0 left-0 w-1 h-full bg-primary-blue-500"></div>
+                    <div className="absolute top-0 left-0 w-1 h-full bg-blue-600"></div>
                     
                     <CardContent className="p-4 pl-5">
-                      <h3 className="font-medium mb-3 text-primary-blue-700 flex items-center">
-                        <Target className="w-4 h-4 mr-2 text-primary-blue-500" /> 
+                      <h3 className="font-medium mb-3 text-blue-700 flex items-center">
+                        <Target className="w-4 h-4 mr-2 text-blue-500" /> 
                         Assessments
                       </h3>
                       {performanceAssessments.length > 0 ? (
@@ -2303,7 +2303,7 @@ export function NewSessionForm({
                           {performanceAssessments.map((assessment: any) => (
                             <Accordion key={assessment.goalId} type="single" collapsible className="border rounded-md relative overflow-hidden">
                               {/* Blue accent line for goal accordion */}
-                              <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-primary-blue-600"></div>
+                              <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-blue-600"></div>
                               <AccordionItem value="item-1" className="border-none">
                                 <AccordionTrigger className="px-3 py-2 pl-5 text-sm hover:no-underline">
                                   <span className="font-medium">{assessment.goalTitle}</span>
@@ -2315,7 +2315,7 @@ export function NewSessionForm({
                                       {assessment.subgoals.map((subgoal: any) => (
                                         <div key={subgoal.subgoalId} className="border-t border-slate-100 pt-2 pl-3 relative">
                                           {/* Light blue accent line for subgoal in accordion */}
-                                          <div className="absolute left-0 top-2 bottom-0 w-1 bg-primary-blue-300"></div>
+                                          <div className="absolute left-0 top-2 bottom-0 w-1 bg-blue-300"></div>
                                           <div className="flex items-center justify-between">
                                             <p className="text-sm font-medium">{subgoal.subgoalTitle}</p>
                                             <div className="flex items-center">
@@ -2367,11 +2367,11 @@ export function NewSessionForm({
                   {/* Session Notes */}
                   <Card className="mt-4 relative overflow-hidden transition-all duration-200 hover:shadow-md group">
                     {/* Blue accent line on the left */}
-                    <div className="absolute top-0 left-0 w-1 h-full bg-primary-blue-500"></div>
+                    <div className="absolute top-0 left-0 w-1 h-full bg-blue-600"></div>
                     
                     <CardContent className="p-4 pl-5">
-                      <h3 className="font-medium mb-3 text-primary-blue-700 flex items-center">
-                        <ClipboardPen className="w-4 h-4 mr-2 text-primary-blue-500" /> 
+                      <h3 className="font-medium mb-3 text-blue-700 flex items-center">
+                        <ClipboardPen className="w-4 h-4 mr-2 text-blue-500" /> 
                         Session Notes
                       </h3>
                       {sessionNoteValues?.notes ? (
