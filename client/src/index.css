@@ -287,19 +287,20 @@
   align-items: center;
   justify-content: flex-start;
   margin: 0.5rem 0;
-  gap: 0.15rem; /* Reduced spacing between numbers significantly for a tighter appearance */
+  gap: 0.1rem; /* Very tight spacing for a cohesive appearance */
   width: auto; /* Prevent full-width stretch */
+  max-width: 100%; /* Ensure it doesn't overflow its container */
 }
 
 .rating-number {
-  width: 1.5rem;
-  height: 1.5rem;
+  width: 1.25rem;
+  height: 1.25rem;
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: 50%;
   cursor: pointer;
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   color: var(--text-secondary);
   transition: all 0.2s ease;
 }

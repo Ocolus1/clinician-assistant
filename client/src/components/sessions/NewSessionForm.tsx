@@ -116,8 +116,8 @@ const NumericRating = ({ value, onChange, label, description }: {
         {/* Removed the rating display div (now shown in the subgoal header) */}
       </div>
       
-      <div className="flex justify-center mt-2">
-        <div className="rating-scale">
+      <div className="flex justify-start mt-2" style={{ width: "50%" }}>
+        <div className="rating-scale w-full">
           {Array.from({ length: 11 }).map((_, i) => (
             <button
               key={i}
@@ -1906,16 +1906,18 @@ export function NewSessionForm({
                                           
                                           {/* Rating - without label display (now moved to header) */}
                                           <div className="p-4 bg-white rounded-md shadow-sm">
-                                            <NumericRating
-                                              value={subgoal.rating || 0}
-                                              onChange={(value) => {
-                                                const newAssessments = [...performanceAssessments];
-                                                newAssessments[goalIndex].subgoals[subgoalIndex].rating = value;
-                                                form.setValue("performanceAssessments", newAssessments);
-                                              }}
-                                              label=""
-                                              description=""
-                                            />
+                                            <div className="flex justify-start">
+                                              <NumericRating
+                                                value={subgoal.rating || 0}
+                                                onChange={(value) => {
+                                                  const newAssessments = [...performanceAssessments];
+                                                  newAssessments[goalIndex].subgoals[subgoalIndex].rating = value;
+                                                  form.setValue("performanceAssessments", newAssessments);
+                                                }}
+                                                label=""
+                                                description=""
+                                              />
+                                            </div>
                                           </div>
                                           
                                           {/* Strategies */}
