@@ -116,7 +116,7 @@ const NumericRating = ({ value, onChange, label, description }: {
         {/* Removed the rating display div (now shown in the subgoal header) */}
       </div>
       
-      <div className="flex justify-start mt-2" style={{ width: "50%" }}>
+      <div className="flex justify-start mt-2" style={{ width: "85%" }}>
         <div className="rating-scale w-full">
           {Array.from({ length: 11 }).map((_, i) => (
             <button
@@ -1906,7 +1906,7 @@ export function NewSessionForm({
                                           
                                           {/* Rating - without label display (now moved to header) */}
                                           <div className="p-4 bg-white rounded-md shadow-sm">
-                                            <div className="flex justify-start">
+                                            <div className="flex justify-start" style={{ width: "85%" }}>
                                               <NumericRating
                                                 value={subgoal.rating || 0}
                                                 onChange={(value) => {
