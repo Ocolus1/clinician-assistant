@@ -1897,10 +1897,10 @@ export function NewSessionForm({
                                               type="button"
                                               variant="ghost"
                                               size="sm"
-                                              className="button-icon-sm"
+                                              className="h-7 w-7 p-0 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full"
                                               onClick={() => removeSubgoalFromAssessment(assessment.goalId, subgoal.subgoalId)}
                                             >
-                                              <X className="h-3.5 w-3.5 text-text-tertiary" />
+                                              <X className="h-3.5 w-3.5" />
                                             </Button>
                                           </div>
                                           
