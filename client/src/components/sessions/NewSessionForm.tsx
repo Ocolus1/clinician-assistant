@@ -86,7 +86,8 @@ const NumericRating = ({ value, onChange, label, description }: {
       if (value >= 8) return "bg-success-500 text-white";
       if (value >= 5) return "bg-primary-blue-500 text-white";
       if (value >= 3) return "bg-warning-500 text-white";
-      return "bg-error-500 text-white";
+      if (value >= 1) return "bg-error-500 text-white";
+      return "bg-gray-400 text-white";
     }
     
     // Subtle styling for unselected numbers
@@ -121,7 +122,7 @@ const NumericRating = ({ value, onChange, label, description }: {
             key={i}
             type="button"
             onClick={() => onChange(i)}
-            className={`rating-number ${value === i ? 'selected' : ''}`}
+            className={`rating-number ${value === i ? 'selected' : ''} ${value === i ? getColorClass(i) : ''}`}
             aria-label={`Rate ${i} out of 10`}
           >
             {i}
@@ -1870,20 +1871,21 @@ export function NewSessionForm({
                                                 {(subgoal.rating > 0) && (
                                                   <>
                                                     <span className="mx-2 text-gray-400">•</span>
-                                                    <span className={`inline-flex items-center justify-center h-5 w-5 rounded-full mr-1 text-xs font-medium 
-                                                      ${subgoal.rating >= 8 ? "bg-success-500 text-white" : 
-                                                        subgoal.rating >= 5 ? "bg-primary-blue-500 text-white" : 
-                                                        subgoal.rating >= 3 ? "bg-warning-500 text-white" : 
-                                                        "bg-error-500 text-white"}`}>
-                                                      {subgoal.rating}
-                                                    </span>
-                                                    <span className="text-sm text-gray-600">
-                                                      {subgoal.rating >= 9 ? "Excellent" : 
-                                                        subgoal.rating >= 7 ? "Good" : 
-                                                        subgoal.rating >= 5 ? "Average" : 
-                                                        subgoal.rating >= 3 ? "Fair" : 
-                                                        subgoal.rating >= 1 ? "Poor" : 
-                                                        "Not observed"}
+                                                    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium
+                                                      ${subgoal.rating >= 8 ? "bg-success-100 text-success-800 border border-success-300" : 
+                                                        subgoal.rating >= 5 ? "bg-blue-100 text-blue-800 border border-blue-300" : 
+                                                        subgoal.rating >= 3 ? "bg-amber-100 text-amber-800 border border-amber-300" : 
+                                                        "bg-rose-100 text-rose-800 border border-rose-300"}`}>
+                                                      <span className="font-semibold">{subgoal.rating}</span>
+                                                      <span className="mx-1 text-gray-500">|</span>
+                                                      <span>
+                                                        {subgoal.rating >= 9 ? "Excellent" : 
+                                                          subgoal.rating >= 7 ? "Good" : 
+                                                          subgoal.rating >= 5 ? "Average" : 
+                                                          subgoal.rating >= 3 ? "Fair" : 
+                                                          subgoal.rating >= 1 ? "Poor" : 
+                                                          "Not observed"}
+                                                      </span>
                                                     </span>
                                                   </>
                                                 )}
