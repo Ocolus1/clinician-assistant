@@ -1757,9 +1757,11 @@ export function NewSessionForm({
                             ) : (
                               <div className="space-y-6">
                                 {performanceAssessments.map((assessment: any, goalIndex: number) => (
-                                  <div key={assessment.goalId} className="border border-slate-200 rounded-lg p-5 bg-white shadow-sm hover:shadow transition-shadow">
+                                  <div key={assessment.goalId} className="border border-slate-200 rounded-lg p-5 bg-white shadow-sm hover:shadow transition-shadow relative overflow-hidden">
+                                    {/* Blue accent line for goal card */}
+                                    <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-primary-blue-600"></div>
                                     {/* Goal header with remove button */}
-                                    <div className="flex items-center justify-between mb-4 pb-2 border-b border-slate-100">
+                                    <div className="flex items-center justify-between mb-4 pb-2 border-b border-slate-100 pl-3">
                                       <h3 className="font-medium text-slate-800">{assessment.goalTitle}</h3>
                                       <div className="flex items-center space-x-2">
                                         <Button
@@ -1793,7 +1795,9 @@ export function NewSessionForm({
                                     {/* List of subgoals */}
                                     <div className="space-y-6">
                                       {assessment.subgoals.map((subgoal: any, subgoalIndex: number) => (
-                                        <div key={subgoal.subgoalId} className="border-t border-slate-200 pt-5 mt-4">
+                                        <div key={subgoal.subgoalId} className="border-t border-slate-200 pt-5 mt-4 pl-4 relative">
+                                          {/* Light blue accent line for subgoal */}
+                                          <div className="absolute left-0 top-5 bottom-0 w-1 bg-primary-blue-300"></div>
                                           {/* Subgoal header with remove button */}
                                           <div className="flex items-center justify-between mb-3 pb-2 border-b border-gray-100">
                                             <h4 className="text-label text-text-primary flex items-center">
@@ -2297,9 +2301,11 @@ export function NewSessionForm({
                       {performanceAssessments.length > 0 ? (
                         <div className="space-y-2">
                           {performanceAssessments.map((assessment: any) => (
-                            <Accordion key={assessment.goalId} type="single" collapsible className="border rounded-md">
+                            <Accordion key={assessment.goalId} type="single" collapsible className="border rounded-md relative overflow-hidden">
+                              {/* Blue accent line for goal accordion */}
+                              <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-primary-blue-600"></div>
                               <AccordionItem value="item-1" className="border-none">
-                                <AccordionTrigger className="px-3 py-2 text-sm hover:no-underline">
+                                <AccordionTrigger className="px-3 py-2 pl-5 text-sm hover:no-underline">
                                   <span className="font-medium">{assessment.goalTitle}</span>
                                   <span className="ml-2 text-xs text-slate-500">({assessment.subgoals.length} subgoals)</span>
                                 </AccordionTrigger>
@@ -2307,7 +2313,9 @@ export function NewSessionForm({
                                   {assessment.subgoals.length > 0 ? (
                                     <div className="space-y-3">
                                       {assessment.subgoals.map((subgoal: any) => (
-                                        <div key={subgoal.subgoalId} className="border-t border-slate-100 pt-2">
+                                        <div key={subgoal.subgoalId} className="border-t border-slate-100 pt-2 pl-3 relative">
+                                          {/* Light blue accent line for subgoal in accordion */}
+                                          <div className="absolute left-0 top-2 bottom-0 w-1 bg-primary-blue-300"></div>
                                           <div className="flex items-center justify-between">
                                             <p className="text-sm font-medium">{subgoal.subgoalTitle}</p>
                                             <div className="flex items-center">
