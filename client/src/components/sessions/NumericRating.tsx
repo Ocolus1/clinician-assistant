@@ -53,21 +53,23 @@ export function NumericRating({ value, onChange, label, description }: NumericRa
         </div>
       </div>
       
-      <div className="rating-scale mt-2">
-        {Array.from({ length: 11 }).map((_, i) => (
-          <button
-            key={i}
-            type="button"
-            onClick={() => onChange(i)}
-            className={`rating-number ${value === i ? 'selected' : ''}`}
-            aria-label={`Rate ${i} out of 10`}
-          >
-            {i}
-          </button>
-        ))}
+      <div className="flex justify-center mt-2">
+        <div className="rating-scale">
+          {Array.from({ length: 11 }).map((_, i) => (
+            <button
+              key={i}
+              type="button"
+              onClick={() => onChange(i)}
+              className={`rating-number ${value === i ? 'selected' : ''} ${value === i ? getColorClass(i) : ''}`}
+              aria-label={`Rate ${i} out of 10`}
+            >
+              {i}
+            </button>
+          ))}
+        </div>
       </div>
       
-      <div className="flex justify-between text-xs text-text-tertiary mt-1 px-1">
+      <div className="flex justify-between text-xs text-text-tertiary mt-1 px-4">
         <span>Low</span>
         <span>High</span>
       </div>

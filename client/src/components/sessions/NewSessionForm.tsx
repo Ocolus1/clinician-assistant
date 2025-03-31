@@ -116,18 +116,20 @@ const NumericRating = ({ value, onChange, label, description }: {
         {/* Removed the rating display div (now shown in the subgoal header) */}
       </div>
       
-      <div className="rating-scale mt-2">
-        {Array.from({ length: 11 }).map((_, i) => (
-          <button
-            key={i}
-            type="button"
-            onClick={() => onChange(i)}
-            className={`rating-number ${value === i ? 'selected' : ''} ${value === i ? getColorClass(i) : ''}`}
-            aria-label={`Rate ${i} out of 10`}
-          >
-            {i}
-          </button>
-        ))}
+      <div className="flex justify-center mt-2">
+        <div className="rating-scale">
+          {Array.from({ length: 11 }).map((_, i) => (
+            <button
+              key={i}
+              type="button"
+              onClick={() => onChange(i)}
+              className={`rating-number ${value === i ? 'selected' : ''} ${value === i ? getColorClass(i) : ''}`}
+              aria-label={`Rate ${i} out of 10`}
+            >
+              {i}
+            </button>
+          ))}
+        </div>
       </div>
       
       {/* Removed High/Low labels */}
