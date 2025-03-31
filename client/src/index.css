@@ -287,18 +287,18 @@
   align-items: center;
   justify-content: space-between;
   margin: 0.5rem 0;
-  gap: 0.35rem; /* Reduced spacing between numbers by 40% */
+  gap: 0.15rem; /* Reduced spacing between numbers significantly for a tighter appearance */
 }
 
 .rating-number {
-  width: 1.75rem;
-  height: 1.75rem;
+  width: 1.5rem;
+  height: 1.5rem;
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: 50%;
   cursor: pointer;
-  font-size: 0.875rem;
+  font-size: 0.75rem;
   color: var(--text-secondary);
   transition: all 0.2s ease;
 }
@@ -309,7 +309,7 @@
 
 .rating-number.selected {
   font-weight: 500;
-  transform: scale(1.05);
+  transform: scale(1.02);
 }
 
 /* Don't use background-color here as we'll apply it dynamically */
