@@ -67,7 +67,77 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 
 // Custom components
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
-import { NumericRating } from "@/components/sessions/NumericRating";
+// Import original NumericRating component for reference
+import { NumericRating as OriginalNumericRating } from "@/components/sessions/NumericRating";
+
+// Custom NumericRating component without High/Low labels
+const NumericRating = ({ value, onChange, label, description }: { 
+  value: number; 
+  onChange: (value: number) => void; 
+  label: string; 
+  description?: string;
+}) => {
+  // Get appropriate color based on the rating value
+  const getColorClass = (circleValue: number) => {
+    const isSelected = circleValue === value;
+    
+    // Only apply color to the selected number
+    if (isSelected) {
+      if (value >= 8) return "bg-success-500 text-white";
+      if (value >= 5) return "bg-primary-blue-500 text-white";
+      if (value >= 3) return "bg-warning-500 text-white";
+      return "bg-error-500 text-white";
+    }
+    
+    // Subtle styling for unselected numbers
+    return "bg-gray-50 text-gray-500 hover:bg-gray-100";
+  };
+  
+  // Get text label for the rating to give meaning to the numbers
+  const getRatingLabel = () => {
+    if (value >= 9) return "Excellent";
+    if (value >= 7) return "Good";
+    if (value >= 5) return "Average";
+    if (value >= 3) return "Fair";
+    if (value >= 1) return "Poor";
+    return "Not observed";
+  };
+  
+  return (
+    <div className="space-y-2 mb-4">
+      <div className="flex justify-between items-center">
+        {label && (
+          <div>
+            <div className="text-label font-medium text-text-secondary">{label}</div>
+            {description && <div className="text-caption text-text-tertiary">{description}</div>}
+          </div>
+        )}
+        <div className="flex items-center">
+          <span className={`inline-flex items-center justify-center h-6 w-6 rounded-full mr-2 text-xs font-medium ${getColorClass(value)}`}>
+            {value}
+          </span>
+          <span className="text-text-secondary text-sm">{getRatingLabel()}</span>
+        </div>
+      </div>
+      
+      <div className="rating-scale mt-2">
+        {Array.from({ length: 11 }).map((_, i) => (
+          <button
+            key={i}
+            type="button"
+            onClick={() => onChange(i)}
+            className={`rating-number ${value === i ? 'selected' : ''}`}
+            aria-label={`Rate ${i} out of 10`}
+          >
+            {i}
+          </button>
+        ))}
+      </div>
+      
+      {/* Removed High/Low labels */}
+    </div>
+  );
+};
 import { RatingDots } from "@/components/sessions/RatingDots";
 import {
   Dialog,
@@ -1546,8 +1616,7 @@ export function NewSessionForm({
                           
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <Card className="border border-slate-200 rounded-lg shadow-sm hover:shadow transition-shadow relative overflow-hidden">
-                              {/* Blue accent line */}
-                              <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-500"></div>
+                              {/* Removed blue accent line as requested */}
                               <CardHeader className="pb-3 pl-6">
                                 <CardTitle className="text-md font-medium flex items-center">
                                   <User className="h-4 w-4 mr-2 text-slate-500" />
@@ -1588,8 +1657,7 @@ export function NewSessionForm({
                             </Card>
                             
                             <Card className="border border-slate-200 rounded-lg shadow-sm hover:shadow transition-shadow relative overflow-hidden">
-                              {/* Blue accent line */}
-                              <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-500"></div>
+                              {/* Removed blue accent line as requested */}
                               <CardHeader className="pb-3 pl-6">
                                 <CardTitle className="text-md font-medium flex items-center">
                                   <ClipboardList className="h-4 w-4 mr-2 text-slate-500" />
@@ -1757,8 +1825,8 @@ export function NewSessionForm({
                             ) : (
                               <div className="space-y-6">
                                 {performanceAssessments.map((assessment: any, goalIndex: number) => (
-                                  <div key={assessment.goalId} className="border border-slate-200 rounded-lg p-5 bg-white shadow-sm hover:shadow transition-shadow relative overflow-hidden">
-                                    {/* Blue accent line for goal card */}
+                                  <div key={assessment.goalId} className="border border-slate-200 rounded-lg p-5 bg-white shadow-sm hover:shadow transition-shadow relative overflow-hidden mb-6">
+                                    {/* Blue accent line for goal card - wider and using blue-600 for better visibility */}
                                     <div className="absolute left-0 top-0 bottom-0 w-2 bg-blue-600"></div>
                                     {/* Goal header with remove button */}
                                     <div className="flex items-center justify-between mb-4 pb-2 border-b border-slate-100 pl-3">
@@ -1793,11 +1861,11 @@ export function NewSessionForm({
                                     )}
                                     
                                     {/* List of subgoals */}
-                                    <div className="space-y-6">
+                                    <div className="space-y-4">
                                       {assessment.subgoals.map((subgoal: any, subgoalIndex: number) => (
-                                        <div key={subgoal.subgoalId} className="border-t border-slate-200 pt-5 mt-4 pl-4 relative">
-                                          {/* Light blue accent line for subgoal */}
-                                          <div className="absolute left-0 top-5 bottom-0 w-1 bg-blue-300"></div>
+                                        <div key={subgoal.subgoalId} className="border-t border-slate-200 pt-5 mt-3 pl-6 relative">
+                                          {/* Light blue accent line for subgoal with increased spacing from goal line */}
+                                          <div className="absolute left-3 top-5 bottom-0 w-1 bg-blue-300"></div>
                                           {/* Subgoal header with remove button */}
                                           <div className="flex items-center justify-between mb-3 pb-2 border-b border-gray-100">
                                             <h4 className="text-label text-text-primary flex items-center">
@@ -1815,7 +1883,7 @@ export function NewSessionForm({
                                             </Button>
                                           </div>
                                           
-                                          {/* Rating */}
+                                          {/* Rating - simplified without text labels */}
                                           <div className="p-4 bg-white rounded-md shadow-sm">
                                             <NumericRating
                                               value={subgoal.rating || 0}
@@ -1824,8 +1892,8 @@ export function NewSessionForm({
                                                 newAssessments[goalIndex].subgoals[subgoalIndex].rating = value;
                                                 form.setValue("performanceAssessments", newAssessments);
                                               }}
-                                              label="Performance Rating"
-                                              description="Rate progress on this subgoal"
+                                              label=""
+                                              description=""
                                             />
                                           </div>
                                           
@@ -1891,8 +1959,7 @@ export function NewSessionForm({
                       <TabsContent value="session-notes" className="py-4">
                         <div className="space-y-6">
                           <Card className="border border-slate-200 rounded-lg shadow-sm relative overflow-hidden">
-                            {/* Blue accent line */}
-                            <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-500"></div>
+                            {/* Removed blue accent line as requested */}
                             <CardHeader className="pb-3 pl-6">
                               <CardTitle className="text-md font-medium flex items-center">
                                 <ClipboardPen className="h-4 w-4 mr-2 text-slate-500" />
@@ -2313,9 +2380,9 @@ export function NewSessionForm({
                                   {assessment.subgoals.length > 0 ? (
                                     <div className="space-y-3">
                                       {assessment.subgoals.map((subgoal: any) => (
-                                        <div key={subgoal.subgoalId} className="border-t border-slate-100 pt-2 pl-3 relative">
+                                        <div key={subgoal.subgoalId} className="border-t border-slate-100 pt-2 pl-5 relative">
                                           {/* Light blue accent line for subgoal in accordion */}
-                                          <div className="absolute left-0 top-2 bottom-0 w-1 bg-blue-300"></div>
+                                          <div className="absolute left-3 top-2 bottom-0 w-1 bg-blue-300"></div>
                                           <div className="flex items-center justify-between">
                                             <p className="text-sm font-medium">{subgoal.subgoalTitle}</p>
                                             <div className="flex items-center">
