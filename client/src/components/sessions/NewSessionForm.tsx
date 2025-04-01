@@ -26,7 +26,9 @@ import {
   Save,
   Check,
   Eye,
-  Trash2
+  Trash2,
+  ChevronDown,
+  ChevronUp
 } from "lucide-react";
 
 // UI Components
@@ -289,6 +291,9 @@ export function NewSessionForm({
   // Keep track of subgoals by goal
   const [subgoalsByGoal, setSubgoalsByGoal] = useState<Record<number, Subgoal[]>>({});
   
+  // State to track which goal cards are expanded/collapsed
+  const [expandedGoals, setExpandedGoals] = useState<Record<number, boolean>>({});
+  
   // Form declaration
   const form = useForm<NewSessionFormValues>({
     resolver: zodResolver(newSessionFormSchema),
@@ -429,6 +434,26 @@ export function NewSessionForm({
     }
   }, [goals]);
   
+  // Initialize expandedGoals state when performanceAssessments change
+  useEffect(() => {
+    // When initial data is loaded or goals are added, set their initial expanded state
+    const newExpandedGoals: Record<number, boolean> = {};
+    
+    performanceAssessments.forEach(assessment => {
+      // If this goal doesn't already have an expanded state, default to expanded
+      if (expandedGoals[assessment.goalId] === undefined) {
+        newExpandedGoals[assessment.goalId] = true;
+      }
+    });
+    
+    if (Object.keys(newExpandedGoals).length > 0) {
+      setExpandedGoals(prev => ({
+        ...prev,
+        ...newExpandedGoals
+      }));
+    }
+  }, [performanceAssessments]);
+  
   // Submit handler
   const onSubmit = async (data: NewSessionFormValues) => {
     try {
@@ -513,6 +538,12 @@ export function NewSessionForm({
       subgoals: [], // Empty array - subgoals will be added individually
     };
     
+    // Auto-expand newly added goals
+    setExpandedGoals(prev => ({
+      ...prev,
+      [goalId]: true
+    }));
+    
     form.setValue("performanceAssessments", [
       ...performanceAssessments,
       newAssessment
@@ -566,6 +597,14 @@ export function NewSessionForm({
       a => a.goalId !== goalId
     );
     form.setValue("performanceAssessments", updatedAssessments);
+  };
+  
+  // Function to toggle goal expansion/collapse
+  const toggleGoalExpanded = (goalId: number) => {
+    setExpandedGoals(prev => ({
+      ...prev,
+      [goalId]: !prev[goalId]
+    }));
   };
   
   // Function to add an attendee
@@ -1854,33 +1893,42 @@ export function NewSessionForm({
                                         ? getRatingColor(calculateGoalAverageRating(assessment.subgoals))
                                         : "bg-gray-300"
                                     }`}></div>
-                                    {/* Goal header with remove button */}
+                                    {/* Goal header with expand/collapse and remove buttons */}
                                     <div className="flex items-center justify-between mb-4 pb-2 border-b border-slate-100 pl-3">
-                                      <h3 className="font-medium text-slate-800 flex items-center">
-                                        <span>{assessment.goalTitle}</span>
-                                        {assessment.subgoals.length > 0 && calculateGoalAverageRating(assessment.subgoals) > 0 && (
-                                          <span className="ml-2 text-sm font-normal flex items-center">
-                                            <span className="mx-1 text-gray-400">•</span>
-                                            <span className={`${
-                                              calculateGoalAverageRating(assessment.subgoals) >= 8 
-                                                ? "text-success-600" 
-                                                : calculateGoalAverageRating(assessment.subgoals) >= 5
-                                                  ? "text-blue-600"
-                                                  : calculateGoalAverageRating(assessment.subgoals) >= 3
-                                                    ? "text-amber-600"
-                                                    : "text-rose-600"
-                                            }`}>
-                                              {calculateGoalAverageRating(assessment.subgoals).toFixed(1)} <span className="mx-0.5">|</span> 
-                                              {calculateGoalAverageRating(assessment.subgoals) >= 9 ? "Excellent" : 
-                                                calculateGoalAverageRating(assessment.subgoals) >= 7 ? "Good" : 
-                                                calculateGoalAverageRating(assessment.subgoals) >= 5 ? "Average" : 
-                                                calculateGoalAverageRating(assessment.subgoals) >= 3 ? "Fair" : 
-                                                calculateGoalAverageRating(assessment.subgoals) >= 1 ? "Poor" : 
-                                                "Not observed"}
+                                      <div 
+                                        className="flex items-center cursor-pointer"
+                                        onClick={() => toggleGoalExpanded(assessment.goalId)}
+                                      >
+                                        {expandedGoals[assessment.goalId] ? 
+                                          <ChevronUp className="h-4 w-4 mr-2 text-slate-500" /> : 
+                                          <ChevronDown className="h-4 w-4 mr-2 text-slate-500" />
+                                        }
+                                        <h3 className="font-medium text-slate-800 flex items-center">
+                                          <span>{assessment.goalTitle}</span>
+                                          {assessment.subgoals.length > 0 && calculateGoalAverageRating(assessment.subgoals) > 0 && (
+                                            <span className="ml-2 text-sm font-normal flex items-center">
+                                              <span className="mx-1 text-gray-400">•</span>
+                                              <span className={`${
+                                                calculateGoalAverageRating(assessment.subgoals) >= 8 
+                                                  ? "text-success-600" 
+                                                  : calculateGoalAverageRating(assessment.subgoals) >= 5
+                                                    ? "text-blue-600"
+                                                    : calculateGoalAverageRating(assessment.subgoals) >= 3
+                                                      ? "text-amber-600"
+                                                      : "text-rose-600"
+                                              }`}>
+                                                {calculateGoalAverageRating(assessment.subgoals).toFixed(1)} <span className="mx-0.5">|</span> 
+                                                {calculateGoalAverageRating(assessment.subgoals) >= 9 ? "Excellent" : 
+                                                  calculateGoalAverageRating(assessment.subgoals) >= 7 ? "Good" : 
+                                                  calculateGoalAverageRating(assessment.subgoals) >= 5 ? "Average" : 
+                                                  calculateGoalAverageRating(assessment.subgoals) >= 3 ? "Fair" : 
+                                                  calculateGoalAverageRating(assessment.subgoals) >= 1 ? "Poor" : 
+                                                  "Not observed"}
+                                              </span>
                                             </span>
-                                          </span>
-                                        )}
-                                      </h3>
+                                          )}
+                                        </h3>
+                                      </div>
                                       <div className="flex items-center space-x-2">
                                         <Button
                                           type="button"
@@ -1907,16 +1955,19 @@ export function NewSessionForm({
                                       </div>
                                     </div>
                                     
-                                    {/* No subgoals message */}
-                                    {assessment.subgoals.length === 0 && (
-                                      <div className="text-center py-6 border border-dashed border-slate-200 rounded-lg bg-slate-50">
-                                        <p className="text-slate-600">No subgoals added</p>
-                                      </div>
-                                    )}
-                                    
-                                    {/* List of subgoals */}
-                                    <div className="space-y-4">
-                                      {assessment.subgoals.map((subgoal: any, subgoalIndex: number) => (
+                                    {/* Content section - controlled by collapsible state */}
+                                    {expandedGoals[assessment.goalId] ? (
+                                      <>
+                                        {/* No subgoals message */}
+                                        {assessment.subgoals.length === 0 && (
+                                          <div className="text-center py-6 border border-dashed border-slate-200 rounded-lg bg-slate-50">
+                                            <p className="text-slate-600">No subgoals added</p>
+                                          </div>
+                                        )}
+                                        
+                                        {/* List of subgoals */}
+                                        <div className="space-y-4">
+                                          {assessment.subgoals.map((subgoal: any, subgoalIndex: number) => (
                                         <div key={subgoal.subgoalId} className="border-t border-slate-200 pt-5 mt-3 pl-6 relative">
                                           {/* Dynamic accent line based on subgoal rating */}
                                           <div className={`absolute left-3 top-5 bottom-0 w-1 ${
@@ -2048,12 +2099,16 @@ export function NewSessionForm({
                                               </div>
                                             )}
                                           </div>
-                                          
-
                                         </div>
                                       ))}
                                     </div>
+                                  </>
+                                ) : (
+                                  <div className="flex items-center justify-center py-4">
+                                    <span className="text-sm text-gray-400 italic">Click header to expand</span>
                                   </div>
+                                )}
+                                </div>
                                 ))}
                               </div>
                             )}
