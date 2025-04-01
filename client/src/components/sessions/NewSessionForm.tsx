@@ -1863,7 +1863,11 @@ export function NewSessionForm({
                                           variant="default"
                                           size="sm"
                                           onClick={() => openSubgoalDialog(assessment.goalId)}
-                                          className="h-8 bg-blue-400 text-white hover:bg-blue-500 rounded-md shadow-sm transition-all"
+                                          className={`h-8 text-white rounded-md shadow-sm transition-all ${
+                                            assessment.subgoals.length > 0 
+                                              ? getRatingColor(calculateGoalAverageRating(assessment.subgoals))
+                                              : "bg-blue-600"
+                                          }`}
                                         >
                                           <Plus className="h-3.5 w-3.5 mr-1.5" />
                                           Add Subgoal
