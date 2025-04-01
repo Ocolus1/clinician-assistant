@@ -1899,7 +1899,6 @@ export function NewSessionForm({
                                           {/* Subgoal header with remove button */}
                                           <div className="flex items-center justify-between mb-3 pb-2 border-b border-gray-100">
                                             <h4 className="text-label text-text-primary flex items-center">
-                                              <Target className="h-4 w-4 mr-2 text-blue-500" />
                                               <div className="flex items-center">
                                                 <span>{subgoal.subgoalTitle}</span>
                                                 {(subgoal.rating > 0) && (
@@ -2000,7 +1999,17 @@ export function NewSessionForm({
                                                       className="tag-close inline-flex items-center justify-center ml-1 cursor-pointer" 
                                                       onClick={() => removeStrategyFromSubgoal(assessment.goalId, subgoal.subgoalId, strategy)}
                                                     >
-                                                      <Trash2 className="h-3 w-3" />
+                                                      <Trash2 className={`h-3 w-3 ${
+                                                        subgoal.rating >= 8 
+                                                          ? "text-green-700" 
+                                                          : subgoal.rating >= 5
+                                                            ? "text-blue-700"
+                                                            : subgoal.rating >= 3
+                                                              ? "text-amber-700"
+                                                              : subgoal.rating > 0
+                                                                ? "text-red-700" 
+                                                                : "text-blue-700"
+                                                      }`} />
                                                     </span>
                                                   </span>
                                                 ))}
