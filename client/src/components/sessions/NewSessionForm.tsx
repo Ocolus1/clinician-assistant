@@ -2525,13 +2525,13 @@ export function NewSessionForm({
                     {/* Soft black accent line on the left */}
                     <div className="absolute top-0 left-0 w-1 h-full bg-gray-700"></div>
                     
-                    <CardContent className="p-4 pl-5">
-                      <h3 className="font-medium mb-3 text-gray-700 flex items-center">
+                    <CardContent className="p-5 pl-5">
+                      <h3 className="font-medium mb-4 text-gray-700 flex items-center">
                         <Target className="w-4 h-4 mr-2 text-gray-600" /> 
                         Assessments
                       </h3>
                       {performanceAssessments.length > 0 ? (
-                        <div className="space-y-2">
+                        <div className="space-y-3">
                           {performanceAssessments.map((assessment: any) => (
                             <Accordion key={assessment.goalId} type="single" collapsible className="border rounded-md relative overflow-hidden">
                               {/* Dynamic accent line for goal accordion based on rating */}
@@ -2541,7 +2541,7 @@ export function NewSessionForm({
                                   : "bg-gray-400"
                               }`}></div>
                               <AccordionItem value="item-1" className="border-none">
-                                <AccordionTrigger className="px-3 py-2 pl-5 text-sm hover:no-underline">
+                                <AccordionTrigger className="px-3 py-3 pl-5 text-sm hover:no-underline">
                                   <div className="flex items-center">
                                     <span className="font-medium">{assessment.goalTitle}</span>
                                     {assessment.subgoals.length > 0 && calculateGoalAverageRating(assessment.subgoals) > 0 && (
@@ -2568,22 +2568,22 @@ export function NewSessionForm({
                                     )}
                                   </div>
                                 </AccordionTrigger>
-                                <AccordionContent className="px-3 pb-3 pt-0">
+                                <AccordionContent className="px-3 pb-4 pt-1">
                                   {assessment.subgoals.length > 0 ? (
-                                    <div className="space-y-3">
+                                    <div className="space-y-4">
                                       {assessment.subgoals.map((subgoal: any) => (
-                                        <div key={subgoal.subgoalId} className="border-t border-slate-100 pt-2 pl-5 relative">
+                                        <div key={subgoal.subgoalId} className="border-t border-slate-100 pt-3 pl-5 relative">
                                           {/* Dynamic accent line for subgoal based on rating */}
-                                          <div className={`absolute left-3 top-2 bottom-0 w-1 ${
+                                          <div className={`absolute left-3 top-3 bottom-0 w-1 ${
                                             subgoal.rating > 0
                                               ? getRatingColor(subgoal.rating)
                                               : "bg-gray-400"
                                           }`}></div>
-                                          <div className="flex items-center justify-between">
-                                            <div className="flex items-center flex-1">
-                                              <p className="text-sm font-medium mr-2">{subgoal.subgoalTitle}</p>
+                                          <div className="flex items-center justify-between py-1">
+                                            <div className="flex items-center flex-wrap gap-2">
+                                              <p className="text-sm font-medium">{subgoal.subgoalTitle}</p>
                                               {subgoal.rating > 0 && (
-                                                <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
+                                                <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ${
                                                   subgoal.rating >= 8
                                                     ? "bg-green-100 text-green-700" 
                                                     : subgoal.rating >= 5
@@ -2604,13 +2604,13 @@ export function NewSessionForm({
                                           </div>
                                           
                                           {subgoal.strategies && subgoal.strategies.length > 0 && (
-                                            <div className="mt-2">
-                                              <p className="text-xs text-slate-500 mb-1">Strategies:</p>
-                                              <div className="flex flex-wrap gap-1">
+                                            <div className="mt-3 mb-1">
+                                              <p className="text-xs text-slate-500 mb-1.5">Strategies:</p>
+                                              <div className="flex flex-wrap gap-1.5">
                                                 {subgoal.strategies.map((strategy: string) => (
                                                   <span 
                                                     key={strategy} 
-                                                    className={`inline-flex items-center rounded-full border-0 px-2 py-0.5 text-xs font-semibold ${
+                                                    className={`inline-flex items-center rounded-full border-0 px-2.5 py-1 text-xs font-semibold ${
                                                       subgoal.rating >= 8 
                                                         ? "bg-green-100 text-green-700" 
                                                         : subgoal.rating >= 5
@@ -2650,8 +2650,8 @@ export function NewSessionForm({
                     {/* Soft black accent line on the left */}
                     <div className="absolute top-0 left-0 w-1 h-full bg-gray-700"></div>
                     
-                    <CardContent className="p-4 pl-5">
-                      <h3 className="font-medium mb-3 text-gray-700 flex items-center">
+                    <CardContent className="p-5 pl-5">
+                      <h3 className="font-medium mb-4 text-gray-700 flex items-center">
                         <ClipboardPen className="w-4 h-4 mr-2 text-gray-600" /> 
                         Session Notes
                       </h3>
