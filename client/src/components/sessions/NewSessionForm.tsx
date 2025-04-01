@@ -2534,8 +2534,12 @@ export function NewSessionForm({
                         <div className="space-y-2">
                           {performanceAssessments.map((assessment: any) => (
                             <Accordion key={assessment.goalId} type="single" collapsible className="border rounded-md relative overflow-hidden">
-                              {/* Soft black accent line for goal accordion */}
-                              <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-gray-700"></div>
+                              {/* Dynamic accent line for goal accordion based on rating */}
+                              <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${
+                                assessment.subgoals.length > 0 && calculateGoalAverageRating(assessment.subgoals) > 0
+                                  ? getRatingColor(calculateGoalAverageRating(assessment.subgoals))
+                                  : "bg-gray-400"
+                              }`}></div>
                               <AccordionItem value="item-1" className="border-none">
                                 <AccordionTrigger className="px-3 py-2 pl-5 text-sm hover:no-underline">
                                   <span className="font-medium">{assessment.goalTitle}</span>
@@ -2546,8 +2550,12 @@ export function NewSessionForm({
                                     <div className="space-y-3">
                                       {assessment.subgoals.map((subgoal: any) => (
                                         <div key={subgoal.subgoalId} className="border-t border-slate-100 pt-2 pl-5 relative">
-                                          {/* Light gray accent line for subgoal in accordion */}
-                                          <div className="absolute left-3 top-2 bottom-0 w-1 bg-gray-400"></div>
+                                          {/* Dynamic accent line for subgoal based on rating */}
+                                          <div className={`absolute left-3 top-2 bottom-0 w-1 ${
+                                            subgoal.rating > 0
+                                              ? getRatingColor(subgoal.rating)
+                                              : "bg-gray-400"
+                                          }`}></div>
                                           <div className="flex items-center justify-between">
                                             <p className="text-sm font-medium">{subgoal.subgoalTitle}</p>
                                             <div className="flex items-center">
