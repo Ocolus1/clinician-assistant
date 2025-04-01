@@ -1829,7 +1829,7 @@ export function NewSessionForm({
                               size="sm"
                               variant="default"
                               onClick={() => setGoalDialogOpen(true)}
-                              className="h-8 bg-slate-800 text-white hover:bg-slate-900 rounded-md shadow-sm transition-all"
+                              className="h-8 bg-white text-blue-600 hover:bg-blue-50 border border-blue-600 rounded-md transition-all"
                             >
                               <Plus className="h-4 w-4 mr-1.5" />
                               <span className="text-sm font-bold tracking-wide">Goal</span>
