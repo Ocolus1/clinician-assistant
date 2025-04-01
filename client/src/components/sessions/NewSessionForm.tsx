@@ -2300,8 +2300,8 @@ export function NewSessionForm({
                 <div className="space-y-4">
                   {/* Session Info - Enhanced UI */}
                   <Card className="relative overflow-hidden transition-all duration-200 hover:shadow-md group">
-                    {/* Blue accent line on the left */}
-                    <div className="absolute top-0 left-0 w-1 h-full bg-blue-600"></div>
+                    {/* Soft black accent line on the left */}
+                    <div className="absolute top-0 left-0 w-1 h-full bg-gray-700"></div>
                     
                     <CardContent className="p-4 pl-5">
                       <h3 className="font-medium mb-3 text-blue-700 flex items-center">
@@ -2394,8 +2394,8 @@ export function NewSessionForm({
                   
                   {/* Observations */}
                   <Card className="relative overflow-hidden transition-all duration-200 hover:shadow-md group">
-                    {/* Blue accent line on the left */}
-                    <div className="absolute top-0 left-0 w-1 h-full bg-blue-600"></div>
+                    {/* Soft black accent line on the left */}
+                    <div className="absolute top-0 left-0 w-1 h-full bg-gray-700"></div>
                     
                     <CardContent className="p-4 pl-5">
                       <h3 className="font-medium mb-3 text-blue-700 flex items-center">
@@ -2457,8 +2457,8 @@ export function NewSessionForm({
                   
                   {/* Products */}
                   <Card className="relative overflow-hidden transition-all duration-200 hover:shadow-md group">
-                    {/* Blue accent line on the left */}
-                    <div className="absolute top-0 left-0 w-1 h-full bg-blue-600"></div>
+                    {/* Soft black accent line on the left */}
+                    <div className="absolute top-0 left-0 w-1 h-full bg-gray-700"></div>
                     
                     <CardContent className="p-4 pl-5">
                       <h3 className="font-medium mb-3 text-blue-700 flex items-center">
@@ -2522,8 +2522,8 @@ export function NewSessionForm({
                   
                   {/* Assessments */}
                   <Card className="relative overflow-hidden transition-all duration-200 hover:shadow-md group">
-                    {/* Blue accent line on the left */}
-                    <div className="absolute top-0 left-0 w-1 h-full bg-blue-600"></div>
+                    {/* Soft black accent line on the left */}
+                    <div className="absolute top-0 left-0 w-1 h-full bg-gray-700"></div>
                     
                     <CardContent className="p-4 pl-5">
                       <h3 className="font-medium mb-3 text-blue-700 flex items-center">
@@ -2608,8 +2608,8 @@ export function NewSessionForm({
 
                   {/* Session Notes */}
                   <Card className="mt-4 relative overflow-hidden transition-all duration-200 hover:shadow-md group">
-                    {/* Blue accent line on the left */}
-                    <div className="absolute top-0 left-0 w-1 h-full bg-blue-600"></div>
+                    {/* Soft black accent line on the left */}
+                    <div className="absolute top-0 left-0 w-1 h-full bg-gray-700"></div>
                     
                     <CardContent className="p-4 pl-5">
                       <h3 className="font-medium mb-3 text-blue-700 flex items-center">
