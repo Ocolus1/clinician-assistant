@@ -220,17 +220,10 @@ export default function Sessions() {
                   <CleanupSessionsButton />
                 </DialogContent>
               </Dialog>
-              <Button onClick={() => setCreateSessionDialogOpen(true)}>
-                <Plus className="h-4 w-4 mr-2" /> Add Session
-              </Button>
             </div>
           </div>
           
-          {/* Open the FullScreenSessionForm component */}
-          <FullScreenSessionForm 
-            open={createSessionDialogOpen} 
-            onOpenChange={setCreateSessionDialogOpen}
-          />
+        
           
           {/* Search and filters */}
           <div className="flex flex-col md:flex-row gap-4 mb-6">
@@ -302,7 +295,6 @@ export default function Sessions() {
                 <div className="text-center py-8 bg-gray-50 rounded-lg max-w-md mx-auto">
                   <h4 className="text-lg font-medium text-gray-500 mb-2">No therapy sessions</h4>
                   <p className="text-gray-500 mb-4">No therapy sessions found.</p>
-                  <Button onClick={() => setCreateSessionDialogOpen(true)}>Add New Session</Button>
                 </div>
               ) : (
                 viewType === "grid" ? (
