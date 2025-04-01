@@ -1850,9 +1850,9 @@ export function NewSessionForm({
                                   <div key={assessment.goalId} className="border border-slate-200 rounded-lg p-5 bg-white shadow-sm hover:shadow transition-shadow relative overflow-hidden mb-6">
                                     {/* Dynamic accent line for goal card based on average subgoal rating */}
                                     <div className={`absolute left-0 top-0 bottom-0 w-2 ${
-                                      assessment.subgoals.length > 0 
+                                      assessment.subgoals.length > 0 && calculateGoalAverageRating(assessment.subgoals) > 0
                                         ? getRatingColor(calculateGoalAverageRating(assessment.subgoals))
-                                        : "bg-blue-600"
+                                        : "bg-gray-300"
                                     }`}></div>
                                     {/* Goal header with remove button */}
                                     <div className="flex items-center justify-between mb-4 pb-2 border-b border-slate-100 pl-3">
@@ -1864,9 +1864,9 @@ export function NewSessionForm({
                                           size="sm"
                                           onClick={() => openSubgoalDialog(assessment.goalId)}
                                           className={`h-8 text-white rounded-md shadow-sm transition-all ${
-                                            assessment.subgoals.length > 0 
+                                            assessment.subgoals.length > 0 && calculateGoalAverageRating(assessment.subgoals) > 0
                                               ? getRatingColor(calculateGoalAverageRating(assessment.subgoals))
-                                              : "bg-blue-600"
+                                              : "bg-gray-300"
                                           }`}
                                         >
                                           <Plus className="h-3.5 w-3.5 mr-1.5" />
