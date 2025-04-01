@@ -1981,9 +1981,9 @@ export function NewSessionForm({
                                             {subgoal.strategies.length > 0 ? (
                                               <div className="flex flex-wrap gap-2 mt-3">
                                                 {subgoal.strategies.map((strategy: string) => (
-                                                  <Badge 
+                                                  <span 
                                                     key={strategy}
-                                                    className={`tag px-2.5 py-1.5 gap-1.5 rounded-full font-medium ${
+                                                    className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full font-medium text-xs transition-colors ${
                                                       subgoal.rating >= 8 
                                                         ? "bg-green-100 text-green-700 border border-green-200 hover:bg-green-200" 
                                                         : subgoal.rating >= 5
@@ -2002,7 +2002,7 @@ export function NewSessionForm({
                                                     >
                                                       <Trash2 className="h-3 w-3" />
                                                     </span>
-                                                  </Badge>
+                                                  </span>
                                                 ))}
                                               </div>
                                             ) : (
