@@ -1925,7 +1925,17 @@ export function FullScreenSessionForm({ open, onOpenChange, defaultValues, clien
                                             type="button"
                                             variant="ghost"
                                             size="sm"
-                                            className="h-6 text-xs px-2"
+                                            className={`h-6 text-xs px-2 ${
+                                              (milestone.rating || 0) >= 8 
+                                                ? "bg-green-100 text-green-700 hover:bg-green-200 border border-green-200" 
+                                                : (milestone.rating || 0) >= 5
+                                                  ? "bg-blue-100 text-blue-700 hover:bg-blue-200 border border-blue-200"
+                                                  : (milestone.rating || 0) >= 3
+                                                    ? "bg-amber-100 text-amber-700 hover:bg-amber-200 border border-amber-200"
+                                                    : (milestone.rating || 0) > 0
+                                                      ? "bg-red-100 text-red-700 hover:bg-red-200 border border-red-200" 
+                                                      : "bg-blue-100 text-blue-700 hover:bg-blue-200 border border-blue-200"
+                                            }`}
                                             onClick={() => {
                                               setCurrentGoalIndex(goalIndex);
                                               setCurrentMilestoneIndex(milestoneIndex);
@@ -1947,7 +1957,17 @@ export function FullScreenSessionForm({ open, onOpenChange, defaultValues, clien
                                               <Badge 
                                                 key={strategyIndex} 
                                                 variant="outline"
-                                                className="pl-1.5 pr-0.5 py-0 h-5 text-xs flex items-center bg-blue-100 text-blue-700 border border-blue-200"
+                                                className={`pl-1.5 pr-0.5 py-0 h-5 text-xs flex items-center border ${
+                                                  milestone.rating >= 8 
+                                                    ? "bg-green-100 text-green-700 border-green-200" 
+                                                    : milestone.rating >= 5
+                                                      ? "bg-blue-100 text-blue-700 border-blue-200"
+                                                      : milestone.rating >= 3
+                                                        ? "bg-amber-100 text-amber-700 border-amber-200"
+                                                        : milestone.rating > 0
+                                                          ? "bg-red-100 text-red-700 border-red-200" 
+                                                          : "bg-blue-100 text-blue-700 border-blue-200"
+                                                }`}
                                               >
                                                 {strategy}
                                                 <Button

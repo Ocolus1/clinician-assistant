@@ -242,6 +242,29 @@ interface NewSessionFormProps {
   isEdit?: boolean;
 }
 
+// Helper function to get color based on rating score
+const getRatingColor = (rating: number) => {
+  if (rating >= 8) return "bg-success-500"; // Green for excellent scores (8-10)
+  if (rating >= 5) return "bg-primary-blue-500";    // Blue for good scores (5-7)
+  if (rating >= 3) return "bg-warning-500";   // Orange/amber for fair scores (3-4)
+  return "bg-error-500";                     // Red for poor scores (1-2)
+};
+
+// Helper function to get light version of color for strategy tags
+const getRatingLightColor = (rating: number) => {
+  if (rating >= 8) return "bg-green-100 text-green-700"; // Green for excellent scores
+  if (rating >= 5) return "bg-blue-100 text-blue-700";   // Blue for good scores
+  if (rating >= 3) return "bg-amber-100 text-amber-700"; // Orange/amber for fair scores
+  return "bg-red-100 text-red-700";                     // Red for poor scores
+};
+
+// Calculate average rating for a goal's subgoals
+const calculateGoalAverageRating = (subgoals: any[]) => {
+  if (subgoals.length === 0) return 0;
+  const totalRating = subgoals.reduce((sum, subgoal) => sum + (subgoal.rating || 0), 0);
+  return Math.round(totalRating / subgoals.length);
+};
+
 export function NewSessionForm({ 
   open, 
   onOpenChange, 
@@ -1825,8 +1848,12 @@ export function NewSessionForm({
                               <div className="space-y-6">
                                 {performanceAssessments.map((assessment: any, goalIndex: number) => (
                                   <div key={assessment.goalId} className="border border-slate-200 rounded-lg p-5 bg-white shadow-sm hover:shadow transition-shadow relative overflow-hidden mb-6">
-                                    {/* Blue accent line for goal card with 100% intensity */}
-                                    <div className="absolute left-0 top-0 bottom-0 w-2 bg-blue-600"></div>
+                                    {/* Dynamic accent line for goal card based on average subgoal rating */}
+                                    <div className={`absolute left-0 top-0 bottom-0 w-2 ${
+                                      assessment.subgoals.length > 0 
+                                        ? getRatingColor(calculateGoalAverageRating(assessment.subgoals))
+                                        : "bg-blue-600"
+                                    }`}></div>
                                     {/* Goal header with remove button */}
                                     <div className="flex items-center justify-between mb-4 pb-2 border-b border-slate-100 pl-3">
                                       <h3 className="font-medium text-slate-800">{assessment.goalTitle}</h3>
@@ -1863,8 +1890,12 @@ export function NewSessionForm({
                                     <div className="space-y-4">
                                       {assessment.subgoals.map((subgoal: any, subgoalIndex: number) => (
                                         <div key={subgoal.subgoalId} className="border-t border-slate-200 pt-5 mt-3 pl-6 relative">
-                                          {/* Light blue accent line (66% of goal accent color) */}
-                                          <div className="absolute left-3 top-5 bottom-0 w-1 bg-blue-400"></div>
+                                          {/* Dynamic accent line based on subgoal rating */}
+                                          <div className={`absolute left-3 top-5 bottom-0 w-1 ${
+                                            subgoal.rating > 0 
+                                              ? getRatingColor(subgoal.rating)
+                                              : "bg-blue-400"
+                                          }`}></div>
                                           {/* Subgoal header with remove button */}
                                           <div className="flex items-center justify-between mb-3 pb-2 border-b border-gray-100">
                                             <h4 className="text-label text-text-primary flex items-center">
@@ -1927,9 +1958,18 @@ export function NewSessionForm({
                                               <Label className="text-label text-text-secondary">Applied Strategies</Label>
                                               <Button
                                                 type="button"
-                                                variant="default"
                                                 size="sm"
-                                                className="h-8 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-md shadow-sm transition-all"
+                                                className={`h-8 py-1.5 px-3 rounded-md shadow-sm transition-all inline-flex items-center justify-center font-medium text-sm ring-offset-background ${
+                                                  subgoal.rating >= 8 
+                                                    ? "bg-green-100 text-green-700 hover:bg-green-200 border border-green-200" 
+                                                    : subgoal.rating >= 5
+                                                      ? "bg-blue-100 text-blue-700 hover:bg-blue-200 border border-blue-200"
+                                                      : subgoal.rating >= 3
+                                                        ? "bg-amber-100 text-amber-700 hover:bg-amber-200 border border-amber-200"
+                                                        : subgoal.rating > 0
+                                                          ? "bg-red-100 text-red-700 hover:bg-red-200 border border-red-200" 
+                                                          : "bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200"
+                                                }`}
                                                 onClick={() => openStrategyDialog(assessment.goalId, subgoal.subgoalId)}
                                                 disabled={subgoal.strategies.length >= 5}
                                               >
@@ -1942,9 +1982,18 @@ export function NewSessionForm({
                                               <div className="flex flex-wrap gap-2 mt-3">
                                                 {subgoal.strategies.map((strategy: string) => (
                                                   <Badge 
-                                                    key={strategy} 
-                                                    variant="secondary"
-                                                    className="tag px-2.5 py-1.5 gap-1.5 bg-blue-50 text-blue-700 border-0"
+                                                    key={strategy}
+                                                    className={`tag px-2.5 py-1.5 gap-1.5 rounded-full font-medium ${
+                                                      subgoal.rating >= 8 
+                                                        ? "bg-green-100 text-green-700 border border-green-200 hover:bg-green-200" 
+                                                        : subgoal.rating >= 5
+                                                          ? "bg-blue-100 text-blue-700 border border-blue-200 hover:bg-blue-200"
+                                                          : subgoal.rating >= 3
+                                                            ? "bg-amber-100 text-amber-700 border border-amber-200 hover:bg-amber-200"
+                                                            : subgoal.rating > 0
+                                                              ? "bg-red-100 text-red-700 border border-red-200 hover:bg-red-200" 
+                                                              : "bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100"
+                                                    }`}
                                                   >
                                                     {strategy}
                                                     <span 
@@ -2430,7 +2479,17 @@ export function NewSessionForm({
                                                 {subgoal.strategies.map((strategy: string) => (
                                                   <span 
                                                     key={strategy} 
-                                                    className="inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-semibold bg-slate-50"
+                                                    className={`inline-flex items-center rounded-full border-0 px-2 py-0.5 text-xs font-semibold ${
+                                                      subgoal.rating >= 8 
+                                                        ? "bg-green-100 text-green-700" 
+                                                        : subgoal.rating >= 5
+                                                          ? "bg-blue-100 text-blue-700"
+                                                          : subgoal.rating >= 3
+                                                            ? "bg-amber-100 text-amber-700"
+                                                            : subgoal.rating > 0
+                                                              ? "bg-red-100 text-red-700" 
+                                                              : "bg-blue-100 text-blue-700"
+                                                    }`}
                                                   >
                                                     {strategy}
                                                   </span>
