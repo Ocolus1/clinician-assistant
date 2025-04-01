@@ -1803,13 +1803,13 @@ export function NewSessionForm({
                             </CardTitle>
                             <Button
                               type="button"
-                              size="icon"
+                              size="sm"
                               variant="default"
                               onClick={() => setGoalDialogOpen(true)}
-                              className="h-8 w-8 rounded-full bg-blue-600 text-white hover:bg-blue-700"
-                              title="Add Goal"
+                              className="h-8 bg-blue-600 text-white hover:bg-blue-700 rounded-md shadow-sm transition-all"
                             >
-                              <Plus className="h-4 w-4" />
+                              <Plus className="h-4 w-4 mr-1.5" />
+                              Add Goal
                             </Button>
                           </CardHeader>
                           <CardContent className="p-5 pl-6">
@@ -1834,12 +1834,12 @@ export function NewSessionForm({
                                         <Button
                                           type="button"
                                           variant="default"
-                                          size="icon"
+                                          size="sm"
                                           onClick={() => openSubgoalDialog(assessment.goalId)}
-                                          className="h-8 w-8 rounded-full bg-blue-400 text-white hover:bg-blue-500"
-                                          title="Add Subgoal"
+                                          className="h-8 bg-blue-400 text-white hover:bg-blue-500 rounded-md shadow-sm transition-all"
                                         >
-                                          <Plus className="h-3.5 w-3.5" />
+                                          <Plus className="h-3.5 w-3.5 mr-1.5" />
+                                          Add Subgoal
                                         </Button>
                                         <Button
                                           type="button"
@@ -1928,13 +1928,13 @@ export function NewSessionForm({
                                               <Button
                                                 type="button"
                                                 variant="default"
-                                                size="icon"
-                                                className="h-8 w-8 rounded-full bg-blue-50 text-blue-700 hover:bg-blue-100"
+                                                size="sm"
+                                                className="h-8 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-md shadow-sm transition-all"
                                                 onClick={() => openStrategyDialog(assessment.goalId, subgoal.subgoalId)}
                                                 disabled={subgoal.strategies.length >= 5}
-                                                title={subgoal.strategies.length >= 5 ? 'Max (5) strategies' : 'Add Strategy'}
                                               >
-                                                <Plus className="h-3.5 w-3.5" />
+                                                <Plus className="h-3.5 w-3.5 mr-1.5" />
+                                                {subgoal.strategies.length >= 5 ? 'Max (5)' : 'Add Strategy'}
                                               </Button>
                                             </div>
                                             
