@@ -2542,8 +2542,31 @@ export function NewSessionForm({
                               }`}></div>
                               <AccordionItem value="item-1" className="border-none">
                                 <AccordionTrigger className="px-3 py-2 pl-5 text-sm hover:no-underline">
-                                  <span className="font-medium">{assessment.goalTitle}</span>
-                                  <span className="ml-2 text-xs text-slate-500">({assessment.subgoals.length} subgoals)</span>
+                                  <div className="flex items-center">
+                                    <span className="font-medium">{assessment.goalTitle}</span>
+                                    {assessment.subgoals.length > 0 && calculateGoalAverageRating(assessment.subgoals) > 0 && (
+                                      <span className="ml-2 text-sm font-normal flex items-center">
+                                        <span className="mx-1 text-gray-400">•</span>
+                                        <span className={`${
+                                          calculateGoalAverageRating(assessment.subgoals) >= 8 
+                                            ? "text-success-600" 
+                                            : calculateGoalAverageRating(assessment.subgoals) >= 5
+                                              ? "text-blue-600"
+                                              : calculateGoalAverageRating(assessment.subgoals) >= 3
+                                                ? "text-amber-600"
+                                                : "text-rose-600"
+                                        }`}>
+                                          {calculateGoalAverageRating(assessment.subgoals).toFixed(1)} <span className="mx-0.5">|</span> 
+                                          {calculateGoalAverageRating(assessment.subgoals) >= 9 ? "Excellent" : 
+                                            calculateGoalAverageRating(assessment.subgoals) >= 7 ? "Good" : 
+                                            calculateGoalAverageRating(assessment.subgoals) >= 5 ? "Average" : 
+                                            calculateGoalAverageRating(assessment.subgoals) >= 3 ? "Fair" : 
+                                            calculateGoalAverageRating(assessment.subgoals) >= 1 ? "Poor" : 
+                                            "Not observed"}
+                                        </span>
+                                      </span>
+                                    )}
+                                  </div>
                                 </AccordionTrigger>
                                 <AccordionContent className="px-3 pb-3 pt-0">
                                   {assessment.subgoals.length > 0 ? (
@@ -2557,18 +2580,26 @@ export function NewSessionForm({
                                               : "bg-gray-400"
                                           }`}></div>
                                           <div className="flex items-center justify-between">
-                                            <p className="text-sm font-medium">{subgoal.subgoalTitle}</p>
-                                            <div className="flex items-center">
-                                              <span 
-                                                className={`inline-flex items-center justify-center h-6 w-6 rounded-full mr-1 text-xs
-                                                  ${subgoal.rating >= 8 ? "bg-green-500 text-white" : 
-                                                  subgoal.rating >= 5 ? "bg-blue-500 text-white" : 
-                                                  subgoal.rating >= 3 ? "bg-yellow-500 text-white" : 
-                                                  "bg-red-500 text-white"}`}
-                                              >
-                                                {subgoal.rating || 0}
-                                              </span>
-                                              <span className="text-xs text-slate-600">/10</span>
+                                            <div className="flex items-center flex-1">
+                                              <p className="text-sm font-medium mr-2">{subgoal.subgoalTitle}</p>
+                                              {subgoal.rating > 0 && (
+                                                <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
+                                                  subgoal.rating >= 8
+                                                    ? "bg-green-100 text-green-700" 
+                                                    : subgoal.rating >= 5
+                                                      ? "bg-blue-100 text-blue-700"
+                                                      : subgoal.rating >= 3
+                                                        ? "bg-amber-100 text-amber-700"
+                                                        : "bg-rose-100 text-rose-700"
+                                                }`}>
+                                                  {subgoal.rating.toFixed(1)} <span className="mx-0.5">|</span> 
+                                                  {subgoal.rating >= 9 ? "Excellent" : 
+                                                    subgoal.rating >= 7 ? "Good" : 
+                                                    subgoal.rating >= 5 ? "Average" : 
+                                                    subgoal.rating >= 3 ? "Fair" : 
+                                                    "Poor"}
+                                                </span>
+                                              )}
                                             </div>
                                           </div>
                                           
@@ -2587,8 +2618,8 @@ export function NewSessionForm({
                                                           : subgoal.rating >= 3
                                                             ? "bg-amber-100 text-amber-700"
                                                             : subgoal.rating > 0
-                                                              ? "bg-red-100 text-red-700" 
-                                                              : "bg-blue-100 text-blue-700"
+                                                              ? "bg-rose-100 text-rose-700" 
+                                                              : "bg-gray-100 text-gray-700"
                                                     }`}
                                                   >
                                                     {strategy}
