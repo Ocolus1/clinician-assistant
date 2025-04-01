@@ -1829,10 +1829,10 @@ export function NewSessionForm({
                               size="sm"
                               variant="default"
                               onClick={() => setGoalDialogOpen(true)}
-                              className="h-8 bg-blue-600 text-white hover:bg-blue-700 rounded-md shadow-sm transition-all"
+                              className="h-8 bg-slate-800 text-white hover:bg-slate-900 rounded-md shadow-sm transition-all"
                             >
                               <Plus className="h-4 w-4 mr-1.5" />
-                              <span className="text-sm font-bold">Goal</span>
+                              <span className="text-sm font-bold tracking-wide">Goal</span>
                             </Button>
                           </CardHeader>
                           <CardContent className="p-5 pl-6">
