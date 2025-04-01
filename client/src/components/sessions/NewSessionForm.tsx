@@ -1886,7 +1886,7 @@ export function NewSessionForm({
                             ) : (
                               <div className="space-y-6">
                                 {performanceAssessments.map((assessment: any, goalIndex: number) => (
-                                  <div key={assessment.goalId} className="border border-slate-200 rounded-lg p-5 bg-white shadow-sm hover:shadow transition-shadow relative overflow-hidden mb-6">
+                                  <div key={assessment.goalId} className="border border-slate-200 rounded-lg p-3 bg-white shadow-sm hover:shadow transition-shadow relative overflow-hidden mb-4">
                                     {/* Dynamic accent line for goal card based on average subgoal rating */}
                                     <div className={`absolute left-0 top-0 bottom-0 w-2 ${
                                       assessment.subgoals.length > 0 && calculateGoalAverageRating(assessment.subgoals) > 0
@@ -1894,7 +1894,7 @@ export function NewSessionForm({
                                         : "bg-gray-300"
                                     }`}></div>
                                     {/* Goal header with expand/collapse and remove buttons */}
-                                    <div className="flex items-center justify-between mb-4 pb-2 border-b border-slate-100 pl-3">
+                                    <div className="flex items-center justify-between mb-2 pb-1 border-b border-slate-100 pl-3">
                                       <div 
                                         className="flex items-center cursor-pointer"
                                         onClick={() => toggleGoalExpanded(assessment.goalId)}
@@ -1903,7 +1903,7 @@ export function NewSessionForm({
                                           <ChevronUp className="h-4 w-4 mr-2 text-slate-500" /> : 
                                           <ChevronDown className="h-4 w-4 mr-2 text-slate-500" />
                                         }
-                                        <h3 className="font-medium text-slate-800 flex items-center">
+                                        <h3 className="font-medium text-slate-800 flex items-center py-1">
                                           <span>{assessment.goalTitle}</span>
                                           {assessment.subgoals.length > 0 && calculateGoalAverageRating(assessment.subgoals) > 0 && (
                                             <span className="ml-2 text-sm font-normal flex items-center">
@@ -1968,15 +1968,15 @@ export function NewSessionForm({
                                         {/* List of subgoals */}
                                         <div className="space-y-4">
                                           {assessment.subgoals.map((subgoal: any, subgoalIndex: number) => (
-                                        <div key={subgoal.subgoalId} className="border-t border-slate-200 pt-5 mt-3 pl-6 relative">
+                                        <div key={subgoal.subgoalId} className="border-t border-slate-200 pt-3 mt-2 pl-6 relative">
                                           {/* Dynamic accent line based on subgoal rating */}
-                                          <div className={`absolute left-3 top-5 bottom-0 w-1 ${
+                                          <div className={`absolute left-3 top-3 bottom-0 w-1 ${
                                             subgoal.rating > 0 
                                               ? getRatingColor(subgoal.rating)
                                               : "bg-gray-300"
                                           }`}></div>
                                           {/* Subgoal header with remove button */}
-                                          <div className="flex items-center justify-between mb-3 pb-2 border-b border-gray-100">
+                                          <div className="flex items-center justify-between mb-2 pb-1 border-b border-gray-100">
                                             <h4 className="text-label text-text-primary flex items-center">
                                               <div className="flex items-center">
                                                 <span>{subgoal.subgoalTitle}</span>
@@ -2015,7 +2015,7 @@ export function NewSessionForm({
                                           </div>
                                           
                                           {/* Rating - without label display (now moved to header) */}
-                                          <div className="p-4 bg-white rounded-md shadow-sm">
+                                          <div className="p-3 bg-white rounded-md shadow-sm">
                                             <div className="flex justify-start" style={{ width: "85%" }}>
                                               <NumericRating
                                                 value={subgoal.rating || 0}
@@ -2031,7 +2031,7 @@ export function NewSessionForm({
                                           </div>
                                           
                                           {/* Strategies */}
-                                          <div className="mt-4 p-4 bg-white rounded-md shadow-sm">
+                                          <div className="mt-3 p-3 bg-white rounded-md shadow-sm">
                                             <div className="flex items-center justify-between mb-2">
                                               <Label className="text-label text-text-secondary">Applied Strategies</Label>
                                               <Button
