@@ -25,7 +25,8 @@ import {
   Eraser,
   Save,
   Check,
-  Eye
+  Eye,
+  Trash2
 } from "lucide-react";
 
 // UI Components
@@ -1846,7 +1847,7 @@ export function NewSessionForm({
                                           size="sm"
                                           onClick={() => removeGoalAssessment(assessment.goalId)}
                                         >
-                                          <X className="h-4 w-4" />
+                                          <Trash2 className="h-4 w-4" />
                                         </Button>
                                       </div>
                                     </div>
@@ -1900,7 +1901,7 @@ export function NewSessionForm({
                                               className="h-7 w-7 p-0 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full"
                                               onClick={() => removeSubgoalFromAssessment(assessment.goalId, subgoal.subgoalId)}
                                             >
-                                              <X className="h-3.5 w-3.5" />
+                                              <Trash2 className="h-3.5 w-3.5" />
                                             </Button>
                                           </div>
                                           
@@ -1950,7 +1951,7 @@ export function NewSessionForm({
                                                       className="tag-close inline-flex items-center justify-center ml-1 cursor-pointer" 
                                                       onClick={() => removeStrategyFromSubgoal(assessment.goalId, subgoal.subgoalId, strategy)}
                                                     >
-                                                      <X className="h-3 w-3" />
+                                                      <Trash2 className="h-3 w-3" />
                                                     </span>
                                                   </Badge>
                                                 ))}
