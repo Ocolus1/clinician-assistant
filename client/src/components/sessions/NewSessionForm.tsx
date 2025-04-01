@@ -1898,7 +1898,7 @@ export function NewSessionForm({
                                           <div className={`absolute left-3 top-5 bottom-0 w-1 ${
                                             subgoal.rating > 0 
                                               ? getRatingColor(subgoal.rating)
-                                              : "bg-blue-400"
+                                              : "bg-gray-300"
                                           }`}></div>
                                           {/* Subgoal header with remove button */}
                                           <div className="flex items-center justify-between mb-3 pb-2 border-b border-gray-100">
@@ -1971,7 +1971,7 @@ export function NewSessionForm({
                                                         ? "bg-amber-100 text-amber-700 hover:bg-amber-200 border border-amber-200"
                                                         : subgoal.rating > 0
                                                           ? "bg-red-100 text-red-700 hover:bg-red-200 border border-red-200" 
-                                                          : "bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200"
+                                                          : "bg-gray-100 text-gray-600 hover:bg-gray-200 border border-gray-200"
                                                 }`}
                                                 onClick={() => openStrategyDialog(assessment.goalId, subgoal.subgoalId)}
                                                 disabled={subgoal.strategies.length >= 5}
@@ -1995,7 +1995,7 @@ export function NewSessionForm({
                                                             ? "bg-amber-100 text-amber-700 border border-amber-200 hover:bg-amber-200"
                                                             : subgoal.rating > 0
                                                               ? "bg-red-100 text-red-700 border border-red-200 hover:bg-red-200" 
-                                                              : "bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100"
+                                                              : "bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200"
                                                     }`}
                                                   >
                                                     {strategy}
@@ -2012,7 +2012,7 @@ export function NewSessionForm({
                                                               ? "text-amber-700"
                                                               : subgoal.rating > 0
                                                                 ? "text-red-700" 
-                                                                : "text-blue-700"
+                                                                : "text-gray-600"
                                                       }`} />
                                                     </span>
                                                   </span>
