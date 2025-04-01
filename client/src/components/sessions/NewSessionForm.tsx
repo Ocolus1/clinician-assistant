@@ -1832,7 +1832,7 @@ export function NewSessionForm({
                               className="h-8 bg-blue-600 text-white hover:bg-blue-700 rounded-md shadow-sm transition-all"
                             >
                               <Plus className="h-4 w-4 mr-1.5" />
-                              Add Goal
+                              <span className="text-sm font-bold">Goal</span>
                             </Button>
                           </CardHeader>
                           <CardContent className="p-5 pl-6">
@@ -1870,7 +1870,7 @@ export function NewSessionForm({
                                           }`}
                                         >
                                           <Plus className="h-3.5 w-3.5 mr-1.5" />
-                                          Add Subgoal
+                                          <span className="text-xs font-semibold">Subgoal</span>
                                         </Button>
                                         <Button
                                           type="button"
@@ -1977,7 +1977,7 @@ export function NewSessionForm({
                                                 disabled={subgoal.strategies.length >= 5}
                                               >
                                                 <Plus className="h-3.5 w-3.5 mr-1.5" />
-                                                {subgoal.strategies.length >= 5 ? 'Max (5)' : 'Add Strategy'}
+                                                {subgoal.strategies.length >= 5 ? 'Max (5)' : <span className="text-xs font-normal">Strategy</span>}
                                               </Button>
                                             </div>
                                             
