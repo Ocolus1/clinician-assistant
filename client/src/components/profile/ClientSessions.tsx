@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Session, Client } from "@shared/schema";
 import { format } from "date-fns";
-import { FullScreenSessionForm } from '@/components/sessions';
+import { NewSessionForm } from '@/components/sessions';
 import { SessionsListView } from '@/components/sessions';
 
 interface ClientSessionsProps {
@@ -66,7 +66,7 @@ export default function ClientSessions({ clientId: propClientId }: ClientSession
       )}
       
       {/* Session creation form */}
-      <FullScreenSessionForm 
+      <NewSessionForm 
         open={createSessionDialogOpen} 
         onOpenChange={setCreateSessionDialogOpen}
         initialClient={client}
