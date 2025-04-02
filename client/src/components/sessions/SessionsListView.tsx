@@ -137,6 +137,7 @@ export default function SessionsListView({
     },
     enabled: !!clientId,
   });
+  console.log("testting ")
   
   // All sessions should be treated as completed sessions
   // Set status to completed for all sessions to ensure they display correctly
