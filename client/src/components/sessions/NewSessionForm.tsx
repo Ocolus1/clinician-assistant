@@ -142,13 +142,13 @@ const NumericRating = ({ value, onChange, label, description }: {
 import { RatingDots } from "@/components/sessions/RatingDots";
 import {
   Dialog,
-  DialogContent,
   DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { CustomDialogContent as DialogContent } from "@/components/profile/CustomDialog";
 import {
   Command,
   CommandEmpty,
@@ -1384,7 +1384,7 @@ export function NewSessionForm({
             <Button 
               variant="ghost" 
               onClick={() => setConfirmDialogOpen(true)}
-            className="hover:bg-slate-100 transition-colors"
+              className="hover:bg-slate-100 transition-colors"
             >
               <X className="h-5 w-5" />
             </Button>
