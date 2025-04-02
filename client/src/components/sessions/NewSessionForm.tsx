@@ -83,7 +83,7 @@ const NumericRating = ({ value, onChange, label, description }: {
   // Get appropriate color based on the rating value
   const getColorClass = (circleValue: number) => {
     const isSelected = circleValue === value;
-    
+
     // Only apply color to the selected number
     if (isSelected) {
       if (value >= 8) return "bg-success-500 text-white";
@@ -92,11 +92,11 @@ const NumericRating = ({ value, onChange, label, description }: {
       if (value >= 1) return "bg-error-500 text-white";
       return "bg-gray-400 text-white";
     }
-    
+
     // Subtle styling for unselected numbers
     return "bg-gray-50 text-gray-500 hover:bg-gray-100";
   };
-  
+
   // Get text label for the rating to give meaning to the numbers
   const getRatingLabel = () => {
     if (value >= 9) return "Excellent";
@@ -106,7 +106,7 @@ const NumericRating = ({ value, onChange, label, description }: {
     if (value >= 1) return "Poor";
     return "Not observed";
   };
-  
+
   return (
     <div className="space-y-2 mb-4">
       <div className="flex justify-between items-center">
@@ -118,7 +118,7 @@ const NumericRating = ({ value, onChange, label, description }: {
         )}
         {/* Removed the rating display div (now shown in the subgoal header) */}
       </div>
-      
+
       <div className="flex justify-start mt-2" style={{ width: "85%" }}>
         <div className="rating-scale w-full">
           {Array.from({ length: 11 }).map((_, i) => (
@@ -134,7 +134,7 @@ const NumericRating = ({ value, onChange, label, description }: {
           ))}
         </div>
       </div>
-      
+
       {/* Removed High/Low labels */}
     </div>
   );
@@ -278,22 +278,22 @@ export function NewSessionForm({
   const [activeTab, setActiveTab] = useState("session");
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [selectedClient, setSelectedClient] = useState<Client | null>(initialClient || null);
-  
+
   // State for attendee selection dialog
   const [attendeeDialogOpen, setAttendeeDialogOpen] = useState(false);
-  
+
   // State for product selection dialog
   const [productDialogOpen, setProductDialogOpen] = useState(false);
-  
+
   // State for goal selection dialog
   const [goalDialogOpen, setGoalDialogOpen] = useState(false);
-  
+
   // Keep track of subgoals by goal
   const [subgoalsByGoal, setSubgoalsByGoal] = useState<Record<number, Subgoal[]>>({});
-  
+
   // State to track which goal cards are expanded/collapsed
   const [expandedGoals, setExpandedGoals] = useState<Record<number, boolean>>({});
-  
+
   // Form declaration
   const form = useForm<NewSessionFormValues>({
     resolver: zodResolver(newSessionFormSchema),
@@ -322,12 +322,12 @@ export function NewSessionForm({
       performanceAssessments: [],
     },
   });
-  
+
   // Watch form values for summary panel
   const sessionValues = form.watch("session");
   const sessionNoteValues = form.watch("sessionNote");
   const performanceAssessments = form.watch("performanceAssessments");
-  
+
 
 
   // Fetch client data if needed
@@ -340,14 +340,14 @@ export function NewSessionForm({
     },
     enabled: !!selectedClient?.id,
   });
-  
+
   // Effect to update form when client changes
   useEffect(() => {
     if (selectedClient) {
       form.setValue("session.clientId", selectedClient.id);
     }
   }, [selectedClient, form]);
-  
+
   // Fetch allies for the client
   const { data: allies = [], isLoading: alliesLoading } = useQuery({
     queryKey: ["/api/clients", selectedClient?.id, "allies"],
@@ -358,7 +358,7 @@ export function NewSessionForm({
     },
     enabled: !!selectedClient?.id,
   });
-  
+
   // Fetch goals for the client
   const { data: goals = [], isLoading: goalsLoading } = useQuery({
     queryKey: ["/api/clients", selectedClient?.id, "goals"],
@@ -369,7 +369,7 @@ export function NewSessionForm({
     },
     enabled: !!selectedClient?.id,
   });
-  
+
   // Fetch budget items for the client
   const { data: budgetItems = [], isLoading: budgetItemsLoading } = useQuery({
     queryKey: ["/api/clients", selectedClient?.id, "budget-items"],
@@ -380,7 +380,7 @@ export function NewSessionForm({
     },
     enabled: !!selectedClient?.id,
   });
-  
+
   // Fetch budget settings for the client
   const { data: budgetSettings, isLoading: budgetSettingsLoading } = useQuery({
     queryKey: ["/api/clients", selectedClient?.id, "budget-settings"],
@@ -391,7 +391,7 @@ export function NewSessionForm({
     },
     enabled: !!selectedClient?.id,
   });
-  
+
   // Fetch clinicians for therapist selection
   const { data: clinicians = [], isLoading: cliniciansLoading } = useQuery({
     queryKey: ["/api/clinicians"],
@@ -400,29 +400,29 @@ export function NewSessionForm({
       return response.json();
     },
   });
-  
+
   // Function to fetch subgoals for a goal
   const fetchSubgoals = async (goalId: number) => {
     if (!goalId) return;
-    
+
     try {
       console.log(`Fetching subgoals for goal ID: ${goalId}, Title: ${goals.find((g: Goal) => g.id === goalId)?.title}`);
       const response = await fetch(`/api/goals/${goalId}/subgoals`);
       const subgoals = await response.json();
       console.log(`Received ${subgoals.length} subgoals for goal ${goalId}:`, subgoals);
-      
+
       setSubgoalsByGoal(prev => ({
         ...prev,
         [goalId]: subgoals
       }));
-      
+
       return subgoals;
     } catch (error) {
       console.error(`Error fetching subgoals for goal ${goalId}:`, error);
       return [];
     }
   };
-  
+
   // Effect to fetch subgoals when goals are loaded
   useEffect(() => {
     if (goals.length > 0) {
@@ -433,19 +433,19 @@ export function NewSessionForm({
         });
     }
   }, [goals]);
-  
+
   // Initialize expandedGoals state when performanceAssessments change
   useEffect(() => {
     // When initial data is loaded or goals are added, set their initial expanded state
     const newExpandedGoals: Record<number, boolean> = {};
-    
+
     performanceAssessments.forEach(assessment => {
       // If this goal doesn't already have an expanded state, default to expanded
       if (expandedGoals[assessment.goalId] === undefined) {
         newExpandedGoals[assessment.goalId] = true;
       }
     });
-    
+
     if (Object.keys(newExpandedGoals).length > 0) {
       setExpandedGoals(prev => ({
         ...prev,
@@ -453,7 +453,7 @@ export function NewSessionForm({
       }));
     }
   }, [performanceAssessments]);
-  
+
   // Submit handler
   const onSubmit = async (data: NewSessionFormValues) => {
     try {
@@ -468,68 +468,68 @@ export function NewSessionForm({
           duration: calculateDuration(data.session.timeFrom, data.session.timeTo)
         }
       };
-      
+
       if (isEdit) {
         // Handle edit with PUT request
         // Implementation depends on your API
       } else {
         // Create new session with POST request
         const response = await apiRequest("POST", "/api/sessions", payload);
-        
+
         // Invalidate queries to refresh data
         queryClient.invalidateQueries({ queryKey: ["/api/sessions"] });
         if (selectedClient?.id) {
           queryClient.invalidateQueries({ queryKey: ["/api/clients", selectedClient.id, "sessions"] });
         }
-        
+
         onOpenChange(false);
       }
     } catch (error) {
       console.error("Failed to submit session:", error);
     }
   };
-  
+
   // Helper to combine date and time
   const combineDateTime = (date: Date, timeFrom?: string, timeTo?: string) => {
     if (!date) return new Date();
-    
+
     const newDate = new Date(date);
-    
+
     if (timeFrom) {
       const [hours, minutes] = timeFrom.split(":").map(Number);
       newDate.setHours(hours, minutes);
     }
-    
+
     return newDate;
   };
-  
+
   // Calculate duration in minutes from time strings
   const calculateDuration = (timeFrom?: string, timeTo?: string) => {
     if (!timeFrom || !timeTo) return 60; // Default to 60 minutes
-    
+
     const [fromHours, fromMinutes] = timeFrom.split(":").map(Number);
     const [toHours, toMinutes] = timeTo.split(":").map(Number);
-    
+
     const fromMinutesTotal = fromHours * 60 + fromMinutes;
     const toMinutesTotal = toHours * 60 + toMinutes;
-    
+
     return toMinutesTotal - fromMinutesTotal;
   };
-  
+
   // Function to add a goal assessment (without subgoals)
   const addGoalAssessment = (goalId: number) => {
     const goal = goals.find((g: Goal) => g.id === goalId);
     if (!goal) return;
-    
+
     const existingAssessmentIndex = performanceAssessments.findIndex(
       a => a.goalId === goalId
     );
-    
+
     if (existingAssessmentIndex !== -1) {
       // Goal is already being assessed
       return;
     }
-    
+
     // Add goal assessment without subgoals (new behavior)
     const newAssessment = {
       goalId,
@@ -537,34 +537,34 @@ export function NewSessionForm({
       notes: "",
       subgoals: [], // Empty array - subgoals will be added individually
     };
-    
+
     // Auto-expand newly added goals
     setExpandedGoals(prev => ({
       ...prev,
       [goalId]: true
     }));
-    
+
     form.setValue("performanceAssessments", [
       ...performanceAssessments,
       newAssessment
     ]);
   };
-  
+
   // Function to add a subgoal to a goal assessment
   const addSubgoalToAssessment = (goalId: number, subgoalId: number) => {
     const goalIndex = performanceAssessments.findIndex(a => a.goalId === goalId);
     if (goalIndex === -1) return;
-    
+
     const subgoal = subgoalsByGoal[goalId]?.find(s => s.id === subgoalId);
     if (!subgoal) return;
-    
+
     // Check if subgoal is already added
     const subgoalExists = performanceAssessments[goalIndex].subgoals.some(
       s => s.subgoalId === subgoalId
     );
-    
+
     if (subgoalExists) return;
-    
+
     // Add the subgoal to the assessment
     const newAssessments = [...performanceAssessments];
     newAssessments[goalIndex].subgoals.push({
@@ -574,23 +574,23 @@ export function NewSessionForm({
       strategies: [],
       notes: "",
     });
-    
+
     form.setValue("performanceAssessments", newAssessments);
   };
-  
+
   // Function to remove a subgoal from a goal assessment
   const removeSubgoalFromAssessment = (goalId: number, subgoalId: number) => {
     const goalIndex = performanceAssessments.findIndex(a => a.goalId === goalId);
     if (goalIndex === -1) return;
-    
+
     const newAssessments = [...performanceAssessments];
     newAssessments[goalIndex].subgoals = newAssessments[goalIndex].subgoals.filter(
       s => s.subgoalId !== subgoalId
     );
-    
+
     form.setValue("performanceAssessments", newAssessments);
   };
-  
+
   // Function to remove a goal assessment
   const removeGoalAssessment = (goalId: number) => {
     const updatedAssessments = performanceAssessments.filter(
@@ -598,7 +598,7 @@ export function NewSessionForm({
     );
     form.setValue("performanceAssessments", updatedAssessments);
   };
-  
+
   // Function to toggle goal expansion/collapse
   const toggleGoalExpanded = (goalId: number) => {
     setExpandedGoals(prev => ({
@@ -606,12 +606,12 @@ export function NewSessionForm({
       [goalId]: !prev[goalId]
     }));
   };
-  
+
   // Function to add an attendee
   const addAttendee = (ally: Ally) => {
     const currentPresentAllies = form.getValues("sessionNote.presentAllies");
     const currentPresentAllyIds = form.getValues("sessionNote.presentAllyIds");
-    
+
     if (!currentPresentAllyIds.includes(ally.id)) {
       // Format the ally information as "Name - Relationship - Preferred language"
       const formattedAllyInfo = `${ally.name} - ${ally.relationship} - ${ally.preferredLanguage}`;
@@ -619,12 +619,12 @@ export function NewSessionForm({
       form.setValue("sessionNote.presentAllyIds", [...currentPresentAllyIds, ally.id]);
     }
   };
-  
+
   // Function to remove an attendee
   const removeAttendee = (index: number) => {
     const currentPresentAllies = form.getValues("sessionNote.presentAllies");
     const currentPresentAllyIds = form.getValues("sessionNote.presentAllyIds");
-    
+
     form.setValue("sessionNote.presentAllies", 
       currentPresentAllies.filter((_, i) => i !== index)
     );
@@ -632,16 +632,16 @@ export function NewSessionForm({
       currentPresentAllyIds.filter((_, i) => i !== index)
     );
   };
-  
+
   // Function to add a product to the session
   const addProduct = (item: BudgetItem) => {
     const currentProducts = form.getValues("sessionNote.products");
-    
+
     // Check if product already exists
     const existingProductIndex = currentProducts.findIndex(
       p => p.budgetItemId === item.id
     );
-    
+
     if (existingProductIndex !== -1) {
       // Update quantity if product already exists
       const updatedProducts = [...currentProducts];
@@ -662,7 +662,7 @@ export function NewSessionForm({
       ]);
     }
   };
-  
+
   // Function to remove a product
   const removeProduct = (index: number) => {
     const currentProducts = form.getValues("sessionNote.products");
@@ -678,43 +678,43 @@ export function NewSessionForm({
       0
     );
   }, [sessionNoteValues.products]);
-  
+
   // Attendee Selection Dialog
   const AttendeeSelectionDialog = () => {
     // State for search input
     const [searchTerm, setSearchTerm] = useState('');
-    
+
     // Reset search term when dialog opens
     useEffect(() => {
       if (attendeeDialogOpen) {
         setSearchTerm('');
       }
     }, [attendeeDialogOpen]);
-    
+
     // Get currently selected allies
     const selectedAllies = form.watch("sessionNote.presentAllies") || [];
-    
+
     // Filter allies by search term and exclude already selected allies
     const filteredAllies = allies.filter((ally: Ally) => {
       // Format the ally information as it would appear in the selectedAllies array
       const formattedAllyInfo = `${ally.name} - ${ally.relationship} - ${ally.preferredLanguage}`;
-      
+
       return (searchTerm === '' || ally.name.toLowerCase().includes(searchTerm.toLowerCase())) &&
         !ally.archived &&
         !selectedAllies.includes(formattedAllyInfo);
     });
-    
+
     // Handle search input change
     const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       setSearchTerm(e.target.value);
     };
-    
+
     // Modified add attendee function that also closes the dialog
     const handleAddAttendee = (ally: Ally) => {
       addAttendee(ally);
       setAttendeeDialogOpen(false); // Close dialog after selection
     };
-    
+
     return (
       <Dialog open={attendeeDialogOpen} onOpenChange={setAttendeeDialogOpen}>
         <DialogContent className="sm:max-w-md">
@@ -724,7 +724,7 @@ export function NewSessionForm({
               Choose allies who attended this session
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="py-4">
             <div className="mb-4">
               <Label>Search Allies</Label>
@@ -737,7 +737,7 @@ export function NewSessionForm({
                 />
               </div>
             </div>
-            
+
             <ScrollArea className="h-[300px]">
               <div className="space-y-2">
                 {alliesLoading ? (
@@ -778,7 +778,7 @@ export function NewSessionForm({
               </div>
             </ScrollArea>
           </div>
-          
+
           <DialogFooter>
             <Button 
               variant="outline" 
@@ -791,23 +791,23 @@ export function NewSessionForm({
       </Dialog>
     );
   };
-  
+
   // Product Selection Dialog
   const ProductSelectionDialog = () => {
     // State for search input
     const [searchTerm, setSearchTerm] = useState('');
-    
+
     // Reset search term when dialog opens
     useEffect(() => {
       if (productDialogOpen) {
         setSearchTerm('');
       }
     }, [productDialogOpen]);
-    
+
     // Get currently selected products
     const selectedProducts = form.watch("sessionNote.products") || [];
     const selectedProductIds = selectedProducts.map(p => p.budgetItemId);
-    
+
     // Filter budget items by search term, exclude already selected products, and exclude items with zero quantity
     const filteredProducts = budgetItems.filter((item: BudgetItem) => 
       (searchTerm === '' || 
@@ -817,18 +817,18 @@ export function NewSessionForm({
       // Only include items with quantity greater than 0
       (parseFloat(String(item.quantity || "0")) > 0)
     );
-    
+
     // Handle search input change
     const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       setSearchTerm(e.target.value);
     };
-    
+
     // Modified add product function that also closes the dialog
     const handleAddProduct = (item: BudgetItem) => {
       addProduct(item);
       setProductDialogOpen(false); // Close dialog after selection
     };
-    
+
     return (
       <Dialog open={productDialogOpen} onOpenChange={setProductDialogOpen}>
         <DialogContent className="sm:max-w-md">
@@ -838,7 +838,7 @@ export function NewSessionForm({
               Select products and services from the client's budget
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="py-4">
             <div className="mb-4">
               <Label>Search Products</Label>
@@ -851,7 +851,7 @@ export function NewSessionForm({
                 />
               </div>
             </div>
-            
+
             <ScrollArea className="h-[300px]">
               <div className="space-y-2">
                 {budgetItemsLoading ? (
@@ -896,7 +896,7 @@ export function NewSessionForm({
               </div>
             </ScrollArea>
           </div>
-          
+
           <DialogFooter>
             <Button 
               variant="outline" 
@@ -909,102 +909,102 @@ export function NewSessionForm({
       </Dialog>
     );
   };
-  
+
   // State for subgoal dialog
   const [subgoalDialogOpen, setSubgoalDialogOpen] = useState(false);
   const [selectedGoalForSubgoals, setSelectedGoalForSubgoals] = useState<number | null>(null);
-  
+
   // State for strategy dialog
   const [strategyDialogOpen, setStrategyDialogOpen] = useState(false);
   const [selectedSubgoalForStrategies, setSelectedSubgoalForStrategies] = useState<{goalId: number, subgoalId: number} | null>(null);
-  
+
   // Function to open subgoal selection dialog
   const openSubgoalDialog = (goalId: number) => {
     setSelectedGoalForSubgoals(goalId);
     setSubgoalDialogOpen(true);
   };
-  
+
   // Function to open strategy selection dialog
   const openStrategyDialog = (goalId: number, subgoalId: number) => {
     setSelectedSubgoalForStrategies({goalId, subgoalId});
     setStrategyDialogOpen(true);
   };
-  
+
   // Add a strategy to a subgoal
   const addStrategyToSubgoal = (goalId: number, subgoalId: number, strategy: string) => {
     const goalIndex = performanceAssessments.findIndex(a => a.goalId === goalId);
     if (goalIndex === -1) return;
-    
+
     const subgoalIndex = performanceAssessments[goalIndex].subgoals.findIndex(
       s => s.subgoalId === subgoalId
     );
     if (subgoalIndex === -1) return;
-    
+
     // Check if strategy already exists
     const strategies = performanceAssessments[goalIndex].subgoals[subgoalIndex].strategies;
     if (strategies.includes(strategy)) return;
-    
+
     // Maximum 5 strategies
     if (strategies.length >= 5) return;
-    
+
     // Add the strategy
     const newAssessments = [...performanceAssessments];
     newAssessments[goalIndex].subgoals[subgoalIndex].strategies.push(strategy);
-    
+
     form.setValue("performanceAssessments", newAssessments);
   };
-  
+
   // Remove a strategy from a subgoal
   const removeStrategyFromSubgoal = (goalId: number, subgoalId: number, strategy: string) => {
     const goalIndex = performanceAssessments.findIndex(a => a.goalId === goalId);
     if (goalIndex === -1) return;
-    
+
     const subgoalIndex = performanceAssessments[goalIndex].subgoals.findIndex(
       s => s.subgoalId === subgoalId
     );
     if (subgoalIndex === -1) return;
-    
+
     // Remove the strategy
     const newAssessments = [...performanceAssessments];
     newAssessments[goalIndex].subgoals[subgoalIndex].strategies = 
       newAssessments[goalIndex].subgoals[subgoalIndex].strategies.filter(s => s !== strategy);
-    
+
     form.setValue("performanceAssessments", newAssessments);
   };
-  
+
   // Goal Selection Dialog
   const GoalSelectionDialog = () => {
     // State for search input
     const [searchTerm, setSearchTerm] = useState('');
-    
+
     // Reset search term when dialog opens
     useEffect(() => {
       if (goalDialogOpen) {
         setSearchTerm('');
       }
     }, [goalDialogOpen]);
-    
+
     // Get currently selected goal IDs
     const selectedGoalIds = performanceAssessments.map(a => a.goalId);
-    
+
     // Filter goals by search term and filter out already selected goals
     const filteredGoals = goals.filter((goal: Goal) => 
       (searchTerm === '' || 
        goal.title.toLowerCase().includes(searchTerm.toLowerCase())) && 
       !selectedGoalIds.includes(goal.id)
     );
-    
+
     // Handle search input change
     const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       setSearchTerm(e.target.value);
     };
-    
+
     // Modified add goal function that also closes the dialog
     const handleAddGoal = (goalId: number) => {
       addGoalAssessment(goalId);
       setGoalDialogOpen(false); // Close dialog after selection
     };
-    
+
     return (
       <Dialog open={goalDialogOpen} onOpenChange={setGoalDialogOpen}>
         <DialogContent className="sm:max-w-md">
@@ -1014,7 +1014,7 @@ export function NewSessionForm({
               Select a goal to assess for this session
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="py-4">
             <div className="mb-4">
               <Label>Search Goals</Label>
@@ -1027,7 +1027,7 @@ export function NewSessionForm({
                 />
               </div>
             </div>
-            
+
             <ScrollArea className="h-[300px]">
               <div className="space-y-2">
                 {goalsLoading ? (
@@ -1068,7 +1068,7 @@ export function NewSessionForm({
               </div>
             </ScrollArea>
           </div>
-          
+
           <DialogFooter>
             <Button 
               variant="outline" 
@@ -1081,47 +1081,47 @@ export function NewSessionForm({
       </Dialog>
     );
   };
-  
+
   // Subgoal Selection Dialog
   const SubgoalSelectionDialog = () => {
     const [searchTerm, setSearchTerm] = useState('');
-    
+
     // Reset search term when dialog opens
     useEffect(() => {
       if (subgoalDialogOpen) {
         setSearchTerm('');
       }
     }, [subgoalDialogOpen]);
-    
+
     if (!selectedGoalForSubgoals) return null;
-    
+
     const goalIndex = performanceAssessments.findIndex(a => a.goalId === selectedGoalForSubgoals);
     if (goalIndex === -1) return null;
-    
+
     // Get subgoals for the selected goal
     const goalSubgoals = subgoalsByGoal[selectedGoalForSubgoals] || [];
-    
+
     // Get already selected subgoal IDs
     const selectedSubgoalIds = performanceAssessments[goalIndex].subgoals.map(s => s.subgoalId);
-    
+
     // Filter subgoals that haven't been selected yet
     const filteredSubgoals = goalSubgoals.filter((subgoal: Subgoal) => 
       (searchTerm === '' || 
        subgoal.title.toLowerCase().includes(searchTerm.toLowerCase())) && 
       !selectedSubgoalIds.includes(subgoal.id)
     );
-    
+
     // Handle search input change
     const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       setSearchTerm(e.target.value);
     };
-    
+
     // Add subgoal and close dialog
     const handleAddSubgoal = (subgoalId: number) => {
       addSubgoalToAssessment(selectedGoalForSubgoals, subgoalId);
       setSubgoalDialogOpen(false);
     };
-    
+
     return (
       <Dialog open={subgoalDialogOpen} onOpenChange={setSubgoalDialogOpen}>
         <DialogContent className="sm:max-w-md">
@@ -1131,7 +1131,7 @@ export function NewSessionForm({
               Select a subgoal to assess for this goal
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="py-4">
             <div className="mb-4">
               <Label>Search Subgoals</Label>
@@ -1144,7 +1144,7 @@ export function NewSessionForm({
                 />
               </div>
             </div>
-            
+
             <ScrollArea className="h-[300px]">
               <div className="space-y-2">
                 {filteredSubgoals.length === 0 ? (
@@ -1181,7 +1181,7 @@ export function NewSessionForm({
               </div>
             </ScrollArea>
           </div>
-          
+
           <DialogFooter>
             <Button 
               variant="outline" 
@@ -1194,7 +1194,7 @@ export function NewSessionForm({
       </Dialog>
     );
   };
-  
+
   // Strategy Selection Dialog
   const StrategySelectionDialog = () => {
     const [searchTerm, setSearchTerm] = useState('');
@@ -1205,52 +1205,52 @@ export function NewSessionForm({
       "Scaffolding", "Task Analysis", "Naturalistic Teaching",
       "Pivotal Response Training", "Self-Management", "Peer-Mediated Strategies"
     ]);
-    
+
     // Reset search term when dialog opens
     useEffect(() => {
       if (strategyDialogOpen) {
         setSearchTerm('');
       }
     }, [strategyDialogOpen]);
-    
+
     if (!selectedSubgoalForStrategies) return null;
-    
+
     const { goalId, subgoalId } = selectedSubgoalForStrategies;
-    
+
     const goalIndex = performanceAssessments.findIndex(a => a.goalId === goalId);
     if (goalIndex === -1) return null;
-    
+
     const subgoalIndex = performanceAssessments[goalIndex].subgoals.findIndex(
       s => s.subgoalId === subgoalId
     );
     if (subgoalIndex === -1) return null;
-    
+
     // Get already selected strategies
     const selectedStrategies = performanceAssessments[goalIndex].subgoals[subgoalIndex].strategies;
-    
+
     // Filter strategies that haven't been selected yet
     const filteredStrategies = strategies.filter((strategy: string) => 
       (searchTerm === '' || 
        strategy.toLowerCase().includes(searchTerm.toLowerCase())) && 
       !selectedStrategies.includes(strategy)
     );
-    
+
     // Handle search input change
     const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       setSearchTerm(e.target.value);
     };
-    
+
     // Add strategy and close dialog if we've reached 5 strategies
     const handleAddStrategy = (strategy: string) => {
       addStrategyToSubgoal(goalId, subgoalId, strategy);
-      
+
       // If we now have 5 strategies, close the dialog
       const currentStrategies = [...performanceAssessments[goalIndex].subgoals[subgoalIndex].strategies, strategy];
       if (currentStrategies.length >= 5) {
         setStrategyDialogOpen(false);
       }
     };
-    
+
     return (
       <Dialog open={strategyDialogOpen} onOpenChange={setStrategyDialogOpen}>
         <DialogContent className="sm:max-w-md">
@@ -1260,7 +1260,7 @@ export function NewSessionForm({
               Select up to 5 strategies used for this subgoal
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="py-4">
             <div className="mb-4">
               <Label>Search Strategies</Label>
@@ -1273,7 +1273,7 @@ export function NewSessionForm({
                 />
               </div>
             </div>
-            
+
             <div className="mb-3">
               <Label>Selected ({selectedStrategies.length}/5):</Label>
               <div className="flex flex-wrap gap-2 mt-2">
@@ -1295,7 +1295,7 @@ export function NewSessionForm({
                 )}
               </div>
             </div>
-            
+
             <ScrollArea className="h-[200px]">
               <div className="space-y-2">
                 {filteredStrategies.length === 0 ? (
@@ -1331,7 +1331,7 @@ export function NewSessionForm({
               </div>
             </ScrollArea>
           </div>
-          
+
           <DialogFooter>
             <Button 
               variant="outline" 
@@ -1352,43 +1352,44 @@ export function NewSessionForm({
     budgetItemsLoading || 
     budgetSettingsLoading ||
     cliniciansLoading;
-  
+
   return (
-    <div className="fixed inset-0 z-50 bg-white flex flex-col">
-      <div className="h-screen w-full flex flex-col">
-        {/* Form Header */}
-        <div className="flex justify-between items-center py-4 px-6 border-b shadow-sm">
-          <div>
-            <h1 className="text-2xl font-semibold text-slate-800">
-              {isEdit ? "Edit Session" : "New Session"}
-            </h1>
-            <p className="text-sm text-slate-500 mt-1">
-              {selectedClient ? 
-                (() => {
-                  // Calculate age
-                  const age = selectedClient.dateOfBirth ? 
-                    new Date().getFullYear() - new Date(selectedClient.dateOfBirth).getFullYear() : 
-                    null;
-                  
-                  // Format the client information with age and funds management
-                  return `Client: ${selectedClient.originalName || selectedClient.name}${
-                    age ? ` - ${age} years old` : ''
-                  }${
-                    selectedClient.fundsManagement ? ` - ${selectedClient.fundsManagement}` : ''
-                  }`;
-                })() : 
-                "Please select a client"}
-            </p>
-          </div>
-          <Button 
-            variant="ghost" 
-            onClick={() => setConfirmDialogOpen(true)}
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-screen p-0 h-screen max-h-screen flex flex-col overflow-hidden">
+        <div className="w-full h-full flex flex-col">
+          {/* Form Header */}
+          <div className="flex justify-between items-center py-4 px-6 border-b shadow-sm">
+            <div>
+              <h1 className="text-2xl font-semibold text-slate-800">
+                {isEdit ? "Edit Session" : "New Session"}
+              </h1>
+              <p className="text-sm text-slate-500 mt-1">
+                {selectedClient ? 
+                  (() => {
+                    // Calculate age
+                    const age = selectedClient.dateOfBirth ? 
+                      new Date().getFullYear() - new Date(selectedClient.dateOfBirth).getFullYear() : 
+                      null;
+
+                    // Format the client information with age and funds management
+                    return `Client: ${selectedClient.originalName || selectedClient.name}${
+                      age ? ` - ${age} years old` : ''
+                    }${
+                      selectedClient.fundsManagement ? ` - ${selectedClient.fundsManagement}` : ''
+                    }`;
+                  })() : 
+                  "Please select a client"}
+              </p>
+            </div>
+            <Button 
+              variant="ghost" 
+              onClick={() => setConfirmDialogOpen(true)}
             className="hover:bg-slate-100 transition-colors"
-          >
-            <X className="h-5 w-5" />
-          </Button>
-        </div>
-        
+            >
+              <X className="h-5 w-5" />
+            </Button>
+          </div>
+
         {/* Main Content */}
         <div className="flex-1 overflow-hidden h-full">
           <div className="h-full flex flex-col md:flex-row">
@@ -1398,7 +1399,7 @@ export function NewSessionForm({
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                   <div className="space-y-6">
                     <h2 className="text-xl font-semibold text-slate-800 mb-2">Session Details</h2>
-                    
+
                     <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                       <TabsList className="w-full grid grid-cols-5 p-1 bg-slate-100 rounded-lg">
                         <TabsTrigger 
@@ -1437,7 +1438,7 @@ export function NewSessionForm({
                           Session Notes
                         </TabsTrigger>
                       </TabsList>
-                      
+
                       {/* Session Tab */}
                       <TabsContent value="session" className="py-4">
                         <div className="space-y-6">
@@ -1670,11 +1671,11 @@ export function NewSessionForm({
                           </div>
                         </div>
                       </TabsContent>
-                      
+
                       {/* Observations Tab */}
                       <TabsContent value="details" className="py-4">
                         <div className="space-y-4">
-                          
+
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <Card className="border border-slate-200 rounded-lg shadow-sm hover:shadow transition-shadow relative overflow-hidden">
                               {/* Removed blue accent line as requested */}
@@ -1699,7 +1700,7 @@ export function NewSessionForm({
                                     </FormItem>
                                   )}
                                 />
-                                
+
                                 <FormField
                                   control={form.control}
                                   name="sessionNote.focusRating"
@@ -1716,7 +1717,7 @@ export function NewSessionForm({
                                 />
                               </CardContent>
                             </Card>
-                            
+
                             <Card className="border border-slate-200 rounded-lg shadow-sm hover:shadow transition-shadow relative overflow-hidden">
                               {/* Removed blue accent line as requested */}
                               <CardHeader className="pb-3 pl-6">
@@ -1740,7 +1741,7 @@ export function NewSessionForm({
                                     </FormItem>
                                   )}
                                 />
-                                
+
                                 <FormField
                                   control={form.control}
                                   name="sessionNote.physicalActivityRating"
@@ -1760,7 +1761,7 @@ export function NewSessionForm({
                           </div>
                         </div>
                       </TabsContent>
-                      
+
                       {/* Products Tab */}
                       <TabsContent value="products" className="py-4">
                         <Card className="border border-slate-200 rounded-lg shadow-sm hover:shadow transition-shadow relative overflow-hidden">
@@ -1840,7 +1841,7 @@ export function NewSessionForm({
                                     </div>
                                   </div>
                                 ))}
-                                
+
                                 <div className="flex justify-end pt-5 mt-4 border-t border-slate-200">
                                   <div className="w-40 text-right">
                                     <p className="text-slate-500">Total</p>
@@ -1854,7 +1855,7 @@ export function NewSessionForm({
                           </CardContent>
                         </Card>
                       </TabsContent>
-                      
+
                       {/* Assessment Tab */}
                       <TabsContent value="assessment" className="py-4">
                         <Card className="border border-slate-200 rounded-lg shadow-sm hover:shadow transition-shadow relative overflow-hidden">
@@ -1954,7 +1955,7 @@ export function NewSessionForm({
                                         </Button>
                                       </div>
                                     </div>
-                                    
+
                                     {/* Content section - controlled by collapsible state */}
                                     {expandedGoals[assessment.goalId] ? (
                                       <>
@@ -1964,7 +1965,7 @@ export function NewSessionForm({
                                             <p className="text-slate-600">No subgoals added</p>
                                           </div>
                                         )}
-                                        
+
                                         {/* List of subgoals */}
                                         <div className="space-y-4">
                                           {assessment.subgoals.map((subgoal: any, subgoalIndex: number) => (
@@ -2013,7 +2014,7 @@ export function NewSessionForm({
                                               <Trash2 className="h-3.5 w-3.5" />
                                             </Button>
                                           </div>
-                                          
+
                                           {/* Rating - without label display (now moved to header) */}
                                           <div className="p-3 bg-white rounded-md shadow-sm">
                                             <div className="flex justify-start" style={{ width: "85%" }}>
@@ -2029,7 +2030,7 @@ export function NewSessionForm({
                                               />
                                             </div>
                                           </div>
-                                          
+
                                           {/* Strategies */}
                                           <div className="mt-3 p-3 bg-white rounded-md shadow-sm">
                                             <div className="flex items-center justify-between mb-2">
@@ -2055,7 +2056,7 @@ export function NewSessionForm({
                                                 {subgoal.strategies.length >= 5 ? 'Max (5)' : <span className="text-xs font-normal">Strategy</span>}
                                               </Button>
                                             </div>
-                                            
+
                                             {subgoal.strategies.length > 0 ? (
                                               <div className="flex flex-wrap gap-2 mt-3">
                                                 {subgoal.strategies.map((strategy: string) => (
@@ -2114,7 +2115,7 @@ export function NewSessionForm({
                             )}
                           </CardContent>
                         </Card>
-                        
+
                         {/* Include dialog components */}
                         <SubgoalSelectionDialog />
                         <StrategySelectionDialog />
@@ -2175,7 +2176,7 @@ export function NewSessionForm({
                       </TabsContent>
                     </Tabs>
                   </div>
-                  
+
                   <div className="flex justify-between px-4 mt-6 py-4 border-t border-gray-100">
                     {/* Navigation buttons based on active tab */}
                     {activeTab === "session" && (
@@ -2198,7 +2199,7 @@ export function NewSessionForm({
                         </Button>
                       </>
                     )}
-                    
+
                     {activeTab === "details" && (
                       <>
                         <Button
@@ -2220,7 +2221,7 @@ export function NewSessionForm({
                         </Button>
                       </>
                     )}
-                    
+
                     {activeTab === "products" && (
                       <>
                         <Button
@@ -2242,7 +2243,7 @@ export function NewSessionForm({
                         </Button>
                       </>
                     )}
-                    
+
                     {activeTab === "assessment" && (
                       <>
                         <Button
@@ -2264,7 +2265,7 @@ export function NewSessionForm({
                         </Button>
                       </>
                     )}
-                    
+
                     {activeTab === "session-notes" && (
                       <>
                         <Button
@@ -2289,26 +2290,26 @@ export function NewSessionForm({
                 </form>
               </Form>
             </div>
-            
+
             {/* Right Side - Session Summary */}
             <div className="md:w-1/3 h-full overflow-y-auto bg-gray-50 p-4">
               <div className="sticky top-0">
                 <div className="flex justify-between items-center mb-4">
                   <h2 className="text-lg font-medium">Session Summary</h2>
                 </div>
-                
+
                 <div className="space-y-4">
                   {/* Session Info - Enhanced UI */}
                   <Card className="relative overflow-hidden transition-all duration-200 hover:shadow-md group">
                     {/* Soft black accent line on the left */}
                     <div className="absolute top-0 left-0 w-1 h-full bg-gray-700"></div>
-                    
+
                     <CardContent className="p-4 pl-5">
                       <h3 className="font-medium mb-3 text-gray-700 flex items-center">
                         <Clock className="w-4 h-4 mr-2 text-gray-600" /> 
                         Session
                       </h3>
-                      
+
                       {sessionValues.sessionDate ? (
                         <div className="grid grid-cols-2 gap-x-4 gap-y-2">
                           {/* Column 1: Date & Time */}
@@ -2320,7 +2321,7 @@ export function NewSessionForm({
                                 <p className="text-sm font-medium">{format(sessionValues.sessionDate, "dd MMM yyyy")}</p>
                               </div>
                             </div>
-                            
+
                             <div className="flex items-start">
                               <Clock className="w-4 h-4 mr-2 mt-0.5 text-slate-500" />
                               <div>
@@ -2329,7 +2330,7 @@ export function NewSessionForm({
                               </div>
                             </div>
                           </div>
-                          
+
                           {/* Column 2: Location & Therapist */}
                           <div className="space-y-2">
                             <div className="flex items-start">
@@ -2343,7 +2344,7 @@ export function NewSessionForm({
                                 )}
                               </div>
                             </div>
-                            
+
                             <div className="flex items-start">
                               <User className="w-4 h-4 mr-2 mt-0.5 text-slate-500" />
                               <div>
@@ -2358,7 +2359,7 @@ export function NewSessionForm({
                               </div>
                             </div>
                           </div>
-                          
+
                           {/* Full width: Attendees */}
                           <div className="col-span-2 mt-1">
                             <div className="flex items-start">
@@ -2386,24 +2387,24 @@ export function NewSessionForm({
                           </p>
                         </div>
                       )}
-                      
+
                       {/* Visual feedback on hover - subtle scale effect */}
                       <div className="absolute inset-0 bg-gray-50 opacity-0 group-hover:opacity-10 transition-opacity duration-200"></div>
                     </CardContent>
                   </Card>
-                  
+
                   {/* Observations */}
                   <Card className="relative overflow-hidden transition-all duration-200 hover:shadow-md group">
                     {/* Soft black accent line on the left */}
                     <div className="absolute top-0 left-0 w-1 h-full bg-gray-700"></div>
-                    
+
                     <CardContent className="p-4 pl-5">
                       <h3 className="font-medium mb-3 text-gray-700 flex items-center">
                         <Eye className="w-4 h-4 mr-2 text-gray-600" /> 
                         Observations
                       </h3>
                       <div className="space-y-3">
-                        
+
                         {/* Mood Rating */}
                         <div className="grid grid-cols-[100px_1fr] gap-1 items-center py-1.5">
                           <span className="text-slate-600 text-sm">Mood:</span>
@@ -2412,10 +2413,10 @@ export function NewSessionForm({
                             label={`Mood rating: ${sessionNoteValues.moodRating}/10`}
                           />
                         </div>
-                        
+
                         {/* Thin separator line */}
                         <div className="h-px w-full bg-slate-100"></div>
-                        
+
                         {/* Focus Rating */}
                         <div className="grid grid-cols-[100px_1fr] gap-1 items-center py-1.5">
                           <span className="text-slate-600 text-sm">Focus:</span>
@@ -2424,10 +2425,10 @@ export function NewSessionForm({
                             label={`Focus rating: ${sessionNoteValues.focusRating}/10`}
                           />
                         </div>
-                        
+
                         {/* Thin separator line */}
                         <div className="h-px w-full bg-slate-100"></div>
-                        
+
                         {/* Cooperation Rating */}
                         <div className="grid grid-cols-[100px_1fr] gap-1 items-center py-1.5">
                           <span className="text-slate-600 text-sm">Cooperation:</span>
@@ -2436,10 +2437,10 @@ export function NewSessionForm({
                             label={`Cooperation rating: ${sessionNoteValues.cooperationRating}/10`}
                           />
                         </div>
-                        
+
                         {/* Thin separator line */}
                         <div className="h-px w-full bg-slate-100"></div>
-                        
+
                         {/* Physical Rating */}
                         <div className="grid grid-cols-[100px_1fr] gap-1 items-center py-1.5">
                           <span className="text-slate-600 text-sm">Physical:</span>
@@ -2448,18 +2449,18 @@ export function NewSessionForm({
                             label={`Physical activity rating: ${sessionNoteValues.physicalActivityRating}/10`}
                           />
                         </div>
-                        
+
                         {/* Bottom separator line */}
                         <div className="h-px w-full bg-slate-100"></div>
                       </div>
                     </CardContent>
                   </Card>
-                  
+
                   {/* Products */}
                   <Card className="relative overflow-hidden transition-all duration-200 hover:shadow-md group">
                     {/* Soft black accent line on the left */}
                     <div className="absolute top-0 left-0 w-1 h-full bg-gray-700"></div>
-                    
+
                     <CardContent className="p-4 pl-5">
                       <h3 className="font-medium mb-3 text-gray-700 flex items-center">
                         <ShoppingCart className="w-4 h-4 mr-2 text-gray-600" /> 
@@ -2483,7 +2484,7 @@ export function NewSessionForm({
                                       Unit Price: ${product.unitPrice.toFixed(2)}
                                     </p>
                                   </div>
-                                  
+
                                   {/* Right Column - Units & Costs */}
                                   <div className="text-right">
                                     <p className="text-sm font-medium text-slate-800">
@@ -2494,7 +2495,7 @@ export function NewSessionForm({
                                     </p>
                                   </div>
                                 </div>
-                                
+
                                 {/* Progress Bar for Units Used */}
                                 <div className="w-full h-1.5 bg-slate-200 rounded-full mt-2">
                                   <div 
@@ -2505,7 +2506,7 @@ export function NewSessionForm({
                               </div>
                             ))}
                           </div>
-                          
+
                           {/* Total Section with separator */}
                           <div className="mt-3 pt-2 border-t border-slate-200">
                             <p className="text-sm font-semibold flex justify-between items-center">
@@ -2519,12 +2520,12 @@ export function NewSessionForm({
                       )}
                     </CardContent>
                   </Card>
-                  
+
                   {/* Assessments */}
                   <Card className="relative overflow-hidden transition-all duration-200 hover:shadow-md group">
                     {/* Soft black accent line on the left */}
                     <div className="absolute top-0 left-0 w-1 h-full bg-gray-700"></div>
-                    
+
                     <CardContent className="p-5 pl-5">
                       <h3 className="font-medium mb-4 text-gray-700 flex items-center">
                         <Target className="w-4 h-4 mr-2 text-gray-600" /> 
@@ -2602,7 +2603,7 @@ export function NewSessionForm({
                                               )}
                                             </div>
                                           </div>
-                                          
+
                                           {subgoal.strategies && subgoal.strategies.length > 0 && (
                                             <div className="mt-3 mb-1">
                                               <p className="text-xs text-slate-500 mb-1.5">Strategies:</p>
@@ -2649,7 +2650,7 @@ export function NewSessionForm({
                   <Card className="mt-4 relative overflow-hidden transition-all duration-200 hover:shadow-md group">
                     {/* Soft black accent line on the left */}
                     <div className="absolute top-0 left-0 w-1 h-full bg-gray-700"></div>
-                    
+
                     <CardContent className="p-5 pl-5">
                       <h3 className="font-medium mb-4 text-gray-700 flex items-center">
                         <ClipboardPen className="w-4 h-4 mr-2 text-gray-600" /> 
@@ -2671,44 +2672,45 @@ export function NewSessionForm({
               </div>
             </div>
           </div>
+          </div>
         </div>
-      </div>
-      
-      {/* Dialogs */}
-      <AttendeeSelectionDialog />
-      <ProductSelectionDialog />
-      <GoalSelectionDialog />
-      <SubgoalSelectionDialog />
-      <StrategySelectionDialog />
-      
-      {/* Exit Confirmation Dialog */}
-      <Dialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Exit Session Form</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to exit? All unsaved changes will be lost.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="flex space-x-2 justify-end">
-            <Button 
-              variant="outline" 
-              onClick={() => setConfirmDialogOpen(false)}
-            >
-              Cancel
-            </Button>
-            <Button 
-              variant="destructive" 
-              onClick={() => {
-                setConfirmDialogOpen(false);
-                onOpenChange(false);
-              }}
-            >
-              Exit without saving
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
+
+        {/* Dialogs */}
+        <AttendeeSelectionDialog />
+        <ProductSelectionDialog />
+        <GoalSelectionDialog />
+        <SubgoalSelectionDialog />
+        <StrategySelectionDialog />
+  
+        {/* Exit Confirmation Dialog */}
+        <Dialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Exit Session Form</DialogTitle>
+              <DialogDescription>
+                Are you sure you want to exit? All unsaved changes will be lost.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter className="flex space-x-2 justify-end">
+              <Button 
+                variant="outline" 
+                onClick={() => setConfirmDialogOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button 
+                variant="destructive" 
+                onClick={() => {
+                  setConfirmDialogOpen(false);
+                  onOpenChange(false);
+                }}
+              >
+                Exit without saving
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </DialogContent>
+    </Dialog>
   );
 }
