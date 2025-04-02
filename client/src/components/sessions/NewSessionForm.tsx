@@ -1355,7 +1355,7 @@ export function NewSessionForm({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-screen p-0 h-screen max-h-screen flex flex-col overflow-hidden">
+      <DialogContent className="max-w-screen p-0 h-screen max-h-screen flex flex-col overflow-hidden" hideCloseButton>
         <div className="w-full h-full flex flex-col">
           {/* Form Header */}
           <div className="flex justify-between items-center py-4 px-6 border-b shadow-sm">
