@@ -406,10 +406,10 @@ export function NewSessionForm({
     if (!goalId) return;
 
     try {
-      console.log(`Fetching subgoals for goal ID: ${goalId}, Title: ${goals.find((g: Goal) => g.id === goalId)?.title}`);
+      // Fetching subgoals for goal
       const response = await fetch(`/api/goals/${goalId}/subgoals`);
       const subgoals = await response.json();
-      console.log(`Received ${subgoals.length} subgoals for goal ${goalId}:`, subgoals);
+      // Received subgoals for goal
 
       setSubgoalsByGoal(prev => ({
         ...prev,
@@ -429,7 +429,7 @@ export function NewSessionForm({
       // Fetch subgoals for each goal
       Promise.all(goals.map((goal: Goal) => fetchSubgoals(goal.id)))
         .then(() => {
-          console.log("Final subgoals by goal:", subgoalsByGoal);
+          // Final subgoals loaded by goal
         });
     }
   }, [goals]);
@@ -454,41 +454,105 @@ export function NewSessionForm({
     }
   }, [performanceAssessments]);
 
-  // Submit handler
-  const onSubmit = async (data: NewSessionFormValues) => {
-    try {
-      const payload = {
-        ...data,
-        // Transform the data as needed
-        session: {
-          ...data.session,
-          // Combine time fields with date
-          sessionDate: combineDateTime(data.session.sessionDate, data.session.timeFrom, data.session.timeTo),
-          // Calculate duration from time range
-          duration: calculateDuration(data.session.timeFrom, data.session.timeTo)
-        }
+  // Create session mutation
+  const createSessionMutation = useMutation({
+    mutationFn: async (data: NewSessionFormValues) => {
+      // Create a session object that matches the server's expectations
+      const sessionData = {
+        clientId: data.session.clientId,
+        therapistId: data.session.therapistId,
+        title: data.session.title || "Therapy Session",
+        description: data.session.description || "",
+        sessionDate: combineDateTime(data.session.sessionDate, data.session.timeFrom, data.session.timeTo),
+        duration: calculateDuration(data.session.timeFrom, data.session.timeTo),
+        status: "scheduled",
+        location: data.session.location || "",
+        notes: data.session.notes || ""
       };
-
-      console.log(payload, "payload")
-
-      if (isEdit) {
-        // Handle edit with PUT request
-        // Implementation depends on your API
-      } else {
-        // Create new session with POST request
-        const response = await apiRequest("POST", "/api/sessions", payload);
-
-        // Invalidate queries to refresh data
-        queryClient.invalidateQueries({ queryKey: ["/api/sessions"] });
-        if (selectedClient?.id) {
-          queryClient.invalidateQueries({ queryKey: ["/api/clients", selectedClient.id, "sessions"] });
-        }
-
-        onOpenChange(false);
+      
+      // Make the API request with just the session data the server expects
+      return apiRequest("POST", "/api/sessions", sessionData);
+    },
+    onSuccess: () => {
+      // Invalidate queries to refresh data
+      queryClient.invalidateQueries({ queryKey: ["/api/sessions"] });
+      if (selectedClient?.id) {
+        queryClient.invalidateQueries({ queryKey: ["/api/clients", selectedClient.id, "sessions"] });
       }
-    } catch (error) {
-      console.error("Failed to submit session:", error);
+      
+      // Show success toast
+      toast({
+        title: isEdit ? "Session updated successfully" : "Session created successfully",
+        description: isEdit ? "Your session has been updated." : "Your new session has been created.",
+        variant: "default",
+      });
+      
+      // Close the dialog
+      onOpenChange(false);
+    },
+    onError: (error: any) => {
+      // Extract error message properly
+      let errorMessage = "An unexpected error occurred. Please try again.";
+      let errorDetails = "";
+      
+      if (error) {
+        if (typeof error === 'string') {
+          errorMessage = error;
+        } else if (error.message && typeof error.message === 'string') {
+          errorMessage = error.message;
+        } else if (error.error && typeof error.error === 'string') {
+          errorMessage = error.error;
+        } else if (error.data && error.data.message && typeof error.data.message === 'string') {
+          errorMessage = error.data.message;
+        } else if (error.error && error.error.errors) {
+          // Handle Zod validation errors
+          errorMessage = "Validation error. Please check your input.";
+          try {
+            const issues = error.error.errors;
+            if (Array.isArray(issues)) {
+              errorDetails = issues.map(issue => issue.message || issue.path?.join('.')).join(', ');
+            }
+          } catch (e) {
+            // Fallback if parsing fails
+            errorDetails = "Please check all required fields";
+          }
+        } else {
+          // Try to stringify the error object if all else fails
+          try {
+            const parsed = JSON.stringify(error);
+            if (parsed !== '{}') {
+              errorDetails = parsed;
+            }
+          } catch (e) {
+            // If all else fails, don't add any details
+          }
+        }
+      }
+      
+      // Show error toast
+      toast({
+        title: isEdit ? "Failed to update session" : "Failed to create session",
+        description: errorDetails ? `${errorMessage}: ${errorDetails}` : errorMessage,
+        variant: "destructive",
+      });
     }
+  });
+
+  // Submit handler
+  const onSubmit = (data: NewSessionFormValues) => {
+    // Check if the selected therapist is in the allies list
+    const isTherapistAlly = allies.some((ally: Ally) => ally.id === data.session.therapistId);
+    
+    if (data.session.therapistId && !isTherapistAlly) {
+      toast({
+        title: "Validation Error",
+        description: "The selected therapist must be an ally of the client. Please select a valid therapist.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    createSessionMutation.mutate(data);
   };
 
   // Helper to combine date and time
@@ -1610,14 +1674,27 @@ export function NewSessionForm({
                                         </SelectTrigger>
                                       </FormControl>
                                       <SelectContent>
-                                        {clinicians.map((clinician: Clinician) => (
-                                          <SelectItem
-                                            key={clinician.id}
-                                            value={clinician.id.toString()}
-                                          >
-                                            {clinician.name}
-                                          </SelectItem>
-                                        ))}
+                                        {/* Filter clinicians to only show those who are allies of the client */}
+                                        {clinicians
+                                          .filter((clinician: Clinician) => {
+                                            // Check if clinician is in the allies list
+                                            return allies.some((ally: Ally) => ally.id === clinician.id);
+                                          })
+                                          .map((clinician: Clinician) => (
+                                            <SelectItem
+                                              key={clinician.id}
+                                              value={clinician.id.toString()}
+                                            >
+                                              {clinician.name} (Ally)
+                                            </SelectItem>
+                                          ))}
+                                        
+                                        {/* If no clinicians are allies, show a helper message */}
+                                        {!clinicians.some((c: Clinician) => allies.some((a: Ally) => a.id === c.id)) && (
+                                          <div className="px-2 py-2 text-sm text-muted-foreground">
+                                            No therapists are allies of this client. Please add a therapist as an ally first.
+                                          </div>
+                                        )}
                                       </SelectContent>
                                     </Select>
                                     <FormMessage />
@@ -2282,9 +2359,22 @@ export function NewSessionForm({
                         <Button 
                           type="submit" 
                           className="button-primary-action w-36 h-10"
+                          disabled={createSessionMutation.isPending}
                         >
-                          <Check className="mr-1.5 h-4 w-4" />
-                          {isEdit ? "Update Session" : "Create Session"}
+                          {createSessionMutation.isPending ? (
+                            <>
+                              <svg className="mr-1.5 h-4 w-4 animate-spin" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                              </svg>
+                              {isEdit ? "Updating..." : "Creating..."}
+                            </>
+                          ) : (
+                            <>
+                              <Check className="mr-1.5 h-4 w-4" />
+                              {isEdit ? "Update Session" : "Create Session"}
+                            </>
+                          )}
                         </Button>
                       </>
                     )}
