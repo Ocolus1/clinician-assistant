@@ -469,6 +469,8 @@ export function NewSessionForm({
         }
       };
 
+      console.log(payload, "payload")
+
       if (isEdit) {
         // Handle edit with PUT request
         // Implementation depends on your API
