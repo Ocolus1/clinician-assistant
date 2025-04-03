@@ -173,7 +173,10 @@ export function RichTextEditor({
       </div>
       <EditorContent 
         editor={editor} 
-        className={cn("p-3", minHeight)}
+        className={cn(
+          "p-3 outline-none ring-0 border-none focus:outline-none editor",
+          minHeight
+        )}
       />
     </div>
   );

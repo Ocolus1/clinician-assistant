@@ -28,6 +28,13 @@
     overflow-x: hidden;
     width: 100%;
   }
+
+  .editor:focus,
+  .editor *:focus {
+    outline: none !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
   
   /* Text styles */
   .text-label {
