@@ -2152,6 +2152,7 @@ export function NewSessionForm({
                                           }}
                                           placeholder="Enter detailed session notes here..."
                                           minHeight="min-h-[300px]"
+                                          autofocus={activeTab === "session-notes"}
                                         />
                                       </FormControl>
                                       <FormMessage />

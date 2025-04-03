@@ -22,6 +22,7 @@ interface RichTextEditorProps {
   placeholder?: string;
   className?: string;
   minHeight?: string;
+  autofocus?: boolean;
 }
 
 export function RichTextEditor({
@@ -30,7 +31,10 @@ export function RichTextEditor({
   placeholder = 'Enter your notes here...',
   className,
   minHeight = 'min-h-32',
+  autofocus = false,
 }: RichTextEditorProps) {
+  // Ref to allow access to the editor from focus button
+  const editorRef = React.useRef<ReturnType<typeof useEditor> | null>(null);
   const editor = useEditor({
     extensions: [
       StarterKit,
@@ -48,7 +52,13 @@ export function RichTextEditor({
     onUpdate: ({ editor }) => {
       onChange(editor.getHTML());
     },
+    autofocus: autofocus,
   });
+  
+  // Store editor in ref for external access
+  useEffect(() => {
+    editorRef.current = editor;
+  }, [editor]);
 
   useEffect(() => {
     if (editor && value !== editor.getHTML()) {
@@ -57,14 +67,40 @@ export function RichTextEditor({
     }
   }, [value, editor]);
 
+  // Effect for autofocus and ensuring editor gets focus when 
+  // user clicks anywhere in the editor container
+  useEffect(() => {
+    if (editor && autofocus) {
+      // Set timeout to ensure the editor is fully mounted
+      setTimeout(() => {
+        editor.commands.focus('end');
+      }, 100);
+    }
+  }, [editor, autofocus]);
+
   if (!editor) {
     return null;
   }
 
+  // Handler to focus the editor when clicking on the container
+  const handleContainerClick = () => {
+    if (editor) {
+      editor.commands.focus();
+    }
+  };
+
+  // Focus handler for the explicit focus button
+  const handleFocusEditor = () => {
+    if (editor) {
+      editor.commands.focus('end');
+    }
+  };
+
   return (
     <div className={cn("rounded-md border border-input bg-background text-text-primary", className)}>
-      <div className="flex flex-wrap items-center gap-1 p-1 border-b border-border-color">
-        <Button
+      <div className="flex flex-wrap items-center justify-between gap-1 p-1 border-b border-border-color">
+        <div className="flex flex-wrap items-center gap-1">
+          <Button
           type="button"
           variant="ghost"
           size="sm"
@@ -170,11 +206,29 @@ export function RichTextEditor({
         >
           <AlignRight className="h-4 w-4" />
         </Button>
+        </div>
+        
+        {/* Focus editor button */}
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={handleFocusEditor}
+          className="ml-auto text-xs flex items-center px-2"
+        >
+          <span className="mr-1">Focus Editor</span>
+        </Button>
       </div>
-      <EditorContent 
-        editor={editor} 
-        className={cn("p-3", minHeight)}
-      />
+      
+      <div 
+        className="relative" 
+        onClick={handleContainerClick}
+      >
+        <EditorContent 
+          editor={editor} 
+          className={cn("p-3", minHeight, "focus-within:outline-none focus-within:ring-2 focus-within:ring-primary")}
+        />
+      </div>
     </div>
   );
 }
