@@ -851,10 +851,44 @@ export function FullScreenSessionForm({ open, onOpenChange, defaultValues, clien
   // Update form when session data changes (for edit mode)
   useEffect(() => {
     if (sessionData && mode === "edit") {
-      // TODO: Load session and related data for edit mode
       console.log("Loading session data for editing:", sessionData);
+      
+      // Prepare the session data for the form
+      const sessionValues = {
+        sessionDate: new Date(sessionData.sessionDate),
+        clientId: sessionData.clientId,
+        therapistId: sessionData.therapistId,
+        location: sessionData.location || "",
+        status: sessionData.status || "scheduled",
+        notes: sessionData.notes || "",
+        timeFrom: sessionData.timeFrom || "09:00",
+        timeTo: sessionData.timeTo || "10:00",
+      };
+      
+      // Update form values with the session data
+      form.setValue("session", sessionValues);
+      
+      // If there's a session note attached, populate that data too
+      if (sessionData.sessionNote) {
+        form.setValue("sessionNote", {
+          presentAllies: sessionData.sessionNote.presentAllies || [],
+          presentAllyIds: sessionData.sessionNote.presentAllyIds || [],
+          moodRating: sessionData.sessionNote.moodRating || 5,
+          focusRating: sessionData.sessionNote.focusRating || 5,
+          cooperationRating: sessionData.sessionNote.cooperationRating || 5,
+          physicalActivityRating: sessionData.sessionNote.physicalActivityRating || 5,
+          notes: sessionData.sessionNote.notes || "",
+          products: sessionData.sessionNote.products || [],
+          status: sessionData.sessionNote.status || "draft",
+        });
+      }
+      
+      // If there are performance assessments, load them too
+      if (sessionData.performanceAssessments && sessionData.performanceAssessments.length > 0) {
+        form.setValue("performanceAssessments", sessionData.performanceAssessments);
+      }
     }
-  }, [sessionData, mode]);
+  }, [sessionData, mode, form]);
 
   // Handle adding a new goal assessment
   const handleAddGoalAssessment = (goal: Goal) => {
