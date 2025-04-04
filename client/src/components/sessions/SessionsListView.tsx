@@ -143,18 +143,17 @@ function SessionCard({ session, onClick, onEdit, onDelete }: SessionCardProps) {
               </h5>
             </div>
             
-            {/* Date and time range with responsive layout */}
-            <div className="flex flex-col sm:flex-row items-start sm:items-center text-sm text-slate-600 mb-3 mt-2">
+            {/* Date and time in separate containers to force stacking on mobile */}
+            <div className="space-y-1.5 text-sm text-slate-600 mb-3 mt-2">
               {/* Date section */}
-              <div className="flex items-center w-full">
+              <div className="flex items-center">
                 <Calendar className="h-3.5 w-3.5 mr-1.5 text-slate-400 flex-shrink-0" />
                 <span>{format(sessionDate, 'MMM d, yyyy')}</span>
               </div>
               
               {/* Time section - only shown if available */}
               {(timeFrom && timeTo) && (
-                <div className="flex items-center mt-1 sm:mt-0 w-full">
-                  <span className="hidden sm:inline mx-1.5">•</span>
+                <div className="flex items-center">
                   <Clock className="h-3.5 w-3.5 mr-1.5 text-slate-400 flex-shrink-0" />
                   <span>{formatTimeRange(timeFrom, timeTo)}</span>
                 </div>
