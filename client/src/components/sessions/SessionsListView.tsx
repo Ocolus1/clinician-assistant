@@ -136,15 +136,15 @@ function SessionCard({ session, onClick, onEdit, onDelete }: SessionCardProps) {
         <div className="flex justify-between items-start">
           {/* Left section: Session ID and title */}
           <div className="flex-grow">
-            <div className="flex items-center mb-1">
+            <div className="flex items-center mb-2">
               <h5 className="font-medium text-slate-800">
                 {session.title} 
                 <span className="text-sm text-slate-500 ml-2">#{session.id}</span>
               </h5>
             </div>
             
-            {/* Date and time range */}
-            <div className="flex items-center text-sm text-slate-600 mb-3">
+            {/* Date and time range - with added top margin */}
+            <div className="flex items-center text-sm text-slate-600 mb-3 mt-2">
               <Calendar className="h-3.5 w-3.5 mr-1.5 text-slate-400" />
               <span>{format(sessionDate, 'MMM d, yyyy')}</span>
               
