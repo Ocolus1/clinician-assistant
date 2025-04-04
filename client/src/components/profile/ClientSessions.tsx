@@ -65,6 +65,8 @@ export default function ClientSessions({ clientId: propClientId }: ClientSession
   const prepareSessionFormData = () => {
     if (!sessionToEdit) return undefined;
     
+    console.log("Preparing session form data for editing session:", sessionToEdit);
+    
     // Extract hours from session date for the time fields
     const sessionDate = new Date(sessionToEdit.sessionDate);
     const hours = sessionDate.getHours();

@@ -347,6 +347,21 @@ export function NewSessionForm({
       form.setValue("session.clientId", selectedClient.id);
     }
   }, [selectedClient, form]);
+  
+  // Effect for handling initialData in edit mode
+  useEffect(() => {
+    if (isEdit && initialData) {
+      console.log("Edit mode active with initialData:", initialData);
+      
+      // Reset the form with initialData
+      form.reset(initialData);
+      
+      // Set the selected client based on initialData
+      if (initialData.session.clientId) {
+        setSelectedClient(clientData || { id: initialData.session.clientId });
+      }
+    }
+  }, [isEdit, initialData, form, clientData]);
 
   // Fetch allies for the client
   const { data: allies = [], isLoading: alliesLoading } = useQuery({
@@ -561,6 +576,9 @@ export function NewSessionForm({
 
   // Submit handler
   const onSubmit = (data: NewSessionFormValues) => {
+    console.log("Form submitted in mode:", isEdit ? "edit" : "create");
+    console.log("Form data on submit:", data);
+    
     // Check if the selected therapist is assigned to the client
     const isTherapistAssigned = assignedClinicians.some(
       (assignment: any) => assignment.clinician.id === data.session.therapistId
