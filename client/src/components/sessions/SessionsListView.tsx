@@ -16,7 +16,10 @@ import {
   Plus,
   File,
   ChevronDown,
-  Calendar as CalendarIcon
+  Calendar as CalendarIcon,
+  Eye,
+  Download,
+  Edit
 } from "lucide-react";
 
 import {
@@ -44,9 +47,51 @@ const getStatusBadge = (status: string) => {
   }
 };
 
+// Helper function to get performance-based border color 
+const getPerformanceBorderColor = (session: any) => {
+  // For actual sessions with performance data
+  if (session.status === "completed" && session.performanceScore !== undefined) {
+    const score = session.performanceScore;
+    
+    // Use the score to determine color (same logic as in session form)
+    if (score >= 4) return "border-l-green-500"; // High performance - green
+    if (score >= 2.5) return "border-l-yellow-500"; // Medium performance - yellow
+    return "border-l-red-500"; // Low performance - red
+  }
+  
+  // For cancellation fees
+  if (session.type === "cancellation") {
+    return "border-l-black";
+  }
+  
+  // For documents
+  if (session.type === "document") {
+    return "border-l-purple-500";
+  }
+  
+  // Default color for sessions without performance data
+  return "border-l-gray-300";
+};
+
+// Helper function to format the time range
+const formatTimeRange = (timeFrom: string, timeTo: string) => {
+  if (!timeFrom || !timeTo) return "";
+  return `${timeFrom}-${timeTo}`;
+};
+
+// Extended Session type with additional fields needed for the card
+interface ExtendedSession extends Session {
+  // These fields might not exist in the database schema but are needed for UI display
+  timeFrom?: string;
+  timeTo?: string;
+  therapistName?: string;
+  performanceScore?: number;
+  type?: 'session' | 'cancellation' | 'document';
+}
+
 // Session Card component
 interface SessionCardProps {
-  session: Session;
+  session: ExtendedSession;
   onClick?: () => void;
 }
 
@@ -54,51 +99,80 @@ function SessionCard({ session, onClick }: SessionCardProps) {
   // Convert date string to Date object safely
   const sessionDate = new Date(session.sessionDate);
   
+  // Extract time from and time to if available in the session data
+  const timeFrom = session.timeFrom || ""; 
+  const timeTo = session.timeTo || "";
+  
   return (
     <Card 
-      className="hover:shadow-md transition-shadow duration-200 h-full flex flex-col" 
+      className={`hover:shadow transition-shadow duration-200 h-full border-l-4 ${getPerformanceBorderColor(session)}`} 
       onClick={onClick}
     >
-      <CardContent className="p-4 flex-1 flex flex-col">
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center">
-            <div className="h-10 w-10 rounded-full bg-slate-100 flex items-center justify-center mr-3">
-              <Calendar className="h-5 w-5 text-slate-600" />
+      <CardContent className="p-4">
+        <div className="flex justify-between items-start">
+          {/* Left section: Session ID and title */}
+          <div className="flex-grow">
+            <div className="flex items-center mb-1">
+              <h5 className="font-medium text-slate-800">
+                {session.title} 
+                <span className="text-sm text-slate-500 ml-2">#{session.id}</span>
+              </h5>
             </div>
-            <div>
-              <h5 className="font-medium line-clamp-1">{session.title}</h5>
-              <div className="text-sm text-gray-500">
-                {format(sessionDate, 'MMM d, yyyy')} · {session.duration} min
-              </div>
+            
+            {/* Date and time range */}
+            <div className="flex items-center text-sm text-slate-600 mb-3">
+              <Calendar className="h-3.5 w-3.5 mr-1.5 text-slate-400" />
+              <span>{format(sessionDate, 'MMM d, yyyy')}</span>
+              
+              {(timeFrom && timeTo) && (
+                <>
+                  <span className="mx-1.5">•</span>
+                  <Clock className="h-3.5 w-3.5 mr-1.5 text-slate-400" />
+                  <span>{formatTimeRange(timeFrom, timeTo)}</span>
+                </>
+              )}
             </div>
           </div>
-          {getStatusBadge(session.status)}
+          
+          {/* Right section: Action buttons */}
+          <div className="flex space-x-1">
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); alert('Preview'); }}>
+              <Eye className="h-4 w-4 text-slate-500" />
+            </Button>
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); alert('Download'); }}>
+              <Download className="h-4 w-4 text-slate-500" />
+            </Button>
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); alert('Edit'); }}>
+              <Edit className="h-4 w-4 text-slate-500" />
+            </Button>
+          </div>
         </div>
         
-        {session.description && (
-          <div className="mt-2 text-sm line-clamp-2 flex-grow">
-            <span className="text-gray-500 font-medium">Notes: </span>
-            <span className="text-gray-600">{session.description}</span>
-          </div>
-        )}
-        
-        <div className="grid grid-cols-1 gap-1 mt-3">
+        {/* Middle section: Therapist and location info */}
+        <div className="py-2 border-t border-slate-100">
           {session.therapistId && (
-            <div className="text-xs flex items-center text-gray-500">
-              <User className="h-3 w-3 mr-1" />
-              <span>Therapist ID: {session.therapistId}</span>
+            <div className="flex items-center text-sm text-slate-600 mb-1.5">
+              <User className="h-3.5 w-3.5 mr-1.5 text-slate-400" />
+              <span>Therapist: {session.therapistName || `ID ${session.therapistId}`}</span>
             </div>
           )}
+          
           {session.location && (
-            <div className="text-xs flex items-center text-gray-500">
-              <MapPin className="h-3 w-3 mr-1" />
+            <div className="flex items-center text-sm text-slate-600">
+              <MapPin className="h-3.5 w-3.5 mr-1.5 text-slate-400" />
               <span>{session.location}</span>
             </div>
           )}
         </div>
         
-        <div className="flex justify-end mt-4">
-          <Button variant="outline" size="sm" onClick={onClick}>
+        {/* View details button */}
+        <div className="pt-2">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="w-full text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+            onClick={onClick}
+          >
             View Details
           </Button>
         </div>
@@ -112,7 +186,7 @@ interface SessionsListViewProps {
   client: Client | null | undefined;
   onCreateSession: () => void;
   onCreateDocument: () => void;
-  onViewSession: (session: Session) => void;
+  onViewSession: (session: Session | ExtendedSession) => void;
 }
 
 export default function SessionsListView({ 
@@ -138,12 +212,36 @@ export default function SessionsListView({
     enabled: !!clientId,
   });
   
-  // All sessions should be treated as completed sessions
-  // Set status to completed for all sessions to ensure they display correctly
-  const processedSessions = sessions.map(session => ({
-    ...session,
-    status: "completed" // Force all sessions to be completed
-  }));
+  // Process the sessions to include additional UI-specific data
+  // For demonstration purposes, we'll add mock time and performance data 
+  const processedSessions = sessions.map(session => {
+    // Extract hours from the session date for the time range demo
+    const sessionDate = new Date(session.sessionDate);
+    const hour = sessionDate.getHours();
+    const hourEnd = (hour + 1) % 24;
+    
+    // Format hours in 12-hour format with AM/PM
+    const formatHour = (h: number) => {
+      const period = h >= 12 ? 'PM' : 'AM';
+      const hour12 = h % 12 || 12;
+      return `${hour12}:00 ${period}`;
+    };
+    
+    // Calculate a mock performance score based on the session ID
+    // This ensures consistent colors for the same session
+    const mockScore = ((session.id % 5) + 1); // Returns 1-5 based on ID
+    
+    return {
+      ...session,
+      status: "completed", // Force all sessions to be completed
+      timeFrom: formatHour(hour),
+      timeTo: formatHour(hourEnd),
+      performanceScore: mockScore,
+      type: 'session' as const,
+      // If we had therapist data, we would include therapist name here
+      therapistName: session.therapistId ? `Therapist ${session.therapistId}` : undefined
+    } as ExtendedSession;
+  });
   
   // Sort sessions by date (most recent first)
   const sortedSessions = [...processedSessions].sort((a, b) => 
