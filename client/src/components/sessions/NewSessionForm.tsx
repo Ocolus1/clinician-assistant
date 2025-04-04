@@ -668,7 +668,7 @@ export function NewSessionForm({
                       rating: subgoal.rating || 0,
                       notes: subgoal.notes || "",
                       strategies: Array.isArray(subgoal.strategies) ? 
-                        JSON.stringify(subgoal.strategies) : JSON.stringify([])
+                        subgoal.strategies : []
                     };
                     
                     // Check if assessment for this subgoal already exists
@@ -725,7 +725,7 @@ export function NewSessionForm({
                       rating: subgoal.rating || 0,
                       notes: subgoal.notes || "",
                       strategies: Array.isArray(subgoal.strategies) ?
-                        JSON.stringify(subgoal.strategies) : JSON.stringify([])
+                        subgoal.strategies : []
                     };
                     return apiRequest("POST", `/api/session-notes/${noteId}/performance`, subgoalAssessmentData);
                   });
