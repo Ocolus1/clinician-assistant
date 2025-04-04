@@ -859,6 +859,21 @@ export function NewSessionForm({
     return toMinutesTotal - fromMinutesTotal;
   };
 
+  // Function to collapse all goals except one
+  const collapseAllGoalsExcept = (exceptGoalId: number) => {
+    // Create a new state object with all goals collapsed
+    const newExpandedState: Record<number, boolean> = {};
+    
+    // Iterate through all current goal assessments
+    performanceAssessments.forEach(assessment => {
+      // Collapse all goals except the specified one
+      newExpandedState[assessment.goalId] = assessment.goalId === exceptGoalId;
+    });
+    
+    // Set the new expanded state
+    setExpandedGoals(newExpandedState);
+  };
+
   // Function to add a goal assessment (without subgoals)
   const addGoalAssessment = (goalId: number) => {
     const goal = goals.find((g: Goal) => g.id === goalId);
@@ -881,16 +896,17 @@ export function NewSessionForm({
       subgoals: [], // Empty array - subgoals will be added individually
     };
 
-    // Auto-expand newly added goals
-    setExpandedGoals(prev => ({
-      ...prev,
-      [goalId]: true
-    }));
-
+    // First update the form with the new assessment
     form.setValue("performanceAssessments", [
       ...performanceAssessments,
       newAssessment
     ]);
+    
+    // Then collapse all other goals and expand only the newly added one
+    // This ensures we have all goals (including the new one) in our state
+    setTimeout(() => {
+      collapseAllGoalsExcept(goalId);
+    }, 0);
   };
 
   // Function to add a subgoal to a goal assessment
