@@ -666,11 +666,6 @@ export default function ClientProfile() {
             </TabsContent>
             
             <TabsContent value="sessions" className="mt-0">
-              <h3 className="text-lg font-medium mb-4">Therapy Sessions</h3>
-              <p className="text-gray-500 mb-6">
-                Schedule and track therapy sessions, view session history and notes.
-              </p>
-              
               {/* Use the ClientSessions component with explicit client ID */}
               <ClientSessions key={clientId} clientId={clientId} />
             </TabsContent>

@@ -165,7 +165,7 @@ export default function SessionsListView({
     <div className="space-y-6">
       {/* Session List View */}
       <div className="flex justify-between items-center mb-4">
-        <h3 className="text-lg font-medium">Therapy Sessions</h3>
+        <h3 className="text-lg font-medium">Sessions</h3>
         
         {/* New dropdown menu button */}
         <DropdownMenu>
