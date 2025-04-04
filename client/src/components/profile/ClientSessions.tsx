@@ -140,29 +140,18 @@ export default function ClientSessions({ clientId: propClientId }: ClientSession
       timeTo
     };
     
-    // Prepare session note data with actual values if available
-    const sessionNote = sessionNotesData ? {
-      // Use actual values from sessionNotesData
-      presentAllies: sessionNotesData.presentAllies || [],
-      presentAllyIds: sessionNotesData.presentAllyIds || [],
-      moodRating: sessionNotesData.moodRating || 0,
-      focusRating: sessionNotesData.focusRating || 0,
-      cooperationRating: sessionNotesData.cooperationRating || 0,
-      physicalActivityRating: sessionNotesData.physicalActivityRating || 0,
-      notes: sessionNotesData.notes || "",
-      products: sessionNotesData.products || [],
-      status: sessionNotesData.status || "draft" as "draft" | "completed",
-    } : {
-      // Default values if no data
-      presentAllies: [],
-      presentAllyIds: [],
-      moodRating: 0,
-      focusRating: 0,
-      cooperationRating: 0,
-      physicalActivityRating: 0,
-      notes: "",
-      products: [],
-      status: "draft" as "draft" | "completed",
+    // Prepare session note data with actual values if available or create default structure
+    // Note: sessionNotesData may be an empty object returned by the API as a fallback
+    const sessionNote = {
+      presentAllies: sessionNotesData?.presentAllies || [],
+      presentAllyIds: sessionNotesData?.presentAllyIds || [],
+      moodRating: sessionNotesData?.moodRating || 0,
+      focusRating: sessionNotesData?.focusRating || 0,
+      cooperationRating: sessionNotesData?.cooperationRating || 0,
+      physicalActivityRating: sessionNotesData?.physicalActivityRating || 0,
+      notes: sessionNotesData?.notes || "",
+      products: Array.isArray(sessionNotesData?.products) ? sessionNotesData.products : [],
+      status: sessionNotesData?.status || "draft" as "draft" | "completed",
     };
     
     // Use assessments data if available

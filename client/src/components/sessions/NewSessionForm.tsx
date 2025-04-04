@@ -524,18 +524,56 @@ export function NewSessionForm({
         notes: data.session.notes || ""
       };
       
-      // If we're in edit mode and have a session ID stored in sessionId field
+      let sessionId: number;
+      let sessionResponse: any;
+      
+      // Create or update the session first
       if (isEdit && data.session.sessionId) {
-        const sessionId = data.session.sessionId;
-        // For PUT requests we remove the sessionId from the payload since it's in the URL
+        // Editing existing session
+        sessionId = data.session.sessionId;
         const { sessionId: _, ...sessionDataWithoutId } = sessionData;
-        return apiRequest("PUT", `/api/sessions/${sessionId}`, sessionDataWithoutId);
+        sessionResponse = await apiRequest("PUT", `/api/sessions/${sessionId}`, sessionDataWithoutId);
       } else {
-        // Otherwise create a new session
-        // Remove sessionId if it exists but we're not in edit mode
+        // Creating a new session
         const { sessionId: _, ...sessionDataWithoutId } = sessionData;
-        return apiRequest("POST", "/api/sessions", sessionDataWithoutId);
+        sessionResponse = await apiRequest("POST", "/api/sessions", sessionDataWithoutId);
+        sessionId = sessionResponse.id;
       }
+      
+      // Now handle session notes - either create or update them
+      if (sessionId) {
+        try {
+          // Check if session notes already exist
+          const existingNotesResponse = await apiRequest("GET", `/api/sessions/${sessionId}/notes`);
+          
+          if (existingNotesResponse && existingNotesResponse.id) {
+            // Update existing session notes
+            await apiRequest("PUT", `/api/session-notes/${existingNotesResponse.id}`, {
+              ...data.sessionNote,
+              sessionId,
+              clientId: data.session.clientId
+            });
+          } else {
+            // Create new session notes
+            await apiRequest("POST", `/api/sessions/${sessionId}/notes`, {
+              ...data.sessionNote,
+              sessionId,
+              clientId: data.session.clientId
+            });
+          }
+          
+          // Optional: Handle performance assessments here too
+          // For each performance assessment, create or update it
+          
+          return sessionResponse;
+        } catch (error) {
+          console.error("Error saving session notes:", error);
+          // Still return session to avoid blocking the main flow
+          return sessionResponse;
+        }
+      }
+      
+      return sessionResponse;
     },
     onSuccess: () => {
       // Invalidate queries to refresh data
