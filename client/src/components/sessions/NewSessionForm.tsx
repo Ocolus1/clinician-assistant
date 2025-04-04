@@ -392,13 +392,24 @@ export function NewSessionForm({
     enabled: !!selectedClient?.id,
   });
 
-  // Fetch clinicians for therapist selection
+  // Fetch all clinicians 
   const { data: clinicians = [], isLoading: cliniciansLoading } = useQuery({
     queryKey: ["/api/clinicians"],
     queryFn: async () => {
       const response = await fetch(`/api/clinicians`);
       return response.json();
     },
+  });
+  
+  // Fetch assigned clinicians for the client (to use in therapist dropdown)
+  const { data: assignedClinicians = [], isLoading: assignedCliniciansLoading } = useQuery({
+    queryKey: ["/api/clients", selectedClient?.id, "clinicians"],
+    queryFn: async () => {
+      if (!selectedClient?.id) return [];
+      const response = await fetch(`/api/clients/${selectedClient.id}/clinicians`);
+      return response.json();
+    },
+    enabled: !!selectedClient?.id,
   });
 
   // Function to fetch subgoals for a goal
@@ -540,13 +551,13 @@ export function NewSessionForm({
 
   // Submit handler
   const onSubmit = (data: NewSessionFormValues) => {
-    // Check if the selected therapist is in the allies list
-    const isTherapistAlly = allies.some((ally: Ally) => ally.id === data.session.therapistId);
+    // Check if the selected therapist is assigned to the client
+    const isTherapistAssigned = assignedClinicians.some((clinician: Clinician) => clinician.id === data.session.therapistId);
     
-    if (data.session.therapistId && !isTherapistAlly) {
+    if (data.session.therapistId && !isTherapistAssigned) {
       toast({
         title: "Validation Error",
-        description: "The selected therapist must be an ally of the client. Please select a valid therapist.",
+        description: "The selected therapist must be assigned to the client. Please select a valid therapist.",
         variant: "destructive",
       });
       return;
@@ -1674,25 +1685,20 @@ export function NewSessionForm({
                                         </SelectTrigger>
                                       </FormControl>
                                       <SelectContent>
-                                        {/* Filter clinicians to only show those who are allies of the client */}
-                                        {clinicians
-                                          .filter((clinician: Clinician) => {
-                                            // Check if clinician is in the allies list
-                                            return allies.some((ally: Ally) => ally.id === clinician.id);
-                                          })
-                                          .map((clinician: Clinician) => (
-                                            <SelectItem
-                                              key={clinician.id}
-                                              value={clinician.id.toString()}
-                                            >
-                                              {clinician.name} (Ally)
-                                            </SelectItem>
-                                          ))}
+                                        {/* Show clinicians assigned to this client in the personal info tab */}
+                                        {assignedClinicians.map((clinician: Clinician) => (
+                                          <SelectItem
+                                            key={clinician.id}
+                                            value={clinician.id.toString()}
+                                          >
+                                            {clinician.name} (Assigned Therapist)
+                                          </SelectItem>
+                                        ))}
                                         
-                                        {/* If no clinicians are allies, show a helper message */}
-                                        {!clinicians.some((c: Clinician) => allies.some((a: Ally) => a.id === c.id)) && (
+                                        {/* If no clinicians are assigned, show a helper message */}
+                                        {assignedClinicians.length === 0 && (
                                           <div className="px-2 py-2 text-sm text-muted-foreground">
-                                            No therapists are allies of this client. Please add a therapist as an ally first.
+                                            No therapists are assigned to this client. Please assign a therapist in the Personal Info tab first.
                                           </div>
                                         )}
                                       </SelectContent>
