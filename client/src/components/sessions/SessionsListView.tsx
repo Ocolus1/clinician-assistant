@@ -76,7 +76,7 @@ const getPerformanceBorderColor = (session: any) => {
   return "border-l-gray-300";
 };
 
-// Helper function to format the time range
+// Helper function to format the time range (with a dash between times, no spaces)
 const formatTimeRange = (timeFrom: string, timeTo: string) => {
   if (!timeFrom || !timeTo) return "";
   return `${timeFrom}-${timeTo}`;
@@ -146,16 +146,16 @@ function SessionCard({ session, onClick, onEdit, onDelete }: SessionCardProps) {
             {/* Date and time range with responsive layout */}
             <div className="flex flex-col sm:flex-row items-start sm:items-center text-sm text-slate-600 mb-3 mt-2">
               {/* Date section */}
-              <div className="flex items-center">
-                <Calendar className="h-3.5 w-3.5 mr-1.5 text-slate-400" />
+              <div className="flex items-center w-full">
+                <Calendar className="h-3.5 w-3.5 mr-1.5 text-slate-400 flex-shrink-0" />
                 <span>{format(sessionDate, 'MMM d, yyyy')}</span>
               </div>
               
               {/* Time section - only shown if available */}
               {(timeFrom && timeTo) && (
-                <div className="flex items-center mt-1 sm:mt-0">
+                <div className="flex items-center mt-1 sm:mt-0 w-full">
                   <span className="hidden sm:inline mx-1.5">•</span>
-                  <Clock className="h-3.5 w-3.5 mr-1.5 text-slate-400 sm:ml-1.5" />
+                  <Clock className="h-3.5 w-3.5 mr-1.5 text-slate-400 flex-shrink-0" />
                   <span>{formatTimeRange(timeFrom, timeTo)}</span>
                 </div>
               )}
@@ -283,11 +283,11 @@ export default function SessionsListView({
     const hour = sessionDate.getHours();
     const hourEnd = (hour + 1) % 24;
     
-    // Format hours in 12-hour format with AM/PM
+    // Format hours in 12-hour format with AM/PM (no space between time and AM/PM)
     const formatHour = (h: number) => {
       const period = h >= 12 ? 'PM' : 'AM';
       const hour12 = h % 12 || 12;
-      return `${hour12}:00 ${period}`;
+      return `${hour12}:00${period}`;
     };
     
     // Calculate a mock performance score based on the session ID
