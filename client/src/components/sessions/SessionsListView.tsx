@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
-import { Session, Client } from "@shared/schema";
+import { Session, Client, Clinician } from "@shared/schema";
 import { NewSessionForm } from '@/components/sessions';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
@@ -215,7 +215,7 @@ export default function SessionsListView({
   const { toast } = useToast();
   
   // Fetch sessions for this client
-  const { data: sessions = [], isLoading } = useQuery<Session[]>({
+  const { data: sessions = [], isLoading: sessionsLoading } = useQuery<Session[]>({
     queryKey: ['/api/clients', clientId, 'sessions'],
     queryFn: async () => {
       if (!clientId) {
@@ -228,6 +228,18 @@ export default function SessionsListView({
       return response.json();
     },
     enabled: !!clientId,
+  });
+  
+  // Fetch clinicians (therapists) data
+  const { data: clinicians = [], isLoading: cliniciansLoading } = useQuery<Clinician[]>({
+    queryKey: ['/api/clinicians'],
+    queryFn: async () => {
+      const response = await fetch('/api/clinicians');
+      if (!response.ok) {
+        throw new Error(`Error fetching clinicians: ${response.status} ${response.statusText}`);
+      }
+      return response.json();
+    },
   });
   
   // Delete session mutation
@@ -282,6 +294,11 @@ export default function SessionsListView({
     const locations = ["Remote", "Office", "Client Home", "Australia", "School"];
     const locationIndex = session.id % locations.length;
     
+    // Find the clinician for this session
+    const therapist = session.therapistId 
+      ? clinicians.find(c => c.id === session.therapistId) 
+      : null;
+    
     return {
       ...session,
       status: "completed", // Force all sessions to be completed
@@ -290,8 +307,8 @@ export default function SessionsListView({
       performanceScore: mockScore,
       type: 'session' as const,
       location: session.location || locations[locationIndex], // Ensure location is always provided
-      // Ensure therapist name is always provided
-      therapistName: `Therapist ${session.therapistId || (session.id % 10 + 1)}`
+      // Use actual therapist name if available, otherwise fall back to a placeholder
+      therapistName: therapist ? therapist.name : `Unassigned`
     } as ExtendedSession;
   });
   
@@ -299,6 +316,9 @@ export default function SessionsListView({
   const sortedSessions = [...processedSessions].sort((a, b) => 
     new Date(b.sessionDate).getTime() - new Date(a.sessionDate).getTime()
   );
+  
+  // Show loading state if either sessions or clinicians are still loading
+  const isLoading = sessionsLoading || cliniciansLoading;
   
   if (isLoading) {
     return (
