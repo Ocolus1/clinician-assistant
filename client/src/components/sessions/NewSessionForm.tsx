@@ -511,6 +511,8 @@ export function NewSessionForm({
   // Create or update session mutation
   const createSessionMutation = useMutation({
     mutationFn: async (data: NewSessionFormValues) => {
+      console.log("Submit starting with data:", data);
+      
       // Create a session object that matches the server's expectations
       const sessionData = {
         clientId: data.session.clientId,
@@ -524,56 +526,81 @@ export function NewSessionForm({
         notes: data.session.notes || ""
       };
       
+      // Step 1: Create or update the session first
       let sessionId: number;
       let sessionResponse: any;
       
-      // Create or update the session first
-      if (isEdit && data.session.sessionId) {
-        // Editing existing session
-        sessionId = data.session.sessionId;
-        const { sessionId: _, ...sessionDataWithoutId } = sessionData;
-        sessionResponse = await apiRequest("PUT", `/api/sessions/${sessionId}`, sessionDataWithoutId);
-      } else {
-        // Creating a new session
-        const { sessionId: _, ...sessionDataWithoutId } = sessionData;
-        sessionResponse = await apiRequest("POST", "/api/sessions", sessionDataWithoutId);
-        sessionId = sessionResponse.id;
-      }
-      
-      // Now handle session notes - either create or update them
-      if (sessionId) {
-        try {
-          // Check if session notes already exist
-          const existingNotesResponse = await apiRequest("GET", `/api/sessions/${sessionId}/notes`);
-          
-          if (existingNotesResponse && existingNotesResponse.id) {
-            // Update existing session notes
-            await apiRequest("PUT", `/api/session-notes/${existingNotesResponse.id}`, {
-              ...data.sessionNote,
-              sessionId,
-              clientId: data.session.clientId
-            });
-          } else {
-            // Create new session notes
-            await apiRequest("POST", `/api/sessions/${sessionId}/notes`, {
-              ...data.sessionNote,
-              sessionId,
-              clientId: data.session.clientId
-            });
-          }
-          
-          // Optional: Handle performance assessments here too
-          // For each performance assessment, create or update it
-          
-          return sessionResponse;
-        } catch (error) {
-          console.error("Error saving session notes:", error);
-          // Still return session to avoid blocking the main flow
-          return sessionResponse;
+      try {
+        if (isEdit && data.session.sessionId) {
+          // Editing existing session
+          sessionId = typeof data.session.sessionId === 'string' 
+            ? parseInt(data.session.sessionId) 
+            : data.session.sessionId;
+            
+          console.log(`Updating existing session with ID: ${sessionId}`);
+          const { sessionId: _, ...sessionDataWithoutId } = sessionData;
+          sessionResponse = await apiRequest("PUT", `/api/sessions/${sessionId}`, sessionDataWithoutId);
+        } else {
+          // Creating a new session
+          console.log("Creating new session");
+          const { sessionId: _, ...sessionDataWithoutId } = sessionData;
+          sessionResponse = await apiRequest("POST", "/api/sessions", sessionDataWithoutId);
+          sessionId = sessionResponse.id;
+          console.log(`New session created with ID: ${sessionId}`);
         }
+        
+        // Step 2: Handle session notes - either create or update them
+        if (sessionId) {
+          // Prepare session note data - ensure it's in the correct format
+          const sessionNoteData = {
+            ...data.sessionNote,
+            sessionId: sessionId,
+            clientId: data.session.clientId,
+            status: data.sessionNote.status || "draft"
+          };
+          
+          console.log("Checking for existing session notes...");
+          
+          // First check if there are existing notes
+          const notesResponse = await fetch(`/api/sessions/${sessionId}/notes`);
+          const existingNotesData = await notesResponse.json();
+          
+          // If we have an ID in the response, it means we have an existing note to update
+          if (existingNotesData && existingNotesData.id) {
+            console.log(`Updating existing session note with ID: ${existingNotesData.id}`);
+            await apiRequest("PUT", `/api/session-notes/${existingNotesData.id}`, sessionNoteData);
+          } else {
+            // Otherwise create a new session note
+            console.log(`Creating new session note for session ID: ${sessionId}`);
+            const noteResponse = await apiRequest("POST", `/api/sessions/${sessionId}/notes`, sessionNoteData);
+            console.log("Session note created:", noteResponse);
+            
+            // Step 3: Create performance assessments if we have any
+            if (data.performanceAssessments && data.performanceAssessments.length > 0 && noteResponse.id) {
+              console.log(`Creating ${data.performanceAssessments.length} performance assessments...`);
+              
+              const noteId = noteResponse.id;
+              const assessmentPromises = data.performanceAssessments.map(assessment => {
+                const assessmentData = {
+                  sessionNoteId: noteId,
+                  goalId: assessment.goalId,
+                  notes: assessment.notes || "",
+                  subgoals: assessment.subgoals || []
+                };
+                return apiRequest("POST", `/api/session-notes/${noteId}/performance`, assessmentData);
+              });
+              
+              await Promise.all(assessmentPromises);
+              console.log("Performance assessments created successfully");
+            }
+          }
+        }
+        
+        return sessionResponse;
+      } catch (error) {
+        console.error("Error in session creation/update process:", error);
+        throw error;
       }
-      
-      return sessionResponse;
     },
     onSuccess: () => {
       // Invalidate queries to refresh data
