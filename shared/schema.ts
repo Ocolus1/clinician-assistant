@@ -197,7 +197,7 @@ export const sessionNotes = pgTable("session_notes", {
   id: serial("id").primaryKey(),
   sessionId: integer("session_id").notNull().references(() => sessions.id, { onDelete: "cascade" }),
   clientId: integer("client_id").notNull().references(() => clients.id, { onDelete: "cascade" }),
-  displaySessionId: text("display_session_id"), // Added display session ID for reference
+  // Note: displaySessionId was removed as it doesn't exist in the actual database
   presentAllies: text("present_allies").array(),
 
   // General observations (ratings from 0-10)
