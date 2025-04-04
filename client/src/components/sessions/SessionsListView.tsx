@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -7,6 +7,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
 import { Session, Client } from "@shared/schema";
 import { NewSessionForm } from '@/components/sessions';
+import { useToast } from '@/hooks/use-toast';
+import { apiRequest } from '@/lib/queryClient';
 
 import {
   Calendar,
@@ -19,7 +21,8 @@ import {
   Calendar as CalendarIcon,
   Eye,
   Download,
-  Edit
+  Edit,
+  Trash
 } from "lucide-react";
 
 import {
@@ -95,9 +98,10 @@ interface SessionCardProps {
   session: ExtendedSession;
   onClick?: () => void;
   onEdit?: (session: ExtendedSession) => void;
+  onDelete?: (session: ExtendedSession) => void;
 }
 
-function SessionCard({ session, onClick, onEdit }: SessionCardProps) {
+function SessionCard({ session, onClick, onEdit, onDelete }: SessionCardProps) {
   // Convert date string to Date object safely
   const sessionDate = new Date(session.sessionDate);
   
@@ -110,6 +114,16 @@ function SessionCard({ session, onClick, onEdit }: SessionCardProps) {
     e.stopPropagation(); // Prevent the card's onClick from firing
     if (onEdit) {
       onEdit(session);
+    }
+  };
+  
+  // Handle delete button click
+  const handleDeleteClick = (e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent the card's onClick from firing
+    if (onDelete) {
+      if (confirm(`Are you sure you want to delete session #${session.id}?`)) {
+        onDelete(session);
+      }
     }
   };
   
@@ -155,6 +169,9 @@ function SessionCard({ session, onClick, onEdit }: SessionCardProps) {
             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleEditClick}>
               <Edit className="h-4 w-4 text-slate-500" />
             </Button>
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleDeleteClick}>
+              <Trash className="h-4 w-4 text-red-500" />
+            </Button>
           </div>
         </div>
         
@@ -194,6 +211,9 @@ export default function SessionsListView({
   onViewSession,
   onEditSession
 }: SessionsListViewProps) {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  
   // Fetch sessions for this client
   const { data: sessions = [], isLoading } = useQuery<Session[]>({
     queryKey: ['/api/clients', clientId, 'sessions'],
@@ -209,6 +229,35 @@ export default function SessionsListView({
     },
     enabled: !!clientId,
   });
+  
+  // Delete session mutation
+  const deleteSessionMutation = useMutation({
+    mutationFn: async (sessionId: number) => {
+      return apiRequest('DELETE', `/api/sessions/${sessionId}`);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Session deleted successfully",
+        variant: "default",
+      });
+      // Invalidate the sessions query to refresh the list
+      queryClient.invalidateQueries({ queryKey: ['/api/clients', clientId, 'sessions'] });
+    },
+    onError: (error) => {
+      console.error("Error deleting session:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete session. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+  
+  // Handle delete session
+  const handleDeleteSession = (session: ExtendedSession) => {
+    deleteSessionMutation.mutate(session.id);
+  };
   
   // Process the sessions to include additional UI-specific data
   // For demonstration purposes, we'll add mock time and performance data 
@@ -309,6 +358,7 @@ export default function SessionsListView({
                 session={session} 
                 onClick={() => onViewSession(session)}
                 onEdit={onEditSession}
+                onDelete={handleDeleteSession}
               />
             ))}
           </div>
