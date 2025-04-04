@@ -85,6 +85,7 @@ interface ExtendedSession extends Session {
   timeFrom?: string;
   timeTo?: string;
   therapistName?: string;
+  location?: string;
   performanceScore?: number;
   type?: 'session' | 'cancellation' | 'document';
 }
@@ -105,7 +106,7 @@ function SessionCard({ session, onClick }: SessionCardProps) {
   
   return (
     <Card 
-      className={`hover:shadow transition-shadow duration-200 h-full border-l-4 ${getPerformanceBorderColor(session)}`} 
+      className={`hover:shadow transition-shadow duration-200 h-full border-l-4 ${getPerformanceBorderColor(session)} cursor-pointer`} 
       onClick={onClick}
     >
       <CardContent className="p-4">
@@ -148,33 +149,19 @@ function SessionCard({ session, onClick }: SessionCardProps) {
           </div>
         </div>
         
-        {/* Middle section: Therapist and location info */}
-        <div className="py-2 border-t border-slate-100">
-          {session.therapistId && (
-            <div className="flex items-center text-sm text-slate-600 mb-1.5">
-              <User className="h-3.5 w-3.5 mr-1.5 text-slate-400" />
-              <span>Therapist: {session.therapistName || `ID ${session.therapistId}`}</span>
-            </div>
-          )}
+        {/* Therapist and location info section with improved spacing */}
+        <div className="mt-3 pt-3 border-t border-slate-100">
+          {/* Always show therapist info */}
+          <div className="flex items-center text-sm text-slate-600 mb-2">
+            <User className="h-3.5 w-3.5 mr-1.5 text-slate-400 flex-shrink-0" />
+            <span className="truncate">{session.therapistName}</span>
+          </div>
           
-          {session.location && (
-            <div className="flex items-center text-sm text-slate-600">
-              <MapPin className="h-3.5 w-3.5 mr-1.5 text-slate-400" />
-              <span>{session.location}</span>
-            </div>
-          )}
-        </div>
-        
-        {/* View details button */}
-        <div className="pt-2">
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="w-full text-slate-600 hover:text-slate-900 hover:bg-slate-50"
-            onClick={onClick}
-          >
-            View Details
-          </Button>
+          {/* Always show location info */}
+          <div className="flex items-center text-sm text-slate-600">
+            <MapPin className="h-3.5 w-3.5 mr-1.5 text-slate-400 flex-shrink-0" />
+            <span className="truncate">{session.location}</span>
+          </div>
         </div>
       </CardContent>
     </Card>
@@ -231,6 +218,10 @@ export default function SessionsListView({
     // This ensures consistent colors for the same session
     const mockScore = ((session.id % 5) + 1); // Returns 1-5 based on ID
     
+    // Generate a consistent location for demonstration purposes
+    const locations = ["Remote", "Office", "Client Home", "Australia", "School"];
+    const locationIndex = session.id % locations.length;
+    
     return {
       ...session,
       status: "completed", // Force all sessions to be completed
@@ -238,8 +229,9 @@ export default function SessionsListView({
       timeTo: formatHour(hourEnd),
       performanceScore: mockScore,
       type: 'session' as const,
-      // If we had therapist data, we would include therapist name here
-      therapistName: session.therapistId ? `Therapist ${session.therapistId}` : undefined
+      location: session.location || locations[locationIndex], // Ensure location is always provided
+      // Ensure therapist name is always provided
+      therapistName: `Therapist ${session.therapistId || (session.id % 10 + 1)}`
     } as ExtendedSession;
   });
   
