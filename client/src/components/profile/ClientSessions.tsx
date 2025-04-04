@@ -251,9 +251,13 @@ export default function ClientSessions({ clientId: propClientId }: ClientSession
     };
     
     // Group assessments by goalId, then convert to array of objects with subgoals
+    // FIXED VERSION: Only include goals and subgoals that were actually assessed
     const performanceAssessments = sessionAssessmentsData 
       ? Object.values(
           sessionAssessmentsData.reduce((acc: Record<number, FormattedAssessment>, assessment: any) => {
+            // Only process assessments that have a subgoalId (actual assessments)
+            if (!assessment.subgoalId) return acc;
+            
             // Initialize goal entry if it doesn't exist
             if (!acc[assessment.goalId]) {
               acc[assessment.goalId] = {
@@ -262,48 +266,16 @@ export default function ClientSessions({ clientId: propClientId }: ClientSession
                 notes: assessment.notes || "",
                 subgoals: []
               };
-              
-              // Get the subgoals for this goal if we have them
-              if (subgoalsData && subgoalsData[assessment.goalId]) {
-                // Add all subgoals from this goal with default values
-                subgoalsData[assessment.goalId].forEach((subgoal) => {
-                  acc[assessment.goalId].subgoals.push({
-                    subgoalId: subgoal.id,
-                    subgoalTitle: subgoal.title,
-                    rating: 0, // Default rating
-                    strategies: [], // Default empty strategies
-                    notes: "" // Default empty notes
-                  });
-                });
-              }
             }
             
-            // If we have a subgoalId in the assessment, update the existing subgoal
-            if (assessment.subgoalId) {
-              // Find the index of this subgoal in our array
-              const subgoalIndex = acc[assessment.goalId].subgoals.findIndex(
-                sg => sg.subgoalId === assessment.subgoalId
-              );
-              
-              if (subgoalIndex >= 0) {
-                // Update the existing subgoal
-                acc[assessment.goalId].subgoals[subgoalIndex] = {
-                  ...acc[assessment.goalId].subgoals[subgoalIndex],
-                  rating: assessment.rating || 0,
-                  strategies: Array.isArray(assessment.strategies) ? assessment.strategies : [],
-                  notes: assessment.notes || ""
-                };
-              } else {
-                // If not found (which shouldn't happen), add it
-                acc[assessment.goalId].subgoals.push({
-                  subgoalId: assessment.subgoalId,
-                  subgoalTitle: subgoalTitlesMap[assessment.subgoalId] || `Subgoal ${assessment.subgoalId}`,
-                  rating: assessment.rating || 0,
-                  strategies: Array.isArray(assessment.strategies) ? assessment.strategies : [],
-                  notes: assessment.notes || ""
-                });
-              }
-            }
+            // Add only the assessed subgoal
+            acc[assessment.goalId].subgoals.push({
+              subgoalId: assessment.subgoalId,
+              subgoalTitle: subgoalTitlesMap[assessment.subgoalId] || `Subgoal ${assessment.subgoalId}`,
+              rating: assessment.rating || 0,
+              strategies: Array.isArray(assessment.strategies) ? assessment.strategies : [],
+              notes: assessment.notes || ""
+            });
             
             return acc;
           }, {})
