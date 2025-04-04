@@ -538,13 +538,13 @@ export function NewSessionForm({
             : data.session.sessionId;
             
           console.log(`Updating existing session with ID: ${sessionId}`);
-          const { sessionId: _, ...sessionDataWithoutId } = sessionData;
-          sessionResponse = await apiRequest("PUT", `/api/sessions/${sessionId}`, sessionDataWithoutId);
+          const sessionDataToUpdate = { ...sessionData };
+          sessionResponse = await apiRequest("PUT", `/api/sessions/${sessionId}`, sessionDataToUpdate);
         } else {
           // Creating a new session
           console.log("Creating new session");
-          const { sessionId: _, ...sessionDataWithoutId } = sessionData;
-          sessionResponse = await apiRequest("POST", "/api/sessions", sessionDataWithoutId);
+          const sessionDataToCreate = { ...sessionData };
+          sessionResponse = await apiRequest("POST", "/api/sessions", sessionDataToCreate);
           sessionId = sessionResponse.id;
           console.log(`New session created with ID: ${sessionId}`);
         }
@@ -556,7 +556,9 @@ export function NewSessionForm({
             ...data.sessionNote,
             sessionId: sessionId,
             clientId: data.session.clientId,
-            status: data.sessionNote.status || "draft"
+            status: data.sessionNote.status || "draft",
+            // Convert products array to a JSON string before sending to the server
+            products: JSON.stringify(data.sessionNote.products || [])
           };
           
           console.log("Checking for existing session notes...");
