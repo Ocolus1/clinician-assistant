@@ -227,6 +227,7 @@ export const performanceAssessments = pgTable("performance_assessments", {
   rating: integer("rating"),
   score: integer("score"),
   notes: text("notes"),
+  strategies: text("strategies").array(),
 });
 
 // Milestone assessment schema

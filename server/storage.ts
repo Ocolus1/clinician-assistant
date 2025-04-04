@@ -973,8 +973,20 @@ export class DBStorage implements IStorage {
   async createPerformanceAssessment(assessment: InsertPerformanceAssessment): Promise<PerformanceAssessment> {
     console.log(`Creating performance assessment for session note ${assessment.sessionNoteId}:`, JSON.stringify(assessment));
     try {
+      // Handle strategies if provided as a string instead of array
+      const processedAssessment = { ...assessment };
+      
+      // If strategies is provided as a JSON string, parse it
+      if (typeof processedAssessment.strategies === 'string') {
+        try {
+          processedAssessment.strategies = JSON.parse(processedAssessment.strategies as unknown as string);
+        } catch (parseError) {
+          console.warn('Failed to parse strategies as JSON string, keeping as is:', parseError);
+        }
+      }
+      
       const [newAssessment] = await db.insert(performanceAssessments)
-        .values(assessment)
+        .values(processedAssessment)
         .returning();
       
       console.log(`Successfully created performance assessment with ID ${newAssessment.id}`);
@@ -1023,8 +1035,20 @@ export class DBStorage implements IStorage {
   async updatePerformanceAssessment(id: number, assessment: InsertPerformanceAssessment): Promise<PerformanceAssessment> {
     console.log(`Updating performance assessment with ID ${id}:`, JSON.stringify(assessment));
     try {
+      // Handle strategies if provided as a string instead of array
+      const processedAssessment = { ...assessment };
+      
+      // If strategies is provided as a JSON string, parse it
+      if (typeof processedAssessment.strategies === 'string') {
+        try {
+          processedAssessment.strategies = JSON.parse(processedAssessment.strategies as unknown as string);
+        } catch (parseError) {
+          console.warn('Failed to parse strategies as JSON string, keeping as is:', parseError);
+        }
+      }
+      
       const [updatedAssessment] = await db.update(performanceAssessments)
-        .set(assessment)
+        .set(processedAssessment)
         .where(eq(performanceAssessments.id, id))
         .returning();
       

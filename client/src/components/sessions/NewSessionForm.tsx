@@ -405,6 +405,10 @@ export function NewSessionForm({
           console.error("Failed to parse products JSON:", e);
           enhancedInitialData.sessionNote.products = [];
         }
+      } else if (!Array.isArray(enhancedInitialData.sessionNote.products)) {
+        // If products is not an array and not a string, make it an empty array
+        console.warn("Products is not an array or parseable string, defaulting to empty array");
+        enhancedInitialData.sessionNote.products = [];
       }
       
       // Ensure performanceAssessments is an array with the correct structure
@@ -628,24 +632,59 @@ export function NewSessionForm({
               const existingAssessments = await assessmentsResponse.json();
               
               // Update or create assessments
-              const updatePromises = data.performanceAssessments.map(assessment => {
-                const assessmentData = {
-                  sessionNoteId: existingNotesData.id,
-                  goalId: assessment.goalId,
-                  notes: assessment.notes || "",
-                  subgoals: assessment.subgoals || []
-                };
+              // For each performance assessment in our form, we need to break it down to individual subgoal assessments
+              const updatePromises = data.performanceAssessments.flatMap(assessment => {
+                // Get the goal ID and notes from the assessment
+                const { goalId, notes: goalNotes } = assessment;
                 
-                // Check if assessment for this goal already exists
-                const existingAssessment = Array.isArray(existingAssessments) && 
-                  existingAssessments.find((a: any) => a.goalId === assessment.goalId);
-                
-                if (existingAssessment) {
-                  console.log(`Updating existing assessment for goal ${assessment.goalId}`);
-                  return apiRequest("PUT", `/api/performance-assessments/${existingAssessment.id}`, assessmentData);
+                // Process each subgoal in this assessment
+                if (!assessment.subgoals || assessment.subgoals.length === 0) {
+                  // If there are no subgoals, create/update a goal-level assessment
+                  const assessmentData = {
+                    sessionNoteId: existingNotesData.id,
+                    goalId: assessment.goalId,
+                    notes: assessment.notes || ""
+                  };
+                  
+                  // Check if general assessment for this goal already exists
+                  const existingAssessment = Array.isArray(existingAssessments) && 
+                    existingAssessments.find((a: any) => a.goalId === assessment.goalId && !a.subgoalId);
+                  
+                  if (existingAssessment) {
+                    console.log(`Updating existing general assessment for goal ${assessment.goalId}`);
+                    return [apiRequest("PUT", `/api/performance-assessments/${existingAssessment.id}`, assessmentData)];
+                  } else {
+                    console.log(`Creating new general assessment for goal ${assessment.goalId}`);
+                    return [apiRequest("POST", `/api/session-notes/${existingNotesData.id}/performance`, assessmentData)];
+                  }
                 } else {
-                  console.log(`Creating new assessment for goal ${assessment.goalId}`);
-                  return apiRequest("POST", `/api/session-notes/${existingNotesData.id}/performance`, assessmentData);
+                  // For each subgoal, create or update a separate assessment
+                  return assessment.subgoals.map(subgoal => {
+                    // Create the assessment data for this subgoal
+                    const subgoalAssessmentData = {
+                      sessionNoteId: existingNotesData.id,
+                      goalId: assessment.goalId,
+                      subgoalId: subgoal.subgoalId,
+                      rating: subgoal.rating || 0,
+                      notes: subgoal.notes || "",
+                      strategies: Array.isArray(subgoal.strategies) ? 
+                        JSON.stringify(subgoal.strategies) : JSON.stringify([])
+                    };
+                    
+                    // Check if assessment for this subgoal already exists
+                    const existingSubgoalAssessment = Array.isArray(existingAssessments) && 
+                      existingAssessments.find((a: any) => 
+                        a.goalId === assessment.goalId && 
+                        a.subgoalId === subgoal.subgoalId);
+                    
+                    if (existingSubgoalAssessment) {
+                      console.log(`Updating existing assessment for subgoal ${subgoal.subgoalId} of goal ${assessment.goalId}`);
+                      return apiRequest("PUT", `/api/performance-assessments/${existingSubgoalAssessment.id}`, subgoalAssessmentData);
+                    } else {
+                      console.log(`Creating new assessment for subgoal ${subgoal.subgoalId} of goal ${assessment.goalId}`);
+                      return apiRequest("POST", `/api/session-notes/${existingNotesData.id}/performance`, subgoalAssessmentData);
+                    }
+                  });
                 }
               });
               
@@ -663,14 +702,34 @@ export function NewSessionForm({
               console.log(`Creating ${data.performanceAssessments.length} performance assessments...`);
               
               const noteId = noteResponse.id;
-              const assessmentPromises = data.performanceAssessments.map(assessment => {
-                const assessmentData = {
-                  sessionNoteId: noteId,
-                  goalId: assessment.goalId,
-                  notes: assessment.notes || "",
-                  subgoals: assessment.subgoals || []
-                };
-                return apiRequest("POST", `/api/session-notes/${noteId}/performance`, assessmentData);
+              // Flatten all the subgoal assessments from each goal assessment
+              const assessmentPromises = data.performanceAssessments.flatMap(assessment => {
+                // For each goal assessment
+                const { goalId, notes: goalNotes } = assessment;
+                
+                if (!assessment.subgoals || assessment.subgoals.length === 0) {
+                  // Just create a general goal assessment without subgoals
+                  const assessmentData = {
+                    sessionNoteId: noteId,
+                    goalId: assessment.goalId,
+                    notes: assessment.notes || ""
+                  };
+                  return [apiRequest("POST", `/api/session-notes/${noteId}/performance`, assessmentData)];
+                } else {
+                  // Create an assessment for each subgoal
+                  return assessment.subgoals.map(subgoal => {
+                    const subgoalAssessmentData = {
+                      sessionNoteId: noteId,
+                      goalId: assessment.goalId,
+                      subgoalId: subgoal.subgoalId,
+                      rating: subgoal.rating || 0,
+                      notes: subgoal.notes || "",
+                      strategies: Array.isArray(subgoal.strategies) ?
+                        JSON.stringify(subgoal.strategies) : JSON.stringify([])
+                    };
+                    return apiRequest("POST", `/api/session-notes/${noteId}/performance`, subgoalAssessmentData);
+                  });
+                }
               });
               
               await Promise.all(assessmentPromises);
