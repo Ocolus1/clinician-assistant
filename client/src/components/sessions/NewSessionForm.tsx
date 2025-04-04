@@ -234,7 +234,7 @@ const newSessionFormSchema = z.object({
 });
 
 // Type inference for form values
-type NewSessionFormValues = z.infer<typeof newSessionFormSchema>;
+export type NewSessionFormValues = z.infer<typeof newSessionFormSchema>;
 
 interface NewSessionFormProps {
   open: boolean;

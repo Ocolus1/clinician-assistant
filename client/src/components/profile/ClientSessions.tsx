@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Session, Client } from "@shared/schema";
 import { format } from "date-fns";
-import { NewSessionForm } from '@/components/sessions';
+import { NewSessionForm, NewSessionFormValues } from '@/components/sessions';
 import { SessionsListView } from '@/components/sessions';
 
 interface ClientSessionsProps {
@@ -63,6 +63,68 @@ export default function ClientSessions({ clientId: propClientId }: ClientSession
     setEditSessionDialogOpen(true);
   };
   
+  // Fetch client goals to use for populating titles in assessments
+  const { data: clientGoals } = useQuery({
+    queryKey: ['/api/clients', clientId, 'goals'],
+    queryFn: async () => {
+      if (!clientId) return [];
+      const response = await fetch(`/api/clients/${clientId}/goals`);
+      if (!response.ok) {
+        throw new Error(`Error fetching goals: ${response.status}`);
+      }
+      return response.json();
+    },
+    enabled: !!clientId
+  });
+  
+  // Map of goalId to goal title for quick lookup
+  const goalTitlesMap = React.useMemo(() => {
+    if (!clientGoals) return {};
+    return clientGoals.reduce((acc: Record<number, string>, goal: any) => {
+      acc[goal.id] = goal.title;
+      return acc;
+    }, {});
+  }, [clientGoals]);
+  
+  // Fetch subgoals for all client goals
+  const { data: subgoalsData } = useQuery({
+    queryKey: ['/api/clients', clientId, 'all-subgoals'],
+    queryFn: async () => {
+      if (!clientGoals || !clientGoals.length) return {};
+      
+      // Create a map of goalId to array of subgoals
+      const subgoalsMap: Record<number, any[]> = {};
+      
+      // Fetch subgoals for each goal
+      await Promise.all(clientGoals.map(async (goal: any) => {
+        const response = await fetch(`/api/goals/${goal.id}/subgoals`);
+        if (response.ok) {
+          const subgoals = await response.json();
+          subgoalsMap[goal.id] = subgoals;
+        }
+      }));
+      
+      return subgoalsMap;
+    },
+    enabled: !!clientGoals && clientGoals.length > 0
+  });
+  
+  // Create a combined map of subgoal IDs to titles
+  const subgoalTitlesMap = React.useMemo(() => {
+    if (!subgoalsData) return {};
+    
+    const titlesMap: Record<number, string> = {};
+    
+    // Iterate through each goal's subgoals
+    Object.values(subgoalsData).forEach((subgoals: any[]) => {
+      subgoals.forEach(subgoal => {
+        titlesMap[subgoal.id] = subgoal.title;
+      });
+    });
+    
+    return titlesMap;
+  }, [subgoalsData]);
+  
   // Fetch additional session data for the edit form
   const { data: sessionNotesData } = useQuery({
     queryKey: ['/api/sessions', sessionToEdit?.id, 'notes'],
@@ -103,7 +165,7 @@ export default function ClientSessions({ clientId: propClientId }: ClientSession
   });
   
   // Prepare initial form data for editing session
-  const prepareSessionFormData = () => {
+  const prepareSessionFormData = (): NewSessionFormValues | undefined => {
     if (!sessionToEdit) return undefined;
     
     console.log("Preparing session form data for editing session:", sessionToEdit);
@@ -154,15 +216,60 @@ export default function ClientSessions({ clientId: propClientId }: ClientSession
       status: sessionNotesData?.status || "draft" as "draft" | "completed",
     };
     
-    // Use assessments data if available
-    const performanceAssessments = sessionAssessmentsData || [];
+    // Transform assessments data to match the form's expected structure
+    // Define the expected assessment type structure
+    type FormattedAssessment = {
+      goalId: number;
+      goalTitle: string;
+      notes: string;
+      subgoals: {
+        subgoalId: number;
+        subgoalTitle: string;
+        rating: number;
+        strategies: string[];
+        notes: string;
+      }[];
+    };
+    
+    // Group assessments by goalId, then convert to array of objects with subgoals
+    const performanceAssessments = sessionAssessmentsData 
+      ? Object.values(
+          sessionAssessmentsData.reduce((acc: Record<number, FormattedAssessment>, assessment: any) => {
+            // Initialize goal entry if it doesn't exist
+            if (!acc[assessment.goalId]) {
+              acc[assessment.goalId] = {
+                goalId: assessment.goalId,
+                goalTitle: goalTitlesMap[assessment.goalId] || `Goal ${assessment.goalId}`,
+                notes: assessment.notes || "",
+                subgoals: []
+              };
+            }
+            
+            // If we have a subgoalId, add it as a subgoal
+            if (assessment.subgoalId) {
+              acc[assessment.goalId].subgoals.push({
+                subgoalId: assessment.subgoalId,
+                subgoalTitle: subgoalTitlesMap[assessment.subgoalId] || `Subgoal ${assessment.subgoalId}`,
+                rating: assessment.rating || 0,
+                strategies: Array.isArray(assessment.strategies) ? assessment.strategies : [],
+                notes: assessment.notes || ""
+              });
+            }
+            
+            return acc;
+          }, {})
+        )
+      : [];
+    
+    console.log("Transformed performance assessments for form:", performanceAssessments);
     
     // Return the full form data object with all available data
+    // Use type assertion to ensure TypeScript knows this matches the expected schema
     return {
       session: sessionData,
       sessionNote: sessionNote,
-      performanceAssessments: performanceAssessments,
-    };
+      performanceAssessments,
+    } as NewSessionFormValues;
   };
   
   return (
