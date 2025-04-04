@@ -204,6 +204,25 @@ export default function ClientSessions({ clientId: propClientId }: ClientSession
     
     // Prepare session note data with actual values if available or create default structure
     // Note: sessionNotesData may be an empty object returned by the API as a fallback
+    
+    // Parse products from JSON string if necessary
+    let parsedProducts = [];
+    if (sessionNotesData?.products) {
+      try {
+        // Check if products is already an array or a JSON string
+        if (typeof sessionNotesData.products === 'string') {
+          parsedProducts = JSON.parse(sessionNotesData.products);
+          console.log("Successfully parsed products from JSON string:", parsedProducts);
+        } else if (Array.isArray(sessionNotesData.products)) {
+          parsedProducts = sessionNotesData.products;
+          console.log("Products was already an array:", parsedProducts);
+        }
+      } catch (error) {
+        console.error("Error parsing products JSON:", error);
+        parsedProducts = [];
+      }
+    }
+    
     const sessionNote = {
       presentAllies: sessionNotesData?.presentAllies || [],
       presentAllyIds: sessionNotesData?.presentAllyIds || [],
@@ -212,7 +231,7 @@ export default function ClientSessions({ clientId: propClientId }: ClientSession
       cooperationRating: sessionNotesData?.cooperationRating || 0,
       physicalActivityRating: sessionNotesData?.physicalActivityRating || 0,
       notes: sessionNotesData?.notes || "",
-      products: Array.isArray(sessionNotesData?.products) ? sessionNotesData.products : [],
+      products: parsedProducts,
       status: sessionNotesData?.status || "draft" as "draft" | "completed",
     };
     
@@ -243,17 +262,47 @@ export default function ClientSessions({ clientId: propClientId }: ClientSession
                 notes: assessment.notes || "",
                 subgoals: []
               };
+              
+              // Get the subgoals for this goal if we have them
+              if (subgoalsData && subgoalsData[assessment.goalId]) {
+                // Add all subgoals from this goal with default values
+                subgoalsData[assessment.goalId].forEach((subgoal) => {
+                  acc[assessment.goalId].subgoals.push({
+                    subgoalId: subgoal.id,
+                    subgoalTitle: subgoal.title,
+                    rating: 0, // Default rating
+                    strategies: [], // Default empty strategies
+                    notes: "" // Default empty notes
+                  });
+                });
+              }
             }
             
-            // If we have a subgoalId, add it as a subgoal
+            // If we have a subgoalId in the assessment, update the existing subgoal
             if (assessment.subgoalId) {
-              acc[assessment.goalId].subgoals.push({
-                subgoalId: assessment.subgoalId,
-                subgoalTitle: subgoalTitlesMap[assessment.subgoalId] || `Subgoal ${assessment.subgoalId}`,
-                rating: assessment.rating || 0,
-                strategies: Array.isArray(assessment.strategies) ? assessment.strategies : [],
-                notes: assessment.notes || ""
-              });
+              // Find the index of this subgoal in our array
+              const subgoalIndex = acc[assessment.goalId].subgoals.findIndex(
+                sg => sg.subgoalId === assessment.subgoalId
+              );
+              
+              if (subgoalIndex >= 0) {
+                // Update the existing subgoal
+                acc[assessment.goalId].subgoals[subgoalIndex] = {
+                  ...acc[assessment.goalId].subgoals[subgoalIndex],
+                  rating: assessment.rating || 0,
+                  strategies: Array.isArray(assessment.strategies) ? assessment.strategies : [],
+                  notes: assessment.notes || ""
+                };
+              } else {
+                // If not found (which shouldn't happen), add it
+                acc[assessment.goalId].subgoals.push({
+                  subgoalId: assessment.subgoalId,
+                  subgoalTitle: subgoalTitlesMap[assessment.subgoalId] || `Subgoal ${assessment.subgoalId}`,
+                  rating: assessment.rating || 0,
+                  strategies: Array.isArray(assessment.strategies) ? assessment.strategies : [],
+                  notes: assessment.notes || ""
+                });
+              }
             }
             
             return acc;

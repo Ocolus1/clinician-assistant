@@ -174,6 +174,20 @@ import { cn } from "@/lib/utils";
 import { borderStyles } from "@/lib/border-styles";
 import { useToast } from "@/hooks/use-toast";
 
+// Define FormattedAssessment type for form data consistency
+export type FormattedAssessment = {
+  goalId: number;
+  goalTitle: string;
+  notes: string;
+  subgoals: {
+    subgoalId: number;
+    subgoalTitle: string;
+    rating: number;
+    strategies: string[];
+    notes: string;
+  }[];
+};
+
 // Form schemas
 const sessionFormSchema = insertSessionSchema.extend({
   sessionDate: z.coerce.date({
@@ -352,6 +366,8 @@ export function NewSessionForm({
   useEffect(() => {
     if (isEdit && initialData) {
       console.log("Edit mode active with initialData:", initialData);
+      console.log("Products in initialData:", initialData.sessionNote.products);
+      console.log("Performance assessments in initialData:", initialData.performanceAssessments);
       
       // Make sure all required fields have values for the form to work properly
       const enhancedInitialData = {
@@ -369,7 +385,8 @@ export function NewSessionForm({
           physicalActivityRating: initialData.sessionNote.physicalActivityRating || 0,
           presentAllies: initialData.sessionNote.presentAllies || [],
           presentAllyIds: initialData.sessionNote.presentAllyIds || [],
-          products: initialData.sessionNote.products || [],
+          products: Array.isArray(initialData.sessionNote.products) ? 
+            initialData.sessionNote.products : [],
           notes: initialData.sessionNote.notes || "",
           status: initialData.sessionNote.status || "draft",
         },
@@ -377,6 +394,36 @@ export function NewSessionForm({
       };
       
       console.log("Enhanced initial data for form:", enhancedInitialData);
+      
+      // Ensure products is an array
+      if (enhancedInitialData.sessionNote.products && 
+          typeof enhancedInitialData.sessionNote.products === 'string') {
+        try {
+          enhancedInitialData.sessionNote.products = JSON.parse(enhancedInitialData.sessionNote.products);
+          console.log("Parsed products from string to array:", enhancedInitialData.sessionNote.products);
+        } catch (e) {
+          console.error("Failed to parse products JSON:", e);
+          enhancedInitialData.sessionNote.products = [];
+        }
+      }
+      
+      // Ensure performanceAssessments is an array with the correct structure
+      if (enhancedInitialData.performanceAssessments) {
+        // Ensure each assessment has the required properties
+        enhancedInitialData.performanceAssessments = enhancedInitialData.performanceAssessments.map(assessment => ({
+          goalId: assessment.goalId,
+          goalTitle: assessment.goalTitle || `Goal ${assessment.goalId}`,
+          notes: assessment.notes || "",
+          subgoals: Array.isArray(assessment.subgoals) ? assessment.subgoals.map(subgoal => ({
+            subgoalId: subgoal.subgoalId,
+            subgoalTitle: subgoal.subgoalTitle || `Subgoal ${subgoal.subgoalId}`,
+            rating: typeof subgoal.rating === 'number' ? subgoal.rating : 0,
+            strategies: Array.isArray(subgoal.strategies) ? subgoal.strategies : [],
+            notes: subgoal.notes || ""
+          })) : []
+        }));
+        console.log("Normalized performance assessments:", enhancedInitialData.performanceAssessments);
+      }
       
       // Reset the form with enhanced initial data
       form.reset(enhancedInitialData);
@@ -571,6 +618,40 @@ export function NewSessionForm({
           if (existingNotesData && existingNotesData.id) {
             console.log(`Updating existing session note with ID: ${existingNotesData.id}`);
             await apiRequest("PUT", `/api/session-notes/${existingNotesData.id}`, sessionNoteData);
+            
+            // Handle performance assessments in update mode
+            if (data.performanceAssessments && data.performanceAssessments.length > 0) {
+              console.log(`Updating ${data.performanceAssessments.length} performance assessments...`);
+              
+              // First, get existing assessments
+              const assessmentsResponse = await fetch(`/api/sessions/${sessionId}/assessments`);
+              const existingAssessments = await assessmentsResponse.json();
+              
+              // Update or create assessments
+              const updatePromises = data.performanceAssessments.map(assessment => {
+                const assessmentData = {
+                  sessionNoteId: existingNotesData.id,
+                  goalId: assessment.goalId,
+                  notes: assessment.notes || "",
+                  subgoals: assessment.subgoals || []
+                };
+                
+                // Check if assessment for this goal already exists
+                const existingAssessment = Array.isArray(existingAssessments) && 
+                  existingAssessments.find((a: any) => a.goalId === assessment.goalId);
+                
+                if (existingAssessment) {
+                  console.log(`Updating existing assessment for goal ${assessment.goalId}`);
+                  return apiRequest("PUT", `/api/performance-assessments/${existingAssessment.id}`, assessmentData);
+                } else {
+                  console.log(`Creating new assessment for goal ${assessment.goalId}`);
+                  return apiRequest("POST", `/api/session-notes/${existingNotesData.id}/performance`, assessmentData);
+                }
+              });
+              
+              await Promise.all(updatePromises);
+              console.log("Performance assessments updated successfully");
+            }
           } else {
             // Otherwise create a new session note
             console.log(`Creating new session note for session ID: ${sessionId}`);
