@@ -545,9 +545,10 @@ export function NewSessionForm({
     const newExpandedGoals: Record<number, boolean> = {};
 
     performanceAssessments.forEach(assessment => {
-      // If this goal doesn't already have an expanded state, default to expanded
+      // If this goal doesn't already have an expanded state, default to collapsed
+      // We're changing the default state from 'true' to 'false' to start with collapsed goals
       if (expandedGoals[assessment.goalId] === undefined) {
-        newExpandedGoals[assessment.goalId] = true;
+        newExpandedGoals[assessment.goalId] = false;
       }
     });
 
