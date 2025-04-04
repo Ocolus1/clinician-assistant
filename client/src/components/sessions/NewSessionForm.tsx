@@ -552,7 +552,9 @@ export function NewSessionForm({
   // Submit handler
   const onSubmit = (data: NewSessionFormValues) => {
     // Check if the selected therapist is assigned to the client
-    const isTherapistAssigned = assignedClinicians.some((clinician: Clinician) => clinician.id === data.session.therapistId);
+    const isTherapistAssigned = assignedClinicians.some(
+      (assignment: any) => assignment.clinician.id === data.session.therapistId
+    );
     
     if (data.session.therapistId && !isTherapistAssigned) {
       toast({
@@ -1686,12 +1688,12 @@ export function NewSessionForm({
                                       </FormControl>
                                       <SelectContent>
                                         {/* Show clinicians assigned to this client in the personal info tab */}
-                                        {assignedClinicians.map((clinician: Clinician) => (
+                                        {assignedClinicians.map((assignment: any) => (
                                           <SelectItem
-                                            key={clinician.id}
-                                            value={clinician.id.toString()}
+                                            key={assignment.clinician.id}
+                                            value={assignment.clinician.id.toString()}
                                           >
-                                            {clinician.name} (Assigned Therapist)
+                                            {assignment.clinician.name} ({assignment.role})
                                           </SelectItem>
                                         ))}
                                         
