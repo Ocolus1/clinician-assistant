@@ -993,13 +993,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const note = await storage.getSessionNoteBySessionId(sessionId);
       
       if (!note) {
-        return res.status(404).json({ error: "Session note not found" });
+        console.log(`No session note found for session ${sessionId}`);
+        // Return empty data structure instead of 404 to simplify client handling
+        return res.json({
+          presentAllies: [],
+          presentAllyIds: [],
+          moodRating: 0,
+          focusRating: 0,
+          cooperationRating: 0,
+          physicalActivityRating: 0,
+          notes: "",
+          products: [],
+          status: "draft"
+        });
       }
       
       res.json(note);
     } catch (error) {
       console.error(`Error getting session note for session ${req.params.sessionId}:`, error);
       res.status(500).json({ error: "Failed to get session note" });
+    }
+  });
+  
+  // Get assessments for a session
+  app.get("/api/sessions/:sessionId/assessments", async (req, res) => {
+    console.log(`GET /api/sessions/${req.params.sessionId}/assessments - Getting performance assessments`);
+    try {
+      const sessionId = parseInt(req.params.sessionId);
+      
+      // First get the session note to find its ID
+      const note = await storage.getSessionNoteBySessionId(sessionId);
+      
+      if (!note) {
+        console.log(`No session note found for session ${sessionId}, returning empty assessments array`);
+        return res.json([]);
+      }
+      
+      // Then get the performance assessments for the session note
+      const assessments = await storage.getPerformanceAssessmentsBySessionNote(note.id);
+      
+      if (!assessments || assessments.length === 0) {
+        console.log(`No performance assessments found for session note ${note.id}`);
+        return res.json([]);
+      }
+      
+      res.json(assessments);
+    } catch (error) {
+      console.error(`Error getting performance assessments for session ${req.params.sessionId}:`, error);
+      res.status(500).json({ error: "Failed to get performance assessments" });
     }
   });
   

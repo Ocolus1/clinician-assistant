@@ -353,8 +353,36 @@ export function NewSessionForm({
     if (isEdit && initialData) {
       console.log("Edit mode active with initialData:", initialData);
       
-      // Reset the form with initialData
-      form.reset(initialData);
+      // Make sure all required fields have values for the form to work properly
+      const enhancedInitialData = {
+        ...initialData,
+        session: {
+          ...initialData.session,
+          title: initialData.session.title || "Therapy Session",
+          // Ensure all required fields are present
+        },
+        sessionNote: {
+          ...initialData.sessionNote,
+          moodRating: initialData.sessionNote.moodRating || 0,
+          focusRating: initialData.sessionNote.focusRating || 0,
+          cooperationRating: initialData.sessionNote.cooperationRating || 0,
+          physicalActivityRating: initialData.sessionNote.physicalActivityRating || 0,
+          presentAllies: initialData.sessionNote.presentAllies || [],
+          presentAllyIds: initialData.sessionNote.presentAllyIds || [],
+          products: initialData.sessionNote.products || [],
+          notes: initialData.sessionNote.notes || "",
+          status: initialData.sessionNote.status || "draft",
+        },
+        performanceAssessments: initialData.performanceAssessments || [],
+      };
+      
+      console.log("Enhanced initial data for form:", enhancedInitialData);
+      
+      // Reset the form with enhanced initial data
+      form.reset(enhancedInitialData);
+      
+      // Set the active tab to the first tab
+      setActiveTab("session");
       
       // Set the selected client based on initialData
       if (initialData.session.clientId) {

@@ -57,15 +57,58 @@ export default function ClientSessions({ clientId: propClientId }: ClientSession
   
   // Handle editing a session
   const handleEditSession = (session: Session) => {
+    console.log("Editing session:", session);
+    // Store the basic session data for immediate use
     setSessionToEdit(session);
     setEditSessionDialogOpen(true);
   };
+  
+  // Fetch additional session data for the edit form
+  const { data: sessionNotesData } = useQuery({
+    queryKey: ['/api/sessions', sessionToEdit?.id, 'notes'],
+    queryFn: async () => {
+      if (!sessionToEdit?.id) return null;
+      try {
+        const response = await fetch(`/api/sessions/${sessionToEdit.id}/notes`);
+        if (!response.ok) {
+          console.warn(`Failed to fetch session notes: ${response.status}`);
+          return null;
+        }
+        return response.json();
+      } catch (error) {
+        console.error("Error fetching session notes:", error);
+        return null;
+      }
+    },
+    enabled: !!sessionToEdit?.id,
+  });
+
+  const { data: sessionAssessmentsData } = useQuery({
+    queryKey: ['/api/sessions', sessionToEdit?.id, 'assessments'],
+    queryFn: async () => {
+      if (!sessionToEdit?.id) return null;
+      try {
+        const response = await fetch(`/api/sessions/${sessionToEdit.id}/assessments`);
+        if (!response.ok) {
+          console.warn(`Failed to fetch session assessments: ${response.status}`);
+          return null;
+        }
+        return response.json();
+      } catch (error) {
+        console.error("Error fetching session assessments:", error);
+        return null;
+      }
+    },
+    enabled: !!sessionToEdit?.id,
+  });
   
   // Prepare initial form data for editing session
   const prepareSessionFormData = () => {
     if (!sessionToEdit) return undefined;
     
     console.log("Preparing session form data for editing session:", sessionToEdit);
+    console.log("Session notes data:", sessionNotesData);
+    console.log("Session assessments data:", sessionAssessmentsData);
     
     // Extract hours from session date for the time fields
     const sessionDate = new Date(sessionToEdit.sessionDate);
@@ -87,7 +130,7 @@ export default function ClientSessions({ clientId: propClientId }: ClientSession
       // Convert null to undefined for therapistId
       therapistId: sessionToEdit.therapistId !== null ? sessionToEdit.therapistId : undefined,
       title: sessionToEdit.title,
-      description: sessionToEdit.description || null,
+      description: sessionToEdit.description || "",
       sessionDate: sessionDate,
       duration: sessionToEdit.duration,
       status: sessionToEdit.status || "scheduled",
@@ -97,22 +140,39 @@ export default function ClientSessions({ clientId: propClientId }: ClientSession
       timeTo
     };
     
-    // Return the full form data object with proper types
+    // Prepare session note data with actual values if available
+    const sessionNote = sessionNotesData ? {
+      // Use actual values from sessionNotesData
+      presentAllies: sessionNotesData.presentAllies || [],
+      presentAllyIds: sessionNotesData.presentAllyIds || [],
+      moodRating: sessionNotesData.moodRating || 0,
+      focusRating: sessionNotesData.focusRating || 0,
+      cooperationRating: sessionNotesData.cooperationRating || 0,
+      physicalActivityRating: sessionNotesData.physicalActivityRating || 0,
+      notes: sessionNotesData.notes || "",
+      products: sessionNotesData.products || [],
+      status: sessionNotesData.status || "draft" as "draft" | "completed",
+    } : {
+      // Default values if no data
+      presentAllies: [],
+      presentAllyIds: [],
+      moodRating: 0,
+      focusRating: 0,
+      cooperationRating: 0,
+      physicalActivityRating: 0,
+      notes: "",
+      products: [],
+      status: "draft" as "draft" | "completed",
+    };
+    
+    // Use assessments data if available
+    const performanceAssessments = sessionAssessmentsData || [];
+    
+    // Return the full form data object with all available data
     return {
       session: sessionData,
-      // These are just placeholders as the real data would come from the API
-      sessionNote: {
-        presentAllies: [],
-        presentAllyIds: [],
-        moodRating: 0,
-        focusRating: 0,
-        cooperationRating: 0,
-        physicalActivityRating: 0,
-        notes: "",
-        products: [],
-        status: "draft" as "draft" | "completed",
-      },
-      performanceAssessments: [],
+      sessionNote: sessionNote,
+      performanceAssessments: performanceAssessments,
     };
   };
   
