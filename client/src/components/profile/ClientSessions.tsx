@@ -18,6 +18,8 @@ export default function ClientSessions({ clientId: propClientId }: ClientSession
   const clientId = propClientId || (params.id ? parseInt(params.id) : undefined);
   const [selectedSession, setSelectedSession] = useState<Session | null>(null);
   const [createSessionDialogOpen, setCreateSessionDialogOpen] = useState(false);
+  const [editSessionDialogOpen, setEditSessionDialogOpen] = useState(false);
+  const [sessionToEdit, setSessionToEdit] = useState<Session | null>(null);
   
   // Fetch client details
   const { data: client } = useQuery<Client>({
@@ -37,6 +39,7 @@ export default function ClientSessions({ clientId: propClientId }: ClientSession
   
   // Handle creating a new session
   const handleCreateNewSession = () => {
+    setSessionToEdit(null); // Ensure we're not in edit mode
     setCreateSessionDialogOpen(true);
   };
   
@@ -52,6 +55,65 @@ export default function ClientSessions({ clientId: propClientId }: ClientSession
     setSelectedSession(session);
   };
   
+  // Handle editing a session
+  const handleEditSession = (session: Session) => {
+    setSessionToEdit(session);
+    setEditSessionDialogOpen(true);
+  };
+  
+  // Prepare initial form data for editing session
+  const prepareSessionFormData = () => {
+    if (!sessionToEdit) return undefined;
+    
+    // Extract hours from session date for the time fields
+    const sessionDate = new Date(sessionToEdit.sessionDate);
+    const hours = sessionDate.getHours();
+    const minutes = sessionDate.getMinutes();
+    
+    // Format time as "HH:MM"
+    const timeFrom = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+    const toHours = (hours + Math.floor(sessionToEdit.duration / 60)) % 24;
+    const toMinutes = (minutes + (sessionToEdit.duration % 60)) % 60;
+    const timeTo = `${toHours.toString().padStart(2, '0')}:${toMinutes.toString().padStart(2, '0')}`;
+    
+    // We need to create an object that matches the expected form schema
+    // Create a sessionData object first to adjust field types
+    const sessionData = {
+      // Use sessionId instead of id for Zod schema compatibility
+      sessionId: sessionToEdit.id.toString(), 
+      clientId: sessionToEdit.clientId,
+      // Convert null to undefined for therapistId
+      therapistId: sessionToEdit.therapistId !== null ? sessionToEdit.therapistId : undefined,
+      title: sessionToEdit.title,
+      description: sessionToEdit.description || null,
+      sessionDate: sessionDate,
+      duration: sessionToEdit.duration,
+      status: sessionToEdit.status || "scheduled",
+      location: sessionToEdit.location || "",
+      notes: sessionToEdit.notes || "", 
+      timeFrom,
+      timeTo
+    };
+    
+    // Return the full form data object with proper types
+    return {
+      session: sessionData,
+      // These are just placeholders as the real data would come from the API
+      sessionNote: {
+        presentAllies: [],
+        presentAllyIds: [],
+        moodRating: 0,
+        focusRating: 0,
+        cooperationRating: 0,
+        physicalActivityRating: 0,
+        notes: "",
+        products: [],
+        status: "draft" as "draft" | "completed",
+      },
+      performanceAssessments: [],
+    };
+  };
+  
   return (
     <div className="space-y-6">
       {/* Session List View */}
@@ -62,6 +124,7 @@ export default function ClientSessions({ clientId: propClientId }: ClientSession
           onCreateSession={handleCreateNewSession}
           onCreateDocument={handleCreateNewDocument}
           onViewSession={handleViewSession}
+          onEditSession={handleEditSession}
         />
       )}
       
@@ -70,6 +133,15 @@ export default function ClientSessions({ clientId: propClientId }: ClientSession
         open={createSessionDialogOpen} 
         onOpenChange={setCreateSessionDialogOpen}
         initialClient={client}
+      />
+      
+      {/* Session edit form */}
+      <NewSessionForm 
+        open={editSessionDialogOpen} 
+        onOpenChange={setEditSessionDialogOpen}
+        initialClient={client}
+        initialData={prepareSessionFormData()}
+        isEdit={true}
       />
       
       {/* Session details modal */}

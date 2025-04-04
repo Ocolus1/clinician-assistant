@@ -80,12 +80,12 @@ const formatTimeRange = (timeFrom: string, timeTo: string) => {
 };
 
 // Extended Session type with additional fields needed for the card
-interface ExtendedSession extends Session {
+interface ExtendedSession extends Omit<Session, 'location'> {
   // These fields might not exist in the database schema but are needed for UI display
   timeFrom?: string;
   timeTo?: string;
   therapistName?: string;
-  location?: string;
+  location: string; // Override the original location type to ensure it's always a string, never null or undefined
   performanceScore?: number;
   type?: 'session' | 'cancellation' | 'document';
 }
@@ -94,15 +94,24 @@ interface ExtendedSession extends Session {
 interface SessionCardProps {
   session: ExtendedSession;
   onClick?: () => void;
+  onEdit?: (session: ExtendedSession) => void;
 }
 
-function SessionCard({ session, onClick }: SessionCardProps) {
+function SessionCard({ session, onClick, onEdit }: SessionCardProps) {
   // Convert date string to Date object safely
   const sessionDate = new Date(session.sessionDate);
   
   // Extract time from and time to if available in the session data
   const timeFrom = session.timeFrom || ""; 
   const timeTo = session.timeTo || "";
+  
+  // Handle edit button click
+  const handleEditClick = (e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent the card's onClick from firing
+    if (onEdit) {
+      onEdit(session);
+    }
+  };
   
   return (
     <Card 
@@ -143,7 +152,7 @@ function SessionCard({ session, onClick }: SessionCardProps) {
             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); alert('Download'); }}>
               <Download className="h-4 w-4 text-slate-500" />
             </Button>
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); alert('Edit'); }}>
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleEditClick}>
               <Edit className="h-4 w-4 text-slate-500" />
             </Button>
           </div>
@@ -174,6 +183,7 @@ interface SessionsListViewProps {
   onCreateSession: () => void;
   onCreateDocument: () => void;
   onViewSession: (session: Session | ExtendedSession) => void;
+  onEditSession?: (session: Session | ExtendedSession) => void;
 }
 
 export default function SessionsListView({ 
@@ -181,7 +191,8 @@ export default function SessionsListView({
   client, 
   onCreateSession, 
   onCreateDocument, 
-  onViewSession 
+  onViewSession,
+  onEditSession
 }: SessionsListViewProps) {
   // Fetch sessions for this client
   const { data: sessions = [], isLoading } = useQuery<Session[]>({
@@ -297,6 +308,7 @@ export default function SessionsListView({
                 key={session.id} 
                 session={session} 
                 onClick={() => onViewSession(session)}
+                onEdit={onEditSession}
               />
             ))}
           </div>

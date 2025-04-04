@@ -465,7 +465,7 @@ export function NewSessionForm({
     }
   }, [performanceAssessments]);
 
-  // Create session mutation
+  // Create or update session mutation
   const createSessionMutation = useMutation({
     mutationFn: async (data: NewSessionFormValues) => {
       // Create a session object that matches the server's expectations
@@ -476,13 +476,23 @@ export function NewSessionForm({
         description: data.session.description || "",
         sessionDate: combineDateTime(data.session.sessionDate, data.session.timeFrom, data.session.timeTo),
         duration: calculateDuration(data.session.timeFrom, data.session.timeTo),
-        status: "scheduled",
+        status: data.session.status || "scheduled",
         location: data.session.location || "",
         notes: data.session.notes || ""
       };
       
-      // Make the API request with just the session data the server expects
-      return apiRequest("POST", "/api/sessions", sessionData);
+      // If we're in edit mode and have a session ID stored in sessionId field
+      if (isEdit && data.session.sessionId) {
+        const sessionId = data.session.sessionId;
+        // For PUT requests we remove the sessionId from the payload since it's in the URL
+        const { sessionId: _, ...sessionDataWithoutId } = sessionData;
+        return apiRequest("PUT", `/api/sessions/${sessionId}`, sessionDataWithoutId);
+      } else {
+        // Otherwise create a new session
+        // Remove sessionId if it exists but we're not in edit mode
+        const { sessionId: _, ...sessionDataWithoutId } = sessionData;
+        return apiRequest("POST", "/api/sessions", sessionDataWithoutId);
+      }
     },
     onSuccess: () => {
       // Invalidate queries to refresh data

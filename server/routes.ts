@@ -879,12 +879,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Client not found" });
       }
 
-      // If a therapistId is provided, ensure it exists as an ally
+      // If a therapistId is provided, ensure it exists as an assigned clinician
       if (result.data.therapistId) {
-        const allies = await storage.getAlliesByClient(result.data.clientId);
-        const therapistExists = allies.some(ally => ally.id === result.data.therapistId);
+        const assignments = await storage.getCliniciansByClient(result.data.clientId);
+        const therapistExists = assignments.some((assignment: { clinicianId: number }) => assignment.clinicianId === result.data.therapistId);
         if (!therapistExists) {
-          return res.status(400).json({ error: "Therapist not found among client's allies" });
+          return res.status(400).json({ error: "Therapist must be assigned to this client" });
         }
       }
 
@@ -914,6 +914,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const existingSession = await storage.getSessionById(sessionId);
       if (!existingSession) {
         return res.status(404).json({ error: "Session not found" });
+      }
+
+      // If a therapistId is provided, ensure it exists as an assigned clinician
+      if (result.data.therapistId) {
+        const assignments = await storage.getCliniciansByClient(result.data.clientId);
+        const therapistExists = assignments.some((assignment: { clinicianId: number }) => assignment.clinicianId === result.data.therapistId);
+        if (!therapistExists) {
+          return res.status(400).json({ error: "Therapist must be assigned to this client" });
+        }
       }
 
       const updatedSession = await storage.updateSession(sessionId, result.data);
