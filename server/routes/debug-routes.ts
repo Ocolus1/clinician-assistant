@@ -28,7 +28,8 @@ interface SessionNote {
 const debugRouter = Router();
 
 // Get detailed debug information about the budget tracking flow for a client
-debugRouter.get('/api/debug/budget-flow/:clientId', async (req, res) => {
+// Support both paths for compatibility
+debugRouter.get(['/api/debug/budget-flow/:clientId', '/api/debug/budget/:clientId'], async (req, res) => {
   try {
     const clientId = parseInt(req.params.clientId);
     
