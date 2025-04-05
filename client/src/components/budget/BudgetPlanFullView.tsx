@@ -109,6 +109,32 @@ export function BudgetPlanFullView({
     return plan.ndisFunds !== undefined ? plan.ndisFunds : plan.availableFunds;
   };
   
+  // Calculate total used amount from budget items
+  const calculateTotalUsed = () => {
+    if (!budgetItems || !Array.isArray(budgetItems)) return 0;
+    
+    return budgetItems.reduce((total, item) => {
+      // Use the usedQuantity field which is tracked on the server
+      const usedQuantity = item.usedQuantity || 0;
+      const unitPrice = typeof item.unitPrice === 'string' 
+        ? parseFloat(item.unitPrice) 
+        : item.unitPrice || 0;
+      
+      return total + (usedQuantity * unitPrice);
+    }, 0);
+  };
+  
+  // Calculate percentage of budget used
+  const calculatePercentUsed = () => {
+    const totalUsed = calculateTotalUsed();
+    const totalAvailable = getFundsValue(plan) || 0;
+    
+    if (totalAvailable <= 0) return 0;
+    
+    const percent = Math.round((totalUsed / totalAvailable) * 100);
+    return Math.min(100, Math.max(0, percent)); // Ensure it's between 0-100
+  };
+  
   return (
     <div className="space-y-6">
       {/* Header with back button and actions */}
@@ -236,21 +262,21 @@ export function BudgetPlanFullView({
                 <div className="flex justify-between items-center mb-1.5">
                   <div className="text-sm">Used Funds</div>
                   <div className="text-sm text-muted-foreground">
-                    {plan.percentUsed || 0}%
+                    {calculatePercentUsed()}%
                   </div>
                 </div>
                 <Progress 
-                  value={plan.percentUsed || 0} 
+                  value={calculatePercentUsed()} 
                   className="h-2"
                   indicatorClassName={cn(
-                    (plan.percentUsed || 0) >= 90 ? "bg-red-500" :
-                    (plan.percentUsed || 0) >= 75 ? "bg-amber-500" :
+                    calculatePercentUsed() >= 90 ? "bg-red-500" :
+                    calculatePercentUsed() >= 75 ? "bg-amber-500" :
                     "bg-emerald-500"
                   )} 
                 />
                 <div className="flex justify-between mt-1.5 text-sm">
                   <span className="font-medium">
-                    {formatCurrency(plan.totalUsed || 0)}
+                    {formatCurrency(calculateTotalUsed() || 0)}
                   </span>
                   <span className="text-muted-foreground">
                     of {formatCurrency(getFundsValue(plan) || 0)}
@@ -261,7 +287,7 @@ export function BudgetPlanFullView({
                 <div className="rounded-md border p-3">
                   <div className="text-sm text-muted-foreground mb-1">Remaining</div>
                   <div className="text-lg font-medium">
-                    {formatCurrency((getFundsValue(plan) || 0) - (plan.totalUsed || 0))}
+                    {formatCurrency((getFundsValue(plan) || 0) - (calculateTotalUsed() || 0))}
                   </div>
                 </div>
                 <div className="rounded-md border p-3">
