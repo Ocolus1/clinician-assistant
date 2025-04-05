@@ -62,13 +62,16 @@ export default function ClientBudgetTab({
     return Array.isArray(budgetSettingsData) ? budgetSettingsData : [budgetSettingsData];
   }, [budgetSettingsData]);
 
-  // Fetch budget items for the client
+  // Fetch budget items for the client - ensure we get the latest usage data
   const { 
     data: budgetItems = [], 
     isLoading: isLoadingItems,
-    error: itemsError
+    error: itemsError,
+    refetch: refetchBudgetItems
   } = useQuery<BudgetItem[]>({
     queryKey: ['/api/clients', clientId, 'budget-items'],
+    staleTime: 30000, // 30 seconds - ensure fresh data
+    refetchOnWindowFocus: true, // Refresh when window regains focus
     retry: 1,
   });
 

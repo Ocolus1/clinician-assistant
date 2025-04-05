@@ -115,11 +115,12 @@ export function BudgetPlanFullView({
     
     return budgetItems.reduce((total, item) => {
       // Use the usedQuantity field which is tracked on the server
-      const usedQuantity = item.usedQuantity || 0;
+      const usedQuantity = parseFloat(item.usedQuantity) || 0;
       const unitPrice = typeof item.unitPrice === 'string' 
         ? parseFloat(item.unitPrice) 
         : item.unitPrice || 0;
       
+      console.log(`Item ${item.itemCode}: Used ${usedQuantity} at ${unitPrice} each = ${usedQuantity * unitPrice}`);
       return total + (usedQuantity * unitPrice);
     }, 0);
   };
