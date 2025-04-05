@@ -176,7 +176,7 @@ export const sessions = pgTable("sessions", {
   description: text("description"),
   sessionDate: timestamp("session_date").notNull(),
   duration: integer("duration").notNull(), // Duration in minutes
-  status: text("status").notNull().default("scheduled"), // scheduled, completed, cancelled, etc.
+  status: text("status", { enum: ["draft", "completed"] }).notNull().default("draft"), // Either draft or completed
   location: text("location"),
   notes: text("notes"),
   createdAt: timestamp("created_at").defaultNow(),

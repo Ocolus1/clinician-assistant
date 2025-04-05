@@ -221,6 +221,7 @@ const performanceAssessmentSchema = z.object({
 const sessionProductSchema = z.object({
   budgetItemId: z.number(),
   productCode: z.string(),
+  itemCode: z.string(), // Adding itemCode as a duplicate of productCode for compatibility
   productDescription: z.string(),
   quantity: z.number().min(0.01),
   unitPrice: z.number(),
@@ -317,7 +318,7 @@ export function NewSessionForm({
         title: "Therapy Session",
         sessionDate: new Date(),
         duration: 60,
-        status: "scheduled",
+        status: "draft",
         location: "",
         timeFrom: "09:00",
         timeTo: "10:00",
@@ -573,7 +574,7 @@ export function NewSessionForm({
         description: data.session.description || "",
         sessionDate: combineDateTime(data.session.sessionDate, data.session.timeFrom, data.session.timeTo),
         duration: calculateDuration(data.session.timeFrom, data.session.timeTo),
-        status: data.session.status || "scheduled",
+        status: data.session.status || "draft",
         location: data.session.location || "",
         notes: data.session.notes || ""
       };
@@ -1024,6 +1025,8 @@ export function NewSessionForm({
         budgetItemId: item.id,
         productCode: item.itemCode || "",
         itemCode: item.itemCode || "", // Add itemCode as well for server compatibility
+        code: item.itemCode || "", // Add code as another alias for compatibility
+        name: item.name || item.description || "", // Add name field for compatibility
         productDescription: item.description || "",
         quantity: 1,
         unitPrice: parseFloat(String(item.unitPrice || "0")),

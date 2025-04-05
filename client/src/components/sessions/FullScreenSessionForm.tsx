@@ -135,6 +135,9 @@ const performanceAssessmentSchema = z.object({
 const sessionProductSchema = z.object({
   budgetItemId: z.number(),
   productCode: z.string(),
+  itemCode: z.string(), // Adding itemCode as a duplicate of productCode for compatibility
+  code: z.string().optional(), // Add code as another alias for compatibility
+  name: z.string().optional(), // Add name field for compatibility
   productDescription: z.string(),
   quantity: z.number().min(0.01),
   unitPrice: z.number(),
@@ -1078,10 +1081,25 @@ export function FullScreenSessionForm({ open, onOpenChange, defaultValues, clien
       if (existingIndex >= 0) {
         // Update existing product quantity
         const updatedProducts = [...currentProducts];
-        updatedProducts[existingIndex] = {
+        
+        // Make sure to maintain all code/itemCode fields when updating
+        const updatedProduct = {
           ...updatedProducts[existingIndex],
           quantity: updatedProducts[existingIndex].quantity + quantity,
         };
+        
+        // Ensure all code fields exist
+        if (!updatedProduct.code && updatedProduct.productCode) {
+          updatedProduct.code = updatedProduct.productCode;
+        }
+        if (!updatedProduct.itemCode && updatedProduct.productCode) {
+          updatedProduct.itemCode = updatedProduct.productCode;
+        }
+        if (!updatedProduct.name && updatedProduct.productDescription) {
+          updatedProduct.name = updatedProduct.productDescription;
+        }
+        
+        updatedProducts[existingIndex] = updatedProduct;
 
         form.setValue("sessionNote.products", updatedProducts);
 
@@ -1094,6 +1112,9 @@ export function FullScreenSessionForm({ open, onOpenChange, defaultValues, clien
         const newProduct = {
           budgetItemId: product.id,
           productCode: product.itemCode || "",
+          itemCode: product.itemCode || "", // Add itemCode as well for server compatibility
+          code: product.itemCode || "", // Add code as another alias for compatibility
+          name: product.name || product.description || "", // Add name field for compatibility
           productDescription: product.description || "",
           quantity,
           unitPrice: product.unitPrice || 0,

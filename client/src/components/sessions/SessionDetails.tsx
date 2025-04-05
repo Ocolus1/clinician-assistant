@@ -104,12 +104,10 @@ export function SessionDetails({ session, onBack }: SessionDetailsProps) {
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case "scheduled":
-        return <Badge variant="outline" className="bg-blue-100 text-blue-800 border-blue-300">Scheduled</Badge>;
+      case "draft":
+        return <Badge variant="outline" className="bg-blue-100 text-blue-800 border-blue-300">Draft</Badge>;
       case "completed":
         return <Badge variant="outline" className="bg-green-100 text-green-800 border-green-300">Completed</Badge>;
-      case "cancelled":
-        return <Badge variant="outline" className="bg-red-100 text-red-800 border-red-300">Cancelled</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
@@ -293,7 +291,7 @@ export function SessionDetails({ session, onBack }: SessionDetailsProps) {
           </Card>
         )}
 
-        {!noteLoading && !sessionNote && session.status === "scheduled" && (
+        {!noteLoading && !sessionNote && session.status === "draft" && (
           <Card className="text-center py-8 shadow-sm border-primary/10">
             <CardContent className="pt-6">
               <h3 className="text-lg font-medium mb-2">No Session Notes</h3>
@@ -350,7 +348,7 @@ export function SessionDetails({ session, onBack }: SessionDetailsProps) {
               <CardContent className="pt-6">
                 <h3 className="text-lg font-medium mb-2">No Performance Assessment</h3>
                 <p className="text-muted-foreground mb-4">
-                  {session.status === "scheduled" 
+                  {session.status === "draft" 
                     ? "Performance assessment can be added after the session is completed." 
                     : "No performance assessment has been recorded for this session yet."}
                 </p>
