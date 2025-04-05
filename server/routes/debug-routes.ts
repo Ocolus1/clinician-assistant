@@ -5,6 +5,7 @@
 
 import { Router } from 'express';
 import { storage } from '../storage';
+import { pool } from '../db'; // Import the pool for direct queries
 
 // Type definitions to solve type errors
 interface BudgetPlan {
@@ -433,7 +434,8 @@ function generateRecommendations(analysis: any, budgetItems: any[]) {
 }
 
 // Add a direct endpoint to get session notes with products for a client
-debugRouter.get('/api/debug/clients/:clientId/session-notes-with-products', async (req, res) => {
+// Use both with and without debug prefix for compatibility
+debugRouter.get(['/api/debug/clients/:clientId/session-notes-with-products', '/api/clients/:clientId/session-notes-with-products'], async (req, res) => {
   console.log(`GET /api/debug/clients/${req.params.clientId}/session-notes-with-products - Retrieving session notes with products`);
   try {
     const clientId = parseInt(req.params.clientId);

@@ -3,7 +3,11 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { registerReportRoutes } from "./routes/reports";
 import { registerKnowledgeRoutes } from "./routes/knowledge";
-import { registerDebugRoutes } from "./routes/debug";
+// Create debug-routes.ts file if it doesn't exist
+import * as fs from 'fs';
+import * as path from 'path';
+
+// Debug routes will be registered dynamically if the file exists
 
 const app = express();
 app.use(express.json());
@@ -62,8 +66,13 @@ app.use((req, res, next) => {
   
   console.log("STEP 3.5: Registering debug API routes");
   try {
-    registerDebugRoutes(app);
-    console.log("Debug routes registered successfully");
+    // Import debug routes directly
+    import('./routes/debug-routes.js').then(({ default: debugRouter }) => {
+      app.use(debugRouter);
+      console.log("Debug routes registered successfully");
+    }).catch(err => {
+      console.error("Error importing debug routes:", err);
+    });
   } catch (error) {
     console.error("Error registering debug routes:", error);
   }
