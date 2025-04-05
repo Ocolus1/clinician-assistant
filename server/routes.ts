@@ -1766,7 +1766,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Add client filter if provided
       if (clientId && !isNaN(clientId)) {
         queryText += ` AND client_id = $2`;
-        queryParams.push(clientId.toString());
+        queryParams.push(clientId);  // PostgreSQL automatically converts numbers to strings for parameters
       }
       
       const result = await pool.query(queryText, queryParams);

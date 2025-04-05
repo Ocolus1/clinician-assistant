@@ -19,6 +19,7 @@ import {
   sessionNotes, performanceAssessments, milestoneAssessments, strategies, clinicians, clientClinicians
 } from "@shared/schema";
 import { db } from "./db";
+import { pool } from "./db"; // Import the PostgreSQL pool for raw queries
 import { eq, and } from "drizzle-orm";
 
 export interface IStorage {
