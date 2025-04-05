@@ -471,9 +471,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Add usage for each product based on the product code
         for (const product of products) {
           // Look for both productCode and itemCode fields (they use different naming)
-          const itemCode = product.itemCode || product.productCode;
+          const itemCode = typeof product === 'object' ? (product.itemCode || product.productCode) : null;
           if (itemCode) {
-            const quantity = Number(product.quantity) || 1;
+            const quantity = typeof product === 'object' ? (Number(product.quantity) || 1) : 1;
             itemUsage[itemCode] = (itemUsage[itemCode] || 0) + quantity;
             console.log(`Added ${quantity} usage for product code ${itemCode} from session note ${note.id}`);
           }

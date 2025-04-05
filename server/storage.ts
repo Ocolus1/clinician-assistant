@@ -98,6 +98,7 @@ export interface IStorage {
   createSessionNote(note: InsertSessionNote): Promise<SessionNote>;
   getSessionNoteById(id: number): Promise<SessionNote | undefined>;
   getSessionNoteBySessionId(sessionId: number): Promise<SessionNote | undefined>;
+  getSessionNotesWithProductsByClient(clientId: number): Promise<SessionNote[]>;
   updateSessionNote(id: number, note: InsertSessionNote): Promise<SessionNote>;
   deleteSessionNote(id: number): Promise<void>;
   
@@ -1305,6 +1306,42 @@ export class DBStorage implements IStorage {
       return sessionNote;
     } catch (error) {
       console.error(`Error getting session note for session ${sessionId}:`, error);
+      throw error;
+    }
+  }
+  
+  async getSessionNotesWithProductsByClient(clientId: number): Promise<SessionNote[]> {
+    console.log(`Getting session notes with products for client ${clientId}`);
+    try {
+      // First get all sessions for this client
+      const sessions = await this.getSessionsByClient(clientId);
+      console.log(`Found ${sessions.length} sessions for client ${clientId}`);
+      
+      // Then get notes for all these sessions
+      const sessionIds = sessions.map(session => session.id);
+      
+      // If no sessions, return empty array
+      if (sessionIds.length === 0) {
+        return [];
+      }
+      
+      // Get session notes for all sessions
+      const notes: SessionNote[] = [];
+      for (const sessionId of sessionIds) {
+        try {
+          const note = await this.getSessionNoteBySessionId(sessionId);
+          if (note) {
+            notes.push(note);
+          }
+        } catch (e) {
+          console.error(`Error fetching session note for session ${sessionId}:`, e);
+        }
+      }
+      
+      console.log(`Found ${notes.length} session notes with products for client ${clientId}`);
+      return notes;
+    } catch (error) {
+      console.error(`Error getting session notes with products for client ${clientId}:`, error);
       throw error;
     }
   }
