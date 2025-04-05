@@ -30,7 +30,13 @@ import {
   TooltipProps,
 } from "recharts";
 import { BudgetItem, BudgetSettings } from "@shared/schema";
-import { calculateBudgetItemUtilization, calculateRemainingFunds, calculateSpentFromSessions } from "@/lib/utils/budgetUtils";
+import { 
+  calculateBudgetItemUtilization, 
+  calculateRemainingFunds, 
+  calculateSpentFromSessions,
+  calculateUtilizationFromNotes,
+  fetchSessionNotesWithProducts
+} from "@/lib/utils/budgetUtils";
 
 // Interface for enhanced budget item with utilization data
 interface EnhancedBudgetItem extends BudgetItem {
@@ -67,16 +73,22 @@ export function BudgetItemUtilization({ clientId }: BudgetItemUtilizationProps) 
     enabled: !!clientId,
   });
 
-  // Fetch sessions to estimate usage
-  const { data: sessions = [], isLoading: isLoadingSessions } = useQuery({
+  // Fetch sessions as backup method
+  const { data: sessions = [], isLoading: isLoadingSessions } = useQuery<any[]>({
     queryKey: ['/api/clients', clientId, 'sessions'],
+    enabled: !!clientId,
+  });
+  
+  // Fetch session notes directly to get product data - more reliable approach
+  const { data: sessionNotes = [], isLoading: isLoadingNotes } = useQuery<any[]>({
+    queryKey: ['/api/clients', clientId, 'session-notes-with-products'],
     enabled: !!clientId,
   });
 
   // Process budget items to add utilization data based on actual session products
   const enhancedBudgetItems: EnhancedBudgetItem[] = React.useMemo(() => {
     // If still loading or no budget items, return empty array
-    if (isLoadingItems || isLoadingSettings || isLoadingSessions || !budgetItems) {
+    if (isLoadingItems || isLoadingSettings || isLoadingNotes || !budgetItems) {
       return [];
     }
 
@@ -86,19 +98,26 @@ export function BudgetItemUtilization({ clientId }: BudgetItemUtilizationProps) 
       (item as any).isActivePlan !== false
     );
 
-    // Use our utility function to calculate actual utilization from session products
-    // This replaces the previous mock calculation with real data
-    console.log("Calculating actual utilization from sessions:", sessions?.length);
+    console.log("Calculating utilization from session notes...");
+    console.log(`Found ${sessionNotes.length} session notes with products`);
     
-    // First fetch session data with products directly from the database
-    // This is needed because we need to access the session notes for each session
+    // Try the new direct session notes approach first (more reliable)
+    if (sessionNotes && sessionNotes.length > 0) {
+      console.log("Using direct session notes for budget calculation (preferred method)");
+      const enhancedItems = calculateUtilizationFromNotes(activePlanItems, sessionNotes as any[]);
+      console.log("Enhanced budget items with utilization from notes:", enhancedItems.length);
+      return enhancedItems;
+    }
+    
+    // Fallback to the original method if direct session notes aren't available
+    console.log("Falling back to session data for budget calculation");
+    console.log(`Found ${sessions.length} sessions`);
+    
     const enhancedItems = calculateBudgetItemUtilization(activePlanItems, sessions as any[]);
-    
-    // Log the results for debugging
-    console.log("Enhanced budget items with actual utilization:", enhancedItems.length);
+    console.log("Enhanced budget items with utilization from sessions:", enhancedItems.length);
     
     return enhancedItems;
-  }, [budgetItems, budgetSettings, sessions, isLoadingItems, isLoadingSettings, isLoadingSessions]);
+  }, [budgetItems, budgetSettings, sessions, sessionNotes, isLoadingItems, isLoadingSettings, isLoadingNotes]);
 
   // Filter items based on selected filter
   const filteredItems = React.useMemo(() => {
@@ -146,7 +165,7 @@ export function BudgetItemUtilization({ clientId }: BudgetItemUtilizationProps) 
   }, [budgetSettings]);
 
   // Don't render if still loading or no budget items
-  if (isLoadingItems || isLoadingSettings || isLoadingSessions || !budgetItems || budgetItems.length === 0) {
+  if (isLoadingItems || isLoadingSettings || isLoadingSessions || isLoadingNotes || !budgetItems || budgetItems.length === 0) {
     return (
       <Card>
         <CardHeader>

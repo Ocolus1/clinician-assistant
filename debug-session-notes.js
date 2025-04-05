@@ -71,8 +71,8 @@ async function debugSessionNotes() {
     const sessionsFromApi = await apiResponse.json();
     console.log(`API returned ${sessionsFromApi.length} sessions`);
     
-    // Check how many have session notes
-    const notesInApi = sessionsFromApi.filter(s => s.note);
+    // Check how many have session notes (checking both potential property names)
+    const notesInApi = sessionsFromApi.filter(s => s.note || s.sessionNote);
     console.log(`Sessions with notes in API response: ${notesInApi.length}/${sessionsFromApi.length}`);
     
     // Compare each session from API with DB
@@ -85,16 +85,17 @@ async function debugSessionNotes() {
       const dbNotes = notesQuery.rows.filter(note => note.session_id === session.id);
       console.log(`Database notes for this session: ${dbNotes.length}`);
       
-      // Check if session has a note in API
-      if (session.note) {
+      // Check if session has a note in API (either as note or sessionNote)
+      const sessionNoteObj = session.sessionNote || session.note;
+      if (sessionNoteObj) {
         console.log(`✅ Session has note in API response`);
-        console.log(`  Note status: ${session.note.status}`);
+        console.log(`  Note status: ${sessionNoteObj.status}`);
         
         // Check if note has products
-        if (session.note.products) {
-          console.log(`  Products in note: ${typeof session.note.products === 'string' ? 
-            JSON.parse(session.note.products).length : 
-            session.note.products.length}`);
+        if (sessionNoteObj.products) {
+          console.log(`  Products in note: ${typeof sessionNoteObj.products === 'string' ? 
+            JSON.parse(sessionNoteObj.products).length : 
+            sessionNoteObj.products.length}`);
         }
       } else {
         console.log(`❌ Session missing note in API response`);

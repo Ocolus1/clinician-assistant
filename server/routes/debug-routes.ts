@@ -164,7 +164,7 @@ debugRouter.get(['/api/debug/budget-flow/:clientId', '/api/debug/budget/:clientI
           }
           
           // Process each product
-          products.forEach(product => {
+          products.forEach((product: any) => {
             productAnalysis.totalProducts++;
             
             // Check which code fields are present
@@ -431,5 +431,58 @@ function generateRecommendations(analysis: any, budgetItems: any[]) {
   
   return recommendations;
 }
+
+// Add a direct endpoint to get session notes with products for a client
+debugRouter.get('/api/debug/clients/:clientId/session-notes-with-products', async (req, res) => {
+  console.log(`GET /api/debug/clients/${req.params.clientId}/session-notes-with-products - Retrieving session notes with products`);
+  try {
+    const clientId = parseInt(req.params.clientId);
+    if (isNaN(clientId)) {
+      return res.status(400).json({ error: "Invalid client ID" });
+    }
+    
+    // First get all sessions for this client
+    const sessions = await storage.getSessionsByClient(clientId);
+    console.log(`Found ${sessions.length} sessions for client ${clientId}`);
+    
+    // Then get notes for all these sessions
+    const sessionIds = sessions.map(session => session.id);
+    
+    // If no sessions, return empty array
+    if (sessionIds.length === 0) {
+      return res.json([]);
+    }
+    
+    // Get session notes for all sessions
+    const notes = [];
+    for (const sessionId of sessionIds) {
+      try {
+        const sessionNote = await storage.getSessionNoteBySessionId(sessionId);
+        if (sessionNote) {
+          // Process products field if it exists and is a string
+          if (sessionNote.products && typeof sessionNote.products === 'string') {
+            try {
+              sessionNote.products = JSON.parse(sessionNote.products);
+            } catch (e) {
+              console.error(`Error parsing products for session note ${sessionNote.id}:`, e);
+              sessionNote.products = [];
+            }
+          }
+          notes.push(sessionNote);
+        }
+      } catch (e) {
+        console.error(`Error fetching session note for session ${sessionId}:`, e);
+      }
+    }
+    
+    console.log(`Found ${notes.length} session notes with products for client ${clientId}`);
+    
+    // Return the processed notes
+    res.json(notes);
+  } catch (error) {
+    console.error(`Error retrieving session notes with products for client ${req.params.clientId}:`, error);
+    res.status(500).json({ error: "Failed to retrieve session notes with products" });
+  }
+});
 
 export default debugRouter;

@@ -832,6 +832,64 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Direct endpoint to get session notes with products for budget calculations
+  app.get("/api/clients/:clientId/session-notes-with-products", async (req, res) => {
+    console.log(`GET /api/clients/${req.params.clientId}/session-notes-with-products - Retrieving session notes with products`);
+    try {
+      const clientId = parseInt(req.params.clientId);
+      if (isNaN(clientId)) {
+        return res.status(400).json({ error: "Invalid client ID" });
+      }
+      
+      // First get all sessions for this client
+      const sessions = await storage.getSessionsByClient(clientId);
+      console.log(`Found ${sessions.length} sessions for client ${clientId}`);
+      
+      // Then get notes for all these sessions
+      const sessionIds = sessions.map(session => session.id);
+      
+      // If no sessions, return empty array
+      if (sessionIds.length === 0) {
+        return res.json([]);
+      }
+      
+      // Get session notes for all sessions, but directly with raw queries to ensure we get all data
+      const notes = [];
+      for (const sessionId of sessionIds) {
+        try {
+          const result = await pool.query(`
+            SELECT * FROM session_notes 
+            WHERE session_id = $1
+          `, [sessionId]);
+          
+          if (result.rows.length > 0) {
+            // Process products field if it exists and is a string
+            const note = result.rows[0];
+            if (note.products && typeof note.products === 'string') {
+              try {
+                note.products = JSON.parse(note.products);
+              } catch (e) {
+                console.error(`Error parsing products for session note ${note.id}:`, e);
+                note.products = [];
+              }
+            }
+            notes.push(note);
+          }
+        } catch (e) {
+          console.error(`Error fetching session note for session ${sessionId}:`, e);
+        }
+      }
+      
+      console.log(`Found ${notes.length} session notes with products for client ${clientId}`);
+      
+      // Return the processed notes
+      res.json(notes);
+    } catch (error) {
+      console.error(`Error retrieving session notes with products for client ${req.params.clientId}:`, error);
+      res.status(500).json({ error: "Failed to retrieve session notes with products" });
+    }
+  });
+  
   app.get("/api/clients/:clientId/sessions", async (req, res) => {
     console.log(`GET /api/clients/${req.params.clientId}/sessions - Retrieving sessions for client`);
     try {
@@ -862,6 +920,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const noteResult = sessionNotes.find(note => note?.sessionId === session.id);
         return {
           ...session,
+          sessionNote: noteResult?.note || null,
+          // Keep backwards compatibility with older versions of the API
           note: noteResult?.note || null
         };
       });
@@ -893,6 +953,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Attach the note to the session
       const sessionWithNote = {
         ...session,
+        sessionNote: sessionNote || null,
+        // Keep backwards compatibility with older versions of the API
         note: sessionNote || null
       };
 
