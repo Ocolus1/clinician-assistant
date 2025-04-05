@@ -891,10 +891,13 @@ export class DBStorage implements IStorage {
       
       console.log(`Successfully created session note with ID ${newNote.id}`);
       
-      // Process products to update budget item usage
-      if (note.products) {
+      // Only update budget item usage if session note status is 'completed'
+      if (note.products && note.status === 'completed') {
+        console.log(`Session note ${newNote.id} is completed, updating budget item usage`);
         const newProducts = typeof note.products === 'string' ? note.products : null;
         await this.updateBudgetItemUsage(note.clientId, newProducts, "[]");
+      } else if (note.products) {
+        console.log(`Session note ${newNote.id} is not completed (status: ${note.status}), skipping budget usage update`);
       }
       
       return newNote;
@@ -1014,18 +1017,10 @@ export class DBStorage implements IStorage {
               eq(budgetItems.itemCode, itemCode)
             ));
             
-          // If no items found with itemCode, try looking for items with matching productCode
+          // We no longer need to look up by product_code as that column doesn't exist
+          // Just log that no matching budget items were found
           if (budgetItemsList.length === 0) {
-            console.log(`No budget items found with itemCode=${itemCode}, trying to find by productCode instead`);
-            // Use raw SQL query to check productCode 
-            // (Some budget items might have been created with productCode instead of itemCode)
-            const result = await pool.query(`
-              SELECT * FROM budget_items 
-              WHERE client_id = $1 AND product_code = $2
-            `, [clientId, itemCode]);
-            
-            budgetItemsList = result.rows;
-            console.log(`Found ${budgetItemsList.length} budget items with productCode=${itemCode}`);
+            console.log(`No budget items found with itemCode=${itemCode} for client ${clientId}`);
           }
           
           // Update each matching budget item
@@ -1113,17 +1108,27 @@ export class DBStorage implements IStorage {
         throw new Error("Session note not found after update");
       }
       
-      // Update budget item usage if products changed
-      if (existingNote.products !== note.products) {
+      // Special handling for status changes from incomplete to completed
+      const statusChangedToCompleted = 
+        existingNote.status !== 'completed' && 
+        note.status === 'completed';
+      
+      // Update budget item usage if products changed OR if status changed to completed
+      if (existingNote.products !== note.products || statusChangedToCompleted) {
         const clientId = note.clientId || existingNote.clientId;
         const newProducts = typeof note.products === 'string' ? note.products : null;
-        const oldProducts = typeof existingNote.products === 'string' ? existingNote.products : null;
         
-        await this.updateBudgetItemUsage(
-          clientId,
-          newProducts,
-          oldProducts
-        );
+        // If status changed to completed, we need to process all products as new
+        // Otherwise, only process the difference in products
+        if (statusChangedToCompleted && newProducts) {
+          console.log(`Session note ${id} status changed to completed, updating budget item usage for all products`);
+          await this.updateBudgetItemUsage(clientId, newProducts, "[]");
+        } else if (existingNote.products !== note.products) {
+          // Normal case - just process the difference in products
+          const oldProducts = typeof existingNote.products === 'string' ? existingNote.products : null;
+          console.log(`Session note ${id} products changed, updating budget item usage`);
+          await this.updateBudgetItemUsage(clientId, newProducts, oldProducts);
+        }
       }
       
       console.log(`Successfully updated session note with ID ${id}`);
