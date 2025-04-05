@@ -889,10 +889,114 @@ export class DBStorage implements IStorage {
         .returning();
       
       console.log(`Successfully created session note with ID ${newNote.id}`);
+      
+      // Process products to update budget item usage
+      if (note.products) {
+        const newProducts = typeof note.products === 'string' ? note.products : null;
+        await this.updateBudgetItemUsage(note.clientId, newProducts, "[]");
+      }
+      
       return newNote;
     } catch (error) {
       console.error(`Error creating session note for session ${note.sessionId}:`, error);
       throw error;
+    }
+  }
+  
+  // Helper method to update budget item usage when products are used in sessions
+  private async updateBudgetItemUsage(
+    clientId: number, 
+    newProductsJson: string | null, 
+    oldProductsJson: string | null
+  ): Promise<void> {
+    try {
+      // Parse products from JSON strings
+      let newProducts: any[] = [];
+      let oldProducts: any[] = [];
+      
+      if (newProductsJson) {
+        try {
+          if (typeof newProductsJson === 'string') {
+            newProducts = JSON.parse(newProductsJson);
+          } else if (Array.isArray(newProductsJson)) {
+            newProducts = newProductsJson as any[];
+          }
+        } catch (e) {
+          console.error("Error parsing new products JSON:", e);
+        }
+      }
+      
+      if (oldProductsJson) {
+        try {
+          if (typeof oldProductsJson === 'string') {
+            oldProducts = JSON.parse(oldProductsJson);
+          } else if (Array.isArray(oldProductsJson)) {
+            oldProducts = oldProductsJson as any[];
+          }
+        } catch (e) {
+          console.error("Error parsing old products JSON:", e);
+        }
+      }
+      
+      // Skip if no products to process
+      if (newProducts.length === 0 && oldProducts.length === 0) {
+        console.log("No products to process for budget item usage update");
+        return;
+      }
+      
+      // Create a map of what's changing for each item code
+      const changeMap: Record<string, number> = {};
+      
+      // Process products being removed (decrease usage)
+      for (const product of oldProducts) {
+        const itemCode = product.itemCode || product.productCode;
+        if (itemCode) {
+          const quantity = Number(product.quantity) || 0;
+          changeMap[itemCode] = (changeMap[itemCode] || 0) - quantity;
+        }
+      }
+      
+      // Process products being added (increase usage)
+      for (const product of newProducts) {
+        const itemCode = product.itemCode || product.productCode;
+        if (itemCode) {
+          const quantity = Number(product.quantity) || 0;
+          changeMap[itemCode] = (changeMap[itemCode] || 0) + quantity;
+        }
+      }
+      
+      // Apply changes to budget items
+      for (const [itemCode, quantityChange] of Object.entries(changeMap)) {
+        if (quantityChange !== 0) {
+          // Find all budget items with this item code for the client
+          const budgetItemsList = await db.select()
+            .from(budgetItems)
+            .where(and(
+              eq(budgetItems.clientId, clientId),
+              eq(budgetItems.itemCode, itemCode)
+            ));
+          
+          // Update each matching budget item
+          for (const item of budgetItemsList) {
+            // Get current usedQuantity
+            const currentUsed = item.usedQuantity || 0;
+            // Calculate new used quantity (ensure it doesn't go below 0)
+            const newUsed = Math.max(0, currentUsed + quantityChange);
+            
+            // Update the budget item
+            await db.update(budgetItems)
+              .set({ usedQuantity: newUsed })
+              .where(eq(budgetItems.id, item.id));
+            
+            console.log(`Updated budget item ${item.id} usage: ${currentUsed} → ${newUsed} (change: ${quantityChange})`);
+          }
+        }
+      }
+      
+      console.log("Successfully updated budget item usage");
+    } catch (error) {
+      console.error("Error updating budget item usage:", error);
+      // Don't throw, just log error to prevent blocking session note creation
     }
   }
 
@@ -939,14 +1043,35 @@ export class DBStorage implements IStorage {
   async updateSessionNote(id: number, note: InsertSessionNote): Promise<SessionNote> {
     console.log(`Updating session note with ID ${id}:`, JSON.stringify(note));
     try {
+      // Get the existing note to compare products
+      const existingNote = await this.getSessionNoteById(id);
+      if (!existingNote) {
+        console.error(`Session note with ID ${id} not found`);
+        throw new Error("Session note not found");
+      }
+      
+      // Update the note
       const [updatedNote] = await db.update(sessionNotes)
         .set(note)
         .where(eq(sessionNotes.id, id))
         .returning();
       
       if (!updatedNote) {
-        console.error(`Session note with ID ${id} not found`);
-        throw new Error("Session note not found");
+        console.error(`Session note with ID ${id} not found after update`);
+        throw new Error("Session note not found after update");
+      }
+      
+      // Update budget item usage if products changed
+      if (existingNote.products !== note.products) {
+        const clientId = note.clientId || existingNote.clientId;
+        const newProducts = typeof note.products === 'string' ? note.products : null;
+        const oldProducts = typeof existingNote.products === 'string' ? existingNote.products : null;
+        
+        await this.updateBudgetItemUsage(
+          clientId,
+          newProducts,
+          oldProducts
+        );
       }
       
       console.log(`Successfully updated session note with ID ${id}`);

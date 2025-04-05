@@ -89,6 +89,7 @@ export const budgetItems = pgTable("budget_items", {
   description: text("description").notNull(),
   unitPrice: numeric("unit_price").notNull().$type<number>(),
   quantity: integer("quantity").notNull(),
+  usedQuantity: integer("used_quantity").notNull().default(0),
   category: text("category"),
 });
 

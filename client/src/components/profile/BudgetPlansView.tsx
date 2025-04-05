@@ -36,6 +36,7 @@ interface BudgetPlan {
   availableFunds: number;
   endOfPlan: string | null;
   createdAt: Date | null;
+  ndisFunds: number; // Added to match schema
   
   // Additional properties for UI display
   active: boolean;
@@ -116,20 +117,10 @@ export default function BudgetPlansView({
         (catalog) => catalog.itemCode === item.itemCode
       );
       
-      // Calculate used quantity from sessions
-      const usedQuantity = clientSessions.reduce((total: number, session: any) => {
-        if (!session.products || !Array.isArray(session.products)) return total;
-        
-        // Sum up used quantities for this specific item
-        return total + session.products.reduce((itemTotal: number, product: any) => {
-          if (product.productCode === item.itemCode || product.itemCode === item.itemCode) {
-            return itemTotal + (typeof product.quantity === 'string' 
-              ? parseInt(product.quantity) || 0 
-              : product.quantity || 0);
-          }
-          return itemTotal;
-        }, 0);
-      }, 0);
+      // Use the server-provided usedQuantity field
+      const usedQuantity = typeof item.usedQuantity === 'string'
+        ? parseInt(item.usedQuantity) || 0
+        : item.usedQuantity || 0;
       
       // Calculate balance quantity
       const totalQuantity = typeof item.quantity === 'string'
@@ -148,7 +139,7 @@ export default function BudgetPlansView({
         balanceQuantity
       } as EnhancedBudgetItem;
     });
-  }, [budgetItems, catalogItems.data, clientSessions]);
+  }, [budgetItems, catalogItems.data]);
   
   // Convert budget settings to budget plan with additional properties
   const budgetPlans = React.useMemo(() => {
@@ -167,23 +158,17 @@ export default function BudgetPlansView({
       return total + (unitPrice * quantity);
     }, 0);
     
-    // Calculate used funds based on session usage
-    const totalUsed = clientSessions.reduce((total: number, session: any) => {
-      // Skip sessions without products
-      if (!session.products || !Array.isArray(session.products)) return total;
-      
-      // Sum up all products used in this session
-      return total + session.products.reduce((sessionTotal: number, product: any) => {
-        const unitPrice = typeof product.unitPrice === 'string'
-          ? parseFloat(product.unitPrice) || 0
-          : product.unitPrice || 0;
-          
-        const quantity = typeof product.quantity === 'string'
-          ? parseInt(product.quantity) || 0
-          : product.quantity || 0;
-          
-        return sessionTotal + (unitPrice * quantity);
-      }, 0);
+    // Calculate used funds based on the usedQuantity field from the server
+    const totalUsed = budgetItems.reduce((total, item) => {
+      const unitPrice = typeof item.unitPrice === 'string'
+        ? parseFloat(item.unitPrice) || 0
+        : item.unitPrice || 0;
+        
+      const usedQuantity = typeof item.usedQuantity === 'string'
+        ? parseInt(item.usedQuantity) || 0
+        : item.usedQuantity || 0;
+        
+      return total + (unitPrice * usedQuantity);
     }, 0);
     
     const percentUsed = availableFunds > 0 ? (totalUsed / availableFunds) * 100 : 0;
@@ -212,7 +197,7 @@ export default function BudgetPlansView({
     };
     
     return [plan];
-  }, [budgetSettings, budgetItems, clientSessions]);
+  }, [budgetSettings, budgetItems]);
   
   // Handle view details click
   const handleViewDetails = (plan: BudgetPlan) => {
