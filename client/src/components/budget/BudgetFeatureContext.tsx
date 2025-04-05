@@ -109,7 +109,7 @@ export function BudgetFeatureProvider({
   };
   
   // Calculate whether the current plan is read-only (non-active plans are read-only)
-  const isReadOnly = activePlan ? !activePlan.isActive : false;
+  const isReadOnly = activePlan ? !(activePlan.isActive || activePlan.active) : false;
   
   return (
     <BudgetFeatureContext.Provider

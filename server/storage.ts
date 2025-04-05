@@ -885,19 +885,88 @@ export class DBStorage implements IStorage {
   async createSessionNote(note: InsertSessionNote): Promise<SessionNote> {
     console.log(`Creating session note for session ${note.sessionId}:`, JSON.stringify(note));
     try {
+      // Get the parent session to ensure we update its status
+      let parentSession;
+      try {
+        parentSession = await this.getSessionById(note.sessionId);
+        console.log(`Parent session found: ID=${parentSession?.id}, status=${parentSession?.status}`);
+      } catch (e) {
+        console.warn(`Error fetching parent session: ${e}`);
+      }
+      
       const [newNote] = await db.insert(sessionNotes)
         .values(note)
         .returning();
       
       console.log(`Successfully created session note with ID ${newNote.id}`);
       
-      // Only update budget item usage if session note status is 'completed'
-      if (note.products && note.status === 'completed') {
-        console.log(`Session note ${newNote.id} is completed, updating budget item usage`);
-        const newProducts = typeof note.products === 'string' ? note.products : null;
+      // Update parent session status if note is completed
+      if (parentSession && note.status === 'completed' && parentSession.status !== 'completed') {
+        console.log(`Updating parent session ${parentSession.id} status to completed`);
+        await db.update(sessions)
+          .set({ status: 'completed' })
+          .where(eq(sessions.id, parentSession.id));
+          
+        // Verify update was successful
+        const updatedSession = await this.getSessionById(parentSession.id);
+        console.log(`Updated parent session status: ${updatedSession?.status}`);
+      }
+      
+      // Only update budget item usage if session note status is 'completed' AND parent session is 'completed'
+      // This ensures budget usage is only updated when the entire session is fully completed
+      const parentSessionCompleted = parentSession && parentSession.status === 'completed';
+      const updatedParentStatus = parentSession && note.status === 'completed' && parentSession.status !== 'completed';
+      
+      // Check if both session note is completed and either parent session is already completed or was just updated to completed
+      if (note.products && note.status === 'completed' && (parentSessionCompleted || updatedParentStatus)) {
+        console.log(`Session note ${newNote.id} is completed and parent session is completed, updating budget item usage`);
+        
+        // Ensure products is properly formatted
+        let newProducts: string;
+        if (typeof note.products === 'string') {
+          try {
+            // Verify JSON is valid
+            JSON.parse(note.products);
+            newProducts = note.products;
+          } catch (e) {
+            console.error(`Invalid products JSON: ${note.products}`, e);
+            // Try to fix common format issues
+            if (note.products.trim().startsWith('{')) {
+              newProducts = `[${note.products}]`;
+              console.log(`Fixed products JSON format: ${newProducts}`);
+            } else {
+              newProducts = '[]';
+            }
+          }
+        } else if (Array.isArray(note.products)) {
+          newProducts = JSON.stringify(note.products);
+        } else if (note.products && typeof note.products === 'object') {
+          newProducts = JSON.stringify([note.products]);
+        } else {
+          newProducts = '[]';
+        }
+        
+        console.log(`Formatted products for budget tracking: ${newProducts}`);
+        console.log(`Updating budget items for client ${note.clientId}`);
+        
+        // Get current budget items before update
+        const beforeItems = await this.getBudgetItemsByClient(note.clientId);
+        console.log(`Budget items before update:`, 
+          beforeItems.map(item => `${item.id}: ${item.itemCode} - ${item.usedQuantity}/${item.quantity}`));
+        
+        // Update budget usage
         await this.updateBudgetItemUsage(note.clientId, newProducts, "[]");
+        
+        // Verify budget items were updated
+        const afterItems = await this.getBudgetItemsByClient(note.clientId);
+        console.log(`Budget items after update:`, 
+          afterItems.map(item => `${item.id}: ${item.itemCode} - ${item.usedQuantity}/${item.quantity}`));
       } else if (note.products) {
-        console.log(`Session note ${newNote.id} is not completed (status: ${note.status}), skipping budget usage update`);
+        if (note.status !== 'completed') {
+          console.log(`Session note ${newNote.id} is not completed (status: ${note.status}), skipping budget usage update`);
+        } else if (!parentSessionCompleted && !updatedParentStatus) {
+          console.log(`Session note ${newNote.id} is completed but parent session is not completed (status: ${parentSession?.status}), skipping budget usage update`);
+        }
       }
       
       return newNote;
@@ -914,6 +983,10 @@ export class DBStorage implements IStorage {
     oldProductsJson: string | null
   ): Promise<void> {
     try {
+      console.log(`=== BUDGET ITEM USAGE UPDATE FOR CLIENT ${clientId} ===`);
+      console.log(`Raw new products: ${newProductsJson?.substring(0, 200)}`);
+      console.log(`Raw old products: ${oldProductsJson?.substring(0, 200)}`);
+      
       // Parse products from JSON strings
       let newProducts: any[] = [];
       let oldProducts: any[] = [];
@@ -932,6 +1005,7 @@ export class DBStorage implements IStorage {
           
           // Validate that each product has the required fields
           if (newProducts.length > 0) {
+            console.log(`First product keys: ${Object.keys(newProducts[0]).join(', ')}`);
             const missingFields = newProducts.filter(p => !p.itemCode && !p.productCode);
             if (missingFields.length > 0) {
               console.warn(`${missingFields.length} products are missing both itemCode and productCode:`, missingFields);
@@ -959,6 +1033,7 @@ export class DBStorage implements IStorage {
           
           // Validate that each product has the required fields
           if (oldProducts.length > 0) {
+            console.log(`First product keys: ${Object.keys(oldProducts[0]).join(', ')}`);
             const missingFields = oldProducts.filter(p => !p.itemCode && !p.productCode);
             if (missingFields.length > 0) {
               console.warn(`${missingFields.length} old products are missing both itemCode and productCode:`, missingFields);
@@ -983,33 +1058,38 @@ export class DBStorage implements IStorage {
       
       // Process products being removed (decrease usage)
       for (const product of oldProducts) {
+        // Try multiple product code field names (itemCode, productCode)
         const itemCode = product.itemCode || product.productCode;
         if (itemCode) {
           const quantity = Number(product.quantity) || 0;
           console.log(`Removing product with code ${itemCode}, quantity ${quantity}`);
           changeMap[itemCode] = (changeMap[itemCode] || 0) - quantity;
         } else {
-          console.warn("Product being removed is missing itemCode and productCode:", product);
+          console.warn("Product being removed is missing both itemCode and productCode:", product);
         }
       }
       
       // Process products being added (increase usage)
       for (const product of newProducts) {
+        // Try multiple product code field names (itemCode, productCode)
         const itemCode = product.itemCode || product.productCode;
         if (itemCode) {
           const quantity = Number(product.quantity) || 0;
           console.log(`Adding product with code ${itemCode}, quantity ${quantity}`);
           changeMap[itemCode] = (changeMap[itemCode] || 0) + quantity;
         } else {
-          console.warn("Product missing itemCode and productCode:", product);
+          console.warn("Product missing both itemCode and productCode:", product);
         }
       }
+      
+      console.log(`Product change map: ${JSON.stringify(changeMap)}`);
       
       // Apply changes to budget items
       for (const [itemCode, quantityChange] of Object.entries(changeMap)) {
         if (quantityChange !== 0) {
+          console.log(`Processing changes for item code ${itemCode}`);
+          
           // Find all budget items with this item code for the client
-          // First, try to find items with matching itemCode
           let budgetItemsList = await db.select()
             .from(budgetItems)
             .where(and(
@@ -1017,10 +1097,36 @@ export class DBStorage implements IStorage {
               eq(budgetItems.itemCode, itemCode)
             ));
             
-          // We no longer need to look up by product_code as that column doesn't exist
-          // Just log that no matching budget items were found
           if (budgetItemsList.length === 0) {
             console.log(`No budget items found with itemCode=${itemCode} for client ${clientId}`);
+            console.log(`Looking for matching budget items using the raw SQL query to improve matching...`);
+            
+            // Try a direct SQL query as a fallback that ignores case and trims whitespace
+            try {
+              const result = await pool.query(
+                `SELECT * FROM budget_items 
+                 WHERE client_id = $1 
+                 AND LOWER(TRIM(item_code)) = LOWER(TRIM($2))`,
+                [clientId, itemCode]
+              );
+              
+              if (result.rows.length > 0) {
+                console.log(`Found ${result.rows.length} budget items with case-insensitive matching for ${itemCode}`);
+                budgetItemsList = result.rows;
+              } else {
+                console.log(`Still no budget items found for ${itemCode} after case-insensitive search`);
+                
+                // List all budget items for this client to help debug
+                const allClientItems = await db.select()
+                  .from(budgetItems)
+                  .where(eq(budgetItems.clientId, clientId));
+                
+                console.log(`All budget items for client ${clientId}:`, 
+                  allClientItems.map(item => `${item.id}: ${item.itemCode} (used: ${item.usedQuantity}/${item.quantity})`).join(", "));
+              }
+            } catch (sqlError) {
+              console.error("Error during SQL fallback query:", sqlError);
+            }
           }
           
           // Update each matching budget item
@@ -1030,17 +1136,47 @@ export class DBStorage implements IStorage {
             // Calculate new used quantity (ensure it doesn't go below 0)
             const newUsed = Math.max(0, currentUsed + quantityChange);
             
-            // Update the budget item
-            await db.update(budgetItems)
-              .set({ usedQuantity: newUsed })
-              .where(eq(budgetItems.id, item.id));
+            console.log(`Updating budget item ${item.id} (${item.itemCode}): ${currentUsed} → ${newUsed} (change: ${quantityChange})`);
             
-            console.log(`Updated budget item ${item.id} usage: ${currentUsed} → ${newUsed} (change: ${quantityChange})`);
+            try {
+              // Update using the full ORM method
+              const result = await db.update(budgetItems)
+                .set({ usedQuantity: newUsed })
+                .where(eq(budgetItems.id, item.id))
+                .returning();
+              
+              if (result.length > 0) {
+                console.log(`Successfully updated budget item ${item.id} usage to ${result[0].usedQuantity}`);
+              } else {
+                console.error(`Failed to update budget item ${item.id} using ORM`);
+                
+                // Fall back to direct SQL if ORM update fails
+                try {
+                  const sqlResult = await pool.query(
+                    `UPDATE budget_items 
+                     SET used_quantity = $1 
+                     WHERE id = $2 
+                     RETURNING *`,
+                    [newUsed, item.id]
+                  );
+                  
+                  if (sqlResult.rows.length > 0) {
+                    console.log(`Successfully updated budget item ${item.id} usage to ${sqlResult.rows[0].used_quantity} using direct SQL`);
+                  } else {
+                    console.error(`Failed to update budget item ${item.id} even with direct SQL`);
+                  }
+                } catch (sqlUpdateError) {
+                  console.error(`Error during SQL update fallback:`, sqlUpdateError);
+                }
+              }
+            } catch (updateError) {
+              console.error(`Error updating budget item ${item.id}:`, updateError);
+            }
           }
         }
       }
       
-      console.log("Successfully updated budget item usage");
+      console.log("Budget item usage update completed");
     } catch (error) {
       console.error("Error updating budget item usage:", error);
       // Don't throw, just log error to prevent blocking session note creation
@@ -1097,6 +1233,15 @@ export class DBStorage implements IStorage {
         throw new Error("Session note not found");
       }
       
+      // Get the parent session to ensure we update its status
+      let parentSession;
+      try {
+        parentSession = await this.getSessionById(existingNote.sessionId);
+        console.log(`Parent session found: ID=${parentSession?.id}, status=${parentSession?.status}`);
+      } catch (e) {
+        console.warn(`Error fetching parent session: ${e}`);
+      }
+      
       // Update the note
       const [updatedNote] = await db.update(sessionNotes)
         .set(note)
@@ -1108,27 +1253,111 @@ export class DBStorage implements IStorage {
         throw new Error("Session note not found after update");
       }
       
+      // Update parent session status if note is completed
+      if (parentSession && note.status === 'completed' && parentSession.status !== 'completed') {
+        console.log(`Updating parent session ${parentSession.id} status to completed`);
+        await db.update(sessions)
+          .set({ status: 'completed' })
+          .where(eq(sessions.id, parentSession.id));
+          
+        // Verify update was successful
+        const updatedSession = await this.getSessionById(parentSession.id);
+        console.log(`Updated parent session status: ${updatedSession?.status}`);
+      }
+      
       // Special handling for status changes from incomplete to completed
       const statusChangedToCompleted = 
         existingNote.status !== 'completed' && 
         note.status === 'completed';
       
+      // Check if parent session is already completed (or will be completed)
+      const parentSessionCompleted = parentSession && parentSession.status === 'completed';
+      const updatedParentStatus = parentSession && note.status === 'completed' && parentSession.status !== 'completed';
+      const canUpdateBudgetItems = note.status === 'completed' && (parentSessionCompleted || updatedParentStatus);
+      
       // Update budget item usage if products changed OR if status changed to completed
-      if (existingNote.products !== note.products || statusChangedToCompleted) {
+      // But only if parent session is also completed or being updated to completed
+      if ((existingNote.products !== note.products || statusChangedToCompleted) && canUpdateBudgetItems) {
         const clientId = note.clientId || existingNote.clientId;
-        const newProducts = typeof note.products === 'string' ? note.products : null;
+        
+        console.log(`Session note ${id} and parent session ${parentSession?.id} are both completed, updating budget item usage`);
+        
+        // Ensure products is properly formatted
+        let newProducts: string;
+        if (typeof note.products === 'string') {
+          try {
+            // Verify JSON is valid
+            JSON.parse(note.products);
+            newProducts = note.products;
+          } catch (e) {
+            console.error(`Invalid products JSON: ${note.products}`, e);
+            // Try to fix common format issues
+            if (note.products.trim().startsWith('{')) {
+              newProducts = `[${note.products}]`;
+              console.log(`Fixed products JSON format: ${newProducts}`);
+            } else {
+              newProducts = '[]';
+            }
+          }
+        } else if (Array.isArray(note.products)) {
+          newProducts = JSON.stringify(note.products);
+        } else if (note.products && typeof note.products === 'object') {
+          newProducts = JSON.stringify([note.products]);
+        } else {
+          newProducts = '[]';
+        }
+        
+        // Format old products consistently
+        let oldProducts: string;
+        if (typeof existingNote.products === 'string') {
+          try {
+            // Verify JSON is valid
+            JSON.parse(existingNote.products);
+            oldProducts = existingNote.products;
+          } catch (e) {
+            console.error(`Invalid old products JSON: ${existingNote.products}`, e);
+            oldProducts = '[]';
+          }
+        } else if (existingNote.products === null) {
+          oldProducts = '[]';
+        } else {
+          oldProducts = '[]';
+        }
+        
+        // Get current budget items before update
+        console.log(`Updating budget items for client ${clientId}`);
+        const beforeItems = await this.getBudgetItemsByClient(clientId);
+        console.log(`Budget items before update:`, 
+          beforeItems.map(item => `${item.id}: ${item.itemCode} - ${item.usedQuantity}/${item.quantity}`));
         
         // If status changed to completed, we need to process all products as new
-        // Otherwise, only process the difference in products
-        if (statusChangedToCompleted && newProducts) {
+        if (statusChangedToCompleted && newProducts && newProducts !== '[]') {
           console.log(`Session note ${id} status changed to completed, updating budget item usage for all products`);
           await this.updateBudgetItemUsage(clientId, newProducts, "[]");
-        } else if (existingNote.products !== note.products) {
+        } else if (newProducts !== oldProducts) {
           // Normal case - just process the difference in products
-          const oldProducts = typeof existingNote.products === 'string' ? existingNote.products : null;
           console.log(`Session note ${id} products changed, updating budget item usage`);
+          console.log(`New products: ${newProducts}`);
+          console.log(`Old products: ${oldProducts}`);
           await this.updateBudgetItemUsage(clientId, newProducts, oldProducts);
         }
+      } else if ((existingNote.products !== note.products || statusChangedToCompleted) && !canUpdateBudgetItems) {
+        // Log why budget items aren't being updated
+        console.log(`Not updating budget items despite product changes because:`);
+        if (note.status !== 'completed') {
+          console.log(`- Session note ${id} is not completed (status: ${note.status})`);
+        } else if (!parentSessionCompleted && !updatedParentStatus) {
+          console.log(`- Parent session ${parentSession?.id} is not completed (status: ${parentSession?.status})`);
+        }
+      }
+      
+      // Only attempt to get client items if we processed budget usage update
+      if ((existingNote.products !== note.products || statusChangedToCompleted) && canUpdateBudgetItems) {
+        const clientId = note.clientId || existingNote.clientId;
+        // Verify budget items were updated
+        const afterItems = await this.getBudgetItemsByClient(clientId);
+        console.log(`Budget items after update:`, 
+          afterItems.map(item => `${item.id}: ${item.itemCode} - ${item.usedQuantity}/${item.quantity}`));
       }
       
       console.log(`Successfully updated session note with ID ${id}`);
