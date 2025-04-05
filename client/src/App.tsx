@@ -15,6 +15,7 @@ import Sessions from "@/pages/Sessions";
 import Reports from "@/pages/Reports";
 import Settings from "@/pages/Settings";
 import TestBudget from "@/pages/TestBudget";
+import BudgetDebugPage from "@/pages/BudgetDebugPage";
 import { AppLayout } from "@/components/layout/AppLayout";
 
 function Router() {
@@ -50,6 +51,7 @@ function Router() {
         <Route path="/reports" component={Reports} />
         <Route path="/settings" component={Settings} />
         <Route path="/test-budget" component={TestBudget} />
+        <Route path="/debug/budget/:clientId?" component={BudgetDebugPage} />
         <Route component={NotFound} />
       </Switch>
     </AppLayout>

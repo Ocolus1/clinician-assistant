@@ -3,6 +3,7 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { registerReportRoutes } from "./routes/reports";
 import { registerKnowledgeRoutes } from "./routes/knowledge";
+import { registerDebugRoutes } from "./routes/debug";
 
 const app = express();
 app.use(express.json());
@@ -58,6 +59,14 @@ app.use((req, res, next) => {
   
   console.log("STEP 3: Registering main API routes");
   const server = await registerRoutes(app);
+  
+  console.log("STEP 3.5: Registering debug API routes");
+  try {
+    registerDebugRoutes(app);
+    console.log("Debug routes registered successfully");
+  } catch (error) {
+    console.error("Error registering debug routes:", error);
+  }
   
   console.log("STEP 4: All routes registered successfully");
 
