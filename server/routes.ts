@@ -441,6 +441,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.json(items);
       }
       
+      // Fetch session notes with products to calculate real usage
+      const sessionNotesWithProducts = await storage.getSessionNotesWithProductsByClient(clientId);
+      console.log(`Found ${sessionNotesWithProducts.length} session notes with products for client ${clientId}`);
+      
+      // Calculate itemCode usage from session notes
+      const itemUsage: Record<string, number> = {};
+      
+      // Process session notes to extract product usage
+      for (const note of sessionNotesWithProducts) {
+        // Skip session notes that aren't completed
+        if (note.status !== 'completed') {
+          continue;
+        }
+        
+        // Process products in the note
+        let products = note.products || [];
+        
+        // Parse products if it's a string
+        if (typeof products === 'string') {
+          try {
+            products = JSON.parse(products);
+          } catch (e) {
+            console.error(`Error parsing products JSON in note ${note.id}:`, e);
+            products = [];
+          }
+        }
+        
+        // Add usage for each product based on the product code
+        for (const product of products) {
+          // Look for both productCode and itemCode fields (they use different naming)
+          const itemCode = product.itemCode || product.productCode;
+          if (itemCode) {
+            const quantity = Number(product.quantity) || 1;
+            itemUsage[itemCode] = (itemUsage[itemCode] || 0) + quantity;
+            console.log(`Added ${quantity} usage for product code ${itemCode} from session note ${note.id}`);
+          }
+        }
+      }
+      
       // For each item, add a property indicating if it belongs to an active plan
       // This helps the client-side know which items belong to active vs. inactive plans
       let enhancedItems = items.map(item => {
@@ -451,6 +490,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // This is essential to prevent items from appearing to migrate between plans.
         const originalBudgetSettingsId = item.budgetSettingsId;
         
+        // Get actual usage from session notes (more accurate than stored usedQuantity)
+        const actualUsedQuantity = itemUsage[item.itemCode] || 0;
+        
+        // If the calculated usage is different from the stored one, log the discrepancy
+        if (actualUsedQuantity !== item.usedQuantity) {
+          console.log(`Usage discrepancy for item ${item.id} (${item.itemCode}): 
+            Database value: ${item.usedQuantity || 0}
+            Calculated from sessions: ${actualUsedQuantity}
+          `);
+        }
+        
         // Add the isActivePlan property to help client determine if this is from an active plan
         return {
           ...item,
@@ -459,8 +509,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           isActivePlan: itemSettings ? !!itemSettings.isActive : false,
           planSerialNumber: itemSettings?.planSerialNumber || null,
           planCode: itemSettings?.planCode || null,
-          // Ensure usedQuantity is included in the response
-          usedQuantity: item.usedQuantity || 0
+          // Use calculated usage from session notes instead of stored value
+          usedQuantity: actualUsedQuantity
         };
       });
       
