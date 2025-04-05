@@ -840,9 +840,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Invalid client ID" });
       }
 
+      // Get all sessions for the client
       const sessions = await storage.getSessionsByClient(clientId);
       console.log(`Found ${sessions.length} sessions for client ${clientId}`);
-      res.json(sessions);
+      
+      // Get session notes for all sessions
+      const sessionNotesPromises = sessions.map(session => {
+        return storage.getSessionNoteBySessionId(session.id)
+          .then(note => note ? { sessionId: session.id, note } : null)
+          .catch(err => {
+            console.error(`Error fetching note for session ${session.id}:`, err);
+            return null;
+          });
+      });
+      
+      const sessionNotesResults = await Promise.all(sessionNotesPromises);
+      const sessionNotes = sessionNotesResults.filter(result => result !== null);
+      
+      // Attach notes to their respective sessions
+      const sessionsWithNotes = sessions.map(session => {
+        const noteResult = sessionNotes.find(note => note?.sessionId === session.id);
+        return {
+          ...session,
+          note: noteResult?.note || null
+        };
+      });
+      
+      console.log(`Returning ${sessionsWithNotes.length} sessions with attached notes`);
+      res.json(sessionsWithNotes);
     } catch (error) {
       console.error(`Error retrieving sessions for client ${req.params.clientId}:`, error);
       res.status(500).json({ error: "Failed to retrieve client sessions" });
@@ -862,7 +887,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Session not found" });
       }
 
-      res.json(session);
+      // Get the session note
+      const sessionNote = await storage.getSessionNoteBySessionId(sessionId);
+      
+      // Attach the note to the session
+      const sessionWithNote = {
+        ...session,
+        note: sessionNote || null
+      };
+
+      res.json(sessionWithNote);
     } catch (error) {
       console.error(`Error retrieving session ${req.params.id}:`, error);
       res.status(500).json({ error: "Failed to retrieve session" });

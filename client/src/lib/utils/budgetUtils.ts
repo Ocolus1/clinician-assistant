@@ -21,26 +21,44 @@ export function calculateSpentFromSessions(sessions: any[]): number {
   try {
     // Loop through all sessions
     for (const session of sessions) {
+      // Skip sessions that aren't completed - they shouldn't count toward budget usage
+      if (session.status !== 'completed') {
+        continue;
+      }
+      
+      // Process products
+      let products = [];
+      
       // If the session has products property directly
       if (session.products && Array.isArray(session.products)) {
-        for (const product of session.products) {
-          const quantity = Number(product.quantity) || 1;
-          const unitPrice = Number(product.unitPrice) || 0;
-          totalSpent += quantity * unitPrice;
+        products = session.products;
+      }
+      // If the session has a sessionNote property with products
+      else if (session.sessionNote && session.sessionNote.products) {
+        // Handle string JSON
+        if (typeof session.sessionNote.products === 'string') {
+          try {
+            products = JSON.parse(session.sessionNote.products);
+          } catch (e) {
+            console.error('Error parsing session note products JSON:', e);
+            products = [];
+          }
+        } 
+        // Handle array
+        else if (Array.isArray(session.sessionNote.products)) {
+          products = session.sessionNote.products;
         }
       }
       
-      // If the session has a sessionNote property with products
-      else if (session.sessionNote && session.sessionNote.products && Array.isArray(session.sessionNote.products)) {
-        for (const product of session.sessionNote.products) {
-          const quantity = Number(product.quantity) || 1;
-          const unitPrice = Number(product.unitPrice) || 0;
-          totalSpent += quantity * unitPrice;
-        }
+      // Calculate spent amount from products
+      for (const product of products) {
+        const quantity = Number(product.quantity) || 1;
+        const unitPrice = Number(product.unitPrice) || 0;
+        totalSpent += quantity * unitPrice;
       }
     }
     
-    console.log(`Total spent calculated from ${sessions.length} sessions: $${totalSpent}`);
+    console.log(`Total spent calculated from completed sessions: $${totalSpent}`);
     return totalSpent;
   } catch (error) {
     console.error("Error calculating spent amount from sessions:", error);
@@ -108,20 +126,45 @@ export function calculateBudgetItemUtilization(budgetItems: any[], sessions: any
     
     // Process all session products
     for (const session of sessions) {
+      // Skip sessions that aren't completed - they shouldn't count toward budget usage
+      if (session.status !== 'completed') {
+        continue;
+      }
+      
       // Get products from either session directly or session notes
-      const products = (session.products && Array.isArray(session.products))
-        ? session.products
-        : (session.sessionNote && session.sessionNote.products && Array.isArray(session.sessionNote.products))
-          ? session.sessionNote.products
-          : [];
+      let products = [];
+      
+      // Try direct session products first
+      if (session.products && Array.isArray(session.products)) {
+        products = session.products;
+      } 
+      // Then try session note products
+      else if (session.sessionNote && session.sessionNote.products) {
+        // Handle string JSON
+        if (typeof session.sessionNote.products === 'string') {
+          try {
+            products = JSON.parse(session.sessionNote.products);
+          } catch (e) {
+            console.error('Error parsing session note products JSON:', e);
+            products = [];
+          }
+        } 
+        // Handle array
+        else if (Array.isArray(session.sessionNote.products)) {
+          products = session.sessionNote.products;
+        }
+      }
+      
+      console.log(`Session ${session.id} has ${products.length} products`);
       
       // Add usage for each product
       for (const product of products) {
-        const itemCode = product.itemCode;
+        const itemCode = product.itemCode || product.productCode;
         if (itemCode) {
           // Add the used quantity for this item code
           const quantity = Number(product.quantity) || 1;
           itemUsage[itemCode] = (itemUsage[itemCode] || 0) + quantity;
+          console.log(`Added ${quantity} usage for product code ${itemCode}`);
         }
       }
     }

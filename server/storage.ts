@@ -836,11 +836,75 @@ export class DBStorage implements IStorage {
   async getSessionsByClient(clientId: number): Promise<Session[]> {
     console.log(`Getting sessions for client ${clientId}`);
     try {
+      // First get all sessions for this client
       const clientSessions = await db.select()
         .from(sessions)
         .where(eq(sessions.clientId, clientId));
       
       console.log(`Found ${clientSessions.length} sessions for client ${clientId}`);
+      
+      // Now get all session notes for these sessions
+      if (clientSessions.length > 0) {
+        const sessionIds = clientSessions.map(session => session.id);
+        console.log(`Fetching session notes for ${sessionIds.length} sessions`);
+        
+        // Use direct SQL query to get all notes for these sessions
+        // This approach is more efficient and guarantees we get all needed data
+        const query = `
+          SELECT * FROM session_notes 
+          WHERE session_id IN (${sessionIds.join(',')})
+        `;
+        
+        const notesResult = await pool.query(query);
+        const notes = notesResult.rows;
+        
+        console.log(`Found ${notes.length} session notes using direct SQL query`);
+        
+        // Attach notes to their sessions
+        const sessionsWithNotes = clientSessions.map(session => {
+          // Find the corresponding session note
+          const sessionNote = notes.find(note => note.session_id === session.id);
+          
+          if (!sessionNote) {
+            console.log(`No session note found for session ${session.id}`);
+            return {
+              ...session,
+              sessionNote: null
+            };
+          }
+          
+          // Convert column names from snake_case to camelCase for API consistency
+          const formattedNote = {
+            id: sessionNote.id,
+            sessionId: sessionNote.session_id,
+            clientId: sessionNote.client_id,
+            presentAllies: sessionNote.present_allies || [],
+            moodRating: sessionNote.mood_rating,
+            physicalActivityRating: sessionNote.physical_activity_rating,
+            focusRating: sessionNote.focus_rating,
+            cooperationRating: sessionNote.cooperation_rating,
+            notes: sessionNote.notes,
+            status: sessionNote.status,
+            createdAt: sessionNote.created_at,
+            updatedAt: sessionNote.updated_at,
+            // Properly handle products data - parse JSON string for client consumption
+            products: sessionNote.products ? 
+              (typeof sessionNote.products === 'string' ? 
+                JSON.parse(sessionNote.products) : sessionNote.products)
+              : '[]'
+          };
+          
+          console.log(`Attached session note ${formattedNote.id} to session ${session.id}`);
+          
+          return {
+            ...session,
+            sessionNote: formattedNote
+          };
+        });
+        
+        return sessionsWithNotes;
+      }
+      
       return clientSessions;
     } catch (error) {
       console.error(`Error fetching sessions for client ${clientId}:`, error);
@@ -1195,8 +1259,19 @@ export class DBStorage implements IStorage {
         return undefined;
       }
       
-      console.log(`Found session note with ID ${id}`);
-      return result[0];
+      // Parse products if it exists
+      const sessionNote = result[0];
+      if (sessionNote.products && typeof sessionNote.products === 'string') {
+        try {
+          sessionNote.products = JSON.parse(sessionNote.products);
+        } catch (e) {
+          console.error(`Error parsing products for session note ${id}:`, e);
+          sessionNote.products = '[]';
+        }
+      }
+      
+      console.log(`Found session note with ID ${id} with ${Array.isArray(sessionNote.products) ? sessionNote.products.length : 0} products`);
+      return sessionNote;
     } catch (error) {
       console.error(`Error getting session note with ID ${id}:`, error);
       throw error;
@@ -1215,8 +1290,19 @@ export class DBStorage implements IStorage {
         return undefined;
       }
       
-      console.log(`Found session note for session ${sessionId}`);
-      return result[0];
+      // Parse products if it exists
+      const sessionNote = result[0];
+      if (sessionNote.products && typeof sessionNote.products === 'string') {
+        try {
+          sessionNote.products = JSON.parse(sessionNote.products);
+        } catch (e) {
+          console.error(`Error parsing products for session note ${sessionNote.id}:`, e);
+          sessionNote.products = '[]';
+        }
+      }
+      
+      console.log(`Found session note for session ${sessionId} with ${Array.isArray(sessionNote.products) ? sessionNote.products.length : 0} products`);
+      return sessionNote;
     } catch (error) {
       console.error(`Error getting session note for session ${sessionId}:`, error);
       throw error;
