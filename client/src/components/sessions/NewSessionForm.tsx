@@ -994,6 +994,7 @@ export function NewSessionForm({
 
   // Function to add a product to the session
   const addProduct = (item: BudgetItem) => {
+    console.log("Adding product:", item);
     const currentProducts = form.getValues("sessionNote.products");
 
     // Check if product already exists
@@ -1006,19 +1007,31 @@ export function NewSessionForm({
       const updatedProducts = [...currentProducts];
       updatedProducts[existingProductIndex].quantity += 1;
       form.setValue("sessionNote.products", updatedProducts);
+      console.log("Updated product quantity:", updatedProducts[existingProductIndex]);
     } else {
-      // Add new product
-      form.setValue("sessionNote.products", [
-        ...currentProducts,
-        {
-          budgetItemId: item.id,
-          productCode: item.itemCode || "",
-          productDescription: item.description || "",
-          quantity: 1,
-          unitPrice: parseFloat(String(item.unitPrice || "0")),
-          availableQuantity: parseFloat(String(item.quantity || "0")),
-        }
-      ]);
+      // Make sure we have a valid itemCode
+      if (!item.itemCode) {
+        console.warn("Budget item missing itemCode:", item);
+        toast({
+          title: "Warning",
+          description: "This product doesn't have a valid code and may not update budget usage correctly",
+          variant: "destructive"
+        });
+      }
+      
+      // Add new product - ensure both itemCode and productCode are set
+      const newProduct = {
+        budgetItemId: item.id,
+        productCode: item.itemCode || "",
+        itemCode: item.itemCode || "", // Add itemCode as well for server compatibility
+        productDescription: item.description || "",
+        quantity: 1,
+        unitPrice: parseFloat(String(item.unitPrice || "0")),
+        availableQuantity: parseFloat(String(item.quantity || "0")),
+      };
+      
+      form.setValue("sessionNote.products", [...currentProducts, newProduct]);
+      console.log("Added new product:", newProduct);
     }
   };
 

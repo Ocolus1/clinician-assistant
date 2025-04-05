@@ -2,6 +2,8 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { pool } from "./db";
+import { db } from "./db"; // Added for direct DB access
+import { and, eq } from "drizzle-orm"; // Added for query building
 import { 
   insertClientSchema, 
   insertAllySchema, 
@@ -17,7 +19,8 @@ import {
   insertStrategySchema,
   insertClinicianSchema,
   insertClientClinicianSchema,
-  CLINICIAN_ROLES
+  CLINICIAN_ROLES,
+  budgetItems // Added for query building
 } from "@shared/schema";
 
 /**
@@ -455,7 +458,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           budgetSettingsId: originalBudgetSettingsId,
           isActivePlan: itemSettings ? !!itemSettings.isActive : false,
           planSerialNumber: itemSettings?.planSerialNumber || null,
-          planCode: itemSettings?.planCode || null
+          planCode: itemSettings?.planCode || null,
+          // Ensure usedQuantity is included in the response
+          usedQuantity: item.usedQuantity || 0
         };
       });
       
@@ -1742,6 +1747,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Agent Assistant functionality has been removed
+  
+  // Debug endpoint for budget item usage
+  app.get("/api/debug/budget-items/:itemCode", async (req, res) => {
+    console.log(`GET /api/debug/budget-items/${req.params.itemCode} - Getting budget items by code`);
+    try {
+      const itemCode = req.params.itemCode;
+      const clientId = req.query.clientId ? parseInt(req.query.clientId as string) : undefined;
+      
+      // Use raw SQL query instead of the query builder to fix the error
+      let queryText = `
+        SELECT * FROM budget_items 
+        WHERE item_code = $1
+      `;
+      
+      const queryParams = [itemCode];
+      
+      // Add client filter if provided
+      if (clientId && !isNaN(clientId)) {
+        queryText += ` AND client_id = $2`;
+        queryParams.push(clientId.toString());
+      }
+      
+      const result = await pool.query(queryText, queryParams);
+      const items = result.rows;
+      
+      res.json({
+        itemCode,
+        clientId: clientId || "all",
+        count: items.length,
+        items: items
+      });
+    } catch (error) {
+      console.error(`Error getting budget items for code ${req.params.itemCode}:`, error);
+      res.status(500).json({ error: "Failed to get budget items by code" });
+    }
+  });
   
   // Register report API routes
   try {

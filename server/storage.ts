@@ -917,25 +917,55 @@ export class DBStorage implements IStorage {
       if (newProductsJson) {
         try {
           if (typeof newProductsJson === 'string') {
+            console.log("Parsing new products from JSON string:", newProductsJson.substring(0, 100) + (newProductsJson.length > 100 ? "..." : ""));
             newProducts = JSON.parse(newProductsJson);
           } else if (Array.isArray(newProductsJson)) {
+            console.log("New products already an array:", newProductsJson);
             newProducts = newProductsJson as any[];
+          }
+          
+          console.log(`Successfully parsed ${newProducts.length} new products`);
+          
+          // Validate that each product has the required fields
+          if (newProducts.length > 0) {
+            const missingFields = newProducts.filter(p => !p.itemCode && !p.productCode);
+            if (missingFields.length > 0) {
+              console.warn(`${missingFields.length} products are missing both itemCode and productCode:`, missingFields);
+            }
           }
         } catch (e) {
           console.error("Error parsing new products JSON:", e);
+          console.error("Raw new products data:", newProductsJson);
         }
+      } else {
+        console.log("No new products to process");
       }
       
       if (oldProductsJson) {
         try {
           if (typeof oldProductsJson === 'string') {
+            console.log("Parsing old products from JSON string:", oldProductsJson.substring(0, 100) + (oldProductsJson.length > 100 ? "..." : ""));
             oldProducts = JSON.parse(oldProductsJson);
           } else if (Array.isArray(oldProductsJson)) {
+            console.log("Old products already an array:", oldProductsJson);
             oldProducts = oldProductsJson as any[];
+          }
+          
+          console.log(`Successfully parsed ${oldProducts.length} old products`);
+          
+          // Validate that each product has the required fields
+          if (oldProducts.length > 0) {
+            const missingFields = oldProducts.filter(p => !p.itemCode && !p.productCode);
+            if (missingFields.length > 0) {
+              console.warn(`${missingFields.length} old products are missing both itemCode and productCode:`, missingFields);
+            }
           }
         } catch (e) {
           console.error("Error parsing old products JSON:", e);
+          console.error("Raw old products data:", oldProductsJson);
         }
+      } else {
+        console.log("No old products to process");
       }
       
       // Skip if no products to process
@@ -952,7 +982,10 @@ export class DBStorage implements IStorage {
         const itemCode = product.itemCode || product.productCode;
         if (itemCode) {
           const quantity = Number(product.quantity) || 0;
+          console.log(`Removing product with code ${itemCode}, quantity ${quantity}`);
           changeMap[itemCode] = (changeMap[itemCode] || 0) - quantity;
+        } else {
+          console.warn("Product being removed is missing itemCode and productCode:", product);
         }
       }
       
@@ -961,7 +994,10 @@ export class DBStorage implements IStorage {
         const itemCode = product.itemCode || product.productCode;
         if (itemCode) {
           const quantity = Number(product.quantity) || 0;
+          console.log(`Adding product with code ${itemCode}, quantity ${quantity}`);
           changeMap[itemCode] = (changeMap[itemCode] || 0) + quantity;
+        } else {
+          console.warn("Product missing itemCode and productCode:", product);
         }
       }
       
@@ -969,12 +1005,27 @@ export class DBStorage implements IStorage {
       for (const [itemCode, quantityChange] of Object.entries(changeMap)) {
         if (quantityChange !== 0) {
           // Find all budget items with this item code for the client
-          const budgetItemsList = await db.select()
+          // First, try to find items with matching itemCode
+          let budgetItemsList = await db.select()
             .from(budgetItems)
             .where(and(
               eq(budgetItems.clientId, clientId),
               eq(budgetItems.itemCode, itemCode)
             ));
+            
+          // If no items found with itemCode, try looking for items with matching productCode
+          if (budgetItemsList.length === 0) {
+            console.log(`No budget items found with itemCode=${itemCode}, trying to find by productCode instead`);
+            // Use raw SQL query to check productCode 
+            // (Some budget items might have been created with productCode instead of itemCode)
+            const result = await pool.query(`
+              SELECT * FROM budget_items 
+              WHERE client_id = $1 AND product_code = $2
+            `, [clientId, itemCode]);
+            
+            budgetItemsList = result.rows;
+            console.log(`Found ${budgetItemsList.length} budget items with productCode=${itemCode}`);
+          }
           
           // Update each matching budget item
           for (const item of budgetItemsList) {
