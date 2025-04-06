@@ -30,6 +30,7 @@ export function BudgetValidation({
   // Access the total used amount passed from parent components
   // This comes from API data representing actual session usage
   const totalUsed = originalAllocated || 0; // Use originalAllocated as the passed-in usage amount
+  console.log(`BudgetValidation: originalAllocated = ${originalAllocated}, totalUsed = ${totalUsed}, totalBudget = ${totalBudget}`);
   
   // Calculate percentage of used amount vs total budget
   const percentUsed = totalUsed > 0 && totalBudget > 0

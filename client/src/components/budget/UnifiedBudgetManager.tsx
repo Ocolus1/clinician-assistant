@@ -111,20 +111,31 @@ export function UnifiedBudgetManager({
   
   // Calculate the total budget usage from budget items
   const calculateBudgetUsage = (): number => {
-    if (!budgetItems || budgetItems.length === 0) return 0;
+    if (!budgetItems || budgetItems.length === 0) {
+      console.log('calculateBudgetUsage: No budget items available');
+      return 0;
+    }
+    
+    console.log(`calculateBudgetUsage: Processing ${budgetItems.length} budget items for usage:`);
     
     // Sum up the usedQuantity * unitPrice for all budget items
-    return budgetItems.reduce((total: number, item: BudgetItem) => {
+    const totalUsage = budgetItems.reduce((total: number, item: BudgetItem) => {
       const usedQty = typeof item.usedQuantity === 'string' 
         ? parseFloat(item.usedQuantity) 
-        : item.usedQuantity || 0;
+        : (item.usedQuantity || 0);
         
       const unitPrice = typeof item.unitPrice === 'string'
         ? parseFloat(item.unitPrice)
-        : item.unitPrice || 0;
-        
-      return total + (usedQty * unitPrice);
+        : (item.unitPrice || 0);
+      
+      const itemUsage = usedQty * unitPrice;
+      console.log(`Item ${item.id} (${item.itemCode}): Used ${usedQty} units at $${unitPrice} each = $${itemUsage.toFixed(2)}`);
+      
+      return total + itemUsage;
     }, 0);
+    
+    console.log(`calculateBudgetUsage: Total budget used: $${totalUsage.toFixed(2)}`);
+    return totalUsage;
   };
 
   // Get active budget plan
