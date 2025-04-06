@@ -102,15 +102,28 @@ export function calculateMaxQuantity(
   return Math.floor(remainingBudget / itemPrice);
 }
 
+// Store used quantities from API for lookup by item code
+export const usedQuantitiesStore: Record<string, number> = {};
+
+/**
+ * Sets the used quantity for a specific item code
+ * Used to store the API values for later lookup
+ * @param itemCode The product's item code
+ * @param quantity The used quantity from the API
+ */
+export function setUsedQuantity(itemCode: string, quantity: number): void {
+  usedQuantitiesStore[itemCode] = quantity;
+}
+
 /**
  * Gets the used quantity for a specific item code
  * @param itemCode The product's item code
  * @returns The quantity that has been used in sessions
  */
 export function getUsedQuantity(itemCode: string): number {
-  // For Radwan's case (client ID 88), we're always returning 0 
-  // since there are no sessions with used products yet
-  return 0;
+  // Look up the used quantity from our store
+  // If it doesn't exist, return 0
+  return usedQuantitiesStore[itemCode] || 0;
 }
 
 /**

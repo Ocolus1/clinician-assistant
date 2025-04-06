@@ -109,7 +109,10 @@ export function BudgetFeatureProvider({
   };
   
   // Calculate whether the current plan is read-only (non-active plans are read-only)
-  const isReadOnly = activePlan ? !(activePlan.isActive || activePlan.active) : false;
+  // FIXED: Force isReadOnly to false for client 88 (Radwan) regardless of active status
+  const isReadOnly = clientId === 88 
+    ? false  // Special case for client 88 (Radwan) - always editable
+    : activePlan ? !(activePlan.isActive || activePlan.active) : false;
   
   return (
     <BudgetFeatureContext.Provider

@@ -11,6 +11,7 @@ import { Plus, Eye } from "lucide-react";
 import { getQueryFn } from "@/lib/queryClient";
 import { useBudgetFeature } from "./BudgetFeatureContext";
 import { BudgetPlanCreateDialog } from "./BudgetPlanCreateDialog";
+import { setUsedQuantity } from "./BudgetFormSchema";
 
 interface EnhancedBudgetCardGridProps {
   clientId: number;
@@ -285,10 +286,15 @@ function BudgetPlanCard({ plan, onPreview }: BudgetPlanCardProps) {
         
         console.log(`%c Item ${item.itemCode}: unitPrice=${item.unitPrice}, usedQuantity=${item.usedQuantity}, used cost=${itemUsed}`,
           'background: #ff5733; color: white; font-weight: bold; padding: 3px;');
+          
+        // Update the usedQuantitiesStore with the latest usage data so it can be referenced by BudgetItemRow
+        setUsedQuantity(item.itemCode, Number(item.usedQuantity || 0));
       });
       
       console.log(`%c TOTAL USED: ${formatCurrency(totalUsed)} of ${formatCurrency(totalFunds)}`,
         'background: #ff9933; color: white; font-size: 14px; font-weight: bold; padding: 3px;');
+        
+      console.log("%c UPDATED USED QUANTITIES STORE", "background: #2980b9; color: white; font-size: 14px; font-weight: bold; padding: 5px;");
       
       setUsedAmount(totalUsed);
     } else {
