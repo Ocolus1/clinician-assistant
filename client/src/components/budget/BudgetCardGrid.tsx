@@ -102,12 +102,17 @@ export default function BudgetCardGrid({
   const [selectedPlan, setSelectedPlan] = useState<BudgetPlan | null>(null);
   
   // Calculate usage and enhance budget settings with additional information
-  console.log("BudgetCardGrid: Re-calculating budget usage based on budget items:", budgetItems);
+  console.log("%c BudgetCardGrid: Re-calculating budget usage", "background: #3498db; color: white; padding: 2px 5px; border-radius: 3px;");
   
-  // Log usedQuantity values to verify they're coming through
-  budgetItems.forEach(item => {
-    console.log(`Budget item ${item.id} (${item.itemCode}): usedQuantity = ${item.usedQuantity}`);
-  });
+  console.table(budgetItems.map(item => ({
+    id: item.id,
+    itemCode: item.itemCode,
+    description: item.description,
+    unitPrice: item.unitPrice,
+    quantity: item.quantity,
+    usedQuantity: item.usedQuantity,
+    budgetSettingsId: item.budgetSettingsId
+  })));
   
   const enhancedBudgetSettings = budgetSettings.map(setting => {
     // Get budget items for this plan
@@ -421,11 +426,14 @@ function BudgetPlanCard({
   onArchive,
   onSetActive
 }: BudgetPlanCardProps) {
-  console.log(`BudgetPlanCard rendering for plan ${plan.id}:`, {
+  console.log(`%c BudgetPlanCard: Plan ${plan.id} - ${plan.planName || 'Unnamed Plan'}`, 'background: #e74c3c; color: white; padding: 2px 5px; border-radius: 3px;');
+  console.log('Plan details:', {
     totalUsed: plan.totalUsed,
     percentUsed: plan.percentUsed,
     ndisFunds: plan.ndisFunds,
-    availableFunds: plan.availableFunds
+    availableFunds: plan.availableFunds,
+    itemCount: plan.itemCount,
+    remainingFunds: plan.remainingFunds
   });
   // Format currency
   const formatCurrency = (amount: number) => {
