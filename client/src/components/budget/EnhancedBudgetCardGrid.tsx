@@ -221,8 +221,10 @@ function BudgetPlanCard({ plan, onPreview }: BudgetPlanCardProps) {
   const { data: budgetItems } = useQuery({
     queryKey: ['/api/clients', plan.clientId, 'budget-items'],
     queryFn: async () => {
+      console.log(`%c Fetching budget items for plan ${plan.id}`, 'background: #3498db; color: white; padding: 3px;');
       const response = await fetch(`/api/clients/${plan.clientId}/budget-items`);
       const data = await response.json();
+      console.log(`%c Budget items for plan ${plan.id}:`, 'background: #3498db; color: white; padding: 3px;', data);
       return data;
     }
   });
@@ -248,9 +250,15 @@ function BudgetPlanCard({ plan, onPreview }: BudgetPlanCardProps) {
     if (budgetItems && Array.isArray(budgetItems)) {
       // Filter budget items for this plan
       const planItems = budgetItems.filter(item => item.budgetSettingsId === plan.id);
+      console.log(`%c Budget items for plan ${plan.id}: `, 'background: #e74c3c; color: white; padding: 3px;', planItems);
+      
       const totalAllocated = planItems.reduce((total, item) => {
-        return total + (Number(item.unitPrice) * Number(item.quantity));
+        const amount = Number(item.unitPrice) * Number(item.quantity);
+        console.log(`%c Item ${item.itemCode}: unitPrice=${item.unitPrice}, quantity=${item.quantity}, usedQuantity=${item.usedQuantity}, total=${amount}`, 
+          'background: #2ecc71; color: white; padding: 2px;');
+        return total + amount;
       }, 0);
+      console.log(`%c Total allocated for plan ${plan.id}: ${totalAllocated}`, 'background: #3498db; color: white; padding: 3px;');
       setAllocatedAmount(totalAllocated);
     }
     
@@ -258,31 +266,50 @@ function BudgetPlanCard({ plan, onPreview }: BudgetPlanCardProps) {
     const totalFunds = plan.clientId === 88 ? 12000 : Number(plan.ndisFunds) || 0;
     
     if (clientSessions && Array.isArray(clientSessions)) {
+      // Log all sessions for debugging
+      console.log(`%c All sessions for client ${plan.clientId}: `, 'background: #9b59b6; color: white; padding: 3px;', clientSessions);
+      
       // Filter sessions that belong to this plan's active period
       const planStartDate = plan.createdAt ? new Date(plan.createdAt) : new Date();
       const planEndDate = plan.endOfPlan ? parseISO(plan.endOfPlan) : new Date();
       
+      console.log(`%c Plan date range: ${planStartDate.toISOString()} to ${planEndDate.toISOString()} `, 'background: #f39c12; color: white; padding: 3px;');
+      
       // Filter sessions that occurred during this plan's active period
       const planSessions = clientSessions.filter((session: SessionWithNotes) => {
         const sessionDate = new Date(session.sessionDate);
-        return sessionDate >= planStartDate && sessionDate <= planEndDate;
+        const isInRange = sessionDate >= planStartDate && sessionDate <= planEndDate;
+        console.log(`Session ${session.id} date: ${sessionDate.toISOString()}, in range: ${isInRange}`);
+        return isInRange;
       });
       
       // Log for debugging
-      console.log(`Found ${planSessions.length} sessions for plan ${plan.id} in date range`);
+      console.log(`%c Found ${planSessions.length} sessions for plan ${plan.id} in date range `, 'background: #e74c3c; color: white; padding: 3px;', planSessions);
       
       // Calculate total product costs from these sessions
       let totalUsed = 0;
       
       planSessions.forEach((session: SessionWithNotes) => {
         // Check for session notes with products
+        console.log(`%c Processing session ${session.id} - Session note exists: ${!!session.sessionNotes} `, 'background: #27ae60; color: white; padding: 3px;');
+        
         if (session.sessionNotes?.products) {
+          console.log(`%c Session ${session.id} has products data: ${session.sessionNotes.products} `, 'background: #2980b9; color: white; padding: 3px;');
+          
           try {
             // Parse the products from the JSON string
             const products = JSON.parse(session.sessionNotes.products) as SessionProduct[];
+            console.log(`%c Parsed products for session ${session.id}: `, 'background: #8e44ad; color: white; padding: 3px;', products);
             
             if (Array.isArray(products)) {
               products.forEach((product: SessionProduct) => {
+                console.log(`%c Product details: `, 'background: #16a085; color: white; padding: 3px;', {
+                  name: product.name || 'Unnamed',
+                  code: product.code || 'No Code',
+                  price: product.price,
+                  quantity: product.quantity || 1
+                });
+                
                 if (product.price) {
                   // For price calculation, use quantity if available
                   const quantity = product.quantity || 1;
@@ -290,13 +317,20 @@ function BudgetPlanCard({ plan, onPreview }: BudgetPlanCardProps) {
                   totalUsed += itemPrice;
                   
                   // Log individual product for debugging
-                  console.log(`Plan ${plan.id} - Session ${session.id} - Product: ${product.name || 'Unknown'}, Price: ${formatCurrency(itemPrice)}`);
+                  console.log(`%c ADDING: Plan ${plan.id} - Session ${session.id} - Product: ${product.name || 'Unknown'}, Price: ${formatCurrency(itemPrice)}`, 
+                    'background: #c0392b; color: white; font-weight: bold; padding: 3px;');
+                } else {
+                  console.log(`%c SKIPPING: Product has no price value`, 'background: #d35400; color: white; padding: 3px;');
                 }
               });
+            } else {
+              console.log(`%c Products is not an array for session ${session.id}`, 'background: #c0392b; color: white; padding: 3px;');
             }
           } catch (e) {
-            console.error(`Error parsing session products for session ${session.id}:`, e);
+            console.error(`%c Error parsing session products for session ${session.id}: ${e}`, 'background: #e74c3c; color: white; padding: 3px;');
           }
+        } else {
+          console.log(`%c Session ${session.id} has NO products data`, 'background: #c0392b; color: white; padding: 3px;');
         }
       });
       
