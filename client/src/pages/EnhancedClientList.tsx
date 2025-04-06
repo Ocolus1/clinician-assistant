@@ -141,6 +141,7 @@ interface EnrichedClient extends Client {
   budgetItems: BudgetItem[];
   budgetSettings?: BudgetSettings;
   sessions?: Array<any>;
+  sessionNotesWithProducts?: Array<any>; // Session notes with product usage data
   score?: number;
   progress?: number[];
   status?: 'active' | 'inactive';
@@ -230,6 +231,22 @@ export default function EnhancedClientList() {
     }
   };
   
+  // Helper function to fetch session notes with products for budget usage calculation
+  const fetchSessionNotesWithProducts = async (clientId: number): Promise<any[]> => {
+    try {
+      // Use the endpoint that includes product usage data
+      const response = await fetch(`/api/clients/${clientId}/session-notes-with-products`);
+      if (!response.ok) {
+        console.error("Error fetching session notes with products, status:", response.status);
+        return [];
+      }
+      return response.json();
+    } catch (error) {
+      console.error("Error fetching session notes with products:", error);
+      return [];
+    }
+  };
+  
   // Enrich clients with additional data
   const { data: enrichedClients = [], isLoading: isEnrichingClients } = useQuery<EnrichedClient[]>({
     queryKey: ["/api/clients/enriched"],
@@ -238,13 +255,14 @@ export default function EnhancedClientList() {
       return Promise.all(
         clients.map(async (client) => {
           // Fetch additional data for each client
-          const [therapists, clinicians, goals, budgetItems, budgetSettings, sessions] = await Promise.all([
+          const [therapists, clinicians, goals, budgetItems, budgetSettings, sessions, sessionNotesWithProducts] = await Promise.all([
             fetchAllies(client.id),
             fetchClinicians(client.id),
             fetchGoals(client.id),
             fetchBudgetItems(client.id),
             fetchBudgetSettings(client.id),
-            fetchSessions(client.id)
+            fetchSessions(client.id),
+            fetchSessionNotesWithProducts(client.id)
           ]);
           
           // Calculate age
@@ -294,6 +312,7 @@ export default function EnhancedClientList() {
             budgetItems,
             budgetSettings,
             sessions,
+            sessionNotesWithProducts,
             score: score || undefined,
             progress: sessionPerformances.length > 0 ? sessionPerformances : undefined,
             status
@@ -518,35 +537,45 @@ export default function EnhancedClientList() {
       id: "budget",
       header: "Budget Usage",
       accessorFn: (client) => {
-        // Ensure ndisFunds is a number - this is our total budget
+        // Get the total budget from the budget settings (not hardcoded)
         const rawNdisFunds = client.budgetSettings?.ndisFunds || 0;
-        const totalFunds = typeof rawNdisFunds === 'string' ? parseFloat(rawNdisFunds) : (rawNdisFunds || 0);
+        const totalBudget = typeof rawNdisFunds === 'string' ? parseFloat(rawNdisFunds) : (rawNdisFunds || 0);
         
-        // Calculate total budget allocated
-        const totalBudget = client.budgetItems.reduce((acc, item) => {
+        // Calculate total allocated budget from budget items (for verification)
+        const totalAllocated = client.budgetItems.reduce((acc, item) => {
           const unitPrice = typeof item.unitPrice === 'string' ? parseFloat(item.unitPrice) : item.unitPrice;
           const quantity = typeof item.quantity === 'string' ? parseInt(item.quantity) : item.quantity;
           return acc + (unitPrice * quantity);
         }, 0);
         
-        // Calculate actual usage from sessions (products used)
-        const usedBudget = client.sessions && client.sessions.length > 0
-          ? client.sessions.reduce((acc, session) => {
-              // Check if session has products data
-              const sessionProducts = session.products ? 
-                (typeof session.products === 'string' ? 
-                  JSON.parse(session.products) : session.products) : [];
-                
-              // Sum up product costs if any
-              const sessionCost = Array.isArray(sessionProducts) ? 
-                sessionProducts.reduce((sum, product) => sum + (product.price || 0), 0) : 0;
-                
-              return acc + sessionCost;
-            }, 0)
-          : 0;
-          
-        // Calculate usage percentage based on actual used amount
-        const usagePercentage = totalFunds > 0 ? (usedBudget / totalFunds) * 100 : 0;
+        // Use the session notes with products for accurate usage calculation
+        let usedBudget = 0;
+        
+        if (client.sessionNotesWithProducts && client.sessionNotesWithProducts.length > 0) {
+          // Calculate used budget from session notes with products
+          client.sessionNotesWithProducts.forEach(sessionNote => {
+            if (sessionNote.products && Array.isArray(sessionNote.products)) {
+              sessionNote.products.forEach(product => {
+                const unitPrice = typeof product.unitPrice === 'string' ? parseFloat(product.unitPrice) : (product.unitPrice || 0);
+                const quantity = typeof product.quantity === 'string' ? parseInt(product.quantity) : (product.quantity || 0);
+                usedBudget += unitPrice * quantity;
+              });
+            }
+          });
+        } else if (client.budgetItems && client.budgetItems.length > 0) {
+          // Fallback: Calculate from budget items' usedQuantity field if available
+          client.budgetItems.forEach(item => {
+            const unitPrice = typeof item.unitPrice === 'string' ? parseFloat(item.unitPrice) : item.unitPrice;
+            const usedQty = item.usedQuantity || 0;
+            usedBudget += unitPrice * usedQty;
+          });
+        }
+        
+        // Safety check - don't show more than 100% usage
+        usedBudget = Math.min(usedBudget, totalBudget);
+        
+        // Calculate usage percentage
+        const usagePercentage = totalBudget > 0 ? (usedBudget / totalBudget) * 100 : 0;
         const formattedUsage = Math.round(usagePercentage) + '%';
         
         // Determine color based on usage
@@ -554,6 +583,13 @@ export default function EnhancedClientList() {
         if (usagePercentage > 90) progressColor = "bg-red-500";
         else if (usagePercentage > 75) progressColor = "bg-amber-500";
         else if (usagePercentage > 50) progressColor = "bg-green-500";
+        
+        console.log(`Client ${client.id} budget info:`, {
+          totalBudget,
+          totalAllocated,
+          usedBudget,
+          usagePercentage
+        });
         
         return (
           <TooltipProvider>
@@ -571,8 +607,8 @@ export default function EnhancedClientList() {
                 <div className="text-xs">
                   <div className="font-bold mb-1">Budget Usage</div>
                   <div>Used: ${Number(usedBudget).toFixed(2)}</div>
-                  <div>Total: ${Number(totalFunds).toFixed(2)}</div>
-                  <div>Remaining: ${Number(totalFunds - usedBudget).toFixed(2)}</div>
+                  <div>Total: ${Number(totalBudget).toFixed(2)}</div>
+                  <div>Remaining: ${Number(totalBudget - usedBudget).toFixed(2)}</div>
                 </div>
               </TooltipContent>
             </Tooltip>
@@ -843,43 +879,62 @@ export default function EnhancedClientList() {
             bValue = b.score || 0;
             break;
           case 'budget':
-            // Sort by budget usage percentage from actual session usage
+            // Sort by budget usage percentage using session notes with products
             const aRawNdisFunds = a.budgetSettings?.ndisFunds || 0;
             const bRawNdisFunds = b.budgetSettings?.ndisFunds || 0;
             
             const aTotalFunds = typeof aRawNdisFunds === 'string' ? parseFloat(aRawNdisFunds) : (aRawNdisFunds || 0);
             const bTotalFunds = typeof bRawNdisFunds === 'string' ? parseFloat(bRawNdisFunds) : (bRawNdisFunds || 0);
             
-            // Calculate actual usage from sessions (products used)
-            const aUsedBudget = a.sessions && a.sessions.length > 0
-              ? a.sessions.reduce((acc, session) => {
-                  // Check if session has products data
-                  const sessionProducts = session.products ? 
-                    (typeof session.products === 'string' ? 
-                      JSON.parse(session.products) : session.products) : [];
-                    
-                  // Sum up product costs if any
-                  const sessionCost = Array.isArray(sessionProducts) ? 
-                    sessionProducts.reduce((sum, product) => sum + (product.price || 0), 0) : 0;
-                    
-                  return acc + sessionCost;
-                }, 0)
-              : 0;
-              
-            const bUsedBudget = b.sessions && b.sessions.length > 0
-              ? b.sessions.reduce((acc, session) => {
-                  // Check if session has products data
-                  const sessionProducts = session.products ? 
-                    (typeof session.products === 'string' ? 
-                      JSON.parse(session.products) : session.products) : [];
-                    
-                  // Sum up product costs if any
-                  const sessionCost = Array.isArray(sessionProducts) ? 
-                    sessionProducts.reduce((sum, product) => sum + (product.price || 0), 0) : 0;
-                    
-                  return acc + sessionCost;
-                }, 0)
-              : 0;
+            // Calculate actual usage from session notes with products
+            let aUsedBudget = 0;
+            let bUsedBudget = 0;
+            
+            // For client A
+            if (a.sessionNotesWithProducts && a.sessionNotesWithProducts.length > 0) {
+              // Calculate used budget from session notes with products
+              a.sessionNotesWithProducts.forEach(sessionNote => {
+                if (sessionNote.products && Array.isArray(sessionNote.products)) {
+                  sessionNote.products.forEach(product => {
+                    const unitPrice = typeof product.unitPrice === 'string' ? parseFloat(product.unitPrice) : (product.unitPrice || 0);
+                    const quantity = typeof product.quantity === 'string' ? parseInt(product.quantity) : (product.quantity || 0);
+                    aUsedBudget += unitPrice * quantity;
+                  });
+                }
+              });
+            } else if (a.budgetItems && a.budgetItems.length > 0) {
+              // Fallback: Calculate from budget items' usedQuantity field if available
+              a.budgetItems.forEach(item => {
+                const unitPrice = typeof item.unitPrice === 'string' ? parseFloat(item.unitPrice) : item.unitPrice;
+                const usedQty = item.usedQuantity || 0;
+                aUsedBudget += unitPrice * usedQty;
+              });
+            }
+            
+            // For client B
+            if (b.sessionNotesWithProducts && b.sessionNotesWithProducts.length > 0) {
+              // Calculate used budget from session notes with products
+              b.sessionNotesWithProducts.forEach(sessionNote => {
+                if (sessionNote.products && Array.isArray(sessionNote.products)) {
+                  sessionNote.products.forEach(product => {
+                    const unitPrice = typeof product.unitPrice === 'string' ? parseFloat(product.unitPrice) : (product.unitPrice || 0);
+                    const quantity = typeof product.quantity === 'string' ? parseInt(product.quantity) : (product.quantity || 0);
+                    bUsedBudget += unitPrice * quantity;
+                  });
+                }
+              });
+            } else if (b.budgetItems && b.budgetItems.length > 0) {
+              // Fallback: Calculate from budget items' usedQuantity field if available
+              b.budgetItems.forEach(item => {
+                const unitPrice = typeof item.unitPrice === 'string' ? parseFloat(item.unitPrice) : item.unitPrice;
+                const usedQty = item.usedQuantity || 0;
+                bUsedBudget += unitPrice * usedQty;
+              });
+            }
+            
+            // Safety check - don't show more than 100% usage
+            aUsedBudget = Math.min(aUsedBudget, aTotalFunds);
+            bUsedBudget = Math.min(bUsedBudget, bTotalFunds);
             
             aValue = aTotalFunds > 0 ? (aUsedBudget / aTotalFunds) * 100 : 0;
             bValue = bTotalFunds > 0 ? (bUsedBudget / bTotalFunds) * 100 : 0;
