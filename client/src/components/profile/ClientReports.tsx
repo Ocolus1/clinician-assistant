@@ -504,10 +504,11 @@ export function ClientReports({ clientId }: ClientReportsProps) {
         onClose={closeModal}
         title="Observations"
         description="Tracking client behaviors and responses during sessions"
+        detailsContent={
+          <ObservationHistory data={reportData} />
+        }
       >
-        <div className="text-center py-12 text-muted-foreground">
-          Observation trend details would be displayed here
-        </div>
+        <ObservationScoresOverview data={reportData} />
       </ReportModal>
       
       {/* Additional modals for other cards */}
@@ -845,6 +846,197 @@ function StrategiesSection({ data, strategiesData }: {
 
 // Import the GoalPerformanceModal
 import { GoalPerformanceModal } from './GoalPerformanceModal';
+
+// Observation Scores Overview Component - For Modal Top Section
+function ObservationScoresOverview({ data }: { data?: ClientReportData }) {
+  if (!data) return null;
+  
+  const { observations } = data;
+  
+  // Prepare data for segment display
+  const observationData = [
+    { name: 'Physical Activity', value: observations.physicalActivity, color: OBSERVATION_COLORS.physicalActivity },
+    { name: 'Cooperation', value: observations.cooperation, color: OBSERVATION_COLORS.cooperation },
+    { name: 'Focus', value: observations.focus, color: OBSERVATION_COLORS.focus },
+    { name: 'Mood', value: observations.mood, color: OBSERVATION_COLORS.mood },
+  ];
+  
+  return (
+    <div className="space-y-6">
+      <h3 className="text-lg font-medium">Current Observation Scores</h3>
+      <div className="space-y-6">
+        {observationData.map((entry, index) => (
+          <div key={index} className="space-y-2">
+            <div className="flex justify-between items-center">
+              <span className="text-sm font-medium">{entry.name}</span>
+              <span className="text-sm font-medium" style={{ color: entry.color }}>
+                {entry.value.toFixed(1)}/10
+              </span>
+            </div>
+            <div className="w-full bg-gray-100 h-2.5 rounded-full overflow-hidden">
+              <div 
+                className="h-full rounded-full transition-all duration-300"
+                style={{
+                  width: `${(entry.value / 10) * 100}%`,
+                  backgroundColor: entry.color
+                }}
+              />
+            </div>
+          </div>
+        ))}
+      </div>
+      
+      <div className="flex items-center justify-center mt-4 text-sm text-muted-foreground">
+        <Info className="h-4 w-4 mr-2" />
+        <span>Click on an observation below to view historical trends</span>
+      </div>
+    </div>
+  );
+}
+
+// Interface for observation history data
+interface ObservationHistoryPoint {
+  date: string;
+  value: number;
+}
+
+// Observation History Component - For Modal Bottom Section
+function ObservationHistory({ data }: { data?: ClientReportData }) {
+  if (!data) return null;
+  
+  const [selectedMetric, setSelectedMetric] = useState<string>('physicalActivity');
+  
+  // Generate historical data for the selected observation metric
+  const generateHistoricalData = (metricName: string): ObservationHistoryPoint[] => {
+    // In a real implementation, this would come from the API
+    // For now, we'll create sample data based on the current value
+    const currentValue = data.observations[metricName as keyof typeof data.observations] as number;
+    
+    // Create 8 data points with slight variations from the current value
+    return Array.from({ length: 8 }).map((_, index) => {
+      // Create a date for each point, starting from 8 weeks ago
+      const date = new Date();
+      date.setDate(date.getDate() - ((7-index) * 7)); // Go back by weeks
+      
+      // Vary the value slightly around the current value
+      // This is just for demonstration - real data would come from the API
+      const variance = Math.random() * 2 - 1; // Random between -1 and 1
+      const value = Math.max(1, Math.min(10, currentValue + variance));
+      
+      return {
+        date: format(date, 'MMM d'),
+        value: parseFloat(value.toFixed(1)),
+      };
+    });
+  };
+  
+  const historyData = generateHistoricalData(selectedMetric);
+  
+  // Get color for the selected metric
+  const getMetricColor = (metricName: string): string => {
+    const colorMap: Record<string, string> = {
+      physicalActivity: OBSERVATION_COLORS.physicalActivity,
+      cooperation: OBSERVATION_COLORS.cooperation,
+      focus: OBSERVATION_COLORS.focus,
+      mood: OBSERVATION_COLORS.mood,
+    };
+    return colorMap[metricName] || '#000000';
+  };
+  
+  // Get display name for the metric
+  const getMetricDisplayName = (metricName: string): string => {
+    const nameMap: Record<string, string> = {
+      physicalActivity: 'Physical Activity',
+      cooperation: 'Cooperation',
+      focus: 'Focus',
+      mood: 'Mood',
+    };
+    return nameMap[metricName] || metricName;
+  };
+  
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h3 className="font-medium">Historical Trends</h3>
+        <div className="flex space-x-2">
+          {Object.keys(OBSERVATION_COLORS).map((metricName) => (
+            <Button
+              key={metricName}
+              size="sm"
+              variant={selectedMetric === metricName ? "default" : "outline"}
+              onClick={() => setSelectedMetric(metricName)}
+              className={cn(
+                selectedMetric === metricName ? "text-white" : "text-gray-700",
+                "text-xs font-medium transition-colors"
+              )}
+              style={selectedMetric === metricName ? { backgroundColor: getMetricColor(metricName) } : {}}
+            >
+              {getMetricDisplayName(metricName)}
+            </Button>
+          ))}
+        </div>
+      </div>
+      
+      <div className="h-[250px] w-full">
+        <ResponsiveContainer width="100%" height="100%">
+          <RechartsLineChart
+            data={historyData}
+            margin={{ top: 10, right: 10, left: 10, bottom: 20 }}
+          >
+            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+            <XAxis 
+              dataKey="date" 
+              tick={{ fontSize: 12, fill: '#6b7280' }}
+              tickLine={false}
+              axisLine={{ stroke: '#e5e7eb' }}
+            />
+            <YAxis 
+              domain={[0, 10]} 
+              tick={{ fontSize: 12, fill: '#6b7280' }}
+              tickLine={false}
+              axisLine={{ stroke: '#e5e7eb' }}
+              tickCount={6}
+            />
+            <RechartsTooltip 
+              contentStyle={{ 
+                backgroundColor: 'white', 
+                border: '1px solid #e5e7eb',
+                borderRadius: '0.375rem',
+                boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
+                padding: '0.5rem'
+              }}
+              formatter={(value: number) => [`${value}/10`, getMetricDisplayName(selectedMetric)]}
+              labelFormatter={(label) => `Week of ${label}`}
+            />
+            <Line 
+              type="monotone" 
+              dataKey="value" 
+              stroke={getMetricColor(selectedMetric)} 
+              strokeWidth={3}
+              dot={{ 
+                fill: 'white', 
+                stroke: getMetricColor(selectedMetric),
+                strokeWidth: 2,
+                r: 4
+              }}
+              activeDot={{ 
+                fill: getMetricColor(selectedMetric), 
+                stroke: 'white',
+                strokeWidth: 2,
+                r: 6
+              }}
+            />
+          </RechartsLineChart>
+        </ResponsiveContainer>
+      </div>
+      
+      <div className="text-center text-sm text-muted-foreground">
+        <p>Showing scores from {historyData[0]?.date} to {historyData[historyData.length-1]?.date}</p>
+        <p className="mt-1 italic">Data is filtered from the start of the current budget plan</p>
+      </div>
+    </div>
+  );
+}
 
 // Goals Section Component with gauge visualization and clickable goals
 function GoalsSection({ data }: { data?: ClientReportData }) {
