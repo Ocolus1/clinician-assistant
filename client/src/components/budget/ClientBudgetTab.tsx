@@ -73,6 +73,13 @@ export default function ClientBudgetTab({
     staleTime: 30000, // 30 seconds - ensure fresh data
     refetchOnWindowFocus: true, // Refresh when window regains focus
     retry: 1,
+    onSuccess: (data) => {
+      console.log(`Received ${data.length} budget items with usage data:`, data);
+      // Log used quantities to help debug
+      data.forEach(item => {
+        console.log(`Budget item ${item.id} (${item.itemCode}): Used quantity = ${item.usedQuantity}`);
+      });
+    }
   });
 
   // Fetch budget item catalog for reference data 
