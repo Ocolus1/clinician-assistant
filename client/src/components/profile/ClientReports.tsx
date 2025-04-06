@@ -198,7 +198,7 @@ export function ClientReports({ clientId }: ClientReportsProps) {
             <div className="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center mb-3">
               <DollarSign className="h-6 w-6 text-blue-600" />
             </div>
-            <CardTitle className="text-lg font-medium">Budget Utilization</CardTitle>
+            <CardTitle className="text-lg font-medium">Budget Utilisation</CardTitle>
           </CardHeader>
           <CardContent className="p-4 pt-0 text-center">
             <p className="text-sm text-slate-600">
@@ -227,7 +227,7 @@ export function ClientReports({ clientId }: ClientReportsProps) {
             <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mb-3">
               <Calendar className="h-6 w-6 text-green-600" />
             </div>
-            <CardTitle className="text-lg font-medium">Session Statistics</CardTitle>
+            <CardTitle className="text-lg font-medium">Attendance</CardTitle>
           </CardHeader>
           <CardContent className="p-4 pt-0 text-center">
             <p className="text-sm text-slate-600">
@@ -250,7 +250,7 @@ export function ClientReports({ clientId }: ClientReportsProps) {
             <div className="w-16 h-16 rounded-full bg-purple-100 flex items-center justify-center mb-3">
               <BarChart3 className="h-6 w-6 text-purple-600" />
             </div>
-            <CardTitle className="text-lg font-medium">Goal Progression</CardTitle>
+            <CardTitle className="text-lg font-medium">Goals & Milestones</CardTitle>
           </CardHeader>
           <CardContent className="p-4 pt-0 text-center">
             <p className="text-sm text-slate-600">
@@ -273,7 +273,7 @@ export function ClientReports({ clientId }: ClientReportsProps) {
             <div className="w-16 h-16 rounded-full bg-amber-100 flex items-center justify-center mb-3">
               <Activity className="h-6 w-6 text-amber-600" />
             </div>
-            <CardTitle className="text-lg font-medium">Observation Trends</CardTitle>
+            <CardTitle className="text-lg font-medium">Observations</CardTitle>
           </CardHeader>
           <CardContent className="p-4 pt-0 text-center">
             <p className="text-sm text-slate-600">
@@ -306,7 +306,7 @@ export function ClientReports({ clientId }: ClientReportsProps) {
             <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center mb-3">
               <ListChecks className="h-6 w-6 text-emerald-600" />
             </div>
-            <CardTitle className="text-lg font-medium">Effective Strategies</CardTitle>
+            <CardTitle className="text-lg font-medium">Strategies</CardTitle>
           </CardHeader>
           <CardContent className="p-4 pt-0 text-center">
             <p className="text-sm text-slate-600">
@@ -329,7 +329,7 @@ export function ClientReports({ clientId }: ClientReportsProps) {
             <div className="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center mb-3">
               <Users className="h-6 w-6 text-blue-600" />
             </div>
-            <CardTitle className="text-lg font-medium">Allied Health Team</CardTitle>
+            <CardTitle className="text-lg font-medium">Activity Log</CardTitle>
           </CardHeader>
           <CardContent className="p-4 pt-0 text-center">
             <p className="text-sm text-slate-600">
@@ -352,7 +352,7 @@ export function ClientReports({ clientId }: ClientReportsProps) {
             <div className="w-16 h-16 rounded-full bg-indigo-100 flex items-center justify-center mb-3">
               <PieChart className="h-6 w-6 text-indigo-600" />
             </div>
-            <CardTitle className="text-lg font-medium">Service Categories</CardTitle>
+            <CardTitle className="text-lg font-medium">Items Utilisation</CardTitle>
           </CardHeader>
           <CardContent className="p-4 pt-0 text-center">
             <p className="text-sm text-slate-600">
@@ -375,7 +375,7 @@ export function ClientReports({ clientId }: ClientReportsProps) {
             <div className="w-16 h-16 rounded-full bg-orange-100 flex items-center justify-center mb-3">
               <TrendingUp className="h-6 w-6 text-orange-600" />
             </div>
-            <CardTitle className="text-lg font-medium">Fund Allocation</CardTitle>
+            <CardTitle className="text-lg font-medium">Coming Soon</CardTitle>
           </CardHeader>
           <CardContent className="p-4 pt-0 text-center">
             <p className="text-sm text-slate-600">
@@ -394,7 +394,7 @@ export function ClientReports({ clientId }: ClientReportsProps) {
       <ReportModal
         isOpen={activeModal === 'budget'}
         onClose={closeModal}
-        title="Budget Utilization"
+        title="Budget Utilisation"
         description="Detailed view of budget usage across all service items"
         detailsContent={
           <div className="space-y-4">
@@ -478,7 +478,7 @@ export function ClientReports({ clientId }: ClientReportsProps) {
       <ReportModal
         isOpen={activeModal === 'sessions'}
         onClose={closeModal}
-        title="Session Statistics"
+        title="Attendance"
         description="Overview of all therapy sessions and attendance patterns"
       >
         <div className="text-center py-12 text-muted-foreground">
@@ -490,7 +490,7 @@ export function ClientReports({ clientId }: ClientReportsProps) {
       <ReportModal
         isOpen={activeModal === 'goals'}
         onClose={closeModal}
-        title="Goal Progression"
+        title="Goals & Milestones"
         description="Tracking progress on therapeutic goals and objectives"
       >
         <div className="text-center py-12 text-muted-foreground">
@@ -502,7 +502,7 @@ export function ClientReports({ clientId }: ClientReportsProps) {
       <ReportModal
         isOpen={activeModal === 'observations'}
         onClose={closeModal}
-        title="Observation Trends"
+        title="Observations"
         description="Tracking client behaviors and responses during sessions"
       >
         <div className="text-center py-12 text-muted-foreground">
@@ -514,7 +514,7 @@ export function ClientReports({ clientId }: ClientReportsProps) {
       <ReportModal
         isOpen={activeModal === 'strategies'}
         onClose={closeModal}
-        title="Effective Strategies"
+        title="Strategies"
         description="Analysis of most successful therapeutic approaches"
       >
         <div className="text-center py-12 text-muted-foreground">
@@ -536,7 +536,7 @@ export function ClientReports({ clientId }: ClientReportsProps) {
       <ReportModal
         isOpen={activeModal === 'services'}
         onClose={closeModal}
-        title="Service Categories"
+        title="Items Utilisation"
         description="Distribution of therapy services by category"
       >
         <div className="text-center py-12 text-muted-foreground">
@@ -547,7 +547,7 @@ export function ClientReports({ clientId }: ClientReportsProps) {
       <ReportModal
         isOpen={activeModal === 'allocation'}
         onClose={closeModal}
-        title="Fund Allocation"
+        title="Coming Soon"
         description="Financial breakdown and allocation of therapy budget"
       >
         <div className="text-center py-12 text-muted-foreground">
