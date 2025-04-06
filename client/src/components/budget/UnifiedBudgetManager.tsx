@@ -109,15 +109,64 @@ export function UnifiedBudgetManager({
     return FIXED_BUDGET_AMOUNT;
   };
   
-  // Calculate the total budget usage from budget items
+  // State for session notes with products for budget usage calculations
+  const [sessionNotesWithProducts, setSessionNotesWithProducts] = useState<any[]>([]);
+  
+  // Fetch session notes with products for accurate usage calculation
+  useEffect(() => {
+    if (clientId) {
+      const fetchSessionNotes = async () => {
+        try {
+          const response = await fetch(`/api/clients/${clientId}/session-notes-with-products`);
+          if (response.ok) {
+            const data = await response.json();
+            if (Array.isArray(data) && data.length > 0) {
+              console.log(`Retrieved ${data.length} session notes with products for budget calculations`);
+              setSessionNotesWithProducts(data);
+            } else {
+              console.log('No session notes with products found');
+              setSessionNotesWithProducts([]);
+            }
+          } else {
+            console.error('Error fetching session notes with products:', response.status);
+          }
+        } catch (error) {
+          console.error('Error in session notes fetch:', error);
+        }
+      };
+      fetchSessionNotes();
+    }
+  }, [clientId]);
+  
+  // Calculate the total budget usage from session notes with products (improved version)
   const calculateBudgetUsage = (): number => {
     if (!budgetItems || budgetItems.length === 0) {
       console.log('calculateBudgetUsage: No budget items available');
       return 0;
     }
     
-    console.log(`calculateBudgetUsage: Processing ${budgetItems.length} budget items for usage:`);
+    console.log(`calculateBudgetUsage: Processing ${budgetItems.length} budget items for usage`);
     
+    // Try first approach: calculate from session notes with products (most accurate)
+    if (sessionNotesWithProducts && sessionNotesWithProducts.length > 0) {
+      let usedBudget = 0;
+      
+      // Calculate used budget from session notes with products
+      sessionNotesWithProducts.forEach(sessionNote => {
+        if (sessionNote.products && Array.isArray(sessionNote.products)) {
+          sessionNote.products.forEach(product => {
+            const unitPrice = typeof product.unitPrice === 'string' ? parseFloat(product.unitPrice) : (product.unitPrice || 0);
+            const quantity = typeof product.quantity === 'string' ? parseInt(product.quantity) : (product.quantity || 0);
+            usedBudget += unitPrice * quantity;
+          });
+        }
+      });
+      
+      console.log(`calculateBudgetUsage: Total budget used from session notes: $${usedBudget.toFixed(2)}`);
+      return usedBudget;
+    }
+    
+    // Fall back to the original method if session notes approach fails
     // Sum up the usedQuantity * unitPrice for all budget items
     const totalUsage = budgetItems.reduce((total: number, item: BudgetItem) => {
       const usedQty = typeof item.usedQuantity === 'string' 
@@ -134,7 +183,7 @@ export function UnifiedBudgetManager({
       return total + itemUsage;
     }, 0);
     
-    console.log(`calculateBudgetUsage: Total budget used: $${totalUsage.toFixed(2)}`);
+    console.log(`calculateBudgetUsage: Total budget used from budget items fallback: $${totalUsage.toFixed(2)}`);
     return totalUsage;
   };
 
