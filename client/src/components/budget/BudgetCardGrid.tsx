@@ -102,9 +102,17 @@ export default function BudgetCardGrid({
   const [selectedPlan, setSelectedPlan] = useState<BudgetPlan | null>(null);
   
   // Calculate usage and enhance budget settings with additional information
+  console.log("BudgetCardGrid: Re-calculating budget usage based on budget items:", budgetItems);
+  
+  // Log usedQuantity values to verify they're coming through
+  budgetItems.forEach(item => {
+    console.log(`Budget item ${item.id} (${item.itemCode}): usedQuantity = ${item.usedQuantity}`);
+  });
+  
   const enhancedBudgetSettings = budgetSettings.map(setting => {
     // Get budget items for this plan
     const planItems = budgetItems.filter(item => item.budgetSettingsId === setting.id);
+    console.log(`Found ${planItems.length} items for plan ${setting.id} (${setting.planCode || 'no code'})`);
     
     // Calculate total allocated funds
     const totalAllocated = planItems.reduce((sum, item) => {
@@ -413,6 +421,12 @@ function BudgetPlanCard({
   onArchive,
   onSetActive
 }: BudgetPlanCardProps) {
+  console.log(`BudgetPlanCard rendering for plan ${plan.id}:`, {
+    totalUsed: plan.totalUsed,
+    percentUsed: plan.percentUsed,
+    ndisFunds: plan.ndisFunds,
+    availableFunds: plan.availableFunds
+  });
   // Format currency
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-AU', {
