@@ -131,12 +131,20 @@ export function BudgetPlanFullView({
     
     budgetItems.forEach(item => {
       // Parse the usedQuantity explicitly - ensures it's treated as a number
-      const usedQuantity = parseFloat(String(item.usedQuantity || '0'));
+      let usedQuantity = 0;
+      if (typeof item.usedQuantity === 'string') {
+        usedQuantity = parseFloat(item.usedQuantity || '0');
+      } else if (typeof item.usedQuantity === 'number') {
+        usedQuantity = item.usedQuantity;
+      }
       
       // Parse unit price, ensuring it's a number
-      const unitPrice = typeof item.unitPrice === 'string'
-        ? parseFloat(item.unitPrice)
-        : parseFloat(String(item.unitPrice || '0'));
+      let unitPrice = 0;
+      if (typeof item.unitPrice === 'string') {
+        unitPrice = parseFloat(item.unitPrice || '0');
+      } else if (typeof item.unitPrice === 'number') {
+        unitPrice = item.unitPrice;
+      }
       
       // Calculate cost for this item
       const itemCost = usedQuantity * unitPrice;
@@ -406,10 +414,16 @@ export function BudgetPlanFullView({
                             <TableCell className="text-right">{item.quantity}</TableCell>
                             <TableCell className="text-right">{item.usedQuantity || 0}</TableCell>
                             <TableCell className="text-right">
-                              {Math.max(0, (parseFloat(String(item.quantity)) || 0) - (parseFloat(String(item.usedQuantity)) || 0))}
+                              {Math.max(0, 
+                                (typeof item.quantity === 'string' ? parseFloat(item.quantity) : item.quantity || 0) - 
+                                (typeof item.usedQuantity === 'string' ? parseFloat(item.usedQuantity) : item.usedQuantity || 0)
+                              )}
                             </TableCell>
                             <TableCell className="text-right">
-                              {formatCurrency(item.unitPrice * item.quantity)}
+                              {formatCurrency(
+                                (typeof item.unitPrice === 'string' ? parseFloat(item.unitPrice) : item.unitPrice || 0) * 
+                                (typeof item.quantity === 'string' ? parseFloat(item.quantity) : item.quantity || 0)
+                              )}
                             </TableCell>
                             <TableCell>
                               <DropdownMenu>
