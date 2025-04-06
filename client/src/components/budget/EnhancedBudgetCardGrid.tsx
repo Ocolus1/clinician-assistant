@@ -18,6 +18,10 @@ interface EnhancedBudgetCardGridProps {
 }
 
 export function EnhancedBudgetCardGrid({ clientId, onPlanSelected }: EnhancedBudgetCardGridProps) {
+  // Add extreme debugging message
+  console.log("%c !!!! ENHANCED BUDGET CARD GRID RENDERING !!!! ", 'background: #f00; color: #fff; font-size: 18px; font-weight: bold; padding: 10px;');
+  console.log("%c Client ID: " + clientId, 'background: #f00; color: #fff; font-size: 14px; padding: 5px;');
+
   // State for the create plan dialog
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   
