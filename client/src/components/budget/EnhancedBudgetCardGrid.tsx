@@ -266,87 +266,35 @@ function BudgetPlanCard({ plan, onPreview }: BudgetPlanCardProps) {
       setAllocatedAmount(totalAllocated);
     }
     
-    // Calculate used funds based on session data
+    // Calculate used funds based on budget items with usedQuantity directly
     const totalFunds = plan.clientId === 88 ? 12000 : Number(plan.ndisFunds) || 0;
     
-    if (clientSessions && Array.isArray(clientSessions)) {
-      // Log all sessions for debugging
-      console.log(`%c All sessions for client ${plan.clientId}: `, 'background: #9b59b6; color: white; padding: 3px;', clientSessions);
+    // FIXED: Changed to calculate usage based on budget items' usedQuantity directly
+    // instead of calculating from session data which isn't properly included
+    if (budgetItems && Array.isArray(budgetItems)) {
+      // Filter budget items for this plan
+      const planItems = budgetItems.filter(item => item.budgetSettingsId === plan.id);
+      console.log(`%c CALCULATING USAGE FROM BUDGET ITEMS: `, 'background: #f00; color: #fff; font-size: 16px; font-weight: bold; padding: 5px;');
       
-      // Filter sessions that belong to this plan's active period
-      const planStartDate = plan.createdAt ? new Date(plan.createdAt) : new Date();
-      const planEndDate = plan.endOfPlan ? parseISO(plan.endOfPlan) : new Date();
-      
-      console.log(`%c Plan date range: ${planStartDate.toISOString()} to ${planEndDate.toISOString()} `, 'background: #f39c12; color: white; padding: 3px;');
-      
-      // Filter sessions that occurred during this plan's active period
-      const planSessions = clientSessions.filter((session: SessionWithNotes) => {
-        const sessionDate = new Date(session.sessionDate);
-        const isInRange = sessionDate >= planStartDate && sessionDate <= planEndDate;
-        console.log(`Session ${session.id} date: ${sessionDate.toISOString()}, in range: ${isInRange}`);
-        return isInRange;
-      });
-      
-      // Log for debugging
-      console.log(`%c Found ${planSessions.length} sessions for plan ${plan.id} in date range `, 'background: #e74c3c; color: white; padding: 3px;', planSessions);
-      
-      // Calculate total product costs from these sessions
+      // Calculate total used based on usedQuantity * unitPrice
       let totalUsed = 0;
       
-      planSessions.forEach((session: SessionWithNotes) => {
-        // Check for session notes with products
-        console.log(`%c Processing session ${session.id} - Session note exists: ${!!session.sessionNotes} `, 'background: #27ae60; color: white; padding: 3px;');
+      planItems.forEach(item => {
+        const itemUsed = Number(item.usedQuantity || 0) * Number(item.unitPrice || 0);
+        totalUsed += itemUsed;
         
-        if (session.sessionNotes?.products) {
-          console.log(`%c Session ${session.id} has products data: ${session.sessionNotes.products} `, 'background: #2980b9; color: white; padding: 3px;');
-          
-          try {
-            // Parse the products from the JSON string
-            const products = JSON.parse(session.sessionNotes.products) as SessionProduct[];
-            console.log(`%c Parsed products for session ${session.id}: `, 'background: #8e44ad; color: white; padding: 3px;', products);
-            
-            if (Array.isArray(products)) {
-              products.forEach((product: SessionProduct) => {
-                console.log(`%c Product details: `, 'background: #16a085; color: white; padding: 3px;', {
-                  name: product.name || 'Unnamed',
-                  code: product.code || 'No Code',
-                  price: product.price,
-                  quantity: product.quantity || 1
-                });
-                
-                if (product.price) {
-                  // For price calculation, use quantity if available
-                  const quantity = product.quantity || 1;
-                  const itemPrice = Number(product.price) * quantity;
-                  totalUsed += itemPrice;
-                  
-                  // Log individual product for debugging
-                  console.log(`%c ADDING: Plan ${plan.id} - Session ${session.id} - Product: ${product.name || 'Unknown'}, Price: ${formatCurrency(itemPrice)}`, 
-                    'background: #c0392b; color: white; font-weight: bold; padding: 3px;');
-                } else {
-                  console.log(`%c SKIPPING: Product has no price value`, 'background: #d35400; color: white; padding: 3px;');
-                }
-              });
-            } else {
-              console.log(`%c Products is not an array for session ${session.id}`, 'background: #c0392b; color: white; padding: 3px;');
-            }
-          } catch (e) {
-            console.error(`%c Error parsing session products for session ${session.id}: ${e}`, 'background: #e74c3c; color: white; padding: 3px;');
-          }
-        } else {
-          console.log(`%c Session ${session.id} has NO products data`, 'background: #c0392b; color: white; padding: 3px;');
-        }
+        console.log(`%c Item ${item.itemCode}: unitPrice=${item.unitPrice}, usedQuantity=${item.usedQuantity}, used cost=${itemUsed}`,
+          'background: #ff5733; color: white; font-weight: bold; padding: 3px;');
       });
       
-      // For Radwan (client 88), ensure we show 0 used if there are no sessions
-      if (plan.clientId === 88 && planSessions.length === 0) {
-        setUsedAmount(0);
-      } else {
-        setUsedAmount(totalUsed);
-      }
+      console.log(`%c TOTAL USED: ${formatCurrency(totalUsed)} of ${formatCurrency(totalFunds)}`,
+        'background: #ff9933; color: white; font-size: 14px; font-weight: bold; padding: 3px;');
+      
+      setUsedAmount(totalUsed);
     } else {
-      // Fallback if sessions aren't available yet
-      // For Radwan, show 0 used
+      // Fallback if budget items aren't available yet
+      console.log(`%c NO BUDGET ITEMS AVAILABLE `, 'background: #ff0000; color: white; padding: 3px;');
+      
       if (plan.clientId === 88) {
         setUsedAmount(0);
       } else {

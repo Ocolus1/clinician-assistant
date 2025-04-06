@@ -1,0 +1,140 @@
+
+﻿
+chunk-RPCDYKBN.js?v=3407d679:21551 Download the React DevTools for a better development experience: https://reactjs.org/link/react-devtools
+ClientProfile.tsx:90 All URL params: 
+Object
+ClientProfile.tsx:94 Raw ID from URL params: 88
+ClientProfile.tsx:98 Parsed client ID: 88
+ClientProfile.tsx:124 Fetching client data for ID: 88
+ClientProfile.tsx:126 Requesting URL: /api/clients/88
+ClientProfile.tsx:143 Fetching allies for client ID: 88
+ClientProfile.tsx:156 Explicitly fetching goals for client ID: 88
+ClientProfile.tsx:169 Explicitly fetching budget items for client ID: 88
+ClientProfile.tsx:186 Explicitly fetching budget settings for client ID: 88
+ClientProfile.tsx:203 Explicitly fetching ALL budget settings for client 88
+ClientProfile.tsx:220 No goals found, skipping subgoal fetch
+ClientProfile.tsx:159 Goals data received: 
+Array(3)
+ClientProfile.tsx:90 All URL params: 
+Object
+ClientProfile.tsx:94 Raw ID from URL params: 88
+ClientProfile.tsx:98 Parsed client ID: 88
+ClientProfile.tsx:226 Found 3 goals, fetching subgoals for each goal
+ClientProfile.tsx:237 Fetching subgoals for goal ID: 100, Title: Enhancing Social Communication Skills
+ClientProfile.tsx:90 All URL params: 
+Object
+ClientProfile.tsx:94 Raw ID from URL params: 88
+ClientProfile.tsx:98 Parsed client ID: 88
+ClientProfile.tsx:134 Client data received: {"id":88,"name":"Radwan-585666","originalName":"Radwan","uniqueIdentifier":"585666","dateOfBirth":"2019-12-13","gender":null,"preferredLanguage":null,"contactEmail":null,"contactPhone":null,"address":null,"medicalHistory":null,"communicationNeeds":null,"therapyPreferences":null,"fundsManagement":"Self-Managed","ndisFunds":"0","onboardingStatus":"complete"}
+ClientProfile.tsx:90 All URL params: 
+Object
+ClientProfile.tsx:94 Raw ID from URL params: 88
+ClientProfile.tsx:98 Parsed client ID: 88
+ClientProfile.tsx:193 Budget settings data received: 
+Object
+ClientProfile.tsx:90 All URL params: 
+Object
+ClientProfile.tsx:94 Raw ID from URL params: 88
+ClientProfile.tsx:98 Parsed client ID: 88
+ClientProfile.tsx:210 Received 1 budget settings: 
+Array(1)
+ClientProfile.tsx:90 All URL params: 
+Object
+ClientProfile.tsx:94 Raw ID from URL params: 88
+ClientProfile.tsx:98 Parsed client ID: 88
+ClientProfile.tsx:146 Allies data received: [{"id":103,"clientId":88,"name":"Mohamad","relationship":"parent","preferredLanguage":"french","email":"m.chaaban1980@gmail.com","phone":null,"notes":null,"accessTherapeutics":true,"accessFinancials":false,"archived":false},{"id":104,"clientId":88,"name":"Mariam","relationship":"parent","preferredLanguage":"english","email":"Ninja@gmail.com","phone":null,"notes":null,"accessTherapeutics":true,"accessFinancials":true,"archived":false}]
+ClientProfile.tsx:90 All URL params: 
+Object
+ClientProfile.tsx:94 Raw ID from URL params: 88
+ClientProfile.tsx:98 Parsed client ID: 88
+ClientProfile.tsx:176 Budget items data received: 
+Array(3)
+ClientProfile.tsx:90 All URL params: 
+Object
+ClientProfile.tsx:94 Raw ID from URL params: 88
+ClientProfile.tsx:98 Parsed client ID: 88
+ClientProfile.tsx:241 Received 3 subgoals for goal 100: 
+Array(3)
+ClientProfile.tsx:237 Fetching subgoals for goal ID: 101, Title: Developing Emotional Regulation
+ClientProfile.tsx:241 Received 3 subgoals for goal 101: 
+Array(3)
+ClientProfile.tsx:237 Fetching subgoals for goal ID: 102, Title: Enhancing Functional Independence
+ClientProfile.tsx:241 Received 3 subgoals for goal 102: 
+Array(3)
+ClientProfile.tsx:255 Final subgoals by goal: 
+Object
+ClientProfile.tsx:90 All URL params: 
+Object
+ClientProfile.tsx:94 Raw ID from URL params: 88
+ClientProfile.tsx:98 Parsed client ID: 88
+ClientProfile.tsx:572 Client data from parent component: {"id":88,"name":"Radwan-585666","originalName":"Radwan","uniqueIdentifier":"585666","dateOfBirth":"2019-12-13","gender":null,"preferredLanguage":null,"contactEmail":null,"contactPhone":null,"address":null,"medicalHistory":null,"communicationNeeds":null,"therapyPreferences":null,"fundsManagement":"Self-Managed","ndisFunds":"0","onboardingStatus":"complete"}
+EnhancedBudgetCardGrid.tsx:22  !!!! ENHANCED BUDGET CARD GRID RENDERING !!!! 
+EnhancedBudgetCardGrid.tsx:23  Client ID: 88
+EnhancedBudgetCardGrid.tsx:76 Rendering EnhancedBudgetCardGrid with plans: 
+Object
+EnhancedBudgetCardGrid.tsx:77 Is Array? false
+EnhancedBudgetCardGrid.tsx:78 Plan length: Not an array
+EnhancedBudgetCardGrid.tsx:93 Normalized plans: 
+Array(1)
+EnhancedBudgetCardGrid.tsx:94 Normalized plans length: 1
+EnhancedBudgetCardGrid.tsx:168 Rendering plan: 
+Object
+queryClient.ts:109 API Request: GET /api/budget-catalog 
+queryClient.ts:163 Query request: /api/clients/88/sessions 
+Array(2)
+EnhancedBudgetCardGrid.tsx:257  Budget items for plan 70:  
+Array(3)
+EnhancedBudgetCardGrid.tsx:261  Item EQUIP-002: unitPrice=200, quantity=20, usedQuantity=0, total=4000
+EnhancedBudgetCardGrid.tsx:261  Item THERAPY-003: unitPrice=1300, quantity=5, usedQuantity=2, total=6500
+EnhancedBudgetCardGrid.tsx:261  Item THERAPY-001: unitPrice=150, quantity=10, usedQuantity=3, total=1500
+EnhancedBudgetCardGrid.tsx:265  Total allocated for plan 70: 12000
+EnhancedBudgetCardGrid.tsx:257  Budget items for plan 70:  
+Array(3)
+EnhancedBudgetCardGrid.tsx:261  Item EQUIP-002: unitPrice=200, quantity=20, usedQuantity=0, total=4000
+EnhancedBudgetCardGrid.tsx:261  Item THERAPY-003: unitPrice=1300, quantity=5, usedQuantity=2, total=6500
+EnhancedBudgetCardGrid.tsx:261  Item THERAPY-001: unitPrice=150, quantity=10, usedQuantity=3, total=1500
+EnhancedBudgetCardGrid.tsx:265  Total allocated for plan 70: 12000
+BudgetPlanCreateDialog.tsx:289 Error fetching catalog items: TypeError: res.json is not a function
+    at queryFn (BudgetPlanCreateDialog.tsx:287:20)
+queryClient.ts:180 Query response from /api/clients/88/sessions: 
+Array(4)
+EnhancedBudgetCardGrid.tsx:257  Budget items for plan 70:  
+Array(3)
+EnhancedBudgetCardGrid.tsx:261  Item EQUIP-002: unitPrice=200, quantity=20, usedQuantity=0, total=4000
+EnhancedBudgetCardGrid.tsx:261  Item THERAPY-003: unitPrice=1300, quantity=5, usedQuantity=2, total=6500
+EnhancedBudgetCardGrid.tsx:261  Item THERAPY-001: unitPrice=150, quantity=10, usedQuantity=3, total=1500
+EnhancedBudgetCardGrid.tsx:265  Total allocated for plan 70: 12000
+EnhancedBudgetCardGrid.tsx:274  All sessions for client 88:  
+Array(4)
+EnhancedBudgetCardGrid.tsx:280  Plan date range: 2025-01-03T00:00:00.000Z to 2025-06-20T14:00:00.000Z 
+EnhancedBudgetCardGrid.tsx:286 Session 228 date: 2025-04-04T22:00:24.992Z, in range: true
+EnhancedBudgetCardGrid.tsx:286 Session 230 date: 2025-04-05T23:00:34.211Z, in range: true
+EnhancedBudgetCardGrid.tsx:286 Session 234 date: 2025-04-05T00:00:00.000Z, in range: true
+EnhancedBudgetCardGrid.tsx:286 Session 235 date: 2025-04-05T00:00:00.000Z, in range: true
+EnhancedBudgetCardGrid.tsx:291  Found 4 sessions for plan 70 in date range  
+Array(4)
+EnhancedBudgetCardGrid.tsx:298  Processing session 228 - Session note exists: false 
+EnhancedBudgetCardGrid.tsx:337  Session 228 has NO products data
+EnhancedBudgetCardGrid.tsx:298  Processing session 230 - Session note exists: false 
+EnhancedBudgetCardGrid.tsx:337  Session 230 has NO products data
+EnhancedBudgetCardGrid.tsx:298  Processing session 234 - Session note exists: false 
+EnhancedBudgetCardGrid.tsx:337  Session 234 has NO products data
+EnhancedBudgetCardGrid.tsx:298  Processing session 235 - Session note exists: false 
+EnhancedBudgetCardGrid.tsx:337  Session 235 has NO products data
+queryClient.ts:208 Query request: /api/clients 
+Array(0)
+queryClient.ts:225 Query response from /api/clients: 
+Array(1)
+ClientProfile.tsx:90 All URL params: 
+Object
+ClientProfile.tsx:94 Raw ID from URL params: 88
+ClientProfile.tsx:98 Parsed client ID: 88
+ClientProfile.tsx:572 Client data from parent component: {"id":88,"name":"Radwan-585666","originalName":"Radwan","uniqueIdentifier":"585666","dateOfBirth":"2019-12-13","gender":null,"preferredLanguage":null,"contactEmail":null,"contactPhone":null,"address":null,"medicalHistory":null,"communicationNeeds":null,"therapyPreferences":null,"fundsManagement":"Self-Managed","ndisFunds":"0","onboardingStatus":"complete"}
+ClientPersonalInfo.tsx:63 ClientPersonalInfo received: 
+Object
+ClientPersonalInfo.tsx:49 Formatting date: 2019-12-13 Type: string
+ClientProfile.tsx:226 Found 3 goals, fetching subgoals for each goal
+ClientProfile.tsx:237 Fetching subgoals for goal ID: 100, Title: Enhancing Social Communication Skills
+ClientProfile.tsx:90 All URL params: 
+Object
+﻿
