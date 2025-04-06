@@ -9,7 +9,7 @@ interface BudgetValidationProps {
   totalBudget: number;
   totalAllocated: number;
   remainingBudget: number;
-  originalAllocated?: number; // The original allocated budget (fixed and shouldn't change)
+  originalAllocated?: number; // Used to store actual usage amount from API data
 }
 
 /**
@@ -27,9 +27,9 @@ export function BudgetValidation({
     console.error(`Budget limit exceeded! Allocated ${totalAllocated} exceeds total budget ${totalBudget}`);
   }
   
-  // Total used amount should be calculated from session data when available
-  // For now, we use 0 as a starting point but this will be updated when session usage data is implemented
-  const totalUsed = 0; // Starting at 0 for initial implementation
+  // Access the total used amount passed from parent components
+  // This comes from API data representing actual session usage
+  const totalUsed = originalAllocated || 0; // Use originalAllocated as the passed-in usage amount
   
   // Calculate percentage of used amount vs total budget
   const percentUsed = totalUsed > 0 && totalBudget > 0

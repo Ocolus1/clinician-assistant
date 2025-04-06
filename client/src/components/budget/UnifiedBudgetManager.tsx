@@ -108,6 +108,24 @@ export function UnifiedBudgetManager({
     // Final fallback if nothing else is available
     return FIXED_BUDGET_AMOUNT;
   };
+  
+  // Calculate the total budget usage from budget items
+  const calculateBudgetUsage = (): number => {
+    if (!budgetItems || budgetItems.length === 0) return 0;
+    
+    // Sum up the usedQuantity * unitPrice for all budget items
+    return budgetItems.reduce((total: number, item: BudgetItem) => {
+      const usedQty = typeof item.usedQuantity === 'string' 
+        ? parseFloat(item.usedQuantity) 
+        : item.usedQuantity || 0;
+        
+      const unitPrice = typeof item.unitPrice === 'string'
+        ? parseFloat(item.unitPrice)
+        : item.unitPrice || 0;
+        
+      return total + (usedQty * unitPrice);
+    }, 0);
+  };
 
   // Get active budget plan
   const plansQuery = useQuery({
@@ -985,7 +1003,7 @@ export function UnifiedBudgetManager({
               totalBudget={getClientBudget()} // Use client-specific budget from active plan
               totalAllocated={form.watch("totalAllocated") || 0}
               remainingBudget={form.watch("remainingBudget") || (getClientBudget() - (form.watch("totalAllocated") || 0))} // Use form's remaining budget value
-              originalAllocated={getClientBudget()} // The client's original allocated budget amount
+              originalAllocated={calculateBudgetUsage()} // Pass the actual usage amount from API data
             />
             
             {/* Current Budget Items */}
