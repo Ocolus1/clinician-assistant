@@ -537,16 +537,17 @@ export default function EnhancedClientList() {
       id: "budget",
       header: "Budget Usage",
       accessorFn: (client) => {
-        // Get the total budget from the budget settings (not hardcoded)
-        const rawNdisFunds = client.budgetSettings?.ndisFunds || 0;
-        const totalBudget = typeof rawNdisFunds === 'string' ? parseFloat(rawNdisFunds) : (rawNdisFunds || 0);
+        // Calculate total allocated budget from ACTIVE budget items
+        const activeBudgetItems = client.budgetItems.filter(item => item.isActivePlan === true);
         
-        // Calculate total allocated budget from budget items (for verification)
-        const totalAllocated = client.budgetItems.reduce((acc, item) => {
+        const totalAllocated = activeBudgetItems.reduce((acc, item) => {
           const unitPrice = typeof item.unitPrice === 'string' ? parseFloat(item.unitPrice) : item.unitPrice;
           const quantity = typeof item.quantity === 'string' ? parseInt(item.quantity) : item.quantity;
           return acc + (unitPrice * quantity);
         }, 0);
+        
+        // Use total allocated as the correct budget total (not ndisFunds from settings)
+        const totalBudget = totalAllocated;
         
         // Use the session notes with products for accurate usage calculation
         let usedBudget = 0;
@@ -562,9 +563,9 @@ export default function EnhancedClientList() {
               });
             }
           });
-        } else if (client.budgetItems && client.budgetItems.length > 0) {
+        } else if (activeBudgetItems && activeBudgetItems.length > 0) {
           // Fallback: Calculate from budget items' usedQuantity field if available
-          client.budgetItems.forEach(item => {
+          activeBudgetItems.forEach(item => {
             const unitPrice = typeof item.unitPrice === 'string' ? parseFloat(item.unitPrice) : item.unitPrice;
             const usedQty = item.usedQuantity || 0;
             usedBudget += unitPrice * usedQty;
@@ -583,13 +584,6 @@ export default function EnhancedClientList() {
         if (usagePercentage > 90) progressColor = "bg-red-500";
         else if (usagePercentage > 75) progressColor = "bg-amber-500";
         else if (usagePercentage > 50) progressColor = "bg-green-500";
-        
-        console.log(`Client ${client.id} budget info:`, {
-          totalBudget,
-          totalAllocated,
-          usedBudget,
-          usagePercentage
-        });
         
         return (
           <TooltipProvider>
@@ -880,11 +874,24 @@ export default function EnhancedClientList() {
             break;
           case 'budget':
             // Sort by budget usage percentage using session notes with products
-            const aRawNdisFunds = a.budgetSettings?.ndisFunds || 0;
-            const bRawNdisFunds = b.budgetSettings?.ndisFunds || 0;
+            // Calculate total allocated budget from ACTIVE budget items for client A
+            const aActiveBudgetItems = a.budgetItems.filter(item => item.isActivePlan === true);
+            const aTotalAllocated = aActiveBudgetItems.reduce((acc, item) => {
+              const unitPrice = typeof item.unitPrice === 'string' ? parseFloat(item.unitPrice) : item.unitPrice;
+              const quantity = typeof item.quantity === 'string' ? parseInt(item.quantity) : item.quantity;
+              return acc + (unitPrice * quantity);
+            }, 0);
             
-            const aTotalFunds = typeof aRawNdisFunds === 'string' ? parseFloat(aRawNdisFunds) : (aRawNdisFunds || 0);
-            const bTotalFunds = typeof bRawNdisFunds === 'string' ? parseFloat(bRawNdisFunds) : (bRawNdisFunds || 0);
+            // Calculate total allocated budget from ACTIVE budget items for client B
+            const bActiveBudgetItems = b.budgetItems.filter(item => item.isActivePlan === true);
+            const bTotalAllocated = bActiveBudgetItems.reduce((acc, item) => {
+              const unitPrice = typeof item.unitPrice === 'string' ? parseFloat(item.unitPrice) : item.unitPrice;
+              const quantity = typeof item.quantity === 'string' ? parseInt(item.quantity) : item.quantity;
+              return acc + (unitPrice * quantity);
+            }, 0);
+            
+            const aTotalFunds = aTotalAllocated;
+            const bTotalFunds = bTotalAllocated;
             
             // Calculate actual usage from session notes with products
             let aUsedBudget = 0;
