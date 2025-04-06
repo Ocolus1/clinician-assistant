@@ -105,8 +105,13 @@ export function BudgetPlanFullView({
   
   // Helper to get funds value considering both old and new schema
   const getFundsValue = (plan: any) => {
-    // Support both schema versions
-    return plan.ndisFunds !== undefined ? plan.ndisFunds : plan.availableFunds;
+    // Support both schema versions and convert to number
+    const fundValue = plan.ndisFunds !== undefined ? plan.ndisFunds : plan.availableFunds;
+    
+    // Ensure it's a number by parsing
+    const numericValue = parseFloat(String(fundValue || '0'));
+    console.log(`Total available funds in plan: $${numericValue.toFixed(2)}`);
+    return numericValue;
   };
   
   // Calculate total used amount from budget items

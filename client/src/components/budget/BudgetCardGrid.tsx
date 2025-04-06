@@ -116,12 +116,33 @@ export default function BudgetCardGrid({
     // Get NDIS funds from new schema or fallback to 0
     const ndisAmount = typeof setting.ndisFunds === 'number' ? setting.ndisFunds : 0;
     
-    // Calculate used funds based on sessions
-    // This is a simplified version - in a real app you might need more complex logic
-    const totalUsed = 0; // Placeholder until we implement session-based calculations
+    // Calculate used funds based on budget items with usedQuantity
+    const totalUsed = planItems.reduce((sum, item) => {
+      // Parse the usedQuantity as a number
+      const usedQuantity = typeof item.usedQuantity === 'string' 
+        ? parseFloat(item.usedQuantity) 
+        : (item.usedQuantity || 0);
+      
+      // Parse unit price
+      const unitPrice = typeof item.unitPrice === 'string' 
+        ? parseFloat(item.unitPrice) 
+        : (item.unitPrice || 0);
+        
+      // Calculate the cost of used items
+      const usedCost = usedQuantity * unitPrice;
+      console.log(`Item ${item.itemCode}: Used ${usedQuantity} at ${unitPrice} each = ${usedCost}`);
+      
+      return sum + usedCost;
+    }, 0);
     
-    // Calculate percent used
-    const percentUsed = totalAllocated > 0 ? (totalUsed / totalAllocated) * 100 : 0;
+    console.log(`Total used for plan ${setting.id}: $${totalUsed.toFixed(2)}`);
+    
+    // Calculate percent used based on available funds
+    const fundValue = typeof setting.ndisFunds === 'string' 
+      ? parseFloat(setting.ndisFunds)
+      : (setting.ndisFunds || 0);
+    
+    const percentUsed = fundValue > 0 ? (totalUsed / fundValue) * 100 : 0;
     
     // Calculate days remaining
     let daysRemaining = null;
@@ -177,22 +198,38 @@ export default function BudgetCardGrid({
     return budgetItems
       .filter(item => item.budgetSettingsId === planId)
       .map(item => {
-        // Here you would calculate actual usage based on sessions
-        // This is a simplified version
-        const usedQuantity = 0; // Placeholder
-        const quantity = typeof item.quantity === 'string' ? parseInt(item.quantity) : item.quantity;
-        const unitPrice = typeof item.unitPrice === 'string' ? parseFloat(item.unitPrice) : item.unitPrice;
+        // Parse incoming values
+        const usedQuantity = typeof item.usedQuantity === 'string' 
+          ? parseFloat(item.usedQuantity) 
+          : (item.usedQuantity || 0);
+          
+        const quantity = typeof item.quantity === 'string' 
+          ? parseInt(item.quantity) 
+          : item.quantity;
+          
+        const unitPrice = typeof item.unitPrice === 'string' 
+          ? parseFloat(item.unitPrice) 
+          : item.unitPrice;
+        
+        // Calculate derived values
+        const remainingQuantity = Math.max(0, quantity - usedQuantity);
+        const totalPrice = unitPrice * quantity;
+        const usedAmount = unitPrice * usedQuantity;
+        const remainingAmount = unitPrice * remainingQuantity;
+        const usagePercentage = quantity > 0 ? (usedQuantity / quantity) * 100 : 0;
+        
+        console.log(`Enhanced budget item ${item.id} (${item.itemCode}): ${usedQuantity}/${quantity} used (${usagePercentage.toFixed(1)}%)`);
         
         return {
           ...item,
           quantity,
           unitPrice,
           usedQuantity,
-          remainingQuantity: quantity - usedQuantity,
-          totalPrice: unitPrice * quantity,
-          usedAmount: unitPrice * usedQuantity,
-          remainingAmount: unitPrice * (quantity - usedQuantity),
-          usagePercentage: quantity > 0 ? (usedQuantity / quantity) * 100 : 0
+          remainingQuantity,
+          totalPrice,
+          usedAmount,
+          remainingAmount,
+          usagePercentage
         };
       });
   };
@@ -386,8 +423,11 @@ function BudgetPlanCard({
   
   // Helper to get funds value considering both old and new schema
   const getFundsValue = (plan: any) => {
-    // Support both schema versions
-    return plan.ndisFunds !== undefined ? plan.ndisFunds : plan.availableFunds;
+    // Support both schema versions and convert to number
+    const fundValue = plan.ndisFunds !== undefined ? plan.ndisFunds : plan.availableFunds;
+    
+    // Ensure it's a number by parsing
+    return typeof fundValue === 'string' ? parseFloat(fundValue) : (fundValue || 0);
   };
   
   // Format date with error handling
