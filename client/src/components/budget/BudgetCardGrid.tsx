@@ -132,24 +132,26 @@ export default function BudgetCardGrid({
     
     // Calculate used funds based on budget items with usedQuantity
     const totalUsed = planItems.reduce((sum, item) => {
-      // Parse the usedQuantity as a number
+      // Parse the usedQuantity as a number - CRITICAL FIX: Ensure usedQuantity is a number
       const usedQuantity = typeof item.usedQuantity === 'string' 
         ? parseFloat(item.usedQuantity) 
-        : (item.usedQuantity || 0);
+        : (typeof item.usedQuantity === 'number' ? item.usedQuantity : 0);
       
       // Parse unit price
       const unitPrice = typeof item.unitPrice === 'string' 
         ? parseFloat(item.unitPrice) 
-        : (item.unitPrice || 0);
+        : (typeof item.unitPrice === 'number' ? item.unitPrice : 0);
         
       // Calculate the cost of used items
       const usedCost = usedQuantity * unitPrice;
-      console.log(`Item ${item.itemCode}: Used ${usedQuantity} at ${unitPrice} each = ${usedCost}`);
+      console.log(`%c Item ${item.itemCode}: Used ${usedQuantity} at ${unitPrice} each = ${usedCost}`, 
+        'background: #2ecc71; color: white; padding: 2px 5px; border-radius: 3px;');
       
       return sum + usedCost;
     }, 0);
     
-    console.log(`Total used for plan ${setting.id}: $${totalUsed.toFixed(2)}`);
+    console.log(`%c Total used for plan ${setting.id}: $${totalUsed.toFixed(2)}`,
+      'background: #3498db; color: white; font-weight: bold; padding: 2px 5px; border-radius: 3px;');
     
     // Calculate percent used based on available funds
     const fundValue = typeof setting.ndisFunds === 'string' 
@@ -212,18 +214,18 @@ export default function BudgetCardGrid({
     return budgetItems
       .filter(item => item.budgetSettingsId === planId)
       .map(item => {
-        // Parse incoming values
+        // Parse incoming values - CRITICAL FIX: Ensure proper type checking for usedQuantity
         const usedQuantity = typeof item.usedQuantity === 'string' 
           ? parseFloat(item.usedQuantity) 
-          : (item.usedQuantity || 0);
+          : (typeof item.usedQuantity === 'number' ? item.usedQuantity : 0);
           
         const quantity = typeof item.quantity === 'string' 
           ? parseInt(item.quantity) 
-          : item.quantity;
+          : (typeof item.quantity === 'number' ? item.quantity : 0);
           
         const unitPrice = typeof item.unitPrice === 'string' 
           ? parseFloat(item.unitPrice) 
-          : item.unitPrice;
+          : (typeof item.unitPrice === 'number' ? item.unitPrice : 0);
         
         // Calculate derived values
         const remainingQuantity = Math.max(0, quantity - usedQuantity);
@@ -426,14 +428,15 @@ function BudgetPlanCard({
   onArchive,
   onSetActive
 }: BudgetPlanCardProps) {
+  // CRITICAL DEBUGGING: Log detailed info about budget values
   console.log(`%c BudgetPlanCard: Plan ${plan.id} - ${plan.planName || 'Unnamed Plan'}`, 'background: #e74c3c; color: white; padding: 2px 5px; border-radius: 3px;');
   console.log('Plan details:', {
-    totalUsed: plan.totalUsed,
-    percentUsed: plan.percentUsed,
-    ndisFunds: plan.ndisFunds,
-    availableFunds: plan.availableFunds,
+    totalUsed: plan.totalUsed ? plan.totalUsed.toFixed(2) : '0.00',
+    percentUsed: plan.percentUsed ? plan.percentUsed.toFixed(2) : '0.00',
+    ndisFunds: typeof plan.ndisFunds === 'number' ? plan.ndisFunds.toFixed(2) : plan.ndisFunds,
+    availableFunds: typeof plan.availableFunds === 'number' ? plan.availableFunds.toFixed(2) : plan.availableFunds,
     itemCount: plan.itemCount,
-    remainingFunds: plan.remainingFunds
+    remainingFunds: plan.remainingFunds ? plan.remainingFunds.toFixed(2) : '0.00'
   });
   // Format currency
   const formatCurrency = (amount: number) => {
