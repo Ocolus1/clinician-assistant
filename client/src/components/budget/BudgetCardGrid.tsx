@@ -114,7 +114,8 @@ export default function BudgetCardGrid({
     }, 0);
     
     // Get NDIS funds from new schema or fallback to 0
-    const ndisAmount = typeof setting.ndisFunds === 'number' ? setting.ndisFunds : 0;
+    const ndisAmount = typeof setting.ndisFunds === 'number' ? setting.ndisFunds : 
+                       typeof setting.ndisFunds === 'string' ? parseFloat(setting.ndisFunds) : 0;
     
     // Calculate used funds based on budget items with usedQuantity
     const totalUsed = planItems.reduce((sum, item) => {
@@ -427,7 +428,9 @@ function BudgetPlanCard({
     const fundValue = plan.ndisFunds !== undefined ? plan.ndisFunds : plan.availableFunds;
     
     // Ensure it's a number by parsing
-    return typeof fundValue === 'string' ? parseFloat(fundValue) : (fundValue || 0);
+    const numericValue = typeof fundValue === 'string' ? parseFloat(fundValue) : (fundValue || 0);
+    console.log(`getFundsValue() for plan ${plan.id}: ${numericValue}`);
+    return numericValue;
   };
   
   // Format date with error handling

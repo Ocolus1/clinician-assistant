@@ -109,7 +109,13 @@ export function BudgetPlanFullView({
     const fundValue = plan.ndisFunds !== undefined ? plan.ndisFunds : plan.availableFunds;
     
     // Ensure it's a number by parsing
-    const numericValue = parseFloat(String(fundValue || '0'));
+    let numericValue = 0;
+    if (typeof fundValue === 'string') {
+      numericValue = parseFloat(fundValue || '0');
+    } else {
+      numericValue = fundValue || 0;
+    }
+    
     console.log(`Total available funds in plan: $${numericValue.toFixed(2)}`);
     return numericValue;
   };
