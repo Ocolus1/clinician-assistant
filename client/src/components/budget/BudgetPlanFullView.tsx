@@ -111,18 +111,33 @@ export function BudgetPlanFullView({
   
   // Calculate total used amount from budget items
   const calculateTotalUsed = () => {
-    if (!budgetItems || !Array.isArray(budgetItems)) return 0;
+    if (!budgetItems || !Array.isArray(budgetItems)) {
+      console.log("No budget items to calculate usage from");
+      return 0;
+    }
     
-    return budgetItems.reduce((total, item) => {
-      // Use the usedQuantity field which is tracked on the server
-      const usedQuantity = parseFloat(item.usedQuantity) || 0;
-      const unitPrice = typeof item.unitPrice === 'string' 
-        ? parseFloat(item.unitPrice) 
-        : item.unitPrice || 0;
+    let totalUsed = 0;
+    
+    budgetItems.forEach(item => {
+      // Parse the usedQuantity explicitly - ensures it's treated as a number
+      const usedQuantity = parseFloat(String(item.usedQuantity || '0'));
       
-      console.log(`Item ${item.itemCode}: Used ${usedQuantity} at ${unitPrice} each = ${usedQuantity * unitPrice}`);
-      return total + (usedQuantity * unitPrice);
-    }, 0);
+      // Parse unit price, ensuring it's a number
+      const unitPrice = typeof item.unitPrice === 'string'
+        ? parseFloat(item.unitPrice)
+        : parseFloat(String(item.unitPrice || '0'));
+      
+      // Calculate cost for this item
+      const itemCost = usedQuantity * unitPrice;
+      
+      console.log(`Budget item ${item.id} (${item.itemCode}): Used ${usedQuantity}/${item.quantity} at ${unitPrice} each = $${itemCost.toFixed(2)}`);
+      
+      // Add to total
+      totalUsed += itemCost;
+    });
+    
+    console.log(`Total budget used across all items: $${totalUsed.toFixed(2)}`);
+    return totalUsed;
   };
   
   // Calculate percentage of budget used
@@ -379,7 +394,9 @@ export function BudgetPlanFullView({
                             <TableCell className="text-right">{formatCurrency(item.unitPrice)}</TableCell>
                             <TableCell className="text-right">{item.quantity}</TableCell>
                             <TableCell className="text-right">{item.usedQuantity || 0}</TableCell>
-                            <TableCell className="text-right">{item.balanceQuantity || item.quantity}</TableCell>
+                            <TableCell className="text-right">
+                              {Math.max(0, (parseFloat(String(item.quantity)) || 0) - (parseFloat(String(item.usedQuantity)) || 0))}
+                            </TableCell>
                             <TableCell className="text-right">
                               {formatCurrency(item.unitPrice * item.quantity)}
                             </TableCell>

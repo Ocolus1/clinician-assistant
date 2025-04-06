@@ -26,12 +26,19 @@ export function getCategoryColor(category: string | null | undefined): string {
 
 /**
  * Calculate percent used of a budget item
- * In a real app, this would use actual usage data
+ * Uses the actual usage data from the budget item
  */
 export function calculatePercentUsed(item: BudgetItem): number {
-  // In production this would use actual usage data from DB
-  // For now, use a random value between 0-100% for demonstration
-  return Math.floor(Math.random() * 100);
+  const usedQuantity = parseFloat(item.usedQuantity as any) || 0;
+  const totalQuantity = parseFloat(item.quantity as any) || 0;
+  
+  if (totalQuantity === 0) return 0;
+  
+  const percentage = Math.round((usedQuantity / totalQuantity) * 100);
+  console.log(`Budget item ${item.itemCode}: ${usedQuantity}/${totalQuantity} = ${percentage}%`);
+  
+  // Ensure we return a value between 0-100
+  return Math.min(100, Math.max(0, percentage));
 }
 
 /**
