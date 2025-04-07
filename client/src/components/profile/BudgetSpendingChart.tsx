@@ -108,7 +108,20 @@ export function BudgetSpendingChart({ monthlySpending, totalBudget }: BudgetSpen
   );
   const yDomain = [0, maxValue * 1.1]; // Add 10% padding to the top
   
-  // Find today's index for splitting actual vs projected data
+  // Create data for actual and projected lines
+  const actualData = formattedData.map(item => ({
+    ...item,
+    // Only include actual data up to the current month
+    displayActual: !item.isProjected ? item.cumulativeActual : undefined
+  }));
+  
+  const projectedData = formattedData.map(item => ({
+    ...item,
+    // Only include projection data from the current month forward
+    displayProjected: item.isProjected ? item.cumulativeProjected : undefined
+  }));
+  
+  // Find today's index for the reference line
   const todayIndex = formattedData.findIndex(item => item.isProjected);
   const currentMonth = todayIndex > 0 ? formattedData[todayIndex - 1]?.monthLabel : null;
   
@@ -154,36 +167,42 @@ export function BudgetSpendingChart({ monthlySpending, totalBudget }: BudgetSpen
           <Area
             type="monotone"
             dataKey="cumulativeTarget"
-            stroke="none"
             fill="#ef4444"
             fillOpacity={0.15}
-            activeDot={false}
-            baseValue="cumulativeActual"
+            stroke="none"
           />
           
-          {/* Actual spending line - past only */}
+          {/* Actual spending area to create gap effect */}
+          <Area
+            type="monotone"
+            dataKey="cumulativeActual"
+            fill="#FFFFFF"
+            stroke="none"
+          />
+          
+          {/* Actual spending line - only up to current month */}
           <Line
             type="monotone"
             name="Actual Spending"
-            dataKey={(data, index) => index <= todayIndex ? data.cumulativeActual : null}
+            dataKey="displayActual"
             stroke="#3b82f6"
             strokeWidth={2}
             dot={{ r: 3 }}
             activeDot={{ r: 6 }}
-            connectNulls={false}
+            connectNulls={true}
           />
           
           {/* Projected spending line (dashed) - future only */}
           <Line
             type="monotone"
             name="Projected Spending"
-            dataKey={(data, index) => index >= todayIndex ? data.cumulativeProjected : null}
-            stroke="#3b82f6"
+            dataKey="displayProjected"
+            stroke="#3b82f6"  // Same color as actual spending
             strokeWidth={2}
             strokeDasharray="5 5"
             dot={{ r: 3 }}
             activeDot={{ r: 6 }}
-            connectNulls={false}
+            connectNulls={true}
           />
           
           {/* Current month reference line */}
