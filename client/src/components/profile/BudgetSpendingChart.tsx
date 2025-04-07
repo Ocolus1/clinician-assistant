@@ -193,7 +193,7 @@ export function BudgetSpendingChart({ monthlySpending, totalBudget }: BudgetSpen
             height={36}
           />
           
-          {/* Custom shading approach for the gap between target and spending */}
+          {/* Simple and effective area based approach */}
           <defs>
             <linearGradient id="colorGap" x1="0" y1="0" x2="0" y2="1">
               <stop offset="5%" stopColor="#ef4444" stopOpacity={0.15}/>
@@ -201,34 +201,32 @@ export function BudgetSpendingChart({ monthlySpending, totalBudget }: BudgetSpen
             </linearGradient>
           </defs>
           
-          {/* Use a reference area approach - create a gap between target and actual */}
-          {chartData.map((dataPoint, index) => {
-            // For each point, calculate y values for both target and spending
-            const targetValue = dataPoint.cumulativeTarget || 0;
-            
-            // For spending, use actual if available, otherwise projected
-            const spendingValue = dataPoint.displayActual !== null 
-              ? dataPoint.displayActual 
-              : (dataPoint.displayProjected !== null ? dataPoint.displayProjected : 0);
-            
-            // Only create areas where target > spending (we only want to shade the gap)
-            if (targetValue > spendingValue) {
-              return (
-                <ReferenceArea
-                  key={`gap-${index}`}
-                  x1={index > 0 ? chartData[index-1].monthLabel : dataPoint.monthLabel}
-                  x2={dataPoint.monthLabel}
-                  y1={spendingValue}
-                  y2={targetValue}
-                  fill="#ef4444"
-                  fillOpacity={0.15}
-                  stroke="none"
-                  ifOverflow="hidden"
-                />
-              );
-            }
-            return null;
-          })}
+          {/* Area filling under target line */}
+          <Area
+            type="monotone"
+            dataKey="cumulativeTarget"
+            stroke="none"
+            fill="url(#colorGap)"
+            fillOpacity={1}
+            activeDot={false}
+            isAnimationActive={false}
+          />
+          
+          {/* Area filling under actual/projected line to cut out the red area below */}
+          <Area
+            type="monotone"
+            dataKey={(item) => {
+              // If actual is available use it, otherwise use projected
+              return item.displayActual !== null 
+                ? item.displayActual 
+                : (item.displayProjected !== null ? item.displayProjected : 0);
+            }}
+            stroke="none"
+            fill="#ffffff"
+            fillOpacity={1}
+            activeDot={false}
+            isAnimationActive={false}
+          />
           
           {/* Target budget line (goes on top of area) */}
           <Line
