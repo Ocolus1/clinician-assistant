@@ -57,6 +57,7 @@ interface GoalPerformanceModalProps {
   goalTitle: string;
   goalDescription?: string;
   subgoals: any[];
+  budgetStartDate?: string; // Add budget start date for filtering
 }
 
 // Utility function to generate last 12 months in "YYYY-MM" format
@@ -188,11 +189,15 @@ export function GoalPerformanceModal({
   goalId,
   goalTitle,
   goalDescription,
-  subgoals
+  subgoals,
+  budgetStartDate
 }: GoalPerformanceModalProps) {
   const [performanceData, setPerformanceData] = useState<GoalPerformance | null>(null);
   const months = getLast12Months();
   const clientId = 88; // TODO: Get client ID from context or URL params
+  
+  // Use budget start date for filtering data if available
+  const filteredMonths = React.useMemo(() => progressDataService.getLast6Months(budgetStartDate), [budgetStartDate]);
   
   // State to store subgoals fetched directly in this component
   const [directSubgoals, setDirectSubgoals] = useState<any[]>([]);
@@ -263,7 +268,8 @@ export function GoalPerformanceModal({
         return await progressDataService.getMilestonePerformanceData(
           clientId,
           Number(goalId),
-          directSubgoals
+          directSubgoals,
+          budgetStartDate // Pass budget start date for data filtering
         );
       }
       return null;
@@ -310,7 +316,7 @@ export function GoalPerformanceModal({
       if (goalId !== null && goalId !== undefined) {
         const validGoalId = Number(goalId);
         
-        const months = progressDataService.getLast6Months();
+        const months = filteredMonths;
         
         // Generate scores for the goal (average of milestone scores)
         const monthlyScores = months.map(month => {
@@ -593,7 +599,7 @@ export function GoalPerformanceModal({
                         </div>
                         
                         <div className="absolute left-0 right-0 bottom-[-5px] flex justify-between text-xs text-gray-500">
-                          {progressDataService.getLast6Months().map((month, i) => (
+                          {filteredMonths.map((month, i) => (
                             <div key={i} className="text-center px-0">{month.display}</div>
                           ))}
                         </div>

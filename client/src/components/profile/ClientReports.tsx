@@ -141,6 +141,13 @@ export function ClientReports({ clientId }: ClientReportsProps) {
   // Format report data when available
   const reportData = reportQuery.data;
   
+  // Add budget start date to the report data for filtering in child components
+  useEffect(() => {
+    if (reportData && selectedBudgetPlan?.createdAt) {
+      reportData.budgetStartDate = selectedBudgetPlan.createdAt;
+    }
+  }, [reportData, selectedBudgetPlan]);
+  
   const openModal = (modalName: string) => {
     setActiveModal(modalName);
   };
@@ -1655,6 +1662,7 @@ function GoalsSection({ data }: { data?: ClientReportData }) {
           goalTitle={selectedGoal.title}
           goalDescription={selectedGoal.description}
           subgoals={goalSubgoals[selectedGoalId] || []}
+          budgetStartDate={data?.budgetStartDate}
         />
       )}
       

@@ -16,6 +16,7 @@ export interface ClientReportData {
   cancellations: CancellationsData;
   strategies: StrategiesData;
   goals: GoalsData;
+  budgetStartDate?: string; // Start date of the active budget plan
 }
 
 export interface ClientDetailsData {
