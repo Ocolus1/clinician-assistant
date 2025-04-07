@@ -3,7 +3,7 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, 
   ResponsiveContainer, ReferenceLine, Area, ComposedChart
 } from 'recharts';
-import { format, parseISO } from 'date-fns';
+import { format } from 'date-fns';
 import { MonthlySpending } from '@/lib/services/budgetUtilizationService';
 
 // Define types for the tooltip props
@@ -22,9 +22,9 @@ interface CustomTooltipProps {
 const CustomTooltip = ({ active, payload, label, totalBudget }: CustomTooltipProps) => {
   if (active && payload && payload.length) {
     // Find which payload items are available
-    const actualData = payload.find((p: {dataKey: string}) => p.dataKey === 'displayActual');
+    const actualData = payload.find((p: {dataKey: string}) => p.dataKey === 'cumulativeActual');
     const targetData = payload.find((p: {dataKey: string}) => p.dataKey === 'cumulativeTarget');
-    const projectedData = payload.find((p: {dataKey: string}) => p.dataKey === 'displayProjected');
+    const projectedData = payload.find((p: {dataKey: string}) => p.dataKey === 'cumulativeProjected');
     
     // Calculate variance from target (if both exist)
     const variance = actualData && targetData 
@@ -61,7 +61,7 @@ const CustomTooltip = ({ active, payload, label, totalBudget }: CustomTooltipPro
             </p>
           )}
           {projectedData && (
-            <p className="text-blue-600">
+            <p className="text-purple-600">
               <span className="font-medium">Projected:</span> {formatCurrency(projectedData.value)} ({getPercentage(projectedData.value)})
             </p>
           )}
@@ -91,6 +91,11 @@ export function BudgetSpendingChart({ monthlySpending, totalBudget }: BudgetSpen
     monthLabel: format(item.date, 'MMM yy')
   }));
   
+  // Find the current month index
+  const currentMonthIndex = monthlySpending.findIndex(
+    month => !month.isProjected && month.projectedSpending === null
+  );
+  
   // Calculate max value for y-axis (with 10% padding)
   const maxValue = Math.max(
     ...formattedData.map(d => 
@@ -103,20 +108,18 @@ export function BudgetSpendingChart({ monthlySpending, totalBudget }: BudgetSpen
   );
   const yDomain = [0, maxValue * 1.1]; // Add 10% padding to the top
   
-  // Find today's month index
+  // Find today's month for splitting actual vs projected data
   const todayIndex = formattedData.findIndex(item => item.isProjected);
   
-  // Process data for display
+  // Create display data with proper actual and projected values
   const chartData = formattedData.map((item, index) => {
-    // For actual spending line - only show up to today
-    const displayActual = index < todayIndex || 
-                           (index === todayIndex && !item.isProjected) ? 
-                           item.cumulativeActual : null;
+    // For actual data, only include values up to current month
+    const displayActual = index <= todayIndex ? item.cumulativeActual : null;
     
-    // For projected spending line - only show from today onward
+    // For projected data, only include from current month forward
+    // Start from the last known actual value
     const displayProjected = index >= todayIndex ? 
-                             (index === todayIndex ? item.cumulativeActual : item.cumulativeProjected) : 
-                             null;
+      (index === todayIndex ? item.cumulativeActual : item.cumulativeProjected) : null;
     
     return {
       ...item,
@@ -125,14 +128,14 @@ export function BudgetSpendingChart({ monthlySpending, totalBudget }: BudgetSpen
     };
   });
   
-  // Find the current month label for the reference line
-  const currentMonth = todayIndex >= 0 ? formattedData[todayIndex]?.monthLabel : null;
+  // Find the current month for the reference line
+  const currentMonth = todayIndex > 0 ? formattedData[todayIndex - 1]?.monthLabel : null;
   
   return (
     <div className="w-full h-[300px]">
       <ResponsiveContainer width="100%" height="100%">
         <ComposedChart
-          data={chartData}
+          data={formattedData}
           margin={{ top: 10, right: 30, left: 20, bottom: 30 }}
         >
           <CartesianGrid strokeDasharray="3 3" />
