@@ -48,6 +48,11 @@ const CustomTooltip = ({ active, payload, label, totalBudget }: CustomTooltipPro
     const variance = actualData && targetData 
       ? actualData.value - targetData.value
       : null;
+      
+    // Calculate the gap between target and projected (target minus projected)
+    const gap = projectedData && targetData
+      ? targetData.value - projectedData.value
+      : null;
     
     // Format currency values
     const formatCurrency = (value: number) => {
@@ -87,6 +92,11 @@ const CustomTooltip = ({ active, payload, label, totalBudget }: CustomTooltipPro
             <p className="text-red-600 font-bold">
               <span className="font-medium">Variance:</span> {variance > 0 ? "+" : ""}{formatCurrency(variance)}
               ({variance > 0 ? "over budget" : "under budget"})
+            </p>
+          )}
+          {gap !== null && (
+            <p className="text-red-600 font-bold">
+              <span className="font-medium">Gap:</span> {formatCurrency(gap)} (Target minus Projected)
             </p>
           )}
         </div>
