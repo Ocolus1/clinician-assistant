@@ -1,4 +1,4 @@
-import { format, parseISO, differenceInDays, addDays, isAfter, isBefore } from 'date-fns';
+import { format, parseISO, differenceInDays, addDays, addMonths, isAfter, isBefore } from 'date-fns';
 import { apiRequest } from '@/lib/queryClient';
 
 // Types for budget items and calculations
@@ -124,9 +124,22 @@ export const budgetUtilizationService = {
       // Calculate utilization percentage
       const utilizationPercentage = (usedBudget / totalBudget) * 100;
       
-      // Parse dates - map from the actual API fields to our expected fields
-      const startDate = budgetSettings.startDate || budgetSettings.createdAt;
-      const endDate = budgetSettings.endDate || budgetSettings.endOfPlan;
+      // Parse dates with safe fallbacks
+      let startDate = budgetSettings.startDate || budgetSettings.createdAt;
+      let endDate = budgetSettings.endDate || budgetSettings.endOfPlan;
+      
+      // Ensure we have valid dates
+      if (!startDate) {
+        console.warn("No start date found in budget settings, using today");
+        startDate = format(new Date(), 'yyyy-MM-dd');
+      }
+      
+      if (!endDate) {
+        console.warn("No end date found in budget settings, using 6 months from start");
+        // Default to 6 months from start date
+        const tempStartDate = parseISO(startDate);
+        endDate = format(addMonths(tempStartDate, 6), 'yyyy-MM-dd');
+      }
       
       // Add logging for debugging
       console.log("Using dates for budget calculations:", { 
@@ -147,32 +160,47 @@ export const budgetUtilizationService = {
       );
       const remainingDays = Math.max(0, totalDays - daysElapsed);
       
-      // Daily budget calculation
-      const dailyBudget = totalBudget / totalDays;
+      // Daily budget calculation (with safety check)
+      const totalDaysSafe = totalDays > 0 ? totalDays : 180; // Default to 6 months if calculation is wrong
+      const dailyBudget = totalBudget / totalDaysSafe;
       
       // Current spending rate (based on actual usage)
       const dailySpendRate = daysElapsed > 0 ? usedBudget / daysElapsed : 0;
       
-      // Projection calculations
+      // Add safeguards for projection calculations
       let projectedEndDate = null;
       let projectedOverspend = null;
       
-      if (dailySpendRate > 0 && remainingBudget > 0) {
-        const daysUntilDepletion = Math.floor(remainingBudget / dailySpendRate);
-        const projectedEndDateObj = addDays(today, daysUntilDepletion);
+      try {
+        // Projection calculations - with safety limits
+        if (dailySpendRate > 0 && remainingBudget > 0) {
+          // Limit daysUntilDepletion to a reasonable number
+          const daysUntilDepletion = Math.min(
+            Math.floor(remainingBudget / dailySpendRate),
+            365 // Cap at 1 year to prevent unreasonable projections
+          );
+          
+          // Calculate projected end date
+          const projectedEndDateObj = addDays(today, daysUntilDepletion);
+          
+          // Only set if date is before the plan end date
+          if (isBefore(projectedEndDateObj, endDateObj)) {
+            projectedEndDate = format(projectedEndDateObj, 'yyyy-MM-dd');
+          }
+        }
         
-        // Only set if date is before the plan end date
-        if (isBefore(projectedEndDateObj, endDateObj)) {
-          projectedEndDate = format(projectedEndDateObj, 'yyyy-MM-dd');
+        // Calculate projected overspend if spending rate exceeds budget rate
+        if (dailySpendRate > dailyBudget) {
+          const projectedTotalSpend = usedBudget + (dailySpendRate * remainingDays);
+          if (projectedTotalSpend > totalBudget) {
+            projectedOverspend = projectedTotalSpend - totalBudget;
+          }
         }
-      }
-      
-      // Calculate projected overspend if spending rate exceeds budget rate
-      if (dailySpendRate > dailyBudget) {
-        const projectedTotalSpend = usedBudget + (dailySpendRate * remainingDays);
-        if (projectedTotalSpend > totalBudget) {
-          projectedOverspend = projectedTotalSpend - totalBudget;
-        }
+      } catch (error) {
+        console.error("Error in projection calculations:", error);
+        // Set safe defaults if calculations fail
+        projectedEndDate = null;
+        projectedOverspend = null;
       }
       
       // Get a meaningful plan name from available data

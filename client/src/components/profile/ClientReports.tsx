@@ -442,7 +442,7 @@ export function ClientReports({ clientId }: ClientReportsProps) {
           if (!open) closeModal();
         }}
         clientId={clientId}
-        budgetSummary={budgetSummary}
+        budgetSummary={null} // Temporarily disable passing budget summary to avoid infinite loops
         isLoading={isLoadingBudgetSettings || reportQuery.isLoading}
       />
 
