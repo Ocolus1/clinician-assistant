@@ -96,6 +96,7 @@ export function ClientReports({ clientId }: ClientReportsProps) {
   // State to track the selected strategy in the strategy modal
   const [selectedStrategy, setSelectedStrategy] = useState<any>(null);
   const [selectedBudgetPlan, setSelectedBudgetPlan] = useState<BudgetSettings | null>(null);
+  const [budgetSummary, setBudgetSummary] = useState<BudgetSummary | null>(null);
   
   // Fetch active budget plan to get start date for filtering
   const { data: budgetSettings, isLoading: isLoadingBudgetSettings } = useQuery<BudgetSettings>({
@@ -149,6 +150,22 @@ export function ClientReports({ clientId }: ClientReportsProps) {
       reportData.budgetStartDate = selectedBudgetPlan.createdAt;
     }
   }, [reportData, selectedBudgetPlan]);
+  
+  // Fetch budget summary data for the BudgetUtilizationModal
+  useEffect(() => {
+    if (clientId) {
+      const fetchBudgetSummary = async () => {
+        try {
+          const summary = await budgetUtilizationService.getBudgetSummary(clientId);
+          setBudgetSummary(summary);
+        } catch (error) {
+          console.error("Error fetching budget summary:", error);
+        }
+      };
+      
+      fetchBudgetSummary();
+    }
+  }, [clientId]);
   
   const openModal = (modalName: string) => {
     setActiveModal(modalName);
@@ -410,6 +427,7 @@ export function ClientReports({ clientId }: ClientReportsProps) {
           if (!open) closeModal();
         }}
         clientId={clientId}
+        budgetSummary={budgetSummary}
         isLoading={isLoadingBudgetSettings || reportQuery.isLoading}
       />
 
