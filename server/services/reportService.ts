@@ -469,16 +469,15 @@ async function getStrategyStats(
     }
     
     // Get strategies used in sessions and their average scores
-    // The strategies are stored as an array in the milestone_assessments table
+    // The strategies are stored as an array of strategy names directly in the performance_assessments table
     // We need to join multiple tables to get the strategy usage and scores
     const strategyQuery = `
       WITH strategy_usages AS (
         -- Unnest the strategies array to get individual strategy uses
         SELECT 
-          ma.rating,
-          unnest(ma.strategies) as strategy_id
-        FROM milestone_assessments ma
-        JOIN performance_assessments pa ON ma.performance_assessment_id = pa.id
+          pa.rating,
+          unnest(pa.strategies) as strategy_name
+        FROM performance_assessments pa
         JOIN session_notes sn ON pa.session_note_id = sn.id
         JOIN sessions s ON sn.session_id = s.id
         WHERE s.client_id = $1
@@ -487,13 +486,13 @@ async function getStrategyStats(
       SELECT 
         s.id,
         s.name,
-        COUNT(su.strategy_id) as times_used,
+        COUNT(su.strategy_name) as times_used,
         CASE 
-          WHEN COUNT(su.strategy_id) > 0 THEN AVG(su.rating)::numeric
+          WHEN COUNT(su.strategy_name) > 0 THEN AVG(su.rating)::numeric
           ELSE 0 
         END as avg_score
       FROM strategies s
-      LEFT JOIN strategy_usages su ON s.id::text = su.strategy_id
+      LEFT JOIN strategy_usages su ON s.name = su.strategy_name
       GROUP BY s.id, s.name
       ORDER BY times_used DESC, avg_score DESC
       LIMIT 10
