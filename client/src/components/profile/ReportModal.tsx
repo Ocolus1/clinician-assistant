@@ -35,31 +35,33 @@ export function ReportModal({
 }: ReportModalProps) {
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="w-[75vw] max-w-[1200px] max-h-[85vh] flex flex-col">
-        <DialogHeader>
+      <DialogContent className="w-[75vw] max-w-[1200px] max-h-[85vh] flex flex-col overflow-hidden">
+        <DialogHeader className="shrink-0">
           <DialogTitle>{title}</DialogTitle>
           {description && <DialogDescription>{description}</DialogDescription>}
         </DialogHeader>
         
-        {/* Main content area for overview/charts */}
-        <div className="py-4">
-          {children}
-        </div>
+        {/* Main content area with scroll for overview/charts */}
+        <ScrollArea className="flex-grow overflow-auto my-4">
+          <div className="py-2">
+            {children}
+          </div>
+          
+          {/* Optional details section */}
+          {detailsContent && (
+            <>
+              <Separator className="my-4" />
+              <div className="mt-2">
+                <h4 className="text-sm font-semibold mb-2">Details</h4>
+                <div className="rounded-md border p-4">
+                  {detailsContent}
+                </div>
+              </div>
+            </>
+          )}
+        </ScrollArea>
         
-        {/* Optional details section with scroll area */}
-        {detailsContent && (
-          <>
-            <Separator />
-            <div className="mt-2">
-              <h4 className="text-sm font-semibold mb-2">Details</h4>
-              <ScrollArea className="h-[300px] rounded-md border p-4">
-                {detailsContent}
-              </ScrollArea>
-            </div>
-          </>
-        )}
-        
-        <DialogFooter>
+        <DialogFooter className="shrink-0 mt-2">
           <Button variant="outline" onClick={onClose}>Close</Button>
         </DialogFooter>
       </DialogContent>
