@@ -200,7 +200,7 @@ export function BudgetSpendingChart({ monthlySpending, totalBudget }: BudgetSpen
             name="Target Budget"
             stroke="#10b981"
             strokeWidth={2}
-            dot={{ r: 3 }}
+            dot={false}
             activeDot={{ r: 6 }}
           />
           
@@ -228,7 +228,7 @@ export function BudgetSpendingChart({ monthlySpending, totalBudget }: BudgetSpen
             dataKey="displayActual"
             stroke="#3b82f6"
             strokeWidth={2}
-            dot={{ r: 3 }}
+            dot={false}
             activeDot={{ r: 6 }}
             connectNulls={true}
           />
@@ -241,7 +241,7 @@ export function BudgetSpendingChart({ monthlySpending, totalBudget }: BudgetSpen
             stroke="#3b82f6"  // Same color as actual spending
             strokeWidth={2}
             strokeDasharray="5 5"
-            dot={{ r: 3 }}
+            dot={false}
             activeDot={{ r: 6 }}
             connectNulls={true}
           />
