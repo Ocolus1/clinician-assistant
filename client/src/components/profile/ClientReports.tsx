@@ -19,7 +19,8 @@ import {
   Activity,
   Info,
   CheckCircle,
-  ArrowUpRight
+  ArrowUpRight,
+  ChevronUp
 } from "lucide-react";
 
 // UI Components
@@ -975,6 +976,10 @@ function StrategiesBubbleChart({ strategies, onSelectStrategy }: {
 function StrategyDetails({ strategy }: { strategy: Strategy }) {
   if (!strategy) return null;
   
+  // State for sorting
+  const [sortField, setSortField] = useState<string | null>(null);
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
+  
   // Calculate effectiveness category and color
   const getEffectivenessColor = (score: number): string => {
     if (score < 5) return 'text-red-500';
@@ -993,6 +998,13 @@ function StrategyDetails({ strategy }: { strategy: Strategy }) {
     if (score < 5) return 'bg-red-100';
     if (score < 7) return 'bg-amber-100';
     return 'bg-green-100';
+  };
+  
+  // Get progress bar color for visualization
+  const getProgressBarColor = (score: number): string => {
+    if (score < 5) return 'bg-red-500';
+    if (score < 7) return 'bg-amber-500';
+    return 'bg-green-500';
   };
   
   const effectivenessColor = getEffectivenessColor(strategy.averageScore);
@@ -1036,10 +1048,74 @@ function StrategyDetails({ strategy }: { strategy: Strategy }) {
   ];
   
   // Use real subgoal data if available, otherwise use mock data for demonstration
-  const subgoalEffectiveness = strategy.subgoalEffectiveness || mockSubgoalEffectiveness;
+  const rawSubgoalEffectiveness = strategy.subgoalEffectiveness || mockSubgoalEffectiveness;
+  
+  // Handle sorting
+  const handleSort = (field: string) => {
+    if (sortField === field) {
+      // If already sorting by this field, toggle direction
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      // Otherwise, sort by this field in descending order
+      setSortField(field);
+      setSortDirection('desc');
+    }
+  };
+  
+  // Sort the data if a sort field is selected
+  const subgoalEffectiveness = [...rawSubgoalEffectiveness].sort((a, b) => {
+    if (!sortField) return 0;
+    
+    let valueA, valueB;
+    
+    switch (sortField) {
+      case 'subgoal':
+        valueA = a.subgoalTitle.toLowerCase();
+        valueB = b.subgoalTitle.toLowerCase();
+        break;
+      case 'goal':
+        valueA = a.goalTitle.toLowerCase();
+        valueB = b.goalTitle.toLowerCase();
+        break;
+      case 'score':
+        valueA = a.effectivenessScore;
+        valueB = b.effectivenessScore;
+        break;
+      case 'timesUsed':
+        valueA = a.timesUsed;
+        valueB = b.timesUsed;
+        break;
+      default:
+        return 0;
+    }
+    
+    if (valueA < valueB) return sortDirection === 'asc' ? -1 : 1;
+    if (valueA > valueB) return sortDirection === 'asc' ? 1 : -1;
+    return 0;
+  });
   
   // Determine the number of actual sessions (distinct sessions)
   const sessionCount = strategy.sessionCount || 2; // Using a default of 2 for Radwan's case
+  
+  // Calculate goal-specific effectiveness metrics for visualization
+  const goalEffectiveness = Array.from(new Set(subgoalEffectiveness.map(s => s.goalId))).map(goalId => {
+    // Calculate average effectiveness for this goal
+    const goalItems = subgoalEffectiveness.filter(s => s.goalId === goalId);
+    const avgScore = goalItems.reduce((sum, item) => sum + item.effectivenessScore, 0) / goalItems.length;
+    const goalTitle = goalItems[0].goalTitle;
+    
+    return {
+      goalId,
+      goalTitle,
+      avgScore,
+      label: getEffectivenessLabel(avgScore),
+      color: getEffectivenessColor(avgScore),
+      barColor: getProgressBarColor(avgScore)
+    };
+  });
+  
+  // Sort by effectiveness (highest to lowest)
+  goalEffectiveness.sort((a, b) => b.avgScore - a.avgScore);
   
   return (
     <div className="space-y-6">
@@ -1093,17 +1169,88 @@ function StrategyDetails({ strategy }: { strategy: Strategy }) {
         </div>
       </div>
       
-      {/* Strategy-Subgoal Effectiveness Matrix */}
+      {/* Goal-specific effectiveness visualization */}
+      <div className="space-y-3">
+        <h4 className="font-medium">Goal-Specific Effectiveness</h4>
+        <div className="space-y-4">
+          {goalEffectiveness.map((goal) => (
+            <div key={goal.goalId} className="space-y-1">
+              <div className="flex justify-between items-center">
+                <span className="text-sm font-medium">{goal.goalTitle}</span>
+                <span className={`text-sm font-medium ${goal.color}`}>
+                  {goal.avgScore.toFixed(1)}/10 ({goal.label})
+                </span>
+              </div>
+              <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
+                <div 
+                  className={`h-full rounded-full transition-all duration-300 ${goal.barColor}`}
+                  style={{ width: `${(goal.avgScore / 10) * 100}%` }}
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+      
+      {/* Strategy-Subgoal Effectiveness Matrix with sorting */}
       <div className="space-y-3">
         <h4 className="font-medium">Subgoal Effectiveness</h4>
         <div className="border rounded-md overflow-hidden">
           <table className="w-full">
             <thead className="bg-muted">
               <tr>
-                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">Subgoal</th>
-                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">Goal</th>
-                <th className="px-3 py-2 text-center text-xs font-medium text-gray-500">Score</th>
-                <th className="px-3 py-2 text-center text-xs font-medium text-gray-500">Times Used</th>
+                <th 
+                  className="px-3 py-2 text-left text-xs font-medium text-gray-500 cursor-pointer hover:bg-gray-200"
+                  onClick={() => handleSort('subgoal')}
+                >
+                  <div className="flex items-center">
+                    Subgoal
+                    {sortField === 'subgoal' && (
+                      <ChevronUp 
+                        className={`h-3 w-3 ml-1 ${sortDirection === 'asc' ? 'transform rotate-180' : ''}`} 
+                      />
+                    )}
+                  </div>
+                </th>
+                <th 
+                  className="px-3 py-2 text-left text-xs font-medium text-gray-500 cursor-pointer hover:bg-gray-200"
+                  onClick={() => handleSort('goal')}
+                >
+                  <div className="flex items-center">
+                    Goal
+                    {sortField === 'goal' && (
+                      <ChevronUp 
+                        className={`h-3 w-3 ml-1 ${sortDirection === 'asc' ? 'transform rotate-180' : ''}`} 
+                      />
+                    )}
+                  </div>
+                </th>
+                <th 
+                  className="px-3 py-2 text-center text-xs font-medium text-gray-500 cursor-pointer hover:bg-gray-200"
+                  onClick={() => handleSort('score')}
+                >
+                  <div className="flex items-center justify-center">
+                    Score
+                    {sortField === 'score' && (
+                      <ChevronUp 
+                        className={`h-3 w-3 ml-1 ${sortDirection === 'asc' ? 'transform rotate-180' : ''}`} 
+                      />
+                    )}
+                  </div>
+                </th>
+                <th 
+                  className="px-3 py-2 text-center text-xs font-medium text-gray-500 cursor-pointer hover:bg-gray-200"
+                  onClick={() => handleSort('timesUsed')}
+                >
+                  <div className="flex items-center justify-center">
+                    Times Used
+                    {sortField === 'timesUsed' && (
+                      <ChevronUp 
+                        className={`h-3 w-3 ml-1 ${sortDirection === 'asc' ? 'transform rotate-180' : ''}`} 
+                      />
+                    )}
+                  </div>
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
@@ -1129,27 +1276,6 @@ function StrategyDetails({ strategy }: { strategy: Strategy }) {
           outcomes from {strategy.timesUsed} applications across {sessionCount} {sessionCount === 1 ? 'session' : 'sessions'}.
           {strategy.lastUsed && ` Last used on ${strategy.lastUsed}.`}
         </p>
-        
-        {/* Add goal-specific insights based on subgoal data */}
-        {subgoalEffectiveness.length > 0 && (
-          <div className="mt-2">
-            <p className="text-sm font-medium mt-2">Goal-specific effectiveness:</p>
-            <ul className="text-sm list-disc list-inside mt-1">
-              {Array.from(new Set(subgoalEffectiveness.map(s => s.goalId))).map(goalId => {
-                // Calculate average effectiveness for this goal
-                const goalItems = subgoalEffectiveness.filter(s => s.goalId === goalId);
-                const avgScore = goalItems.reduce((sum, item) => sum + item.effectivenessScore, 0) / goalItems.length;
-                const goalTitle = goalItems[0].goalTitle;
-                
-                return (
-                  <li key={goalId} className={getEffectivenessColor(avgScore)}>
-                    {goalTitle}: {avgScore.toFixed(1)}/10 ({getEffectivenessLabel(avgScore)})
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
-        )}
       </div>
     </div>
   );
