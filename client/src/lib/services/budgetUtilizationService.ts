@@ -1,4 +1,4 @@
-import { format, parseISO, differenceInDays, addDays, addMonths, isAfter, isBefore } from 'date-fns';
+import { format, parseISO, differenceInDays, addDays, addMonths, isAfter, isBefore, isSameDay } from 'date-fns';
 import { apiRequest } from '@/lib/queryClient';
 
 // Types for budget items and calculations
@@ -60,8 +60,9 @@ export interface SessionWithProducts {
 }
 
 export interface MonthlySpending {
-  month: string;
-  date: Date;
+  month: string; // Formatted month string (e.g., "Jan 2023")
+  date: Date;    // Exact date for precise plotting
+  exactDate: string; // ISO formatted date string for precise reference
   actualSpending: number;
   targetSpending: number;
   projectedSpending: number | null;
@@ -399,12 +400,12 @@ export const budgetUtilizationService = {
   },
   
   /**
-   * Calculate monthly spending data for chart visualization
+   * Calculate daily spending data for chart visualization with monthly x-axis labels
    * @param spendingEvents Array of spending events
    * @param startDate Budget plan start date
    * @param endDate Budget plan end date
    * @param totalBudget Total budget amount
-   * @returns Array of monthly spending data points
+   * @returns Array of daily spending data points with monthly labels
    */
   calculateMonthlySpending(
     spendingEvents: SpendingEvent[],
@@ -413,7 +414,7 @@ export const budgetUtilizationService = {
     totalBudget: number
   ): MonthlySpending[] {
     try {
-      console.log('Calculating monthly spending with', spendingEvents.length, 'spending events');
+      console.log('Calculating daily spending with', spendingEvents.length, 'spending events');
       console.log('Date range:', startDate, 'to', endDate);
       console.log('Total budget:', totalBudget);
       
@@ -426,33 +427,37 @@ export const budgetUtilizationService = {
       const startDateObj = parseISO(startDate);
       const endDateObj = parseISO(endDate);
       
-      // Generate an array of months from start to end date
-      const monthlyData: MonthlySpending[] = [];
+      // Generate daily data points from start to end date
+      const dailyData: MonthlySpending[] = [];
       let currentDate = startDateObj;
       
-      // Create a new date object on the first day of the month to avoid issues with month lengths
-      while (isBefore(currentDate, endDateObj) || format(currentDate, 'yyyy-MM') === format(endDateObj, 'yyyy-MM')) {
-        // Format the month label (e.g., "Jan 2023")
+      // Generate a data point for each day
+      while (isBefore(currentDate, endDateObj) || isSameDay(currentDate, endDateObj)) {
+        // Format the month label for grouping (e.g., "Jan 2023")
         const monthLabel = format(currentDate, 'MMM yyyy');
         
-        // Store the first day of the month for the date property
-        const monthDate = new Date(currentDate);
+        // Format the exact date for precise data points
+        const exactDate = format(currentDate, 'yyyy-MM-dd');
         
-        // Add a new data point for this month
-        monthlyData.push({
-          month: monthLabel,
-          date: monthDate,
+        // Determine if this date is in the future (for projection)
+        const isDateProjected = isAfter(currentDate, today);
+        
+        // Add a new data point for this day
+        dailyData.push({
+          month: monthLabel,        // Month label for x-axis grouping
+          date: new Date(currentDate), // Full date object for precise plotting
+          exactDate,                // ISO date string for reference
           actualSpending: 0,
           targetSpending: 0,
           projectedSpending: null,
           cumulativeActual: 0,
           cumulativeTarget: 0,
           cumulativeProjected: null,
-          isProjected: isAfter(currentDate, today)
+          isProjected: isDateProjected
         });
         
-        // Move to the next month
-        currentDate = addMonths(currentDate, 1);
+        // Move to the next day
+        currentDate = addDays(currentDate, 1);
       }
       
       // Sort spending events by date (earliest first)
@@ -460,73 +465,80 @@ export const budgetUtilizationService = {
         return isBefore(parseISO(a.date), parseISO(b.date)) ? -1 : 1;
       });
       
-      // Calculate the target monthly budget (evenly distributed)
-      const totalMonths = monthlyData.length;
-      const monthlyBudgetTarget = totalBudget / totalMonths;
+      // Calculate the target daily budget (evenly distributed)
+      const totalDays = dailyData.length;
+      const dailyBudgetTarget = totalBudget / totalDays;
       
-      console.log('Monthly data periods:', monthlyData.map(m => m.month));
+      console.log('Daily data points:', totalDays);
       
-      // Assign spending amounts to each month
+      // Assign spending amounts to each day
       sortedEvents.forEach(event => {
         const eventDate = parseISO(event.date);
-        const eventMonthKey = format(eventDate, 'MMM yyyy');
+        const eventDateString = format(eventDate, 'yyyy-MM-dd');
         
-        console.log('Processing event date:', event.date, 'formatted as:', eventMonthKey);
+        console.log('Processing event date:', event.date, 'formatted as:', eventDateString);
         
-        // Find the corresponding month in our data array
-        const monthIndex = monthlyData.findIndex(m => m.month === eventMonthKey);
-        if (monthIndex !== -1) {
-          console.log('Found matching month at index:', monthIndex, 'adding amount:', event.amount);
-          monthlyData[monthIndex].actualSpending += event.amount;
+        // Find the corresponding day in our data array
+        const dayIndex = dailyData.findIndex(d => d.exactDate === eventDateString);
+        if (dayIndex !== -1) {
+          console.log('Found matching day at index:', dayIndex, 'adding amount:', event.amount);
+          dailyData[dayIndex].actualSpending += event.amount;
         } else {
-          console.log('WARNING: No matching month found for event date:', event.date, 'month key:', eventMonthKey);
+          console.log('WARNING: No matching day found for event date:', event.date);
         }
       });
       
-      // Add target budget to each month and calculate cumulative values
+      // Add target budget to each day and calculate cumulative values
       let cumulativeActual = 0;
       let cumulativeTarget = 0;
       
-      monthlyData.forEach((month, index) => {
-        // Set target budget for each month
-        month.targetSpending = monthlyBudgetTarget;
+      dailyData.forEach((day, index) => {
+        // Set target budget for each day
+        day.targetSpending = dailyBudgetTarget;
         
         // Calculate cumulative values
-        cumulativeActual += month.actualSpending;
-        cumulativeTarget += month.targetSpending;
+        cumulativeActual += day.actualSpending;
+        cumulativeTarget += day.targetSpending;
         
-        month.cumulativeActual = cumulativeActual;
-        month.cumulativeTarget = cumulativeTarget;
+        day.cumulativeActual = cumulativeActual;
+        day.cumulativeTarget = cumulativeTarget;
       });
       
-      // Calculate projected spending for future months
-      const currentMonthIndex = monthlyData.findIndex(m => 
-        format(m.date, 'yyyy-MM') === format(today, 'yyyy-MM')
-      );
+      // Calculate projected spending for future days
+      // Find the index of today
+      const todayIndex = dailyData.findIndex(d => 
+        d.isProjected === true
+      ) - 1; // The day before the first projected day
       
-      if (currentMonthIndex !== -1) {
-        // Calculate average monthly spending from actual data
-        const pastMonths = monthlyData.slice(0, currentMonthIndex + 1);
-        const totalActualSpending = pastMonths.reduce((sum, month) => sum + month.actualSpending, 0);
-        const averageMonthlySpending = totalActualSpending / Math.max(1, pastMonths.length);
+      if (todayIndex !== -2) { // If today was found
+        const actualTodayIndex = todayIndex >= 0 ? todayIndex : 0; // Handle case when today is the first day
         
-        // Apply projections to future months
-        let projectedCumulative = pastMonths.reduce((sum, month) => sum + month.actualSpending, 0);
+        // Calculate average daily spending from actual data
+        const pastDays = dailyData.slice(0, actualTodayIndex + 1);
+        const totalActualSpending = pastDays.reduce((sum, day) => sum + day.actualSpending, 0);
         
-        for (let i = currentMonthIndex + 1; i < monthlyData.length; i++) {
-          monthlyData[i].projectedSpending = averageMonthlySpending;
-          projectedCumulative += averageMonthlySpending;
-          monthlyData[i].cumulativeProjected = projectedCumulative;
+        // Calculate the average daily spending rate (use at least 1 day to avoid division by zero)
+        const averageDailySpending = totalActualSpending / Math.max(1, pastDays.length);
+        
+        // Apply projections to future days
+        let projectedCumulative = pastDays.reduce((sum, day) => sum + day.actualSpending, 0);
+        
+        for (let i = actualTodayIndex + 1; i < dailyData.length; i++) {
+          dailyData[i].projectedSpending = averageDailySpending;
+          projectedCumulative += averageDailySpending;
+          dailyData[i].cumulativeProjected = projectedCumulative;
         }
       }
       
-      console.log('Final monthly data:', monthlyData.map(m => ({
-        month: m.month,
-        actualSpending: m.actualSpending,
-        cumulativeActual: m.cumulativeActual
+      console.log('Final daily data (sample):', dailyData.slice(0, 5).map(d => ({
+        date: d.exactDate,
+        month: d.month,
+        actualSpending: d.actualSpending,
+        cumulativeActual: d.cumulativeActual,
+        isProjected: d.isProjected
       })));
       
-      return monthlyData;
+      return dailyData;
     } catch (error) {
       console.error('Error calculating monthly spending:', error);
       return [];

@@ -103,20 +103,30 @@ export function BudgetSpendingChart({ monthlySpending, totalBudget }: BudgetSpen
   );
   const yDomain = [0, maxValue * 1.1]; // Add 10% padding to the top
   
-  // Find today's month index
+  // Find today's index (the first projected day)
   const todayIndex = formattedData.findIndex(item => item.isProjected);
+  
+  // Get the exact today's date for reference
+  const today = new Date();
+  const todayDateString = format(today, 'yyyy-MM-dd');
   
   // Process data for display
   const chartData = formattedData.map((item, index) => {
     // For actual spending line - only show up to today
-    const displayActual = index < todayIndex || 
-                           (index === todayIndex && !item.isProjected) ? 
-                           item.cumulativeActual : null;
+    const displayActual = !item.isProjected ? item.cumulativeActual : null;
     
     // For projected spending line - only show from today onward
-    const displayProjected = index >= todayIndex ? 
-                             (index === todayIndex ? item.cumulativeActual : item.cumulativeProjected) : 
-                             null;
+    const displayProjected = item.isProjected ? item.cumulativeProjected : null;
+    
+    // For the actual today's data point (transition point), show both actual and projected
+    // to make a continuous line
+    if (item.exactDate === todayDateString) {
+      return {
+        ...item,
+        displayActual: item.cumulativeActual,
+        displayProjected: item.cumulativeActual // Start projection from actual value
+      };
+    }
     
     return {
       ...item,
@@ -125,8 +135,11 @@ export function BudgetSpendingChart({ monthlySpending, totalBudget }: BudgetSpen
     };
   });
   
-  // Find the current month label for the reference line
-  const currentMonth = todayIndex >= 0 ? formattedData[todayIndex]?.monthLabel : null;
+  // Find the current month label for the reference line - use the exact date
+  // This gives us precise positioning based on today's actual date
+  const todayDataPoint = formattedData.find(item => item.exactDate === todayDateString);
+  const currentMonth = todayDataPoint?.monthLabel || 
+                      (todayIndex >= 0 ? formattedData[todayIndex]?.monthLabel : null);
   
   return (
     <div className="w-full h-[300px]">
@@ -208,7 +221,7 @@ export function BudgetSpendingChart({ monthlySpending, totalBudget }: BudgetSpen
             connectNulls={true}
           />
           
-          {/* Current month reference line */}
+          {/* Today's reference line using exact date and month-based approach */}
           {currentMonth && (
             <ReferenceLine
               x={currentMonth}
