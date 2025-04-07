@@ -39,6 +39,8 @@ import {
 import { ReportModal } from "./ReportModal";
 // Import the enhanced budget utilization modal
 import { EnhancedBudgetUtilizationModal } from "./EnhancedBudgetUtilizationModal";
+import { GoalPerformanceModal } from "./GoalPerformanceModal";
+import { fetchGoalPerformanceData } from "@/lib/services/goalPerformanceService";
 import { budgetUtilizationService, BudgetSummary } from "@/lib/services/budgetUtilizationService";
 
 // API Utils
@@ -99,6 +101,9 @@ export function ClientReports({ clientId }: ClientReportsProps) {
   const [selectedBudgetPlan, setSelectedBudgetPlan] = useState<BudgetSettings | null>(null);
   const [budgetSummary, setBudgetSummary] = useState<BudgetSummary | null>(null);
   
+  // State for goal performance data
+  const [goalPerformanceData, setGoalPerformanceData] = useState<any[]>([]);
+  
   // Fetch active budget plan to get start date for filtering
   const { data: budgetSettings, isLoading: isLoadingBudgetSettings } = useQuery<BudgetSettings>({
     queryKey: ['/api/clients', clientId, 'budget-settings'],
@@ -147,8 +152,11 @@ export function ClientReports({ clientId }: ClientReportsProps) {
   
   // Add budget start date to the report data for filtering in child components
   useEffect(() => {
-    if (reportData && selectedBudgetPlan?.createdAt) {
-      reportData.budgetStartDate = selectedBudgetPlan.createdAt;
+    if (reportData && selectedBudgetPlan && selectedBudgetPlan.createdAt) {
+      // Convert to Date object if it's a string
+      reportData.budgetStartDate = typeof selectedBudgetPlan.createdAt === 'string'
+        ? new Date(selectedBudgetPlan.createdAt)
+        : selectedBudgetPlan.createdAt;
     }
   }, [reportData, selectedBudgetPlan]);
   
@@ -182,6 +190,37 @@ export function ClientReports({ clientId }: ClientReportsProps) {
       fetchBudgetSummary();
     }
   }, [clientId]);
+  
+  // Fetch goal performance data for the GoalPerformanceModal
+  useEffect(() => {
+    // Make sure we have a client ID and a valid budget start date
+    if (clientId && selectedBudgetPlan && selectedBudgetPlan.createdAt) {
+      const fetchGoalData = async () => {
+        try {
+          console.log("Fetching goal performance data for client:", clientId);
+          
+          // Get budget dates for filtering - ensure we have a valid date
+          // Ensure we have a valid Date object for budget start date
+          const createdAtDate = typeof selectedBudgetPlan.createdAt === 'string' 
+            ? new Date(selectedBudgetPlan.createdAt)
+            : selectedBudgetPlan.createdAt;
+            
+          const budgetStartDate = createdAtDate ?? new Date();
+          const budgetEndDate = new Date(); // Current date
+          
+          // Fetch goal performance data - convert clientId to string
+          const goals = await fetchGoalPerformanceData(String(clientId), budgetStartDate, budgetEndDate);
+          console.log("Goal performance data:", goals);
+          
+          setGoalPerformanceData(goals);
+        } catch (error) {
+          console.error("Error fetching goal performance data:", error);
+        }
+      };
+      
+      fetchGoalData();
+    }
+  }, [clientId, selectedBudgetPlan]);
   
   const openModal = (modalName: string) => {
     setActiveModal(modalName);
@@ -463,17 +502,18 @@ export function ClientReports({ clientId }: ClientReportsProps) {
         </div>
       </ReportModal>
       
-      {/* Goals Modal */}
-      <ReportModal
-        isOpen={activeModal === 'goals'}
-        onClose={closeModal}
-        title="Goals & Milestones"
-        description="Tracking progress on therapeutic goals and objectives"
-      >
-        <div className="text-center py-12 text-muted-foreground">
-          Goal progression details would be displayed here
-        </div>
-      </ReportModal>
+      {/* Goals Modal - Using Enhanced GoalPerformanceModal */}
+      {selectedBudgetPlan?.createdAt && (
+        <GoalPerformanceModal
+          isOpen={activeModal === 'goals'}
+          onClose={closeModal}
+          goals={goalPerformanceData}
+          budgetStartDate={typeof selectedBudgetPlan.createdAt === 'string' 
+            ? new Date(selectedBudgetPlan.createdAt) 
+            : selectedBudgetPlan.createdAt}
+          budgetEndDate={new Date()} // Current date as the end date
+        />
+      )}
       
       {/* Observations Modal */}
       <ReportModal
@@ -831,8 +871,7 @@ function StrategiesSection({ data, strategiesData }: {
   );
 }
 
-// Import the GoalPerformanceModal
-import { GoalPerformanceModal } from './GoalPerformanceModal';
+// GoalPerformanceModal is already imported at the top of the file
 
 // Define interface for a strategy
 interface Strategy {
@@ -1628,13 +1667,19 @@ function GoalsSection({ data }: { data?: ClientReportData }) {
             (Type: {typeof data?.budgetStartDate})
           </div>
           <GoalPerformanceModal
-            open={isModalOpen}
-            onOpenChange={setIsModalOpen}
-            goalId={selectedGoalId}
-            goalTitle={selectedGoal.title}
-            goalDescription={selectedGoal.description}
-            subgoals={goalSubgoals[selectedGoalId] || []}
-            budgetStartDate={data?.budgetStartDate}
+            isOpen={isModalOpen}
+            onClose={() => setIsModalOpen(false)}
+            goals={[{ 
+              id: String(selectedGoalId), 
+              title: selectedGoal.title, 
+              description: selectedGoal.description,
+              score: 8.5, // Default score, this would be set properly with real data
+              lastMonthScore: 7.8, // Default score, this would be set properly with real data
+              performanceData: [],
+              milestones: []
+            }]}
+            budgetStartDate={data?.budgetStartDate ? new Date(data.budgetStartDate) : new Date()}
+            budgetEndDate={new Date()}
           />
         </>
       )}
