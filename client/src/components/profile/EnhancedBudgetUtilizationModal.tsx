@@ -16,6 +16,7 @@ import {
   CheckCircle
 } from "lucide-react";
 import { BudgetSpendingChart } from "./BudgetSpendingChart";
+import { BudgetSpeedometer } from "./BudgetSpeedometer";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
@@ -264,31 +265,14 @@ export function EnhancedBudgetUtilizationModal({
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Left column - Budget utilization circle */}
                 <div className="flex flex-col items-center justify-center">
-                  <div className="relative h-48 w-48">
-                    {/* Budget utilization donut chart */}
-                    <div className="absolute inset-0 rounded-full bg-gray-100"></div>
-                    <div 
-                      className="absolute inset-0 rounded-full bg-primary"
-                      style={{ 
-                        clipPath: `polygon(0 0, 100% 0, 100% ${summary.utilizationPercentage}%, 0 ${summary.utilizationPercentage}%)`,
-                        transform: 'rotate(-90deg)',
-                        transformOrigin: 'center' 
-                      }}
-                    ></div>
-                    <div className="absolute inset-0 flex flex-col items-center justify-center">
-                      <div className="text-3xl font-bold">{formatPercentage(summary.utilizationPercentage)}</div>
-                      <div className="text-sm text-gray-500">of budget used</div>
-                      
-                      {/* Health status badge */}
-                      <div className={cn(
-                        "flex items-center mt-2 px-2 py-1 rounded-full text-xs",
-                        healthStatus.color, 
-                        "bg-opacity-20"
-                      )}>
-                        {healthStatus.icon}
-                        <span>{healthStatus.status}</span>
-                      </div>
-                    </div>
+                  <div className="h-48 w-48 flex items-center justify-center">
+                    {/* Budget utilization speedometer */}
+                    <BudgetSpeedometer 
+                      actualPercentage={summary.utilizationPercentage}
+                      projectedPercentage={summary.utilizationPercentage * (summary.totalDays / summary.daysElapsed)}
+                      timeElapsedPercentage={(summary.daysElapsed / Math.max(1, summary.totalDays)) * 100}
+                      size={200}
+                    />
                   </div>
                   
                   <div className="mt-4 text-center">
