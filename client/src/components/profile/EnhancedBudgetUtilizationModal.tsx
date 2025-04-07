@@ -258,7 +258,7 @@ export function EnhancedBudgetUtilizationModal({
             <div className="p-6 border-b">
               <h3 className="text-lg font-medium mb-4">Budget Overview</h3>
               
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Left column - Budget utilization circle */}
                 <div className="flex flex-col items-center justify-center">
                   <div className="relative h-48 w-48">
@@ -296,7 +296,7 @@ export function EnhancedBudgetUtilizationModal({
                   </div>
                 </div>
                 
-                {/* Middle column - Budget metrics */}
+                {/* Right column - Budget metrics */}
                 <div className="space-y-4">
                   <div className="border rounded-lg p-4">
                     <div className="flex justify-between mb-1">
@@ -341,46 +341,6 @@ export function EnhancedBudgetUtilizationModal({
                         <div>Elapsed: {summary.daysElapsed} days</div>
                         <div>{formatPercentage((summary.daysElapsed / Math.max(1, summary.totalDays)) * 100)}</div>
                       </div>
-                    </div>
-                  </div>
-                </div>
-                
-                {/* Right column - Spending metrics */}
-                <div className="space-y-4">
-                  <div className="border rounded-lg p-4">
-                    <div className="text-sm text-gray-500">Daily Budget</div>
-                    <div className="text-xl font-bold">{formatCurrency(summary.dailyBudget)}</div>
-                    <div className="text-xs text-gray-500">Target daily allocation</div>
-                  </div>
-                  
-                  <div className="border rounded-lg p-4">
-                    <div className="text-sm text-gray-500">Daily Spending</div>
-                    <div className={cn("text-xl font-bold", spendingRateStatus.color)}>
-                      {formatCurrency(summary.dailySpendRate)}
-                    </div>
-                    <div className="text-xs flex items-center mt-1">
-                      {summary.dailySpendRate > summary.dailyBudget ? (
-                        <TrendingUp className="w-3 h-3 text-red-500 mr-1" />
-                      ) : (
-                        <TrendingDown className="w-3 h-3 text-green-500 mr-1" />
-                      )}
-                      <span className={spendingRateStatus.color}>{spendingRateStatus.label}</span>
-                    </div>
-                  </div>
-                  
-                  <div className="border rounded-lg p-4">
-                    <div className="text-sm text-gray-500">Projected Status</div>
-                    <div className="text-xl font-bold">
-                      {summary.projectedOverspend ? (
-                        <span className="text-red-600">-{formatCurrency(summary.projectedOverspend)}</span>
-                      ) : (
-                        <span className="text-green-600">+{formatCurrency(summary.remainingBudget)}</span>
-                      )}
-                    </div>
-                    <div className="text-xs text-gray-500">
-                      {summary.projectedOverspend ? 
-                        "Projected deficit at current rate" : 
-                        "Projected remaining at end date"}
                     </div>
                   </div>
                 </div>
