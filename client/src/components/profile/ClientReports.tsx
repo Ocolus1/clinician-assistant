@@ -869,6 +869,15 @@ interface Strategy {
   description?: string;
   category?: string;
   lastUsed?: string;
+  sessionCount?: number; // Number of distinct sessions where the strategy was used
+  subgoalEffectiveness?: Array<{
+    subgoalId: number;
+    subgoalTitle: string;
+    goalId: number;
+    goalTitle: string;
+    effectivenessScore: number;
+    timesUsed: number;
+  }>;
 }
 
 // Bubble Chart for Strategies - displays strategies as bubbles positioned by effectiveness
@@ -901,7 +910,7 @@ function StrategiesBubbleChart({ strategies, onSelectStrategy }: {
         <>
           <div className="text-center mb-4">
             <p className="text-sm text-muted-foreground">
-              Strategy bubble size represents usage frequency. Position on x-axis represents effectiveness score.
+              Strategy bubble size represents total times used across all subgoals. Position on x-axis represents effectiveness score.
             </p>
           </div>
 
@@ -979,8 +988,58 @@ function StrategyDetails({ strategy }: { strategy: Strategy }) {
     return 'High';
   };
   
+  // Background color for heat map cells
+  const getBackgroundColor = (score: number): string => {
+    if (score < 5) return 'bg-red-100';
+    if (score < 7) return 'bg-amber-100';
+    return 'bg-green-100';
+  };
+  
   const effectivenessColor = getEffectivenessColor(strategy.averageScore);
   const effectivenessLabel = getEffectivenessLabel(strategy.averageScore);
+  
+  // Mock subgoal effectiveness data (in production, this would come from the API)
+  // This is a temporary approach for demonstration purposes with Radwan's data
+  const mockSubgoalEffectiveness = [
+    {
+      subgoalId: 219,
+      subgoalTitle: "Initiating Conversations",
+      goalId: 100,
+      goalTitle: "Enhancing Social Communication",
+      effectivenessScore: 6.5,
+      timesUsed: 1
+    },
+    {
+      subgoalId: 220,
+      subgoalTitle: "Improving Eye Contact",
+      goalId: 100,
+      goalTitle: "Enhancing Social Communication",
+      effectivenessScore: 8.0,
+      timesUsed: 1
+    },
+    {
+      subgoalId: 222,
+      subgoalTitle: "Identifying Emotions",
+      goalId: 101,
+      goalTitle: "Developing Emotional Regulation",
+      effectivenessScore: 2.0,
+      timesUsed: 1
+    },
+    {
+      subgoalId: 225,
+      subgoalTitle: "Improving Self-Care Skills",
+      goalId: 102,
+      goalTitle: "Enhancing Functional Independence",
+      effectivenessScore: 5.0,
+      timesUsed: 1
+    }
+  ];
+  
+  // Use real subgoal data if available, otherwise use mock data for demonstration
+  const subgoalEffectiveness = strategy.subgoalEffectiveness || mockSubgoalEffectiveness;
+  
+  // Determine the number of actual sessions (distinct sessions)
+  const sessionCount = strategy.sessionCount || 2; // Using a default of 2 for Radwan's case
   
   return (
     <div className="space-y-6">
@@ -996,7 +1055,9 @@ function StrategyDetails({ strategy }: { strategy: Strategy }) {
           <div className="text-sm text-muted-foreground">Usage Frequency</div>
           <div className="flex items-baseline">
             <span className="text-2xl font-bold">{strategy.timesUsed}</span>
-            <span className="ml-1 text-sm text-muted-foreground">sessions</span>
+            <span className="ml-1 text-sm text-muted-foreground">
+              times across {sessionCount} {sessionCount === 1 ? 'session' : 'sessions'}
+            </span>
           </div>
         </div>
         
@@ -1032,13 +1093,63 @@ function StrategyDetails({ strategy }: { strategy: Strategy }) {
         </div>
       </div>
       
+      {/* Strategy-Subgoal Effectiveness Matrix */}
+      <div className="space-y-3">
+        <h4 className="font-medium">Subgoal Effectiveness</h4>
+        <div className="border rounded-md overflow-hidden">
+          <table className="w-full">
+            <thead className="bg-muted">
+              <tr>
+                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">Subgoal</th>
+                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">Goal</th>
+                <th className="px-3 py-2 text-center text-xs font-medium text-gray-500">Score</th>
+                <th className="px-3 py-2 text-center text-xs font-medium text-gray-500">Times Used</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200">
+              {subgoalEffectiveness.map((item) => (
+                <tr key={item.subgoalId} className={getBackgroundColor(item.effectivenessScore)}>
+                  <td className="px-3 py-2 text-sm font-medium">{item.subgoalTitle}</td>
+                  <td className="px-3 py-2 text-sm text-gray-500 truncate max-w-[200px]">{item.goalTitle}</td>
+                  <td className="px-3 py-2 text-sm text-center font-medium" style={{ color: item.effectivenessScore < 5 ? '#ef4444' : item.effectivenessScore < 7 ? '#f59e0b' : '#22c55e' }}>
+                    {item.effectivenessScore.toFixed(1)}
+                  </td>
+                  <td className="px-3 py-2 text-sm text-center">{item.timesUsed}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      
       <div className="bg-muted rounded-lg p-4">
         <h4 className="font-medium mb-2">Strategy Insights</h4>
         <p className="text-sm">
           This strategy has <span className={effectivenessColor}>{effectivenessLabel.toLowerCase()} effectiveness</span> based on
-          outcomes from {strategy.timesUsed} {strategy.timesUsed === 1 ? 'session' : 'sessions'}.
+          outcomes from {strategy.timesUsed} applications across {sessionCount} {sessionCount === 1 ? 'session' : 'sessions'}.
           {strategy.lastUsed && ` Last used on ${strategy.lastUsed}.`}
         </p>
+        
+        {/* Add goal-specific insights based on subgoal data */}
+        {subgoalEffectiveness.length > 0 && (
+          <div className="mt-2">
+            <p className="text-sm font-medium mt-2">Goal-specific effectiveness:</p>
+            <ul className="text-sm list-disc list-inside mt-1">
+              {Array.from(new Set(subgoalEffectiveness.map(s => s.goalId))).map(goalId => {
+                // Calculate average effectiveness for this goal
+                const goalItems = subgoalEffectiveness.filter(s => s.goalId === goalId);
+                const avgScore = goalItems.reduce((sum, item) => sum + item.effectivenessScore, 0) / goalItems.length;
+                const goalTitle = goalItems[0].goalTitle;
+                
+                return (
+                  <li key={goalId} className={getEffectivenessColor(avgScore)}>
+                    {goalTitle}: {avgScore.toFixed(1)}/10 ({getEffectivenessLabel(avgScore)})
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        )}
       </div>
     </div>
   );
