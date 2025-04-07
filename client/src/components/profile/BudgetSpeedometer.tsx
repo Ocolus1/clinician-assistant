@@ -103,22 +103,23 @@ export function BudgetSpeedometer({
         <div className="text-sm text-gray-500">Budget Used</div>
       </div>
       
-      {/* Projected label */}
+      {/* Projected marker label - positioned directly on the line */}
       <div className="absolute" style={{ 
-        left: projectedX > centerX ? projectedX + 15 : projectedX - 70,
-        top: projectedY > centerY ? projectedY + 15 : projectedY - 30,
+        left: projectedX,
+        top: projectedY,
+        transform: 'translate(3px, 3px)',
         backgroundColor: "white", 
-        padding: "2px 6px", 
-        borderRadius: "4px",
+        padding: "1px 3px", 
+        borderRadius: "2px",
         border: `1px solid ${projectedColor}`,
-        fontSize: "11px",
+        fontSize: "10px",
         color: projectedColor,
         fontWeight: "bold",
         boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
-        zIndex: 10
+        zIndex: 10,
+        whiteSpace: 'nowrap'
       }}>
-        <div>Projected</div>
-        <div className="text-center">{normalizedProjected.toFixed(0)}%</div>
+        Projected {normalizedProjected.toFixed(0)}%
       </div>
     </div>
   );
