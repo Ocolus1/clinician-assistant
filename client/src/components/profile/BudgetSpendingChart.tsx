@@ -84,12 +84,28 @@ interface BudgetSpendingChartProps {
 }
 
 export function BudgetSpendingChart({ monthlySpending, totalBudget }: BudgetSpendingChartProps) {
-  // Format the date for x-axis labels
-  const formattedData = monthlySpending.map(item => ({
+  // Process the data to group by month for x-axis display
+  // First, format all data points with month labels
+  const allDataPoints = monthlySpending.map(item => ({
     ...item,
     // Create a formatted month label for the x-axis
     monthLabel: format(item.date, 'MMM yy')
   }));
+  
+  // Then create a version that only has one entry per month for the chart to use as ticks
+  // (We'll still plot all data points, but only show month labels)
+  const seenMonths = new Set();
+  const uniqueMonthData = allDataPoints.filter(item => {
+    const month = format(item.date, 'yyyy-MM');
+    if (!seenMonths.has(month)) {
+      seenMonths.add(month);
+      return true;
+    }
+    return false;
+  });
+  
+  // Use all data for plotting, but uniqueMonthData will help us determine tick intervals
+  const formattedData = allDataPoints;
   
   // Calculate max value for y-axis (with 10% padding)
   const maxValue = Math.max(
@@ -153,6 +169,15 @@ export function BudgetSpendingChart({ monthlySpending, totalBudget }: BudgetSpen
             dataKey="monthLabel" 
             tick={{ fontSize: 12 }}
             height={50}
+            // Display only month names without days to reduce clutter
+            tickFormatter={(value) => {
+              // Extract just the month from the value (e.g., "Jan 25" becomes "Jan")
+              const month = value.split(' ')[0];
+              return month;
+            }}
+            // Use only one label per month to avoid crowding
+            ticks={uniqueMonthData.map(item => item.monthLabel)}
+            interval={0}
           />
           <YAxis 
             domain={yDomain}
