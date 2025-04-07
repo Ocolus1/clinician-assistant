@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format } from 'date-fns';
 import { MilestoneDataPoint, PerformanceDataPoint } from "@/lib/services/goalPerformanceService";
 import { Separator } from '@/components/ui/separator';
-import { GoalGauge } from './GoalGauge';
+import { GoalCircle } from './GoalCircle';
 import { PerformanceBarChart } from './PerformanceBarChart';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
@@ -77,7 +77,7 @@ export function GoalPerformanceModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-[85%] max-h-[90vh] overflow-hidden">
+      <DialogContent className="sm:max-w-[75%] max-h-[90vh] overflow-hidden">
         <DialogHeader>
           <DialogTitle className="text-xl font-semibold">Goals & Milestones Progress</DialogTitle>
           <DialogDescription>
@@ -86,20 +86,21 @@ export function GoalPerformanceModal({
         </DialogHeader>
 
         <div className="flex flex-col h-full max-h-[80vh]">
-          {/* Top Section - Goal Gauges */}
+          {/* Top Section - Goal Circles */}
           <div className="py-4 border-b">
             <h3 className="text-base font-medium mb-4">Goal Performance Overview</h3>
             <div className="flex justify-center items-center gap-4 md:gap-8 flex-wrap">
               {goals.map((goal) => (
                 <div 
                   key={goal.id}
-                  className={`cursor-pointer transition-all duration-200 ${selectedGoal?.id === goal.id ? 'scale-110' : 'opacity-70 hover:opacity-100'}`}
                   onClick={() => handleGoalSelect(goal)}
                 >
-                  <GoalGauge 
+                  <GoalCircle 
                     score={goal.score} 
                     title={goal.title} 
                     isSelected={selectedGoal?.id === goal.id}
+                    onClick={() => handleGoalSelect(goal)}
+                    size="md"
                   />
                 </div>
               ))}
