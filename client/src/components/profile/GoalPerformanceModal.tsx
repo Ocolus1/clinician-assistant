@@ -194,7 +194,8 @@ export function GoalPerformanceModal({
 }: GoalPerformanceModalProps) {
   const [performanceData, setPerformanceData] = useState<GoalPerformance | null>(null);
   const months = getLast12Months();
-  const clientId = 88; // TODO: Get client ID from context or URL params
+  // Use the clientId associated with the goal or default to 88
+  const clientId = 88; // Default for backwards compatibility
   
   // Use budget start date for filtering data if available
   const filteredMonths = React.useMemo(() => progressDataService.getLast6Months(budgetStartDate), [budgetStartDate]);
@@ -258,7 +259,7 @@ export function GoalPerformanceModal({
     isLoading: isLoadingRealData,
     isError: isRealDataError
   } = useQuery({
-    queryKey: ['milestone-performance', clientId, goalId],
+    queryKey: ['milestone-performance', clientId, goalId, budgetStartDate],
     queryFn: async () => {
       if (goalId === null || !open) return null;
       
@@ -387,7 +388,7 @@ export function GoalPerformanceModal({
       const data = generatePlaceholderData(validGoalId, goalTitle, directSubgoals);
       setPerformanceData(data);
     }
-  }, [realMilestoneData, isLoadingRealData, directSubgoals, goalId, goalTitle, open]);
+  }, [realMilestoneData, isLoadingRealData, directSubgoals, goalId, goalTitle, open, filteredMonths, budgetStartDate]);
 
   // Calculate difference for current vs previous month
   const scoreDifference = performanceData 
