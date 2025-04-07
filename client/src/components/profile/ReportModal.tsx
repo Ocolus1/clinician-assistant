@@ -35,7 +35,7 @@ export function ReportModal({
 }: ReportModalProps) {
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-[700px] max-h-[85vh] flex flex-col">
+      <DialogContent className="w-[75vw] max-w-[1200px] max-h-[85vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           {description && <DialogDescription>{description}</DialogDescription>}
@@ -52,7 +52,7 @@ export function ReportModal({
             <Separator />
             <div className="mt-2">
               <h4 className="text-sm font-semibold mb-2">Details</h4>
-              <ScrollArea className="h-[200px] rounded-md border p-4">
+              <ScrollArea className="h-[300px] rounded-md border p-4">
                 {detailsContent}
               </ScrollArea>
             </div>
