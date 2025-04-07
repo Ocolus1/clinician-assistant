@@ -1000,13 +1000,6 @@ function StrategyDetails({ strategy }: { strategy: Strategy }) {
     return 'bg-green-100';
   };
   
-  // Get progress bar color for visualization
-  const getProgressBarColor = (score: number): string => {
-    if (score < 5) return 'bg-red-500';
-    if (score < 7) return 'bg-amber-500';
-    return 'bg-green-500';
-  };
-  
   const effectivenessColor = getEffectivenessColor(strategy.averageScore);
   const effectivenessLabel = getEffectivenessLabel(strategy.averageScore);
   
@@ -1097,26 +1090,6 @@ function StrategyDetails({ strategy }: { strategy: Strategy }) {
   // Determine the number of actual sessions (distinct sessions)
   const sessionCount = strategy.sessionCount || 2; // Using a default of 2 for Radwan's case
   
-  // Calculate goal-specific effectiveness metrics for visualization
-  const goalEffectiveness = Array.from(new Set(subgoalEffectiveness.map(s => s.goalId))).map(goalId => {
-    // Calculate average effectiveness for this goal
-    const goalItems = subgoalEffectiveness.filter(s => s.goalId === goalId);
-    const avgScore = goalItems.reduce((sum, item) => sum + item.effectivenessScore, 0) / goalItems.length;
-    const goalTitle = goalItems[0].goalTitle;
-    
-    return {
-      goalId,
-      goalTitle,
-      avgScore,
-      label: getEffectivenessLabel(avgScore),
-      color: getEffectivenessColor(avgScore),
-      barColor: getProgressBarColor(avgScore)
-    };
-  });
-  
-  // Sort by effectiveness (highest to lowest)
-  goalEffectiveness.sort((a, b) => b.avgScore - a.avgScore);
-  
   return (
     <div className="space-y-6">
       <div className="space-y-2">
@@ -1166,29 +1139,6 @@ function StrategyDetails({ strategy }: { strategy: Strategy }) {
           <span>Low (0-4)</span>
           <span>Moderate (5-6)</span>
           <span>High (7-10)</span>
-        </div>
-      </div>
-      
-      {/* Goal-specific effectiveness visualization */}
-      <div className="space-y-3">
-        <h4 className="font-medium">Goal-Specific Effectiveness</h4>
-        <div className="space-y-4">
-          {goalEffectiveness.map((goal) => (
-            <div key={goal.goalId} className="space-y-1">
-              <div className="flex justify-between items-center">
-                <span className="text-sm font-medium">{goal.goalTitle}</span>
-                <span className={`text-sm font-medium ${goal.color}`}>
-                  {goal.avgScore.toFixed(1)}/10 ({goal.label})
-                </span>
-              </div>
-              <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
-                <div 
-                  className={`h-full rounded-full transition-all duration-300 ${goal.barColor}`}
-                  style={{ width: `${(goal.avgScore / 10) * 100}%` }}
-                />
-              </div>
-            </div>
-          ))}
         </div>
       </div>
       
