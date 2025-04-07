@@ -193,7 +193,7 @@ export function BudgetSpendingChart({ monthlySpending, totalBudget }: BudgetSpen
             height={36}
           />
           
-          {/* Add a custom area for the gap between projected spending and target */}
+          {/* Add a custom area for the gap between spending and target */}
           <defs>
             <linearGradient id="colorGap" x1="0" y1="0" x2="0" y2="1">
               <stop offset="5%" stopColor="#ef4444" stopOpacity={0.15}/>
@@ -201,13 +201,10 @@ export function BudgetSpendingChart({ monthlySpending, totalBudget }: BudgetSpen
             </linearGradient>
           </defs>
           
-          {/* Create a special area that shows only for projected data */}
+          {/* First, create an area that covers all points up to the target line - this fills entire graph */}
           <Area
             type="monotone"
-            dataKey={(item) => {
-              if (!item.isProjected) return null;
-              return item.cumulativeTarget;
-            }}
+            dataKey="cumulativeTarget"
             fill="url(#colorGap)"
             stroke="none"
             activeDot={false}
@@ -216,12 +213,12 @@ export function BudgetSpendingChart({ monthlySpending, totalBudget }: BudgetSpen
             stackId="1"
           />
           
-          {/* Create a matching white area that covers from projected up to target */}
+          {/* Next, create a white area for actual spending data - this "cuts out" the red area */}
           <Area
             type="monotone"
             dataKey={(item) => {
-              if (!item.isProjected) return null;
-              return item.displayProjected; 
+              // If we have actual data, use it, otherwise use projected
+              return item.displayActual !== null ? item.displayActual : item.displayProjected;
             }}
             fill="#ffffff"
             stroke="none"
