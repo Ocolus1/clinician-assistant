@@ -59,6 +59,18 @@ export interface SessionWithProducts {
   };
 }
 
+export interface MonthlySpending {
+  month: string;
+  date: Date;
+  actualSpending: number;
+  targetSpending: number;
+  projectedSpending: number | null;
+  cumulativeActual: number;
+  cumulativeTarget: number;
+  cumulativeProjected: number | null;
+  isProjected: boolean;
+}
+
 export interface BudgetSummary {
   totalBudget: number;
   usedBudget: number;
@@ -76,6 +88,8 @@ export interface BudgetSummary {
   projectedOverspend: number | null;
   budgetItems: BudgetItem[];
   spendingEvents: SpendingEvent[];
+  monthlySpending: MonthlySpending[];
+  projectedRemainingBudget: number;
 }
 
 export const budgetUtilizationService = {
@@ -201,6 +215,30 @@ export const budgetUtilizationService = {
                              budgetSettings.planSerialNumber || 
                              `Plan from ${format(startDateObj, 'MMM yyyy')}`;
       
+      // Calculate monthly spending data for visualization
+      const monthlySpending = this.calculateMonthlySpending(
+        spendingEvents,
+        startDate,
+        endDate,
+        totalBudget
+      );
+      
+      // Calculate the projected remaining budget at the end of the plan
+      const projectedRemainingBudget = (() => {
+        // If we have no monthly data or projections, just return the current remaining budget
+        if (!monthlySpending.length) return remainingBudget;
+        
+        // Get the last month's cumulative projected spending
+        const lastMonth = monthlySpending[monthlySpending.length - 1];
+        if (lastMonth.cumulativeProjected !== null) {
+          // Return the difference between total budget and projected total spending
+          return Math.max(0, totalBudget - lastMonth.cumulativeProjected);
+        }
+        
+        // If no projection available, return current remaining budget
+        return remainingBudget;
+      })();
+      
       return {
         totalBudget,
         usedBudget,
@@ -217,7 +255,9 @@ export const budgetUtilizationService = {
         projectedEndDate,
         projectedOverspend,
         budgetItems,
-        spendingEvents
+        spendingEvents,
+        monthlySpending,
+        projectedRemainingBudget
       };
     } catch (error) {
       console.error('Error getting budget summary:', error);
@@ -334,5 +374,118 @@ export const budgetUtilizationService = {
     return events.sort((a, b) => {
       return isBefore(parseISO(a.date), parseISO(b.date)) ? 1 : -1;
     });
+  },
+  
+  /**
+   * Calculate monthly spending data for chart visualization
+   * @param spendingEvents Array of spending events
+   * @param startDate Budget plan start date
+   * @param endDate Budget plan end date
+   * @param totalBudget Total budget amount
+   * @returns Array of monthly spending data points
+   */
+  calculateMonthlySpending(
+    spendingEvents: SpendingEvent[],
+    startDate: string,
+    endDate: string,
+    totalBudget: number
+  ): MonthlySpending[] {
+    try {
+      const today = new Date();
+      const startDateObj = parseISO(startDate);
+      const endDateObj = parseISO(endDate);
+      
+      // Generate an array of months from start to end date
+      const monthlyData: MonthlySpending[] = [];
+      let currentDate = startDateObj;
+      
+      // Create a new date object on the first day of the month to avoid issues with month lengths
+      while (isBefore(currentDate, endDateObj) || format(currentDate, 'yyyy-MM') === format(endDateObj, 'yyyy-MM')) {
+        // Format the month label (e.g., "Jan 2023")
+        const monthLabel = format(currentDate, 'MMM yyyy');
+        
+        // Store the first day of the month for the date property
+        const monthDate = new Date(currentDate);
+        
+        // Add a new data point for this month
+        monthlyData.push({
+          month: monthLabel,
+          date: monthDate,
+          actualSpending: 0,
+          targetSpending: 0,
+          projectedSpending: null,
+          cumulativeActual: 0,
+          cumulativeTarget: 0,
+          cumulativeProjected: null,
+          isProjected: isAfter(currentDate, today)
+        });
+        
+        // Move to the next month
+        currentDate = addMonths(currentDate, 1);
+      }
+      
+      // Sort spending events by date (earliest first)
+      const sortedEvents = [...spendingEvents].sort((a, b) => {
+        return isBefore(parseISO(a.date), parseISO(b.date)) ? -1 : 1;
+      });
+      
+      // Calculate the target monthly budget (evenly distributed)
+      const totalMonths = monthlyData.length;
+      const monthlyBudgetTarget = totalBudget / totalMonths;
+      
+      // Assign spending amounts to each month
+      sortedEvents.forEach(event => {
+        const eventDate = parseISO(event.date);
+        const eventMonthKey = format(eventDate, 'MMM yyyy');
+        
+        // Find the corresponding month in our data array
+        const monthIndex = monthlyData.findIndex(m => m.month === eventMonthKey);
+        if (monthIndex !== -1) {
+          monthlyData[monthIndex].actualSpending += event.amount;
+        }
+      });
+      
+      // Add target budget to each month and calculate cumulative values
+      let cumulativeActual = 0;
+      let cumulativeTarget = 0;
+      
+      monthlyData.forEach((month, index) => {
+        // Set target budget for each month
+        month.targetSpending = monthlyBudgetTarget;
+        
+        // Calculate cumulative values
+        cumulativeActual += month.actualSpending;
+        cumulativeTarget += month.targetSpending;
+        
+        month.cumulativeActual = cumulativeActual;
+        month.cumulativeTarget = cumulativeTarget;
+      });
+      
+      // Calculate projected spending for future months
+      const currentMonthIndex = monthlyData.findIndex(m => 
+        format(m.date, 'yyyy-MM') === format(today, 'yyyy-MM')
+      );
+      
+      if (currentMonthIndex !== -1) {
+        // Calculate average monthly spending from actual data
+        const pastMonths = monthlyData.slice(0, currentMonthIndex + 1);
+        const totalActualSpending = pastMonths.reduce((sum, month) => sum + month.actualSpending, 0);
+        const averageMonthlySpending = totalActualSpending / Math.max(1, pastMonths.length);
+        
+        // Apply projections to future months
+        let projectedCumulative = pastMonths.reduce((sum, month) => sum + month.actualSpending, 0);
+        
+        for (let i = currentMonthIndex + 1; i < monthlyData.length; i++) {
+          monthlyData[i].projectedSpending = averageMonthlySpending;
+          projectedCumulative += averageMonthlySpending;
+          monthlyData[i].cumulativeProjected = projectedCumulative;
+        }
+      }
+      
+      return monthlyData;
+    } catch (error) {
+      console.error('Error calculating monthly spending:', error);
+      return [];
+    }
   }
 };

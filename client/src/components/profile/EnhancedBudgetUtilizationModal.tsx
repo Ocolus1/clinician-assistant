@@ -11,8 +11,11 @@ import {
   Sparkles,
   Check,
   AlertCircle,
-  Clock
+  Clock,
+  BarChart3,
+  CheckCircle
 } from "lucide-react";
+import { BudgetSpendingChart } from "./BudgetSpendingChart";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
@@ -366,66 +369,51 @@ export function EnhancedBudgetUtilizationModal({
                           </div>
                         </div>
                         
-                        {/* Simplified Spending Trajectory Visualization */}
-                        <div className="h-60 border rounded-lg p-4 relative bg-gray-50">
-                          {/* Time axis - horizontal line */}
-                          <div className="absolute bottom-8 left-0 right-0 h-0.5 bg-gray-300"></div>
-                          
-                          {/* Budget limit - horizontal dashed line */}
-                          <div className="absolute top-8 left-0 right-0 h-0.5 border-t-2 border-dashed border-gray-400"></div>
-                          <div className="absolute top-4 right-4 text-xs text-gray-600">Total Budget: {formatCurrency(summary.totalBudget)}</div>
-                          
-                          {/* Spending line - solid */}
-                          <div className="absolute bottom-8 left-8 h-32 w-0.5 bg-blue-500"></div>
-                          <div className="absolute bottom-8 left-8 w-32 h-0.5 bg-blue-500"></div>
-                          <div className="absolute bottom-[calc(2rem+8rem)] left-[calc(2rem+8rem)] w-3 h-3 rounded-full bg-blue-500"></div>
-                          <div className="absolute bottom-[calc(2rem+8rem+0.75rem)] left-[calc(2rem+8rem+1rem)] text-xs text-blue-600">Current spending</div>
-                          
-                          {/* Projection line - dashed, trending up or down */}
-                          <div 
-                            className={cn(
-                              "absolute h-0.5 border-t-2 border-dashed",
-                              summary.projectedOverspend ? "border-red-400" : "border-green-400"
-                            )}
-                            style={{
-                              bottom: summary.projectedOverspend ? "8rem" : "calc(2rem + 8rem)",
-                              left: "calc(2rem + 8rem)",
-                              width: "12rem",
-                              transform: summary.projectedOverspend ? "rotate(-15deg)" : "rotate(15deg)",
-                              transformOrigin: "left bottom"
-                            }}
-                          ></div>
-                          
-                          {/* Projection endpoint */}
-                          <div 
-                            className={cn(
-                              "absolute w-3 h-3 rounded-full",
-                              summary.projectedOverspend ? "bg-red-400" : "bg-green-400"
-                            )}
-                            style={{
-                              bottom: summary.projectedOverspend ? "10rem" : "calc(2rem + 11rem)",
-                              left: "calc(2rem + 20rem)",
-                            }}
-                          ></div>
-                          
-                          {/* Time markers */}
-                          <div className="absolute bottom-4 left-8 text-xs text-gray-600">Start</div>
-                          <div className="absolute bottom-4 left-[calc(2rem+8rem)] text-xs text-gray-600">Now</div>
-                          <div className="absolute bottom-4 right-8 text-xs text-gray-600">End</div>
-                          
-                          {/* Text explanation of the projection */}
-                          <div className="absolute top-24 right-8 max-w-[200px] p-3 bg-white border rounded-lg shadow-sm">
-                            <div className="text-sm font-medium mb-1">
-                              {summary.projectedOverspend ? 
-                                "Projected Deficit" : 
-                                "Projected Surplus"}
+                        {/* Enhanced Monthly Spending Chart */}
+                        <div className="border rounded-lg p-4 bg-white">
+                          {summary.monthlySpending?.length > 0 ? (
+                            <>
+                              <BudgetSpendingChart 
+                                monthlySpending={summary.monthlySpending}
+                                totalBudget={summary.totalBudget}
+                              />
+                              
+                              {/* Projection summary */}
+                              <div className="mt-4 p-3 bg-gray-50 border rounded-lg">
+                                <div className="flex items-start">
+                                  <div className={cn(
+                                    "h-8 w-8 rounded-full flex items-center justify-center mr-3",
+                                    summary.projectedOverspend ? "bg-red-100" : "bg-green-100"
+                                  )}>
+                                    {summary.projectedOverspend ? (
+                                      <AlertTriangle className="h-4 w-4 text-red-600" />
+                                    ) : (
+                                      <CheckCircle className="h-4 w-4 text-green-600" />
+                                    )}
+                                  </div>
+                                  <div>
+                                    <h5 className="text-sm font-medium mb-1">
+                                      {summary.projectedOverspend ? 
+                                        "Projected Deficit" : 
+                                        "Projected Surplus"}
+                                    </h5>
+                                    <p className="text-xs text-gray-600">
+                                      {summary.projectedOverspend ? 
+                                        `At the current spending rate, funds will be depleted before the plan end date, with a projected deficit of ${formatCurrency(summary.projectedOverspend)}.` : 
+                                        `At the current spending rate, there will be approximately ${formatCurrency(summary.projectedRemainingBudget)} remaining at the end of the plan period.`}
+                                    </p>
+                                  </div>
+                                </div>
+                              </div>
+                            </>
+                          ) : (
+                            <div className="h-60 flex items-center justify-center">
+                              <div className="text-center text-gray-500">
+                                <BarChart3 className="h-12 w-12 mx-auto mb-2 text-gray-300" />
+                                <p>Not enough spending data to generate a chart</p>
+                              </div>
                             </div>
-                            <div className="text-xs text-gray-600">
-                              {summary.projectedOverspend ? 
-                                `At the current rate, funds will be depleted before the plan end date, with a projected deficit of ${formatCurrency(summary.projectedOverspend)}.` : 
-                                `At the current rate, there will be ${formatCurrency(summary.remainingBudget)} remaining at the end of the plan period.`}
-                            </div>
-                          </div>
+                          )}
                         </div>
                         
                         {/* Spending recommendations */}
