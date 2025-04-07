@@ -9,8 +9,8 @@ interface BudgetSpeedometerProps {
 }
 
 /**
- * A speedometer-style visualization for budget utilization
- * Shows actual spending vs projected spending with color-coded zones
+ * A dashboard-style gauge visualization for budget utilization
+ * Shows actual spending with color-coded zones in a clean, minimal design
  */
 export function BudgetSpeedometer({
   actualPercentage,
@@ -20,49 +20,23 @@ export function BudgetSpeedometer({
 }: BudgetSpeedometerProps) {
   // Normalize percentages to ensure they are between 0-100
   const normalizedActual = Math.min(100, Math.max(0, actualPercentage));
-  const normalizedProjected = Math.min(100, Math.max(0, projectedPercentage));
-  
-  // Calculate the variance (gap) between actual and projected
-  const variance = projectedPercentage - actualPercentage;
-  const varianceText = variance >= 0 
-    ? `${Math.abs(variance).toFixed(0)}% below target` 
-    : `${Math.abs(variance).toFixed(0)}% over target`;
-
-  // Determine colors for different states
-  const needleColor = "#3b82f6"; // Blue for the needle
-  const projectedMarkerColor = "#ef4444"; // Red for projected marker
   
   // SVG dimensions and calculations
   const centerX = size / 2;
   const centerY = size / 2;
-  const radius = size * 0.4; // Slightly smaller than half to fit markers
+  const radius = size * 0.38; // Slightly smaller than half
   
   // Convert percentages to angles
-  // 0% = -135°, 100% = 135° (270° range)
-  const startAngle = -135;
-  const endAngle = 135;
+  // 0% = -150°, 100% = 150° (300° range)
+  const startAngle = -150;
+  const endAngle = 150;
   const angleRange = endAngle - startAngle;
   
   const actualAngle = startAngle + (angleRange * normalizedActual / 100);
-  const projectedAngle = startAngle + (angleRange * normalizedProjected / 100);
-  const idealAngle = startAngle + (angleRange * timeElapsedPercentage / 100);
   
-  // Calculate needle and marker coordinates using trig
+  // Calculate needle coordinates using trig
   const needleEndX = centerX + radius * Math.cos(actualAngle * Math.PI / 180);
   const needleEndY = centerY + radius * Math.sin(actualAngle * Math.PI / 180);
-  
-  const projectedMarkerX = centerX + radius * Math.cos(projectedAngle * Math.PI / 180);
-  const projectedMarkerY = centerY + radius * Math.sin(projectedAngle * Math.PI / 180);
-
-  const idealMarkerX = centerX + radius * Math.cos(idealAngle * Math.PI / 180);
-  const idealMarkerY = centerY + radius * Math.sin(idealAngle * Math.PI / 180);
-  
-  // Define gradient stops for the gauge
-  const gradientStops = [
-    { offset: "0%", color: "#22c55e" },     // Green
-    { offset: "50%", color: "#eab308" },    // Yellow
-    { offset: "100%", color: "#ef4444" }    // Red
-  ];
   
   // Arc path for the gauge background
   const generateArcPath = (radius: number, startAngle: number, endAngle: number) => {
@@ -79,32 +53,47 @@ export function BudgetSpeedometer({
     return `M ${startX} ${startY} A ${radius} ${radius} 0 ${largeArcFlag} 1 ${endX} ${endY}`;
   };
   
+  // Determine needle color based on percentage
+  const getNeedleColor = (percentage: number) => {
+    if (percentage < 60) return "#22c55e"; // Green
+    if (percentage < 85) return "#eab308"; // Yellow
+    return "#ef4444"; // Red
+  };
+  
+  const needleColor = getNeedleColor(normalizedActual);
+  
+  // Generate colored segments for the gauge
+  const segments = [
+    { start: 0, end: 60, color: "#22c55e" },    // Green (0-60%)
+    { start: 60, end: 85, color: "#eab308" },   // Yellow (60-85%)
+    { start: 85, end: 100, color: "#ef4444" }   // Red (85-100%)
+  ];
+  
   return (
     <div className="relative" style={{ width: size, height: size }}>
       <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-        {/* Gradient definition */}
-        <defs>
-          <linearGradient id="speedometerGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-            {gradientStops.map((stop, index) => (
-              <stop key={index} offset={stop.offset} stopColor={stop.color} />
-            ))}
-          </linearGradient>
-        </defs>
+        {/* Background arc segments */}
+        {segments.map((segment, i) => {
+          const segStartAngle = startAngle + (angleRange * segment.start / 100);
+          const segEndAngle = startAngle + (angleRange * segment.end / 100);
+          
+          return (
+            <path
+              key={i}
+              d={generateArcPath(radius, segStartAngle, segEndAngle)}
+              stroke={segment.color}
+              strokeWidth={12}
+              fill="none"
+              strokeLinecap="round"
+            />
+          );
+        })}
         
-        {/* Gauge background */}
-        <path
-          d={generateArcPath(radius, startAngle, endAngle)}
-          stroke="url(#speedometerGradient)"
-          strokeWidth={10}
-          fill="none"
-          strokeLinecap="round"
-        />
-        
-        {/* Tic marks */}
-        {[0, 25, 50, 75, 100].map((percentage) => {
+        {/* Tick marks for 0, 50, and 100 */}
+        {[0, 50, 100].map((percentage) => {
           const angle = startAngle + (angleRange * percentage / 100);
-          const innerRadius = radius - 12;
-          const outerRadius = radius + 2;
+          const innerRadius = radius - 15;
+          const outerRadius = radius + 5;
           
           const innerX = centerX + innerRadius * Math.cos(angle * Math.PI / 180);
           const innerY = centerY + innerRadius * Math.sin(angle * Math.PI / 180);
@@ -124,58 +113,6 @@ export function BudgetSpeedometer({
           );
         })}
         
-        {/* Percentage labels */}
-        {[0, 25, 50, 75, 100].map((percentage) => {
-          const angle = startAngle + (angleRange * percentage / 100);
-          const labelRadius = radius + 15;
-          
-          const labelX = centerX + labelRadius * Math.cos(angle * Math.PI / 180);
-          const labelY = centerY + labelRadius * Math.sin(angle * Math.PI / 180);
-          
-          return (
-            <text
-              key={percentage}
-              x={labelX}
-              y={labelY}
-              textAnchor="middle"
-              dominantBaseline="middle"
-              fontSize="10"
-              fill="#6b7280"
-            >
-              {percentage}%
-            </text>
-          );
-        })}
-        
-        {/* Ideal position marker (time elapsed) */}
-        <circle
-          cx={idealMarkerX}
-          cy={idealMarkerY}
-          r={4}
-          fill="#6b7280"
-          stroke="#ffffff"
-          strokeWidth={1}
-        />
-        <line
-          x1={idealMarkerX}
-          y1={idealMarkerY}
-          x2={centerX}
-          y2={centerY}
-          stroke="#6b7280"
-          strokeWidth={1}
-          strokeDasharray="2,2"
-        />
-        
-        {/* Projected marker */}
-        <circle
-          cx={projectedMarkerX}
-          cy={projectedMarkerY}
-          r={5}
-          fill={projectedMarkerColor}
-          stroke="#ffffff"
-          strokeWidth={1}
-        />
-        
         {/* Needle */}
         <line
           x1={centerX}
@@ -183,7 +120,7 @@ export function BudgetSpeedometer({
           x2={needleEndX}
           y2={needleEndY}
           stroke={needleColor}
-          strokeWidth={3}
+          strokeWidth={4}
           strokeLinecap="round"
         />
         
@@ -191,23 +128,28 @@ export function BudgetSpeedometer({
         <circle
           cx={centerX}
           cy={centerY}
-          r={8}
+          r={10}
           fill={needleColor}
           stroke="#ffffff"
           strokeWidth={2}
         />
       </svg>
       
-      {/* Overlay text */}
-      <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <div className="flex flex-col items-center mt-4">
-          <div className="text-3xl font-bold text-blue-600">{normalizedActual.toFixed(0)}%</div>
-          <div className="text-sm text-gray-500">Current</div>
-          
-          <div className="text-lg font-semibold text-red-600 mt-1">{normalizedProjected.toFixed(0)}%</div>
-          <div className="text-xs text-gray-500">Projected</div>
-          
-          <div className="mt-2 text-red-600 font-bold text-sm">{varianceText}</div>
+      {/* Center percentage display */}
+      <div className="absolute inset-0 flex items-center justify-center">
+        <div className="text-3xl font-bold" style={{ color: needleColor }}>
+          {normalizedActual.toFixed(0)}%
+        </div>
+      </div>
+      
+      {/* Text below the gauge */}
+      <div className="text-center mt-2">
+        <div className="text-sm text-gray-500">
+          {projectedPercentage > 100 ? (
+            <span className="font-medium text-red-600">Projected: {Math.min(999, projectedPercentage).toFixed(0)}%</span>
+          ) : (
+            <span>Projected: {projectedPercentage.toFixed(0)}%</span>
+          )}
         </div>
       </div>
     </div>
