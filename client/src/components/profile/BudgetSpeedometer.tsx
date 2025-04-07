@@ -9,8 +9,8 @@ interface BudgetSpeedometerProps {
 }
 
 /**
- * A dashboard-style gauge visualization for budget utilization
- * Shows actual spending with color-coded zones in a clean, minimal design
+ * A clean circular progress ring for budget utilization
+ * Shows actual spending percentage with a blue ring and projected spending with a red marker
  */
 export function BudgetSpeedometer({
   actualPercentage,
@@ -20,137 +20,103 @@ export function BudgetSpeedometer({
 }: BudgetSpeedometerProps) {
   // Normalize percentages to ensure they are between 0-100
   const normalizedActual = Math.min(100, Math.max(0, actualPercentage));
+  const normalizedProjected = Math.min(100, Math.max(0, projectedPercentage));
   
   // SVG dimensions and calculations
   const centerX = size / 2;
   const centerY = size / 2;
-  const radius = size * 0.38; // Slightly smaller than half
+  const radius = size * 0.4; // Slightly smaller than half to leave room for the marker
+  const strokeWidth = size * 0.05; // Width of the progress ring
   
-  // Convert percentages to angles
-  // 0% = -150°, 100% = 150° (300° range)
-  const startAngle = -150;
-  const endAngle = 150;
-  const angleRange = endAngle - startAngle;
+  // Calculate the circumference of the circle
+  const circumference = 2 * Math.PI * radius;
   
-  const actualAngle = startAngle + (angleRange * normalizedActual / 100);
+  // Calculate the progress arc length (how much of the circle to fill)
+  const progressOffset = circumference - (normalizedActual / 100) * circumference;
   
-  // Calculate needle coordinates using trig
-  const needleEndX = centerX + radius * Math.cos(actualAngle * Math.PI / 180);
-  const needleEndY = centerY + radius * Math.sin(actualAngle * Math.PI / 180);
+  // Calculate the position of the projected marker
+  const projectedAngle = (normalizedProjected / 100) * 360 - 90; // -90 to start from the top
+  const projectedRad = projectedAngle * (Math.PI / 180);
+  const projectedX = centerX + (radius * Math.cos(projectedRad));
+  const projectedY = centerY + (radius * Math.sin(projectedRad));
   
-  // Arc path for the gauge background
-  const generateArcPath = (radius: number, startAngle: number, endAngle: number) => {
-    const startRad = startAngle * Math.PI / 180;
-    const endRad = endAngle * Math.PI / 180;
-    
-    const startX = centerX + radius * Math.cos(startRad);
-    const startY = centerY + radius * Math.sin(startRad);
-    const endX = centerX + radius * Math.cos(endRad);
-    const endY = centerY + radius * Math.sin(endRad);
-    
-    const largeArcFlag = endAngle - startAngle <= 180 ? "0" : "1";
-    
-    return `M ${startX} ${startY} A ${radius} ${radius} 0 ${largeArcFlag} 1 ${endX} ${endY}`;
-  };
-  
-  // Determine needle color based on percentage
-  const getNeedleColor = (percentage: number) => {
-    if (percentage < 60) return "#22c55e"; // Green
-    if (percentage < 85) return "#eab308"; // Yellow
-    return "#ef4444"; // Red
-  };
-  
-  const needleColor = getNeedleColor(normalizedActual);
-  
-  // Generate colored segments for the gauge
-  const segments = [
-    { start: 0, end: 60, color: "#22c55e" },    // Green (0-60%)
-    { start: 60, end: 85, color: "#eab308" },   // Yellow (60-85%)
-    { start: 85, end: 100, color: "#ef4444" }   // Red (85-100%)
-  ];
+  // Color settings
+  const progressColor = "#3b82f6"; // Blue for actual spending
+  const projectedColor = "#ef4444"; // Red for projected marker
+  const backgroundCircleColor = "#e5e7eb"; // Light gray for background
   
   return (
     <div className="relative" style={{ width: size, height: size }}>
       <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-        {/* Background arc segments */}
-        {segments.map((segment, i) => {
-          const segStartAngle = startAngle + (angleRange * segment.start / 100);
-          const segEndAngle = startAngle + (angleRange * segment.end / 100);
-          
-          return (
-            <path
-              key={i}
-              d={generateArcPath(radius, segStartAngle, segEndAngle)}
-              stroke={segment.color}
-              strokeWidth={12}
-              fill="none"
-              strokeLinecap="round"
-            />
-          );
-        })}
-        
-        {/* Tick marks for 0, 50, and 100 */}
-        {[0, 50, 100].map((percentage) => {
-          const angle = startAngle + (angleRange * percentage / 100);
-          const innerRadius = radius - 15;
-          const outerRadius = radius + 5;
-          
-          const innerX = centerX + innerRadius * Math.cos(angle * Math.PI / 180);
-          const innerY = centerY + innerRadius * Math.sin(angle * Math.PI / 180);
-          const outerX = centerX + outerRadius * Math.cos(angle * Math.PI / 180);
-          const outerY = centerY + outerRadius * Math.sin(angle * Math.PI / 180);
-          
-          return (
-            <line
-              key={percentage}
-              x1={innerX}
-              y1={innerY}
-              x2={outerX}
-              y2={outerY}
-              stroke="#374151"
-              strokeWidth={2}
-            />
-          );
-        })}
-        
-        {/* Needle */}
-        <line
-          x1={centerX}
-          y1={centerY}
-          x2={needleEndX}
-          y2={needleEndY}
-          stroke={needleColor}
-          strokeWidth={4}
-          strokeLinecap="round"
-        />
-        
-        {/* Center of the gauge */}
+        {/* Background circle */}
         <circle
           cx={centerX}
           cy={centerY}
-          r={10}
-          fill={needleColor}
+          r={radius}
+          fill="none"
+          stroke={backgroundCircleColor}
+          strokeWidth={strokeWidth}
+        />
+        
+        {/* Progress circle */}
+        <circle
+          cx={centerX}
+          cy={centerY}
+          r={radius}
+          fill="none"
+          stroke={progressColor}
+          strokeWidth={strokeWidth}
+          strokeLinecap="round"
+          strokeDasharray={circumference}
+          strokeDashoffset={progressOffset}
+          transform={`rotate(-90 ${centerX} ${centerY})`} // Start from the top
+        />
+        
+        {/* Projected marker */}
+        <circle
+          cx={projectedX}
+          cy={projectedY}
+          r={strokeWidth * 0.9}
+          fill={projectedColor}
           stroke="#ffffff"
-          strokeWidth={2}
+          strokeWidth={1}
+        />
+        
+        {/* Projected marker line */}
+        <line
+          x1={centerX}
+          y1={centerY}
+          x2={projectedX}
+          y2={projectedY}
+          stroke={projectedColor}
+          strokeWidth={1}
+          strokeDasharray="2,2"
+          opacity={0.5}
         />
       </svg>
       
       {/* Center percentage display */}
-      <div className="absolute inset-0 flex items-center justify-center">
-        <div className="text-3xl font-bold" style={{ color: needleColor }}>
+      <div className="absolute inset-0 flex flex-col items-center justify-center">
+        <div className="text-4xl font-bold text-gray-800">
           {normalizedActual.toFixed(0)}%
         </div>
+        <div className="text-sm text-gray-500">Budget Used</div>
       </div>
       
-      {/* Text below the gauge */}
-      <div className="text-center mt-2">
-        <div className="text-sm text-gray-500">
-          {projectedPercentage > 100 ? (
-            <span className="font-medium text-red-600">Projected: {Math.min(999, projectedPercentage).toFixed(0)}%</span>
-          ) : (
-            <span>Projected: {projectedPercentage.toFixed(0)}%</span>
-          )}
-        </div>
+      {/* Projected label */}
+      <div className="absolute" style={{ 
+        left: projectedX > centerX ? projectedX + 5 : projectedX - 45,
+        top: projectedY - 10,
+        backgroundColor: "white", 
+        padding: "2px 4px", 
+        borderRadius: "2px",
+        border: `1px solid ${projectedColor}`,
+        fontSize: "11px",
+        color: projectedColor,
+        fontWeight: "bold",
+        zIndex: 10
+      }}>
+        {normalizedProjected.toFixed(0)}%
       </div>
     </div>
   );
