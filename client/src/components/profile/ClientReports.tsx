@@ -37,6 +37,8 @@ import {
   TooltipTrigger
 } from "@/components/ui/tooltip";
 import { ReportModal } from "./ReportModal";
+import { BudgetUtilizationModal } from "./BudgetUtilizationModal";
+import { budgetUtilizationService, BudgetSummary } from "@/lib/services/budgetUtilizationService";
 
 // API Utils
 import { apiRequest } from "@/lib/queryClient";
@@ -401,85 +403,15 @@ export function ClientReports({ clientId }: ClientReportsProps) {
         </Card>
       </div>
 
-      {/* Budget Modal */}
-      <ReportModal
-        isOpen={activeModal === 'budget'}
-        onClose={closeModal}
-        title="Budget Utilisation"
-        description="Detailed view of budget usage across all service items"
-        detailsContent={
-          <div className="space-y-4">
-            <h3 className="font-medium">Budget Item Detailed Usage</h3>
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b">
-                  <th className="text-left pb-2">Item</th>
-                  <th className="text-right pb-2">Used</th>
-                  <th className="text-right pb-2">Allocated</th>
-                  <th className="text-right pb-2">%</th>
-                </tr>
-              </thead>
-              <tbody>
-                {reportData?.budgetItems?.map((item: {name: string, used: number, allocated: number, percentage: number}, index: number) => (
-                  <tr key={index} className="border-b last:border-0">
-                    <td className="py-2">{item.name}</td>
-                    <td className="text-right py-2">{formatCurrency(item.used)}</td>
-                    <td className="text-right py-2">{formatCurrency(item.allocated)}</td>
-                    <td className="text-right py-2">{item.percentage}%</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        }
-      >
-        <div className="space-y-6">
-          <div className="grid grid-cols-3 gap-4">
-            <div className="bg-muted rounded-lg p-4">
-              <div className="text-xs text-muted-foreground">Total Budget</div>
-              <div className="font-bold text-xl">{formatCurrency(reportData?.keyMetrics?.totalFunds || 0)}</div>
-            </div>
-            <div className="bg-muted rounded-lg p-4">
-              <div className="text-xs text-muted-foreground">Used Amount</div>
-              <div className="font-bold text-xl">{formatCurrency(reportData?.keyMetrics?.usedFunds || 0)}</div>
-            </div>
-            <div className="bg-muted rounded-lg p-4">
-              <div className="text-xs text-muted-foreground">Remaining</div>
-              <div className="font-bold text-xl">{formatCurrency((reportData?.keyMetrics?.totalFunds || 0) - (reportData?.keyMetrics?.usedFunds || 0))}</div>
-            </div>
-          </div>
-          
-          <div>
-            <div className="flex justify-between items-center mb-2">
-              <h3 className="font-medium">Overall Utilization</h3>
-              <span className="font-medium">{(reportData?.keyMetrics?.utilizationRate || 0) * 100}%</span>
-            </div>
-            <Progress 
-              value={(reportData?.keyMetrics?.utilizationRate || 0) * 100} 
-              className="h-3"
-            />
-          </div>
-          
-          <div>
-            <h3 className="font-medium mb-4">Monthly Spending Trend</h3>
-            {reportData?.spendingTrend && reportData.spendingTrend.length > 0 ? (
-              <ResponsiveContainer width="100%" height={200}>
-                <BarChart data={reportData.spendingTrend}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="month" />
-                  <YAxis />
-                  <RechartsTooltip />
-                  <Bar dataKey="amount" fill={COLORS.blue} />
-                </BarChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="text-center text-muted-foreground py-10">
-                No spending trend data available
-              </div>
-            )}
-          </div>
-        </div>
-      </ReportModal>
+      {/* Budget Utilization Modal */}
+      <BudgetUtilizationModal
+        open={activeModal === 'budget'}
+        onOpenChange={(open) => {
+          if (!open) closeModal();
+        }}
+        clientId={clientId}
+        isLoading={isLoadingBudgetSettings || reportQuery.isLoading}
+      />
 
       {/* Add more modals for other reports */}
       {/* For brevity, only the first modal is fully implemented */}
