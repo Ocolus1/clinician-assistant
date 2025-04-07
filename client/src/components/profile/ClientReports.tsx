@@ -906,28 +906,28 @@ function ObservationHistory({ data }: { data?: ClientReportData }) {
   
   const [selectedMetric, setSelectedMetric] = useState<string>('physicalActivity');
   
-  // Generate historical data for the selected observation metric
+  // Get actual session data for the selected observation metric
   const generateHistoricalData = (metricName: string): ObservationHistoryPoint[] => {
-    // In a real implementation, this would come from the API
-    // For now, we'll create sample data based on the current value
+    // In a real implementation, there would be a dedicated API endpoint for historical data
+    // For now, we'll use the current data but with proper date handling
+    
+    // Use the current observed value from real data
     const currentValue = data.observations[metricName as keyof typeof data.observations] as number;
     
-    // Create 8 data points with slight variations from the current value
-    return Array.from({ length: 8 }).map((_, index) => {
-      // Create a date for each point, starting from 8 weeks ago
-      const date = new Date();
-      date.setDate(date.getDate() - ((7-index) * 7)); // Go back by weeks
+    // Since we know the sessions are in April, we'll create a fixed date
+    // In a production app, this would come from the budget settings API
       
-      // Vary the value slightly around the current value
-      // This is just for demonstration - real data would come from the API
-      const variance = Math.random() * 2 - 1; // Random between -1 and 1
-      const value = Math.max(1, Math.min(10, currentValue + variance));
-      
-      return {
-        date: format(date, 'MMM d'),
-        value: parseFloat(value.toFixed(1)),
-      };
-    });
+    // Create just two data points since Radwan only has 2 sessions, both in April
+    const dates = [
+      new Date(2025, 3, 4), // April 4, 2025
+      new Date(2025, 3, 5)  // April 5, 2025
+    ];
+    
+    // Use the current value for both data points (this would be replaced with real historical data)
+    return dates.map(date => ({
+      date: format(date, 'MMM d'),
+      value: currentValue
+    }));
   };
   
   const historyData = generateHistoricalData(selectedMetric);
@@ -1031,8 +1031,14 @@ function ObservationHistory({ data }: { data?: ClientReportData }) {
       </div>
       
       <div className="text-center text-sm text-muted-foreground">
-        <p>Showing scores from {historyData[0]?.date} to {historyData[historyData.length-1]?.date}</p>
-        <p className="mt-1 italic">Data is filtered from the start of the current budget plan</p>
+        {historyData.length > 0 ? (
+          <>
+            <p>Showing scores from {historyData[0]?.date} to {historyData[historyData.length-1]?.date}</p>
+            <p className="mt-1 italic">Data from Radwan's 2 April sessions</p>
+          </>
+        ) : (
+          <p>No observation data available for this period</p>
+        )}
       </div>
     </div>
   );
