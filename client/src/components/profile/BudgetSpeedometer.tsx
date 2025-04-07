@@ -105,18 +105,20 @@ export function BudgetSpeedometer({
       
       {/* Projected label */}
       <div className="absolute" style={{ 
-        left: projectedX > centerX ? projectedX + 5 : projectedX - 45,
-        top: projectedY - 10,
+        left: projectedX > centerX ? projectedX + 15 : projectedX - 70,
+        top: projectedY > centerY ? projectedY + 15 : projectedY - 30,
         backgroundColor: "white", 
-        padding: "2px 4px", 
-        borderRadius: "2px",
+        padding: "2px 6px", 
+        borderRadius: "4px",
         border: `1px solid ${projectedColor}`,
         fontSize: "11px",
         color: projectedColor,
         fontWeight: "bold",
+        boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
         zIndex: 10
       }}>
-        {normalizedProjected.toFixed(0)}%
+        <div>Projected</div>
+        <div className="text-center">{normalizedProjected.toFixed(0)}%</div>
       </div>
     </div>
   );
