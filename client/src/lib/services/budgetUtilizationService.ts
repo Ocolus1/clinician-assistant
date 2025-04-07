@@ -21,12 +21,14 @@ export interface BudgetItem {
 export interface BudgetSettings {
   id: number;
   clientId: number;
-  planName: string;
+  planName?: string;
   planCode: string | null;
   planSerialNumber: string;
-  startDate: string;
-  endDate: string;
-  totalFunds: string;
+  startDate?: string;
+  endDate?: string;
+  endOfPlan?: string;
+  totalFunds?: string;
+  ndisFunds?: string;
   isActive: boolean;
   createdAt: string;
 }
@@ -100,7 +102,18 @@ export const budgetUtilizationService = {
       const spendingEvents = this.calculateSpendingEvents(sessions, budgetItems);
       
       // Calculate the total budget
-      const totalBudget = this.calculateTotalBudget(budgetItems);
+      // First check if there's a totalFunds or ndisFunds field in budgetSettings
+      let totalBudget = 0;
+      
+      // If we have totalFunds or ndisFunds, use that
+      if (budgetSettings.totalFunds) {
+        totalBudget = parseFloat(budgetSettings.totalFunds);
+      } else if (budgetSettings.ndisFunds) {
+        totalBudget = parseFloat(budgetSettings.ndisFunds);
+      } else {
+        // Otherwise calculate from budget items
+        totalBudget = this.calculateTotalBudget(budgetItems);
+      }
       
       // Calculate the used budget
       const usedBudget = this.calculateUsedBudget(budgetItems);
@@ -111,9 +124,16 @@ export const budgetUtilizationService = {
       // Calculate utilization percentage
       const utilizationPercentage = (usedBudget / totalBudget) * 100;
       
-      // Parse dates
-      const startDate = budgetSettings.startDate;
-      const endDate = budgetSettings.endDate;
+      // Parse dates - map from the actual API fields to our expected fields
+      const startDate = budgetSettings.startDate || budgetSettings.createdAt;
+      const endDate = budgetSettings.endDate || budgetSettings.endOfPlan;
+      
+      // Add logging for debugging
+      console.log("Using dates for budget calculations:", { 
+        startDate, 
+        endDate, 
+        originalData: budgetSettings 
+      });
       
       // Calculate days
       const today = new Date();
@@ -155,6 +175,11 @@ export const budgetUtilizationService = {
         }
       }
       
+      // Get a meaningful plan name from available data
+      const planPeriodName = budgetSettings.planName || 
+                             budgetSettings.planSerialNumber || 
+                             `Plan from ${format(startDateObj, 'MMM yyyy')}`;
+      
       return {
         totalBudget,
         usedBudget,
@@ -165,7 +190,7 @@ export const budgetUtilizationService = {
         remainingDays,
         daysElapsed,
         totalDays,
-        planPeriodName: budgetSettings.planName,
+        planPeriodName,
         dailyBudget,
         dailySpendRate,
         projectedEndDate,
