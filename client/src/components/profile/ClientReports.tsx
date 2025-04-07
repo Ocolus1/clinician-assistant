@@ -156,7 +156,22 @@ export function ClientReports({ clientId }: ClientReportsProps) {
     if (clientId) {
       const fetchBudgetSummary = async () => {
         try {
+          console.log("Fetching budget summary for client:", clientId);
+          
+          // First, let's check what API endpoints are returning
+          const budgetItems = await budgetUtilizationService.fetchBudgetItems(clientId);
+          console.log("Budget items:", budgetItems);
+          
+          const budgetSettings = await budgetUtilizationService.fetchBudgetSettings(clientId);
+          console.log("Budget settings:", budgetSettings);
+          
+          const sessions = await budgetUtilizationService.fetchClientSessions(clientId);
+          console.log("Client sessions:", sessions);
+          
+          // Now get the full budget summary
           const summary = await budgetUtilizationService.getBudgetSummary(clientId);
+          console.log("Final budget summary:", summary);
+          
           setBudgetSummary(summary);
         } catch (error) {
           console.error("Error fetching budget summary:", error);
