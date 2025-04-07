@@ -1,7 +1,7 @@
 import React from 'react';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, 
-  ResponsiveContainer, ReferenceLine, Area, ComposedChart
+  ResponsiveContainer, ReferenceLine, Area, ComposedChart, ReferenceArea
 } from 'recharts';
 import { format, parseISO } from 'date-fns';
 import { MonthlySpending } from '@/lib/services/budgetUtilizationService';
@@ -193,7 +193,44 @@ export function BudgetSpendingChart({ monthlySpending, totalBudget }: BudgetSpen
             height={36}
           />
           
-          {/* Target budget line */}
+          {/* Add a custom area for the gap between projected spending and target */}
+          <defs>
+            <linearGradient id="colorGap" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor="#ef4444" stopOpacity={0.15}/>
+              <stop offset="95%" stopColor="#ef4444" stopOpacity={0.15}/>
+            </linearGradient>
+          </defs>
+          
+          {/* Create a special area that shows only for projected data */}
+          <Area
+            type="monotone"
+            dataKey={(item) => {
+              if (!item.isProjected) return null;
+              return item.cumulativeTarget;
+            }}
+            fill="url(#colorGap)"
+            stroke="none"
+            activeDot={false}
+            legendType="none"
+            name="Budget Gap"
+            stackId="1"
+          />
+          
+          {/* Create a matching white area that covers from projected up to target */}
+          <Area
+            type="monotone"
+            dataKey={(item) => {
+              if (!item.isProjected) return null;
+              return item.displayProjected; 
+            }}
+            fill="#ffffff"
+            stroke="none"
+            activeDot={false}
+            legendType="none"
+            stackId="1"
+          />
+          
+          {/* Target budget line (goes on top of area) */}
           <Line
             type="monotone"
             dataKey="cumulativeTarget"
@@ -202,23 +239,6 @@ export function BudgetSpendingChart({ monthlySpending, totalBudget }: BudgetSpen
             strokeWidth={2}
             dot={false}
             activeDot={{ r: 6 }}
-          />
-          
-          {/* Red gap area between target budget and actual spending */}
-          <Area
-            type="monotone"
-            dataKey="cumulativeTarget"
-            fill="#ef4444"
-            fillOpacity={0.15}
-            stroke="none"
-          />
-          
-          {/* Actual spending area to create gap effect */}
-          <Area
-            type="monotone"
-            dataKey="cumulativeActual"
-            fill="#FFFFFF"
-            stroke="none"
           />
           
           {/* Actual spending line - only up to current month */}
