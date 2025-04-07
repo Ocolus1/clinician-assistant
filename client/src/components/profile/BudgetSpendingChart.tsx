@@ -26,6 +26,24 @@ const CustomTooltip = ({ active, payload, label, totalBudget }: CustomTooltipPro
     const targetData = payload.find((p: {dataKey: string}) => p.dataKey === 'cumulativeTarget');
     const projectedData = payload.find((p: {dataKey: string}) => p.dataKey === 'displayProjected');
     
+    // Try to find the date from the payload
+    const dataPoint = payload[0]?.payload;
+    let formattedDate = label;
+    if (dataPoint) {
+      if (dataPoint.exactDate) {
+        // Format as DD MMM YYYY from exactDate which is already in YYYY-MM-DD
+        try {
+          const date = parseISO(dataPoint.exactDate);
+          formattedDate = format(date, 'dd MMM yyyy');
+        } catch (e) {
+          console.error('Error parsing date', e);
+        }
+      } else if (dataPoint.date) {
+        // Fallback to date object
+        formattedDate = format(dataPoint.date, 'dd MMM yyyy');
+      }
+    }
+    
     // Calculate variance from target (if both exist)
     const variance = actualData && targetData 
       ? actualData.value - targetData.value
@@ -48,7 +66,7 @@ const CustomTooltip = ({ active, payload, label, totalBudget }: CustomTooltipPro
     
     return (
       <div className="bg-white p-3 border rounded-md shadow-md">
-        <p className="font-bold text-gray-700">{label}</p>
+        <p className="font-bold text-gray-700">{formattedDate}</p>
         <div className="mt-2 space-y-1">
           {actualData && (
             <p className="text-blue-600">
@@ -66,7 +84,7 @@ const CustomTooltip = ({ active, payload, label, totalBudget }: CustomTooltipPro
             </p>
           )}
           {variance !== null && (
-            <p className={variance > 0 ? "text-red-600" : "text-green-600"}>
+            <p className={variance > 0 ? "text-red-600 font-bold" : "text-green-600 font-bold"}>
               <span className="font-medium">Variance:</span> {variance > 0 ? "+" : ""}{formatCurrency(variance)}
               ({variance > 0 ? "over budget" : "under budget"})
             </p>
