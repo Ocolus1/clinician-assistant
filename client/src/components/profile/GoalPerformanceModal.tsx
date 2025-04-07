@@ -312,6 +312,7 @@ export function GoalPerformanceModal({
   useEffect(() => {
     if (realMilestoneData && realMilestoneData.length > 0 && open) {
       console.log(`Using REAL milestone performance data for visualization:`, realMilestoneData);
+      console.log('Using filtered months:', filteredMonths);
       
       // Create goal performance object using real milestone data
       if (goalId !== null && goalId !== undefined) {

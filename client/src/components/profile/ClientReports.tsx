@@ -1655,15 +1655,22 @@ function GoalsSection({ data }: { data?: ClientReportData }) {
       
       {/* Goal Performance Modal */}
       {selectedGoal && (
-        <GoalPerformanceModal
-          open={isModalOpen}
-          onOpenChange={setIsModalOpen}
-          goalId={selectedGoalId}
-          goalTitle={selectedGoal.title}
-          goalDescription={selectedGoal.description}
-          subgoals={goalSubgoals[selectedGoalId] || []}
-          budgetStartDate={data?.budgetStartDate}
-        />
+        <>
+          {/* Debug info */}
+          <div className="hidden">
+            Budget start date: {data?.budgetStartDate || 'Not set'} 
+            (Type: {typeof data?.budgetStartDate})
+          </div>
+          <GoalPerformanceModal
+            open={isModalOpen}
+            onOpenChange={setIsModalOpen}
+            goalId={selectedGoalId}
+            goalTitle={selectedGoal.title}
+            goalDescription={selectedGoal.description}
+            subgoals={goalSubgoals[selectedGoalId] || []}
+            budgetStartDate={data?.budgetStartDate}
+          />
+        </>
       )}
       
       {/* Debug helper - hidden from view */}

@@ -70,7 +70,8 @@ export const progressDataService = {
     
     // Generate 6 months from the starting point
     for (let i = 0; i < 6; i++) {
-      const date = subMonths(new Date(), 5 - i);
+      // Use the adjusted currentDate from above logic as starting point
+      const date = new Date(new Date(currentDate).setMonth(currentDate.getMonth() + i));
       const monthStr = format(date, "yyyy-MM");
       const displayMonth = format(date, "MMM");
       months.push({ value: monthStr, display: displayMonth });
