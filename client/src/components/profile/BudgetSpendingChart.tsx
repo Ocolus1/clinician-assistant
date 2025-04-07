@@ -193,7 +193,7 @@ export function BudgetSpendingChart({ monthlySpending, totalBudget }: BudgetSpen
             height={36}
           />
           
-          {/* Add a custom area for the gap between spending and target */}
+          {/* Custom shading approach for the gap between target and spending */}
           <defs>
             <linearGradient id="colorGap" x1="0" y1="0" x2="0" y2="1">
               <stop offset="5%" stopColor="#ef4444" stopOpacity={0.15}/>
@@ -201,31 +201,34 @@ export function BudgetSpendingChart({ monthlySpending, totalBudget }: BudgetSpen
             </linearGradient>
           </defs>
           
-          {/* First, create an area that covers all points up to the target line - this fills entire graph */}
-          <Area
-            type="monotone"
-            dataKey="cumulativeTarget"
-            fill="url(#colorGap)"
-            stroke="none"
-            activeDot={false}
-            legendType="none"
-            name="Budget Gap"
-            stackId="1"
-          />
-          
-          {/* Next, create a white area for actual spending data - this "cuts out" the red area */}
-          <Area
-            type="monotone"
-            dataKey={(item) => {
-              // If we have actual data, use it, otherwise use projected
-              return item.displayActual !== null ? item.displayActual : item.displayProjected;
-            }}
-            fill="#ffffff"
-            stroke="none"
-            activeDot={false}
-            legendType="none"
-            stackId="1"
-          />
+          {/* Use a reference area approach - create a gap between target and actual */}
+          {chartData.map((dataPoint, index) => {
+            // For each point, calculate y values for both target and spending
+            const targetValue = dataPoint.cumulativeTarget || 0;
+            
+            // For spending, use actual if available, otherwise projected
+            const spendingValue = dataPoint.displayActual !== null 
+              ? dataPoint.displayActual 
+              : (dataPoint.displayProjected !== null ? dataPoint.displayProjected : 0);
+            
+            // Only create areas where target > spending (we only want to shade the gap)
+            if (targetValue > spendingValue) {
+              return (
+                <ReferenceArea
+                  key={`gap-${index}`}
+                  x1={index > 0 ? chartData[index-1].monthLabel : dataPoint.monthLabel}
+                  x2={dataPoint.monthLabel}
+                  y1={spendingValue}
+                  y2={targetValue}
+                  fill="#ef4444"
+                  fillOpacity={0.15}
+                  stroke="none"
+                  ifOverflow="hidden"
+                />
+              );
+            }
+            return null;
+          })}
           
           {/* Target budget line (goes on top of area) */}
           <Line
