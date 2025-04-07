@@ -37,7 +37,8 @@ import {
   TooltipTrigger
 } from "@/components/ui/tooltip";
 import { ReportModal } from "./ReportModal";
-import { BudgetUtilizationModal } from "./BudgetUtilizationModal";
+// Import the simplified budget modal instead of the complex one
+import { SimpleBudgetUtilizationModal } from "./SimpleBudgetUtilizationModal";
 import { budgetUtilizationService, BudgetSummary } from "@/lib/services/budgetUtilizationService";
 
 // API Utils
@@ -435,14 +436,14 @@ export function ClientReports({ clientId }: ClientReportsProps) {
         </Card>
       </div>
 
-      {/* Budget Utilization Modal */}
-      <BudgetUtilizationModal
+      {/* Budget Utilization Modal - Using Simplified Version */}
+      <SimpleBudgetUtilizationModal
         open={activeModal === 'budget'}
         onOpenChange={(open) => {
           if (!open) closeModal();
         }}
         clientId={clientId}
-        budgetSummary={null} // Temporarily disable passing budget summary to avoid infinite loops
+        budgetSummary={null} // Fetch data within the component
         isLoading={isLoadingBudgetSettings || reportQuery.isLoading}
       />
 
