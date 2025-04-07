@@ -108,6 +108,10 @@ export function BudgetSpendingChart({ monthlySpending, totalBudget }: BudgetSpen
   );
   const yDomain = [0, maxValue * 1.1]; // Add 10% padding to the top
   
+  // Find today's index for splitting actual vs projected data
+  const todayIndex = formattedData.findIndex(item => item.isProjected);
+  const currentMonth = todayIndex > 0 ? formattedData[todayIndex - 1]?.monthLabel : null;
+  
   return (
     <div className="w-full h-[300px]">
       <ResponsiveContainer width="100%" height="100%">
@@ -146,45 +150,49 @@ export function BudgetSpendingChart({ monthlySpending, totalBudget }: BudgetSpen
             activeDot={{ r: 6 }}
           />
           
-          {/* Actual spending line */}
+          {/* Red gap area between target budget and actual spending */}
+          <Area
+            type="monotone"
+            dataKey="cumulativeTarget"
+            stroke="none"
+            fill="#ef4444"
+            fillOpacity={0.15}
+            activeDot={false}
+            baseValue="cumulativeActual"
+          />
+          
+          {/* Actual spending line - past only */}
           <Line
             type="monotone"
-            dataKey="cumulativeActual"
             name="Actual Spending"
+            dataKey={(data, index) => index <= todayIndex ? data.cumulativeActual : null}
             stroke="#3b82f6"
             strokeWidth={2}
             dot={{ r: 3 }}
             activeDot={{ r: 6 }}
+            connectNulls={false}
           />
           
-          {/* Projected spending line (dashed) */}
+          {/* Projected spending line (dashed) - future only */}
           <Line
             type="monotone"
-            dataKey="cumulativeProjected"
             name="Projected Spending"
-            stroke="#8b5cf6"
+            dataKey={(data, index) => index >= todayIndex ? data.cumulativeProjected : null}
+            stroke="#3b82f6"
             strokeWidth={2}
             strokeDasharray="5 5"
             dot={{ r: 3 }}
             activeDot={{ r: 6 }}
-          />
-          
-          {/* Spending gap area */}
-          <Area
-            type="monotone"
-            dataKey="cumulativeActual"
-            fill="#3b82f6"
-            stroke="none"
-            fillOpacity={0.1}
+            connectNulls={false}
           />
           
           {/* Current month reference line */}
-          {currentMonthIndex > 0 && (
+          {currentMonth && (
             <ReferenceLine
-              x={formattedData[currentMonthIndex]?.monthLabel}
+              x={currentMonth}
               stroke="#888"
               strokeDasharray="3 3"
-              label={{ value: "Now", position: "insideBottomLeft", fill: "#888", fontSize: 12 }}
+              label={{ value: "Today", position: "insideBottomLeft", fill: "#888", fontSize: 12 }}
             />
           )}
           
