@@ -340,26 +340,42 @@ export const budgetUtilizationService = {
   calculateSpendingEvents(sessions: SessionWithProducts[], budgetItems: BudgetItem[]): SpendingEvent[] {
     // Create a map of product codes to budget items for quick lookup
     const budgetItemMap = new Map<string, BudgetItem>();
+    console.log('Budget items count:', budgetItems.length);
+    
     budgetItems.forEach(item => {
+      console.log('Adding budget item to map:', item.itemCode, item.description, 'price:', item.unitPrice);
       budgetItemMap.set(item.itemCode, item);
     });
     
     // Convert sessions to spending events
     const events: SpendingEvent[] = [];
+    console.log('Processing sessions count:', sessions.length);
     
     sessions.forEach(session => {
+      console.log('Session:', session.id, 'date:', session.date, 'has note:', !!session.note);
+      
       // Skip sessions without notes or products
       if (!session.note || !session.note.products || session.note.products.length === 0) {
+        console.log('Session has no products, skipping');
         return;
       }
       
+      console.log('Session products count:', session.note.products.length);
+      
       // Process each product used in the session
       session.note.products.forEach(product => {
+        console.log('Processing product:', product.code, 'quantity:', product.quantity);
+        
         const budgetItem = budgetItemMap.get(product.code);
-        if (!budgetItem) return;
+        if (!budgetItem) {
+          console.log('No matching budget item found for product code:', product.code);
+          return;
+        }
         
         const unitPrice = parseFloat(product.unitPrice || budgetItem.unitPrice);
         const amount = unitPrice * product.quantity;
+        
+        console.log('Adding spending event for', product.code, 'amount:', amount, 'date:', session.date);
         
         events.push({
           date: session.date,
@@ -369,6 +385,8 @@ export const budgetUtilizationService = {
         });
       });
     });
+    
+    console.log('Total spending events generated:', events.length);
     
     // Sort by date (most recent first)
     return events.sort((a, b) => {
@@ -391,6 +409,15 @@ export const budgetUtilizationService = {
     totalBudget: number
   ): MonthlySpending[] {
     try {
+      console.log('Calculating monthly spending with', spendingEvents.length, 'spending events');
+      console.log('Date range:', startDate, 'to', endDate);
+      console.log('Total budget:', totalBudget);
+      
+      if (spendingEvents.length > 0) {
+        console.log('First spending event:', spendingEvents[0]);
+        console.log('Last spending event:', spendingEvents[spendingEvents.length - 1]);
+      }
+
       const today = new Date();
       const startDateObj = parseISO(startDate);
       const endDateObj = parseISO(endDate);
@@ -433,15 +460,22 @@ export const budgetUtilizationService = {
       const totalMonths = monthlyData.length;
       const monthlyBudgetTarget = totalBudget / totalMonths;
       
+      console.log('Monthly data periods:', monthlyData.map(m => m.month));
+      
       // Assign spending amounts to each month
       sortedEvents.forEach(event => {
         const eventDate = parseISO(event.date);
         const eventMonthKey = format(eventDate, 'MMM yyyy');
         
+        console.log('Processing event date:', event.date, 'formatted as:', eventMonthKey);
+        
         // Find the corresponding month in our data array
         const monthIndex = monthlyData.findIndex(m => m.month === eventMonthKey);
         if (monthIndex !== -1) {
+          console.log('Found matching month at index:', monthIndex, 'adding amount:', event.amount);
           monthlyData[monthIndex].actualSpending += event.amount;
+        } else {
+          console.log('WARNING: No matching month found for event date:', event.date, 'month key:', eventMonthKey);
         }
       });
       
@@ -481,6 +515,12 @@ export const budgetUtilizationService = {
           monthlyData[i].cumulativeProjected = projectedCumulative;
         }
       }
+      
+      console.log('Final monthly data:', monthlyData.map(m => ({
+        month: m.month,
+        actualSpending: m.actualSpending,
+        cumulativeActual: m.cumulativeActual
+      })));
       
       return monthlyData;
     } catch (error) {
