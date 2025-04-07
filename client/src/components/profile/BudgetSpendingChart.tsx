@@ -84,7 +84,7 @@ const CustomTooltip = ({ active, payload, label, totalBudget }: CustomTooltipPro
             </p>
           )}
           {variance !== null && (
-            <p className={variance > 0 ? "text-red-600 font-bold" : "text-green-600 font-bold"}>
+            <p className="text-red-600 font-bold">
               <span className="font-medium">Variance:</span> {variance > 0 ? "+" : ""}{formatCurrency(variance)}
               ({variance > 0 ? "over budget" : "under budget"})
             </p>
