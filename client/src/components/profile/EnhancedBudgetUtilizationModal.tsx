@@ -362,7 +362,7 @@ export function EnhancedBudgetUtilizationModal({
                         <div className="flex justify-between items-start mb-4">
                           <h4 className="text-base font-medium text-gray-800">Budget Spending Trajectory</h4>
                           <div className="flex items-center space-x-2">
-                            <Badge className="bg-primary text-white">Current Active Plan</Badge>
+                            <Badge className="bg-primary text-white">Current Active Plan: {formatCurrency(summary.totalBudget)}</Badge>
                           </div>
                         </div>
                         

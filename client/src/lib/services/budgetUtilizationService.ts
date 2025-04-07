@@ -101,19 +101,12 @@ export const budgetUtilizationService = {
       // Calculate the spending events from sessions
       const spendingEvents = this.calculateSpendingEvents(sessions, budgetItems);
       
-      // Calculate the total budget
-      // First check if there's a totalFunds or ndisFunds field in budgetSettings
+      // Calculate the total budget from budget items
+      // This ensures we're only counting budget items in the active plan
       let totalBudget = 0;
       
-      // If we have totalFunds or ndisFunds, use that
-      if (budgetSettings.totalFunds) {
-        totalBudget = parseFloat(budgetSettings.totalFunds);
-      } else if (budgetSettings.ndisFunds) {
-        totalBudget = parseFloat(budgetSettings.ndisFunds);
-      } else {
-        // Otherwise calculate from budget items
-        totalBudget = this.calculateTotalBudget(budgetItems);
-      }
+      // Always calculate from active budget items to ensure accuracy
+      totalBudget = this.calculateTotalBudget(budgetItems);
       
       // Calculate the used budget
       const usedBudget = this.calculateUsedBudget(budgetItems);
