@@ -343,13 +343,13 @@ export function BudgetUtilizationModal({
             
             {/* Budget period info in the middle */}
             <div className="flex gap-3 flex-1 justify-center">
-              {budgetSummary && (
+              {displayData && (
                 <div className="border rounded-md py-1 px-3 text-center bg-white shadow-sm">
                   <div className="text-sm font-medium text-gray-800">
-                    {budgetSummary.planPeriodName || "Current Period"}
+                    {displayData.planPeriodName || "Current Period"}
                   </div>
                   <div className="text-xs text-gray-500">
-                    {format(parseISO(budgetSummary.startDate), "MMM d, yyyy")} - {format(parseISO(budgetSummary.endDate), "MMM d, yyyy")}
+                    {format(parseISO(displayData.startDate), "MMM d, yyyy")} - {format(parseISO(displayData.endDate), "MMM d, yyyy")}
                   </div>
                 </div>
               )}
@@ -398,7 +398,7 @@ export function BudgetUtilizationModal({
           </div>
         )}
         
-        {!isLoading && !error && !data && !budgetSummary && (
+        {!isLoading && !error && !displayData && (
           <div className="p-6 flex items-center justify-center min-h-[300px]">
             <div className="text-center">
               <div className="text-amber-500 mb-2">No active budget plan found</div>
@@ -409,7 +409,7 @@ export function BudgetUtilizationModal({
           </div>
         )}
         
-        {!isLoading && !error && ((data && !budgetSummary) || (budgetSummary)) && (
+        {!isLoading && !error && displayData && (
           <div className="p-6">
             {/* Top Section: Budget utilization overview */}
             <div className="mb-8">
