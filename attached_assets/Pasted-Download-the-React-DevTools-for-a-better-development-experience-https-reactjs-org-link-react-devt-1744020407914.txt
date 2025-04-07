@@ -1,0 +1,104 @@
+Download the React DevTools for a better development experience: https://reactjs.org/link/react-devtools
+ClientProfile.tsx:90 All URL params: Object
+ClientProfile.tsx:94 Raw ID from URL params: 88
+ClientProfile.tsx:98 Parsed client ID: 88
+ClientProfile.tsx:124 Fetching client data for ID: 88
+ClientProfile.tsx:126 Requesting URL: /api/clients/88
+ClientProfile.tsx:143 Fetching allies for client ID: 88
+ClientProfile.tsx:156 Explicitly fetching goals for client ID: 88
+ClientProfile.tsx:169 Explicitly fetching budget items for client ID: 88
+ClientProfile.tsx:186 Explicitly fetching budget settings for client ID: 88
+ClientProfile.tsx:203 Explicitly fetching ALL budget settings for client 88
+ClientProfile.tsx:220 No goals found, skipping subgoal fetch
+ClientProfile.tsx:159 Goals data received: Array(3)
+ClientProfile.tsx:134 Client data received: {"id":88,"name":"Radwan-585666","originalName":"Radwan","uniqueIdentifier":"585666","dateOfBirth":"2019-12-13","gender":null,"preferredLanguage":null,"contactEmail":null,"contactPhone":null,"address":null,"medicalHistory":null,"communicationNeeds":null,"therapyPreferences":null,"fundsManagement":"Self-Managed","ndisFunds":"0","onboardingStatus":"complete"}
+ClientProfile.tsx:90 All URL params: Object
+ClientProfile.tsx:94 Raw ID from URL params: 88
+ClientProfile.tsx:98 Parsed client ID: 88
+ClientProfile.tsx:226 Found 3 goals, fetching subgoals for each goal
+ClientProfile.tsx:237 Fetching subgoals for goal ID: 100, Title: Enhancing Social Communication Skills
+ClientProfile.tsx:90 All URL params: Object
+ClientProfile.tsx:94 Raw ID from URL params: 88
+ClientProfile.tsx:98 Parsed client ID: 88
+ClientProfile.tsx:146 Allies data received: [{"id":103,"clientId":88,"name":"Mohamad","relationship":"parent","preferredLanguage":"french","email":"m.chaaban1980@gmail.com","phone":null,"notes":null,"accessTherapeutics":true,"accessFinancials":false,"archived":false},{"id":104,"clientId":88,"name":"Mariam","relationship":"parent","preferredLanguage":"english","email":"Ninja@gmail.com","phone":null,"notes":null,"accessTherapeutics":true,"accessFinancials":true,"archived":false}]
+ClientProfile.tsx:90 All URL params: Object
+ClientProfile.tsx:94 Raw ID from URL params: 88
+ClientProfile.tsx:98 Parsed client ID: 88
+ClientProfile.tsx:193 Budget settings data received: Object
+ClientProfile.tsx:90 All URL params: Object
+ClientProfile.tsx:94 Raw ID from URL params: 88
+ClientProfile.tsx:98 Parsed client ID: 88
+ClientProfile.tsx:210 Received 1 budget settings: Array(1)
+ClientProfile.tsx:90 All URL params: Object
+ClientProfile.tsx:94 Raw ID from URL params: 88
+ClientProfile.tsx:98 Parsed client ID: 88
+ClientProfile.tsx:176 Budget items data received: Array(3)
+ClientProfile.tsx:90 All URL params: Object
+ClientProfile.tsx:94 Raw ID from URL params: 88
+ClientProfile.tsx:98 Parsed client ID: 88
+ClientProfile.tsx:241 Received 3 subgoals for goal 100: Array(3)
+ClientProfile.tsx:237 Fetching subgoals for goal ID: 101, Title: Developing Emotional Regulation
+ClientProfile.tsx:241 Received 3 subgoals for goal 101: Array(3)
+ClientProfile.tsx:237 Fetching subgoals for goal ID: 102, Title: Enhancing Functional Independence
+ClientProfile.tsx:241 Received 3 subgoals for goal 102: Array(3)
+ClientProfile.tsx:255 Final subgoals by goal: Object
+ClientProfile.tsx:90 All URL params: Object
+ClientProfile.tsx:94 Raw ID from URL params: 88
+ClientProfile.tsx:98 Parsed client ID: 88
+ClientProfile.tsx:572 Client data from parent component: {"id":88,"name":"Radwan-585666","originalName":"Radwan","uniqueIdentifier":"585666","dateOfBirth":"2019-12-13","gender":null,"preferredLanguage":null,"contactEmail":null,"contactPhone":null,"address":null,"medicalHistory":null,"communicationNeeds":null,"therapyPreferences":null,"fundsManagement":"Self-Managed","ndisFunds":"0","onboardingStatus":"complete"}
+ClientReports.tsx:160 Fetching budget summary for client: 88
+queryClient.ts:109 API Request: GET /api/clients/88/budget-items 
+ClientReports.tsx:164 Budget items: Array(3)
+queryClient.ts:109 API Request: GET /api/clients/88/budget-settings 
+ClientReports.tsx:167 Budget settings: Object
+queryClient.ts:109 API Request: GET /api/clients/88/sessions 
+ClientReports.tsx:170 Client sessions: Array(2)
+queryClient.ts:109 API Request: GET /api/clients/88/budget-items 
+queryClient.ts:109 API Request: GET /api/clients/88/budget-settings 
+queryClient.ts:109 API Request: GET /api/clients/88/sessions 
+budgetUtilizationService.ts:343 Budget items count: 3
+budgetUtilizationService.ts:346 Adding budget item to map: EQUIP-002 Digital Speech Analysis Software (1 year license) price: 200
+budgetUtilizationService.ts:346 Adding budget item to map: THERAPY-003 Intensive Speech Therapy Program (10 sessions) price: 1300
+budgetUtilizationService.ts:346 Adding budget item to map: THERAPY-001 Individual Speech Therapy Session (1 hour) price: 150
+budgetUtilizationService.ts:352 Processing sessions count: 2
+budgetUtilizationService.ts:355 Session: 228 date: undefined has note: true
+budgetUtilizationService.ts:363 Session products count: 1
+budgetUtilizationService.ts:367 Processing product: undefined quantity: 1
+budgetUtilizationService.ts:371 No matching budget item found for product code: undefined
+budgetUtilizationService.ts:355 Session: 230 date: undefined has note: true
+budgetUtilizationService.ts:363 Session products count: 1
+budgetUtilizationService.ts:367 Processing product: undefined quantity: 2
+budgetUtilizationService.ts:371 No matching budget item found for product code: undefined
+budgetUtilizationService.ts:389 Total spending events generated: 0
+budgetUtilizationService.ts:152 Using dates for budget calculations: Object
+budgetUtilizationService.ts:412 Calculating monthly spending with 0 spending events
+budgetUtilizationService.ts:413 Date range: 2025-01-03T00:00:00.000Z to 2025-06-21
+budgetUtilizationService.ts:414 Total budget: 12000
+budgetUtilizationService.ts:463 Monthly data periods: Array(6)
+budgetUtilizationService.ts:519 Final monthly data: Array(6)
+ClientReports.tsx:174 Final budget summary: Object
+queryClient.ts:109 API Request: GET /api/clients/88/budget-items 
+queryClient.ts:109 API Request: GET /api/clients/88/budget-settings 
+queryClient.ts:109 API Request: GET /api/clients/88/sessions 
+chunk-HUUDUSQV.js?v=c8873e4d:338 Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+(anonymous) @ chunk-HUUDUSQV.js?v=c8873e4d:338Understand this warning
+budgetUtilizationService.ts:343 Budget items count: 3
+budgetUtilizationService.ts:346 Adding budget item to map: EQUIP-002 Digital Speech Analysis Software (1 year license) price: 200
+budgetUtilizationService.ts:346 Adding budget item to map: THERAPY-003 Intensive Speech Therapy Program (10 sessions) price: 1300
+budgetUtilizationService.ts:346 Adding budget item to map: THERAPY-001 Individual Speech Therapy Session (1 hour) price: 150
+budgetUtilizationService.ts:352 Processing sessions count: 2
+budgetUtilizationService.ts:355 Session: 228 date: undefined has note: true
+budgetUtilizationService.ts:363 Session products count: 1
+budgetUtilizationService.ts:367 Processing product: undefined quantity: 1
+budgetUtilizationService.ts:371 No matching budget item found for product code: undefined
+budgetUtilizationService.ts:355 Session: 230 date: undefined has note: true
+budgetUtilizationService.ts:363 Session products count: 1
+budgetUtilizationService.ts:367 Processing product: undefined quantity: 2
+budgetUtilizationService.ts:371 No matching budget item found for product code: undefined
+budgetUtilizationService.ts:389 Total spending events generated: 0
+budgetUtilizationService.ts:152 Using dates for budget calculations: Object
+budgetUtilizationService.ts:412 Calculating monthly spending with 0 spending events
+budgetUtilizationService.ts:413 Date range: 2025-01-03T00:00:00.000Z to 2025-06-21
+budgetUtilizationService.ts:414 Total budget: 12000
+budgetUtilizationService.ts:463 Monthly data periods: Array(6)
+budgetUtilizationService.ts:519

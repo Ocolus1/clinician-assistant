@@ -43,18 +43,18 @@ export interface SpendingEvent {
 export interface SessionWithProducts {
   id: number;
   clientId: number;
-  date: string;
+  sessionDate: string; // API returns sessionDate, not date
   therapistId: number;
-  therapistName: string;
+  title?: string;
   status: string;
   note?: {
     id: number;
     products: {
-      code: string;
+      productCode: string;  // API returns productCode, not code 
       quantity: number;
-      name?: string;
-      description?: string;
-      unitPrice?: string;
+      productDescription?: string;
+      unitPrice?: number;
+      budgetItemId?: number;
     }[];
   };
 }
@@ -352,7 +352,7 @@ export const budgetUtilizationService = {
     console.log('Processing sessions count:', sessions.length);
     
     sessions.forEach(session => {
-      console.log('Session:', session.id, 'date:', session.date, 'has note:', !!session.note);
+      console.log('Session:', session.id, 'date:', session.sessionDate, 'has note:', !!session.note);
       
       // Skip sessions without notes or products
       if (!session.note || !session.note.products || session.note.products.length === 0) {
@@ -364,24 +364,28 @@ export const budgetUtilizationService = {
       
       // Process each product used in the session
       session.note.products.forEach(product => {
-        console.log('Processing product:', product.code, 'quantity:', product.quantity);
+        console.log('Processing product:', product.productCode, 'quantity:', product.quantity);
         
-        const budgetItem = budgetItemMap.get(product.code);
+        const budgetItem = budgetItemMap.get(product.productCode);
         if (!budgetItem) {
-          console.log('No matching budget item found for product code:', product.code);
+          console.log('No matching budget item found for product code:', product.productCode);
           return;
         }
         
-        const unitPrice = parseFloat(product.unitPrice || budgetItem.unitPrice);
+        // Convert unitPrice to number if it's a string
+        const unitPrice = typeof product.unitPrice === 'number' 
+          ? product.unitPrice 
+          : parseFloat(budgetItem.unitPrice);
+          
         const amount = unitPrice * product.quantity;
         
-        console.log('Adding spending event for', product.code, 'amount:', amount, 'date:', session.date);
+        console.log('Adding spending event for', product.productCode, 'amount:', amount, 'date:', session.sessionDate);
         
         events.push({
-          date: session.date,
+          date: session.sessionDate,
           amount,
-          description: `Session with ${session.therapistName}`,
-          itemName: product.description || budgetItem.description || product.code
+          description: `Session on ${format(parseISO(session.sessionDate), 'MMM d, yyyy')}`,
+          itemName: product.productDescription || budgetItem.description || product.productCode
         });
       });
     });
