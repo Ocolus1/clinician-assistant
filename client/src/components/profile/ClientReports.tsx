@@ -89,6 +89,9 @@ interface ClientReportsProps {
 export function ClientReports({ clientId }: ClientReportsProps) {
   // Modal state
   const [activeModal, setActiveModal] = useState<string | null>(null);
+  
+  // State to track the selected strategy in the strategy modal
+  const [selectedStrategy, setSelectedStrategy] = useState<any>(null);
   const [selectedBudgetPlan, setSelectedBudgetPlan] = useState<BudgetSettings | null>(null);
   
   // Fetch active budget plan to get start date for filtering
@@ -517,10 +520,20 @@ export function ClientReports({ clientId }: ClientReportsProps) {
         onClose={closeModal}
         title="Strategies"
         description="Analysis of most successful therapeutic approaches"
+        detailsContent={
+          selectedStrategy ? (
+            <StrategyDetails strategy={selectedStrategy} />
+          ) : (
+            <div className="text-center py-8 text-muted-foreground">
+              Click on a strategy bubble above to view detailed information
+            </div>
+          )
+        }
       >
-        <div className="text-center py-12 text-muted-foreground">
-          Strategies details would be displayed here
-        </div>
+        <StrategiesBubbleChart 
+          strategies={strategiesQuery.data?.strategies || []} 
+          onSelectStrategy={setSelectedStrategy}
+        />
       </ReportModal>
       
       <ReportModal
@@ -846,6 +859,190 @@ function StrategiesSection({ data, strategiesData }: {
 
 // Import the GoalPerformanceModal
 import { GoalPerformanceModal } from './GoalPerformanceModal';
+
+// Define interface for a strategy
+interface Strategy {
+  id: number;
+  name: string;
+  timesUsed: number;
+  averageScore: number;
+  description?: string;
+  category?: string;
+  lastUsed?: string;
+}
+
+// Bubble Chart for Strategies - displays strategies as bubbles positioned by effectiveness
+function StrategiesBubbleChart({ strategies, onSelectStrategy }: { 
+  strategies: Strategy[];
+  onSelectStrategy: (strategy: Strategy | null) => void;
+}) {
+  // Map for getting a consistent color based on strategy name
+  const getStrategyColor = (name: string): string => {
+    // Create a simple hash of the name for consistent color assignment
+    const hash = name.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    const hue = hash % 360; // Map hash to hue (0-359)
+    return `hsl(${hue}, 70%, 50%)`; // Use HSL for vibrant, varied colors
+  };
+
+  // Filter out strategies with no usage for the bubble chart
+  const validStrategies = strategies.filter(s => s.timesUsed > 0);
+  
+  // Calculate the size scale for bubbles based on usage frequency
+  const maxUsage = Math.max(...validStrategies.map(s => s.timesUsed), 1);
+  const getSize = (timesUsed: number) => {
+    const minSize = 40; // Minimum bubble size in pixels
+    const maxSize = 100; // Maximum bubble size in pixels
+    return minSize + ((timesUsed / maxUsage) * (maxSize - minSize));
+  };
+
+  return (
+    <div className="pt-4 space-y-8">
+      {validStrategies.length > 0 ? (
+        <>
+          <div className="text-center mb-4">
+            <p className="text-sm text-muted-foreground">
+              Strategy bubble size represents usage frequency. Position on x-axis represents effectiveness score.
+            </p>
+          </div>
+
+          {/* Effectiveness scale at top */}
+          <div className="relative w-full h-6 mb-2">
+            <div className="absolute inset-x-0 top-0 h-2 bg-gradient-to-r from-red-300 via-yellow-300 to-green-300 rounded-full"></div>
+            <div className="absolute left-0 top-3 text-xs text-gray-500">Less effective</div>
+            <div className="absolute right-0 top-3 text-xs text-gray-500">More effective</div>
+          </div>
+          
+          {/* Main bubble chart container */}
+          <div className="relative w-full h-[350px] border-b border-gray-200">
+            {validStrategies.map((strategy) => {
+              // Position horizontally based on effectiveness (averageScore)
+              const xPos = `${Math.max(0, Math.min(100, (strategy.averageScore / 10) * 100))}%`;
+              
+              // Size based on usage frequency
+              const size = getSize(strategy.timesUsed);
+              
+              // Position vertically with some randomization to avoid overlap
+              const yPos = `${Math.min(80, 30 + (Math.random() * 40))}%`;
+              
+              // Color based on strategy name hash
+              const color = getStrategyColor(strategy.name);
+              
+              return (
+                <div
+                  key={strategy.id}
+                  className="absolute transform -translate-x-1/2 -translate-y-1/2 rounded-full flex items-center justify-center border-2 border-white shadow-md cursor-pointer transition-all hover:shadow-lg"
+                  style={{
+                    left: xPos,
+                    top: yPos,
+                    width: `${size}px`,
+                    height: `${size}px`,
+                    backgroundColor: color,
+                  }}
+                  onClick={() => onSelectStrategy(strategy)}
+                >
+                  <div className="text-white text-xs font-medium px-1 text-center line-clamp-2 overflow-hidden">
+                    {strategy.name}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          
+          <div className="text-center">
+            <p className="text-xs text-muted-foreground">Click on a bubble to view detailed information</p>
+          </div>
+        </>
+      ) : (
+        <div className="text-center py-12 text-muted-foreground">
+          <p className="mb-2">No strategy usage data available for this period.</p>
+          <p className="text-sm">Strategies will appear when they are used in therapy sessions.</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Strategy Details Component
+function StrategyDetails({ strategy }: { strategy: Strategy }) {
+  if (!strategy) return null;
+  
+  // Calculate effectiveness category and color
+  const getEffectivenessColor = (score: number): string => {
+    if (score < 5) return 'text-red-500';
+    if (score < 7) return 'text-amber-500';
+    return 'text-green-500';
+  };
+  
+  const getEffectivenessLabel = (score: number): string => {
+    if (score < 5) return 'Low';
+    if (score < 7) return 'Moderate';
+    return 'High';
+  };
+  
+  const effectivenessColor = getEffectivenessColor(strategy.averageScore);
+  const effectivenessLabel = getEffectivenessLabel(strategy.averageScore);
+  
+  return (
+    <div className="space-y-6">
+      <div className="space-y-2">
+        <h3 className="text-lg font-medium">{strategy.name}</h3>
+        <p className="text-sm text-muted-foreground">
+          {strategy.description || 'Therapeutic strategy used to support client goals and outcomes.'}
+        </p>
+      </div>
+      
+      <div className="grid grid-cols-2 gap-6">
+        <div className="space-y-1">
+          <div className="text-sm text-muted-foreground">Usage Frequency</div>
+          <div className="flex items-baseline">
+            <span className="text-2xl font-bold">{strategy.timesUsed}</span>
+            <span className="ml-1 text-sm text-muted-foreground">sessions</span>
+          </div>
+        </div>
+        
+        <div className="space-y-1">
+          <div className="text-sm text-muted-foreground">Effectiveness Score</div>
+          <div className="flex items-baseline">
+            <span className={`text-2xl font-bold ${effectivenessColor}`}>
+              {strategy.averageScore.toFixed(1)}
+            </span>
+            <span className="ml-1 text-sm text-muted-foreground">/10</span>
+          </div>
+        </div>
+      </div>
+      
+      <div className="space-y-2">
+        <div className="text-sm text-muted-foreground">Effectiveness Rating</div>
+        <div className="w-full bg-gray-100 h-3 rounded-full overflow-hidden">
+          <div 
+            className={cn(
+              "h-full rounded-full transition-all duration-300",
+              strategy.averageScore < 5 ? "bg-red-500" :
+              strategy.averageScore < 7 ? "bg-amber-500" : "bg-green-500"
+            )}
+            style={{
+              width: `${(strategy.averageScore / 10) * 100}%`,
+            }}
+          />
+        </div>
+        <div className="flex justify-between items-center text-xs text-muted-foreground">
+          <span>Low (0-4)</span>
+          <span>Moderate (5-6)</span>
+          <span>High (7-10)</span>
+        </div>
+      </div>
+      
+      <div className="bg-muted rounded-lg p-4">
+        <h4 className="font-medium mb-2">Strategy Insights</h4>
+        <p className="text-sm">
+          This strategy has <span className={effectivenessColor}>{effectivenessLabel.toLowerCase()} effectiveness</span> based on
+          outcomes from {strategy.timesUsed} {strategy.timesUsed === 1 ? 'session' : 'sessions'}.
+          {strategy.lastUsed && ` Last used on ${strategy.lastUsed}.`}
+        </p>
+      </div>
+    </div>
+  );
+}
 
 // Observation Scores Overview Component - For Modal Top Section
 function ObservationScoresOverview({ data }: { data?: ClientReportData }) {
