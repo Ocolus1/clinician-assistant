@@ -261,21 +261,27 @@ export function GoalPerformanceModal({
   } = useQuery({
     queryKey: ['milestone-performance', clientId, goalId, budgetStartDate],
     queryFn: async () => {
-      if (goalId === null || !open) return null;
-      
-      // Only fetch real data if we have valid subgoals
-      if (directSubgoals.length > 0 && directSubgoals[0].id > 0) {
-        console.log(`Fetching real milestone performance data for goal ${goalId}`);
-        return await progressDataService.getMilestonePerformanceData(
-          clientId,
-          Number(goalId),
-          directSubgoals,
-          budgetStartDate // Pass budget start date for data filtering
-        );
+      if (goalId === null || !open) {
+        console.log(`Query disabled: goalId is null or modal not open`);
+        return null;
       }
-      return null;
+      
+      console.log(`Starting milestone performance data query for goal ${goalId} with budget start date: ${budgetStartDate}`);
+      console.log(`Current direct subgoals:`, directSubgoals);
+      
+      // Always proceed with query regardless of directSubgoals content - we'll use passed subgoals if available
+      const subgoalsToUse = directSubgoals.length > 0 ? directSubgoals : subgoals || [];
+      
+      console.log(`Using ${subgoalsToUse.length} subgoals for milestone performance data`);
+      
+      return await progressDataService.getMilestonePerformanceData(
+        clientId,
+        Number(goalId),
+        subgoalsToUse,
+        budgetStartDate // Pass budget start date for data filtering
+      );
     },
-    enabled: open && goalId !== null && directSubgoals.length > 0 && directSubgoals[0].id > 0
+    enabled: open && goalId !== null // Simplified condition to ensure query runs
   });
   
   // Initial load effect - runs once when the modal opens
