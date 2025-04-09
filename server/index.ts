@@ -3,6 +3,7 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { registerReportRoutes } from "./routes/reports";
 import { registerKnowledgeRoutes } from "./routes/knowledge";
+import assistantRoutes from "./routes/assistant";
 // Create debug-routes.ts file if it doesn't exist
 import * as fs from 'fs';
 import * as path from 'path';
@@ -60,6 +61,9 @@ app.use((req, res, next) => {
   
   console.log("STEP 2: Registering report API routes");
   registerReportRoutes(app);
+  
+  console.log("STEP 2.5: Registering assistant API routes");
+  app.use('/api/assistant', assistantRoutes);
   
   console.log("STEP 3: Registering main API routes");
   const server = await registerRoutes(app);

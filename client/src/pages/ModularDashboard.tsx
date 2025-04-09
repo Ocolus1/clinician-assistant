@@ -8,6 +8,7 @@ import { AppointmentAnalytics } from "@/components/dashboard/AppointmentAnalytic
 import { BudgetExpirationCard } from "@/components/dashboard/BudgetExpirationCard";
 import { UpcomingTasksTimeline } from "@/components/dashboard/UpcomingTasksTimeline";
 import { DummyDataToggle } from "@/components/dashboard/DummyDataToggle";
+import { ClinicianAssistantTile } from "@/components/dashboard/ClinicianAssistantTile";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { 
   RefreshCw, 
@@ -15,7 +16,8 @@ import {
   CalendarClock, 
   BarChart, 
   ListTodo, 
-  Plus, 
+  Plus,
+  Brain,
   X 
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -123,13 +125,10 @@ function ModularDashboardContent() {
             onClick={() => setTasksModalOpen(true)}
           />
           
-          {/* Coming Soon Tile */}
-          <DashboardTile 
-            title="Coming Soon" 
-            description="More dashboard features are in development"
-            icon={<Plus />}
-            color="#9CA3AF"
-            disabled
+          {/* Clinician Assistant Tile */}
+          <ClinicianAssistantTile
+            title="Clinician Assistant"
+            description="Query your database using natural language"
           />
         </div>
       </div>
