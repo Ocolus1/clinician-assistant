@@ -19,6 +19,16 @@ export interface SQLQueryResult {
 }
 
 /**
+ * Raw SQL query result type used by LangChain
+ */
+export interface RawSQLResult {
+  rows: any[];
+  query: string;
+  success: boolean;
+  error?: string;
+}
+
+/**
  * SQL Query Generator class
  */
 export class SQLQueryGenerator {
@@ -114,6 +124,35 @@ export class SQLQueryGenerator {
       return {
         query: sqlQuery,
         data: [],
+        error: error.message || 'Failed to execute SQL query'
+      };
+    }
+  }
+  
+  /**
+   * Execute a raw SQL query with safety checks for LangChain integration
+   * Returns a format compatible with LangChain tools
+   */
+  async executeRawQuery(sqlQuery: string): Promise<RawSQLResult> {
+    try {
+      // Sanitize the query for safety
+      const sanitizedQuery = this.sanitizeQuery(sqlQuery);
+      
+      // Execute the query
+      const result = await sql.unsafe(sanitizedQuery);
+      
+      return {
+        query: sanitizedQuery,
+        rows: result,
+        success: true
+      };
+    } catch (error: any) {
+      console.error('Error executing raw SQL query:', error);
+      
+      return {
+        query: sqlQuery,
+        rows: [],
+        success: false,
         error: error.message || 'Failed to execute SQL query'
       };
     }

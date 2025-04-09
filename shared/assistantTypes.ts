@@ -23,10 +23,32 @@ export interface Conversation {
   messages: Message[];
 }
 
+/**
+ * Assistant configuration interface
+ * Used when configuring the assistant
+ */
+export interface AssistantConfig {
+  apiKey: string;
+  model: string;
+  temperature: number;
+}
+
+/**
+ * Assistant status response interface
+ * Returned by the status API endpoint
+ */
+export interface AssistantStatusResponse {
+  isConfigured: boolean;
+  connectionValid: boolean;
+  model?: string;
+}
+
 // Assistant settings interface
 export interface AssistantSettings {
   openaiApiKey?: string;
   readOnly: boolean;
+  model?: string;
+  temperature?: number;
 }
 
 // Assistant status interface
@@ -67,5 +89,7 @@ export interface SendMessageRequest {
 
 export interface UpdateSettingsRequest {
   openaiApiKey?: string;
+  model?: string;
+  temperature?: number;
   readOnly?: boolean;
 }

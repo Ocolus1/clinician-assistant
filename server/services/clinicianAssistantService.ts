@@ -2,7 +2,7 @@
  * Clinician Assistant Service
  * 
  * This service provides the main functionality for the Clinician Assistant,
- * coordinating between OpenAI, conversation management, and SQL query execution.
+ * coordinating between LangChain, conversation management, and SQL query execution.
  */
 
 import { OpenAIConfig } from './openaiService';
@@ -11,7 +11,8 @@ import { conversationService } from './conversationService';
 import { sqlQueryGenerator } from './sqlQueryGenerator';
 import { schemaProvider } from './schemaProvider';
 import { ChatMessage } from './openaiService';
-import { Message, AssistantStatusResponse } from '@shared/assistantTypes';
+import { Message, AssistantStatusResponse, AssistantConfig } from '@shared/assistantTypes';
+import { langchainService, LangChainConfig } from './langchainService';
 
 /**
  * Clinician Assistant Service class
@@ -27,6 +28,17 @@ export class ClinicianAssistantService {
       // Only initialize schema provider if not already initialized
       if (!this.initialized) {
         await schemaProvider.initialize();
+        
+        // Initialize LangChain with SQL query function if we have a configuration
+        const config = openaiService.getConfig();
+        if (config) {
+          this.configureAssistant({
+            apiKey: config.apiKey,
+            model: config.model,
+            temperature: config.temperature
+          });
+        }
+        
         this.initialized = true;
         console.log('Clinician Assistant Service initialized');
       }
@@ -39,21 +51,46 @@ export class ClinicianAssistantService {
   /**
    * Configure the assistant with OpenAI API settings
    */
-  configureAssistant(config: OpenAIConfig): void {
-    openaiService.initialize(config);
+  configureAssistant(config: AssistantConfig): void {
+    // Initialize both services (keeping OpenAI for backward compatibility)
+    const openAIConfig: OpenAIConfig = {
+      apiKey: config.apiKey,
+      model: config.model,
+      temperature: config.temperature
+    };
+    
+    const langChainConfig: LangChainConfig = {
+      apiKey: config.apiKey,
+      model: config.model,
+      temperature: config.temperature
+    };
+    
+    openaiService.initialize(openAIConfig);
+    
+    // Initialize LangChain with SQL query execution function
+    langchainService.initialize(
+      langChainConfig, 
+      async (query: string) => {
+        const result = await sqlQueryGenerator.executeRawQuery(query);
+        return result;
+      }
+    );
   }
   
   /**
    * Get the current status of the assistant
    */
   getStatus(): AssistantStatusResponse {
-    const isConfigured = openaiService.isConfigured();
-    const config = openaiService.getConfig();
+    // Prefer LangChain status if available, fall back to OpenAI
+    const isConfigured = langchainService.isConfigured() || openaiService.isConfigured();
+    const config = langchainService.isConfigured() 
+      ? langchainService.getConfig() 
+      : openaiService.getConfig();
     
     return {
       isConfigured,
       connectionValid: isConfigured, // Will be tested separately
-      model: config?.model
+      model: config?.model || 'Not configured'
     };
   }
   
@@ -61,6 +98,10 @@ export class ClinicianAssistantService {
    * Test connection to OpenAI API
    */
   async testConnection(): Promise<boolean> {
+    // Prefer LangChain, fall back to direct OpenAI
+    if (langchainService.isConfigured()) {
+      return await langchainService.testConnection();
+    }
     return await openaiService.testConnection();
   }
   
@@ -92,69 +133,127 @@ export class ClinicianAssistantService {
           content: msg.content
         }));
       
-      // Create the system message
-      const systemMessage: ChatMessage = {
-        role: 'system',
-        content: `
-          You are a helpful assistant for speech therapists at a clinic. 
-          You can help answer questions about clients, sessions, budgets, goals, and other clinical data.
-          
-          When a user asks you questions about data, you should:
-          1. Generate an appropriate SQL query
-          2. Execute the query to get the data
-          3. Provide a helpful and concise response based on the data
-          
-          Always be professional, supportive, and objective. Format numerical data clearly.
-          Don't make up information - if you don't know, say so.
-        `
-      };
+      // Create the system message/prompt
+      const systemPrompt = `
+        You are a helpful assistant for speech therapists at a clinic. 
+        You can help answer questions about clients, sessions, budgets, goals, and other clinical data.
+        
+        When a user asks you questions about data, you should:
+        1. Generate an appropriate SQL query
+        2. Execute the query to get the data
+        3. Provide a helpful and concise response based on the data
+        
+        Always be professional, supportive, and objective. Format numerical data clearly.
+        Don't make up information - if you don't know, say so.
+        
+        The database contains the following tables:
+        - clients: Information about therapy clients
+        - goals: Therapy goals for clients
+        - subgoals: Detailed subgoals associated with main goals
+        - sessions: Therapy sessions
+        - session_notes: Notes from therapy sessions
+        - budget_settings: Budget configuration for clients
+        - budget_items: Individual budget line items
+        - strategies: Therapy strategies and approaches
+      `;
       
-      // First, try to understand if this is a data-related question
-      const isDataQuestion = await this.isDataRelatedQuestion(messageContent);
+      let responseContent = '';
       
-      if (isDataQuestion) {
-        // Generate SQL query
-        const query = await sqlQueryGenerator.generateQuery(messageContent);
+      // Check if we should use LangChain or fall back to direct OpenAI
+      if (langchainService.isConfigured()) {
+        // First, determine if this is a data-related question
+        const isDataQuestion = await langchainService.isDataRelatedQuestion(messageContent);
         
-        // Execute the query
-        const result = await sqlQueryGenerator.executeQuery(query);
-        
-        // Generate a response based on the query results
-        const sqlContext = `
-          I executed the following SQL query:
-          \`\`\`sql
-          ${result.query}
-          \`\`\`
+        if (isDataQuestion) {
+          // For data questions, we need to handle SQL generation and execution
+          const query = await sqlQueryGenerator.generateQuery(messageContent);
+          const result = await sqlQueryGenerator.executeQuery(query);
           
-          ${result.error 
-            ? `The query failed with error: ${result.error}`
-            : `The query returned ${result.data.length} rows of data: ${JSON.stringify(result.data, null, 2)}`
-          }
+          // Generate the SQL context for LangChain
+          const sqlContext = `
+            I executed the following SQL query:
+            \`\`\`sql
+            ${result.query}
+            \`\`\`
+            
+            ${result.error 
+              ? `The query failed with error: ${result.error}`
+              : `The query returned ${result.data.length} rows of data: ${JSON.stringify(result.data, null, 2)}`
+            }
+            
+            Based on this data, provide a clear, concise response to the user's question.
+            If there was an error or no data, explain what might be the issue.
+            Don't mention that you ran an SQL query unless the user specifically asked about database queries.
+          `;
           
-          Based on this data, provide a clear, concise response to the user's question.
-          If there was an error or no data, explain what might be the issue.
-          Don't mention that you ran an SQL query unless the user specifically asked about database queries.
-        `;
-        
-        // Generate response with SQL context
-        const responseContent = await openaiService.createChatCompletion([
-          systemMessage,
-          ...recentMessages,
-          { role: 'user', content: sqlContext }
-        ]);
-        
-        // Add assistant response to conversation
-        return conversationService.addMessage(conversationId, 'assistant', responseContent);
+          // Use LangChain's processDataQuery with SQL context
+          responseContent = await langchainService.processDataQuery(
+            conversationId,
+            messageContent,
+            systemPrompt,
+            sqlContext
+          );
+        } else {
+          // For regular conversational questions, use LangChain's conversation management
+          responseContent = await langchainService.processConversation(
+            conversationId,
+            messageContent,
+            systemPrompt,
+            recentMessages
+          );
+        }
       } else {
-        // For non-data questions, just use the conversation history
-        const responseContent = await openaiService.createChatCompletion([
-          systemMessage,
-          ...recentMessages
-        ]);
+        // Fallback to direct OpenAI if LangChain isn't configured
+        // Create the OpenAI system message
+        const systemMessage: ChatMessage = {
+          role: 'system',
+          content: systemPrompt
+        };
         
-        // Add assistant response to conversation
-        return conversationService.addMessage(conversationId, 'assistant', responseContent);
+        // First, try to understand if this is a data-related question
+        const isDataQuestion = await this.isDataRelatedQuestion(messageContent);
+        
+        if (isDataQuestion) {
+          // Generate SQL query
+          const query = await sqlQueryGenerator.generateQuery(messageContent);
+          
+          // Execute the query
+          const result = await sqlQueryGenerator.executeQuery(query);
+          
+          // Generate a response based on the query results
+          const sqlContext = `
+            I executed the following SQL query:
+            \`\`\`sql
+            ${result.query}
+            \`\`\`
+            
+            ${result.error 
+              ? `The query failed with error: ${result.error}`
+              : `The query returned ${result.data.length} rows of data: ${JSON.stringify(result.data, null, 2)}`
+            }
+            
+            Based on this data, provide a clear, concise response to the user's question.
+            If there was an error or no data, explain what might be the issue.
+            Don't mention that you ran an SQL query unless the user specifically asked about database queries.
+          `;
+          
+          // Generate response with SQL context
+          responseContent = await openaiService.createChatCompletion([
+            systemMessage,
+            ...recentMessages,
+            { role: 'user', content: sqlContext }
+          ]);
+        } else {
+          // For non-data questions, just use the conversation history
+          responseContent = await openaiService.createChatCompletion([
+            systemMessage,
+            ...recentMessages
+          ]);
+        }
       }
+      
+      // Add assistant response to conversation
+      return conversationService.addMessage(conversationId, 'assistant', responseContent);
     } catch (error: any) {
       console.error('Error processing message:', error);
       
@@ -169,10 +268,16 @@ export class ClinicianAssistantService {
   
   /**
    * Determine if a message is asking about data that would require SQL
+   * (Fallback method for direct OpenAI mode)
    */
   private async isDataRelatedQuestion(message: string): Promise<boolean> {
     try {
-      // If the OpenAI service isn't configured, assume it's not a data question
+      // If LangChain is configured, use it
+      if (langchainService.isConfigured()) {
+        return await langchainService.isDataRelatedQuestion(message);
+      }
+      
+      // Otherwise fall back to OpenAI direct
       if (!openaiService.isConfigured()) {
         return false;
       }
