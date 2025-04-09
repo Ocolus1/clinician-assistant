@@ -1,156 +1,211 @@
 /**
  * Schema Provider Service
  * 
- * This service provides information about the database schema
- * for the Clinician Assistant.
+ * This service provides database schema information to the Clinician Assistant
+ * for generating SQL queries. It examines the database schema and returns
+ * a description of tables and their relationships.
  */
 
-import { pool } from '../db';
+import { sql } from '../db';
+
+/**
+ * Table schema information
+ */
+interface TableSchema {
+  name: string;
+  columns: {
+    name: string;
+    type: string;
+    nullable: boolean;
+    isPrimaryKey: boolean;
+    isForeignKey: boolean;
+    references?: {
+      table: string;
+      column: string;
+    };
+  }[];
+}
+
+/**
+ * Full database schema
+ */
+interface DatabaseSchema {
+  tables: TableSchema[];
+}
 
 /**
  * Schema Provider class
  */
 export class SchemaProvider {
-  constructor() {}
-
+  private schema: DatabaseSchema | null = null;
+  
   /**
-   * Get a list of all tables in the database
+   * Initialize the schema provider
    */
-  async getTables(): Promise<string[]> {
+  async initialize(): Promise<void> {
     try {
-      const query = `
-        SELECT table_name 
-        FROM information_schema.tables 
-        WHERE table_schema = 'public'
-        ORDER BY table_name
-      `;
-      
-      const result = await pool.query(query);
-      
-      return result.rows.map(row => row.table_name);
+      this.schema = await this.fetchDatabaseSchema();
+      console.log('Database schema initialized successfully');
     } catch (error) {
-      console.error('Error getting tables:', error);
-      throw error;
+      console.error('Failed to initialize database schema:', error);
+      throw new Error('Failed to initialize database schema');
     }
   }
-
+  
   /**
-   * Get columns for a specific table
+   * Get the database schema
    */
-  async getTableColumns(tableName: string): Promise<{ name: string; type: string }[]> {
-    try {
-      const query = `
-        SELECT column_name, data_type 
-        FROM information_schema.columns 
-        WHERE table_schema = 'public' 
-          AND table_name = $1
-        ORDER BY ordinal_position
-      `;
-      
-      const result = await pool.query(query, [tableName]);
-      
-      return result.rows.map(row => ({
-        name: row.column_name,
-        type: row.data_type,
-      }));
-    } catch (error) {
-      console.error(`Error getting columns for table ${tableName}:`, error);
-      throw error;
+  getSchema(): DatabaseSchema {
+    if (!this.schema) {
+      throw new Error('Schema not initialized');
     }
+    return this.schema;
   }
-
+  
   /**
-   * Get foreign keys for a specific table
+   * Fetch the database schema from PostgreSQL
    */
-  async getTableForeignKeys(tableName: string): Promise<{ column: string; foreignTable: string; foreignColumn: string }[]> {
+  private async fetchDatabaseSchema(): Promise<DatabaseSchema> {
+    // Query to get tables and columns
+    const tablesQuery = `
+      SELECT 
+        t.table_name,
+        c.column_name,
+        c.data_type,
+        c.is_nullable,
+        (
+          SELECT EXISTS (
+            SELECT 1 FROM information_schema.table_constraints tc
+            JOIN information_schema.constraint_column_usage ccu 
+              ON tc.constraint_name = ccu.constraint_name
+            WHERE tc.constraint_type = 'PRIMARY KEY'
+              AND tc.table_name = t.table_name
+              AND ccu.column_name = c.column_name
+          )
+        ) as is_primary_key
+      FROM information_schema.tables t
+      JOIN information_schema.columns c ON t.table_name = c.table_name
+      WHERE t.table_schema = 'public'
+      AND t.table_type = 'BASE TABLE'
+      ORDER BY t.table_name, c.ordinal_position;
+    `;
+    
+    // Query to get foreign keys
+    const foreignKeysQuery = `
+      SELECT
+        tc.table_name,
+        kcu.column_name,
+        ccu.table_name AS foreign_table_name,
+        ccu.column_name AS foreign_column_name
+      FROM information_schema.table_constraints tc
+      JOIN information_schema.key_column_usage kcu
+        ON tc.constraint_name = kcu.constraint_name
+      JOIN information_schema.constraint_column_usage ccu
+        ON ccu.constraint_name = tc.constraint_name
+      WHERE tc.constraint_type = 'FOREIGN KEY';
+    `;
+    
     try {
-      const query = `
-        SELECT
-          kcu.column_name,
-          ccu.table_name AS foreign_table_name,
-          ccu.column_name AS foreign_column_name
-        FROM
-          information_schema.table_constraints AS tc
-          JOIN information_schema.key_column_usage AS kcu
-            ON tc.constraint_name = kcu.constraint_name
-            AND tc.table_schema = kcu.table_schema
-          JOIN information_schema.constraint_column_usage AS ccu
-            ON ccu.constraint_name = tc.constraint_name
-            AND ccu.table_schema = tc.table_schema
-        WHERE
-          tc.constraint_type = 'FOREIGN KEY'
-          AND tc.table_name = $1
-          AND tc.table_schema = 'public'
-      `;
+      const [tablesResult, foreignKeysResult] = await Promise.all([
+        sql.unsafe(tablesQuery),
+        sql.unsafe(foreignKeysQuery)
+      ]);
       
-      const result = await pool.query(query, [tableName]);
+      // Convert to our schema format
+      const tableMap = new Map<string, TableSchema>();
       
-      return result.rows.map(row => ({
-        column: row.column_name,
-        foreignTable: row.foreign_table_name,
-        foreignColumn: row.foreign_column_name,
-      }));
-    } catch (error) {
-      console.error(`Error getting foreign keys for table ${tableName}:`, error);
-      throw error;
-    }
-  }
-
-  /**
-   * Get a formatted representation of the database schema
-   */
-  async getFormattedSchema(): Promise<string> {
-    try {
-      // Get all tables
-      const tables = await this.getTables();
-      
-      // Build schema representation
-      let schemaText = '';
-      
-      for (const tableName of tables) {
-        // Get columns
-        const columns = await this.getTableColumns(tableName);
+      // Process the table and column information
+      for (const row of tablesResult) {
+        const tableName = row.table_name;
+        const columnName = row.column_name;
+        const dataType = row.data_type;
+        const nullable = row.is_nullable === 'YES';
+        const isPrimaryKey = row.is_primary_key;
         
-        // Get foreign keys
-        const foreignKeys = await this.getTableForeignKeys(tableName);
-        
-        // Add table header
-        schemaText += `TABLE: ${tableName}\n`;
-        
-        // Add columns
-        schemaText += 'Columns:\n';
-        for (const column of columns) {
-          schemaText += `  - ${column.name} (${column.type})\n`;
+        if (!tableMap.has(tableName)) {
+          tableMap.set(tableName, {
+            name: tableName,
+            columns: []
+          });
         }
         
-        // Add foreign keys if any
-        if (foreignKeys.length > 0) {
-          schemaText += 'Foreign Keys:\n';
-          for (const fk of foreignKeys) {
-            schemaText += `  - ${fk.column} -> ${fk.foreignTable}(${fk.foreignColumn})\n`;
-          }
-        }
-        
-        schemaText += '\n';
+        const table = tableMap.get(tableName)!;
+        table.columns.push({
+          name: columnName,
+          type: dataType,
+          nullable,
+          isPrimaryKey,
+          isForeignKey: false // Will update this in the next step
+        });
       }
       
-      return schemaText;
+      // Process foreign key information
+      for (const row of foreignKeysResult) {
+        const tableName = row.table_name;
+        const columnName = row.column_name;
+        const foreignTableName = row.foreign_table_name;
+        const foreignColumnName = row.foreign_column_name;
+        
+        const table = tableMap.get(tableName);
+        if (table) {
+          const column = table.columns.find(c => c.name === columnName);
+          if (column) {
+            column.isForeignKey = true;
+            column.references = {
+              table: foreignTableName,
+              column: foreignColumnName
+            };
+          }
+        }
+      }
+      
+      return {
+        tables: Array.from(tableMap.values())
+      };
     } catch (error) {
-      console.error('Error getting formatted schema:', error);
-      throw error;
+      console.error('Error fetching database schema:', error);
+      throw new Error('Failed to fetch database schema');
     }
+  }
+  
+  /**
+   * Get a plain text description of the database schema for the LLM
+   */
+  getSchemaDescription(): string {
+    if (!this.schema) {
+      throw new Error('Schema not initialized');
+    }
+    
+    let description = `# Database Schema\n\n`;
+    
+    for (const table of this.schema.tables) {
+      description += `## Table: ${table.name}\n\n`;
+      description += `Columns:\n`;
+      
+      for (const column of table.columns) {
+        description += `- ${column.name} (${column.type})`;
+        
+        if (column.isPrimaryKey) {
+          description += ` [PRIMARY KEY]`;
+        }
+        
+        if (column.isForeignKey && column.references) {
+          description += ` [FOREIGN KEY -> ${column.references.table}.${column.references.column}]`;
+        }
+        
+        if (!column.nullable) {
+          description += ` [NOT NULL]`;
+        }
+        
+        description += `\n`;
+      }
+      
+      description += `\n`;
+    }
+    
+    return description;
   }
 }
 
 // Create a singleton instance
-let schemaProviderInstance: SchemaProvider | null = null;
-
-/**
- * Get the Schema Provider instance
- */
-export function getSchemaProvider(): SchemaProvider {
-  if (!schemaProviderInstance) {
-    schemaProviderInstance = new SchemaProvider();
-  }
-  return schemaProviderInstance;
-}
+export const schemaProvider = new SchemaProvider();

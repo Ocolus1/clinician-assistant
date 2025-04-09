@@ -1,15 +1,33 @@
-import { Pool, neonConfig } from '@neondatabase/serverless';
-import { drizzle } from 'drizzle-orm/neon-serverless';
-import ws from "ws";
-import * as schema from "@shared/schema";
+/**
+ * Database Connection Module
+ * 
+ * This module provides a connection to the PostgreSQL database
+ * using the Postgres library. It exports a configured PostgreSQL client.
+ */
 
-neonConfig.webSocketConstructor = ws;
+import postgres from 'postgres';
 
-if (!process.env.DATABASE_URL) {
-  throw new Error(
-    "DATABASE_URL must be set. Did you forget to provision a database?",
-  );
+// Get the database connection URL from environment variables
+const databaseUrl = process.env.DATABASE_URL || 
+  'postgres://postgres:postgres@localhost:5432/postgres';
+
+// Create a PostgreSQL client
+export const sql = postgres(databaseUrl, {
+  max: 10, // Maximum number of connections in the pool
+  idle_timeout: 30, // Number of seconds a connection can be idle before being terminated
+  connect_timeout: 30, // Maximum number of seconds to wait for a connection
+});
+
+console.log('PostgreSQL client initialized.');
+
+// Export a function to check database connectivity
+export async function checkDatabaseConnection(): Promise<boolean> {
+  try {
+    // Try a simple query to check connectivity
+    const result = await sql`SELECT 1 as connected`;
+    return result[0]?.connected === 1;
+  } catch (error) {
+    console.error('Database connection check failed:', error);
+    return false;
+  }
 }
-
-export const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-export const db = drizzle({ client: pool, schema });

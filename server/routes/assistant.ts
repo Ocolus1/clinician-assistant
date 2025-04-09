@@ -1,156 +1,285 @@
 /**
  * Clinician Assistant Routes
  * 
- * This file contains the API routes for the Clinician Assistant feature.
+ * This module defines the API routes for the Clinician Assistant feature,
+ * handling requests related to assistant configuration, conversations, and messages.
  */
 
 import express from 'express';
-import { 
-  ConfigureAssistantRequest,
-  CreateConversationRequest,
-  UpdateConversationRequest,
-  SendMessageRequest
-} from '@shared/assistantTypes';
-import { getConversationService } from '../services/conversationService';
-import { getClinicianAssistantService } from '../services/clinicianAssistantService';
+import { z } from 'zod';
+import { clinicianAssistantService } from '../services/clinicianAssistantService';
+import { conversationService } from '../services/conversationService';
+import { AssistantConfig } from '@shared/assistantTypes';
 
-// Create router
 const router = express.Router();
 
-// Get conversation service instance
-const conversationService = getConversationService();
+// Initialize the assistant service when the server starts
+(async () => {
+  try {
+    await clinicianAssistantService.initialize();
+  } catch (error) {
+    console.error('Failed to initialize clinician assistant service:', error);
+  }
+})();
 
-// Get clinician assistant service instance
-const clinicianAssistantService = getClinicianAssistantService();
+// Schema for assistant configuration
+const configureAssistantSchema = z.object({
+  config: z.object({
+    apiKey: z.string().min(1),
+    model: z.string().min(1),
+    temperature: z.number().min(0).max(2)
+  })
+});
+
+// Schema for creating a conversation
+const createConversationSchema = z.object({
+  name: z.string().min(1)
+});
+
+// Schema for updating a conversation
+const updateConversationSchema = z.object({
+  name: z.string().min(1)
+});
+
+// Schema for sending a message
+const sendMessageSchema = z.object({
+  message: z.string().min(1)
+});
 
 /**
- * Check assistant status
+ * GET /api/assistant/status
+ * Get the current status of the assistant
  */
 router.get('/status', async (req, res) => {
   try {
-    const status = await clinicianAssistantService.getStatus();
+    const status = clinicianAssistantService.getStatus();
+    
+    // Test connection if configured
+    if (status.isConfigured) {
+      status.connectionValid = await clinicianAssistantService.testConnection();
+    }
+    
     res.json(status);
-  } catch (error) {
-    console.error('Error checking assistant status:', error);
-    res.status(500).json({ error: 'Failed to check assistant status' });
+  } catch (error: any) {
+    console.error('Error getting assistant status:', error);
+    res.status(500).json({ error: error.message || 'Failed to get assistant status' });
   }
 });
 
 /**
- * Configure the assistant
+ * POST /api/assistant/configure
+ * Configure the assistant with API key and model settings
  */
 router.post('/configure', async (req, res) => {
   try {
-    const configRequest = req.body as ConfigureAssistantRequest;
-    const result = await clinicianAssistantService.configure(configRequest);
-    res.json(result);
-  } catch (error) {
+    const parseResult = configureAssistantSchema.safeParse(req.body);
+    
+    if (!parseResult.success) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Invalid configuration parameters',
+        errors: parseResult.error.errors
+      });
+    }
+    
+    const { config } = parseResult.data;
+    
+    // Configure the assistant
+    clinicianAssistantService.configureAssistant(config);
+    
+    // Test the connection
+    const connectionValid = await clinicianAssistantService.testConnection();
+    
+    res.json({ 
+      success: true, 
+      connectionValid,
+      message: connectionValid 
+        ? 'Assistant configured successfully' 
+        : 'Assistant configured but connection test failed'
+    });
+  } catch (error: any) {
     console.error('Error configuring assistant:', error);
     res.status(500).json({ 
       success: false, 
-      message: error instanceof Error ? error.message : 'Failed to configure assistant' 
+      message: error.message || 'Failed to configure assistant'
     });
   }
 });
 
 /**
+ * GET /api/assistant/conversations
  * Get all conversations
  */
-router.get('/conversations', async (req, res) => {
+router.get('/conversations', (req, res) => {
   try {
-    const conversations = await conversationService.getConversations();
+    const conversations = conversationService.getConversations();
     res.json({ conversations });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error getting conversations:', error);
-    res.status(500).json({ error: 'Failed to get conversations' });
+    res.status(500).json({ error: error.message || 'Failed to get conversations' });
   }
 });
 
 /**
+ * POST /api/assistant/conversations
  * Create a new conversation
  */
-router.post('/conversations', async (req, res) => {
+router.post('/conversations', (req, res) => {
   try {
-    const createRequest = req.body as CreateConversationRequest;
-    const conversation = await conversationService.createConversation(createRequest.name);
-    res.json({ conversation });
-  } catch (error) {
+    const parseResult = createConversationSchema.safeParse(req.body);
+    
+    if (!parseResult.success) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Invalid conversation parameters',
+        errors: parseResult.error.errors
+      });
+    }
+    
+    const { name } = parseResult.data;
+    const conversation = conversationService.createConversation(name);
+    
+    res.status(201).json({ 
+      success: true,
+      id: conversation.id,
+      name: conversation.name
+    });
+  } catch (error: any) {
     console.error('Error creating conversation:', error);
-    res.status(500).json({ error: 'Failed to create conversation' });
+    res.status(500).json({ 
+      success: false, 
+      message: error.message || 'Failed to create conversation'
+    });
   }
 });
 
 /**
+ * PUT /api/assistant/conversations/:id
  * Update a conversation
  */
-router.put('/conversations/:id', async (req, res) => {
+router.put('/conversations/:id', (req, res) => {
   try {
-    const updateRequest = req.body as UpdateConversationRequest;
-    const id = req.params.id;
+    const { id } = req.params;
+    const parseResult = updateConversationSchema.safeParse(req.body);
     
-    await conversationService.updateConversation(id, updateRequest.name);
+    if (!parseResult.success) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Invalid update parameters',
+        errors: parseResult.error.errors
+      });
+    }
+    
+    const { name } = parseResult.data;
+    const success = conversationService.updateConversation(id, { name });
+    
+    if (!success) {
+      return res.status(404).json({ 
+        success: false, 
+        message: `Conversation ${id} not found`
+      });
+    }
+    
     res.json({ success: true });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error updating conversation:', error);
     res.status(500).json({ 
       success: false, 
-      error: 'Failed to update conversation' 
+      message: error.message || 'Failed to update conversation'
     });
   }
 });
 
 /**
+ * DELETE /api/assistant/conversations/:id
  * Delete a conversation
  */
-router.delete('/conversations/:id', async (req, res) => {
+router.delete('/conversations/:id', (req, res) => {
   try {
-    const id = req.params.id;
-    await conversationService.deleteConversation(id);
+    const { id } = req.params;
+    const success = conversationService.deleteConversation(id);
+    
+    if (!success) {
+      return res.status(404).json({ 
+        success: false, 
+        message: `Conversation ${id} not found`
+      });
+    }
+    
     res.json({ success: true });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error deleting conversation:', error);
     res.status(500).json({ 
       success: false, 
-      error: 'Failed to delete conversation' 
+      message: error.message || 'Failed to delete conversation'
     });
   }
 });
 
 /**
- * Clear a conversation's messages
+ * POST /api/assistant/conversations/:id/clear
+ * Clear all messages from a conversation
  */
-router.post('/conversations/:id/clear', async (req, res) => {
+router.post('/conversations/:id/clear', (req, res) => {
   try {
-    const id = req.params.id;
-    await conversationService.clearConversation(id);
+    const { id } = req.params;
+    const success = conversationService.clearConversation(id);
+    
+    if (!success) {
+      return res.status(404).json({ 
+        success: false, 
+        message: `Conversation ${id} not found`
+      });
+    }
+    
     res.json({ success: true });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error clearing conversation:', error);
     res.status(500).json({ 
       success: false, 
-      error: 'Failed to clear conversation' 
+      message: error.message || 'Failed to clear conversation'
     });
   }
 });
 
 /**
- * Send a message and get a response
+ * POST /api/assistant/conversations/:id/messages
+ * Send a message to the assistant
  */
 router.post('/conversations/:id/messages', async (req, res) => {
   try {
-    const id = req.params.id;
-    const messageRequest = req.body as SendMessageRequest;
+    const { id } = req.params;
+    const parseResult = sendMessageSchema.safeParse(req.body);
     
-    const message = await clinicianAssistantService.processMessage(
-      id, 
-      messageRequest.message
-    );
+    if (!parseResult.success) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Invalid message',
+        errors: parseResult.error.errors
+      });
+    }
     
-    res.json({ message });
-  } catch (error) {
-    console.error('Error processing message:', error);
+    const { message } = parseResult.data;
+    
+    // Process the message
+    const response = await clinicianAssistantService.processMessage(id, message);
+    
+    if (!response) {
+      return res.status(404).json({ 
+        success: false, 
+        message: `Conversation ${id} not found`
+      });
+    }
+    
+    res.json({ 
+      success: true,
+      message: response
+    });
+  } catch (error: any) {
+    console.error('Error sending message:', error);
     res.status(500).json({ 
-      error: error instanceof Error ? error.message : 'Failed to process message' 
+      success: false, 
+      message: error.message || 'Failed to send message'
     });
   }
 });

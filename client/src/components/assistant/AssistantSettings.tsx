@@ -1,307 +1,268 @@
 /**
  * Assistant Settings Component
  * 
- * This component allows users to configure the OpenAI API key and model
- * for the Clinician Assistant.
+ * Provides interface for configuring the assistant with OpenAI API key
+ * and testing the connection.
  */
 
 import React, { useState, useEffect } from 'react';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { useMutation, useQuery } from '@tanstack/react-query';
+import { z } from 'zod';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useForm } from 'react-hook-form';
 import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from '@/components/ui/select';
-import { Slider } from '@/components/ui/slider';
-import { Loader2, ArrowLeft, Bot, Check, KeyRound, AlertCircle } from 'lucide-react';
+  Form,
+  FormControl,
+  FormDescription, 
+  FormField, 
+  FormItem, 
+  FormLabel, 
+  FormMessage 
+} from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { AlertCircle, CheckCircle2, Loader2, KeyRound } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { useToast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
 import { assistantService } from '@/lib/services/assistantService';
-import { ConfigureAssistantRequest } from '@shared/assistantTypes';
-import { ask_secrets } from '@/lib/utils'; // Import the ask_secrets utility
 
-interface AssistantSettingsProps {
-  onClose?: () => void;
-}
+// Form schema for API key validation
+const settingsFormSchema = z.object({
+  openaiApiKey: z.string().min(1, 'API key is required'),
+});
+
+type SettingsFormValues = z.infer<typeof settingsFormSchema>;
 
 /**
  * Assistant Settings Component
  */
-export function AssistantSettings({ onClose }: AssistantSettingsProps) {
-  const [apiKey, setApiKey] = useState('');
-  const [model, setModel] = useState('gpt-4-turbo-preview');
-  const [temperature, setTemperature] = useState(0.2);
-  const [loading, setLoading] = useState(false);
-  const [status, setStatus] = useState<'idle' | 'success' | 'error'>('idle');
-  const [message, setMessage] = useState('');
-  const [isConfigured, setIsConfigured] = useState(false);
-  const [isConnectionValid, setIsConnectionValid] = useState(false);
-  const [initializing, setInitializing] = useState(true);
+export function AssistantSettings() {
+  const { toast } = useToast();
+  const [isTestingConnection, setIsTestingConnection] = useState(false);
+  const [testResult, setTestResult] = useState<{success: boolean; message: string} | null>(null);
   
-  // Check if the assistant is already configured on mount
+  // Query for retrieving current settings
+  const { 
+    data: settingsData, 
+    isLoading: isLoadingSettings, 
+    refetch: refetchSettings 
+  } = useQuery({
+    queryKey: ['/api/assistant/settings'],
+    queryFn: async () => {
+      return await assistantService.getSettings();
+    }
+  });
+  
+  // Form definition
+  const form = useForm<SettingsFormValues>({
+    resolver: zodResolver(settingsFormSchema),
+    defaultValues: {
+      openaiApiKey: '',
+    },
+  });
+  
+  // Update form fields when settings data is loaded
   useEffect(() => {
-    checkStatus();
-  }, []);
-  
-  // Check the current status of the assistant
-  const checkStatus = async () => {
-    try {
-      setInitializing(true);
-      const status = await assistantService.checkStatus();
-      
-      setIsConfigured(status.isConfigured);
-      setIsConnectionValid(status.connectionValid);
-      
-      if (status.isConfigured) {
-        // If configured, show appropriate message
-        if (status.connectionValid) {
-          setStatus('success');
-          setMessage('The assistant is correctly configured and ready to use.');
-        } else {
-          setStatus('error');
-          setMessage('The assistant is configured but the connection test failed. Please check your API key.');
-        }
-      }
-      
-      setInitializing(false);
-    } catch (error) {
-      console.error('Error checking assistant status:', error);
-      setInitializing(false);
+    if (settingsData) {
+      form.reset({
+        openaiApiKey: settingsData.openaiApiKey || '',
+      });
     }
+  }, [settingsData, form]);
+  
+  // Mutations
+  const saveSettingsMutation = useMutation({
+    mutationFn: async (values: SettingsFormValues) => {
+      return await assistantService.saveSettings(values);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Settings Saved",
+        description: "Your assistant settings have been saved successfully.",
+      });
+      refetchSettings();
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to save settings. Please try again.",
+        variant: "destructive",
+      });
+    }
+  });
+  
+  // Handle form submission
+  const onSubmit = (values: SettingsFormValues) => {
+    saveSettingsMutation.mutate(values);
   };
   
-  // Save the settings
-  const saveSettings = async () => {
-    if (!apiKey.trim()) {
-      setStatus('error');
-      setMessage('API key is required to configure the assistant.');
-      return;
-    }
-    
-    setLoading(true);
-    setStatus('idle');
-    setMessage('');
+  // Test OpenAI connection
+  const testConnection = async () => {
+    setIsTestingConnection(true);
+    setTestResult(null);
     
     try {
-      // Configure the assistant
-      const config: ConfigureAssistantRequest = {
-        config: {
-          apiKey: apiKey.trim(),
-          model,
-          temperature,
-        }
-      };
-      
-      const result = await assistantService.configureAssistant(config);
-      
-      if (result.success) {
-        setStatus('success');
-        setIsConfigured(true);
-        setIsConnectionValid(result.connectionValid || false);
-        
-        if (result.connectionValid) {
-          setMessage('Settings saved successfully! The assistant is ready to use.');
-        } else {
-          setMessage('Settings saved, but the connection test failed. Please check your API key.');
-        }
-      } else {
-        setStatus('error');
-        setMessage(result.message || 'Failed to save settings.');
-      }
-      
-      setLoading(false);
+      const result = await assistantService.testConnection();
+      setTestResult({
+        success: result.success,
+        message: result.success 
+          ? "Connection successful! Your API key is working correctly."
+          : `Connection failed: ${result.error || 'Unknown error'}`
+      });
     } catch (error) {
-      console.error('Error saving assistant settings:', error);
-      setStatus('error');
-      setMessage('An unexpected error occurred while saving settings.');
-      setLoading(false);
+      setTestResult({
+        success: false,
+        message: "Connection test failed. Please check your API key and try again."
+      });
+    } finally {
+      setIsTestingConnection(false);
     }
   };
   
-  // Request API key from user
-  const requestApiKey = async () => {
+  const handleRequestAPIKey = async () => {
+    // Instead of using ask_secrets, we'll use the assistant service
     try {
-      const result = await ask_secrets(['OPENAI_API_KEY']);
-      if (result && result.OPENAI_API_KEY) {
-        setApiKey(result.OPENAI_API_KEY);
-      }
+      await assistantService.requestAPIKeyViaSecrets();
+      // Refetch settings to get the new API key
+      refetchSettings();
+      toast({
+        title: "API Key Requested",
+        description: "API key request has been submitted.",
+      });
     } catch (error) {
-      console.error('Error requesting API key:', error);
+      toast({
+        title: "Error",
+        description: "Failed to request API key. Please try again.",
+        variant: "destructive",
+      });
     }
   };
   
-  if (initializing) {
-    return (
-      <div className="flex flex-col items-center justify-center p-8 h-full">
-        <Loader2 className="h-8 w-8 animate-spin mb-4" />
-        <p>Checking assistant configuration...</p>
-      </div>
-    );
-  }
+  // Determine if a key is already saved
+  const hasApiKey = Boolean(settingsData?.openaiApiKey);
   
   return (
-    <div className="p-4 max-w-2xl mx-auto">
-      {onClose && (
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={onClose}
-          className="mb-4"
-        >
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to Chat
-        </Button>
-      )}
-      
+    <div className="p-6">
       <Card>
         <CardHeader>
-          <div className="flex items-center gap-2">
-            <Bot className="h-5 w-5 text-primary" />
-            <CardTitle>Clinician Assistant Settings</CardTitle>
-          </div>
+          <CardTitle>Clinician Assistant Settings</CardTitle>
           <CardDescription>
-            Configure your OpenAI API key and model settings for the Clinician Assistant.
+            Configure your OpenAI integration for the Clinician Assistant.
           </CardDescription>
         </CardHeader>
-        
-        <CardContent className="space-y-4">
-          {/* Status alerts */}
-          {status === 'success' && (
-            <Alert variant="default" className="bg-green-50 border-green-200">
-              <Check className="h-4 w-4 text-green-600" />
-              <AlertTitle className="text-green-800">Success</AlertTitle>
-              <AlertDescription className="text-green-700">
-                {message}
-              </AlertDescription>
-            </Alert>
-          )}
-          
-          {status === 'error' && (
-            <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
-              <AlertTitle>Error</AlertTitle>
-              <AlertDescription>
-                {message}
-              </AlertDescription>
-            </Alert>
-          )}
-          
-          {/* Configuration status */}
-          <div className="flex items-center justify-between rounded-lg border p-4">
-            <div className="space-y-0.5">
-              <h3 className="text-sm font-medium">Assistant Status</h3>
-              <p className="text-sm text-muted-foreground">
-                {isConfigured 
-                  ? isConnectionValid
-                    ? "Configured and connected"
-                    : "Configured but connection failed"
-                  : "Not configured"
-                }
-              </p>
-            </div>
-            <div className={`h-2 w-2 rounded-full ${
-              isConfigured 
-                ? isConnectionValid
-                  ? "bg-green-500"
-                  : "bg-yellow-500"
-                : "bg-red-500"
-            }`} />
-          </div>
-          
-          {/* API Key input */}
-          <div className="space-y-2">
-            <Label htmlFor="openai-api-key" className="flex items-center gap-1">
-              <KeyRound className="h-3.5 w-3.5" />
-              <span>OpenAI API Key</span>
-            </Label>
-            <div className="flex gap-2">
-              <Input 
-                id="openai-api-key"
-                type="password"
-                value={apiKey}
-                onChange={(e) => setApiKey(e.target.value)}
-                placeholder="sk-..."
-                className="flex-1"
+        <CardContent>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              <FormField
+                control={form.control}
+                name="openaiApiKey"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>OpenAI API Key</FormLabel>
+                    <div className="flex gap-2">
+                      <FormControl>
+                        <Input 
+                          placeholder="Enter your OpenAI API key" 
+                          type="password" 
+                          {...field} 
+                        />
+                      </FormControl>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={handleRequestAPIKey}
+                      >
+                        <KeyRound className="h-4 w-4 mr-2" />
+                        Request Key
+                      </Button>
+                    </div>
+                    <FormDescription>
+                      Your OpenAI API key is needed to power the assistant's functionality.
+                      The key is stored securely and only used for assistant-related requests.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
-              <Button
-                variant="outline"
-                onClick={requestApiKey}
-              >
-                Get Key
-              </Button>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Your API key is stored securely and only used for this assistant.
-            </p>
-          </div>
+              
+              <div className="flex justify-between items-center">
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    id="use-model-4"
+                    checked={settingsData?.useGpt4 || false}
+                    onCheckedChange={async (checked) => {
+                      try {
+                        await assistantService.saveSettings({
+                          ...form.getValues(),
+                          useGpt4: checked
+                        });
+                        refetchSettings();
+                      } catch (error) {
+                        toast({
+                          title: "Error",
+                          description: "Failed to update model settings.",
+                          variant: "destructive",
+                        });
+                      }
+                    }}
+                  />
+                  <Label htmlFor="use-model-4">Use GPT-4 (if available)</Label>
+                </div>
+                
+                <div className="space-x-2">
+                  <Button type="submit" disabled={saveSettingsMutation.isPending || isLoadingSettings}>
+                    {saveSettingsMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Save Settings
+                  </Button>
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={testConnection}
+                    disabled={isTestingConnection || !hasApiKey}
+                  >
+                    {isTestingConnection && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Test Connection
+                  </Button>
+                </div>
+              </div>
+            </form>
+          </Form>
           
-          {/* Model selection */}
-          <div className="space-y-2">
-            <Label htmlFor="model-select">Model</Label>
-            <Select 
-              value={model} 
-              onValueChange={setModel}
-            >
-              <SelectTrigger id="model-select">
-                <SelectValue placeholder="Select a model" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="gpt-4-turbo-preview">GPT-4 Turbo (Recommended)</SelectItem>
-                <SelectItem value="gpt-4">GPT-4</SelectItem>
-                <SelectItem value="gpt-3.5-turbo">GPT-3.5 Turbo</SelectItem>
-              </SelectContent>
-            </Select>
-            <p className="text-xs text-muted-foreground">
-              GPT-4 models provide better SQL generation and reasoning capabilities.
-            </p>
-          </div>
-          
-          {/* Temperature slider */}
-          <div className="space-y-2">
-            <div className="flex justify-between">
-              <Label htmlFor="temperature-slider">Temperature: {temperature.toFixed(1)}</Label>
-            </div>
-            <Slider
-              id="temperature-slider"
-              min={0}
-              max={1}
-              step={0.1}
-              value={[temperature]}
-              onValueChange={(value) => setTemperature(value[0])}
-            />
-            <div className="flex justify-between text-xs text-muted-foreground">
-              <span>More precise</span>
-              <span>More creative</span>
-            </div>
-          </div>
+          {testResult && (
+            <Alert className={cn(
+              "mt-4",
+              testResult.success ? "border-green-500 text-green-800" : "border-destructive text-destructive"
+            )}>
+              {testResult.success ? (
+                <CheckCircle2 className="h-4 w-4 text-green-500" />
+              ) : (
+                <AlertCircle className="h-4 w-4" />
+              )}
+              <AlertTitle>
+                {testResult.success ? "Connection Successful" : "Connection Failed"}
+              </AlertTitle>
+              <AlertDescription>{testResult.message}</AlertDescription>
+            </Alert>
+          )}
         </CardContent>
-        
-        <CardFooter className="flex justify-end gap-2">
-          <Button
-            variant="default"
-            onClick={saveSettings}
-            disabled={loading || !apiKey.trim()}
-          >
-            {loading ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                Saving...
-              </>
+        <CardFooter className="flex justify-between border-t pt-4">
+          <div className="text-sm text-muted-foreground">
+            {settingsData?.isConfigured ? (
+              <span className="flex items-center text-green-600">
+                <CheckCircle2 className="h-4 w-4 mr-1" />
+                Assistant is configured
+              </span>
             ) : (
-              'Save Settings'
+              <span className="flex items-center text-amber-600">
+                <AlertCircle className="h-4 w-4 mr-1" />
+                Assistant is not yet configured
+              </span>
             )}
-          </Button>
+          </div>
         </CardFooter>
       </Card>
     </div>

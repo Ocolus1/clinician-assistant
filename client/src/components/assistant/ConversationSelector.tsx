@@ -1,36 +1,29 @@
 /**
  * Conversation Selector Component
  * 
- * This component displays a list of conversations and allows
- * the user to select, create, rename, and delete conversations.
+ * Displays a list of conversations and provides controls
+ * for managing conversations (create, rename, delete).
  */
 
 import React, { useState } from 'react';
+import { Conversation } from '@shared/assistantTypes';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { 
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger
+} from '@/components/ui/dropdown-menu';
+import { Input } from '@/components/ui/input';
 import {
-  MessageSquare,
-  Plus,
-  Pencil,
   MessageSquarePlus,
+  MoreVertical,
+  Edit,
   Trash2,
   Check,
   X
 } from 'lucide-react';
-import { Conversation } from '@shared/assistantTypes';
-import { cn } from '@/lib/utils';
-import { format } from 'date-fns';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 
 interface ConversationSelectorProps {
   conversations: Conversation[];
@@ -41,9 +34,6 @@ interface ConversationSelectorProps {
   onDeleteConversation: (id: string) => void;
 }
 
-/**
- * Conversation Selector Component
- */
 export function ConversationSelector({
   conversations,
   activeConversationId,
@@ -54,143 +44,116 @@ export function ConversationSelector({
 }: ConversationSelectorProps) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState('');
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [conversationToDelete, setConversationToDelete] = useState<string | null>(null);
   
-  // Start editing a conversation name
-  const startEditing = (conversation: Conversation) => {
+  const handleStartEditing = (conversation: Conversation) => {
     setEditingId(conversation.id);
     setEditingName(conversation.name);
   };
   
-  // Save the edited conversation name
-  const saveEdit = () => {
+  const handleSaveEdit = () => {
     if (editingId && editingName.trim()) {
-      onRenameConversation(editingId, editingName.trim());
+      onRenameConversation(editingId, editingName);
       setEditingId(null);
     }
   };
   
-  // Cancel editing
-  const cancelEdit = () => {
+  const handleCancelEdit = () => {
     setEditingId(null);
   };
   
-  // Handle keydown in the edit input
-  const handleEditKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
-      saveEdit();
+      handleSaveEdit();
     } else if (e.key === 'Escape') {
-      cancelEdit();
-    }
-  };
-  
-  // Confirm deletion of a conversation
-  const confirmDelete = (id: string) => {
-    setConversationToDelete(id);
-    setDeleteDialogOpen(true);
-  };
-  
-  // Execute deletion
-  const handleDelete = () => {
-    if (conversationToDelete) {
-      onDeleteConversation(conversationToDelete);
-      setDeleteDialogOpen(false);
-      setConversationToDelete(null);
+      handleCancelEdit();
     }
   };
   
   return (
     <>
-      <div className="flex items-center justify-between p-4 border-b">
-        <h3 className="font-medium">Conversations</h3>
+      <div className="p-3 border-b">
         <Button 
-          variant="outline" 
-          size="sm"
           onClick={onNewConversation}
-          className="flex gap-1 items-center"
+          className="w-full"
         >
-          <Plus className="h-4 w-4" />
-          <span>New</span>
+          <MessageSquarePlus className="h-4 w-4 mr-2" />
+          New Conversation
         </Button>
       </div>
       
       <ScrollArea className="flex-1">
         <div className="p-2 space-y-1">
           {conversations.length === 0 ? (
-            <div className="text-center py-4 text-sm text-muted-foreground">
+            <div className="text-sm text-center py-4 text-muted-foreground">
               No conversations yet
             </div>
           ) : (
             conversations.map((conversation) => (
               <div
                 key={conversation.id}
-                className={cn(
-                  "group p-2 rounded-md flex items-center hover:bg-muted/50 transition-colors",
-                  activeConversationId === conversation.id && "bg-muted"
-                )}
+                className={`flex items-center justify-between rounded-md p-2 text-sm gap-2 ${
+                  activeConversationId === conversation.id 
+                    ? 'bg-secondary' 
+                    : 'hover:bg-secondary/50 cursor-pointer'
+                }`}
+                onClick={() => editingId !== conversation.id && onSelectConversation(conversation.id)}
               >
                 {editingId === conversation.id ? (
-                  <div className="flex-1 flex items-center gap-1">
+                  <div className="flex items-center gap-1 w-full">
                     <Input
                       value={editingName}
                       onChange={(e) => setEditingName(e.target.value)}
-                      onKeyDown={handleEditKeyDown}
+                      onKeyDown={handleKeyDown}
+                      className="h-7 text-xs"
                       autoFocus
-                      className="h-8"
                     />
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-8 w-8"
-                      onClick={saveEdit}
+                      className="h-6 w-6"
+                      onClick={handleSaveEdit}
                     >
-                      <Check className="h-4 w-4" />
+                      <Check className="h-3.5 w-3.5" />
                     </Button>
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-8 w-8"
-                      onClick={cancelEdit}
+                      className="h-6 w-6"
+                      onClick={handleCancelEdit}
                     >
-                      <X className="h-4 w-4" />
+                      <X className="h-3.5 w-3.5" />
                     </Button>
                   </div>
                 ) : (
                   <>
-                    <button
-                      className="flex-1 flex items-center gap-2 text-left"
-                      onClick={() => onSelectConversation(conversation.id)}
-                    >
-                      <MessageSquare className="h-4 w-4 text-muted-foreground" />
-                      <div className="flex-1">
-                        <div className="font-medium text-sm truncate">
-                          {conversation.name}
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          {format(new Date(conversation.lastMessageAt), 'MMM d, h:mm a')}
-                        </div>
-                      </div>
-                    </button>
-                    
-                    <div className="flex opacity-0 group-hover:opacity-100 transition-opacity">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8"
-                        onClick={() => startEditing(conversation)}
-                      >
-                        <Pencil className="h-3.5 w-3.5" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-destructive"
-                        onClick={() => confirmDelete(conversation.id)}
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
+                    <div className="truncate flex-1">
+                      {conversation.name}
                     </div>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button 
+                          variant="ghost" 
+                          size="icon"
+                          className="h-7 w-7"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <MoreVertical className="h-3.5 w-3.5" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => handleStartEditing(conversation)}>
+                          <Edit className="h-4 w-4 mr-2" />
+                          Rename
+                        </DropdownMenuItem>
+                        <DropdownMenuItem 
+                          className="text-destructive"
+                          onClick={() => onDeleteConversation(conversation.id)}
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </>
                 )}
               </div>
@@ -198,26 +161,6 @@ export function ConversationSelector({
           )}
         </div>
       </ScrollArea>
-      
-      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Conversation</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete this conversation? This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={handleDelete}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </>
   );
 }

@@ -1,14 +1,14 @@
 /**
- * Shared types for the Clinician Assistant
+ * Type definitions for the Clinician Assistant feature
  */
 
 /**
- * Message role type
+ * Message Role - defines who sent the message
  */
-export type MessageRole = 'user' | 'assistant';
+export type MessageRole = 'user' | 'assistant' | 'system';
 
 /**
- * Message type
+ * Message - represents a single message in a conversation
  */
 export interface Message {
   id: string;
@@ -18,7 +18,7 @@ export interface Message {
 }
 
 /**
- * Conversation type
+ * Conversation - represents a conversation with the assistant
  */
 export interface Conversation {
   id: string;
@@ -28,22 +28,30 @@ export interface Conversation {
 }
 
 /**
+ * Assistant Configuration
+ */
+export interface AssistantConfig {
+  apiKey: string;
+  model: string;
+  temperature: number;
+}
+
+// API Request/Response Types
+
+/**
  * Assistant Status Response
  */
 export interface AssistantStatusResponse {
   isConfigured: boolean;
   connectionValid: boolean;
+  model?: string;
 }
 
 /**
  * Configure Assistant Request
  */
 export interface ConfigureAssistantRequest {
-  config: {
-    apiKey: string;
-    model?: string;
-    temperature?: number;
-  };
+  config: AssistantConfig;
 }
 
 /**
@@ -51,15 +59,8 @@ export interface ConfigureAssistantRequest {
  */
 export interface ConfigureAssistantResponse {
   success: boolean;
-  connectionValid: boolean;
+  connectionValid?: boolean;
   message?: string;
-}
-
-/**
- * Get Conversations Response
- */
-export interface GetConversationsResponse {
-  conversations: Conversation[];
 }
 
 /**
@@ -73,7 +74,9 @@ export interface CreateConversationRequest {
  * Create Conversation Response
  */
 export interface CreateConversationResponse {
-  conversation: Conversation;
+  id: string;
+  name: string;
+  success: boolean;
 }
 
 /**
@@ -82,6 +85,13 @@ export interface CreateConversationResponse {
 export interface UpdateConversationRequest {
   conversationId: string;
   name: string;
+}
+
+/**
+ * Get Conversations Response
+ */
+export interface GetConversationsResponse {
+  conversations: Conversation[];
 }
 
 /**
@@ -97,13 +107,14 @@ export interface SendMessageRequest {
  */
 export interface SendMessageResponse {
   message: Message;
+  success: boolean;
 }
 
 /**
- * SQL Query Result
+ * Get Assistant Settings Response
  */
-export interface SQLQueryResult {
-  sqlQuery: string;
-  data: any[];
-  error?: string;
+export interface GetAssistantSettingsResponse {
+  openaiApiKey?: string;
+  useGpt4?: boolean;
+  isConfigured: boolean;
 }

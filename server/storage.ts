@@ -18,8 +18,8 @@ import {
   clients, allies, goals, subgoals, budgetItems, budgetSettings, budgetItemCatalog, sessions,
   sessionNotes, performanceAssessments, milestoneAssessments, strategies, clinicians, clientClinicians
 } from "@shared/schema";
-import { db } from "./db";
-import { pool } from "./db"; // Import the PostgreSQL pool for raw queries
+import { sql } from "./db";
+import { db } from "./drizzle";
 import { eq, and } from "drizzle-orm";
 
 export interface IStorage {
@@ -856,8 +856,7 @@ export class DBStorage implements IStorage {
           WHERE session_id IN (${sessionIds.join(',')})
         `;
         
-        const notesResult = await pool.query(query);
-        const notes = notesResult.rows;
+        const notes = await sql.unsafe(query);
         
         console.log(`Found ${notes.length} session notes using direct SQL query`);
         
@@ -1168,16 +1167,16 @@ export class DBStorage implements IStorage {
             
             // Try a direct SQL query as a fallback that ignores case and trims whitespace
             try {
-              const result = await pool.query(
+              const result = await sql.unsafe(
                 `SELECT * FROM budget_items 
                  WHERE client_id = $1 
                  AND LOWER(TRIM(item_code)) = LOWER(TRIM($2))`,
                 [clientId, itemCode]
               );
               
-              if (result.rows.length > 0) {
-                console.log(`Found ${result.rows.length} budget items with case-insensitive matching for ${itemCode}`);
-                budgetItemsList = result.rows;
+              if (result.length > 0) {
+                console.log(`Found ${result.length} budget items with case-insensitive matching for ${itemCode}`);
+                budgetItemsList = result as any[];
               } else {
                 console.log(`Still no budget items found for ${itemCode} after case-insensitive search`);
                 
@@ -1217,7 +1216,7 @@ export class DBStorage implements IStorage {
                 
                 // Fall back to direct SQL if ORM update fails
                 try {
-                  const sqlResult = await pool.query(
+                  const sqlResult = await sql.unsafe(
                     `UPDATE budget_items 
                      SET used_quantity = $1 
                      WHERE id = $2 
@@ -1225,8 +1224,8 @@ export class DBStorage implements IStorage {
                     [newUsed, item.id]
                   );
                   
-                  if (sqlResult.rows.length > 0) {
-                    console.log(`Successfully updated budget item ${item.id} usage to ${sqlResult.rows[0].used_quantity} using direct SQL`);
+                  if (sqlResult.length > 0) {
+                    console.log(`Successfully updated budget item ${item.id} usage to ${(sqlResult[0] as any).used_quantity} using direct SQL`);
                   } else {
                     console.error(`Failed to update budget item ${item.id} even with direct SQL`);
                   }

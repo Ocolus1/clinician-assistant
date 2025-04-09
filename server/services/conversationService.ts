@@ -1,109 +1,130 @@
 /**
  * Conversation Service
  * 
- * This service handles the conversation management for the Clinician Assistant.
+ * This service manages conversations between users and the Clinician Assistant.
+ * It stores conversation history, handles message exchanges, and provides
+ * conversation management operations.
  */
 
-import { v4 as uuidv4 } from 'uuid';
-import { Conversation, Message } from '@shared/assistantTypes';
+import { randomUUID } from 'crypto';
+import { Conversation, Message, MessageRole } from '@shared/assistantTypes';
 
 /**
  * Conversation Service class
  */
 export class ConversationService {
-  private conversations: Conversation[] = [];
-
-  constructor() {}
-
-  /**
-   * Get all conversations
-   */
-  async getConversations(): Promise<Conversation[]> {
-    return this.conversations;
-  }
-
-  /**
-   * Get a specific conversation by ID
-   */
-  async getConversation(id: string): Promise<Conversation | null> {
-    const conversation = this.conversations.find(c => c.id === id);
-    return conversation || null;
-  }
-
+  private conversations: Map<string, Conversation> = new Map();
+  
   /**
    * Create a new conversation
    */
-  async createConversation(name: string): Promise<Conversation> {
+  createConversation(name: string): Conversation {
+    const id = randomUUID();
+    const now = new Date().toISOString();
+    
     const conversation: Conversation = {
-      id: uuidv4(),
+      id,
       name,
       messages: [],
-      lastMessageAt: new Date().toISOString(),
+      lastMessageAt: now
     };
-
-    this.conversations.push(conversation);
+    
+    this.conversations.set(id, conversation);
     return conversation;
   }
-
+  
+  /**
+   * Get all conversations
+   */
+  getConversations(): Conversation[] {
+    return Array.from(this.conversations.values())
+      .sort((a, b) => new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime());
+  }
+  
+  /**
+   * Get a conversation by ID
+   */
+  getConversation(id: string): Conversation | undefined {
+    return this.conversations.get(id);
+  }
+  
   /**
    * Update a conversation
    */
-  async updateConversation(id: string, name: string): Promise<void> {
-    const conversation = await this.getConversation(id);
+  updateConversation(id: string, updates: Partial<Conversation>): boolean {
+    const conversation = this.conversations.get(id);
+    
     if (!conversation) {
-      throw new Error(`Conversation not found: ${id}`);
+      return false;
     }
-
-    conversation.name = name;
+    
+    // Update the conversation with the provided fields
+    Object.assign(conversation, updates);
+    
+    return true;
   }
-
+  
   /**
    * Delete a conversation
    */
-  async deleteConversation(id: string): Promise<void> {
-    const index = this.conversations.findIndex(c => c.id === id);
-    if (index === -1) {
-      throw new Error(`Conversation not found: ${id}`);
-    }
-
-    this.conversations.splice(index, 1);
+  deleteConversation(id: string): boolean {
+    return this.conversations.delete(id);
   }
-
+  
   /**
    * Clear all messages from a conversation
    */
-  async clearConversation(id: string): Promise<void> {
-    const conversation = await this.getConversation(id);
+  clearConversation(id: string): boolean {
+    const conversation = this.conversations.get(id);
+    
     if (!conversation) {
-      throw new Error(`Conversation not found: ${id}`);
+      return false;
     }
-
+    
     conversation.messages = [];
+    conversation.lastMessageAt = new Date().toISOString();
+    
+    return true;
   }
-
+  
   /**
    * Add a message to a conversation
    */
-  async addMessage(conversationId: string, message: Message): Promise<void> {
-    const conversation = await this.getConversation(conversationId);
+  addMessage(conversationId: string, role: MessageRole, content: string): Message | null {
+    const conversation = this.conversations.get(conversationId);
+    
     if (!conversation) {
-      throw new Error(`Conversation not found: ${conversationId}`);
+      return null;
     }
-
+    
+    const now = new Date().toISOString();
+    
+    const message: Message = {
+      id: randomUUID(),
+      role,
+      content,
+      createdAt: now
+    };
+    
     conversation.messages.push(message);
-    conversation.lastMessageAt = new Date().toISOString();
+    conversation.lastMessageAt = now;
+    
+    return message;
+  }
+  
+  /**
+   * Get the message history for a conversation
+   */
+  getMessageHistory(conversationId: string): Message[] {
+    const conversation = this.conversations.get(conversationId);
+    
+    if (!conversation) {
+      return [];
+    }
+    
+    return conversation.messages;
   }
 }
 
 // Create a singleton instance
-let conversationServiceInstance: ConversationService | null = null;
-
-/**
- * Get the Conversation Service instance
- */
-export function getConversationService(): ConversationService {
-  if (!conversationServiceInstance) {
-    conversationServiceInstance = new ConversationService();
-  }
-  return conversationServiceInstance;
-}
+export const conversationService = new ConversationService();

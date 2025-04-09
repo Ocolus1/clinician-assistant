@@ -1,165 +1,208 @@
 /**
  * Clinician Assistant Service
  * 
- * This service handles the main logic for the Clinician Assistant,
- * including OpenAI integration and conversation management.
+ * This service provides the main functionality for the Clinician Assistant,
+ * coordinating between OpenAI, conversation management, and SQL query execution.
  */
 
-import { v4 as uuidv4 } from 'uuid';
-import { 
-  ConfigureAssistantRequest, 
-  ConfigureAssistantResponse,
-  AssistantStatusResponse,
-  Message
-} from '@shared/assistantTypes';
-import { getConversationService } from './conversationService';
-import { getSQLQueryGenerator } from './sqlQueryGenerator';
-import { getOpenAIService } from './openaiService';
+import { OpenAIConfig } from './openaiService';
+import { openaiService } from './openaiService';
+import { conversationService } from './conversationService';
+import { sqlQueryGenerator } from './sqlQueryGenerator';
+import { schemaProvider } from './schemaProvider';
+import { ChatMessage } from './openaiService';
+import { Message, AssistantStatusResponse } from '@shared/assistantTypes';
 
 /**
  * Clinician Assistant Service class
  */
 export class ClinicianAssistantService {
-  private apiKey: string | null = null;
-  private model: string = 'gpt-4-turbo-preview';
-  private temperature: number = 0.2;
-  private isConfigured: boolean = false;
-  private connectionValid: boolean = false;
-
-  constructor() {}
-
+  private initialized: boolean = false;
+  
   /**
-   * Get the configuration status
+   * Initialize the assistant
    */
-  async getStatus(): Promise<AssistantStatusResponse> {
-    return {
-      isConfigured: this.isConfigured,
-      connectionValid: this.connectionValid,
-    };
-  }
-
-  /**
-   * Configure the assistant
-   */
-  async configure(request: ConfigureAssistantRequest): Promise<ConfigureAssistantResponse> {
+  async initialize(): Promise<void> {
     try {
-      const { apiKey, model, temperature } = request.config;
-      
-      this.apiKey = apiKey;
-      this.model = model || this.model;
-      this.temperature = temperature ?? this.temperature;
-      
-      // Initialize OpenAI with the new API key
-      const openAIService = getOpenAIService();
-      await openAIService.initialize({
-        apiKey: this.apiKey,
-        model: this.model,
-        temperature: this.temperature,
-      });
-      
-      // Test the connection
-      const connectionValid = await openAIService.testConnection();
-      
-      this.isConfigured = true;
-      this.connectionValid = connectionValid;
-      
-      return {
-        success: true,
-        connectionValid,
-      };
+      // Only initialize schema provider if not already initialized
+      if (!this.initialized) {
+        await schemaProvider.initialize();
+        this.initialized = true;
+        console.log('Clinician Assistant Service initialized');
+      }
     } catch (error) {
-      console.error('Error configuring clinician assistant:', error);
-      return {
-        success: false,
-        message: error instanceof Error ? error.message : 'Unknown error occurred',
-        connectionValid: false,
-      };
+      console.error('Failed to initialize Clinician Assistant Service:', error);
+      throw new Error('Failed to initialize Clinician Assistant Service');
     }
   }
-
+  
   /**
-   * Process a message and generate a response
+   * Configure the assistant with OpenAI API settings
    */
-  async processMessage(conversationId: string, messageContent: string): Promise<Message> {
+  configureAssistant(config: OpenAIConfig): void {
+    openaiService.initialize(config);
+  }
+  
+  /**
+   * Get the current status of the assistant
+   */
+  getStatus(): AssistantStatusResponse {
+    const isConfigured = openaiService.isConfigured();
+    const config = openaiService.getConfig();
+    
+    return {
+      isConfigured,
+      connectionValid: isConfigured, // Will be tested separately
+      model: config?.model
+    };
+  }
+  
+  /**
+   * Test connection to OpenAI API
+   */
+  async testConnection(): Promise<boolean> {
+    return await openaiService.testConnection();
+  }
+  
+  /**
+   * Send a message to the assistant and get a response
+   */
+  async processMessage(conversationId: string, messageContent: string): Promise<Message | null> {
     try {
-      if (!this.isConfigured || !this.connectionValid) {
-        throw new Error('Assistant is not properly configured');
+      // Validate conversation exists
+      const conversation = conversationService.getConversation(conversationId);
+      if (!conversation) {
+        throw new Error(`Conversation ${conversationId} not found`);
       }
-
-      // Get the conversation service and SQL query generator
-      const conversationService = getConversationService();
-      const sqlQueryGenerator = getSQLQueryGenerator();
       
-      // Create and add the user message to the conversation
-      const userMessage: Message = {
-        id: uuidv4(),
-        role: 'user',
-        content: messageContent,
-        createdAt: new Date().toISOString(),
+      // Add the user message to the conversation
+      const userMessage = conversationService.addMessage(conversationId, 'user', messageContent);
+      if (!userMessage) {
+        throw new Error('Failed to add user message to conversation');
+      }
+      
+      // Get message history for context
+      const messageHistory = conversationService.getMessageHistory(conversationId);
+      
+      // Extract recent messages for context (limit to last 10 for performance)
+      const recentMessages = messageHistory
+        .slice(-10)
+        .map(msg => ({
+          role: msg.role,
+          content: msg.content
+        }));
+      
+      // Create the system message
+      const systemMessage: ChatMessage = {
+        role: 'system',
+        content: `
+          You are a helpful assistant for speech therapists at a clinic. 
+          You can help answer questions about clients, sessions, budgets, goals, and other clinical data.
+          
+          When a user asks you questions about data, you should:
+          1. Generate an appropriate SQL query
+          2. Execute the query to get the data
+          3. Provide a helpful and concise response based on the data
+          
+          Always be professional, supportive, and objective. Format numerical data clearly.
+          Don't make up information - if you don't know, say so.
+        `
       };
       
-      await conversationService.addMessage(conversationId, userMessage);
+      // First, try to understand if this is a data-related question
+      const isDataQuestion = await this.isDataRelatedQuestion(messageContent);
       
-      // Generate and execute SQL query
-      const queryResult = await sqlQueryGenerator.generateAndExecute(messageContent);
-      
-      let assistantResponseContent = '';
-      
-      if (queryResult.error) {
-        // If there was an error, return it as the response
-        assistantResponseContent = `I encountered an error while trying to process your request: ${queryResult.error}`;
-      } else {
-        // If successful, explain the results
-        const explanation = await sqlQueryGenerator.explainResults(
-          messageContent,
-          queryResult.sqlQuery,
-          queryResult.data
-        );
+      if (isDataQuestion) {
+        // Generate SQL query
+        const query = await sqlQueryGenerator.generateQuery(messageContent);
         
-        assistantResponseContent = explanation;
+        // Execute the query
+        const result = await sqlQueryGenerator.executeQuery(query);
+        
+        // Generate a response based on the query results
+        const sqlContext = `
+          I executed the following SQL query:
+          \`\`\`sql
+          ${result.query}
+          \`\`\`
+          
+          ${result.error 
+            ? `The query failed with error: ${result.error}`
+            : `The query returned ${result.data.length} rows of data: ${JSON.stringify(result.data, null, 2)}`
+          }
+          
+          Based on this data, provide a clear, concise response to the user's question.
+          If there was an error or no data, explain what might be the issue.
+          Don't mention that you ran an SQL query unless the user specifically asked about database queries.
+        `;
+        
+        // Generate response with SQL context
+        const responseContent = await openaiService.createChatCompletion([
+          systemMessage,
+          ...recentMessages,
+          { role: 'user', content: sqlContext }
+        ]);
+        
+        // Add assistant response to conversation
+        return conversationService.addMessage(conversationId, 'assistant', responseContent);
+      } else {
+        // For non-data questions, just use the conversation history
+        const responseContent = await openaiService.createChatCompletion([
+          systemMessage,
+          ...recentMessages
+        ]);
+        
+        // Add assistant response to conversation
+        return conversationService.addMessage(conversationId, 'assistant', responseContent);
       }
-      
-      // Create the assistant's response message
-      const assistantMessage: Message = {
-        id: uuidv4(),
-        role: 'assistant',
-        content: assistantResponseContent,
-        createdAt: new Date().toISOString(),
-      };
-      
-      // Add the assistant's response to the conversation
-      await conversationService.addMessage(conversationId, assistantMessage);
-      
-      return assistantMessage;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error processing message:', error);
       
-      // Create an error response
-      const errorMessage: Message = {
-        id: uuidv4(),
-        role: 'assistant',
-        content: `I'm sorry, I encountered an error: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        createdAt: new Date().toISOString(),
-      };
+      // Add error message to conversation
+      return conversationService.addMessage(
+        conversationId,
+        'assistant',
+        `I'm sorry, I encountered an error while processing your request: ${error.message}`
+      );
+    }
+  }
+  
+  /**
+   * Determine if a message is asking about data that would require SQL
+   */
+  private async isDataRelatedQuestion(message: string): Promise<boolean> {
+    try {
+      // If the OpenAI service isn't configured, assume it's not a data question
+      if (!openaiService.isConfigured()) {
+        return false;
+      }
       
-      // Add the error message to the conversation
-      const conversationService = getConversationService();
-      await conversationService.addMessage(conversationId, errorMessage);
+      const prompt = `
+        Determine if the following message is asking about data that would require querying a database.
+        Data-related questions typically ask about specific client information, metrics, statistics,
+        or records that would be stored in a database. Examples include:
+        - "How many sessions did client X have last month?"
+        - "What is the progress of client Y on goal Z?"
+        - "Show me all budget items for client A"
+        
+        Message: "${message}"
+        
+        Respond with ONLY "yes" or "no".
+      `;
       
-      return errorMessage;
+      const response = await openaiService.createChatCompletion([
+        { role: 'user', content: prompt }
+      ]);
+      
+      // Check if the response indicates this is a data question
+      return response.toLowerCase().includes('yes');
+    } catch (error) {
+      console.error('Error determining if message is data-related:', error);
+      // Default to false on error
+      return false;
     }
   }
 }
 
 // Create a singleton instance
-let clinicianAssistantServiceInstance: ClinicianAssistantService | null = null;
-
-/**
- * Get the Clinician Assistant Service instance
- */
-export function getClinicianAssistantService(): ClinicianAssistantService {
-  if (!clinicianAssistantServiceInstance) {
-    clinicianAssistantServiceInstance = new ClinicianAssistantService();
-  }
-  return clinicianAssistantServiceInstance;
-}
+export const clinicianAssistantService = new ClinicianAssistantService();

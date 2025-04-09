@@ -1,23 +1,22 @@
 /**
  * Dashboard Tile Component
  * 
- * A expandable tile for the dashboard that can display content.
+ * This component provides a consistent layout for dashboard tiles.
  */
 
-import React from 'react';
-import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import React, { ReactNode } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
-import { X, Maximize2 } from 'lucide-react';
 
-export interface DashboardTileProps {
+interface DashboardTileProps {
   title: string;
-  icon?: React.ReactNode;
-  children: React.ReactNode;
+  description?: string;
   className?: string;
-  expanded?: boolean;
-  onExpandClick?: () => void;
-  onCloseClick?: () => void;
+  contentClassName?: string;
+  headerClassName?: string;
+  children: ReactNode;
+  action?: ReactNode;
+  variant?: 'default' | 'compact';
 }
 
 /**
@@ -25,54 +24,55 @@ export interface DashboardTileProps {
  */
 export function DashboardTile({
   title,
-  icon,
-  children,
+  description,
   className,
-  expanded = false,
-  onExpandClick,
-  onCloseClick,
+  contentClassName,
+  headerClassName,
+  children,
+  action,
+  variant = 'default'
 }: DashboardTileProps) {
+  const isCompact = variant === 'compact';
+  
   return (
-    <Card className={cn("overflow-hidden", className)}>
-      <div className="flex items-center justify-between p-4 border-b">
-        <div className="flex items-center gap-2">
-          {icon && <div className="text-primary">{icon}</div>}
-          <h3 className="font-medium">{title}</h3>
-        </div>
-        
-        <div className="flex items-center gap-1">
-          {onExpandClick && !expanded && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8"
-              onClick={onExpandClick}
-              title="Expand"
-            >
-              <Maximize2 className="h-4 w-4" />
-            </Button>
-          )}
+    <Card className={cn(
+      "h-full flex flex-col shadow-sm overflow-hidden",
+      className
+    )}>
+      <CardHeader className={cn(
+        "flex-shrink-0",
+        isCompact ? "py-3" : "py-5",
+        headerClassName
+      )}>
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className={cn(
+              "tracking-tight",
+              isCompact ? "text-lg" : "text-xl"
+            )}>
+              {title}
+            </CardTitle>
+            {description && (
+              <CardDescription className="mt-1">
+                {description}
+              </CardDescription>
+            )}
+          </div>
           
-          {onCloseClick && expanded && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8"
-              onClick={onCloseClick}
-              title="Close"
-            >
-              <X className="h-4 w-4" />
-            </Button>
+          {action && (
+            <div className="flex-shrink-0">
+              {action}
+            </div>
           )}
         </div>
-      </div>
+      </CardHeader>
       
-      <div className={cn(
-        "transition-all duration-300 ease-in-out",
-        expanded ? "h-[calc(100vh-12rem)] overflow-auto" : "h-auto"
+      <CardContent className={cn(
+        "flex-1 p-0 flex flex-col",
+        contentClassName
       )}>
         {children}
-      </div>
+      </CardContent>
     </Card>
   );
 }

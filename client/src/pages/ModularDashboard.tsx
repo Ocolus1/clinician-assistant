@@ -25,7 +25,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { useDashboard } from "@/components/dashboard/DashboardProvider";
 import { Dialog, DialogContent, DialogTitle, DialogHeader, DialogDescription } from "@/components/ui/dialog";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest } from "@/lib/utils";
 import { Client } from "@shared/schema";
 import { cn } from "@/lib/utils";
 

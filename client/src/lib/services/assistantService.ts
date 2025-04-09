@@ -2,7 +2,8 @@
  * Client-side service for interacting with the Clinician Assistant API
  */
 
-import { queryClient, apiRequest } from '@/lib/queryClient';
+import { queryClient } from '@/lib/queryClient';
+import { apiRequest } from '@/lib/utils';
 import {
   AssistantStatusResponse,
   ConfigureAssistantRequest,
@@ -13,6 +14,7 @@ import {
   SendMessageRequest,
   SendMessageResponse,
   UpdateConversationRequest,
+  GetAssistantSettingsResponse,
 } from '@shared/assistantTypes';
 
 /**
@@ -99,6 +101,48 @@ class AssistantService {
     
     // Invalidate conversations query cache
     queryClient.invalidateQueries({ queryKey: ['/api/assistant/conversations'] });
+    
+    return response;
+  }
+  
+  /**
+   * Get assistant settings
+   */
+  async getSettings(): Promise<GetAssistantSettingsResponse> {
+    const response = await apiRequest('GET', '/api/assistant/settings');
+    return response;
+  }
+  
+  /**
+   * Save assistant settings
+   */
+  async saveSettings(settings: any): Promise<{ success: boolean }> {
+    const response = await apiRequest('POST', '/api/assistant/settings', settings);
+    
+    // Invalidate settings and status query cache
+    queryClient.invalidateQueries({ queryKey: ['/api/assistant/settings'] });
+    queryClient.invalidateQueries({ queryKey: ['/api/assistant/status'] });
+    
+    return response;
+  }
+  
+  /**
+   * Test OpenAI connection
+   */
+  async testConnection(): Promise<{ success: boolean; error?: string }> {
+    const response = await apiRequest('POST', '/api/assistant/test-connection');
+    return response;
+  }
+  
+  /**
+   * Request OpenAI API key via secrets
+   */
+  async requestAPIKeyViaSecrets(): Promise<{ success: boolean }> {
+    const response = await apiRequest('POST', '/api/assistant/request-api-key');
+    
+    // Invalidate settings and status query cache
+    queryClient.invalidateQueries({ queryKey: ['/api/assistant/settings'] });
+    queryClient.invalidateQueries({ queryKey: ['/api/assistant/status'] });
     
     return response;
   }
