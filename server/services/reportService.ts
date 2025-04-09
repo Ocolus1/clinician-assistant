@@ -9,9 +9,9 @@
  * - Strategy usage and effectiveness
  * - Goal achievement metrics
  */
-import { db } from "../db";
-import { sql, eq, and, gte, lte, desc, asc } from "drizzle-orm";
-import { pool } from "../db";
+import { sql } from "../db";
+import { eq, and, gte, lte, desc, asc } from "drizzle-orm";
+import { db } from "../drizzle";
 import { 
   clients, 
   allies, 
@@ -273,30 +273,39 @@ async function getObservationScores(
   endDate?: Date
 ): Promise<ObservationsData> {
   try {
-    // Get sessions for the client
-    let sessionsQuery = `
-      SELECT s.id 
-      FROM sessions s
-      WHERE s.client_id = $1
-    `;
-    
-    const queryParams = [clientId];
-    
-    // Add date filtering if provided
-    if (startDate || endDate) {
-      if (startDate) {
-        sessionsQuery += ` AND s.created_at >= $${queryParams.length + 1}`;
-        queryParams.push(toSqlDateString(startDate));
-      }
-      
-      if (endDate) {
-        sessionsQuery += ` AND s.created_at <= $${queryParams.length + 1}`;
-        queryParams.push(toSqlDateString(endDate));
-      }
+    // Get sessions for the client using sql tagged template
+    let sessionsResult;
+    if (startDate && endDate) {
+      sessionsResult = await sql`
+        SELECT s.id 
+        FROM sessions s
+        WHERE s.client_id = ${clientId}
+        AND s.created_at >= ${toSqlDateString(startDate)}
+        AND s.created_at <= ${toSqlDateString(endDate)}
+      `;
+    } else if (startDate) {
+      sessionsResult = await sql`
+        SELECT s.id 
+        FROM sessions s
+        WHERE s.client_id = ${clientId}
+        AND s.created_at >= ${toSqlDateString(startDate)}
+      `;
+    } else if (endDate) {
+      sessionsResult = await sql`
+        SELECT s.id 
+        FROM sessions s
+        WHERE s.client_id = ${clientId}
+        AND s.created_at <= ${toSqlDateString(endDate)}
+      `;
+    } else {
+      sessionsResult = await sql`
+        SELECT s.id 
+        FROM sessions s
+        WHERE s.client_id = ${clientId}
+      `;
     }
     
-    const sessionsResult = await pool.query(sessionsQuery, queryParams);
-    const sessionIds = sessionsResult.rows.map(row => row.id);
+    const sessionIds = sessionsResult.map(row => row.id);
     
     // If no sessions found, return default values
     if (sessionIds.length === 0) {
@@ -308,22 +317,18 @@ async function getObservationScores(
       };
     }
     
-    // Get observation scores from session notes
-    // Using raw SQL as we need to query observation fields
-    // that may not be in the schema
-    const notesQuery = `
+    // Get observation scores from session notes using sql tagged template
+    const notesResult = await sql`
       SELECT 
         AVG(COALESCE(physical_activity_rating, 0)) as avg_physical,
         AVG(COALESCE(cooperation_rating, 0)) as avg_cooperation,
         AVG(COALESCE(focus_rating, 0)) as avg_focus,
         AVG(COALESCE(mood_rating, 0)) as avg_mood
       FROM session_notes
-      WHERE session_id = ANY($1)
+      WHERE session_id = ANY(${sessionIds})
     `;
     
-    const notesResult = await pool.query(notesQuery, [sessionIds]);
-    
-    if (notesResult.rows.length === 0) {
+    if (notesResult.length === 0) {
       return {
         physicalActivity: 0,
         cooperation: 0,
@@ -333,7 +338,7 @@ async function getObservationScores(
     }
     
     // Format results
-    const row = notesResult.rows[0];
+    const row = notesResult[0];
     
     return {
       physicalActivity: parseFloat(row.avg_physical) || 0,
@@ -361,33 +366,49 @@ async function getCancellationStats(
   endDate?: Date
 ): Promise<CancellationsData> {
   try {
-    // Get sessions for the client
-    let sessionsQuery = `
-      SELECT 
-        status,
-        COUNT(*) as count
-      FROM sessions
-      WHERE client_id = $1
-    `;
-    
-    const queryParams = [clientId];
-    
-    // Add date filtering if provided
-    if (startDate || endDate) {
-      if (startDate) {
-        sessionsQuery += ` AND created_at >= $${queryParams.length + 1}`;
-        queryParams.push(toSqlDateString(startDate));
-      }
-      
-      if (endDate) {
-        sessionsQuery += ` AND created_at <= $${queryParams.length + 1}`;
-        queryParams.push(toSqlDateString(endDate));
-      }
+    // Get sessions for the client using sql tagged template
+    let result;
+    if (startDate && endDate) {
+      result = await sql`
+        SELECT 
+          status,
+          COUNT(*) as count
+        FROM sessions
+        WHERE client_id = ${clientId}
+        AND created_at >= ${toSqlDateString(startDate)}
+        AND created_at <= ${toSqlDateString(endDate)}
+        GROUP BY status
+      `;
+    } else if (startDate) {
+      result = await sql`
+        SELECT 
+          status,
+          COUNT(*) as count
+        FROM sessions
+        WHERE client_id = ${clientId}
+        AND created_at >= ${toSqlDateString(startDate)}
+        GROUP BY status
+      `;
+    } else if (endDate) {
+      result = await sql`
+        SELECT 
+          status,
+          COUNT(*) as count
+        FROM sessions
+        WHERE client_id = ${clientId}
+        AND created_at <= ${toSqlDateString(endDate)}
+        GROUP BY status
+      `;
+    } else {
+      result = await sql`
+        SELECT 
+          status,
+          COUNT(*) as count
+        FROM sessions
+        WHERE client_id = ${clientId}
+        GROUP BY status
+      `;
     }
-    
-    sessionsQuery += ` GROUP BY status`;
-    
-    const result = await pool.query(sessionsQuery, queryParams);
     
     // Count totals and calculate percentages
     let total = 0;
@@ -395,7 +416,7 @@ async function getCancellationStats(
     let waived = 0;
     let changed = 0;
     
-    for (const row of result.rows) {
+    for (const row of result) {
       const count = parseInt(row.count);
       total += count;
       
@@ -439,39 +460,44 @@ async function getStrategyStats(
   endDate?: Date
 ): Promise<StrategiesData> {
   try {
-    // Get sessions for the client
-    let sessionsQuery = `
-      SELECT id FROM sessions
-      WHERE client_id = $1
-    `;
-    
-    const queryParams = [clientId];
-    
-    // Add date filtering if provided
-    if (startDate || endDate) {
-      if (startDate) {
-        sessionsQuery += ` AND created_at >= $${queryParams.length + 1}`;
-        queryParams.push(toSqlDateString(startDate));
-      }
-      
-      if (endDate) {
-        sessionsQuery += ` AND created_at <= $${queryParams.length + 1}`;
-        queryParams.push(toSqlDateString(endDate));
-      }
+    // Get sessions for the client using sql tagged template
+    let sessionsResult;
+    if (startDate && endDate) {
+      sessionsResult = await sql`
+        SELECT id FROM sessions
+        WHERE client_id = ${clientId}
+        AND created_at >= ${toSqlDateString(startDate)}
+        AND created_at <= ${toSqlDateString(endDate)}
+      `;
+    } else if (startDate) {
+      sessionsResult = await sql`
+        SELECT id FROM sessions
+        WHERE client_id = ${clientId}
+        AND created_at >= ${toSqlDateString(startDate)}
+      `;
+    } else if (endDate) {
+      sessionsResult = await sql`
+        SELECT id FROM sessions
+        WHERE client_id = ${clientId}
+        AND created_at <= ${toSqlDateString(endDate)}
+      `;
+    } else {
+      sessionsResult = await sql`
+        SELECT id FROM sessions
+        WHERE client_id = ${clientId}
+      `;
     }
     
-    const sessionsResult = await pool.query(sessionsQuery, queryParams);
-    const sessionIds = sessionsResult.rows.map(row => row.id);
+    const sessionIds = sessionsResult.map(row => row.id);
     
     // If no sessions found, return empty array
     if (sessionIds.length === 0) {
       return { strategies: [] };
     }
     
-    // Get strategies used in sessions and their average scores
+    // Get strategies used in sessions and their average scores using sql tagged template
     // The strategies are stored as an array of strategy names directly in the performance_assessments table
-    // We need to join multiple tables to get the strategy usage and scores
-    const strategyQuery = `
+    const strategyResult = await sql`
       WITH strategy_usages AS (
         -- Unnest the strategies array to get individual strategy uses
         SELECT 
@@ -480,8 +506,8 @@ async function getStrategyStats(
         FROM performance_assessments pa
         JOIN session_notes sn ON pa.session_note_id = sn.id
         JOIN sessions s ON sn.session_id = s.id
-        WHERE s.client_id = $1
-          ${sessionIds.length > 0 ? `AND s.id IN (${sessionIds.map((_, i) => `$${i + 2}`).join(',')})` : ''}
+        WHERE s.client_id = ${clientId}
+        AND ARRAY[s.id] && ARRAY[${sessionIds}]::int[]
       )
       SELECT 
         s.id,
@@ -498,12 +524,8 @@ async function getStrategyStats(
       LIMIT 10
     `;
     
-    // Add sessionIds to the query parameters if there are any
-    const strategyParams = [clientId, ...sessionIds];
-    const strategyResult = await pool.query(strategyQuery, strategyParams);
-    
     // Format strategy results
-    const strategies = strategyResult.rows.map(row => ({
+    const strategies = strategyResult.map(row => ({
       id: row.id,
       name: row.name,
       timesUsed: parseInt(row.times_used),
@@ -537,29 +559,35 @@ async function getGoalAchievementScores(
       return { goals: [] };
     }
     
-    // Get sessions in date range
-    let sessionsQuery = `
-      SELECT id FROM sessions
-      WHERE client_id = $1
-    `;
-    
-    const queryParams = [clientId];
-    
-    // Add date filtering if provided
-    if (startDate || endDate) {
-      if (startDate) {
-        sessionsQuery += ` AND created_at >= $${queryParams.length + 1}`;
-        queryParams.push(toSqlDateString(startDate));
-      }
-      
-      if (endDate) {
-        sessionsQuery += ` AND created_at <= $${queryParams.length + 1}`;
-        queryParams.push(toSqlDateString(endDate));
-      }
+    // Get sessions for the client using sql tagged template
+    let sessionsResult;
+    if (startDate && endDate) {
+      sessionsResult = await sql`
+        SELECT id FROM sessions
+        WHERE client_id = ${clientId}
+        AND created_at >= ${toSqlDateString(startDate)}
+        AND created_at <= ${toSqlDateString(endDate)}
+      `;
+    } else if (startDate) {
+      sessionsResult = await sql`
+        SELECT id FROM sessions
+        WHERE client_id = ${clientId}
+        AND created_at >= ${toSqlDateString(startDate)}
+      `;
+    } else if (endDate) {
+      sessionsResult = await sql`
+        SELECT id FROM sessions
+        WHERE client_id = ${clientId}
+        AND created_at <= ${toSqlDateString(endDate)}
+      `;
+    } else {
+      sessionsResult = await sql`
+        SELECT id FROM sessions
+        WHERE client_id = ${clientId}
+      `;
     }
     
-    const sessionsResult = await pool.query(sessionsQuery, queryParams);
-    const sessionIds = sessionsResult.rows.map(row => row.id);
+    const sessionIds = sessionsResult.map(row => row.id);
     
     // Calculate scores for each goal based on performance assessments
     const goalScores = await Promise.all(
@@ -582,25 +610,21 @@ async function getGoalAchievementScores(
         // Get performance assessments for this goal's subgoals
         let avgScore = 0;
         
-        // Use raw query to get performance assessments by subgoal IDs
+        // Use sql tagged template to get performance assessments by subgoal IDs
         const subgoalIds = subgoalsList.map(s => s.id);
         
-        const scoreQuery = `
+        // Use SQL tagged template
+        const scoreResult = await sql`
           SELECT AVG(COALESCE(pa.rating, 0)) as avg_score
           FROM performance_assessments pa
           JOIN session_notes sn ON pa.session_note_id = sn.id
           WHERE 
-            sn.session_id = ANY($1) AND
-            pa.goal_id = $2
+            sn.session_id = ANY(${sessionIds}) AND
+            pa.goal_id = ${goal.id}
         `;
         
-        const scoreResult = await pool.query(
-          scoreQuery, 
-          [sessionIds, goal.id]
-        );
-        
-        if (scoreResult.rows.length > 0 && scoreResult.rows[0].avg_score) {
-          avgScore = parseFloat(scoreResult.rows[0].avg_score);
+        if (scoreResult.length > 0 && scoreResult[0].avg_score) {
+          avgScore = parseFloat(scoreResult[0].avg_score);
         }
         
         return {

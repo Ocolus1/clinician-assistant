@@ -9,6 +9,30 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 /**
+ * Format a number as currency
+ * @param value Amount to format
+ * @param currency Currency code (default: USD)
+ * @param locale Locale for formatting (default: en-US)
+ * @returns Formatted currency string
+ */
+export function formatCurrency(
+  value: number | undefined | null, 
+  currency = 'USD', 
+  locale = 'en-US'
+): string {
+  if (value === undefined || value === null) {
+    return '$0.00';
+  }
+
+  return new Intl.NumberFormat(locale, {
+    style: 'currency',
+    currency,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(value);
+}
+
+/**
  * Make an API request to the backend
  * @param method - HTTP method (GET, POST, PUT, DELETE)
  * @param path - API path

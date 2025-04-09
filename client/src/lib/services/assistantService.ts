@@ -1,152 +1,213 @@
 /**
- * Client-side service for interacting with the Clinician Assistant API
+ * Clinician Assistant Service
+ * 
+ * This service provides methods for interacting with the assistant API,
+ * including conversation management and message exchange.
  */
 
 import { queryClient } from '@/lib/queryClient';
-import { apiRequest } from '@/lib/utils';
 import {
-  AssistantStatusResponse,
-  ConfigureAssistantRequest,
-  ConfigureAssistantResponse,
+  AssistantSettings,
+  ConversationsResponse,
+  ConnectionTestResponse,
+  StatusResponse,
   CreateConversationRequest,
-  CreateConversationResponse,
-  GetConversationsResponse,
-  SendMessageRequest,
-  SendMessageResponse,
   UpdateConversationRequest,
-  GetAssistantSettingsResponse,
+  SendMessageRequest,
+  UpdateSettingsRequest
 } from '@shared/assistantTypes';
 
-/**
- * Assistant Service class
- */
 class AssistantService {
-  /**
-   * Check the status of the assistant
-   */
-  async checkStatus(): Promise<AssistantStatusResponse> {
-    const response = await apiRequest('GET', '/api/assistant/status');
-    return response;
-  }
-
-  /**
-   * Configure the assistant
-   */
-  async configureAssistant(request: ConfigureAssistantRequest): Promise<ConfigureAssistantResponse> {
-    const response = await apiRequest('POST', '/api/assistant/configure', request);
-    return response;
-  }
-
   /**
    * Get all conversations
    */
-  async getConversations(): Promise<GetConversationsResponse> {
-    const response = await apiRequest('GET', '/api/assistant/conversations');
-    return response;
+  async getConversations(): Promise<ConversationsResponse> {
+    const response = await fetch('/api/assistant/conversations');
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Failed to fetch conversations: ${errorText}`);
+    }
+    return await response.json();
   }
-
+  
+  /**
+   * Get a specific conversation by ID
+   */
+  async getConversation(conversationId: string) {
+    const response = await fetch(`/api/assistant/conversations/${conversationId}`);
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Failed to fetch conversation: ${errorText}`);
+    }
+    return await response.json();
+  }
+  
   /**
    * Create a new conversation
    */
-  async createConversation(request: CreateConversationRequest): Promise<CreateConversationResponse> {
-    const response = await apiRequest('POST', '/api/assistant/conversations', request);
+  async createConversation(data: CreateConversationRequest) {
+    const response = await fetch('/api/assistant/conversations', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data),
+    });
     
-    // Invalidate conversations query cache
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Failed to create conversation: ${errorText}`);
+    }
+    
+    // Invalidate conversations cache
     queryClient.invalidateQueries({ queryKey: ['/api/assistant/conversations'] });
     
-    return response;
+    return await response.json();
   }
-
+  
   /**
-   * Update a conversation
+   * Update a conversation (rename)
    */
-  async updateConversation(request: UpdateConversationRequest): Promise<{ success: boolean }> {
-    const response = await apiRequest('PUT', `/api/assistant/conversations/${request.conversationId}`, { name: request.name });
+  async updateConversation(data: UpdateConversationRequest) {
+    const response = await fetch(`/api/assistant/conversations/${data.conversationId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ name: data.name }),
+    });
     
-    // Invalidate conversations query cache
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Failed to update conversation: ${errorText}`);
+    }
+    
+    // Invalidate conversations cache
     queryClient.invalidateQueries({ queryKey: ['/api/assistant/conversations'] });
     
-    return response;
+    return await response.json();
   }
-
+  
   /**
    * Delete a conversation
    */
-  async deleteConversation(conversationId: string): Promise<{ success: boolean }> {
-    const response = await apiRequest('DELETE', `/api/assistant/conversations/${conversationId}`);
+  async deleteConversation(conversationId: string) {
+    const response = await fetch(`/api/assistant/conversations/${conversationId}`, {
+      method: 'DELETE',
+    });
     
-    // Invalidate conversations query cache
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Failed to delete conversation: ${errorText}`);
+    }
+    
+    // Invalidate conversations cache
     queryClient.invalidateQueries({ queryKey: ['/api/assistant/conversations'] });
     
-    return response;
+    return await response.json();
   }
-
+  
   /**
-   * Clear all messages from a conversation
+   * Clear a conversation's messages
    */
-  async clearConversation(conversationId: string): Promise<{ success: boolean }> {
-    const response = await apiRequest('POST', `/api/assistant/conversations/${conversationId}/clear`);
+  async clearConversation(conversationId: string) {
+    const response = await fetch(`/api/assistant/conversations/${conversationId}/clear`, {
+      method: 'POST',
+    });
     
-    // Invalidate conversations query cache
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Failed to clear conversation: ${errorText}`);
+    }
+    
+    // Invalidate conversations cache
     queryClient.invalidateQueries({ queryKey: ['/api/assistant/conversations'] });
     
-    return response;
+    return await response.json();
   }
-
+  
   /**
    * Send a message to the assistant
    */
-  async sendMessage(request: SendMessageRequest): Promise<SendMessageResponse> {
-    const response = await apiRequest('POST', `/api/assistant/conversations/${request.conversationId}/messages`, { message: request.message });
+  async sendMessage(data: SendMessageRequest) {
+    const response = await fetch(`/api/assistant/conversations/${data.conversationId}/messages`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ content: data.message }),
+    });
     
-    // Invalidate conversations query cache
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Failed to send message: ${errorText}`);
+    }
+    
+    // Invalidate conversations cache
     queryClient.invalidateQueries({ queryKey: ['/api/assistant/conversations'] });
     
-    return response;
+    return await response.json();
   }
   
   /**
    * Get assistant settings
    */
-  async getSettings(): Promise<GetAssistantSettingsResponse> {
-    const response = await apiRequest('GET', '/api/assistant/settings');
-    return response;
+  async getSettings(): Promise<AssistantSettings> {
+    const response = await fetch('/api/assistant/settings');
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Failed to fetch settings: ${errorText}`);
+    }
+    return await response.json();
   }
   
   /**
-   * Save assistant settings
+   * Update assistant settings
    */
-  async saveSettings(settings: any): Promise<{ success: boolean }> {
-    const response = await apiRequest('POST', '/api/assistant/settings', settings);
+  async updateSettings(settings: UpdateSettingsRequest) {
+    const response = await fetch('/api/assistant/settings', {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(settings),
+    });
     
-    // Invalidate settings and status query cache
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Failed to update settings: ${errorText}`);
+    }
+    
+    // Invalidate related caches
     queryClient.invalidateQueries({ queryKey: ['/api/assistant/settings'] });
     queryClient.invalidateQueries({ queryKey: ['/api/assistant/status'] });
     
-    return response;
+    return await response.json();
   }
   
   /**
-   * Test OpenAI connection
+   * Check assistant status
    */
-  async testConnection(): Promise<{ success: boolean; error?: string }> {
-    const response = await apiRequest('POST', '/api/assistant/test-connection');
-    return response;
+  async checkStatus(): Promise<StatusResponse> {
+    const response = await fetch('/api/assistant/status');
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Failed to check status: ${errorText}`);
+    }
+    return await response.json();
   }
   
   /**
-   * Request OpenAI API key via secrets
+   * Test connection to OpenAI API
    */
-  async requestAPIKeyViaSecrets(): Promise<{ success: boolean }> {
-    const response = await apiRequest('POST', '/api/assistant/request-api-key');
-    
-    // Invalidate settings and status query cache
-    queryClient.invalidateQueries({ queryKey: ['/api/assistant/settings'] });
-    queryClient.invalidateQueries({ queryKey: ['/api/assistant/status'] });
-    
-    return response;
+  async testConnection(): Promise<ConnectionTestResponse> {
+    const response = await fetch('/api/assistant/test-connection');
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Failed to test connection: ${errorText}`);
+    }
+    return await response.json();
   }
 }
 
-// Create a singleton instance
 export const assistantService = new AssistantService();

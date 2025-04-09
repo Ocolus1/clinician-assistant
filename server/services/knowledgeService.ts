@@ -4,9 +4,9 @@
  * This service provides database aggregation and analysis capabilities 
  * to power the agent's responses with real data from the therapy practice.
  */
-import { db } from "../db";
+import { sql } from "../db";
+import { db } from "../drizzle"; 
 import { storage } from "../storage";
-import { sql } from "drizzle-orm";
 import { 
   clients, 
   allies, 
@@ -43,7 +43,7 @@ export const knowledgeService = {
         totalBudget += item.unitPrice * item.quantity;
         
         // Aggregate by category
-        const category = item.supportCategory || 'Uncategorized';
+        const category = item.category || 'Uncategorized';
         const categoryStats = categories.get(category) || { count: 0, total: 0 };
         categoryStats.count += 1;
         categoryStats.total += item.unitPrice * item.quantity;

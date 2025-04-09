@@ -1,15 +1,11 @@
 /**
- * Type definitions for the Clinician Assistant feature
+ * Shared types for the Clinician Assistant
  */
 
-/**
- * Message Role - defines who sent the message
- */
+// Message role types
 export type MessageRole = 'user' | 'assistant' | 'system';
 
-/**
- * Message - represents a single message in a conversation
- */
+// Message interface
 export interface Message {
   id: string;
   role: MessageRole;
@@ -17,104 +13,59 @@ export interface Message {
   createdAt: string;
 }
 
-/**
- * Conversation - represents a conversation with the assistant
- */
+// Conversation interface
 export interface Conversation {
   id: string;
   name: string;
+  createdAt: string;
+  updatedAt: string;
+  lastMessageAt?: string;
   messages: Message[];
-  lastMessageAt: string;
 }
 
-/**
- * Assistant Configuration
- */
-export interface AssistantConfig {
-  apiKey: string;
-  model: string;
-  temperature: number;
+// Assistant settings interface
+export interface AssistantSettings {
+  openaiApiKey?: string;
+  readOnly: boolean;
 }
 
-// API Request/Response Types
-
-/**
- * Assistant Status Response
- */
-export interface AssistantStatusResponse {
+// Assistant status interface
+export interface AssistantStatus {
   isConfigured: boolean;
   connectionValid: boolean;
-  model?: string;
 }
 
-/**
- * Configure Assistant Request
- */
-export interface ConfigureAssistantRequest {
-  config: AssistantConfig;
+// API response interfaces
+export interface ConversationsResponse {
+  conversations: Conversation[];
 }
 
-/**
- * Configure Assistant Response
- */
-export interface ConfigureAssistantResponse {
+export interface StatusResponse {
+  isConfigured: boolean;
+  connectionValid: boolean;
+}
+
+export interface ConnectionTestResponse {
   success: boolean;
-  connectionValid?: boolean;
-  message?: string;
+  error?: string;
 }
 
-/**
- * Create Conversation Request
- */
+// Request interfaces
 export interface CreateConversationRequest {
   name: string;
 }
 
-/**
- * Create Conversation Response
- */
-export interface CreateConversationResponse {
-  id: string;
-  name: string;
-  success: boolean;
-}
-
-/**
- * Update Conversation Request
- */
 export interface UpdateConversationRequest {
   conversationId: string;
   name: string;
 }
 
-/**
- * Get Conversations Response
- */
-export interface GetConversationsResponse {
-  conversations: Conversation[];
-}
-
-/**
- * Send Message Request
- */
 export interface SendMessageRequest {
   conversationId: string;
   message: string;
 }
 
-/**
- * Send Message Response
- */
-export interface SendMessageResponse {
-  message: Message;
-  success: boolean;
-}
-
-/**
- * Get Assistant Settings Response
- */
-export interface GetAssistantSettingsResponse {
+export interface UpdateSettingsRequest {
   openaiApiKey?: string;
-  useGpt4?: boolean;
-  isConfigured: boolean;
+  readOnly?: boolean;
 }

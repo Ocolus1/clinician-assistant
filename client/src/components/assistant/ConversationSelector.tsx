@@ -1,29 +1,40 @@
 /**
  * Conversation Selector Component
  * 
- * Displays a list of conversations and provides controls
- * for managing conversations (create, rename, delete).
+ * This component provides a list of conversations and actions
+ * to create, rename, and delete conversations.
  */
 
 import React, { useState } from 'react';
-import { Conversation } from '@shared/assistantTypes';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Separator } from '@/components/ui/separator';
 import { 
+  AlertDialog, 
+  AlertDialogAction, 
+  AlertDialogCancel, 
+  AlertDialogContent, 
+  AlertDialogDescription, 
+  AlertDialogFooter, 
+  AlertDialogHeader, 
+  AlertDialogTitle 
+} from '@/components/ui/alert-dialog';
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
-import { Input } from '@/components/ui/input';
-import {
-  MessageSquarePlus,
-  MoreVertical,
-  Edit,
-  Trash2,
-  Check,
-  X
+import { 
+  MessageSquarePlus, 
+  MoreHorizontal, 
+  Edit2, 
+  Trash, 
+  Loader2,
+  MessageSquare 
 } from 'lucide-react';
+import { Conversation } from '@shared/assistantTypes';
 
 interface ConversationSelectorProps {
   conversations: Conversation[];
@@ -42,125 +53,162 @@ export function ConversationSelector({
   onRenameConversation,
   onDeleteConversation
 }: ConversationSelectorProps) {
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editingName, setEditingName] = useState('');
+  const [isRenaming, setIsRenaming] = useState(false);
+  const [renameId, setRenameId] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState('');
   
-  const handleStartEditing = (conversation: Conversation) => {
-    setEditingId(conversation.id);
-    setEditingName(conversation.name);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  
+  const handleStartRename = (conversation: Conversation) => {
+    setRenameId(conversation.id);
+    setRenameValue(conversation.name);
+    setIsRenaming(true);
   };
   
-  const handleSaveEdit = () => {
-    if (editingId && editingName.trim()) {
-      onRenameConversation(editingId, editingName);
-      setEditingId(null);
+  const handleCompleteRename = () => {
+    if (renameId && renameValue.trim()) {
+      onRenameConversation(renameId, renameValue.trim());
     }
+    setIsRenaming(false);
+    setRenameId(null);
+    setRenameValue('');
   };
   
-  const handleCancelEdit = () => {
-    setEditingId(null);
+  const handleCancelRename = () => {
+    setIsRenaming(false);
+    setRenameId(null);
+    setRenameValue('');
   };
   
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      handleSaveEdit();
-    } else if (e.key === 'Escape') {
-      handleCancelEdit();
+  const handleStartDelete = (id: string) => {
+    setDeleteId(id);
+    setIsDeleting(true);
+  };
+  
+  const handleCompleteDelete = () => {
+    if (deleteId) {
+      onDeleteConversation(deleteId);
     }
+    setIsDeleting(false);
+    setDeleteId(null);
+  };
+  
+  const handleCancelDelete = () => {
+    setIsDeleting(false);
+    setDeleteId(null);
   };
   
   return (
     <>
-      <div className="p-3 border-b">
+      <div className="flex items-center justify-between p-3 border-b">
+        <h3 className="font-medium">Conversations</h3>
+        <Button variant="ghost" size="icon" onClick={onNewConversation}>
+          <MessageSquarePlus className="h-4 w-4" />
+        </Button>
+      </div>
+      
+      <ScrollArea className="flex-1">
+        {conversations.length === 0 ? (
+          <div className="p-4 text-center text-sm text-muted-foreground">
+            No conversations yet
+          </div>
+        ) : (
+          <div className="p-1">
+            {conversations.map((conversation) => (
+              <div key={conversation.id} className="relative group">
+                <Button
+                  variant={activeConversationId === conversation.id ? "secondary" : "ghost"}
+                  className="w-full justify-start text-left h-auto py-2 px-3 mb-1"
+                  onClick={() => onSelectConversation(conversation.id)}
+                >
+                  <MessageSquare className="h-4 w-4 mr-2 flex-shrink-0" />
+                  <span className="truncate">{conversation.name}</span>
+                </Button>
+                
+                <div className="absolute right-1 top-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-7 w-7">
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-[160px]">
+                      <DropdownMenuItem onClick={() => handleStartRename(conversation)}>
+                        <Edit2 className="h-4 w-4 mr-2" />
+                        Rename
+                      </DropdownMenuItem>
+                      <DropdownMenuItem 
+                        onClick={() => handleStartDelete(conversation.id)}
+                        className="text-red-600 focus:text-red-600"
+                      >
+                        <Trash className="h-4 w-4 mr-2" />
+                        Delete
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </ScrollArea>
+      
+      <Separator />
+      <div className="p-3">
         <Button 
+          variant="outline" 
+          className="w-full justify-start" 
           onClick={onNewConversation}
-          className="w-full"
         >
           <MessageSquarePlus className="h-4 w-4 mr-2" />
           New Conversation
         </Button>
       </div>
       
-      <ScrollArea className="flex-1">
-        <div className="p-2 space-y-1">
-          {conversations.length === 0 ? (
-            <div className="text-sm text-center py-4 text-muted-foreground">
-              No conversations yet
-            </div>
-          ) : (
-            conversations.map((conversation) => (
-              <div
-                key={conversation.id}
-                className={`flex items-center justify-between rounded-md p-2 text-sm gap-2 ${
-                  activeConversationId === conversation.id 
-                    ? 'bg-secondary' 
-                    : 'hover:bg-secondary/50 cursor-pointer'
-                }`}
-                onClick={() => editingId !== conversation.id && onSelectConversation(conversation.id)}
-              >
-                {editingId === conversation.id ? (
-                  <div className="flex items-center gap-1 w-full">
-                    <Input
-                      value={editingName}
-                      onChange={(e) => setEditingName(e.target.value)}
-                      onKeyDown={handleKeyDown}
-                      className="h-7 text-xs"
-                      autoFocus
-                    />
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-6 w-6"
-                      onClick={handleSaveEdit}
-                    >
-                      <Check className="h-3.5 w-3.5" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-6 w-6"
-                      onClick={handleCancelEdit}
-                    >
-                      <X className="h-3.5 w-3.5" />
-                    </Button>
-                  </div>
-                ) : (
-                  <>
-                    <div className="truncate flex-1">
-                      {conversation.name}
-                    </div>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button 
-                          variant="ghost" 
-                          size="icon"
-                          className="h-7 w-7"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <MoreVertical className="h-3.5 w-3.5" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => handleStartEditing(conversation)}>
-                          <Edit className="h-4 w-4 mr-2" />
-                          Rename
-                        </DropdownMenuItem>
-                        <DropdownMenuItem 
-                          className="text-destructive"
-                          onClick={() => onDeleteConversation(conversation.id)}
-                        >
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </>
-                )}
-              </div>
-            ))
-          )}
-        </div>
-      </ScrollArea>
+      {/* Rename Dialog */}
+      <AlertDialog open={isRenaming} onOpenChange={setIsRenaming}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Rename Conversation</AlertDialogTitle>
+            <AlertDialogDescription>
+              Enter a new name for this conversation.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <Input
+            value={renameValue}
+            onChange={(e) => setRenameValue(e.target.value)}
+            placeholder="Conversation name"
+            className="mt-2"
+            autoFocus
+          />
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={handleCancelRename}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleCompleteRename}>Save</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      
+      {/* Delete Dialog */}
+      <AlertDialog open={isDeleting} onOpenChange={setIsDeleting}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Conversation</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this conversation? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={handleCancelDelete}>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleCompleteDelete}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

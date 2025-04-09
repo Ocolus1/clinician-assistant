@@ -887,14 +887,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const notes = [];
       for (const sessionId of sessionIds) {
         try {
-          const result = await pool.query(`
+          const result = await sql`
             SELECT * FROM session_notes 
-            WHERE session_id = $1
-          `, [sessionId]);
+            WHERE session_id = ${sessionId}
+          `;
           
-          if (result.rows.length > 0) {
+          if (result.length > 0) {
             // Process products field if it exists and is a string
-            const note = result.rows[0];
+            const note = result[0];
             if (note.products && typeof note.products === 'string') {
               try {
                 note.products = JSON.parse(note.products);
@@ -1881,22 +1881,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const itemCode = req.params.itemCode;
       const clientId = req.query.clientId ? parseInt(req.query.clientId as string) : undefined;
       
-      // Use raw SQL query instead of the query builder to fix the error
-      let queryText = `
-        SELECT * FROM budget_items 
-        WHERE item_code = $1
-      `;
+      // Use SQL tagged template for safe query construction
+      let result;
       
-      const queryParams = [itemCode];
-      
-      // Add client filter if provided
       if (clientId && !isNaN(clientId)) {
-        queryText += ` AND client_id = $2`;
-        queryParams.push(String(clientId));  // Convert clientId to string to fix type error
+        // Query with client filter
+        result = await sql`
+          SELECT * FROM budget_items 
+          WHERE item_code = ${itemCode}
+          AND client_id = ${clientId}
+        `;
+      } else {
+        // Query without client filter
+        result = await sql`
+          SELECT * FROM budget_items 
+          WHERE item_code = ${itemCode}
+        `;
       }
       
-      const result = await pool.query(queryText, queryParams);
-      const items = result.rows;
+      const items = result;
       
       res.json({
         itemCode,
