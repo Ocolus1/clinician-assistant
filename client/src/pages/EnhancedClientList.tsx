@@ -247,78 +247,118 @@ export default function EnhancedClientList() {
     }
   };
   
-  // Enrich clients with additional data
+  // Modified approach: Enrich clients with basic additional data
   const { data: enrichedClients = [], isLoading: isEnrichingClients } = useQuery<EnrichedClient[]>({
     queryKey: ["/api/clients/enriched"],
     enabled: clients.length > 0,
     queryFn: async () => {
-      return Promise.all(
-        clients.map(async (client) => {
-          // Fetch additional data for each client
-          const [therapists, clinicians, goals, budgetItems, budgetSettings, sessions, sessionNotesWithProducts] = await Promise.all([
-            fetchAllies(client.id),
-            fetchClinicians(client.id),
-            fetchGoals(client.id),
-            fetchBudgetItems(client.id),
-            fetchBudgetSettings(client.id),
-            fetchSessions(client.id),
-            fetchSessionNotesWithProducts(client.id)
-          ]);
-          
-          // Calculate age
-          const age = calculateAge(client.dateOfBirth);
-          
-          // Get active plan information
-          const activePlan = budgetSettings && budgetSettings.isActive ? budgetSettings : undefined;
-          
-          // Calculate score based on sessions in active plan
-          let score = 0;
-          let sessionPerformances: number[] = [];
-          
-          if (activePlan && sessions && sessions.length > 0) {
-            // Filter sessions that belong to active plan period
-            const planStartDate = activePlan.createdAt ? new Date(activePlan.createdAt) : new Date();
-            const planEndDate = activePlan.endOfPlan ? new Date(activePlan.endOfPlan) : new Date();
-            
-            const planSessions = sessions.filter(session => {
-              const sessionDate = new Date(session.sessionDate);
-              return sessionDate >= planStartDate && sessionDate <= planEndDate;
-            });
-            
-            // Extract performance data from session notes (if available)
-            if (planSessions.length > 0) {
-              // In a real app, we would get actual performance scores from session notes
-              // For now, using placeholder logic
-              const performanceScores = planSessions
-                .filter(session => session.performanceScore)
-                .map(session => session.performanceScore);
+      try {
+        // Use a more robust approach with individual try/catch blocks for each client
+        return await Promise.all(
+          clients.map(async (client) => {
+            try {
+              console.log(`Enriching client data for client ID: ${client.id}`);
               
-              if (performanceScores.length > 0) {
-                score = Math.round(performanceScores.reduce((sum, val) => sum + val, 0) / performanceScores.length);
-                sessionPerformances = performanceScores.slice(-10); // Get last 10 performance scores
+              // Calculate age (this is safe and doesn't require API calls)
+              const age = calculateAge(client.dateOfBirth);
+              
+              // Use individual try/catch for each data fetch to prevent one failure from breaking everything
+              let therapists: Ally[] = [];
+              let clinicians: Array<{clinician: {name: string, role: string, id: number}}> = [];
+              let goals: Goal[] = [];
+              let budgetItems: BudgetItem[] = [];
+              let budgetSettings: BudgetSettings | undefined = undefined;
+              
+              try {
+                therapists = await fetchAllies(client.id);
+                console.log(`Fetched ${therapists.length} therapists for client ${client.id}`);
+              } catch (error) {
+                console.error(`Error fetching allies for client ${client.id}:`, error);
               }
+              
+              try {
+                clinicians = await fetchClinicians(client.id);
+                console.log(`Fetched ${clinicians.length} clinicians for client ${client.id}`);
+              } catch (error) {
+                console.error(`Error fetching clinicians for client ${client.id}:`, error);
+              }
+              
+              try {
+                goals = await fetchGoals(client.id);
+                console.log(`Fetched ${goals.length} goals for client ${client.id}`);
+              } catch (error) {
+                console.error(`Error fetching goals for client ${client.id}:`, error);
+              }
+              
+              try {
+                budgetItems = await fetchBudgetItems(client.id);
+                console.log(`Fetched ${budgetItems.length} budget items for client ${client.id}`);
+              } catch (error) {
+                console.error(`Error fetching budget items for client ${client.id}:`, error);
+              }
+              
+              try {
+                budgetSettings = await fetchBudgetSettings(client.id);
+                console.log(`Fetched budget settings for client ${client.id}`);
+              } catch (error) {
+                console.error(`Error fetching budget settings for client ${client.id}:`, error);
+              }
+              
+              // Determine status based on active plan
+              const status = budgetSettings && budgetSettings.isActive ? 'active' : 'inactive';
+              
+              return {
+                ...client,
+                age,
+                therapists,
+                clinicians,
+                goals,
+                budgetItems,
+                budgetSettings,
+                sessions: [],  // Simplified - we'll fetch these separately if needed
+                sessionNotesWithProducts: [], // Simplified
+                score: undefined, // Simplified
+                progress: undefined, // Simplified
+                status
+              };
+            } catch (clientError) {
+              console.error(`Error processing client ${client.id}:`, clientError);
+              // Return a minimal enriched client to prevent the whole query from failing
+              return {
+                ...client,
+                age: calculateAge(client.dateOfBirth),
+                therapists: [],
+                clinicians: [],
+                goals: [],
+                budgetItems: [],
+                budgetSettings: undefined,
+                sessions: [],
+                sessionNotesWithProducts: [],
+                score: undefined,
+                progress: undefined,
+                status: 'unknown'
+              };
             }
-          }
-          
-          // Determine status - just active or inactive based on active plan
-          const status = activePlan && activePlan.isActive ? 'active' : 'inactive';
-          
-          return {
-            ...client,
-            age,
-            therapists,
-            clinicians,
-            goals,
-            budgetItems,
-            budgetSettings,
-            sessions,
-            sessionNotesWithProducts,
-            score: score || undefined,
-            progress: sessionPerformances.length > 0 ? sessionPerformances : undefined,
-            status
-          };
-        })
-      );
+          })
+        );
+      } catch (error) {
+        console.error("Failed to enrich clients:", error);
+        // Return basic client data with calculated age if enrichment fails
+        return clients.map(client => ({
+          ...client,
+          age: calculateAge(client.dateOfBirth),
+          therapists: [],
+          clinicians: [],
+          goals: [],
+          budgetItems: [],
+          budgetSettings: undefined,
+          sessions: [],
+          sessionNotesWithProducts: [],
+          score: undefined,
+          progress: undefined,
+          status: 'unknown'
+        }));
+      }
     }
   });
   
