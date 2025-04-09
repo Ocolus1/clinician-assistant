@@ -16,6 +16,7 @@ import Reports from "@/pages/Reports";
 import Settings from "@/pages/Settings";
 import TestBudget from "@/pages/TestBudget";
 import BudgetDebugPage from "@/pages/BudgetDebugPage";
+import ClinicianAssistant from "@/pages/ClinicianAssistant";
 import { AppLayout } from "@/components/layout/AppLayout";
 
 function Router() {
@@ -51,6 +52,7 @@ function Router() {
         <Route path="/reports" component={Reports} />
         <Route path="/settings" component={Settings} />
         <Route path="/test-budget" component={TestBudget} />
+        <Route path="/clinician-assistant" component={ClinicianAssistant} />
         <Route path="/debug/budget/:clientId?" component={BudgetDebugPage} />
         <Route component={NotFound} />
       </Switch>

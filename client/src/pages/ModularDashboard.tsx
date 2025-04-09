@@ -8,7 +8,7 @@ import { AppointmentAnalytics } from "@/components/dashboard/AppointmentAnalytic
 import { BudgetExpirationCard } from "@/components/dashboard/BudgetExpirationCard";
 import { UpcomingTasksTimeline } from "@/components/dashboard/UpcomingTasksTimeline";
 import { DummyDataToggle } from "@/components/dashboard/DummyDataToggle";
-import { ClinicianAssistantTile } from "@/components/dashboard/ClinicianAssistantTile";
+import ClinicianAssistantTile from "@/components/dashboard/ClinicianAssistantTile";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { 
   RefreshCw, 
