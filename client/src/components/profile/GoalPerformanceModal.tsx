@@ -77,7 +77,7 @@ export function GoalPerformanceModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-[75%] max-h-[90vh] overflow-hidden">
+      <DialogContent className="sm:max-w-[75%] max-h-[90vh] overflow-auto">
         <DialogHeader>
           <DialogTitle className="text-xl font-semibold">Goals & Milestones Progress</DialogTitle>
           <DialogDescription>
@@ -109,7 +109,7 @@ export function GoalPerformanceModal({
 
           {/* Bottom Section - Details */}
           {selectedGoal && (
-            <div className="py-4 flex-1 overflow-hidden">
+            <div className="py-4 flex-1 ">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-base font-medium">{selectedGoal.title}</h3>
                 <div className="flex items-center space-x-2">
