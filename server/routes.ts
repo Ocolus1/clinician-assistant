@@ -420,6 +420,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
     
     try {
+      // Debug: check if client exists
+      const client = await storage.getClient(clientId);
+      if (!client) {
+        console.error(`Client with ID ${clientId} not found when fetching budget items`);
+        return res.status(404).json({ error: "Client not found" });
+      }
+      console.log(`Found client: ${client.name} (ID: ${client.id})`);
+      
       // Get all the budget items for this client
       let items;
       

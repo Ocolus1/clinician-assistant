@@ -2,35 +2,49 @@ import { QueryClient } from "@tanstack/react-query";
 
 /**
  * Helper function to make API requests with standard error handling
+ * @param method HTTP method (GET, POST, PUT, DELETE)
  * @param endpoint API endpoint path
- * @param options Fetch options
+ * @param body Optional request body (for POST/PUT)
  * @returns Promise with response data
  */
 export async function apiRequest<T = any>(
+  method: string,
   endpoint: string,
-  options: RequestInit = {}
+  body?: any
 ): Promise<T> {
   const headers = {
     'Content-Type': 'application/json',
-    ...options.headers,
   };
 
-  console.log(`Making API request to: ${endpoint}`);
+  const options: RequestInit = {
+    method,
+    headers,
+    body: body ? JSON.stringify(body) : undefined,
+  };
+
+  console.log(`Making API request: ${method} ${endpoint}`);
   
   try {
-    const response = await fetch(endpoint, {
-      ...options,
-      headers,
-    });
+    const response = await fetch(endpoint, options);
 
     console.log(`Response status: ${response.status} ${response.statusText}`);
     
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`API error response: ${errorText}`);
-      throw new Error(
-        `API error: ${response.status} ${response.statusText} - ${errorText}`
-      );
+      try {
+        // Try to parse error as JSON
+        const errorJson = await response.json();
+        console.error(`API error response (JSON):`, errorJson);
+        throw new Error(
+          `API error: ${response.status} ${response.statusText} - ${JSON.stringify(errorJson)}`
+        );
+      } catch (parseError) {
+        // If parsing as JSON fails, get as text
+        const errorText = await response.text();
+        console.error(`API error response (text): ${errorText}`);
+        throw new Error(
+          `API error: ${response.status} ${response.statusText} - ${errorText}`
+        );
+      }
     }
 
     // Return empty object for 204 No Content
@@ -39,10 +53,15 @@ export async function apiRequest<T = any>(
     }
 
     const data = await response.json();
-    console.log(`API request to ${endpoint} successful, received data`);
+    console.log(`API request to ${endpoint} successful, received data:`, data);
     return data;
   } catch (error) {
     console.error(`Error in API request to ${endpoint}:`, error);
+    // Return more details about the error
+    if (error instanceof Error) {
+      console.error(`Error message: ${error.message}`);
+      console.error(`Error stack: ${error.stack}`);
+    }
     throw error;
   }
 }

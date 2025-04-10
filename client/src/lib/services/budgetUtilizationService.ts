@@ -273,9 +273,21 @@ export const budgetUtilizationService = {
    */
   async fetchBudgetItems(clientId: number): Promise<BudgetItem[]> {
     try {
-      return await apiRequest<BudgetItem[]>('GET', `/api/clients/${clientId}/budget-items`);
+      console.log(`Fetching budget items for client ID: ${clientId}, type: ${typeof clientId}`);
+      
+      // Check if clientId is valid
+      if (!clientId || isNaN(clientId) || clientId <= 0) {
+        console.error(`Invalid client ID: ${clientId}`);
+        return [];
+      }
+      
+      // Make the API request with detailed logging
+      const response = await apiRequest<BudgetItem[]>('GET', `/api/clients/${clientId}/budget-items`);
+      console.log(`Budget items response:`, response);
+      return response;
     } catch (error) {
       console.error('Error fetching budget items:', error);
+      console.error('Error details:', JSON.stringify(error));
       return [];
     }
   },
@@ -287,9 +299,21 @@ export const budgetUtilizationService = {
    */
   async fetchBudgetSettings(clientId: number): Promise<BudgetSettings | null> {
     try {
-      return await apiRequest<BudgetSettings>('GET', `/api/clients/${clientId}/budget-settings`);
+      console.log(`Fetching budget settings for client ID: ${clientId}, type: ${typeof clientId}`);
+      
+      // Check if clientId is valid
+      if (!clientId || isNaN(clientId) || clientId <= 0) {
+        console.error(`Invalid client ID for budget settings: ${clientId}`);
+        return null;
+      }
+      
+      // Make the API request with detailed logging
+      const response = await apiRequest<BudgetSettings>('GET', `/api/clients/${clientId}/budget-settings`);
+      console.log(`Budget settings response:`, response);
+      return response;
     } catch (error) {
       console.error('Error fetching budget settings:', error);
+      console.error('Error details:', JSON.stringify(error));
       return null;
     }
   },
@@ -301,9 +325,21 @@ export const budgetUtilizationService = {
    */
   async fetchClientSessions(clientId: number): Promise<SessionWithProducts[]> {
     try {
-      return await apiRequest<SessionWithProducts[]>('GET', `/api/clients/${clientId}/sessions`);
+      console.log(`Fetching sessions for client ID: ${clientId}, type: ${typeof clientId}`);
+      
+      // Check if clientId is valid
+      if (!clientId || isNaN(clientId) || clientId <= 0) {
+        console.error(`Invalid client ID for sessions: ${clientId}`);
+        return [];
+      }
+      
+      // Make the API request with detailed logging
+      const response = await apiRequest<SessionWithProducts[]>('GET', `/api/clients/${clientId}/sessions`);
+      console.log(`Client sessions response:`, response);
+      return response;
     } catch (error) {
       console.error('Error fetching client sessions:', error);
+      console.error('Error details:', JSON.stringify(error));
       return [];
     }
   },
