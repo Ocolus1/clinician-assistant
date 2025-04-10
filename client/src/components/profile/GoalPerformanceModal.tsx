@@ -77,15 +77,15 @@ export function GoalPerformanceModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-[75%] max-h-[90vh] overflow-hidden">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-[75%] max-h-[90vh] overflow-hidden flex flex-col">
+        <DialogHeader className="flex-shrink-0">
           <DialogTitle className="text-xl font-semibold">Goals & Milestones Progress</DialogTitle>
           <DialogDescription>
             Performance tracking for therapeutic goals from {dateRangeText}
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex flex-col h-full max-h-[80vh]">
+        <div className="flex flex-col flex-1 overflow-hidden">
           {/* Top Section - Goal Circles */}
           <div className="py-4 border-b">
             <h3 className="text-base font-medium mb-4">Goal Performance Overview</h3>
@@ -127,87 +127,89 @@ export function GoalPerformanceModal({
                   <TabsTrigger value="details">Details</TabsTrigger>
                 </TabsList>
                 
-                <TabsContent value="overview" className="h-[calc(100%-40px)]">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 h-full">
-                    <Card className="md:col-span-2">
-                      <CardContent className="p-6">
-                        <h4 className="text-sm font-medium mb-4">Performance History</h4>
-                        <div className="h-[300px]">
-                          <PerformanceBarChart 
-                            data={selectedGoal.performanceData}
-                            maxValue={10}
-                            minValue={0}
-                          />
-                        </div>
-                      </CardContent>
-                    </Card>
-                    <Card>
-                      <CardContent className="p-6">
-                        <h4 className="text-sm font-medium mb-4">Month-to-Month Comparison</h4>
-                        <div className="space-y-6">
-                          <div className="space-y-2">
-                            <p className="text-sm text-muted-foreground">Current Month</p>
-                            <div className="flex items-center">
-                              <div className="w-full bg-gray-100 h-4 rounded-full overflow-hidden">
-                                <div 
-                                  className={`h-full rounded-full ${
-                                    selectedGoal.score < 4 ? 'bg-red-500' : 
-                                    selectedGoal.score < 7 ? 'bg-amber-500' : 'bg-green-500'
-                                  }`}
-                                  style={{ width: `${(selectedGoal.score / 10) * 100}%` }}
-                                />
+                <TabsContent value="overview" className="h-[calc(100%-40px)] overflow-auto">
+                  <ScrollArea className="h-full w-full">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 h-full pb-6">
+                      <Card className="md:col-span-2">
+                        <CardContent className="p-6">
+                          <h4 className="text-sm font-medium mb-4">Performance History</h4>
+                          <div className="h-[300px]">
+                            <PerformanceBarChart 
+                              data={selectedGoal.performanceData}
+                              maxValue={10}
+                              minValue={0}
+                            />
+                          </div>
+                        </CardContent>
+                      </Card>
+                      <Card>
+                        <CardContent className="p-6">
+                          <h4 className="text-sm font-medium mb-4">Month-to-Month Comparison</h4>
+                          <div className="space-y-6">
+                            <div className="space-y-2">
+                              <p className="text-sm text-muted-foreground">Current Month</p>
+                              <div className="flex items-center">
+                                <div className="w-full bg-gray-100 h-4 rounded-full overflow-hidden">
+                                  <div 
+                                    className={`h-full rounded-full ${
+                                      selectedGoal.score < 4 ? 'bg-red-500' : 
+                                      selectedGoal.score < 7 ? 'bg-amber-500' : 'bg-green-500'
+                                    }`}
+                                    style={{ width: `${(selectedGoal.score / 10) * 100}%` }}
+                                  />
+                                </div>
+                                <span className={`ml-2 font-semibold ${getScoreColor(selectedGoal.score)}`}>
+                                  {selectedGoal.score.toFixed(1)}
+                                </span>
                               </div>
-                              <span className={`ml-2 font-semibold ${getScoreColor(selectedGoal.score)}`}>
-                                {selectedGoal.score.toFixed(1)}
-                              </span>
                             </div>
-                          </div>
-                          
-                          <div className="space-y-2">
-                            <p className="text-sm text-muted-foreground">Previous Month</p>
-                            <div className="flex items-center">
-                              <div className="w-full bg-gray-100 h-4 rounded-full overflow-hidden">
-                                <div 
-                                  className={`h-full rounded-full ${
-                                    selectedGoal.lastMonthScore < 4 ? 'bg-red-500' : 
-                                    selectedGoal.lastMonthScore < 7 ? 'bg-amber-500' : 'bg-green-500'
-                                  }`}
-                                  style={{ width: `${(selectedGoal.lastMonthScore / 10) * 100}%` }}
-                                />
+                            
+                            <div className="space-y-2">
+                              <p className="text-sm text-muted-foreground">Previous Month</p>
+                              <div className="flex items-center">
+                                <div className="w-full bg-gray-100 h-4 rounded-full overflow-hidden">
+                                  <div 
+                                    className={`h-full rounded-full ${
+                                      selectedGoal.lastMonthScore < 4 ? 'bg-red-500' : 
+                                      selectedGoal.lastMonthScore < 7 ? 'bg-amber-500' : 'bg-green-500'
+                                    }`}
+                                    style={{ width: `${(selectedGoal.lastMonthScore / 10) * 100}%` }}
+                                  />
+                                </div>
+                                <span className={`ml-2 font-semibold ${getScoreColor(selectedGoal.lastMonthScore)}`}>
+                                  {selectedGoal.lastMonthScore.toFixed(1)}
+                                </span>
                               </div>
-                              <span className={`ml-2 font-semibold ${getScoreColor(selectedGoal.lastMonthScore)}`}>
-                                {selectedGoal.lastMonthScore.toFixed(1)}
-                              </span>
+                            </div>
+                            
+                            <Separator />
+                            
+                            <div className="space-y-2">
+                              <p className="text-sm text-muted-foreground">Change</p>
+                              <div className="flex items-center">
+                                {(() => {
+                                  const change = selectedGoal.score - selectedGoal.lastMonthScore;
+                                  const changeText = change >= 0 ? `+${change.toFixed(1)}` : `${change.toFixed(1)}`;
+                                  const changeClass = change > 0 ? 'text-green-500' : 
+                                                    change < 0 ? 'text-red-500' : 'text-gray-500';
+                                  return (
+                                    <span className={`text-lg font-bold ${changeClass}`}>
+                                      {changeText}
+                                    </span>
+                                  );
+                                })()}
+                              </div>
                             </div>
                           </div>
-                          
-                          <Separator />
-                          
-                          <div className="space-y-2">
-                            <p className="text-sm text-muted-foreground">Change</p>
-                            <div className="flex items-center">
-                              {(() => {
-                                const change = selectedGoal.score - selectedGoal.lastMonthScore;
-                                const changeText = change >= 0 ? `+${change.toFixed(1)}` : `${change.toFixed(1)}`;
-                                const changeClass = change > 0 ? 'text-green-500' : 
-                                                   change < 0 ? 'text-red-500' : 'text-gray-500';
-                                return (
-                                  <span className={`text-lg font-bold ${changeClass}`}>
-                                    {changeText}
-                                  </span>
-                                );
-                              })()}
-                            </div>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </div>
+                        </CardContent>
+                      </Card>
+                    </div>
+                  </ScrollArea>
                 </TabsContent>
                 
-                <TabsContent value="milestones" className="h-[calc(100%-40px)]">
-                  <ScrollArea className="h-full pr-4">
-                    <div className="space-y-8">
+                <TabsContent value="milestones" className="h-[calc(100%-40px)] overflow-auto">
+                  <ScrollArea className="h-full w-full">
+                    <div className="space-y-8 pb-6">
                       {selectedGoal.milestones.map((milestone) => (
                         <Card key={milestone.id} className="overflow-hidden">
                           <CardContent className="p-6">
@@ -236,9 +238,9 @@ export function GoalPerformanceModal({
                   </ScrollArea>
                 </TabsContent>
                 
-                <TabsContent value="details" className="h-[calc(100%-40px)]">
-                  <ScrollArea className="h-full pr-4">
-                    <div className="space-y-6">
+                <TabsContent value="details" className="h-[calc(100%-40px)] overflow-auto">
+                  <ScrollArea className="h-full w-full">
+                    <div className="space-y-6 pb-6">
                       <Card>
                         <CardContent className="p-6">
                           <h4 className="text-base font-medium mb-2">Goal Description</h4>
