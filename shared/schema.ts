@@ -159,7 +159,13 @@ export type Client = typeof clients.$inferSelect;
 export type Ally = typeof allies.$inferSelect;
 export type Goal = typeof goals.$inferSelect;
 export type Subgoal = typeof subgoals.$inferSelect;
-export type BudgetItem = typeof budgetItems.$inferSelect;
+// Extend the base BudgetItem type with additional properties that come from API
+export type BudgetItem = typeof budgetItems.$inferSelect & {
+  // These properties are added by the API when budget items are fetched
+  isActivePlan?: boolean;
+  planSerialNumber?: string;
+  planCode?: string | null;
+};
 export type BudgetSettings = typeof budgetSettings.$inferSelect;
 
 export type InsertClient = z.infer<typeof insertClientSchema>;

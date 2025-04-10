@@ -15,24 +15,36 @@ export async function apiRequest<T = any>(
     ...options.headers,
   };
 
-  const response = await fetch(endpoint, {
-    ...options,
-    headers,
-  });
+  console.log(`Making API request to: ${endpoint}`);
+  
+  try {
+    const response = await fetch(endpoint, {
+      ...options,
+      headers,
+    });
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(
-      `API error: ${response.status} ${response.statusText} - ${errorText}`
-    );
+    console.log(`Response status: ${response.status} ${response.statusText}`);
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`API error response: ${errorText}`);
+      throw new Error(
+        `API error: ${response.status} ${response.statusText} - ${errorText}`
+      );
+    }
+
+    // Return empty object for 204 No Content
+    if (response.status === 204) {
+      return {} as T;
+    }
+
+    const data = await response.json();
+    console.log(`API request to ${endpoint} successful, received data`);
+    return data;
+  } catch (error) {
+    console.error(`Error in API request to ${endpoint}:`, error);
+    throw error;
   }
-
-  // Return empty object for 204 No Content
-  if (response.status === 204) {
-    return {} as T;
-  }
-
-  return response.json();
 }
 
 /**

@@ -174,9 +174,30 @@ export default function EnhancedClientList() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   
-  // Fetch all clients
-  const { data: clients = [], isLoading, error } = useQuery<Client[]>({
+  // Fetch all clients with better error handling
+  const { data: clients = [], isLoading, error, refetch } = useQuery<Client[]>({
     queryKey: ["/api/clients"],
+    retry: 3,
+    retryDelay: (attempt) => Math.min(attempt * 1000, 3000),
+    queryFn: async () => {
+      try {
+        console.log("Fetching clients from API...");
+        const response = await fetch("/api/clients");
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error("Error fetching clients:", response.status, errorText);
+          throw new Error(`Failed to fetch clients: ${response.status} ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        console.log(`Successfully fetched ${data.length} clients`);
+        return data;
+      } catch (error) {
+        console.error("Exception in client fetch:", error);
+        throw error;
+      }
+    }
   });
   
   // Create functions to fetch additional data for each client
@@ -556,7 +577,7 @@ export default function EnhancedClientList() {
           // Calculate used budget from session notes with products
           client.sessionNotesWithProducts.forEach(sessionNote => {
             if (sessionNote.products && Array.isArray(sessionNote.products)) {
-              sessionNote.products.forEach(product => {
+              sessionNote.products.forEach((product: { unitPrice: string | number, quantity: string | number }) => {
                 const unitPrice = typeof product.unitPrice === 'string' ? parseFloat(product.unitPrice) : (product.unitPrice || 0);
                 const quantity = typeof product.quantity === 'string' ? parseInt(product.quantity) : (product.quantity || 0);
                 usedBudget += unitPrice * quantity;
@@ -902,7 +923,7 @@ export default function EnhancedClientList() {
               // Calculate used budget from session notes with products
               a.sessionNotesWithProducts.forEach(sessionNote => {
                 if (sessionNote.products && Array.isArray(sessionNote.products)) {
-                  sessionNote.products.forEach(product => {
+                  sessionNote.products.forEach((product: { unitPrice: string | number, quantity: string | number }) => {
                     const unitPrice = typeof product.unitPrice === 'string' ? parseFloat(product.unitPrice) : (product.unitPrice || 0);
                     const quantity = typeof product.quantity === 'string' ? parseInt(product.quantity) : (product.quantity || 0);
                     aUsedBudget += unitPrice * quantity;
@@ -923,7 +944,7 @@ export default function EnhancedClientList() {
               // Calculate used budget from session notes with products
               b.sessionNotesWithProducts.forEach(sessionNote => {
                 if (sessionNote.products && Array.isArray(sessionNote.products)) {
-                  sessionNote.products.forEach(product => {
+                  sessionNote.products.forEach((product: { unitPrice: string | number, quantity: string | number }) => {
                     const unitPrice = typeof product.unitPrice === 'string' ? parseFloat(product.unitPrice) : (product.unitPrice || 0);
                     const quantity = typeof product.quantity === 'string' ? parseInt(product.quantity) : (product.quantity || 0);
                     bUsedBudget += unitPrice * quantity;
@@ -1089,8 +1110,12 @@ export default function EnhancedClientList() {
               <p className="text-gray-500 mb-4">There was an error loading the client list.</p>
               <Button 
                 onClick={() => {
+                  // Clear the query cache completely and refetch
                   queryClient.invalidateQueries({ queryKey: ["/api/clients"] });
                   queryClient.invalidateQueries({ queryKey: ["/api/clients/enriched"] });
+                  // Use the refetch function we added to the useQuery
+                  refetch();
+                  console.log("Retrying client data fetch...");
                 }}
                 variant="outline"
               >
