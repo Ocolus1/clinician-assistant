@@ -282,6 +282,7 @@ export const budgetUtilizationService = {
       }
       
       // Make the API request with detailed logging
+      // using the fixed apiRequest signature (method, url, body)
       const response = await apiRequest<BudgetItem[]>('GET', `/api/clients/${clientId}/budget-items`);
       console.log(`Budget items response:`, response);
       return response;

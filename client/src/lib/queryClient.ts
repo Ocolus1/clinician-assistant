@@ -72,7 +72,7 @@ export async function apiRequest<T = any>(
  */
 export function getQueryFn<T = any>(endpoint: string) {
   return async (): Promise<T> => {
-    return apiRequest<T>(endpoint);
+    return apiRequest<T>('GET', endpoint);
   };
 }
 
