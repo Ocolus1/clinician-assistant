@@ -5,12 +5,28 @@
 // Message role types
 export type MessageRole = 'user' | 'assistant' | 'system';
 
+// Visualization types
+export type VisualizationType = 'table' | 'bar' | 'line' | 'pie' | 'none';
+
+// Query result interface
+export interface QueryResult {
+  columns: string[];
+  rows: Record<string, any>[];
+  visualizationType?: VisualizationType;
+  metadata?: {
+    executionTime?: number;
+    rowCount?: number;
+    queryText?: string;
+  };
+}
+
 // Message interface
 export interface Message {
   id: string;
   role: MessageRole;
   content: string;
   createdAt: string;
+  queryResult?: QueryResult;
 }
 
 // Conversation interface
