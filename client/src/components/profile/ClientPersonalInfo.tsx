@@ -59,7 +59,7 @@ export default function ClientPersonalInfo({ client, onEdit }: ClientPersonalInf
   const clientAge = client.dateOfBirth ? calculateAge(client.dateOfBirth) : null;
   
   // Only log in development mode
-  if (process.env.NODE_ENV !== 'production') {
+  if (import.meta.env.MODE !== 'production') {
     console.log("ClientPersonalInfo received:", {
       name: client.name,
       dateOfBirth: client.dateOfBirth,
