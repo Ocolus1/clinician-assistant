@@ -8,7 +8,7 @@
 
 import { randomUUID } from 'crypto';
 import { sql } from '../db';
-import { Conversation, Message, MessageRole } from '@shared/assistantTypes';
+import { Conversation, Message, MessageRole, QueryResult } from '@shared/assistantTypes';
 
 /**
  * Conversation Service class
@@ -214,7 +214,7 @@ export class ConversationService {
   /**
    * Add a message to a conversation
    */
-  async addMessage(conversationId: string, role: MessageRole, content: string): Promise<Message | null> {
+  async addMessage(conversationId: string, role: MessageRole, content: string, queryResult?: QueryResult): Promise<Message | null> {
     try {
       // Check if conversation exists
       const conversations = await sql`
@@ -230,10 +230,13 @@ export class ConversationService {
       const id = randomUUID();
       const now = new Date();
       
-      // Insert the message
+      // Convert query result to JSON string if present
+      const queryResultJSON = queryResult ? JSON.stringify(queryResult) : null;
+      
+      // Insert the message with optional query result
       await sql`
-        INSERT INTO assistant_messages (id, conversation_id, role, content, created_at)
-        VALUES (${id}, ${conversationId}, ${role}, ${content}, ${now})
+        INSERT INTO assistant_messages (id, conversation_id, role, content, query_result, created_at)
+        VALUES (${id}, ${conversationId}, ${role}, ${content}, ${queryResultJSON}, ${now})
       `;
       
       // Update the conversation's lastMessageAt timestamp
@@ -248,7 +251,8 @@ export class ConversationService {
         id,
         role,
         content,
-        createdAt: now.toISOString()
+        createdAt: now.toISOString(),
+        queryResult
       };
     } catch (error) {
       console.error(`Error adding message to conversation ${conversationId}:`, error);
@@ -269,12 +273,26 @@ export class ConversationService {
       `;
       
       // Map database messages to the Message interface
-      return messages.map((msg) => ({
-        id: msg.id,
-        role: msg.role as MessageRole,
-        content: msg.content,
-        createdAt: msg.created_at?.toISOString() || new Date().toISOString()
-      }));
+      return messages.map((msg) => {
+        let queryResult: QueryResult | undefined = undefined;
+        
+        // Parse query_result JSON if present
+        if (msg.query_result) {
+          try {
+            queryResult = JSON.parse(msg.query_result);
+          } catch (e) {
+            console.error('Error parsing query result JSON:', e);
+          }
+        }
+        
+        return {
+          id: msg.id,
+          role: msg.role as MessageRole,
+          content: msg.content,
+          createdAt: msg.created_at?.toISOString() || new Date().toISOString(),
+          queryResult
+        };
+      });
     } catch (error) {
       console.error(`Error fetching messages for conversation ${conversationId}:`, error);
       return [];

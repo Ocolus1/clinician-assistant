@@ -340,6 +340,7 @@ export const assistantMessages = pgTable("assistant_messages", {
     .references(() => assistantConversations.id, { onDelete: "cascade" }),
   role: text("role", { enum: ["user", "assistant", "system"] }).notNull(),
   content: text("content").notNull(),
+  queryResult: text("query_result"), // JSON string for storing query visualization data
   createdAt: timestamp("created_at").defaultNow(),
 });
 

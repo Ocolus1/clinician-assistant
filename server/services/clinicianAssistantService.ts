@@ -298,7 +298,10 @@ export class ClinicianAssistantService {
       // Prepare query result data for visualization if this was a data question with results
       let queryResult: QueryResult | undefined = undefined;
       
-      if (isDataQuestion) {
+      // Check if this is a data-related question
+      const isDataQuestionResult = await this.isDataRelatedQuestion(messageContent);
+      
+      if (isDataQuestionResult) {
         try {
           // Generate the query
           const query = await sqlQueryGenerator.generateQuery(messageContent);
