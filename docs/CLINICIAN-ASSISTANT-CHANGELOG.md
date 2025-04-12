@@ -1,5 +1,26 @@
 # Clinician Assistant Changelog
 
+## v0.3.0 - UI Enhancements & Type Safety (April 12, 2025)
+
+### Frontend
+- ✓ Fixed type safety issues throughout application
+  - Added proper type definitions for component props
+  - Implemented type-safe API interactions with TypeScript
+  - Fixed LSP errors in ConversationSidebar.tsx
+  - Added type casting for API responses in AssistantSettings.tsx
+  - Improved error handling types in ClinicianAssistant.tsx
+- ✓ Enhanced conversation management capabilities
+  - Added testing API endpoint for OpenAI connection
+  - Improved conversation list display with proper formatting
+  - Added loading indicators for async operations
+  - Enhanced error feedback for failed API operations
+
+### Backend
+- ✓ Added new testing endpoint
+  - Implemented /api/assistant/test-connection for API validation
+  - Fixed conversation service error handling
+  - Improved API response consistency
+
 ## v0.2.0 - Enhanced Security & Error Handling (April 12, 2025)
 
 ### Backend
@@ -47,11 +68,11 @@
 
 ## Planned Features
 
-### Next Phase: Enhanced UI/UX (In Progress)
-- [ ] Implement persistent conversation storage
-- [ ] Add ability to save, load, and name conversations
-- [ ] Create settings panel for configuration
-- [ ] Add visual indicators for query status
+### Next Phase: Data Visualization (In Progress)
+- ✓ Implement persistent conversation storage
+- ✓ Add ability to save, load, and name conversations
+- ✓ Create settings panel for configuration
+- ✓ Add visual indicators for query status
 - [ ] Create data visualization for query results
 
 ### Future: Testing and Refinement
