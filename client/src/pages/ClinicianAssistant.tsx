@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { 
   Card, 
@@ -12,115 +12,25 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
-import { MessageSquare, Settings, Plus, ArrowLeft } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { MessageSquare, Settings, Plus, ArrowLeft, SendHorizontal } from 'lucide-react';
 import { Link } from 'wouter';
 import { Message, Conversation } from '@shared/assistantTypes';
+import { apiRequest } from '@/lib/queryClient';
+import { useToast } from '@/hooks/use-toast';
 
-// Import component placeholders
-// These will be replaced by actual components when they're created
-const MessageBubble = ({ message }: { message: Message }) => (
-  <div className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'} mb-4`}>
-    <div className={`rounded-lg px-4 py-2 max-w-[80%] ${
-      message.role === 'user' 
-        ? 'bg-primary text-primary-foreground ml-12' 
-        : 'bg-muted mr-12'
-    }`}>
-      {message.content}
-    </div>
-  </div>
-);
-
-const ConversationSelector = ({ 
-  conversations, 
-  selectedId, 
-  onSelect, 
-  onNew 
-}: { 
-  conversations: Conversation[],
-  selectedId: string | null,
-  onSelect: (id: string) => void,
-  onNew: () => void
-}) => (
-  <div className="h-full flex flex-col">
-    <div className="flex justify-between items-center p-4">
-      <h3 className="font-semibold">Conversations</h3>
-      <Button size="sm" onClick={onNew} variant="ghost">
-        <Plus className="h-4 w-4 mr-2" />
-        New
-      </Button>
-    </div>
-    <Separator />
-    <div className="flex-1 overflow-auto p-2">
-      {conversations.length === 0 ? (
-        <div className="flex flex-col items-center justify-center h-32 text-center text-muted-foreground">
-          <MessageSquare className="h-8 w-8 mb-2 opacity-50" />
-          <p>No conversations yet</p>
-          <p className="text-sm">Start a new conversation</p>
-        </div>
-      ) : (
-        <div className="space-y-2">
-          {conversations.map(conv => (
-            <div 
-              key={conv.id}
-              className={`p-3 rounded-md cursor-pointer hover:bg-accent ${
-                selectedId === conv.id ? 'bg-accent' : ''
-              }`}
-              onClick={() => onSelect(conv.id)}
-            >
-              <div className="font-medium truncate">{conv.name}</div>
-              <div className="text-xs text-muted-foreground">
-                {new Date(conv.lastMessageAt || conv.createdAt).toLocaleString()}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  </div>
-);
-
-const AssistantSettings = () => (
-  <div className="p-4">
-    <h3 className="text-lg font-semibold mb-4">Assistant Settings</h3>
-    <div className="space-y-4">
-      <div>
-        <label className="block text-sm font-medium mb-1">OpenAI API Key</label>
-        <input 
-          type="password" 
-          className="w-full p-2 border rounded-md" 
-          placeholder="sk-..." 
-        />
-        <p className="text-xs text-muted-foreground mt-1">
-          Your API key is stored securely and never shared
-        </p>
-      </div>
-      <div>
-        <label className="block text-sm font-medium mb-1">Model</label>
-        <select className="w-full p-2 border rounded-md">
-          <option>gpt-4</option>
-          <option>gpt-3.5-turbo</option>
-        </select>
-      </div>
-      <div>
-        <label className="block text-sm font-medium mb-1">Temperature</label>
-        <input 
-          type="range" 
-          min="0" 
-          max="1" 
-          step="0.1" 
-          defaultValue="0.7" 
-          className="w-full" 
-        />
-      </div>
-      <Button className="w-full">Save Settings</Button>
-    </div>
-  </div>
-);
+// Import our new components
+import MessageBubble from '@/components/assistant/MessageBubble';
+import ConversationSidebar from '@/components/assistant/ConversationSidebar';
+import AssistantSettings from '@/components/assistant/AssistantSettings';
 
 const ClinicianAssistant: React.FC = () => {
   const [activeTab, setActiveTab] = useState('assistant');
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
   const [message, setMessage] = useState('');
+  const [isWaitingForResponse, setIsWaitingForResponse] = useState(false);
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
   
   // Fetch conversations
   const { 
@@ -129,6 +39,7 @@ const ClinicianAssistant: React.FC = () => {
     refetch: refetchConversations 
   } = useQuery({
     queryKey: ['/api/assistant/conversations'],
+    refetchInterval: isWaitingForResponse ? 2000 : false, // Poll while waiting for a response
   });
   
   // Fetch assistant status
@@ -139,15 +50,9 @@ const ClinicianAssistant: React.FC = () => {
     queryKey: ['/api/assistant/status'],
   });
   
-  const conversations = conversationsData?.conversations || [];
-  const isConfigured = statusData?.isConfigured || false;
-  
-  // Create a new conversation
-  const createNewConversation = async () => {
-    try {
-      // Create a default conversation name with date/time
-      const name = `Conversation ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`;
-      
+  // Create a new conversation mutation
+  const createConversationMutation = useMutation({
+    mutationFn: async (name: string) => {
       const response = await fetch('/api/assistant/conversations', {
         method: 'POST',
         headers: {
@@ -155,42 +60,124 @@ const ClinicianAssistant: React.FC = () => {
         },
         body: JSON.stringify({ name }),
       });
-      
-      if (!response.ok) throw new Error('Failed to create conversation');
-      
-      const data = await response.json();
+      if (!response.ok) {
+        throw new Error('Failed to create conversation');
+      }
+      return response.json();
+    },
+    onSuccess: (data) => {
       setSelectedConversationId(data.id);
-      refetchConversations();
-    } catch (error) {
-      console.error('Error creating conversation:', error);
+      queryClient.invalidateQueries({ queryKey: ['/api/assistant/conversations'] });
+      toast({
+        title: 'Conversation Created',
+        description: 'New conversation started successfully.'
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Error Creating Conversation',
+        description: error.message || 'Failed to create new conversation.',
+        variant: 'destructive'
+      });
     }
-  };
+  });
   
-  // Send a message
-  const sendMessage = async () => {
-    if (!message.trim() || !selectedConversationId) return;
-    
-    try {
-      await fetch('/api/assistant/messages', {
+  // Send message mutation
+  const sendMessageMutation = useMutation({
+    mutationFn: async ({ conversationId, message }: { conversationId: string, message: string }) => {
+      setIsWaitingForResponse(true);
+      const response = await fetch(`/api/assistant/conversations/${conversationId}/messages`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          conversationId: selectedConversationId,
-          message: message.trim(),
-        }),
+        body: JSON.stringify({ message }),
       });
-      
+      if (!response.ok) {
+        throw new Error('Failed to send message');
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/assistant/conversations'] });
       setMessage('');
-      refetchConversations();
-    } catch (error) {
-      console.error('Error sending message:', error);
+      setIsWaitingForResponse(false);
+    },
+    onError: (error: any) => {
+      setIsWaitingForResponse(false);
+      toast({
+        title: 'Error Sending Message',
+        description: error.message || 'Failed to send message.',
+        variant: 'destructive'
+      });
     }
+  });
+  
+  // Add types for the responses
+  interface ConversationsResponse {
+    conversations: Conversation[];
+  }
+  
+  interface StatusResponse {
+    isConfigured: boolean;
+    connectionValid: boolean;
+    settings?: any;
+  }
+  
+  const conversations = ((conversationsData || {}) as ConversationsResponse)?.conversations || [];
+  const isConfigured = ((statusData || {}) as StatusResponse)?.isConfigured || false;
+  
+  // Create a new conversation
+  const createNewConversation = () => {
+    // Create a default conversation name with date/time
+    const name = `Conversation ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`;
+    createConversationMutation.mutate(name);
+  };
+  
+  // Send a message
+  const sendMessage = () => {
+    if (!message.trim() || !selectedConversationId) return;
+    
+    // Add the user message to the UI immediately for better UX
+    const userMessage: Message = {
+      id: 'temp-' + Date.now(),
+      role: 'user',
+      content: message.trim(),
+      createdAt: new Date().toISOString()
+    };
+    
+    // Create assistant loading message
+    const assistantLoadingMessage: Message = {
+      id: 'loading-' + Date.now(),
+      role: 'assistant',
+      content: '',
+      createdAt: new Date().toISOString()
+    };
+    
+    // Update the local state for immediate UI feedback
+    const updatedConversations = conversations.map((conv: Conversation) => 
+      conv.id === selectedConversationId 
+        ? { 
+            ...conv, 
+            messages: [...conv.messages, userMessage],
+          }
+        : conv
+    );
+    
+    // Update the query cache for immediate UI feedback
+    queryClient.setQueryData(['/api/assistant/conversations'], { 
+      conversations: updatedConversations 
+    });
+    
+    // Send the message to the API
+    sendMessageMutation.mutate({ 
+      conversationId: selectedConversationId, 
+      message: message.trim() 
+    });
   };
   
   // Get selected conversation
-  const selectedConversation = conversations.find(c => c.id === selectedConversationId);
+  const selectedConversation = conversations.find((c: Conversation) => c.id === selectedConversationId);
   
   // Effect to select the first conversation when loaded
   useEffect(() => {
@@ -244,7 +231,7 @@ const ClinicianAssistant: React.FC = () => {
               <div className="grid grid-cols-12 h-[600px]">
                 {/* Conversation List Sidebar */}
                 <div className="col-span-3 border-r h-full">
-                  <ConversationSelector
+                  <ConversationSidebar
                     conversations={conversations}
                     selectedId={selectedConversationId}
                     onSelect={(id) => setSelectedConversationId(id)}
@@ -281,9 +268,20 @@ const ClinicianAssistant: React.FC = () => {
                           </div>
                         ) : (
                           <div>
-                            {selectedConversation.messages.map(msg => (
+                            {selectedConversation.messages.map((msg: Message) => (
                               <MessageBubble key={msg.id} message={msg} />
                             ))}
+                            {isWaitingForResponse && (
+                              <MessageBubble 
+                                message={{
+                                  id: 'loading',
+                                  role: 'assistant',
+                                  content: '',
+                                  createdAt: new Date().toISOString()
+                                }} 
+                                isLoading={true} 
+                              />
+                            )}
                           </div>
                         )}
                       </div>
@@ -291,9 +289,8 @@ const ClinicianAssistant: React.FC = () => {
                       {/* Input Area */}
                       <div className="p-4 border-t">
                         <div className="flex">
-                          <input
-                            type="text"
-                            className="flex-1 p-2 border rounded-l-md focus:outline-none"
+                          <Input
+                            className="flex-1 rounded-r-none"
                             placeholder="Type your question here..."
                             value={message}
                             onChange={(e) => setMessage(e.target.value)}
@@ -307,13 +304,21 @@ const ClinicianAssistant: React.FC = () => {
                           <Button 
                             className="rounded-l-none" 
                             onClick={sendMessage}
+                            disabled={!message.trim()}
                           >
+                            <SendHorizontal className="h-4 w-4 mr-2" />
                             Send
                           </Button>
                         </div>
-                        <p className="text-xs text-muted-foreground mt-2">
-                          Example: "How many active clients do we have?" or "What's the progress of client John Doe?"
-                        </p>
+                        <div className="text-xs text-muted-foreground mt-2">
+                          <p className="mb-1">Example questions:</p>
+                          <ul className="list-disc list-inside pl-2 space-y-1">
+                            <li>"How many active clients do we have?"</li>
+                            <li>"Show me a list of clients with incomplete assessments"</li>
+                            <li>"What's the average session duration for therapist Sarah in March?"</li>
+                            <li>"List all clients with budgets over 80% utilized"</li>
+                          </ul>
+                        </div>
                       </div>
                     </>
                   ) : (

@@ -67,6 +67,39 @@ router.get('/status', async (req, res) => {
 });
 
 /**
+ * POST /api/assistant/test-connection
+ * Test the connection to the OpenAI API
+ */
+router.post('/test-connection', async (req, res) => {
+  try {
+    const status = clinicianAssistantService.getStatus();
+    
+    if (!status.isConfigured) {
+      return res.status(400).json({ 
+        success: false,
+        message: 'Assistant is not configured'
+      });
+    }
+    
+    const connectionValid = await clinicianAssistantService.testConnection();
+    
+    res.json({ 
+      success: true,
+      connectionValid,
+      message: connectionValid 
+        ? 'Connection test successful' 
+        : 'Connection test failed'
+    });
+  } catch (error: any) {
+    console.error('Error testing connection:', error);
+    res.status(500).json({ 
+      success: false,
+      message: error.message || 'Failed to test connection'
+    });
+  }
+});
+
+/**
  * POST /api/assistant/configure
  * Configure the assistant with API key and model settings
  */
