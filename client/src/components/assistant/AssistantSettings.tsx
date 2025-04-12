@@ -19,7 +19,7 @@ interface AssistantSettingsProps {
 
 const AssistantSettings: React.FC<AssistantSettingsProps> = ({ onComplete }) => {
   // State for form fields
-  const [model, setModel] = useState('gpt-4');
+  const [model, setModel] = useState('gpt-4o');
   const [temperature, setTemperature] = useState(0.7);
   const [maxTokens, setMaxTokens] = useState(8192);
   const [readOnly, setReadOnly] = useState(true);
@@ -133,7 +133,7 @@ const AssistantSettings: React.FC<AssistantSettingsProps> = ({ onComplete }) => 
     const data = statusData as StatusResponse;
     
     if (data?.settings) {
-      setModel(data.settings.model || 'gpt-4');
+      setModel(data.settings.model || 'gpt-4o');
       setTemperature(data.settings.temperature || 0.7);
       setMaxTokens(data.settings.maxTokens || 8192);
       setReadOnly(data.settings.readOnly !== false);
@@ -217,7 +217,8 @@ const AssistantSettings: React.FC<AssistantSettingsProps> = ({ onComplete }) => 
                   <SelectValue placeholder="Select a model" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="gpt-4">GPT-4 (Recommended)</SelectItem>
+                  <SelectItem value="gpt-4o">GPT-4o (Recommended)</SelectItem>
+                  <SelectItem value="gpt-4">GPT-4</SelectItem>
                   <SelectItem value="gpt-4-turbo">GPT-4 Turbo</SelectItem>
                   <SelectItem value="gpt-3.5-turbo">GPT-3.5 Turbo (Faster)</SelectItem>
                 </SelectContent>
