@@ -169,22 +169,65 @@ export class ClinicianAssistantService {
           const query = await sqlQueryGenerator.generateQuery(messageContent);
           const result = await sqlQueryGenerator.executeQuery(query);
           
-          // Generate the SQL context for LangChain
-          const sqlContext = `
-            I executed the following SQL query:
-            \`\`\`sql
-            ${result.query}
-            \`\`\`
-            
-            ${result.error 
-              ? `The query failed with error: ${result.error}`
-              : `The query returned ${result.data.length} rows of data: ${JSON.stringify(result.data, null, 2)}`
-            }
-            
-            Based on this data, provide a clear, concise response to the user's question.
-            If there was an error or no data, explain what might be the issue.
-            Don't mention that you ran an SQL query unless the user specifically asked about database queries.
-          `;
+          // Generate the SQL context for LangChain with enhanced error handling
+          let sqlContext;
+          
+          if (result.error) {
+            // For error cases, provide specific guidance based on error type
+            sqlContext = `
+              I executed the following SQL query:
+              \`\`\`sql
+              ${result.query}
+              \`\`\`
+              
+              The query encountered an error: ${result.error}
+              
+              Original technical error details: ${result.originalError || 'Unknown error'}
+              
+              Please provide a helpful response that:
+              1. Acknowledges there was a problem getting the requested information
+              2. Explains in simple terms what might have gone wrong (missing data, incorrect query parameters, etc.)
+              3. Suggests how the user might rephrase their question or what information they might need to provide
+              4. If appropriate, suggests alternative ways to get similar information
+              
+              Don't mention the SQL query or technical details, focus on the user's original intent.
+              Frame the response in a professional, supportive manner appropriate for clinical staff.
+            `;
+          } else if (result.data && result.data.length === 0) {
+            // For empty result sets
+            sqlContext = `
+              I executed the following SQL query:
+              \`\`\`sql
+              ${result.query}
+              \`\`\`
+              
+              The query executed successfully in ${result.executionTime || 'unknown'}ms, but returned no data.
+              
+              Please provide a helpful response that:
+              1. Informs the user that no matching information was found
+              2. Suggests possible reasons for this (e.g., data might not exist, filters might be too restrictive)
+              3. Suggests how they might broaden their search or check if the entities they're asking about exist
+              
+              Don't mention the SQL query itself unless the user specifically asked about database queries.
+            `;
+          } else {
+            // For successful queries with data
+            sqlContext = `
+              I executed the following SQL query:
+              \`\`\`sql
+              ${result.query}
+              \`\`\`
+              
+              The query executed successfully in ${result.executionTime || 'unknown'}ms and returned ${result.data.length} rows of data:
+              ${JSON.stringify(result.data, null, 2)}
+              
+              Based on this data, provide a clear, well-structured response to the user's question.
+              Highlight key insights or patterns if they exist.
+              Format numerical data clearly (round to 2 decimal places where appropriate).
+              Use proper clinical terminology given this is a speech therapy context.
+              Don't mention that you ran an SQL query unless the user specifically asked about database queries.
+            `;
+          }
           
           // Use LangChain's processDataQuery with SQL context
           responseContent = await langchainService.processDataQuery(
