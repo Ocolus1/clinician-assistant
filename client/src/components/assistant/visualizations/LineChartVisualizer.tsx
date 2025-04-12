@@ -8,15 +8,14 @@
 import React, { useMemo } from 'react';
 import { QueryResult } from '@shared/assistantTypes';
 import { ResponsiveLine } from '@nivo/line';
-import { useTheme } from '@/components/ui/theme-provider';
 
 interface LineChartVisualizerProps {
   data: QueryResult;
 }
 
 const LineChartVisualizer: React.FC<LineChartVisualizerProps> = ({ data }) => {
-  const { theme } = useTheme();
-  const isDarkTheme = theme === 'dark';
+  // Always use light theme for visualizations
+  const isDarkTheme = false;
   
   // Prepare data for the line chart
   const { chartData, xAxisLabel, dateAxis } = useMemo(() => {

@@ -8,15 +8,14 @@
 import React, { useMemo } from 'react';
 import { QueryResult } from '@shared/assistantTypes';
 import { ResponsiveBar } from '@nivo/bar';
-import { useTheme } from '@/components/ui/theme-provider';
 
 interface BarChartVisualizerProps {
   data: QueryResult;
 }
 
 const BarChartVisualizer: React.FC<BarChartVisualizerProps> = ({ data }) => {
-  const { theme } = useTheme();
-  const isDarkTheme = theme === 'dark';
+  // Always use light theme for visualizations
+  const isDarkTheme = false;
   
   // Prepare data for the bar chart
   const chartData = useMemo(() => {

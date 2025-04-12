@@ -39,8 +39,10 @@ export function ThemeProvider({
   useEffect(() => {
     const root = window.document.documentElement;
     
+    // Remove any existing theme classes
     root.classList.remove('light', 'dark');
     
+    // Determine which theme to apply
     if (theme === 'system') {
       const systemTheme = window.matchMedia('(prefers-color-scheme: dark)')
         .matches
@@ -48,10 +50,18 @@ export function ThemeProvider({
         : 'light';
       
       root.classList.add(systemTheme);
-      return;
+      
+      // Also set data-theme attribute for components that use it
+      root.setAttribute('data-theme', systemTheme);
+    } else {
+      root.classList.add(theme);
+      
+      // Also set data-theme attribute for components that use it
+      root.setAttribute('data-theme', theme);
     }
     
-    root.classList.add(theme);
+    // Let components know the current theme by setting an attribute
+    document.body.style.setProperty('--theme-mode', theme);
   }, [theme]);
 
   const value = {

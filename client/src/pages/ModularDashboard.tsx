@@ -229,13 +229,13 @@ function DashboardTile({
   return (
     <Card 
       className={cn(
-        "p-6 flex flex-col items-center text-center aspect-square transition-all w-64",
+        "p-6 flex flex-col items-center text-center aspect-square transition-all w-64 bg-white text-gray-800",
         disabled 
-          ? "opacity-70 cursor-not-allowed bg-muted" 
+          ? "opacity-70 cursor-not-allowed bg-gray-100" 
           : "hover:shadow-md cursor-pointer hover:translate-y-[-2px]"
       )}
       onClick={disabled ? undefined : onClick}
-      style={{ borderTop: `4px solid ${color}` }}
+      style={{ borderTop: `4px solid ${color}`, backgroundColor: "#ffffff" }}
     >
       <div 
         className="h-16 w-16 rounded-full flex items-center justify-center mb-4"

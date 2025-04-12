@@ -13,12 +13,12 @@ interface DashboardLayoutProps {
  */
 export function DashboardLayout({ children }: DashboardLayoutProps) {
   return (
-    <div className="w-full h-screen overflow-hidden relative">
+    <div className="w-full h-screen overflow-hidden relative bg-white light">
       {/* Floating Menu */}
       <FloatingMenu />
       
       {/* Main Content - Responsive Full Screen */}
-      <main className="w-full h-full overflow-hidden">
+      <main className="w-full h-full overflow-hidden bg-white text-gray-800 light">
         {children}
       </main>
     </div>

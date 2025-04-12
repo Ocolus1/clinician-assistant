@@ -109,7 +109,7 @@ const AssistantSettings: React.FC<AssistantSettingsProps> = ({ onComplete }) => 
   // Handle form submission
   const handleSaveSettings = () => {
     configMutation.mutate({
-      apiKey: process.env.OPENAI_API_KEY || '', // This will use the key from Replit secrets
+      apiKey: import.meta.env.VITE_OPENAI_API_KEY, // The API key will be handled on the server side
       model,
       temperature,
       maxTokens,

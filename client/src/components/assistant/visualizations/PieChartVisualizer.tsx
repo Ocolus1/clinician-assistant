@@ -8,15 +8,14 @@
 import React, { useMemo } from 'react';
 import { QueryResult } from '@shared/assistantTypes';
 import { ResponsivePie } from '@nivo/pie';
-import { useTheme } from '@/components/ui/theme-provider';
 
 interface PieChartVisualizerProps {
   data: QueryResult;
 }
 
 const PieChartVisualizer: React.FC<PieChartVisualizerProps> = ({ data }) => {
-  const { theme } = useTheme();
-  const isDarkTheme = theme === 'dark';
+  // Always use light theme for visualizations
+  const isDarkTheme = false;
   
   // Prepare data for the pie chart
   const chartData = useMemo(() => {
