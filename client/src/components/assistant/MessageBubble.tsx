@@ -2,8 +2,9 @@ import React from 'react';
 import { Message } from '@shared/assistantTypes';
 import { Card } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { User, Bot } from 'lucide-react';
+import { User, Bot, Database } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import QueryResultVisualizer from './visualizations/QueryResultVisualizer';
 
 interface MessageBubbleProps {
   message: Message;
@@ -77,7 +78,20 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isLoading = fals
               </div>
             </div>
           ) : (
-            formatContent(message.content)
+            <>
+              {formatContent(message.content)}
+              
+              {/* Display query result visualization if present */}
+              {message.queryResult && message.queryResult.rows.length > 0 && (
+                <div className="mt-4 border-t pt-4">
+                  <div className="flex items-center mb-2 text-sm font-medium text-muted-foreground">
+                    <Database className="h-4 w-4 mr-1" />
+                    <span>Query Results</span>
+                  </div>
+                  <QueryResultVisualizer data={message.queryResult} />
+                </div>
+              )}
+            </>
           )}
         </Card>
         <div className={cn(

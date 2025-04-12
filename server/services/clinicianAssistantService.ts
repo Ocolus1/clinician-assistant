@@ -8,10 +8,10 @@
 import { OpenAIConfig } from './openaiService';
 import { openaiService } from './openaiService';
 import { conversationService } from './conversationService';
-import { sqlQueryGenerator } from './sqlQueryGenerator';
+import { sqlQueryGenerator, SQLQueryResult } from './sqlQueryGenerator';
 import { schemaProvider } from './schemaProvider';
 import { ChatMessage } from './openaiService';
-import { Message, AssistantStatusResponse, AssistantConfig } from '@shared/assistantTypes';
+import { Message, AssistantStatusResponse, AssistantConfig, QueryResult } from '@shared/assistantTypes';
 import { langchainService, LangChainConfig } from './langchainService';
 
 /**
@@ -295,8 +295,45 @@ export class ClinicianAssistantService {
         }
       }
       
-      // Add assistant response to conversation
-      return await conversationService.addMessage(conversationId, 'assistant', responseContent);
+      // Prepare query result data for visualization if this was a data question with results
+      let queryResult: QueryResult | undefined = undefined;
+      
+      if (isDataQuestion) {
+        try {
+          // Generate the query
+          const query = await sqlQueryGenerator.generateQuery(messageContent);
+          // Execute the query
+          const sqlResult = await sqlQueryGenerator.executeQuery(query);
+          
+          if (!sqlResult.error && sqlResult.data && sqlResult.data.length > 0) {
+            // Extract column names from the first result row
+            const firstRow = sqlResult.data[0];
+            const columns = Object.keys(firstRow);
+            
+            // Create the query result data structure
+            queryResult = {
+              columns,
+              rows: sqlResult.data,
+              metadata: {
+                executionTime: sqlResult.executionTime,
+                rowCount: sqlResult.data.length,
+                queryText: sqlResult.query
+              }
+            };
+          }
+        } catch (error) {
+          console.error('Error preparing query result data:', error);
+          // Don't halt the process if visualization data preparation fails
+        }
+      }
+      
+      // Add assistant response to conversation with query result data
+      return await conversationService.addMessage(
+        conversationId, 
+        'assistant', 
+        responseContent,
+        queryResult
+      );
     } catch (error: any) {
       console.error('Error processing message:', error);
       
