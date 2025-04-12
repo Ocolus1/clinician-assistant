@@ -1,190 +1,256 @@
 /**
  * Result Analysis Service
  * 
- * This service analyzes query results and determines the most appropriate
- * visualization types based on the data structure.
+ * This service analyzes SQL query results to determine the most appropriate
+ * visualization types based on data structure and content.
  */
 
 import { QueryResult, VisualizationType } from '@shared/assistantTypes';
 
-export class ResultAnalysisService {
+class ResultAnalysisService {
   /**
-   * Analyze the query result to determine the most appropriate visualization types
+   * Analyze a SQL query result and determine suitable visualization types
    */
-  analyzeVisualization(result: QueryResult): VisualizationType[] {
-    if (!result.columns.length || !result.rows.length) {
-      return ['table']; // Default to table for empty results
+  analyzeVisualization(data: QueryResult): VisualizationType[] {
+    // Table visualization is always available
+    const visualizations: VisualizationType[] = ['table'];
+    
+    // If we don't have enough data, just return table
+    if (!data || !data.rows || data.rows.length === 0 || data.columns.length < 2) {
+      return visualizations;
     }
     
-    const possibleVisualizations: VisualizationType[] = ['table']; // Table is always possible
+    // Analyze the data structure to determine suitable visualizations
+    const { 
+      hasDateColumn, 
+      hasCategoricalColumn, 
+      hasNumericColumns,
+      rowCount, 
+      columnCount 
+    } = this.analyzeDataStructure(data);
     
-    // Check if we have time series data (suitable for line chart)
-    if (this.hasTimeSeriesPattern(result)) {
-      possibleVisualizations.push('line');
+    // Bar charts are good for categorical data with numeric values
+    if (hasCategoricalColumn && hasNumericColumns && rowCount <= 20) {
+      visualizations.push('bar');
     }
     
-    // Check if we have categorical data with numeric values (suitable for bar chart)
-    if (this.hasCategoricalData(result)) {
-      possibleVisualizations.push('bar');
+    // Line charts are good for time series or ordered data
+    if (hasDateColumn && hasNumericColumns) {
+      visualizations.push('line');
+    } else if (hasCategoricalColumn && hasNumericColumns && rowCount > 5 && rowCount <= 50) {
+      // Line charts can also work for categorical data with enough points
+      visualizations.push('line');
     }
     
-    // Check if we have proportional data (suitable for pie chart)
-    if (this.hasProportionalData(result)) {
-      possibleVisualizations.push('pie');
+    // Pie charts work best for a small number of categories with a single metric
+    if (hasCategoricalColumn && hasNumericColumns && rowCount >= 2 && rowCount <= 10) {
+      visualizations.push('pie');
     }
     
-    return possibleVisualizations;
+    return visualizations;
   }
   
   /**
-   * Determine the default visualization type based on the data
+   * Get the default (recommended) visualization for the data
    */
-  getDefaultVisualization(result: QueryResult): VisualizationType {
-    const possibleTypes = this.analyzeVisualization(result);
+  getDefaultVisualization(data: QueryResult): VisualizationType {
+    // Get all possible visualizations
+    const visualizations = this.analyzeVisualization(data);
     
-    // If only table is available, use that
-    if (possibleTypes.length === 1) {
-      return possibleTypes[0];
+    // Table is the universal fallback
+    if (visualizations.length === 1) {
+      return 'table';
     }
     
-    // Prefer more specialized visualizations when appropriate
-    if (this.isIdealForLineChart(result) && possibleTypes.includes('line')) {
+    // Check for query hints in the SQL that might suggest a visualization
+    const queryHints = this.analyzeQueryForHints(data);
+    if (queryHints && visualizations.includes(queryHints)) {
+      return queryHints;
+    }
+    
+    // Otherwise apply some heuristics to choose the best visualization
+    
+    // Check if this looks like time series data
+    if (this.isLikelyTimeSeries(data) && visualizations.includes('line')) {
       return 'line';
     }
     
-    if (this.isIdealForPieChart(result) && possibleTypes.includes('pie')) {
+    // For small sets of categories with a single metric, pie charts are good
+    if (this.isGoodForPieChart(data) && visualizations.includes('pie')) {
       return 'pie';
     }
     
-    if (this.isIdealForBarChart(result) && possibleTypes.includes('bar')) {
+    // Bar charts are good for comparing categories
+    if (visualizations.includes('bar')) {
       return 'bar';
     }
     
-    // Default to table for complex data
+    // Line charts are good for trends
+    if (visualizations.includes('line')) {
+      return 'line';
+    }
+    
+    // Default to table if no better visualization found
     return 'table';
   }
   
   /**
-   * Check if the data has a time series pattern
-   * (Columns that look like dates/times, with sequential values)
+   * Analyze the query text for hints about visualization
    */
-  private hasTimeSeriesPattern(result: QueryResult): boolean {
-    // Look for date/time-like columns
-    const dateColumns = result.columns.filter(col => 
-      col.toLowerCase().includes('date') || 
-      col.toLowerCase().includes('time') ||
-      col.toLowerCase().includes('day') ||
-      col.toLowerCase().includes('month') ||
-      col.toLowerCase().includes('year')
-    );
-    
-    if (dateColumns.length === 0) {
-      return false;
+  private analyzeQueryForHints(data: QueryResult): VisualizationType | null {
+    if (!data.metadata?.queryText) {
+      return null;
     }
     
-    // Check if we have at least one numeric column alongside the date column
-    const hasNumericValues = result.columns.some(col => {
-      if (dateColumns.includes(col)) return false;
-      return result.rows.some(row => typeof row[col] === 'number');
-    });
+    const queryText = data.metadata.queryText.toLowerCase();
     
-    return hasNumericValues;
+    // Look for hints in the query
+    if (queryText.includes('count') && queryText.includes('group by')) {
+      if (queryText.includes('date') || queryText.includes('month') || queryText.includes('year')) {
+        return 'line';
+      }
+      return 'bar';
+    }
+    
+    // Queries that calculate percentages or distributions may work well as pie charts
+    if ((queryText.includes('percent') || queryText.includes('ratio') || queryText.includes('proportion'))
+        && queryText.includes('group by')) {
+      return 'pie';
+    }
+    
+    return null;
   }
   
   /**
-   * Check if the data is ideal for a line chart
-   * (Time series with clear trends)
+   * Analyze the data structure for visualization decision-making
    */
-  private isIdealForLineChart(result: QueryResult): boolean {
-    // More than 5 data points is good for a line chart
-    if (result.rows.length < 5) {
-      return false;
-    }
+  private analyzeDataStructure(data: QueryResult) {
+    const rows = data.rows;
+    const columns = data.columns;
+    const rowCount = rows.length;
+    const columnCount = columns.length;
     
-    return this.hasTimeSeriesPattern(result);
-  }
-  
-  /**
-   * Check if the data has categorical data with numeric values
-   * (String/category columns with corresponding numeric values)
-   */
-  private hasCategoricalData(result: QueryResult): boolean {
-    // Need at least two columns, likely one for categories and one for values
-    if (result.columns.length < 2) {
-      return false;
-    }
+    let hasDateColumn = false;
+    let hasCategoricalColumn = false;
+    let hasNumericColumns = false;
     
-    // Check for mix of categorical and numeric columns
-    const columnTypes = result.columns.map(col => {
-      const values = result.rows.map(row => row[col]);
-      const hasNumeric = values.some(val => typeof val === 'number');
-      const hasStrings = values.some(val => typeof val === 'string');
-      return { column: col, hasNumeric, hasStrings };
-    });
+    // Sample rows to check (look at 10% of the data up to 10 rows)
+    const sampleSize = Math.min(10, Math.max(3, Math.ceil(rowCount * 0.1)));
+    const sampleRows = rows.slice(0, sampleSize);
     
-    const hasCategories = columnTypes.some(col => col.hasStrings);
-    const hasValues = columnTypes.some(col => col.hasNumeric);
-    
-    return hasCategories && hasValues;
-  }
-  
-  /**
-   * Check if the data is ideal for a bar chart
-   * (Clear categorical data with distinct values)
-   */
-  private isIdealForBarChart(result: QueryResult): boolean {
-    // Bar charts work well for a moderate number of categories
-    if (result.rows.length > 15 || result.rows.length < 2) {
-      return false;
-    }
-    
-    return this.hasCategoricalData(result);
-  }
-  
-  /**
-   * Check if the data has proportional data
-   * (Data that sums to a whole or represents parts of a whole)
-   */
-  private hasProportionalData(result: QueryResult): boolean {
-    // Pie charts are good for 2-7 categories
-    if (result.rows.length < 2 || result.rows.length > 7) {
-      return false;
-    }
-    
-    // Look for one categorical column and one numeric column
-    if (result.columns.length < 2) {
-      return false;
-    }
-    
-    // Check if all values in a numeric column are positive (requirement for pie charts)
-    return result.columns.some(valueCol => {
-      const allPositive = result.rows.every(row => {
-        const val = row[valueCol];
-        return typeof val === 'number' && val >= 0;
-      });
+    // Analyze each column
+    for (const column of columns) {
+      // Check for date columns
+      const dateIndicators = ['date', 'time', 'day', 'month', 'year', 'period'];
+      if (dateIndicators.some(i => column.toLowerCase().includes(i))) {
+        // Test if values look like dates
+        const sampleValue = rows[0][column];
+        if (typeof sampleValue === 'string') {
+          try {
+            const date = new Date(sampleValue);
+            if (!isNaN(date.getTime())) {
+              hasDateColumn = true;
+              continue;
+            }
+          } catch (e) {
+            // Not a date, continue checking
+          }
+        }
+      }
       
-      // At least one value must be non-zero
-      const hasNonZero = result.rows.some(row => {
-        const val = row[valueCol];
-        return typeof val === 'number' && val > 0;
-      });
+      // Count numeric values in this column
+      let numericCount = 0;
+      let uniqueValues = new Set();
       
-      return allPositive && hasNonZero;
-    });
+      for (const row of sampleRows) {
+        const value = row[column];
+        uniqueValues.add(value);
+        
+        if (typeof value === 'number' || (typeof value === 'string' && !isNaN(Number(value)))) {
+          numericCount++;
+        }
+      }
+      
+      // If most values are numbers, it's a numeric column
+      if (numericCount / sampleSize > 0.7) {
+        hasNumericColumns = true;
+      } 
+      // If the column has relatively few unique values compared to sample size,
+      // it might be categorical
+      else if (uniqueValues.size <= Math.min(20, sampleSize * 0.8)) {
+        hasCategoricalColumn = true;
+      }
+    }
+    
+    return {
+      hasDateColumn,
+      hasCategoricalColumn,
+      hasNumericColumns,
+      rowCount,
+      columnCount
+    };
   }
   
   /**
-   * Check if the data is ideal for a pie chart
-   * (Small number of categories with proportional values)
+   * Check if data is likely to be a time series
    */
-  private isIdealForPieChart(result: QueryResult): boolean {
-    // Pie charts are best with 3-5 segments
-    if (result.rows.length < 2 || result.rows.length > 5) {
+  private isLikelyTimeSeries(data: QueryResult): boolean {
+    // Check for date columns first
+    const dateIndicators = ['date', 'time', 'day', 'month', 'year', 'period'];
+    for (const column of data.columns) {
+      if (dateIndicators.some(i => column.toLowerCase().includes(i))) {
+        // Test first value to see if it's a date
+        const sampleValue = data.rows[0][column];
+        try {
+          const date = new Date(sampleValue);
+          if (!isNaN(date.getTime())) {
+            return true;
+          }
+        } catch (e) {
+          // Not a date, continue checking
+        }
+      }
+    }
+    
+    return false;
+  }
+  
+  /**
+   * Check if data is good for a pie chart visualization
+   */
+  private isGoodForPieChart(data: QueryResult): boolean {
+    // Good pie chart data has a small number of categories with a consistent metric
+    
+    // Need at least 2 rows to make a pie chart meaningful
+    if (data.rows.length < 2 || data.rows.length > 10) {
       return false;
     }
     
-    return this.hasProportionalData(result);
+    // Need at least two columns (one categorical, one numeric)
+    if (data.columns.length < 2) {
+      return false;
+    }
+    
+    // Check for a numeric column
+    let numericColumn = '';
+    for (const column of data.columns) {
+      let numericCount = 0;
+      for (let i = 0; i < Math.min(5, data.rows.length); i++) {
+        const val = data.rows[i][column];
+        if (typeof val === 'number' || (typeof val === 'string' && !isNaN(Number(val)))) {
+          numericCount++;
+        }
+      }
+      
+      if (numericCount / Math.min(5, data.rows.length) > 0.7) {
+        numericColumn = column;
+        break;
+      }
+    }
+    
+    return numericColumn !== '';
   }
 }
 
+// Create a singleton instance
 export const resultAnalysisService = new ResultAnalysisService();

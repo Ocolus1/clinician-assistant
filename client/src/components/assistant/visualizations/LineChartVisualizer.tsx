@@ -1,196 +1,246 @@
 /**
  * Line Chart Visualizer
  * 
- * This component renders SQL query results as a line chart using recharts.
- * It's ideal for time series data or trend visualization.
+ * This component renders SQL query results as a line chart,
+ * automatically identifying time series data or appropriate x/y columns.
  */
 
 import React, { useMemo } from 'react';
 import { QueryResult } from '@shared/assistantTypes';
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer
-} from 'recharts';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { ResponsiveLine } from '@nivo/line';
+import { useTheme } from '@/components/ui/theme-provider';
 
 interface LineChartVisualizerProps {
   data: QueryResult;
 }
 
-// Color palette for lines
-const COLORS = [
-  '#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8',
-  '#82CA9D', '#8DD1E1', '#A4DE6C', '#D0ED57', '#FFC658'
-];
-
 const LineChartVisualizer: React.FC<LineChartVisualizerProps> = ({ data }) => {
-  // Determine which columns to use for the chart
-  const { xAxisKey, valueKeys } = useMemo(() => {
-    // Check if any column names suggest time or date
-    const dateColumns = data.columns.filter(col => 
-      col.toLowerCase().includes('date') || 
-      col.toLowerCase().includes('time') ||
-      col.toLowerCase().includes('day') ||
-      col.toLowerCase().includes('month') ||
-      col.toLowerCase().includes('year')
-    );
+  const { theme } = useTheme();
+  const isDarkTheme = theme === 'dark';
+  
+  // Prepare data for the line chart
+  const { chartData, xAxisLabel, dateAxis } = useMemo(() => {
+    // Check if we have enough data
+    if (data.columns.length < 2 || data.rows.length === 0) {
+      return { chartData: [], xAxisLabel: '', dateAxis: false };
+    }
     
-    // If we found date/time columns, use the first one as X-axis
-    if (dateColumns.length > 0) {
-      const nonDateColumns = data.columns.filter(col => !dateColumns.includes(col));
+    // Try to identify date/time column for x-axis
+    let xColumn = '';
+    let dateAxis = false;
+    
+    // Look for column names that suggest dates or time
+    const dateColumnHints = ['date', 'time', 'day', 'month', 'year', 'period'];
+    for (const column of data.columns) {
+      const columnLower = column.toLowerCase();
+      
+      // Check if column name suggests a date
+      if (dateColumnHints.some(hint => columnLower.includes(hint))) {
+        xColumn = column;
+        
+        // Test if values look like dates
+        const sampleRow = data.rows[0][column];
+        if (typeof sampleRow === 'string') {
+          // Try to parse as date
+          try {
+            const dateTest = new Date(sampleRow);
+            if (!isNaN(dateTest.getTime())) {
+              dateAxis = true;
+            }
+          } catch (e) {
+            // Not a valid date format, continue
+          }
+        }
+        
+        break;
+      }
+    }
+    
+    // If no date column identified, use first column as x-axis
+    if (!xColumn) {
+      xColumn = data.columns[0];
+    }
+    
+    // Identify all numeric columns for y-axis (except the x column)
+    const yColumns: string[] = [];
+    for (const column of data.columns) {
+      if (column !== xColumn) {
+        // Check if most values in this column are numeric
+        const sampleSize = Math.min(5, data.rows.length);
+        let numericCount = 0;
+        
+        for (let i = 0; i < sampleSize; i++) {
+          const val = data.rows[i][column];
+          if (typeof val === 'number' || (typeof val === 'string' && !isNaN(Number(val)))) {
+            numericCount++;
+          }
+        }
+        
+        if (numericCount / sampleSize > 0.5) {
+          yColumns.push(column);
+        }
+      }
+    }
+    
+    // If no numeric columns found, use all non-x columns
+    if (yColumns.length === 0) {
+      data.columns.forEach(column => {
+        if (column !== xColumn) {
+          yColumns.push(column);
+        }
+      });
+    }
+    
+    // Limit to the first 50 rows for performance
+    const limitedRows = data.rows.slice(0, 50);
+    
+    // Format the data for the line chart (per series)
+    const chartData = yColumns.map(yColumn => {
       return {
-        xAxisKey: dateColumns[0],
-        valueKeys: nonDateColumns.filter(col => {
-          // Check if values are numeric
-          return data.rows.length > 0 && typeof data.rows[0][col] === 'number';
+        id: yColumn,
+        data: limitedRows.map(row => {
+          const xValue = row[xColumn];
+          const yValue = typeof row[yColumn] === 'number' ? 
+            row[yColumn] : 
+            !isNaN(Number(row[yColumn])) ? 
+              Number(row[yColumn]) : 
+              0;
+          
+          // If using a date axis, format dates properly
+          if (dateAxis) {
+            try {
+              const date = new Date(xValue);
+              return {
+                x: date,
+                y: yValue
+              };
+            } catch (e) {
+              return {
+                x: String(xValue || ''),
+                y: yValue
+              };
+            }
+          }
+          
+          return {
+            x: String(xValue || ''),
+            y: yValue
+          };
         })
       };
-    }
+    });
     
-    // If there are only two columns, use them as X and Y
-    if (data.columns.length === 2) {
-      return {
-        xAxisKey: data.columns[0],
-        valueKeys: [data.columns[1]]
-      };
-    }
-    
-    // For more complex data, try to identify numeric columns
-    const numericColumns: string[] = [];
-    const nonNumericColumns: string[] = [];
-    
-    // Check first row to determine data types
-    if (data.rows.length > 0) {
-      data.columns.forEach(col => {
-        const val = data.rows[0][col];
-        if (typeof val === 'number') {
-          numericColumns.push(col);
-        } else {
-          nonNumericColumns.push(col);
-        }
-      });
-    }
-    
-    // If we have numeric and non-numeric columns, use the first non-numeric as X-axis
-    if (numericColumns.length > 0 && nonNumericColumns.length > 0) {
-      return {
-        xAxisKey: nonNumericColumns[0],
-        valueKeys: numericColumns
-      };
-    }
-    
-    // Default: use first column as X-axis and second as value
-    return {
-      xAxisKey: data.columns[0],
-      valueKeys: data.columns.slice(1, 2)
-    };
+    return { chartData, xAxisLabel: xColumn, dateAxis };
   }, [data]);
   
-  // Format data for the chart if needed
-  const formattedData = useMemo(() => {
-    // Sort data by X-axis if it might be a date
-    const sortedData = [...data.rows];
-    
-    // Try to detect if x-axis is a date
-    const isDateColumn = xAxisKey.toLowerCase().includes('date') || 
-                          xAxisKey.toLowerCase().includes('time');
-    
-    if (isDateColumn) {
-      sortedData.sort((a, b) => {
-        // Try parsing as Date
-        const dateA = new Date(a[xAxisKey]);
-        const dateB = new Date(b[xAxisKey]);
-        
-        if (!isNaN(dateA.getTime()) && !isNaN(dateB.getTime())) {
-          return dateA.getTime() - dateB.getTime();
-        }
-        
-        // Fallback to string comparison
-        return String(a[xAxisKey]).localeCompare(String(b[xAxisKey]));
-      });
-    }
-    
-    return sortedData.map(row => ({
-      ...row,
-      // Ensure the x-axis value is formatted appropriately
-      [xAxisKey]: isDateColumn && new Date(row[xAxisKey]).toLocaleDateString()
-    }));
-  }, [data.rows, xAxisKey]);
-  
-  // Generate a meaningful chart title
-  const chartTitle = useMemo(() => {
-    if (valueKeys.length === 1) {
-      return `${valueKeys[0]} over ${xAxisKey}`;
-    }
-    return `Trends by ${xAxisKey}`;
-  }, [xAxisKey, valueKeys]);
-  
-  // Only display the chart if we have appropriate data
-  if (valueKeys.length === 0) {
-    return (
-      <Card className="w-full">
-        <CardHeader>
-          <CardTitle className="text-lg">Cannot Visualize Data</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-muted-foreground">
-            The data structure doesn't contain appropriate numeric values for a line chart.
-          </p>
-        </CardContent>
-      </Card>
-    );
+  // If we couldn't prepare valid chart data, show a fallback message
+  if (chartData.length === 0) {
+    return <div className="p-4 text-center text-sm text-muted-foreground">
+      This data doesn't appear suitable for a line chart visualization.
+    </div>;
   }
   
   return (
-    <Card className="w-full">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-lg">{chartTitle}</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="h-72">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart
-              data={formattedData}
-              margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-            >
-              <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
-              <XAxis 
-                dataKey={xAxisKey} 
-                tick={{ fontSize: 12 }}
-                interval="preserveStartEnd"
-                tickFormatter={value => {
-                  if (typeof value === 'string' && value.length > 15) {
-                    return `${value.substring(0, 15)}...`;
-                  }
-                  return value;
-                }}
-              />
-              <YAxis tick={{ fontSize: 12 }} />
-              <Tooltip />
-              <Legend />
-              
-              {valueKeys.map((valueKey, index) => (
-                <Line 
-                  key={valueKey}
-                  type="monotone"
-                  dataKey={valueKey}
-                  name={valueKey}
-                  stroke={COLORS[index % COLORS.length]}
-                  activeDot={{ r: 8 }}
-                  strokeWidth={2}
-                />
-              ))}
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-      </CardContent>
-    </Card>
+    <div className="h-[400px] w-full">
+      <ResponsiveLine
+        data={chartData}
+        margin={{ top: 50, right: 110, bottom: 50, left: 60 }}
+        xScale={dateAxis ? 
+          { type: 'time', format: 'native', precision: 'day' } : 
+          { type: 'point' }
+        }
+        yScale={{
+          type: 'linear',
+          min: 'auto',
+          max: 'auto',
+          stacked: false,
+          reverse: false
+        }}
+        curve="monotoneX"
+        axisTop={null}
+        axisRight={null}
+        axisBottom={{
+          format: dateAxis ? '%b %d' : undefined,
+          tickSize: 5,
+          tickPadding: 5,
+          tickRotation: chartData[0].data.length > 10 ? -45 : 0,
+          legend: xAxisLabel,
+          legendOffset: 40,
+          legendPosition: 'middle'
+        }}
+        axisLeft={{
+          tickSize: 5,
+          tickPadding: 5,
+          tickRotation: 0,
+          legend: 'Value',
+          legendOffset: -40,
+          legendPosition: 'middle'
+        }}
+        pointSize={10}
+        pointColor={{ theme: 'background' }}
+        pointBorderWidth={2}
+        pointBorderColor={{ from: 'serieColor' }}
+        pointLabelYOffset={-12}
+        useMesh={true}
+        legends={[
+          {
+            anchor: 'bottom-right',
+            direction: 'column',
+            justify: false,
+            translateX: 100,
+            translateY: 0,
+            itemsSpacing: 0,
+            itemDirection: 'left-to-right',
+            itemWidth: 80,
+            itemHeight: 20,
+            itemOpacity: 0.75,
+            symbolSize: 12,
+            symbolShape: 'circle',
+            symbolBorderColor: 'rgba(0, 0, 0, .5)',
+            effects: [
+              {
+                on: 'hover',
+                style: {
+                  itemBackground: 'rgba(0, 0, 0, .03)',
+                  itemOpacity: 1
+                }
+              }
+            ]
+          }
+        ]}
+        theme={{
+          text: {
+            fill: isDarkTheme ? '#e0e0e0' : '#333333',
+          },
+          axis: {
+            ticks: {
+              line: {
+                stroke: isDarkTheme ? '#555555' : '#dddddd',
+              },
+              text: {
+                fill: isDarkTheme ? '#e0e0e0' : '#333333',
+              },
+            },
+            legend: {
+              text: {
+                fill: isDarkTheme ? '#e0e0e0' : '#333333',
+              },
+            },
+          },
+          grid: {
+            line: {
+              stroke: isDarkTheme ? '#444444' : '#e0e0e0',
+            },
+          },
+          tooltip: {
+            container: {
+              background: isDarkTheme ? '#333333' : '#ffffff',
+              color: isDarkTheme ? '#e0e0e0' : '#333333',
+            },
+          },
+        }}
+      />
+    </div>
   );
 };
 
