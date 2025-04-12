@@ -1,5 +1,23 @@
 # Clinician Assistant Changelog
 
+## v0.2.0 - Enhanced Security & Error Handling (April 12, 2025)
+
+### Backend
+- ✓ Implemented comprehensive SQL safety measures
+  - Added enhanced regex pattern detection for SQL injection attempts
+  - Created word boundary detection for mutation operations
+  - Added checks for multiple SQL statements
+  - Implemented protection against dangerous SQL patterns like UNION injections
+- ✓ Enhanced error handling for failed queries
+  - Added user-friendly error messages for common database issues
+  - Implemented query timeout protection
+  - Added performance monitoring with execution time tracking
+  - Created structured error categorization system
+- ✓ Improved SQL query generation
+  - Enhanced system prompts with detailed security rules
+  - Added quality guidelines for generating accurate and readable SQL
+  - Implemented better error handling instructions for the LLM
+
 ## v0.1.0 - Initial Implementation (April 9, 2025)
 
 ### Frontend
@@ -29,17 +47,16 @@
 
 ## Planned Features
 
-### Phase 1: Core Functionality (Current)
-- [ ] Complete integration with LangChain for improved conversation context
-- [ ] Implement database schema query operations
-- [ ] Add error handling for invalid queries
+### Next Phase: Enhanced UI/UX (In Progress)
+- [ ] Implement persistent conversation storage
+- [ ] Add ability to save, load, and name conversations
+- [ ] Create settings panel for configuration
+- [ ] Add visual indicators for query status
+- [ ] Create data visualization for query results
 
-### Phase 2: Enhanced Features
-- [ ] Add SQL query validation and sanitization
-- [ ] Implement query result visualization
-- [ ] Add export functionality for chat transcripts
-
-### Phase 3: Advanced Intelligence
-- [ ] Add semantic search over clinical database
-- [ ] Implement advanced prompt engineering for better results
-- [ ] Create specialized tools for common clinical queries
+### Future: Testing and Refinement
+- [ ] Implement comprehensive error handling
+- [ ] Add user feedback mechanism
+- [ ] Create automated tests for common queries
+- [ ] Performance optimization
+- [ ] Security audit

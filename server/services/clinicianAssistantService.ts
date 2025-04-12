@@ -111,24 +111,24 @@ export class ClinicianAssistantService {
   async processMessage(conversationId: string, messageContent: string): Promise<Message | null> {
     try {
       // Validate conversation exists
-      const conversation = conversationService.getConversation(conversationId);
+      const conversation = await conversationService.getConversation(conversationId);
       if (!conversation) {
         throw new Error(`Conversation ${conversationId} not found`);
       }
       
       // Add the user message to the conversation
-      const userMessage = conversationService.addMessage(conversationId, 'user', messageContent);
+      const userMessage = await conversationService.addMessage(conversationId, 'user', messageContent);
       if (!userMessage) {
         throw new Error('Failed to add user message to conversation');
       }
       
       // Get message history for context
-      const messageHistory = conversationService.getMessageHistory(conversationId);
+      const messageHistory = await conversationService.getMessageHistory(conversationId);
       
       // Extract recent messages for context (limit to last 10 for performance)
       const recentMessages = messageHistory
         .slice(-10)
-        .map(msg => ({
+        .map((msg: Message) => ({
           role: msg.role,
           content: msg.content
         }));
@@ -296,12 +296,12 @@ export class ClinicianAssistantService {
       }
       
       // Add assistant response to conversation
-      return conversationService.addMessage(conversationId, 'assistant', responseContent);
+      return await conversationService.addMessage(conversationId, 'assistant', responseContent);
     } catch (error: any) {
       console.error('Error processing message:', error);
       
       // Add error message to conversation
-      return conversationService.addMessage(
+      return await conversationService.addMessage(
         conversationId,
         'assistant',
         `I'm sorry, I encountered an error while processing your request: ${error.message}`

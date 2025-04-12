@@ -314,6 +314,53 @@ export type Strategy = typeof strategies.$inferSelect;
 export type Clinician = typeof clinicians.$inferSelect;
 export type ClientClinician = typeof clientClinicians.$inferSelect;
 
+// Assistant related tables
+export const assistantSettings = pgTable("assistant_settings", {
+  id: serial("id").primaryKey(),
+  apiKey: text("api_key"),
+  model: text("model").default("gpt-4"),
+  temperature: numeric("temperature").$type<number>().default(0.7),
+  maxTokens: integer("max_tokens").default(8192),
+  readOnly: boolean("read_only").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const assistantConversations = pgTable("assistant_conversations", {
+  id: text("id").primaryKey(), // UUID for the conversation
+  name: text("name").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+  lastMessageAt: timestamp("last_message_at"),
+});
+
+export const assistantMessages = pgTable("assistant_messages", {
+  id: text("id").primaryKey(), // UUID for the message
+  conversationId: text("conversation_id").notNull()
+    .references(() => assistantConversations.id, { onDelete: "cascade" }),
+  role: text("role", { enum: ["user", "assistant", "system"] }).notNull(),
+  content: text("content").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Create insert schemas for assistant-related tables
+export const insertAssistantSettingsSchema = createInsertSchema(assistantSettings)
+  .omit({ id: true, createdAt: true, updatedAt: true });
+
+export const insertAssistantConversationSchema = createInsertSchema(assistantConversations)
+  .omit({ createdAt: true, updatedAt: true, lastMessageAt: true });
+
+export const insertAssistantMessageSchema = createInsertSchema(assistantMessages)
+  .omit({ createdAt: true });
+
+// Types for assistant-related tables
+export type AssistantSettings = typeof assistantSettings.$inferSelect;
+export type AssistantConversation = typeof assistantConversations.$inferSelect;
+export type AssistantMessage = typeof assistantMessages.$inferSelect;
+export type InsertAssistantSettings = z.infer<typeof insertAssistantSettingsSchema>;
+export type InsertAssistantConversation = z.infer<typeof insertAssistantConversationSchema>;
+export type InsertAssistantMessage = z.infer<typeof insertAssistantMessageSchema>;
+
 // Dashboard data types
 export type AppointmentStatsEntry = {
   period: string;

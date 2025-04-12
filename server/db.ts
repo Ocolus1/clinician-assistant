@@ -2,7 +2,7 @@
  * Database Connection Module
  * 
  * This module provides a connection to the PostgreSQL database
- * using the Postgres library. It exports a configured PostgreSQL client.
+ * using the Postgres library. It exports a configured client.
  */
 
 import postgres from 'postgres';

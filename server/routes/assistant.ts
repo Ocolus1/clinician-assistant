@@ -110,9 +110,9 @@ router.post('/configure', async (req, res) => {
  * GET /api/assistant/conversations
  * Get all conversations
  */
-router.get('/conversations', (req, res) => {
+router.get('/conversations', async (req, res) => {
   try {
-    const conversations = conversationService.getConversations();
+    const conversations = await conversationService.getConversations();
     res.json({ conversations });
   } catch (error: any) {
     console.error('Error getting conversations:', error);
@@ -124,7 +124,7 @@ router.get('/conversations', (req, res) => {
  * POST /api/assistant/conversations
  * Create a new conversation
  */
-router.post('/conversations', (req, res) => {
+router.post('/conversations', async (req, res) => {
   try {
     const parseResult = createConversationSchema.safeParse(req.body);
     
@@ -137,7 +137,7 @@ router.post('/conversations', (req, res) => {
     }
     
     const { name } = parseResult.data;
-    const conversation = conversationService.createConversation(name);
+    const conversation = await conversationService.createConversation(name);
     
     res.status(201).json({ 
       success: true,
@@ -157,7 +157,7 @@ router.post('/conversations', (req, res) => {
  * PUT /api/assistant/conversations/:id
  * Update a conversation
  */
-router.put('/conversations/:id', (req, res) => {
+router.put('/conversations/:id', async (req, res) => {
   try {
     const { id } = req.params;
     const parseResult = updateConversationSchema.safeParse(req.body);
@@ -171,7 +171,7 @@ router.put('/conversations/:id', (req, res) => {
     }
     
     const { name } = parseResult.data;
-    const success = conversationService.updateConversation(id, { name });
+    const success = await conversationService.updateConversation(id, { name });
     
     if (!success) {
       return res.status(404).json({ 
@@ -194,10 +194,10 @@ router.put('/conversations/:id', (req, res) => {
  * DELETE /api/assistant/conversations/:id
  * Delete a conversation
  */
-router.delete('/conversations/:id', (req, res) => {
+router.delete('/conversations/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const success = conversationService.deleteConversation(id);
+    const success = await conversationService.deleteConversation(id);
     
     if (!success) {
       return res.status(404).json({ 
@@ -220,10 +220,10 @@ router.delete('/conversations/:id', (req, res) => {
  * POST /api/assistant/conversations/:id/clear
  * Clear all messages from a conversation
  */
-router.post('/conversations/:id/clear', (req, res) => {
+router.post('/conversations/:id/clear', async (req, res) => {
   try {
     const { id } = req.params;
-    const success = conversationService.clearConversation(id);
+    const success = await conversationService.clearConversation(id);
     
     if (!success) {
       return res.status(404).json({ 
