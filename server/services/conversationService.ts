@@ -22,21 +22,32 @@ export class ConversationService {
     const now = new Date();
     const isoNow = now.toISOString();
     
-    // Insert the conversation into the database
-    await sql`
-      INSERT INTO assistant_conversations (id, name, created_at, updated_at, last_message_at)
-      VALUES (${id}, ${name}, ${now}, ${now}, ${now})
-    `;
-    
-    // Return the conversation object
-    return {
-      id,
-      name,
-      messages: [],
-      lastMessageAt: isoNow,
-      createdAt: isoNow,
-      updatedAt: isoNow
-    };
+    // Convert Date objects to ISO strings for PostgreSQL compatibility
+    // This prevents the "ERR_INVALID_ARG_TYPE" error
+    try {
+      console.log(`Creating conversation "${name}" with id ${id}`);
+      
+      // Insert the conversation into the database
+      await sql`
+        INSERT INTO assistant_conversations (id, name, created_at, updated_at, last_message_at)
+        VALUES (${id}, ${name}, ${isoNow}, ${isoNow}, ${isoNow})
+      `;
+      
+      console.log(`Successfully created conversation "${name}"`);
+      
+      // Return the conversation object
+      return {
+        id,
+        name,
+        messages: [],
+        lastMessageAt: isoNow,
+        createdAt: isoNow,
+        updatedAt: isoNow
+      };
+    } catch (error) {
+      console.error('Error in createConversation:', error);
+      throw error;
+    }
   }
   
   /**
@@ -121,18 +132,19 @@ export class ConversationService {
       }
       
       const now = new Date();
+      const isoNow = now.toISOString(); // Convert to ISO string for PostgreSQL compatibility
       
       // Update the conversation in the database
       if (updates.name) {
         await sql`
           UPDATE assistant_conversations
-          SET name = ${updates.name}, updated_at = ${now}
+          SET name = ${updates.name}, updated_at = ${isoNow}
           WHERE id = ${id}
         `;
       } else {
         await sql`
           UPDATE assistant_conversations
-          SET updated_at = ${now}
+          SET updated_at = ${isoNow}
           WHERE id = ${id}
         `;
       }
@@ -190,6 +202,7 @@ export class ConversationService {
       }
       
       const now = new Date();
+      const isoNow = now.toISOString(); // Convert to ISO string for PostgreSQL compatibility
       
       // Delete all messages for this conversation
       await sql`
@@ -200,7 +213,7 @@ export class ConversationService {
       // Update the lastMessageAt timestamp
       await sql`
         UPDATE assistant_conversations
-        SET last_message_at = ${now}, updated_at = ${now}
+        SET last_message_at = ${isoNow}, updated_at = ${isoNow}
         WHERE id = ${id}
       `;
       
@@ -229,31 +242,41 @@ export class ConversationService {
       
       const id = randomUUID();
       const now = new Date();
+      const isoNow = now.toISOString(); // Convert to ISO string for PostgreSQL compatibility
       
       // Convert query result to JSON string if present
       const queryResultJSON = queryResult ? JSON.stringify(queryResult) : null;
       
-      // Insert the message with optional query result
-      await sql`
-        INSERT INTO assistant_messages (id, conversation_id, role, content, query_result, created_at)
-        VALUES (${id}, ${conversationId}, ${role}, ${content}, ${queryResultJSON}, ${now})
-      `;
-      
-      // Update the conversation's lastMessageAt timestamp
-      await sql`
-        UPDATE assistant_conversations
-        SET last_message_at = ${now}, updated_at = ${now}
-        WHERE id = ${conversationId}
-      `;
-      
-      // Return the message
-      return {
-        id,
-        role,
-        content,
-        createdAt: now.toISOString(),
-        queryResult
-      };
+      try {
+        console.log(`Adding message to conversation ${conversationId} with role ${role}`);
+        
+        // Insert the message with optional query result
+        await sql`
+          INSERT INTO assistant_messages (id, conversation_id, role, content, query_result, created_at)
+          VALUES (${id}, ${conversationId}, ${role}, ${content}, ${queryResultJSON}, ${isoNow})
+        `;
+        
+        // Update the conversation's lastMessageAt timestamp
+        await sql`
+          UPDATE assistant_conversations
+          SET last_message_at = ${isoNow}, updated_at = ${isoNow}
+          WHERE id = ${conversationId}
+        `;
+        
+        console.log(`Successfully added message to conversation ${conversationId}`);
+        
+        // Return the message
+        return {
+          id,
+          role,
+          content,
+          createdAt: isoNow,
+          queryResult
+        };
+      } catch (err) {
+        console.error(`Database error adding message to conversation ${conversationId}:`, err);
+        throw err;
+      }
     } catch (error) {
       console.error(`Error adding message to conversation ${conversationId}:`, error);
       return null;
