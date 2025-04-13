@@ -97,7 +97,6 @@ export class ConversationService {
       const conversations = await sql`
         SELECT * FROM assistant_conversations
         WHERE id = ${id}
-        LIMIT 1
       `;
       
       const conversation = conversations[0];
@@ -140,7 +139,6 @@ export class ConversationService {
       const conversations = await sql`
         SELECT id FROM assistant_conversations
         WHERE id = ${id}
-        LIMIT 1
       `;
       
       if (conversations.length === 0) {
@@ -181,7 +179,7 @@ export class ConversationService {
       const conversations = await sql`
         SELECT id FROM assistant_conversations
         WHERE id = ${id}
-        LIMIT 1
+        
       `;
       
       if (conversations.length === 0) {
@@ -210,7 +208,7 @@ export class ConversationService {
       const conversations = await sql`
         SELECT id FROM assistant_conversations
         WHERE id = ${id}
-        LIMIT 1
+        
       `;
       
       if (conversations.length === 0) {
@@ -249,7 +247,7 @@ export class ConversationService {
       const conversations = await sql`
         SELECT id FROM assistant_conversations
         WHERE id = ${conversationId}
-        LIMIT 1
+        
       `;
       
       if (conversations.length === 0) {
