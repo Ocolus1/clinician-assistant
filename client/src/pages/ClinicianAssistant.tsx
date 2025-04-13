@@ -45,9 +45,11 @@ const ClinicianAssistant: React.FC = () => {
   // Fetch assistant status
   const { 
     data: statusData, 
-    isLoading: isLoadingStatus 
+    isLoading: isLoadingStatus,
+    refetch: refetchStatus
   } = useQuery({
     queryKey: ['/api/assistant/status'],
+    refetchInterval: 5000, // Refetch every 5 seconds to catch auto-configuration
   });
   
   // Create a new conversation mutation
@@ -126,6 +128,7 @@ const ClinicianAssistant: React.FC = () => {
   
   const conversations = ((conversationsData || {}) as ConversationsResponse)?.conversations || [];
   const isConfigured = ((statusData || {}) as StatusResponse)?.isConfigured || false;
+  const inputDisabled = !isConfigured || !selectedConversationId || isWaitingForResponse;
   
   // Create a new conversation
   const createNewConversation = () => {
@@ -185,6 +188,22 @@ const ClinicianAssistant: React.FC = () => {
       setSelectedConversationId(conversations[0].id);
     }
   }, [conversations, selectedConversationId]);
+  
+  // Effect to check assistant status when component mounts
+  useEffect(() => {
+    // Force an immediate check of the assistant status
+    refetchStatus();
+    
+    // Check the API directly as a fallback
+    fetch('/api/assistant/status')
+      .then(response => response.json())
+      .then(data => {
+        if (data.isConfigured) {
+          queryClient.invalidateQueries({ queryKey: ['/api/assistant/status'] });
+        }
+      })
+      .catch(error => console.error('Error checking status:', error));
+  }, []);
   
   return (
     <div className="container mx-auto py-6">
@@ -291,9 +310,10 @@ const ClinicianAssistant: React.FC = () => {
                         <div className="flex">
                           <Input
                             className="flex-1 rounded-r-none"
-                            placeholder="Type your question here..."
+                            placeholder={inputDisabled ? "Assistant not configured or conversation not selected..." : "Type your question here..."}
                             value={message}
                             onChange={(e) => setMessage(e.target.value)}
+                            disabled={inputDisabled}
                             onKeyDown={(e) => {
                               if (e.key === 'Enter' && !e.shiftKey) {
                                 e.preventDefault();
@@ -304,7 +324,7 @@ const ClinicianAssistant: React.FC = () => {
                           <Button 
                             className="rounded-l-none" 
                             onClick={sendMessage}
-                            disabled={!message.trim()}
+                            disabled={!message.trim() || inputDisabled}
                           >
                             <SendHorizontal className="h-4 w-4 mr-2" />
                             Send
@@ -340,7 +360,17 @@ const ClinicianAssistant: React.FC = () => {
             
             <TabsContent value="settings" className="mt-0">
               <div className="max-w-xl mx-auto py-6">
-                <AssistantSettings />
+                <AssistantSettings onComplete={() => {
+                  // Refetch the status immediately after configuration completes
+                  refetchStatus();
+                  
+                  // If the assistant is now configured, switch back to chat tab
+                  setTimeout(() => {
+                    if (((statusData || {}) as StatusResponse)?.isConfigured) {
+                      setActiveTab('assistant');
+                    }
+                  }, 500);
+                }} />
               </div>
             </TabsContent>
           </CardContent>
