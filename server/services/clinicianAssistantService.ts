@@ -29,14 +29,27 @@ export class ClinicianAssistantService {
       if (!this.initialized) {
         await schemaProvider.initialize();
         
-        // Initialize LangChain with SQL query function if we have a configuration
-        const config = openaiService.getConfig();
-        if (config) {
+        // Check if OpenAI API key exists in environment variables
+        const envApiKey = process.env.OPENAI_API_KEY;
+        
+        if (envApiKey) {
+          // If we have an API key in environment variables, use it to configure the assistant
           this.configureAssistant({
-            apiKey: config.apiKey,
-            model: config.model,
-            temperature: config.temperature
+            apiKey: envApiKey,
+            model: 'gpt-4o', // Default to the latest model
+            temperature: 0.7  // Default temperature
           });
+          console.log('Clinician Assistant configured using API key from environment');
+        } else {
+          // Otherwise, check if we have a previously saved configuration
+          const config = openaiService.getConfig();
+          if (config) {
+            this.configureAssistant({
+              apiKey: config.apiKey,
+              model: config.model,
+              temperature: config.temperature
+            });
+          }
         }
         
         this.initialized = true;

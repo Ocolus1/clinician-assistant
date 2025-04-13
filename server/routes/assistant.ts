@@ -25,7 +25,7 @@ const router = express.Router();
 // Schema for assistant configuration
 const configureAssistantSchema = z.object({
   config: z.object({
-    apiKey: z.string().min(1),
+    apiKey: z.string().min(1).optional(), // Make API key optional since we can use environment variable
     model: z.string().min(1),
     temperature: z.number().min(0).max(2)
   })

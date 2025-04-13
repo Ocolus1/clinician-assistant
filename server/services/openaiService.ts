@@ -34,12 +34,21 @@ export class OpenAIService {
   
   /**
    * Initialize the OpenAI service with API credentials
+   * Prioritizes environment variables if available
    */
   initialize(config: OpenAIConfig): void {
-    this.config = config;
+    // Use environment variable API key if available, otherwise use the provided one
+    const apiKey = process.env.OPENAI_API_KEY || config.apiKey;
+    
+    this.config = {
+      ...config,
+      apiKey: apiKey // Update the config with the resolved API key
+    };
+    
     this.openai = new OpenAI({
-      apiKey: config.apiKey
+      apiKey: apiKey
     });
+    
     console.log(`OpenAI service initialized with model: ${config.model}`);
   }
   

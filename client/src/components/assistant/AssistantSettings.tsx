@@ -109,7 +109,7 @@ const AssistantSettings: React.FC<AssistantSettingsProps> = ({ onComplete }) => 
   // Handle form submission
   const handleSaveSettings = () => {
     configMutation.mutate({
-      apiKey: import.meta.env.VITE_OPENAI_API_KEY, // The API key will be handled on the server side
+      // No need to include apiKey - it will be handled on the server side from environment variable
       model,
       temperature,
       maxTokens,
@@ -202,7 +202,18 @@ const AssistantSettings: React.FC<AssistantSettingsProps> = ({ onComplete }) => 
             <h3 className="text-lg font-semibold mb-2">OpenAI Integration</h3>
             <p className="text-sm text-muted-foreground mb-4">
               The OpenAI API key is securely stored in Replit secrets and is used to power the AI assistant.
+              You don't need to enter it manually - it's automatically configured from environment variables.
             </p>
+            
+            {(statusData as any)?.isConfigured && (
+              <Alert>
+                <CheckCircle className="h-4 w-4 mr-2" />
+                <AlertTitle>API Key Configured</AlertTitle>
+                <AlertDescription>
+                  OpenAI API key is configured from environment variables. These settings control how the AI assistant behaves.
+                </AlertDescription>
+              </Alert>
+            )}
           </div>
           
           <div className="space-y-4">
