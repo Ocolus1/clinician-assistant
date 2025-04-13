@@ -39,7 +39,10 @@ const ClinicianAssistant: React.FC = () => {
     refetch: refetchConversations 
   } = useQuery({
     queryKey: ['/api/assistant/conversations'],
-    refetchInterval: isWaitingForResponse ? 2000 : false, // Poll while waiting for a response
+    refetchInterval: isWaitingForResponse ? 2000 : 5000, // Poll regularly and more frequently when waiting for a response
+    refetchOnWindowFocus: true, // Ensure fresh data when window is focused
+    staleTime: 0, // Consider data immediately stale
+    retry: 3, // Retry failed requests 3 times
   });
   
   // Fetch assistant status
@@ -82,7 +85,36 @@ const ClinicianAssistant: React.FC = () => {
     onSuccess: (data) => {
       console.log('Conversation created successfully:', data);
       setSelectedConversationId(data.id);
+      
+      // Immediately invalidate the conversations query cache
       queryClient.invalidateQueries({ queryKey: ['/api/assistant/conversations'] });
+      
+      // Force an immediate refetch
+      setTimeout(() => {
+        console.log('Forcing conversations refetch after creation');
+        refetchConversations();
+      }, 300);
+      
+      // Create a minimal conversation object for immediate display
+      const newConversation: Conversation = {
+        id: data.id,
+        name: data.name,
+        messages: [],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        lastMessageAt: new Date().toISOString()
+      };
+      
+      // Manually update the cache with the new conversation
+      const currentData = queryClient.getQueryData(['/api/assistant/conversations']) as ConversationsResponse;
+      const updatedConversations = currentData 
+        ? [...currentData.conversations, newConversation]
+        : [newConversation];
+        
+      queryClient.setQueryData(['/api/assistant/conversations'], {
+        conversations: updatedConversations
+      });
+      
       toast({
         title: 'Conversation Created',
         description: 'New conversation started successfully.'
