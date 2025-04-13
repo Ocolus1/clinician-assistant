@@ -65,12 +65,20 @@ export class ConversationService {
       return await Promise.all(dbConversations.map(async (conv) => {
         const messages = await this.getMessageHistory(conv.id);
         
+        // Handle dates correctly, checking for string or Date object
+        const formatDate = (date: any): string => {
+          if (!date) return new Date().toISOString();
+          if (typeof date === 'string') return date;
+          if (date instanceof Date) return date.toISOString();
+          return new Date().toISOString();
+        };
+        
         return {
           id: conv.id,
           name: conv.name,
-          createdAt: conv.created_at?.toISOString() || new Date().toISOString(),
-          updatedAt: conv.updated_at?.toISOString() || new Date().toISOString(),
-          lastMessageAt: conv.last_message_at?.toISOString(),
+          createdAt: formatDate(conv.created_at),
+          updatedAt: formatDate(conv.updated_at),
+          lastMessageAt: formatDate(conv.last_message_at),
           messages: messages
         };
       }));
@@ -101,12 +109,20 @@ export class ConversationService {
       const messages = await this.getMessageHistory(id);
       
       // Return the conversation with messages
+      // Handle dates correctly, checking for string or Date object
+      const formatDate = (date: any): string => {
+        if (!date) return new Date().toISOString();
+        if (typeof date === 'string') return date;
+        if (date instanceof Date) return date.toISOString();
+        return new Date().toISOString();
+      };
+      
       return {
         id: conversation.id,
         name: conversation.name,
-        createdAt: conversation.created_at?.toISOString() || new Date().toISOString(),
-        updatedAt: conversation.updated_at?.toISOString() || new Date().toISOString(),
-        lastMessageAt: conversation.last_message_at?.toISOString(),
+        createdAt: formatDate(conversation.created_at),
+        updatedAt: formatDate(conversation.updated_at),
+        lastMessageAt: formatDate(conversation.last_message_at),
         messages
       };
     } catch (error) {
@@ -308,11 +324,19 @@ export class ConversationService {
           }
         }
         
+        // Handle date formats consistently
+        const formatDate = (date: any): string => {
+          if (!date) return new Date().toISOString();
+          if (typeof date === 'string') return date;
+          if (date instanceof Date) return date.toISOString();
+          return new Date().toISOString();
+        };
+        
         return {
           id: msg.id,
           role: msg.role as MessageRole,
           content: msg.content,
-          createdAt: msg.created_at?.toISOString() || new Date().toISOString(),
+          createdAt: formatDate(msg.created_at),
           queryResult
         };
       });
