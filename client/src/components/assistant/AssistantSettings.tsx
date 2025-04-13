@@ -49,15 +49,26 @@ const AssistantSettings: React.FC<AssistantSettingsProps> = ({ onComplete }) => 
         },
         body: JSON.stringify({ config }),
       });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to save settings');
+      }
+      
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      // Immediately refetch the status to update the UI
+      refetchStatus();
+      
+      // Also invalidate the query cache to ensure fresh data
       queryClient.invalidateQueries({ queryKey: ['/api/assistant/status'] });
+      
       if (onComplete) onComplete();
       
       toast({
         title: 'Settings Saved',
-        description: 'Assistant settings have been updated successfully.',
+        description: data.message || 'Assistant settings have been updated successfully.',
       });
     },
     onError: (error: any) => {

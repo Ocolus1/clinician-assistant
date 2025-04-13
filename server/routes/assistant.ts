@@ -52,13 +52,37 @@ const sendMessageSchema = z.object({
  */
 router.get('/status', async (req, res) => {
   try {
+    // Get status from the service
     const status = clinicianAssistantService.getStatus();
     
-    // Test connection if configured
+    // Check if we have an API key in environment but service isn't configured yet
+    const envApiKey = process.env.OPENAI_API_KEY;
+    
+    // If API key exists in environment but service isn't configured,
+    // we should auto-configure it now
+    if (envApiKey && !status.isConfigured) {
+      clinicianAssistantService.configureAssistant({
+        apiKey: envApiKey,
+        model: 'gpt-4o',
+        temperature: 0.7
+      });
+      
+      // Get updated status
+      const updatedStatus = clinicianAssistantService.getStatus();
+      
+      // Test connection
+      updatedStatus.connectionValid = await clinicianAssistantService.testConnection();
+      
+      console.log('Auto-configured assistant with environment API key');
+      return res.json(updatedStatus);
+    }
+    
+    // Otherwise, test connection if already configured
     if (status.isConfigured) {
       status.connectionValid = await clinicianAssistantService.testConnection();
     }
     
+    // Return the status
     res.json(status);
   } catch (error: any) {
     console.error('Error getting assistant status:', error);
@@ -117,8 +141,21 @@ router.post('/configure', async (req, res) => {
     
     const { config } = parseResult.data;
     
-    // Configure the assistant
-    clinicianAssistantService.configureAssistant(config);
+    // Get API key from environment if not provided
+    const apiKey = config.apiKey || process.env.OPENAI_API_KEY;
+    
+    if (!apiKey) {
+      return res.status(400).json({
+        success: false,
+        message: 'No API key provided and no API key found in environment variables'
+      });
+    }
+    
+    // Configure the assistant with the API key (either from request or environment)
+    clinicianAssistantService.configureAssistant({
+      ...config,
+      apiKey
+    });
     
     // Test the connection
     const connectionValid = await clinicianAssistantService.testConnection();

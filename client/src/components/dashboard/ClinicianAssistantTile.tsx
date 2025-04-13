@@ -21,7 +21,9 @@ const ClinicianAssistantTile: React.FC<ClinicianAssistantTileProps> = ({
 }) => {
   return (
     <Link href="/clinician-assistant">
-      <Card className={cn("overflow-hidden transition-all hover:shadow-md cursor-pointer group", className)}>
+      <Card className={cn("overflow-hidden w-64 transition-all hover:shadow-md py-6 cursor-pointer group hover:shadow-md cursor-pointer hover:translate-y-[-2px]", className)}
+        style={{ borderTop: `4px solid #10B981`, backgroundColor: "#ffffff" }}
+        >
         <CardContent className="p-6 flex flex-col items-center justify-center h-full">
           <div className="bg-indigo-100 p-3 rounded-full mb-4 group-hover:bg-indigo-200 transition-colors">
             <Bot className="h-8 w-8 text-indigo-600" />
