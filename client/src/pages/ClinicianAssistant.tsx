@@ -150,8 +150,35 @@ const ClinicianAssistant: React.FC = () => {
     settings?: any;
   }
   
+  // Enhanced configuration detection with local storage fallback
+  const [forceConfigured, setForceConfigured] = useState<boolean>(() => {
+    // Check if we previously detected configuration
+    try {
+      return localStorage.getItem('assistant_is_configured') === 'true';
+    } catch (e) {
+      return false;
+    }
+  });
+  
+  // Get conversations array, handling possible undefined cases
   const conversations = ((conversationsData || {}) as ConversationsResponse)?.conversations || [];
-  const isConfigured = ((statusData || {}) as StatusResponse)?.isConfigured || false;
+  
+  // Determine if configured from server response OR our local override
+  const serverConfigured = ((statusData || {}) as StatusResponse)?.isConfigured || false;
+  const isConfigured = serverConfigured || forceConfigured;
+  
+  // Store configuration state in local storage when it changes
+  useEffect(() => {
+    if (serverConfigured || forceConfigured) {
+      try {
+        localStorage.setItem('assistant_is_configured', 'true');
+      } catch (e) {
+        console.error('Failed to store configuration state:', e);
+      }
+    }
+  }, [serverConfigured, forceConfigured]);
+  
+  // Input disabled state
   const inputDisabled = !isConfigured || !selectedConversationId || isWaitingForResponse;
   
   // Create a new conversation with checking for configuration
