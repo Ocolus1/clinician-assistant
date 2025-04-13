@@ -64,7 +64,8 @@ export class SQLQueryGenerator {
         4. Use appropriate WHERE clauses to filter data based on the user's question.
         5. Use table aliases to make the query more readable (e.g., SELECT c.name FROM clients c).
         6. Include ORDER BY when the question implies sorting (like "most", "least", "top", "recent").
-        7. Use LIMIT 100 by default unless the user specifically requests more or fewer results.
+        7. For PostgreSQL, always add a LIMIT clause at the very end of your query (after any ORDER BY).
+           Format it correctly as: "LIMIT 100" (not "LIMIT 100;" or anything else).
         8. For date comparisons, use proper date functions like EXTRACT() or DATE_TRUNC() as needed.
         9. For text searches, use ILIKE for case-insensitive matching when appropriate.
         10. Always check that referenced tables and columns exist in the provided schema.
@@ -145,6 +146,21 @@ export class SQLQueryGenerator {
     // Add a LIMIT if not present to prevent large result sets
     if (!sanitized.toUpperCase().includes('LIMIT')) {
       sanitized = `${sanitized} LIMIT 100`;
+    } else {
+      // Fix potential syntax issues with LIMIT clause (ensure PostgreSQL format)
+      // Check for incorrect LIMIT formats like "LIMIT 10,20" (MySQL style) or "LIMIT 100;"
+      const limitRegex = /\bLIMIT\s+(\d+)(?:\s*,\s*(\d+))?(?:;)?/i;
+      if (limitRegex.test(sanitized)) {
+        // Convert MySQL style LIMIT clause to PostgreSQL format or remove trailing semicolon
+        sanitized = sanitized.replace(limitRegex, (match, p1, p2) => {
+          if (p2) {
+            // Convert MySQL style "LIMIT offset, limit" to PostgreSQL "LIMIT limit OFFSET offset"
+            return `LIMIT ${p2} OFFSET ${p1}`;
+          }
+          // Remove any trailing semicolon after LIMIT
+          return `LIMIT ${p1}`;
+        });
+      }
     }
     
     return sanitized;
@@ -177,6 +193,11 @@ export class SQLQueryGenerator {
     
     // Syntax errors
     if (errorMessage.includes('syntax error')) {
+      // Check for specific PostgreSQL syntax issues with LIMIT
+      if (errorMessage.includes('syntax error at or near "LIMIT"')) {
+        console.log('Detected PostgreSQL LIMIT syntax error, will attempt to fix in future queries');
+        return `SQL syntax error with LIMIT clause. I'll try to correct the format in future queries.`;
+      }
       return `SQL syntax error in the query. Please rephrase your question.`;
     }
     
