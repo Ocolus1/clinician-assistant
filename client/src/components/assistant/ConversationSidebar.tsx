@@ -237,12 +237,34 @@ const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </div>
-                      {conv.messages.length > 0 && (
-                        <div className="mt-1 text-xs text-muted-foreground truncate">
-                          {conv.messages[conv.messages.length - 1]?.content.substring(0, 50)}
-                          {conv.messages[conv.messages.length - 1]?.content.length > 50 ? '...' : ''}
-                        </div>
-                      )}
+                      {/* Safely handle conversation messages preview with multiple fallbacks */}
+                      <div className="mt-1 text-xs text-muted-foreground truncate">
+                        {(() => {
+                          // Enhanced preview with multiple fallbacks
+                          try {
+                            // First check if messages array exists and has items
+                            if (!conv.messages || !Array.isArray(conv.messages) || conv.messages.length === 0) {
+                              return 'No messages yet';
+                            }
+                            
+                            // Get the last message
+                            const lastMessage = conv.messages[conv.messages.length - 1];
+                            
+                            // Check if message has content
+                            if (!lastMessage || typeof lastMessage.content !== 'string') {
+                              return 'Empty message';
+                            }
+                            
+                            // Return truncated content
+                            const preview = lastMessage.content.substring(0, 50);
+                            return `${preview}${lastMessage.content.length > 50 ? '...' : ''}`;
+                          } catch (err) {
+                            // Final fallback if any error occurs
+                            console.error('Error rendering message preview:', err);
+                            return 'Unable to show preview';
+                          }
+                        })()}
+                      </div>
                     </>
                   )}
                 </div>

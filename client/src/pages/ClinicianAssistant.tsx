@@ -50,6 +50,9 @@ const ClinicianAssistant: React.FC = () => {
   } = useQuery({
     queryKey: ['/api/assistant/status'],
     refetchInterval: 5000, // Refetch every 5 seconds to catch auto-configuration
+    refetchOnWindowFocus: true, // Ensure fresh data when window is focused
+    staleTime: 0, // Consider data immediately stale
+    retry: 3, // Retry failed requests 3 times
   });
   
   // Create a new conversation mutation
@@ -62,12 +65,22 @@ const ClinicianAssistant: React.FC = () => {
         },
         body: JSON.stringify({ name }),
       });
+      
       if (!response.ok) {
-        throw new Error('Failed to create conversation');
+        // Try to get detailed error message from response if available
+        try {
+          const errorData = await response.json();
+          throw new Error(errorData.message || 'Failed to create conversation');
+        } catch (jsonError) {
+          // If JSON parsing fails, just use the status text
+          throw new Error(`Failed to create conversation: ${response.statusText}`);
+        }
       }
+      
       return response.json();
     },
     onSuccess: (data) => {
+      console.log('Conversation created successfully:', data);
       setSelectedConversationId(data.id);
       queryClient.invalidateQueries({ queryKey: ['/api/assistant/conversations'] });
       toast({
@@ -76,11 +89,22 @@ const ClinicianAssistant: React.FC = () => {
       });
     },
     onError: (error: any) => {
+      console.error('Error creating conversation:', error);
+      
+      // Check if this might be a configuration issue
+      const errorMessage = error.message || '';
+      const isConfigError = errorMessage.includes('not configured');
+      
       toast({
-        title: 'Error Creating Conversation',
+        title: isConfigError ? 'Configuration Required' : 'Error Creating Conversation',
         description: error.message || 'Failed to create new conversation.',
         variant: 'destructive'
       });
+      
+      // If it's a configuration error, switch to settings tab
+      if (isConfigError) {
+        setActiveTab('settings');
+      }
     }
   });
   
@@ -130,9 +154,42 @@ const ClinicianAssistant: React.FC = () => {
   const isConfigured = ((statusData || {}) as StatusResponse)?.isConfigured || false;
   const inputDisabled = !isConfigured || !selectedConversationId || isWaitingForResponse;
   
-  // Create a new conversation
-  const createNewConversation = () => {
-    // Create a default conversation name with date/time
+  // Create a new conversation with checking for configuration
+  const createNewConversation = async () => {
+    // If UI thinks assistant is not configured but it might be, double-check
+    if (!isConfigured) {
+      console.log('UI shows not configured, double-checking with API before creating conversation');
+      try {
+        const response = await fetch('/api/assistant/status', {
+          headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' }
+        });
+        
+        const data = await response.json();
+        console.log('Direct status check before conversation creation:', data);
+        
+        // If actually configured, update the cache
+        if (data.isConfigured) {
+          console.log('Found assistant is actually configured, updating cache');
+          queryClient.setQueryData(['/api/assistant/status'], data);
+          
+          // Proceed to create conversation after brief delay to let UI update
+          setTimeout(() => {
+            const name = `Conversation ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`;
+            createConversationMutation.mutate(name);
+          }, 100);
+          
+          return;
+        } else {
+          console.log('Confirmed assistant is not configured, showing settings');
+          setActiveTab('settings');
+          return;
+        }
+      } catch (error) {
+        console.error('Error checking configuration before creating conversation:', error);
+      }
+    }
+    
+    // Normal flow - create a default conversation name with date/time
     const name = `Conversation ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`;
     createConversationMutation.mutate(name);
   };
@@ -191,18 +248,74 @@ const ClinicianAssistant: React.FC = () => {
   
   // Effect to check assistant status when component mounts
   useEffect(() => {
-    // Force an immediate check of the assistant status
+    console.log('Initial assistant status:', statusData);
+    console.log('Component mounted, forcing immediate verification of assistant configuration');
+    
+    // Direct fetch with explicit caching disabled
+    const checkStatus = async () => {
+      try {
+        console.log('Making direct fetch to /api/assistant/status');
+        const response = await fetch('/api/assistant/status', {
+          headers: {
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache'
+          }
+        });
+        
+        if (!response.ok) {
+          console.error('Status API returned error:', response.status, response.statusText);
+          return;
+        }
+        
+        const data = await response.json();
+        console.log('Directly fetched status data:', data);
+        
+        // Manually update the query cache with the fresh data
+        queryClient.setQueryData(['/api/assistant/status'], data);
+        
+        if (data.isConfigured) {
+          console.log('Assistant is configured! Updating UI state...');
+          
+          // Force refresh conversations
+          refetchConversations();
+          
+          // If on settings tab and assistant is configured, switch to chat tab
+          if (activeTab === 'settings') {
+            setTimeout(() => setActiveTab('assistant'), 500);
+          }
+        } else {
+          console.log('Assistant is not yet configured according to direct API check');
+        }
+      } catch (error) {
+        console.error('Error directly checking assistant status:', error);
+      }
+    };
+    
+    // Run immediate check
+    checkStatus();
+    
+    // Force a refresh of the React Query cache data too
     refetchStatus();
     
-    // Check the API directly as a fallback
-    fetch('/api/assistant/status')
-      .then(response => response.json())
-      .then(data => {
-        if (data.isConfigured) {
-          queryClient.invalidateQueries({ queryKey: ['/api/assistant/status'] });
-        }
-      })
-      .catch(error => console.error('Error checking status:', error));
+    // Set up more frequent checks initially, then slow down
+    const immediateInterval = setInterval(() => {
+      console.log('Frequent status check (initial period)');
+      checkStatus();
+    }, 2000);
+    
+    // Switch to less frequent checks after 10 seconds
+    setTimeout(() => {
+      clearInterval(immediateInterval);
+      
+      const regularInterval = setInterval(() => {
+        console.log('Regular status check');
+        refetchStatus();
+      }, 5000);
+      
+      return () => clearInterval(regularInterval);
+    }, 10000);
+    
+    return () => clearInterval(immediateInterval);
   }, []);
   
   return (

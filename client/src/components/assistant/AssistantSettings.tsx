@@ -58,11 +58,21 @@ const AssistantSettings: React.FC<AssistantSettingsProps> = ({ onComplete }) => 
       return response.json();
     },
     onSuccess: (data) => {
+      console.log('Configuration success with data:', data);
+      
       // Immediately refetch the status to update the UI
       refetchStatus();
       
       // Also invalidate the query cache to ensure fresh data
       queryClient.invalidateQueries({ queryKey: ['/api/assistant/status'] });
+      
+      // Update any other relevant queries that might depend on configuration
+      queryClient.invalidateQueries({ queryKey: ['/api/assistant/conversations'] });
+      
+      // Force a status refetch with a slight delay to ensure cache is cleared
+      setTimeout(() => {
+        refetchStatus();
+      }, 500);
       
       if (onComplete) onComplete();
       
@@ -117,31 +127,72 @@ const AssistantSettings: React.FC<AssistantSettingsProps> = ({ onComplete }) => 
     }
   });
   
-  // Handle form submission
-  const handleSaveSettings = () => {
-    configMutation.mutate({
-      // No need to include apiKey - it will be handled on the server side from environment variable
-      model,
-      temperature,
-      maxTokens,
-      readOnly
-    });
+  // Handle form submission with improved error handling
+  const handleSaveSettings = async () => {
+    try {
+      console.log('Saving assistant settings with the following configuration:');
+      console.log({ model, temperature, maxTokens, readOnly });
+      
+      // First check current status directly to ensure accurate data
+      const response = await fetch('/api/assistant/status', {
+        headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' }
+      });
+      
+      if (!response.ok) {
+        console.error('Error fetching current status:', response.status, response.statusText);
+        toast({
+          title: 'Status Check Failed',
+          description: 'Could not verify current configuration status. Proceeding with save anyway.',
+          variant: 'destructive',
+        });
+      } else {
+        const statusCheck = await response.json();
+        console.log('Current configuration status before saving:', statusCheck);
+      }
+      
+      // Now save the settings
+      configMutation.mutate({
+        // No need to include apiKey - it will be handled on the server side from environment variable
+        model,
+        temperature,
+        maxTokens,
+        readOnly
+      });
+      
+      // After successful mutation, we'll force refresh the status
+      setTimeout(() => {
+        console.log('Forcing status refresh after configuration update');
+        refetchStatus();
+        queryClient.invalidateQueries({ queryKey: ['/api/assistant/status'] });
+      }, 1000);
+    } catch (error) {
+      console.error('Error during settings save process:', error);
+      toast({
+        title: 'Error Processing Request',
+        description: 'An unexpected error occurred while processing your request.',
+        variant: 'destructive',
+      });
+    }
   };
+  
+  // Define interfaces at the component level
+  interface AssistantSettings {
+    model?: string;
+    temperature?: number;
+    maxTokens?: number;
+    readOnly?: boolean;
+  }
+  
+  interface StatusResponse {
+    isConfigured?: boolean;
+    connectionValid?: boolean;
+    model?: string;
+    settings?: AssistantSettings;
+  }
   
   // Update state when status data loads
   React.useEffect(() => {
-    interface StatusResponse {
-      isConfigured?: boolean;
-      connectionValid?: boolean;
-      settings?: {
-        model?: string;
-        temperature?: number;
-        maxTokens?: number;
-        readOnly?: boolean;
-      };
-    }
-    
-    const data = statusData as StatusResponse;
+    const data = statusData as StatusResponse || {};
     
     if (data?.settings) {
       setModel(data.settings.model || 'gpt-4o');
@@ -203,6 +254,28 @@ const AssistantSettings: React.FC<AssistantSettingsProps> = ({ onComplete }) => 
                       : 'Could not connect to OpenAI API with current settings.')
                   : 'Assistant is not configured yet.'}
               </AlertDescription>
+              <div className="mt-2 text-xs text-muted-foreground">
+                {(() => {
+                  // Create more readable status details
+                  try {
+                    const status = statusData as StatusResponse || {};
+                    const isConfigured = (status as any)?.isConfigured === true;
+                    const connectionValid = (status as any)?.connectionValid === true;
+                    const modelName = (status as any)?.model || ((status as any)?.settings?.model || 'Unknown');
+                    
+                    return (
+                      <div className="space-y-1">
+                        <p><strong>Status:</strong> {isConfigured ? 'Configured' : 'Not Configured'}</p>
+                        <p><strong>Connection:</strong> {connectionValid ? 'Valid' : 'Not Tested/Invalid'}</p>
+                        <p><strong>Model:</strong> {modelName}</p>
+                        <p><strong>Source:</strong> {isConfigured ? 'Environment Variable' : 'Not Set'}</p>
+                      </div>
+                    );
+                  } catch (e) {
+                    return `Status details: ${JSON.stringify(statusData || {})}`;
+                  }
+                })()}
+              </div>
             </Alert>
           )}
         </div>

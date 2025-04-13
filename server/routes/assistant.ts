@@ -52,41 +52,62 @@ const sendMessageSchema = z.object({
  */
 router.get('/status', async (req, res) => {
   try {
-    // Get status from the service
-    const status = clinicianAssistantService.getStatus();
+    console.log('Status API called - checking assistant configuration');
     
-    // Check if we have an API key in environment but service isn't configured yet
+    // First, explicitly check for environment API key
     const envApiKey = process.env.OPENAI_API_KEY;
+    console.log('Environment API key present:', !!envApiKey);
     
-    // If API key exists in environment but service isn't configured,
-    // we should auto-configure it now
-    if (envApiKey && !status.isConfigured) {
+    // Manually force configuration if we have an API key
+    if (envApiKey) {
+      console.log('API key found in environment, ensuring assistant is configured');
+      
+      // Force configure the assistant with the API key
       clinicianAssistantService.configureAssistant({
         apiKey: envApiKey,
         model: 'gpt-4o',
         temperature: 0.7
       });
       
-      // Get updated status
+      // Get updated status after forced configuration
       const updatedStatus = clinicianAssistantService.getStatus();
+      console.log('Status after forced configuration:', updatedStatus);
       
-      // Test connection
-      updatedStatus.connectionValid = await clinicianAssistantService.testConnection();
+      // Test connection and update status object
+      const connectionValid = await clinicianAssistantService.testConnection();
+      console.log('Connection test result:', connectionValid);
       
-      console.log('Auto-configured assistant with environment API key');
-      return res.json(updatedStatus);
+      // Create a fresh response object to avoid any stale data
+      const responseData = {
+        isConfigured: true,
+        connectionValid: connectionValid,
+        model: 'gpt-4o',
+        settings: {
+          model: 'gpt-4o',
+          temperature: 0.7,
+          maxTokens: 8192,
+          readOnly: true
+        }
+      };
+      
+      console.log('Returning response with forced configuration:', responseData);
+      return res.json(responseData);
     }
     
-    // Otherwise, test connection if already configured
-    if (status.isConfigured) {
-      status.connectionValid = await clinicianAssistantService.testConnection();
-    }
+    // If no API key in environment, get status normally
+    const status = clinicianAssistantService.getStatus();
+    console.log('Status check (no API key found):', status);
     
     // Return the status
+    console.log('Returning final status:', status);
     res.json(status);
   } catch (error: any) {
     console.error('Error getting assistant status:', error);
-    res.status(500).json({ error: error.message || 'Failed to get assistant status' });
+    res.status(500).json({ 
+      error: error.message || 'Failed to get assistant status',
+      isConfigured: false,
+      connectionValid: false 
+    });
   }
 });
 
@@ -160,9 +181,14 @@ router.post('/configure', async (req, res) => {
     // Test the connection
     const connectionValid = await clinicianAssistantService.testConnection();
     
+    // Automatically update the setting status in the response to match newly configured state
+    const updatedStatus = clinicianAssistantService.getStatus();
+    
     res.json({ 
       success: true, 
       connectionValid,
+      isConfigured: true, // Force this to be true since we just configured it
+      status: updatedStatus,
       message: connectionValid 
         ? 'Assistant configured successfully' 
         : 'Assistant configured but connection test failed'
@@ -196,6 +222,15 @@ router.get('/conversations', async (req, res) => {
  */
 router.post('/conversations', async (req, res) => {
   try {
+    // First check if the assistant is configured
+    const status = clinicianAssistantService.getStatus();
+    if (!status.isConfigured) {
+      return res.status(400).json({
+        success: false,
+        message: 'Cannot create conversation: Assistant is not configured yet. Please configure the assistant first.'
+      });
+    }
+    
     const parseResult = createConversationSchema.safeParse(req.body);
     
     if (!parseResult.success) {

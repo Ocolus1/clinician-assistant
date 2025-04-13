@@ -80,13 +80,13 @@ export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       refetchInterval: false,
-      refetchOnWindowFocus: false,
-      staleTime: 60000, // 1 minute
-      retry: 1,         // Allow one retry
-      retryDelay: 1000, // Wait 1 second before retrying
+      refetchOnWindowFocus: true,    // Change to true for better reactivity
+      staleTime: 5000,               // Reduced to 5 seconds for assistant-related queries
+      retry: 3,                      // Increased retries for resilience
+      retryDelay: 1000,              // Wait 1 second before retrying
     },
     mutations: {
-      retry: 1,
+      retry: 2,                      // Increased retries for mutations
       retryDelay: 1000,
     },
   },

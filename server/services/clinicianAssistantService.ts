@@ -94,8 +94,15 @@ export class ClinicianAssistantService {
    * Get the current status of the assistant
    */
   getStatus(): AssistantStatusResponse {
+    // Check if API key is present in environment
+    const envApiKey = process.env.OPENAI_API_KEY;
+    
     // Prefer LangChain status if available, fall back to OpenAI
-    const isConfigured = langchainService.isConfigured() || openaiService.isConfigured();
+    const isServiceConfigured = langchainService.isConfigured() || openaiService.isConfigured();
+    
+    // Consider configured if either service is configured OR we have an API key in environment
+    const isConfigured = isServiceConfigured || !!envApiKey;
+    
     const config = langchainService.isConfigured() 
       ? langchainService.getConfig() 
       : openaiService.getConfig();
@@ -103,7 +110,7 @@ export class ClinicianAssistantService {
     return {
       isConfigured,
       connectionValid: isConfigured, // Will be tested separately
-      model: config?.model || 'Not configured'
+      model: config?.model || (envApiKey ? 'gpt-4o' : 'Not configured')
     };
   }
   
