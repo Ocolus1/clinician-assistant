@@ -380,7 +380,7 @@ const ClinicianAssistant: React.FC = () => {
   return (
     <div className="container mx-auto py-6">
       <div className="flex items-center mb-6">
-        <Link href="/dashboard">
+        <Link href="/">
           <Button variant="ghost" className="mr-2">
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Dashboard

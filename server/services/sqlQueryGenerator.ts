@@ -84,7 +84,23 @@ export class SQLQueryGenerator {
       ]);
       
       // Format and sanitize the query
-      return this.sanitizeQuery(generatedQuery);
+      console.log('Generated raw SQL query:', generatedQuery);
+      const sanitizedQuery = this.sanitizeQuery(generatedQuery);
+      console.log('Sanitized SQL query:', sanitizedQuery);
+      
+      // Log the final query for verification of PostgreSQL compatibility
+      if (sanitizedQuery.toLowerCase().includes(' limit ')) {
+        console.log('Query contains LIMIT clause, checking format...');
+        // Test the LIMIT clause format
+        const limitMatch = sanitizedQuery.match(/\bLIMIT\s+(\d+)(?:\s+OFFSET\s+(\d+))?/i);
+        if (limitMatch) {
+          console.log('LIMIT format is correct:', limitMatch[0]);
+        } else {
+          console.warn('Potentially incorrect LIMIT format in query:', sanitizedQuery);
+        }
+      }
+      
+      return sanitizedQuery;
     } catch (error) {
       console.error('Error generating SQL query:', error);
       throw new Error('Failed to generate SQL query');
@@ -95,10 +111,23 @@ export class SQLQueryGenerator {
    * Sanitize and validate a generated SQL query
    */
   private sanitizeQuery(query: string): string {
+    console.log("Original query received:", query);
+    
     // Remove any Markdown formatting that might be present
     let sanitized = query.replace(/```sql/gi, '')
                           .replace(/```/g, '')
                           .trim();
+                          
+    console.log("After markdown removal:", sanitized);
+    
+    // Check for empty or clearly invalid queries
+    if (!sanitized || sanitized.length < 10) {
+      console.error("Empty or extremely short query detected:", sanitized);
+      throw new Error("Query is too short or invalid");
+    }
+    
+    // Remove trailing semicolons which can cause issues
+    sanitized = sanitized.replace(/;+\s*$/, '');
     
     // Reject queries with mutation statements (with enhanced detection)
     const mutationKeywords = [
@@ -114,6 +143,7 @@ export class SQLQueryGenerator {
     for (const regex of mutationRegexes) {
       if (regex.test(sanitized)) {
         const keyword = regex.toString().replace(/\\b|\\/g, '');
+        console.error(`SQL mutation operation detected: ${keyword}`);
         throw new Error(`SQL mutation operation (${keyword}) is not allowed`);
       }
     }
@@ -121,11 +151,13 @@ export class SQLQueryGenerator {
     // Ensure the query is a SELECT statement (improved check)
     const selectPattern = /^\s*SELECT\b/i;
     if (!selectPattern.test(sanitized)) {
+      console.error("Query doesn't start with SELECT:", sanitized);
       throw new Error('Only SELECT queries are allowed');
     }
     
     // Prevent execution of multiple statements with semicolons
     if (sanitized.indexOf(';') !== sanitized.lastIndexOf(';')) {
+      console.error("Multiple statements detected in:", sanitized);
       throw new Error('Multiple SQL statements are not allowed');
     }
     
@@ -139,6 +171,7 @@ export class SQLQueryGenerator {
     
     for (const pattern of dangerousPatterns) {
       if (pattern.test(sanitized)) {
+        console.error("Dangerous SQL pattern detected:", pattern, "in query:", sanitized);
         throw new Error('Potentially dangerous SQL pattern detected');
       }
     }
@@ -214,6 +247,27 @@ export class SQLQueryGenerator {
     // Timeout errors
     if (errorMessage.includes('timeout')) {
       return `The query took too long to execute. Try simplifying your question.`;
+    }
+    
+    // PostgreSQL specific errors
+    if (errorMessage.includes('relation') && errorMessage.includes('already exists')) {
+      return `The table already exists in the database. Please check your query.`;
+    }
+    
+    if (errorMessage.includes('permission denied')) {
+      return `Permission denied for this operation. Please ensure you have the proper permissions.`;
+    }
+    
+    if (errorMessage.includes('constraint')) {
+      return `The query violates a database constraint. Please check the values you're trying to insert or update.`;
+    }
+    
+    if (errorMessage.includes('out of range')) {
+      return `A numeric value in your query is out of the allowed range.`;
+    }
+    
+    if (errorMessage.includes('division by zero')) {
+      return `Error: The query contains a division by zero.`;
     }
     
     // Format other errors in a user-friendly way

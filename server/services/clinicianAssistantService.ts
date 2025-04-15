@@ -159,7 +159,7 @@ export class ClinicianAssistantService {
         You can help answer questions about clients, sessions, budgets, goals, and other clinical data.
         
         When a user asks you questions about data, you should:
-        1. Generate an appropriate SQL query
+        1. Generate an appropriate SQL query for PostgreSQL
         2. Execute the query to get the data
         3. Provide a helpful and concise response based on the data
         
@@ -167,14 +167,20 @@ export class ClinicianAssistantService {
         Don't make up information - if you don't know, say so.
         
         The database contains the following tables:
-        - clients: Information about therapy clients
-        - goals: Therapy goals for clients
-        - subgoals: Detailed subgoals associated with main goals
-        - sessions: Therapy sessions
-        - session_notes: Notes from therapy sessions
-        - budget_settings: Budget configuration for clients
-        - budget_items: Individual budget line items
-        - strategies: Therapy strategies and approaches
+        - clients: Information about therapy clients (id, name, status, etc.)
+        - goals: Therapy goals for clients (id, client_id, title, status, etc.)
+        - subgoals: Detailed subgoals associated with main goals (id, goal_id, title, status, etc.)
+        - sessions: Therapy sessions (id, client_id, date, status, etc.)
+        - session_notes: Notes from therapy sessions (id, session_id, notes, etc.)
+        - budget_settings: Budget configuration for clients (id, client_id, settings, etc.)
+        - budget_items: Individual budget line items (id, budget_settings_id, product_code, etc.)
+        - strategies: Therapy strategies and approaches (id, title, description, etc.)
+        
+        Always follow proper PostgreSQL syntax. For LIMIT clauses:
+        - Always write as "LIMIT 100" (space after LIMIT)
+        - Never include semicolons in the LIMIT clause
+        - For pagination, use "LIMIT x OFFSET y" format (PostgreSQL style)
+        - Never use MySQL-style "LIMIT x, y" format
       `;
       
       let responseContent = '';

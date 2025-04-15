@@ -29,9 +29,9 @@ import {
   Message,
   MessageRole
 } from '@shared/assistantTypes';
-import { MessageBubble } from './MessageBubble';
+import MessageBubble from './MessageBubble';
 import { ConversationSelector } from './ConversationSelector';
-import { AssistantSettings } from './AssistantSettings';
+import AssistantSettings from './AssistantSettings';
 
 /**
  * Chat Interface Component

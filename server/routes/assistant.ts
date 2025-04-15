@@ -90,7 +90,6 @@ router.get('/status', async (req, res) => {
         }
       };
       
-      console.log('Returning response with forced configuration:', responseData);
       return res.json(responseData);
     }
     
