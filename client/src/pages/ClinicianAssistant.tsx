@@ -24,6 +24,17 @@ import MessageBubble from '@/components/assistant/MessageBubble';
 import ConversationSidebar from '@/components/assistant/ConversationSidebar';
 import AssistantSettings from '@/components/assistant/AssistantSettings';
 
+// Add types for the responses
+interface ConversationsResponse {
+  conversations: Conversation[];
+}
+
+interface StatusResponse {
+  isConfigured: boolean;
+  connectionValid: boolean;
+  settings?: any;
+}
+
 const ClinicianAssistant: React.FC = () => {
   const [activeTab, setActiveTab] = useState('assistant');
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
@@ -41,10 +52,10 @@ const ClinicianAssistant: React.FC = () => {
     queryKey: ['/api/assistant/conversations'],
     refetchInterval: isWaitingForResponse ? 2000 : 5000, // Poll regularly and more frequently when waiting for a response
     refetchOnWindowFocus: true, // Ensure fresh data when window is focused
-    staleTime: 0, // Consider data immediately stale
+    staleTime: 120, // Consider data immediately stale
     retry: 3, // Retry failed requests 3 times
   });
-  
+  console.log('Conversations data:', conversationsData)
   // Fetch assistant status
   const { 
     data: statusData, 
@@ -54,9 +65,10 @@ const ClinicianAssistant: React.FC = () => {
     queryKey: ['/api/assistant/status'],
     refetchInterval: 5000, // Refetch every 5 seconds to catch auto-configuration
     refetchOnWindowFocus: true, // Ensure fresh data when window is focused
-    staleTime: 0, // Consider data immediately stale
     retry: 3, // Retry failed requests 3 times
   });
+
+  console.log('Assistant status data:', statusData)
   
   // Create a new conversation mutation
   const createConversationMutation = useMutation({
@@ -170,17 +182,7 @@ const ClinicianAssistant: React.FC = () => {
       });
     }
   });
-  
-  // Add types for the responses
-  interface ConversationsResponse {
-    conversations: Conversation[];
-  }
-  
-  interface StatusResponse {
-    isConfigured: boolean;
-    connectionValid: boolean;
-    settings?: any;
-  }
+
   
   // Enhanced configuration detection with local storage fallback
   const [forceConfigured, setForceConfigured] = useState<boolean>(() => {
@@ -305,77 +307,6 @@ const ClinicianAssistant: React.FC = () => {
     }
   }, [conversations, selectedConversationId]);
   
-  // Effect to check assistant status when component mounts
-  useEffect(() => {
-    console.log('Initial assistant status:', statusData);
-    console.log('Component mounted, forcing immediate verification of assistant configuration');
-    
-    // Direct fetch with explicit caching disabled
-    const checkStatus = async () => {
-      try {
-        console.log('Making direct fetch to /api/assistant/status');
-        const response = await fetch('/api/assistant/status', {
-          headers: {
-            'Cache-Control': 'no-cache',
-            'Pragma': 'no-cache'
-          }
-        });
-        
-        if (!response.ok) {
-          console.error('Status API returned error:', response.status, response.statusText);
-          return;
-        }
-        
-        const data = await response.json();
-        console.log('Directly fetched status data:', data);
-        
-        // Manually update the query cache with the fresh data
-        queryClient.setQueryData(['/api/assistant/status'], data);
-        
-        if (data.isConfigured) {
-          console.log('Assistant is configured! Updating UI state...');
-          
-          // Force refresh conversations
-          refetchConversations();
-          
-          // If on settings tab and assistant is configured, switch to chat tab
-          if (activeTab === 'settings') {
-            setTimeout(() => setActiveTab('assistant'), 500);
-          }
-        } else {
-          console.log('Assistant is not yet configured according to direct API check');
-        }
-      } catch (error) {
-        console.error('Error directly checking assistant status:', error);
-      }
-    };
-    
-    // Run immediate check
-    checkStatus();
-    
-    // Force a refresh of the React Query cache data too
-    refetchStatus();
-    
-    // Set up more frequent checks initially, then slow down
-    const immediateInterval = setInterval(() => {
-      console.log('Frequent status check (initial period)');
-      checkStatus();
-    }, 2000);
-    
-    // Switch to less frequent checks after 10 seconds
-    setTimeout(() => {
-      clearInterval(immediateInterval);
-      
-      const regularInterval = setInterval(() => {
-        console.log('Regular status check');
-        refetchStatus();
-      }, 5000);
-      
-      return () => clearInterval(regularInterval);
-    }, 10000);
-    
-    return () => clearInterval(immediateInterval);
-  }, []);
   
   return (
     <div className="container mx-auto py-6">
