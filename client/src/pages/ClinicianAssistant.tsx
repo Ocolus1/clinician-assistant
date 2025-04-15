@@ -50,6 +50,17 @@ const ClinicianAssistant: React.FC = () => {
     refetch: refetchConversations 
   } = useQuery({
     queryKey: ['/api/assistant/conversations'],
+    queryFn: async () => {
+      console.log("Fetching assistant conversations...");
+      const response = await fetch('/api/assistant/conversations');
+      if (!response.ok) {
+        console.error("Error fetching conversations:", response.status, response.statusText);
+        throw new Error(`Error fetching conversations: ${response.status} ${response.statusText}`);
+      }
+      const data = await response.json();
+      console.log("Conversations data received:", data);
+      return data;
+    },
     refetchInterval: isWaitingForResponse ? 2000 : 5000, // Poll regularly and more frequently when waiting for a response
     refetchOnWindowFocus: true, // Ensure fresh data when window is focused
     staleTime: 120, // Consider data immediately stale
@@ -63,6 +74,17 @@ const ClinicianAssistant: React.FC = () => {
     refetch: refetchStatus
   } = useQuery({
     queryKey: ['/api/assistant/status'],
+    queryFn: async () => {
+      console.log("Fetching assistant status...");
+      const response = await fetch('/api/assistant/status');
+      if (!response.ok) {
+        console.error("Error fetching assistant status:", response.status, response.statusText);
+        throw new Error(`Error fetching assistant status: ${response.status} ${response.statusText}`);
+      }
+      const data = await response.json();
+      console.log("Assistant status data received:", data);
+      return data;
+    },
     refetchInterval: 5000, // Refetch every 5 seconds to catch auto-configuration
     refetchOnWindowFocus: true, // Ensure fresh data when window is focused
     retry: 3, // Retry failed requests 3 times
