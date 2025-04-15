@@ -68,7 +68,7 @@ const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
   // Mutation for updating a conversation name
   const updateMutation = useMutation({
     mutationFn: async ({ id, name }: { id: string, name: string }) => {
-      const response = await fetch(`http://localhost:5000/api/assistant/conversations/${id}`, {
+      const response = await fetch(`/api/assistant/conversations/${id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -102,7 +102,7 @@ const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
   // Mutation for deleting a conversation
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const response = await fetch(`http://localhost:5000/api/assistant/conversations/${id}`, {
+      const response = await fetch(`/api/assistant/conversations/${id}`, {
         method: 'DELETE'
       });
       

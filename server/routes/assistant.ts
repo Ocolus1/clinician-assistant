@@ -207,16 +207,7 @@ router.post('/configure', async (req, res) => {
  */
 router.get('/conversations', async (req, res) => {
   try {
-    console.log('GET /api/assistant/conversations: Fetching conversations');
     const conversations = await conversationService.getConversations();
-    console.log(`GET /api/assistant/conversations: Found ${conversations.length} conversations`);
-    
-    // More detailed logging of the first conversation if available
-    if (conversations.length > 0) {
-      const firstConv = conversations[0];
-      console.log(`First conversation: id=${firstConv.id}, name=${firstConv.name}, messages=${firstConv.messages?.length || 0}`);
-    }
-    
     res.json({ conversations });
   } catch (error: any) {
     console.error('Error getting conversations:', error);
