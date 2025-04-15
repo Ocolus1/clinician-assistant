@@ -144,7 +144,7 @@ const ClinicianAssistant: React.FC = () => {
   const sendMessageMutation = useMutation({
     mutationFn: async ({ conversationId, message }: { conversationId: string, message: string }) => {
       setIsWaitingForResponse(true);
-      const response = await fetch(`/api/assistant/conversations/${conversationId}/messages`, {
+      const response = await fetch(`http://localhost:5000/api/assistant/conversations/${conversationId}/messages`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -194,6 +194,7 @@ const ClinicianAssistant: React.FC = () => {
   
   // Get conversations array, handling possible undefined cases
   const conversations = ((conversationsData || {}) as ConversationsResponse)?.conversations || [];
+  console.log('Conversations from API:', conversations.length, 'conversation(s) loaded');
   
   // Determine if configured from server response OR our local override
   const serverConfigured = ((statusData || {}) as StatusResponse)?.isConfigured || false;
@@ -217,19 +218,16 @@ const ClinicianAssistant: React.FC = () => {
   const createNewConversation = async () => {
     // If UI thinks assistant is not configured but it might be, double-check
     if (!isConfigured) {
-      console.log('UI shows not configured, double-checking with API before creating conversation');
+      console.log('UI shows not configured, refreshing status via React Query');
+      
       try {
-        const response = await fetch('/api/assistant/status', {
-          headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' }
-        });
+        // Use React Query refetch to check status
+        const freshStatus = await refetchStatus();
+        console.log('Status check before conversation creation:', freshStatus.data);
         
-        const data = await response.json();
-        console.log('Direct status check before conversation creation:', data);
-        
-        // If actually configured, update the cache
-        if (data.isConfigured) {
-          console.log('Found assistant is actually configured, updating cache');
-          queryClient.setQueryData(['/api/assistant/status'], data);
+        // If actually configured, proceed
+        if (freshStatus.data && freshStatus.data.isConfigured) {
+          console.log('Found assistant is actually configured, updating UI');
           
           // Proceed to create conversation after brief delay to let UI update
           setTimeout(() => {
@@ -310,29 +308,14 @@ const ClinicianAssistant: React.FC = () => {
     console.log('Initial assistant status:', statusData);
     console.log('Component mounted, forcing immediate verification of assistant configuration');
     
-    // Direct fetch with explicit caching disabled
+    // Use React Query's refetchStatus instead of direct fetch
     const checkStatus = async () => {
       try {
-        console.log('Making direct fetch to /api/assistant/status');
-        const response = await fetch('/api/assistant/status', {
-          headers: {
-            'Cache-Control': 'no-cache',
-            'Pragma': 'no-cache'
-          }
-        });
+        console.log('Refreshing assistant status via React Query');
+        const freshData = await refetchStatus();
+        const statusResponse = freshData.data as StatusResponse;
         
-        if (!response.ok) {
-          console.error('Status API returned error:', response.status, response.statusText);
-          return;
-        }
-        
-        const data = await response.json();
-        console.log('Directly fetched status data:', data);
-        
-        // Manually update the query cache with the fresh data
-        queryClient.setQueryData(['/api/assistant/status'], data);
-        
-        if (data.isConfigured) {
+        if (statusResponse && statusResponse.isConfigured) {
           console.log('Assistant is configured! Updating UI state...');
           
           // Force refresh conversations
@@ -343,10 +326,10 @@ const ClinicianAssistant: React.FC = () => {
             setTimeout(() => setActiveTab('assistant'), 500);
           }
         } else {
-          console.log('Assistant is not yet configured according to direct API check');
+          console.log('Assistant is not yet configured according to API check');
         }
       } catch (error) {
-        console.error('Error directly checking assistant status:', error);
+        console.error('Error checking assistant status:', error);
       }
     };
     
@@ -356,25 +339,13 @@ const ClinicianAssistant: React.FC = () => {
     // Force a refresh of the React Query cache data too
     refetchStatus();
     
-    // Set up more frequent checks initially, then slow down
-    const immediateInterval = setInterval(() => {
-      console.log('Frequent status check (initial period)');
-      checkStatus();
-    }, 2000);
-    
-    // Switch to less frequent checks after 10 seconds
-    setTimeout(() => {
-      clearInterval(immediateInterval);
-      
-      const regularInterval = setInterval(() => {
-        console.log('Regular status check');
-        refetchStatus();
-      }, 5000);
-      
-      return () => clearInterval(regularInterval);
+    // Set up less frequent checks to reduce API load
+    const regularInterval = setInterval(() => {
+      console.log('Regular status check');
+      refetchStatus();
     }, 10000);
     
-    return () => clearInterval(immediateInterval);
+    return () => clearInterval(regularInterval);
   }, []);
   
   return (

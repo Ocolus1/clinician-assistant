@@ -22,10 +22,16 @@ export async function apiRequest<T = any>(
     body: body ? JSON.stringify(body) : undefined,
   };
 
-  console.log(`Making API request: ${method} ${endpoint}`);
+  // The server runs on port 5000, even though logs sometimes show port 3000
+  // Let's dynamically adjust the URL if needed
+  const adjustedEndpoint = endpoint.startsWith('http') 
+    ? endpoint 
+    : `http://localhost:5000${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
+    
+  console.log(`Making API request: ${method} ${adjustedEndpoint}`);
   
   try {
-    const response = await fetch(endpoint, options);
+    const response = await fetch(adjustedEndpoint, options);
 
     console.log(`Response status: ${response.status} ${response.statusText}`);
     
@@ -53,7 +59,7 @@ export async function apiRequest<T = any>(
     }
 
     const data = await response.json();
-    console.log(`API request to ${endpoint} successful, received data:`, data);
+    console.log(`API request to ${adjustedEndpoint} successful, received data:`, data);
     return data;
   } catch (error) {
     console.error(`Error in API request to ${endpoint}:`, error);
