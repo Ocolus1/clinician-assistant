@@ -435,6 +435,26 @@ const ClinicianAssistant: React.FC = () => {
                       if (sidebar) {
                         sidebar.classList.toggle('hidden');
                         sidebar.classList.toggle('fixed');
+                        
+                        // Add a semi-transparent overlay when the sidebar is visible on mobile
+                        let overlay = document.getElementById('mobile-sidebar-overlay');
+                        if (!overlay && !sidebar.classList.contains('hidden')) {
+                          overlay = document.createElement('div');
+                          overlay.id = 'mobile-sidebar-overlay';
+                          overlay.className = 'fixed inset-0 bg-black/30 z-40 lg:hidden';
+                          overlay.onclick = () => {
+                            if (sidebar) {
+                              sidebar.classList.add('hidden');
+                              sidebar.classList.remove('fixed');
+                            }
+                            if (overlay) {
+                              overlay.remove();
+                            }
+                          };
+                          document.body.appendChild(overlay);
+                        } else if (overlay && sidebar && sidebar.classList.contains('hidden')) {
+                          overlay.remove();
+                        }
                       }
                     }}
                   >
@@ -469,6 +489,12 @@ const ClinicianAssistant: React.FC = () => {
                       if (sidebar && window.innerWidth < 1024) {
                         sidebar.classList.add('hidden');
                         sidebar.classList.remove('fixed');
+                        
+                        // Remove overlay if it exists
+                        const overlay = document.getElementById('mobile-sidebar-overlay');
+                        if (overlay) {
+                          overlay.remove();
+                        }
                       }
                     }}
                     onNew={createNewConversation}
