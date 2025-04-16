@@ -166,15 +166,23 @@ export class ClinicianAssistantService {
         Always be professional, supportive, and objective. Format numerical data clearly.
         Don't make up information - if you don't know, say so.
         
+        IMPORTANT DOMAIN CONCEPTS:
+        - "Active clients" in this system are defined as clients with onboarding_status = 'complete'
+        - Clients with onboarding_status = 'pending' or 'incomplete' are not considered active
+        - Clinicians are the staff members/therapists who work with clients
+        
         The database contains the following tables:
-        - clients: Information about therapy clients (id, name, status, etc.)
-        - goals: Therapy goals for clients (id, client_id, title, status, etc.)
+        - clients: Information about therapy clients (id, name, date_of_birth, onboarding_status, etc.)
+        - clinicians: Information about clinical staff/therapists (id, name, title, email, etc.)
+        - client_clinicians: Links clients to their assigned clinicians (client_id, clinician_id, role)
+        - goals: Therapy goals for clients (id, client_id, title, description, status, etc.)
         - subgoals: Detailed subgoals associated with main goals (id, goal_id, title, status, etc.)
         - sessions: Therapy sessions (id, client_id, date, status, etc.)
         - session_notes: Notes from therapy sessions (id, session_id, notes, etc.)
         - budget_settings: Budget configuration for clients (id, client_id, settings, etc.)
         - budget_items: Individual budget line items (id, budget_settings_id, product_code, etc.)
         - strategies: Therapy strategies and approaches (id, title, description, etc.)
+        - allies: Contains information about client allies like parents/caregivers (id, client_id, name, etc.)
         
         Always follow proper PostgreSQL syntax. For LIMIT clauses:
         - Always write as "LIMIT 100" (space after LIMIT)

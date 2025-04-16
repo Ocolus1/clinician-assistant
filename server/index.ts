@@ -77,6 +77,14 @@ app.use((req, res, next) => {
     }).catch(err => {
       console.error("Error importing debug routes:", err);
     });
+    
+    // Import assistant debug routes
+    import('./routes/debugAssistantRoutes.js').then(({ default: debugAssistantRouter }) => {
+      app.use(debugAssistantRouter);
+      console.log("Debug assistant routes registered successfully");
+    }).catch(err => {
+      console.error("Error importing debug assistant routes:", err);
+    });
   } catch (error) {
     console.error("Error registering debug routes:", error);
   }

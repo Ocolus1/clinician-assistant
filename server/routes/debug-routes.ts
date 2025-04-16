@@ -1,11 +1,13 @@
 /**
- * Debug routes for budget flow analysis
- * These endpoints help analyze and debug budget tracking issues
+ * Debug routes for budget flow analysis and assistant debugging
+ * These endpoints help analyze and debug various system components
  */
 
 import { Router } from 'express';
 import { storage } from '../storage';
-import { pool } from '../db'; // Import the pool for direct queries
+import { sql } from '../db'; // Import the sql client for direct queries
+import { sqlQueryGenerator } from '../services/sqlQueryGenerator';
+import { schemaProvider } from '../services/schemaProvider';
 
 // Type definitions to solve type errors
 interface BudgetPlan {
@@ -484,6 +486,65 @@ debugRouter.get(['/api/debug/clients/:clientId/session-notes-with-products', '/a
   } catch (error) {
     console.error(`Error retrieving session notes with products for client ${req.params.clientId}:`, error);
     res.status(500).json({ error: "Failed to retrieve session notes with products" });
+  }
+});
+
+// Debug assistant routes for testing the AI assistant functionality
+
+/**
+ * GET /api/debug/assistant/active-clients
+ * Test the active clients query
+ */
+debugRouter.get('/api/debug/assistant/active-clients', async (req, res) => {
+  try {
+    // Ensure the schema provider is initialized
+    await schemaProvider.initialize();
+    
+    // Define the correct SQL to count active clients as those with onboarding_status = 'complete'
+    const sqlQuery = "SELECT COUNT(*) as active_clients_count FROM clients WHERE onboarding_status = 'complete'";
+    console.log('Executing correct active clients query:', sqlQuery);
+    
+    // Execute the query directly
+    const directResult = await sqlQueryGenerator.executeQuery(sqlQuery);
+    
+    // Get the schema description
+    const schemaDesc = schemaProvider.getSchemaDescription();
+    
+    // Execute the auto-generated query using the assistant's pipeline
+    const llmQueryPrompt = 'How many active clients do we have?';
+    const generatedQuery = await sqlQueryGenerator.generateQuery(llmQueryPrompt);
+    const llmResult = await sqlQueryGenerator.executeQuery(generatedQuery);
+    
+    // Return all results
+    res.json({
+      schemaDescription: schemaDesc,
+      directResult,
+      generatedQuery,
+      llmResult
+    });
+  } catch (error: any) {
+    console.error('Error in debug assistant endpoint:', error);
+    res.status(500).json({ 
+      error: 'Failed to execute debug assistant test',
+      message: error.message || 'Unknown error' 
+    });
+  }
+});
+
+/**
+ * GET /api/debug/assistant/schema
+ * Get the current schema description used by the assistant
+ */
+debugRouter.get('/api/debug/assistant/schema', async (req, res) => {
+  try {
+    // Ensure the schema provider is initialized
+    await schemaProvider.initialize();
+    
+    const schemaDesc = schemaProvider.getSchemaDescription();
+    res.json({ schema: schemaDesc });
+  } catch (error: any) {
+    console.error('Error getting schema description:', error);
+    res.status(500).json({ error: error.message || 'Unknown error' });
   }
 });
 
