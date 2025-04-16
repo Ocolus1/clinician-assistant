@@ -1,0 +1,311 @@
+/**
+ * Drizzle Query Generator Service
+ * 
+ * This service generates Drizzle ORM queries based on user questions using OpenAI.
+ * It provides a type-safe alternative to raw SQL query generation.
+ */
+
+import { openaiService } from './openaiService';
+import { schemaProvider } from './schemaProvider';
+import { db } from '../drizzle';
+import * as schema from '../../shared/schema';
+import { SQL, count, eq, and, or, like, ilike, not, inArray, notInArray, gt, gte, lt, lte, between, isNull, isNotNull, asc, desc } from 'drizzle-orm';
+
+/**
+ * Result of a Drizzle query
+ */
+export interface DrizzleQueryResult {
+  query: string;
+  data: any[];
+  error?: string;
+  originalError?: string;
+  executionTime?: number;
+}
+
+/**
+ * Raw Drizzle query result type used by LangChain
+ */
+export interface RawDrizzleResult {
+  rows: any[];
+  query: string;
+  success: boolean;
+  error?: string;
+  originalError?: string;
+  executionTime?: number;
+}
+
+/**
+ * Drizzle Query Generator class
+ */
+export class DrizzleQueryGenerator {
+  /**
+   * Generate a Drizzle ORM query based on a natural language question
+   */
+  async generateQuery(question: string): Promise<string> {
+    try {
+      // Get database schema description
+      const schemaDescription = schemaProvider.getSchemaDescription();
+      
+      // Define system prompt with enhanced guidance for Drizzle
+      const systemPrompt = `
+        You are a TypeScript expert that generates Drizzle ORM queries based on user questions.
+        You have access to the following database schema:
+        
+        ${schemaDescription}
+        
+        CRITICAL RULES:
+        1. ONLY generate read-only SELECT queries using Drizzle ORM. NEVER generate queries that modify data.
+        2. Return ONLY the TypeScript code for executing the Drizzle query without explanations or code blocks.
+        3. Import statements and boilerplate code are already handled, just focus on the query itself.
+        
+        FORMAT AND STRUCTURE:
+        1. The Drizzle ORM instance is available as \`db\` - always start your query with \`db.select(...)\`
+        2. Schema tables and fields are available from the \`schema\` namespace, e.g., \`schema.clients\`
+        3. The query must be executable TypeScript code that returns a Promise.
+        4. Use Drizzle's query builder API, not raw SQL.
+        
+        QUERY BUILDING GUIDE:
+        - For basic selects: \`db.select().from(schema.tableName)\`
+        - For specific columns: \`db.select({ col1: schema.table.col1, col2: schema.table.col2 })\`
+        - For filtering: \`db.select().from(schema.table).where(eq(schema.table.column, value))\`
+        - For joins: \`db.select().from(schema.table1).innerJoin(schema.table2, eq(schema.table1.id, schema.table2.table1Id))\`
+        - For ordering: \`db.select().from(schema.table).orderBy(asc(schema.table.column))\`
+        - For limiting results: \`db.select().from(schema.table).limit(100)\`
+        
+        AVAILABLE OPERATORS:
+        - Comparison: eq, ne, gt, gte, lt, lte, isNull, isNotNull
+        - Logic: and, or, not
+        - Text search: like, ilike
+        - Lists: inArray, notInArray
+        - Ranges: between
+        - Sorting: asc, desc
+        
+        EXAMPLES:
+        - To find all active clients:
+          \`db.select().from(schema.clients).where(eq(schema.clients.active, true))\`
+        
+        - To count sessions per client:
+          \`db.select({
+            clientId: schema.sessions.clientId,
+            clientName: schema.clients.name,
+            sessionCount: count()
+          })
+          .from(schema.sessions)
+          .innerJoin(schema.clients, eq(schema.sessions.clientId, schema.clients.id))
+          .groupBy(schema.sessions.clientId, schema.clients.name)\`
+        
+        - To find recent sessions with limit:
+          \`db.select().from(schema.sessions).orderBy(desc(schema.sessions.sessionDate)).limit(10)\`
+      `;
+      
+      // Call OpenAI to generate the Drizzle query
+      const generatedQuery = await openaiService.createChatCompletion([
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: question }
+      ]);
+      
+      // Log the generated query for debugging
+      console.log('Generated Drizzle query:', generatedQuery);
+      return this.sanitizeQuery(generatedQuery);
+    } catch (error) {
+      console.error('Error generating Drizzle query:', error);
+      throw new Error('Failed to generate Drizzle query');
+    }
+  }
+  
+  /**
+   * Sanitize and validate a generated Drizzle query
+   */
+  private sanitizeQuery(query: string): string {
+    // Remove any Markdown formatting that might be present
+    let sanitized = query.replace(/```typescript/gi, '')
+                       .replace(/```ts/gi, '')
+                       .replace(/```js/gi, '')
+                       .replace(/```/g, '')
+                       .trim();
+    
+    // Ensure the query starts with db.select or similar valid pattern
+    if (!sanitized.includes('db.select') && 
+        !sanitized.includes('db.query') && 
+        !sanitized.includes('await db')) {
+      throw new Error('Invalid Drizzle query format: Must use db.select() or similar pattern');
+    }
+    
+    // Check for attempts to modify data
+    const modificationPatterns = [
+      /\.insert\(/i,
+      /\.update\(/i,
+      /\.delete\(/i,
+      /\.insertInto\(/i,
+      /\.updateTable\(/i,
+      /\.deleteFrom\(/i
+    ];
+    
+    for (const pattern of modificationPatterns) {
+      if (pattern.test(sanitized)) {
+        throw new Error('Data modification operations are not allowed');
+      }
+    }
+    
+    // Add a limit if not present to prevent large result sets
+    if (!sanitized.includes('.limit(')) {
+      // Only add limit to the end-level query, not to subqueries
+      // This is a simple heuristic; a more sophisticated approach would parse the query
+      const lastClosingParenIndex = sanitized.lastIndexOf(')');
+      
+      if (lastClosingParenIndex !== -1) {
+        sanitized = sanitized.substring(0, lastClosingParenIndex) + '.limit(100)' + sanitized.substring(lastClosingParenIndex);
+      } else {
+        sanitized += '.limit(100)';
+      }
+    }
+    
+    return sanitized;
+  }
+  
+  /**
+   * Execute a Drizzle query with safeguards
+   */
+  async executeQuery(drizzleQuery: string): Promise<DrizzleQueryResult> {
+    let sanitizedQuery = drizzleQuery;
+    try {
+      // Sanitize the query one more time
+      sanitizedQuery = this.sanitizeQuery(drizzleQuery);
+      
+      // Add timing for debugging/monitoring
+      const startTime = Date.now();
+      
+      // Execute the query with a timeout safety
+      let result: any[] = [];
+      
+      // Prepare the function that will execute the query
+      const executeQueryFn = new Function('db', 'schema', 'eq', 'and', 'or', 'like', 'ilike', 
+        'not', 'inArray', 'notInArray', 'gt', 'gte', 'lt', 'lte', 'between', 
+        'isNull', 'isNotNull', 'asc', 'desc', 'count', 'SQL', 
+        `return (async () => { return ${sanitizedQuery}; })();`);
+      
+      // Execute the query with a timeout
+      const queryPromise = executeQueryFn(
+        db, schema, eq, and, or, like, ilike, not, inArray, notInArray, 
+        gt, gte, lt, lte, between, isNull, isNotNull, asc, desc, count, SQL
+      );
+      
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Query timeout - exceeded 10 seconds')), 10000);
+      });
+      
+      // Race between query and timeout
+      result = await Promise.race([queryPromise, timeoutPromise]) as any[];
+      const executionTime = Date.now() - startTime;
+      
+      // Log execution time for monitoring
+      console.log(`Drizzle query executed in ${executionTime}ms`);
+      
+      return {
+        query: sanitizedQuery,
+        data: result,
+        executionTime
+      };
+    } catch (error: any) {
+      console.error('Error executing Drizzle query:', error);
+      
+      return {
+        query: sanitizedQuery,
+        data: [],
+        error: this.formatErrorMessage(error),
+        originalError: error.message
+      };
+    }
+  }
+  
+  /**
+   * User-friendly error message for Drizzle errors
+   */
+  private formatErrorMessage(error: any): string {
+    if (typeof error === 'string') {
+      return error;
+    }
+    
+    let errorMessage = error.message || 'Failed to execute Drizzle query';
+    
+    // Check for common error types
+    if (errorMessage.includes('Error parsing query')) {
+      return 'There was an error in the database query format. Please rephrase your question.';
+    }
+    
+    if (errorMessage.includes('Column') && errorMessage.includes('not found')) {
+      return 'One of the database columns referenced does not exist. Please check your question.';
+    }
+    
+    if (errorMessage.includes('Table') && errorMessage.includes('not found')) {
+      return 'One of the database tables referenced does not exist. Please check your question.';
+    }
+    
+    if (errorMessage.includes('type error')) {
+      return 'There was a data type mismatch in the query. Please be more specific about data values.';
+    }
+    
+    if (errorMessage.includes('timeout')) {
+      return 'The query took too long to execute. Try simplifying your question.';
+    }
+    
+    return `Error executing query: ${errorMessage}`;
+  }
+  
+  /**
+   * Execute a raw Drizzle query for LangChain integration
+   */
+  async executeRawQuery(drizzleQuery: string): Promise<RawDrizzleResult> {
+    let sanitizedQuery = drizzleQuery;
+    try {
+      // Sanitize the query for safety
+      sanitizedQuery = this.sanitizeQuery(drizzleQuery);
+      
+      // Add timing for debugging/monitoring
+      const startTime = Date.now();
+      
+      // Prepare the function that will execute the query
+      const executeQueryFn = new Function('db', 'schema', 'eq', 'and', 'or', 'like', 'ilike', 
+        'not', 'inArray', 'notInArray', 'gt', 'gte', 'lt', 'lte', 'between', 
+        'isNull', 'isNotNull', 'asc', 'desc', 'count', 'SQL', 
+        `return (async () => { return ${sanitizedQuery}; })();`);
+      
+      // Execute the query with a timeout
+      const queryPromise = executeQueryFn(
+        db, schema, eq, and, or, like, ilike, not, inArray, notInArray, 
+        gt, gte, lt, lte, between, isNull, isNotNull, asc, desc, count, SQL
+      );
+      
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Query timeout - exceeded 10 seconds')), 10000);
+      });
+      
+      // Race between query and timeout
+      const result = await Promise.race([queryPromise, timeoutPromise]) as any[];
+      const executionTime = Date.now() - startTime;
+      
+      // Log execution time for monitoring
+      console.log(`Raw Drizzle query executed in ${executionTime}ms`);
+      
+      return {
+        query: sanitizedQuery,
+        rows: result,
+        success: true,
+        executionTime
+      };
+    } catch (error: any) {
+      console.error('Error executing raw Drizzle query:', error);
+      
+      return {
+        query: sanitizedQuery,
+        rows: [],
+        success: false,
+        error: this.formatErrorMessage(error),
+        originalError: error.message
+      };
+    }
+  }
+}
+
+// Create a singleton instance
+export const drizzleQueryGenerator = new DrizzleQueryGenerator();
