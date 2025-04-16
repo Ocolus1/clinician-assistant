@@ -21,17 +21,28 @@ interface QueryResultVisualizerProps {
 }
 
 const QueryResultVisualizer: React.FC<QueryResultVisualizerProps> = ({ data }) => {
-  // Determine possible visualization types based on the data
-  const possibleVisualizations = resultAnalysisService.analyzeVisualization(data);
-  const defaultVisualization = resultAnalysisService.getDefaultVisualization(data);
+  // Safely validate and ensure data has the expected structure
+  const validData: QueryResult = React.useMemo(() => {
+    try {
+      if (!data) return { columns: [], rows: [] };
+      if (!data.columns || !Array.isArray(data.columns)) return { columns: [], rows: Array.isArray(data.rows) ? data.rows : [] };
+      if (!data.rows || !Array.isArray(data.rows)) return { columns: data.columns, rows: [] };
+      return data;
+    } catch (e) {
+      console.error('Error validating query result data:', e);
+      return { columns: [], rows: [] };
+    }
+  }, [data]);
+  
+  // Determine possible visualization types based on the validated data
+  const possibleVisualizations = resultAnalysisService.analyzeVisualization(validData);
+  const defaultVisualization = resultAnalysisService.getDefaultVisualization(validData);
   
   // State for the currently active visualization
   const [activeVisualization, setActiveVisualization] = useState<VisualizationType>(defaultVisualization);
   
   // Update active visualization if the data changes
   useEffect(() => {
-    // If the current visualization is no longer possible with the new data,
-    // or if the data has changed substantially, update to the default
     if (!possibleVisualizations.includes(activeVisualization)) {
       setActiveVisualization(defaultVisualization);
     }
@@ -53,6 +64,26 @@ const QueryResultVisualizer: React.FC<QueryResultVisualizerProps> = ({ data }) =
     'line': 'Line',
     'pie': 'Pie',
     'none': 'None'
+  };
+  
+  // Function to handle CSV download
+  const handleCsvDownload = () => {
+    try {
+      const headers = validData.columns.join(',');
+      const rows = validData.rows.map(row => 
+        validData.columns.map(col => `"${String(row[col] ?? '').replace(/"/g, '""')}"`).join(',')
+      );
+      const csv = [headers, ...rows].join('\n');
+      
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.setAttribute('href', url);
+      a.setAttribute('download', `query_result_${new Date().toISOString().slice(0, 10)}.csv`);
+      a.click();
+    } catch (error) {
+      console.error('Error generating CSV download:', error);
+    }
   };
   
   return (
@@ -82,33 +113,18 @@ const QueryResultVisualizer: React.FC<QueryResultVisualizerProps> = ({ data }) =
       
       {/* Visualization Display */}
       <div className="w-full">
-        {activeVisualization === 'table' && <DataTable data={data} />}
-        {activeVisualization === 'bar' && <BarChartVisualizer data={data} />}
-        {activeVisualization === 'line' && <LineChartVisualizer data={data} />}
-        {activeVisualization === 'pie' && <PieChartVisualizer data={data} />}
+        {activeVisualization === 'table' && <DataTable data={validData} />}
+        {activeVisualization === 'bar' && <BarChartVisualizer data={validData} />}
+        {activeVisualization === 'line' && <LineChartVisualizer data={validData} />}
+        {activeVisualization === 'pie' && <PieChartVisualizer data={validData} />}
         
         {/* Download Options */}
-        {data.rows.length > 0 && (
+        {validData.rows.length > 0 && (
           <div className="flex justify-end mt-2">
             <Button
               variant="outline"
               size="sm"
-              onClick={() => {
-                // Create CSV from data
-                const headers = data.columns.join(',');
-                const rows = data.rows.map(row => 
-                  data.columns.map(col => `"${String(row[col] ?? '').replace(/"/g, '""')}"`).join(',')
-                );
-                const csv = [headers, ...rows].join('\n');
-                
-                // Create and trigger download
-                const blob = new Blob([csv], { type: 'text/csv' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.setAttribute('href', url);
-                a.setAttribute('download', `query_result_${new Date().toISOString().slice(0, 10)}.csv`);
-                a.click();
-              }}
+              onClick={handleCsvDownload}
               className="text-xs"
             >
               Download CSV

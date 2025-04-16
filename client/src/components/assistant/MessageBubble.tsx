@@ -81,8 +81,8 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isLoading = fals
             <>
               {formatContent(message.content)}
               
-              {/* Display query result visualization if present */}
-              {message.queryResult && message.queryResult.rows.length > 0 && (
+              {/* Display query result visualization if present with error handling */}
+              {message.queryResult && message.queryResult.rows && Array.isArray(message.queryResult.rows) && message.queryResult.rows.length > 0 && (
                 <div className="mt-4 border-t pt-4">
                   <div className="flex items-center mb-2 text-sm font-medium text-muted-foreground">
                     <Database className="h-4 w-4 mr-1" />

@@ -247,8 +247,20 @@ export class ConversationService {
       const now = new Date();
       const isoNow = now.toISOString();
       
-      // Convert query result to JSON string if present
-      const queryResultJSON = queryResult ? JSON.stringify(queryResult) : null;
+      // Convert query result to JSON string if present - with proper error handling
+      let queryResultJSON = null;
+      if (queryResult) {
+        try {
+          queryResultJSON = JSON.stringify(queryResult);
+        } catch (e) {
+          console.error('Error converting queryResult to JSON:', e);
+          // Create a safe simplified version to store
+          queryResultJSON = JSON.stringify({
+            columns: [],
+            rows: []
+          });
+        }
+      }
       
       try {
         console.log(`Adding message to conversation ${conversationId} with role ${role}`);
@@ -305,10 +317,20 @@ export class ConversationService {
         // Parse query_result JSON if present
         if (msg.query_result) {
           try {
-            console.log(`Parsing query result JSON for message ${msg.id}:`, msg.query_result)
-            queryResult = JSON.parse(msg.query_result);
+            // Remove debug logging that might cause issues
+            const queryResultStr = typeof msg.query_result === 'string' 
+              ? msg.query_result 
+              : JSON.stringify(msg.query_result);
+            
+            // Make sure we're parsing a string
+            queryResult = JSON.parse(queryResultStr);
           } catch (e) {
-            console.error('Error parsing query result JSON:', e);
+            console.error('Error parsing query result JSON for message ID:', msg.id, e);
+            // Set a safe default to prevent rendering errors
+            queryResult = {
+              columns: [],
+              rows: []
+            };
           }
         }
         
