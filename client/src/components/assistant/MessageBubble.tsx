@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Message } from '@shared/assistantTypes';
 import { Card } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { User, Bot, Database } from 'lucide-react';
+import { User, Bot, Database, ChevronDown, ChevronUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
 import QueryResultVisualizer from './visualizations/QueryResultVisualizer';
 
 interface MessageBubbleProps {
@@ -13,6 +14,7 @@ interface MessageBubbleProps {
 
 const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isLoading = false }) => {
   const isUser = message.role === 'user';
+  const [showQueryResults, setShowQueryResults] = useState(false);
   
   // Function to format message content with proper code blocks
   const formatContent = (content: string) => {
@@ -84,11 +86,31 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isLoading = fals
               {/* Display query result visualization if present with error handling */}
               {message.queryResult && message.queryResult.rows && Array.isArray(message.queryResult.rows) && message.queryResult.rows.length > 0 && (
                 <div className="mt-4 border-t pt-4">
-                  <div className="flex items-center mb-2 text-sm font-medium text-muted-foreground">
-                    <Database className="h-4 w-4 mr-1" />
-                    <span>Query Results</span>
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center text-sm font-medium text-muted-foreground">
+                      <Database className="h-4 w-4 mr-1" />
+                      <span>Query Results</span>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setShowQueryResults(!showQueryResults)}
+                      className="h-7 px-2 text-xs flex items-center"
+                    >
+                      {showQueryResults ? (
+                        <>
+                          <ChevronUp className="h-3.5 w-3.5 mr-1" />
+                          <span>Hide</span>
+                        </>
+                      ) : (
+                        <>
+                          <ChevronDown className="h-3.5 w-3.5 mr-1" />
+                          <span>Show</span>
+                        </>
+                      )}
+                    </Button>
                   </div>
-                  <QueryResultVisualizer data={message.queryResult} />
+                  {showQueryResults && <QueryResultVisualizer data={message.queryResult} />}
                 </div>
               )}
             </>
