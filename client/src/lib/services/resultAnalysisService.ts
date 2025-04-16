@@ -20,6 +20,21 @@ class ResultAnalysisService {
       return visualizations;
     }
     
+    // Special handling for budget data - check for specific column names
+    const isBudgetData = this.detectBudgetData(data);
+    if (isBudgetData) {
+      console.log('Budget data detected!');
+      // Always show bar charts for budget comparisons
+      visualizations.push('bar');
+      
+      // Add pie chart if there are only a few categories (good for proportion visualization)
+      if (data.rows.length <= 10) {
+        visualizations.push('pie');
+      }
+      
+      return visualizations;
+    }
+    
     // Analyze the data structure to determine suitable visualizations
     const { 
       hasDateColumn, 
@@ -48,6 +63,35 @@ class ResultAnalysisService {
     }
     
     return visualizations;
+  }
+  
+  /**
+   * Detect if the data appears to be budget-related
+   */
+  private detectBudgetData(data: QueryResult): boolean {
+    // Check query text for budget-related keywords
+    if (data.metadata?.queryText) {
+      const query = data.metadata.queryText.toLowerCase();
+      if (query.includes('budget') || 
+          query.includes('utilization') || 
+          query.includes('spent') || 
+          query.includes('allocated')) {
+        return true;
+      }
+    }
+    
+    // Check column names for budget-related terms
+    const budgetColumns = ['budget', 'spent', 'utilized', 'allocated', 'utilization', 'percentage'];
+    for (const column of data.columns) {
+      const colLower = column.toLowerCase();
+      for (const term of budgetColumns) {
+        if (colLower.includes(term)) {
+          return true;
+        }
+      }
+    }
+    
+    return false;
   }
   
   /**
@@ -109,6 +153,18 @@ class ResultAnalysisService {
       if (queryText.includes('date') || queryText.includes('month') || queryText.includes('year')) {
         return 'line';
       }
+      return 'bar';
+    }
+    
+    // Detect budget utilization queries
+    if ((queryText.includes('budget') || queryText.includes('utilization') || queryText.includes('utilized')) && 
+        (queryText.includes('percentage') || queryText.includes('sum'))) {
+      
+      // For budget data with just a few categories, use pie chart
+      if (data.rows.length <= 5) {
+        return 'pie';
+      }
+      // Otherwise bar chart is better for comparison
       return 'bar';
     }
     

@@ -14,11 +14,50 @@ interface MessageBubbleProps {
 
 const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isLoading = false }) => {
   const isUser = message.role === 'user';
+  
+  // Check if this might be budget data to decide whether to show by default
+  const mightBeBudgetData = React.useMemo(() => {
+    if (!message.queryResult) return false;
+    
+    // Check query text if available
+    if (message.queryResult.metadata?.queryText) {
+      const queryText = message.queryResult.metadata.queryText.toLowerCase();
+      if (queryText.includes('budget') || 
+          queryText.includes('spent') || 
+          queryText.includes('utilization')) {
+        return true;
+      }
+    }
+    
+    // Also check column names for budget-related terms
+    if (message.queryResult.columns && Array.isArray(message.queryResult.columns)) {
+      return message.queryResult.columns.some(col => {
+        const colName = col.toLowerCase();
+        return colName.includes('budget') || 
+               colName.includes('spent') || 
+               colName.includes('allocated') ||
+               colName.includes('utilized') ||
+               colName.includes('utilization');
+      });
+    }
+    
+    return false;
+  }, [message.queryResult]);
+  
+  // Log for debugging
+  React.useEffect(() => {
+    if (message.queryResult && mightBeBudgetData) {
+      console.log('Budget data visualization detected (not auto-showing)');
+      // Don't auto-show as per user preference
+    }
+  }, [message.queryResult, mightBeBudgetData]);
+  
+  // Query results are always hidden by default (per user preference)
   const [showQueryResults, setShowQueryResults] = useState(false);
   
-  // Function to format message content with proper code blocks
+  // Function to format message content with proper code blocks and markdown
   const formatContent = (content: string) => {
-    // Split on SQL code blocks for special formatting
+    // First split on SQL code blocks for special formatting
     const parts = content.split(/(```sql[\s\S]*?```|```[\s\S]*?```)/g);
     
     return parts.map((part, index) => {
@@ -41,8 +80,27 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isLoading = fals
         );
       }
       
-      // Handle regular text with basic Markdown-like formatting
-      return <div key={index} className="whitespace-pre-wrap">{part}</div>;
+      // Process markdown-style formatting in the text parts
+      let processedText = part;
+      
+      // Handle bold (**text**) formatting
+      processedText = processedText.replace(/\*\*(.*?)\*\*/g, (match, text) => {
+        return `<strong>${text}</strong>`;
+      });
+      
+      // Handle italic (*text*) formatting
+      processedText = processedText.replace(/\*(.*?)\*/g, (match, text) => {
+        return `<em>${text}</em>`;
+      });
+      
+      // Return the processed text with HTML dangerously set
+      return (
+        <div 
+          key={index} 
+          className="whitespace-pre-wrap" 
+          dangerouslySetInnerHTML={{ __html: processedText }}
+        />
+      );
     });
   };
   
@@ -90,6 +148,9 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isLoading = fals
                     <div className="flex items-center text-sm font-medium text-muted-foreground">
                       <Database className="h-4 w-4 mr-1" />
                       <span>Query Results</span>
+                      <span className="ml-2 text-xs text-muted-foreground">
+                        ({message.queryResult.rows.length} rows)
+                      </span>
                     </div>
                     <Button
                       variant="ghost"

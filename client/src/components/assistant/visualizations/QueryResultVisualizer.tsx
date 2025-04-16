@@ -24,9 +24,30 @@ const QueryResultVisualizer: React.FC<QueryResultVisualizerProps> = ({ data }) =
   // Safely validate and ensure data has the expected structure
   const validData: QueryResult = React.useMemo(() => {
     try {
-      if (!data) return { columns: [], rows: [] };
-      if (!data.columns || !Array.isArray(data.columns)) return { columns: [], rows: Array.isArray(data.rows) ? data.rows : [] };
-      if (!data.rows || !Array.isArray(data.rows)) return { columns: data.columns, rows: [] };
+      console.log('Raw query result data:', JSON.stringify(data));
+      
+      if (!data) {
+        console.log('Query result data is null or undefined');
+        return { columns: [], rows: [] };
+      }
+      
+      if (!data.columns || !Array.isArray(data.columns)) {
+        console.log('Query result columns is invalid:', data.columns);
+        return { columns: [], rows: Array.isArray(data.rows) ? data.rows : [] };
+      }
+      
+      if (!data.rows || !Array.isArray(data.rows)) {
+        console.log('Query result rows is invalid:', data.rows);
+        return { columns: data.columns, rows: [] };
+      }
+      
+      // Log structure for debugging
+      console.log('Valid data structure:', {
+        columns: data.columns,
+        rowCount: data.rows.length,
+        metadata: data.metadata
+      });
+      
       return data;
     } catch (e) {
       console.error('Error validating query result data:', e);
@@ -37,6 +58,30 @@ const QueryResultVisualizer: React.FC<QueryResultVisualizerProps> = ({ data }) =
   // Determine possible visualization types based on the validated data
   const possibleVisualizations = resultAnalysisService.analyzeVisualization(validData);
   const defaultVisualization = resultAnalysisService.getDefaultVisualization(validData);
+  
+  // Log visualization detection for debugging
+  console.log('Possible visualizations detected:', possibleVisualizations);
+  console.log('Default visualization selected:', defaultVisualization);
+  
+  // Debug the structure of the data for visualizations
+  const isBudgetData = validData.columns.some(col => 
+    col.toLowerCase().includes('budget') || 
+    col.toLowerCase().includes('spent') || 
+    col.toLowerCase().includes('utilization')
+  );
+  
+  console.log('Dataset for visualization:', {
+    isBudgetData,
+    sampleRow: validData.rows[0] || {},
+    validColumns: validData.columns
+  });
+  
+  // Additional debugging for pie chart data
+  if (possibleVisualizations.includes('pie')) {
+    console.log('This data is suitable for pie chart');
+  } else {
+    console.log('This data is NOT suitable for pie chart');
+  }
   
   // State for the currently active visualization
   const [activeVisualization, setActiveVisualization] = useState<VisualizationType>(defaultVisualization);

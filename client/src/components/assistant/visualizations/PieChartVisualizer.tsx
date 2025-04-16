@@ -19,8 +19,17 @@ const PieChartVisualizer: React.FC<PieChartVisualizerProps> = ({ data }) => {
   
   // Prepare data for the pie chart
   const chartData = useMemo(() => {
+    // Debug the input data
+    console.log('PieChartVisualizer input data:', {
+      columnCount: data.columns.length,
+      rowCount: data.rows.length,
+      columns: data.columns,
+      firstRow: data.rows[0] || {}
+    });
+    
     // Check if we have appropriate data
     if (data.columns.length < 2 || data.rows.length === 0) {
+      console.log('Not enough data for pie chart');
       return [];
     }
     
@@ -28,31 +37,76 @@ const PieChartVisualizer: React.FC<PieChartVisualizerProps> = ({ data }) => {
     let labelColumn = data.columns[0];
     let valueColumn = data.columns[1];
     
-    // Try to identify the best columns for the chart
-    // Value column should be numeric
-    for (let i = 0; i < data.columns.length; i++) {
-      const col = data.columns[i];
-      const sampleSize = Math.min(5, data.rows.length);
-      let numericCount = 0;
+    // Special handling for budget utilization data
+    // Look for known patterns in column names
+    const budgetColumns = {
+      category: data.columns.find(col => 
+        col.toLowerCase().includes('category') || 
+        col.toLowerCase() === 'name' || 
+        col.toLowerCase().includes('type')
+      ),
+      utilization: data.columns.find(col => 
+        col.toLowerCase().includes('percentage') || 
+        col.toLowerCase().includes('utilization') || 
+        col.toLowerCase().includes('percent')
+      ),
+      total: data.columns.find(col => 
+        (col.toLowerCase().includes('total') && 
+        (col.toLowerCase().includes('budgeted') || col.toLowerCase().includes('allocated'))) ||
+        col.toLowerCase().includes('total_budgeted')
+      ),
+      used: data.columns.find(col => 
+        col.toLowerCase().includes('utilized') || 
+        col.toLowerCase().includes('used') || 
+        col.toLowerCase().includes('consumed') ||
+        col.toLowerCase().includes('spent') ||
+        col.toLowerCase().includes('total_spent')
+      )
+    };
+    
+    console.log('Pie chart detected budget columns:', budgetColumns);
+    
+    // If we detected budget data pattern, use it
+    if (budgetColumns.category && (budgetColumns.utilization || (budgetColumns.total && budgetColumns.used))) {
+      labelColumn = budgetColumns.category;
       
-      for (let j = 0; j < sampleSize; j++) {
-        const val = data.rows[j][col];
-        if (typeof val === 'number' || (typeof val === 'string' && !isNaN(Number(val)))) {
-          numericCount++;
-        }
+      // Prefer percentage/utilization column if available
+      if (budgetColumns.utilization) {
+        valueColumn = budgetColumns.utilization;
+      } 
+      // Otherwise use the total utilized amount
+      else if (budgetColumns.used) {
+        valueColumn = budgetColumns.used;
       }
-      
-      // If this is mostly numeric, use it as value column
-      if (numericCount / sampleSize > 0.5) {
-        valueColumn = col;
-        // Use the first non-value column as label
-        for (const column of data.columns) {
-          if (column !== valueColumn) {
-            labelColumn = column;
-            break;
+    } 
+    // Otherwise use standard detection logic
+    else {
+      // Try to identify the best columns for the chart
+      // Value column should be numeric
+      for (let i = 0; i < data.columns.length; i++) {
+        const col = data.columns[i];
+        const sampleSize = Math.min(5, data.rows.length);
+        let numericCount = 0;
+        
+        for (let j = 0; j < sampleSize; j++) {
+          const val = data.rows[j][col];
+          if (typeof val === 'number' || (typeof val === 'string' && !isNaN(Number(val)))) {
+            numericCount++;
           }
         }
-        break;
+        
+        // If this is mostly numeric, use it as value column
+        if (numericCount / sampleSize > 0.5) {
+          valueColumn = col;
+          // Use the first non-value column as label
+          for (const column of data.columns) {
+            if (column !== valueColumn) {
+              labelColumn = column;
+              break;
+            }
+          }
+          break;
+        }
       }
     }
     

@@ -19,48 +19,144 @@ const BarChartVisualizer: React.FC<BarChartVisualizerProps> = ({ data }) => {
   
   // Prepare data for the bar chart
   const chartData = useMemo(() => {
+    // Debug the input data
+    console.log('BarChartVisualizer input data:', {
+      columnCount: data.columns.length,
+      rowCount: data.rows.length,
+      columns: data.columns,
+      firstRow: data.rows[0] || {}
+    });
+    
     // Try to determine which columns should be categories (x-axis) and which should be values (y-axis)
-    if (data.columns.length < 2) return [];
+    if (data.columns.length < 2) {
+      console.log('Not enough columns for a bar chart');
+      return [];
+    }
     
     // Simple heuristic: 
     // - First column with text/strings is likely the category
     // - Columns with numbers are likely values
     const rows = data.rows;
-    if (rows.length === 0) return [];
+    if (rows.length === 0) {
+      console.log('No rows available for bar chart');
+      return [];
+    }
     
     let categoryColumn = data.columns[0]; // Default to first column
     const valueColumns: string[] = [];
     
-    // Find appropriate category and value columns
-    for (const column of data.columns) {
-      // Sample the first few values to determine column type
-      const sampleSize = Math.min(5, rows.length);
-      let numberCount = 0;
-      
-      for (let i = 0; i < sampleSize; i++) {
-        const value = rows[i][column];
-        if (typeof value === 'number' || !isNaN(Number(value))) {
-          numberCount++;
-        }
-      }
-      
-      // If most values are numbers, it's likely a value column
-      if (numberCount / sampleSize > 0.7) {
-        valueColumns.push(column);
-      } 
-      // First non-numeric column becomes the category
-      else if (valueColumns.length === 0) {
-        categoryColumn = column;
-      }
-    }
+    // Special handling for budget utilization data
+    // Look for known patterns in column names
+    const budgetColumns = {
+      category: data.columns.find(col => 
+        col.toLowerCase().includes('category') || 
+        col.toLowerCase() === 'name' || 
+        col.toLowerCase().includes('type')
+      ),
+      utilization: data.columns.find(col => 
+        col.toLowerCase().includes('percentage') || 
+        col.toLowerCase().includes('utilization') || 
+        col.toLowerCase().includes('percent')
+      ),
+      total: data.columns.find(col => 
+        col.toLowerCase().includes('total') && 
+        (col.toLowerCase().includes('budgeted') || col.toLowerCase().includes('allocated'))
+      ),
+      used: data.columns.find(col => 
+        col.toLowerCase().includes('utilized') || 
+        col.toLowerCase().includes('used') || 
+        col.toLowerCase().includes('spent')
+      )
+    };
     
-    // If no appropriate value columns found, use all columns except the category
-    if (valueColumns.length === 0) {
-      data.columns.forEach(column => {
-        if (column !== categoryColumn) {
-          valueColumns.push(column);
-        }
+    // Log detected budget columns
+    console.log('Detected budget columns:', budgetColumns);
+    
+    // If we detected budget data pattern, use it
+    if (budgetColumns.category && (budgetColumns.utilization || budgetColumns.used || budgetColumns.total)) {
+      console.log('Using budget data pattern for bar chart');
+      categoryColumn = budgetColumns.category;
+      
+      // Add numeric columns to valueColumns
+      if (budgetColumns.utilization) valueColumns.push(budgetColumns.utilization);
+      if (budgetColumns.used) valueColumns.push(budgetColumns.used);
+      if (budgetColumns.total) valueColumns.push(budgetColumns.total);
+      
+      console.log('Budget visualization columns:', {
+        categoryColumn,
+        valueColumns
       });
+      
+      // For budget data specifically, make sure we have utilized and total
+      // If we already detected them under other names (total_spent, etc)
+      if (!budgetColumns.used && data.columns.some(col => col.toLowerCase().includes('spent'))) {
+        const spentColumn = data.columns.find(col => col.toLowerCase().includes('spent'));
+        if (spentColumn) valueColumns.push(spentColumn);
+        console.log('Added spent column:', spentColumn);
+      }
+      
+      if (!budgetColumns.total && data.columns.some(col => col.toLowerCase().includes('budgeted'))) {
+        const budgetedColumn = data.columns.find(col => col.toLowerCase().includes('budgeted'));
+        if (budgetedColumn) valueColumns.push(budgetedColumn);
+        console.log('Added budgeted column:', budgetedColumn);
+      }
+      
+      // Make sure we have at least one value column
+      if (valueColumns.length === 0) {
+        console.log('No value columns detected for budget data, searching for numeric columns');
+        // Find other numeric columns
+        for (const column of data.columns) {
+          if (column !== categoryColumn) {
+            const sampleSize = Math.min(5, rows.length);
+            let numberCount = 0;
+            
+            for (let i = 0; i < sampleSize; i++) {
+              const value = rows[i][column];
+              if (typeof value === 'number' || !isNaN(Number(value))) {
+                numberCount++;
+              }
+            }
+            
+            if (numberCount / sampleSize > 0.7) {
+              valueColumns.push(column);
+              console.log('Added numeric column as fallback:', column);
+            }
+          }
+        }
+      }
+    } else {
+      // Standard detection logic for non-budget data
+      // Find appropriate category and value columns
+      for (const column of data.columns) {
+        // Sample the first few values to determine column type
+        const sampleSize = Math.min(5, rows.length);
+        let numberCount = 0;
+        
+        for (let i = 0; i < sampleSize; i++) {
+          const value = rows[i][column];
+          if (typeof value === 'number' || !isNaN(Number(value))) {
+            numberCount++;
+          }
+        }
+        
+        // If most values are numbers, it's likely a value column
+        if (numberCount / sampleSize > 0.7) {
+          valueColumns.push(column);
+        } 
+        // First non-numeric column becomes the category
+        else if (valueColumns.length === 0) {
+          categoryColumn = column;
+        }
+      }
+      
+      // If no appropriate value columns found, use all columns except the category
+      if (valueColumns.length === 0) {
+        data.columns.forEach(column => {
+          if (column !== categoryColumn) {
+            valueColumns.push(column);
+          }
+        });
+      }
     }
     
     // Limit to the first 15 rows for readability
