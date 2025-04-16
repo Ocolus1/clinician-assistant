@@ -433,15 +433,21 @@ const ClinicianAssistant: React.FC = () => {
                       // Toggle mobile sidebar visibility
                       const sidebar = document.getElementById('conversation-sidebar');
                       if (sidebar) {
-                        sidebar.classList.toggle('hidden');
-                        sidebar.classList.toggle('fixed');
+                        // Make sure to show the sidebar properly
+                        if (sidebar.classList.contains('hidden')) {
+                          sidebar.classList.remove('hidden');
+                          sidebar.classList.add('fixed');
+                        } else {
+                          sidebar.classList.add('hidden');
+                          sidebar.classList.remove('fixed');
+                        }
                         
                         // Add a semi-transparent overlay when the sidebar is visible on mobile
                         let overlay = document.getElementById('mobile-sidebar-overlay');
                         if (!overlay && !sidebar.classList.contains('hidden')) {
                           overlay = document.createElement('div');
                           overlay.id = 'mobile-sidebar-overlay';
-                          overlay.className = 'fixed inset-0 bg-black/30 z-40 lg:hidden';
+                          overlay.className = 'fixed inset-0 bg-black/30 z-[99] lg:hidden';
                           overlay.onclick = () => {
                             if (sidebar) {
                               sidebar.classList.add('hidden');
@@ -475,9 +481,9 @@ const ClinicianAssistant: React.FC = () => {
                 {/* Conversation List Sidebar - Hidden on mobile, toggleable */}
                 <div 
                   id="conversation-sidebar"
-                  className="hidden lg:block lg:col-span-3 border-r h-full overflow-auto w-full bg-background z-50 
+                  className="hidden lg:block lg:col-span-3 border-r overflow-auto bg-background z-50 
                          lg:static lg:z-auto lg:h-auto
-                         fixed top-0 left-0 h-full w-3/4 shadow-xl p-4 border-r"
+                         fixed top-0 left-0 h-screen w-3/4 max-w-xs shadow-xl p-4 border-r z-[100]"
                 >
                   <ConversationSidebar
                     conversations={conversations}
