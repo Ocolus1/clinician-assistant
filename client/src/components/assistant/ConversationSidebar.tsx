@@ -146,9 +146,8 @@ const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
   
   return (
     <div className="h-full flex flex-col overflow-hidden relative">
-      <div className="flex items-center p-2 md:p-4 pr-10 relative">
+      <div className="flex items-center justify-between p-2 md:p-4 relative">
         <h3 className="text-sm md:text-base font-semibold">Conversations</h3>
-        <div className="flex-grow"></div>
         <Button size="sm" onClick={onNew} variant="outline" className="h-7 md:h-8 text-xs md:text-sm">
           <Plus className="h-3 w-3 md:h-4 md:w-4 mr-1 md:mr-2" />
           New
@@ -158,7 +157,7 @@ const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
         <Button 
           size="sm" 
           variant="ghost" 
-          className="h-7 absolute top-2 right-2 lg:hidden"
+          className="h-7 absolute top-2 right-2 lg:hidden pl-1 pr-1"
           onClick={() => {
             const sidebar = document.getElementById('conversation-sidebar');
             if (sidebar) {
