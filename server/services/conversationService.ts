@@ -347,6 +347,26 @@ export class ConversationService {
       return [];
     }
   }
+
+  /**
+   * Delete all conversations
+   */
+  async deleteAllConversations(): Promise<boolean> {
+    try {
+      console.log('Deleting all assistant conversations');
+      
+      // Delete all conversations (cascade will delete all messages)
+      await sql`
+        DELETE FROM assistant_conversations
+      `;
+      
+      console.log('Successfully deleted all assistant conversations');
+      return true;
+    } catch (error) {
+      console.error('Error deleting all conversations:', error);
+      return false;
+    }
+  }
 }
 
 // Create a singleton instance

@@ -208,6 +208,25 @@ class AssistantService {
     }
     return await response.json();
   }
+
+  /**
+   * Delete all conversations
+   */
+  async deleteAllConversations() {
+    const response = await fetch('/api/assistant/conversations', {
+      method: 'DELETE',
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Failed to delete all conversations: ${errorText}`);
+    }
+    
+    // Invalidate conversations cache
+    queryClient.invalidateQueries({ queryKey: ['/api/assistant/conversations'] });
+    
+    return await response.json();
+  }
 }
 
 export const assistantService = new AssistantService();

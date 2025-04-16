@@ -9,9 +9,33 @@ import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { CheckCircle, XCircle, RefreshCw } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { 
+  CheckCircle, 
+  XCircle, 
+  RefreshCw, 
+  Trash2
+} from 'lucide-react';
+import { 
+  Card, 
+  CardContent, 
+  CardDescription, 
+  CardFooter, 
+  CardHeader, 
+  CardTitle 
+} from '@/components/ui/card';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { useToast } from '@/hooks/use-toast';
+import { assistantService } from '@/lib/services/assistantService';
 
 interface AssistantSettingsProps {
   onComplete?: () => void;
@@ -190,6 +214,27 @@ const AssistantSettings: React.FC<AssistantSettingsProps> = ({ onComplete }) => 
     settings?: AssistantSettings;
   }
   
+  // Mutation for deleting all conversations
+  const deleteAllConversationsMutation = useMutation({
+    mutationFn: async () => {
+      return await assistantService.deleteAllConversations();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/assistant/conversations'] });
+      toast({
+        title: 'All Conversations Deleted',
+        description: 'All conversations have been successfully deleted.',
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Error Deleting Conversations',
+        description: error.message || 'Failed to delete all conversations.',
+        variant: 'destructive',
+      });
+    }
+  });
+
   // Update state when status data loads
   React.useEffect(() => {
     const data = statusData as StatusResponse || {};

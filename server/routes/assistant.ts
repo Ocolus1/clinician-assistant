@@ -347,6 +347,34 @@ router.post('/conversations/:id/clear', async (req, res) => {
 });
 
 /**
+ * DELETE /api/assistant/conversations
+ * Delete all conversations
+ */
+router.delete('/conversations', async (req, res) => {
+  try {
+    const success = await conversationService.deleteAllConversations();
+    
+    if (!success) {
+      return res.status(500).json({ 
+        success: false, 
+        message: 'Failed to delete all conversations'
+      });
+    }
+    
+    res.json({ 
+      success: true,
+      message: 'All conversations have been deleted'
+    });
+  } catch (error: any) {
+    console.error('Error deleting all conversations:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: error.message || 'Failed to delete all conversations'
+    });
+  }
+});
+
+/**
  * POST /api/assistant/conversations/:id/messages
  * Send a message to the assistant
  */
