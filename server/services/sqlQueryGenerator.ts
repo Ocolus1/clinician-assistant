@@ -181,18 +181,33 @@ export class SQLQueryGenerator {
       sanitized = `${sanitized} LIMIT 100`;
     } else {
       // Fix potential syntax issues with LIMIT clause (ensure PostgreSQL format)
-      // Check for incorrect LIMIT formats like "LIMIT 10,20" (MySQL style) or "LIMIT 100;"
-      const limitRegex = /\bLIMIT\s+(\d+)(?:\s*,\s*(\d+))?(?:;)?/i;
+      
+      // First check for trailing semicolons anywhere in the query and remove them
+      sanitized = sanitized.replace(/;/g, '');
+      
+      // Check for incorrect LIMIT formats like "LIMIT 10,20" (MySQL style)
+      const limitRegex = /\bLIMIT\s+(\d+)(?:\s*,\s*(\d+))?/i;
       if (limitRegex.test(sanitized)) {
-        // Convert MySQL style LIMIT clause to PostgreSQL format or remove trailing semicolon
+        // Convert MySQL style LIMIT clause to PostgreSQL format
         sanitized = sanitized.replace(limitRegex, (match, p1, p2) => {
           if (p2) {
             // Convert MySQL style "LIMIT offset, limit" to PostgreSQL "LIMIT limit OFFSET offset"
             return `LIMIT ${p2} OFFSET ${p1}`;
           }
-          // Remove any trailing semicolon after LIMIT
           return `LIMIT ${p1}`;
         });
+      }
+      
+      // Ensure LIMIT is properly positioned at the end of the query
+      // and is correctly formatted for PostgreSQL
+      const limitMatch = sanitized.match(/\bLIMIT\s+(\d+)(?:\s+OFFSET\s+(\d+))?/i);
+      if (limitMatch) {
+        // Extract the LIMIT clause
+        const limitClause = limitMatch[0];
+        // Extract the base query without the LIMIT clause
+        const baseQuery = sanitized.replace(limitClause, '').trim();
+        // Rebuild the query with properly formatted LIMIT clause at the end
+        sanitized = `${baseQuery} ${limitClause}`;
       }
     }
     
