@@ -9,6 +9,7 @@ import { OpenAIConfig } from './openaiService';
 import { openaiService } from './openaiService';
 import { conversationService } from './conversationService';
 import { sqlQueryGenerator, SQLQueryResult } from './sqlQueryGenerator';
+import { drizzleQueryGenerator, DrizzleQueryResult } from './drizzleQueryGenerator';
 import { schemaProvider } from './schemaProvider';
 import { ChatMessage } from './openaiService';
 import { Message, AssistantStatusResponse, AssistantConfig, QueryResult } from '@shared/assistantTypes';
@@ -80,12 +81,20 @@ export class ClinicianAssistantService {
     
     openaiService.initialize(openAIConfig);
     
-    // Initialize LangChain with SQL query execution function
+    // Initialize LangChain with Drizzle query execution function
     langchainService.initialize(
       langChainConfig, 
       async (query: string) => {
-        const result = await sqlQueryGenerator.executeRawQuery(query);
-        return result;
+        // Check if the query is a Drizzle query or a fallback SQL query
+        if (query.includes('db.select') || query.includes('db.query')) {
+          // This is a Drizzle ORM query
+          const result = await drizzleQueryGenerator.executeRawQuery(query);
+          return result;
+        } else {
+          // Fallback to SQL query for backward compatibility
+          const result = await sqlQueryGenerator.executeRawQuery(query);
+          return result;
+        }
       }
     );
   }
@@ -159,7 +168,7 @@ export class ClinicianAssistantService {
         You can help answer questions about clients, sessions, budgets, goals, and other clinical data.
         
         When a user asks you questions about data, you should:
-        1. Generate an appropriate SQL query for PostgreSQL
+        1. Generate a Drizzle ORM query in TypeScript to retrieve the data
         2. Execute the query to get the data
         3. Provide a helpful and concise response based on the data
         
@@ -171,24 +180,38 @@ export class ClinicianAssistantService {
         - Clients with onboarding_status = 'pending' or 'incomplete' are not considered active
         - Clinicians are the staff members/therapists who work with clients
         
-        The database contains the following tables:
-        - clients: Information about therapy clients (id, name, date_of_birth, onboarding_status, etc.)
-        - clinicians: Information about clinical staff/therapists (id, name, title, email, etc.)
-        - client_clinicians: Links clients to their assigned clinicians (client_id, clinician_id, role)
-        - goals: Therapy goals for clients (id, client_id, title, description, status, etc.)
-        - subgoals: Detailed subgoals associated with main goals (id, goal_id, title, status, etc.)
-        - sessions: Therapy sessions (id, client_id, date, status, etc.)
-        - session_notes: Notes from therapy sessions (id, session_id, notes, etc.)
-        - budget_settings: Budget configuration for clients (id, client_id, settings, etc.)
-        - budget_items: Individual budget line items (id, budget_settings_id, product_code, etc.)
-        - strategies: Therapy strategies and approaches (id, title, description, etc.)
-        - allies: Contains information about client allies like parents/caregivers (id, client_id, name, etc.)
+        The database contains the following tables (accessible through the schema namespace):
+        - schema.clients: Information about therapy clients (id, name, date_of_birth, onboarding_status, etc.)
+        - schema.clinicians: Information about clinical staff/therapists (id, name, title, email, etc.)
+        - schema.clientClinicians: Links clients to their assigned clinicians (clientId, clinicianId, role)
+        - schema.goals: Therapy goals for clients (id, clientId, title, description, status, etc.)
+        - schema.subgoals: Detailed subgoals associated with main goals (id, goalId, title, status, etc.)
+        - schema.sessions: Therapy sessions (id, clientId, date, status, etc.)
+        - schema.sessionNotes: Notes from therapy sessions (id, sessionId, notes, etc.)
+        - schema.budgetSettings: Budget configuration for clients (id, clientId, settings, etc.)
+        - schema.budgetItems: Individual budget line items (id, budgetSettingsId, productCode, etc.)
+        - schema.strategies: Therapy strategies and approaches (id, title, description, etc.)
+        - schema.allies: Contains information about client allies like parents/caregivers (id, clientId, name, etc.)
         
-        Always follow proper PostgreSQL syntax. For LIMIT clauses:
-        - Always write as "LIMIT 100" (space after LIMIT)
-        - Never include semicolons in the LIMIT clause
-        - For pagination, use "LIMIT x OFFSET y" format (PostgreSQL style)
-        - Never use MySQL-style "LIMIT x, y" format
+        DRIZZLE ORM QUERY EXAMPLES:
+        - To find all active clients:
+          db.select().from(schema.clients).where(eq(schema.clients.active, true)).limit(100)
+          
+        - To count sessions per client:
+          db.select({
+            clientId: schema.sessions.clientId,
+            clientName: schema.clients.name,
+            sessionCount: count()
+          })
+          .from(schema.sessions)
+          .innerJoin(schema.clients, eq(schema.sessions.clientId, schema.clients.id))
+          .groupBy(schema.sessions.clientId, schema.clients.name)
+          .limit(100)
+          
+        - To find recent sessions with limit:
+          db.select().from(schema.sessions).orderBy(desc(schema.sessions.sessionDate)).limit(10)
+          
+        Always include a limit in your queries and use proper Drizzle ORM syntax.
       `;
       
       let responseContent = '';
@@ -199,18 +222,18 @@ export class ClinicianAssistantService {
         const isDataQuestion = await langchainService.isDataRelatedQuestion(messageContent);
         
         if (isDataQuestion) {
-          // For data questions, we need to handle SQL generation and execution
-          const query = await sqlQueryGenerator.generateQuery(messageContent);
-          const result = await sqlQueryGenerator.executeQuery(query);
+          // For data questions, we need to handle Drizzle query generation and execution
+          const query = await drizzleQueryGenerator.generateQuery(messageContent);
+          const result = await drizzleQueryGenerator.executeQuery(query);
           
-          // Generate the SQL context for LangChain with enhanced error handling
-          let sqlContext;
+          // Generate the query context for LangChain with enhanced error handling
+          let queryContext;
           
           if (result.error) {
             // For error cases, provide specific guidance based on error type
-            sqlContext = `
-              I executed the following SQL query:
-              \`\`\`sql
+            queryContext = `
+              I executed the following Drizzle ORM query:
+              \`\`\`typescript
               ${result.query}
               \`\`\`
               
@@ -224,14 +247,14 @@ export class ClinicianAssistantService {
               3. Suggests how the user might rephrase their question or what information they might need to provide
               4. If appropriate, suggests alternative ways to get similar information
               
-              Don't mention the SQL query or technical details, focus on the user's original intent.
+              Don't mention the query or technical details, focus on the user's original intent.
               Frame the response in a professional, supportive manner appropriate for clinical staff.
             `;
           } else if (result.data && result.data.length === 0) {
             // For empty result sets
-            sqlContext = `
-              I executed the following SQL query:
-              \`\`\`sql
+            queryContext = `
+              I executed the following Drizzle ORM query:
+              \`\`\`typescript
               ${result.query}
               \`\`\`
               
@@ -242,13 +265,13 @@ export class ClinicianAssistantService {
               2. Suggests possible reasons for this (e.g., data might not exist, filters might be too restrictive)
               3. Suggests how they might broaden their search or check if the entities they're asking about exist
               
-              Don't mention the SQL query itself unless the user specifically asked about database queries.
+              Don't mention the query itself unless the user specifically asked about database implementation details.
             `;
           } else {
             // For successful queries with data
-            sqlContext = `
-              I executed the following SQL query:
-              \`\`\`sql
+            queryContext = `
+              I executed the following Drizzle ORM query:
+              \`\`\`typescript
               ${result.query}
               \`\`\`
               
@@ -259,16 +282,16 @@ export class ClinicianAssistantService {
               Highlight key insights or patterns if they exist.
               Format numerical data clearly (round to 2 decimal places where appropriate).
               Use proper clinical terminology given this is a speech therapy context.
-              Don't mention that you ran an SQL query unless the user specifically asked about database queries.
+              Don't mention the database query unless the user specifically asked about database implementation details.
             `;
           }
           
-          // Use LangChain's processDataQuery with SQL context
+          // Use LangChain's processDataQuery with query context
           responseContent = await langchainService.processDataQuery(
             conversationId,
             messageContent,
             systemPrompt,
-            sqlContext
+            queryContext
           );
         } else {
           // For regular conversational questions, use LangChain's conversation management
@@ -291,16 +314,16 @@ export class ClinicianAssistantService {
         const isDataQuestion = await this.isDataRelatedQuestion(messageContent);
         
         if (isDataQuestion) {
-          // Generate SQL query
-          const query = await sqlQueryGenerator.generateQuery(messageContent);
+          // Generate Drizzle query
+          const query = await drizzleQueryGenerator.generateQuery(messageContent);
           
           // Execute the query
-          const result = await sqlQueryGenerator.executeQuery(query);
+          const result = await drizzleQueryGenerator.executeQuery(query);
           
           // Generate a response based on the query results
-          const sqlContext = `
-            I executed the following SQL query:
-            \`\`\`sql
+          const queryContext = `
+            I executed the following Drizzle ORM query:
+            \`\`\`typescript
             ${result.query}
             \`\`\`
             
@@ -311,14 +334,14 @@ export class ClinicianAssistantService {
             
             Based on this data, provide a clear, concise response to the user's question.
             If there was an error or no data, explain what might be the issue.
-            Don't mention that you ran an SQL query unless the user specifically asked about database queries.
+            Don't mention that you ran a database query unless the user specifically asked about database implementation details.
           `;
           
-          // Generate response with SQL context
+          // Generate response with query context
           responseContent = await openaiService.createChatCompletion([
             systemMessage,
             ...recentMessages,
-            { role: 'user', content: sqlContext }
+            { role: 'user', content: queryContext }
           ]);
         } else {
           // For non-data questions, just use the conversation history
@@ -337,24 +360,24 @@ export class ClinicianAssistantService {
       
       if (isDataQuestionResult) {
         try {
-          // Generate the query
-          const query = await sqlQueryGenerator.generateQuery(messageContent);
+          // Generate the Drizzle query
+          const query = await drizzleQueryGenerator.generateQuery(messageContent);
           // Execute the query
-          const sqlResult = await sqlQueryGenerator.executeQuery(query);
+          const result = await drizzleQueryGenerator.executeQuery(query);
           
-          if (!sqlResult.error && sqlResult.data && sqlResult.data.length > 0) {
+          if (!result.error && result.data && result.data.length > 0) {
             // Extract column names from the first result row
-            const firstRow = sqlResult.data[0];
+            const firstRow = result.data[0];
             const columns = Object.keys(firstRow);
             
             // Create the query result data structure
             queryResult = {
               columns,
-              rows: sqlResult.data,
+              rows: result.data,
               metadata: {
-                executionTime: sqlResult.executionTime,
-                rowCount: sqlResult.data.length,
-                queryText: sqlResult.query
+                executionTime: result.executionTime,
+                rowCount: result.data.length,
+                queryText: result.query
               }
             };
           }

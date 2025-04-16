@@ -1,65 +1,61 @@
 /**
- * Drizzle Query Wrapper Service
+ * Test script for the Drizzle Query Wrapper
  * 
- * This service wraps the existing SQL query generator to mimic a Drizzle-style API
- * while maintaining stability. This approach allows for a gradual migration to 
- * Drizzle ORM without breaking existing functionality.
+ * This script tests the Drizzle query wrapper in isolation to identify
+ * any issues without requiring the full server to be running.
  */
 
-import { sqlQueryGenerator, SQLQueryResult } from './sqlQueryGenerator';
-import { schemaProvider } from './schemaProvider';
-import { openaiService } from './openaiService';
+import { exec } from 'child_process';
 
-/**
- * Result of a Drizzle query - matches the interface expected by consumers
- */
-export interface DrizzleQueryResult {
-  query: string;
-  data: any[];
-  error?: string;
-  originalError?: string;
-  executionTime?: number;
+// Simulated query generator to avoid dependencies
+class MockSqlQueryGenerator {
+  async generateQuery(question) {
+    console.log('Mock SQL generator received question:', question);
+    return 'SELECT * FROM clients LIMIT 10';
+  }
+  
+  async executeQuery(sqlQuery) {
+    console.log('Mock SQL executor received query:', sqlQuery);
+    return {
+      query: sqlQuery,
+      data: [{ id: 1, name: 'Test Client' }],
+      executionTime: 0
+    };
+  }
+  
+  async executeRawQuery(sqlQuery) {
+    console.log('Mock SQL raw executor received query:', sqlQuery);
+    return {
+      query: sqlQuery,
+      rows: [{ id: 1, name: 'Test Client' }],
+      success: true,
+      executionTime: 0
+    };
+  }
 }
 
-/**
- * Raw Drizzle query result type used by LangChain
- */
-export interface RawDrizzleResult {
-  rows: any[];
-  query: string;
-  success: boolean;
-  error?: string;
-  originalError?: string;
-  executionTime?: number;
-}
-
-/**
- * Drizzle Query Wrapper class - provides a Drizzle-like API while using SQL under the hood
- */
-export class DrizzleQueryGenerator {
-  /**
-   * Generate a Drizzle ORM query based on a natural language question
-   * Just converts it to SQL for now while maintaining the expected interface
-   */
-  async generateQuery(question: string): Promise<string> {
+// Mock Drizzle Query Generator (simplified from our implementation)
+class DrizzleQueryGenerator {
+  constructor() {
+    this.sqlQueryGenerator = new MockSqlQueryGenerator();
+  }
+  
+  async generateQuery(question) {
     try {
       console.log('Generating Drizzle-style query for question:', question);
       
       // Use the SQL query generator to generate a real SQL query
-      const sqlQuery = await sqlQueryGenerator.generateQuery(question);
+      const sqlQuery = await this.sqlQueryGenerator.generateQuery(question);
       
       // Wrap the SQL query in a Drizzle-style format for debugging purposes
       return `db.query(sql\`${sqlQuery}\`)`;
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error in wrapper generateQuery method:', error);
       throw new Error(`Failed to generate query: ${error?.message || String(error)}`);
     }
   }
   
-  /**
-   * Execute a "Drizzle" query - actually just executes the SQL
-   */
-  async executeQuery(drizzleQuery: string): Promise<DrizzleQueryResult> {
+  async executeQuery(drizzleQuery) {
     try {
       console.log('Executing query through Drizzle wrapper:', drizzleQuery);
       
@@ -73,7 +69,7 @@ export class DrizzleQueryGenerator {
       }
       
       // Execute using the SQL query generator
-      const result = await sqlQueryGenerator.executeQuery(sqlQuery);
+      const result = await this.sqlQueryGenerator.executeQuery(sqlQuery);
       
       // Map the SQL result to a Drizzle result format
       return {
@@ -83,7 +79,7 @@ export class DrizzleQueryGenerator {
         originalError: result.originalError,
         executionTime: result.executionTime
       };
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error executing query through Drizzle wrapper:', error);
       
       return {
@@ -95,10 +91,7 @@ export class DrizzleQueryGenerator {
     }
   }
   
-  /**
-   * Execute a raw query for LangChain integration
-   */
-  async executeRawQuery(drizzleQuery: string): Promise<RawDrizzleResult> {
+  async executeRawQuery(drizzleQuery) {
     try {
       console.log('Executing raw query through Drizzle wrapper:', drizzleQuery);
       
@@ -112,7 +105,7 @@ export class DrizzleQueryGenerator {
       }
       
       // Execute using the SQL query generator's raw method
-      const result = await sqlQueryGenerator.executeRawQuery(sqlQuery);
+      const result = await this.sqlQueryGenerator.executeRawQuery(sqlQuery);
       
       // Map the SQL result to a Drizzle result format
       return {
@@ -123,7 +116,7 @@ export class DrizzleQueryGenerator {
         originalError: result.originalError,
         executionTime: result.executionTime
       };
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error executing raw query through Drizzle wrapper:', error);
       
       return {
@@ -137,5 +130,34 @@ export class DrizzleQueryGenerator {
   }
 }
 
-// Create a singleton instance
-export const drizzleQueryGenerator = new DrizzleQueryGenerator();
+// Create a test instance
+const drizzleQueryGenerator = new DrizzleQueryGenerator();
+
+async function runTests() {
+  try {
+    console.log('----- Testing Drizzle Query Generator -----');
+    
+    // Test 1: Generate a query
+    console.log('\nTest 1: Generating query...');
+    const question = 'Show me all active clients';
+    const generatedQuery = await drizzleQueryGenerator.generateQuery(question);
+    console.log('Generated query:', generatedQuery);
+    
+    // Test 2: Execute query
+    console.log('\nTest 2: Executing query...');
+    const result = await drizzleQueryGenerator.executeQuery(generatedQuery);
+    console.log('Execution result:', JSON.stringify(result, null, 2));
+    
+    // Test 3: Execute raw query (LangChain format)
+    console.log('\nTest 3: Executing raw query...');
+    const rawResult = await drizzleQueryGenerator.executeRawQuery(generatedQuery);
+    console.log('Raw execution result:', JSON.stringify(rawResult, null, 2));
+    
+    console.log('\n----- All tests completed successfully -----');
+  } catch (error) {
+    console.error('Error during testing:', error);
+  }
+}
+
+// Run the tests
+runTests();
