@@ -90,7 +90,6 @@ const ClinicianAssistant: React.FC = () => {
     retry: 3, // Retry failed requests 3 times
   });
 
-  console.log('Assistant status data:', statusData)
   
   // Create a new conversation mutation
   const createConversationMutation = useMutation({

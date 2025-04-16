@@ -143,7 +143,7 @@ const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
   };
   
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-full flex flex-col overflow-y-auto">
       <div className="flex justify-between items-center p-4">
         <h3 className="font-semibold">Conversations</h3>
         <Button size="sm" onClick={onNew} variant="outline">
