@@ -73,6 +73,17 @@ const ClinicianAssistant: React.FC = () => {
     refetch: refetchStatus
   } = useQuery({
     queryKey: ['/api/assistant/status'],
+    queryFn: async () => {
+      console.log("Fetching assistant status...");
+      const response = await fetch('/api/assistant/status');
+      if (!response.ok) {
+        console.error("Error fetching assistant status:", response.status, response.statusText);
+        throw new Error(`Error fetching assistant status: ${response.status} ${response.statusText}`);
+      }
+      const data = await response.json();
+      console.log("Assistant status received:", data);
+      return data;
+    },
     refetchInterval: 5000, // Refetch every 5 seconds to catch auto-configuration
     refetchOnWindowFocus: true, // Ensure fresh data when window is focused
     retry: 3, // Retry failed requests 3 times
