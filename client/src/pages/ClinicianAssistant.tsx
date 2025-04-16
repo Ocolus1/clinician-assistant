@@ -311,6 +311,9 @@ const ClinicianAssistant: React.FC = () => {
       conversations: updatedConversations 
     });
     
+    // Scroll to bottom immediately after user sends message
+    setTimeout(() => scrollToBottom('smooth'), 50);
+    
     // Send the message to the API
     sendMessageMutation.mutate({ 
       conversationId: selectedConversationId, 
@@ -328,24 +331,54 @@ const ClinicianAssistant: React.FC = () => {
     }
   }, [conversations, selectedConversationId]);
   
-  // Function to scroll to the bottom of messages
-  const scrollToBottom = () => {
+  // Create a ref for the scroll anchor at the bottom
+  const bottomAnchorRef = useRef<HTMLDivElement>(null);
+  
+  // Function to scroll to the bottom of messages with improved functionality
+  const scrollToBottom = (behavior: ScrollBehavior = 'smooth') => {
+    // Try to scroll to the bottom anchor first
+    if (bottomAnchorRef.current) {
+      setTimeout(() => {
+        bottomAnchorRef.current?.scrollIntoView({ 
+          behavior, 
+          block: 'end' 
+        });
+      }, 100);
+      return;
+    }
+
+    // Fallback approach if anchor doesn't exist
     if (messagesContainerRef.current) {
-      // First attempt - using scrollTop (works in most browsers)
-      messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
-      
-      // Second approach - add a dummy element and scroll it into view
-      const lastChild = messagesContainerRef.current.lastElementChild;
-      if (lastChild) {
-        lastChild.scrollIntoView({ behavior: 'smooth', block: 'end' });
-      }
+      setTimeout(() => {
+        try {
+          // Try both approaches for maximum compatibility
+          const lastMessage = messagesContainerRef.current?.lastElementChild;
+          if (lastMessage) {
+            lastMessage.scrollIntoView({ behavior, block: 'end' });
+          }
+          
+          if (messagesContainerRef.current) {
+            messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+          }
+        } catch (e) {
+          console.error("Error scrolling to bottom:", e);
+        }
+      }, 100);
     }
   };
   
   // Auto-scroll to bottom when messages are updated or added
   useEffect(() => {
-    scrollToBottom();
+    scrollToBottom('smooth');
   }, [selectedConversation?.messages, isWaitingForResponse]);
+  
+  // Also scroll when a conversation is selected
+  useEffect(() => {
+    if (selectedConversationId) {
+      // Use a small delay to ensure the conversation is loaded
+      setTimeout(() => scrollToBottom('auto'), 300);
+    }
+  }, [selectedConversationId]);
   
   
   return (
@@ -432,7 +465,7 @@ const ClinicianAssistant: React.FC = () => {
                         ) : (
                           <div 
                             ref={messagesContainerRef} 
-                            className="overflow-auto h-[460px] border rounded-md p-2"
+                            className="overflow-auto h-[460px] border rounded-md p-3 flex flex-col space-y-4 scroll-smooth"
                           >
                             {selectedConversation.messages.map((msg: Message) => (
                               <MessageBubble key={msg.id} message={msg} />
@@ -448,6 +481,8 @@ const ClinicianAssistant: React.FC = () => {
                                 isLoading={true} 
                               />
                             )}
+                            {/* Invisible anchor element for scrolling */}
+                            <div ref={bottomAnchorRef} className="h-1" aria-hidden="true" />
                           </div>
                         )}
                       </div>
