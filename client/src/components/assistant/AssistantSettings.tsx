@@ -257,6 +257,55 @@ const AssistantSettings: React.FC<AssistantSettingsProps> = ({ onComplete }) => 
       </CardHeader>
       
       <CardContent className="space-y-6">
+        {/* Clear All Conversations */}
+        <div className="mb-6">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-sm font-medium">Conversation Management</h3>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button 
+                  variant="destructive" 
+                  size="sm"
+                  disabled={deleteAllConversationsMutation.isPending}
+                >
+                  {deleteAllConversationsMutation.isPending ? (
+                    <>
+                      <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                      Deleting...
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Clear All Conversations
+                    </>
+                  )}
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This will permanently delete all conversations and their messages.
+                    This action cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={() => deleteAllConversationsMutation.mutate()}
+                    className="bg-destructive hover:bg-destructive/90"
+                  >
+                    Delete All
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
+          <p className="text-xs text-muted-foreground mb-4">
+            You can delete all conversations and their messages. This action cannot be undone.
+          </p>
+        </div>
+        
         {/* Connection Status */}
         <div className="mb-6">
           <div className="flex items-center justify-between mb-2">
