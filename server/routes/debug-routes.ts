@@ -7,7 +7,6 @@ import { Router } from 'express';
 import { storage } from '../storage';
 import { sql } from '../db'; // Import the sql client for direct queries
 import { sqlQueryGenerator } from '../services/sqlQueryGenerator';
-import { drizzleQueryGenerator } from '../services/drizzleQueryGenerator';
 import { schemaProvider } from '../services/schemaProvider';
 
 // Type definitions to solve type errors
@@ -240,9 +239,9 @@ debugRouter.get(['/api/debug/budget-flow/:clientId', '/api/debug/budget/:clientI
       sessions: detailedSessions,
       recommendations: generateRecommendations(productAnalysis, budgetItems)
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error('Debug API error:', error);
-    res.status(500).json({ error: 'Internal server error', details: error?.message || 'Unknown error' });
+    res.status(500).json({ error: 'Internal server error', details: error.message });
   }
 });
 
@@ -360,12 +359,12 @@ debugRouter.post('/api/debug/fix-product-codes/:clientId', async (req, res) => {
             }
             
             fixResults.sessionsProcessed++;
-          } catch (error: any) {
-            fixResults.errors.push(`Error processing session ${session.id}: ${error?.message || 'Unknown error'}`);
+          } catch (error) {
+            fixResults.errors.push(`Error processing session ${session.id}: ${error.message}`);
           }
         }
-      } catch (error: any) {
-        fixResults.errors.push(`Error processing session ${session.id}: ${error?.message || 'Unknown error'}`);
+      } catch (error) {
+        fixResults.errors.push(`Error processing session ${session.id}: ${error.message}`);
       }
     }
     
@@ -374,9 +373,9 @@ debugRouter.post('/api/debug/fix-product-codes/:clientId', async (req, res) => {
       success: true,
       ...fixResults
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error('Fix API error:', error);
-    res.status(500).json({ error: 'Internal server error', details: error?.message || 'Unknown error' });
+    res.status(500).json({ error: 'Internal server error', details: error.message });
   }
 });
 
@@ -470,7 +469,7 @@ debugRouter.get(['/api/debug/clients/:clientId/session-notes-with-products', '/a
               sessionNote.products = JSON.parse(sessionNote.products);
             } catch (e) {
               console.error(`Error parsing products for session note ${sessionNote.id}:`, e);
-              sessionNote.products = '[]';
+              sessionNote.products = [];
             }
           }
           notes.push(sessionNote);
@@ -484,9 +483,9 @@ debugRouter.get(['/api/debug/clients/:clientId/session-notes-with-products', '/a
     
     // Return the processed notes
     res.json(notes);
-  } catch (error: any) {
+  } catch (error) {
     console.error(`Error retrieving session notes with products for client ${req.params.clientId}:`, error);
-    res.status(500).json({ error: "Failed to retrieve session notes with products", details: error?.message || 'Unknown error' });
+    res.status(500).json({ error: "Failed to retrieve session notes with products" });
   }
 });
 
@@ -546,79 +545,6 @@ debugRouter.get('/api/debug/assistant/schema', async (req, res) => {
   } catch (error: any) {
     console.error('Error getting schema description:', error);
     res.status(500).json({ error: error.message || 'Unknown error' });
-  }
-});
-
-/**
- * GET /api/debug/drizzle-test
- * Test endpoint to verify Drizzle query generator execution functionality
- */
-debugRouter.get('/api/debug/drizzle-test', async (req, res) => {
-  try {
-    console.log('Testing Drizzle query generator...');
-    
-    // Generate a simple test query to count clients
-    const testQuery = "db.select({ count: count() }).from(schema.clients)";
-    console.log('Test query:', testQuery);
-    
-    // Execute the query using the drizzleQueryGenerator
-    const result = await drizzleQueryGenerator.executeQuery(testQuery);
-    console.log('Drizzle query result:', result);
-    
-    if (result.error) {
-      res.status(500).json({
-        success: false,
-        message: 'Drizzle query execution failed',
-        error: result.error,
-        originalError: result.originalError,
-        query: result.query
-      });
-    } else {
-      res.json({
-        success: true,
-        message: 'Drizzle query executed successfully',
-        data: result.data,
-        query: result.query,
-        executionTime: result.executionTime
-      });
-    }
-  } catch (error: any) {
-    console.error('Error testing Drizzle query generator:', error);
-    res.status(500).json({ 
-      success: false, 
-      error: error.message || 'Unknown error',
-      stack: error.stack
-    });
-  }
-});
-
-/**
- * GET /api/debug/drizzle-generate
- * Test endpoint to verify Drizzle query generation from natural language
- */
-debugRouter.get('/api/debug/drizzle-generate', async (req, res) => {
-  try {
-    // Get the natural language question from the query parameter
-    const question = req.query.q as string || "How many clients do we have?";
-    console.log('Generating Drizzle query for question:', question);
-    
-    // Generate a Drizzle query from the natural language question
-    const generatedQuery = await drizzleQueryGenerator.generateQuery(question);
-    console.log('Generated Drizzle query:', generatedQuery);
-    
-    res.json({
-      success: true,
-      message: 'Drizzle query generated successfully',
-      question: question,
-      query: generatedQuery
-    });
-  } catch (error: any) {
-    console.error('Error generating Drizzle query:', error);
-    res.status(500).json({ 
-      success: false, 
-      error: error.message || 'Unknown error',
-      stack: error.stack
-    });
   }
 });
 
