@@ -454,9 +454,9 @@ const ClinicianAssistant: React.FC = () => {
                       
                       {/* Input Area */}
                       <div className="p-4 border-t">
-                        <div className="flex">
+                        <div className="flex items-center">
                           <Input
-                            className="flex-1 rounded-r-none"
+                            className="flex-1 rounded-r-none h-10 focus-visible:ring-1"
                             placeholder={inputDisabled ? "Assistant not configured or conversation not selected..." : "Type your question here..."}
                             value={message}
                             onChange={(e) => setMessage(e.target.value)}
@@ -469,7 +469,7 @@ const ClinicianAssistant: React.FC = () => {
                             }}
                           />
                           <Button 
-                            className="rounded-l-none" 
+                            className="rounded-l-none h-10 px-4" 
                             onClick={sendMessage}
                             disabled={!message.trim() || inputDisabled}
                           >
