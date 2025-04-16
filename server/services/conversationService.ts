@@ -305,6 +305,7 @@ export class ConversationService {
         // Parse query_result JSON if present
         if (msg.query_result) {
           try {
+            console.log(`Parsing query result JSON for message ${msg.id}:`, msg.query_result)
             queryResult = JSON.parse(msg.query_result);
           } catch (e) {
             console.error('Error parsing query result JSON:', e);

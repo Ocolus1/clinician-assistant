@@ -61,10 +61,8 @@ const ClinicianAssistant: React.FC = () => {
       console.log("Conversations data received:", data);
       return data;
     },
-    refetchInterval: isWaitingForResponse ? 2000 : 5000, // Poll regularly and more frequently when waiting for a response
     refetchOnWindowFocus: true, // Ensure fresh data when window is focused
     staleTime: 120, // Consider data immediately stale
-    retry: 3, // Retry failed requests 3 times
   });
   console.log('Conversations data:', conversationsData)
   // Fetch assistant status
@@ -74,17 +72,6 @@ const ClinicianAssistant: React.FC = () => {
     refetch: refetchStatus
   } = useQuery({
     queryKey: ['/api/assistant/status'],
-    queryFn: async () => {
-      console.log("Fetching assistant status...");
-      const response = await fetch('/api/assistant/status');
-      if (!response.ok) {
-        console.error("Error fetching assistant status:", response.status, response.statusText);
-        throw new Error(`Error fetching assistant status: ${response.status} ${response.statusText}`);
-      }
-      const data = await response.json();
-      console.log("Assistant status data received:", data);
-      return data;
-    },
     refetchInterval: 5000, // Refetch every 5 seconds to catch auto-configuration
     refetchOnWindowFocus: true, // Ensure fresh data when window is focused
     retry: 3, // Retry failed requests 3 times
@@ -216,7 +203,10 @@ const ClinicianAssistant: React.FC = () => {
   });
   
   // Get conversations array, handling possible undefined cases
-  const conversations = ((conversationsData || {}) as ConversationsResponse)?.conversations || [];
+  const conversations = ((conversationsData || {}) as ConversationsResponse)?.conversations?.filter(
+    (conv) => conv.messages && conv.messages.length > 0
+  ) || [];
+
   
   // Determine if configured from server response OR our local override
   const serverConfigured = ((statusData || {}) as StatusResponse)?.isConfigured || false;
@@ -256,7 +246,7 @@ const ClinicianAssistant: React.FC = () => {
           
           // Proceed to create conversation after brief delay to let UI update
           setTimeout(() => {
-            const name = `Conversation ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`;
+            const name = `New Conversation - ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
             createConversationMutation.mutate(name);
           }, 100);
           
@@ -272,7 +262,7 @@ const ClinicianAssistant: React.FC = () => {
     }
     
     // Normal flow - create a default conversation name with date/time
-    const name = `Conversation ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`;
+    const name = `New Conversation - ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
     createConversationMutation.mutate(name);
   };
   
@@ -371,14 +361,15 @@ const ClinicianAssistant: React.FC = () => {
           
           <CardContent className="p-0">
             <TabsContent value="assistant" className="mt-0">
-              <div className="grid grid-cols-12 h-[600px]">
+              <div className="grid grid-cols-12 h-full">
                 {/* Conversation List Sidebar */}
-                <div className="col-span-3 border-r h-full">
+                <div className="col-span-3 border-r h-9/10 overflow-hidden">
                   <ConversationSidebar
                     conversations={conversations}
                     selectedId={selectedConversationId}
                     onSelect={(id) => setSelectedConversationId(id)}
                     onNew={createNewConversation}
+                    isLoadingConversations={isLoadingConversations}
                   />
                 </div>
                 

@@ -21,13 +21,15 @@ interface ConversationSidebarProps {
   selectedId: string | null;
   onSelect: (id: string) => void;
   onNew: () => void;
+  isLoadingConversations: boolean;
 }
 
 const ConversationSidebar: React.FC<ConversationSidebarProps> = ({ 
   conversations, 
   selectedId, 
   onSelect, 
-  onNew 
+  onNew,
+  isLoadingConversations
 }) => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
@@ -143,7 +145,7 @@ const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
   };
   
   return (
-    <div className="h-full flex flex-col overflow-y-auto">
+    <div className="h-full flex flex-col overflow-hidden">
       <div className="flex justify-between items-center p-4">
         <h3 className="font-semibold">Conversations</h3>
         <Button size="sm" onClick={onNew} variant="outline">
@@ -154,122 +156,124 @@ const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
       <Separator />
       <ScrollArea className="flex-1">
         <div className="p-2">
-          {conversations.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-32 text-center text-muted-foreground">
-              <MessageSquare className="h-8 w-8 mb-2 opacity-50" />
-              <p>No conversations yet</p>
-              <p className="text-sm">Start a new conversation</p>
-            </div>
+          {isLoadingConversations ? (
+            <div className="p-4 text-muted-foreground">Loading conversations...</div>
+          ) : conversations.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-32 text-center text-muted-foreground">
+                <MessageSquare className="h-8 w-8 mb-2 opacity-50" />
+                <p>No conversations yet</p>
+                <p className="text-sm">Start a new conversation</p>
+              </div>
           ) : (
-            <div className="space-y-2">
-              {conversations.map(conv => (
-                <div 
-                  key={conv.id}
-                  className={cn(
-                    "p-3 rounded-md border",
-                    editingId === conv.id 
-                      ? "bg-muted" 
-                      : selectedId === conv.id 
-                        ? "bg-accent" 
-                        : "hover:bg-accent/50 cursor-pointer"
-                  )}
-                  onClick={() => editingId !== conv.id && onSelect(conv.id)}
-                >
-                  {editingId === conv.id ? (
-                    <div className="space-y-2">
-                      <Input
-                        value={editName}
-                        onChange={(e) => setEditName(e.target.value)}
-                        className="text-sm"
-                        autoFocus
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
-                            handleSaveEdit(conv.id);
-                          } else if (e.key === 'Escape') {
-                            cancelEditing();
-                          }
-                        }}
-                      />
-                      <div className="flex justify-end space-x-2">
-                        <Button 
-                          size="sm" 
-                          variant="ghost" 
-                          onClick={cancelEditing}
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                        <Button 
-                          size="sm" 
-                          variant="default" 
-                          onClick={() => handleSaveEdit(conv.id)}
-                        >
-                          <Check className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  ) : (
-                    <>
-                      <div className="flex justify-between items-start">
-                        <div className="flex-1">
-                          <div className="font-medium truncate">{conv.name}</div>
-                          <div className="text-xs text-muted-foreground">
-                            {formatDate(conv.lastMessageAt || conv.createdAt)}
-                          </div>
+              <div className="space-y-2">
+                {conversations.map(conv => (
+                  <div 
+                    key={conv.id}
+                    className={cn(
+                      "p-3 rounded-md border",
+                      editingId === conv.id 
+                        ? "bg-muted" 
+                        : selectedId === conv.id 
+                          ? "bg-accent" 
+                          : "hover:bg-accent/50 cursor-pointer"
+                    )}
+                    onClick={() => editingId !== conv.id && onSelect(conv.id)}
+                  >
+                    {editingId === conv.id ? (
+                      <div className="space-y-2">
+                        <Input
+                          value={editName}
+                          onChange={(e) => setEditName(e.target.value)}
+                          className="text-sm"
+                          autoFocus
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              handleSaveEdit(conv.id);
+                            } else if (e.key === 'Escape') {
+                              cancelEditing();
+                            }
+                          }}
+                        />
+                        <div className="flex justify-end space-x-2">
+                          <Button 
+                            size="sm" 
+                            variant="ghost" 
+                            onClick={cancelEditing}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            variant="default" 
+                            onClick={() => handleSaveEdit(conv.id)}
+                          >
+                            <Check className="h-4 w-4" />
+                          </Button>
                         </div>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                              <MoreVertical className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => startEditing(conv)}>
-                              <Pencil className="h-4 w-4 mr-2" />
-                              Rename
-                            </DropdownMenuItem>
-                            <DropdownMenuItem 
-                              className="text-destructive focus:text-destructive" 
-                              onClick={() => handleDelete(conv.id)}
-                            >
-                              <Trash2 className="h-4 w-4 mr-2" />
-                              Delete
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
                       </div>
-                      {/* Safely handle conversation messages preview with multiple fallbacks */}
-                      <div className="mt-1 text-xs text-muted-foreground truncate">
-                        {(() => {
-                          // Enhanced preview with multiple fallbacks
-                          try {
-                            // First check if messages array exists and has items
-                            if (!conv.messages || !Array.isArray(conv.messages) || conv.messages.length === 0) {
-                              return 'No messages yet';
+                    ) : (
+                      <>
+                        <div className="flex justify-between items-start">
+                          <div className="flex-1">
+                            <div className="font-medium truncate">{conv.name}</div>
+                            <div className="text-xs text-muted-foreground">
+                              {formatDate(conv.lastMessageAt || conv.createdAt)}
+                            </div>
+                          </div>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => startEditing(conv)}>
+                                <Pencil className="h-4 w-4 mr-2" />
+                                Rename
+                              </DropdownMenuItem>
+                              <DropdownMenuItem 
+                                className="text-destructive focus:text-destructive" 
+                                onClick={() => handleDelete(conv.id)}
+                              >
+                                <Trash2 className="h-4 w-4 mr-2" />
+                                Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+                        {/* Safely handle conversation messages preview with multiple fallbacks */}
+                        <div className="mt-1 text-xs text-muted-foreground truncate">
+                          {(() => {
+                            // Enhanced preview with multiple fallbacks
+                            try {
+                              // First check if messages array exists and has items
+                              if (!conv.messages || !Array.isArray(conv.messages) || conv.messages.length === 0) {
+                                return 'No messages yet';
+                              }
+        
+                              // Get the last message
+                              const lastMessage = conv.messages[conv.messages.length - 1];
+        
+                              // Check if message has content
+                              if (!lastMessage || typeof lastMessage.content !== 'string') {
+                                return 'Empty message';
+                              }
+        
+                              // Return truncated content
+                              const preview = lastMessage.content.substring(0, 50);
+                              return `${preview}${lastMessage.content.length > 50 ? '...' : ''}`;
+                            } catch (err) {
+                              // Final fallback if any error occurs
+                              console.error('Error rendering message preview:', err);
+                              return 'Unable to show preview';
                             }
-                            
-                            // Get the last message
-                            const lastMessage = conv.messages[conv.messages.length - 1];
-                            
-                            // Check if message has content
-                            if (!lastMessage || typeof lastMessage.content !== 'string') {
-                              return 'Empty message';
-                            }
-                            
-                            // Return truncated content
-                            const preview = lastMessage.content.substring(0, 50);
-                            return `${preview}${lastMessage.content.length > 50 ? '...' : ''}`;
-                          } catch (err) {
-                            // Final fallback if any error occurs
-                            console.error('Error rendering message preview:', err);
-                            return 'Unable to show preview';
-                          }
-                        })()}
-                      </div>
-                    </>
-                  )}
-                </div>
-              ))}
-            </div>
+                          })()}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                ))}
+              </div>
           )}
         </div>
       </ScrollArea>
