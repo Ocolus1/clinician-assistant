@@ -18,39 +18,39 @@ function AppLayoutContent({ children }: AppLayoutProps) {
   };
   
   // Set up appropriate styles when the component mounts
-  useEffect(() => {
-    // Remove any max-width restrictions on the content area
-    document.documentElement.style.setProperty('--content-max-width', 'none');
-    document.body.style.overflowX = 'hidden';
-    document.body.style.width = '100%';
+  // useEffect(() => {
+  //   // Remove any max-width restrictions on the content area
+  //   document.documentElement.style.setProperty('--content-max-width', 'none');
+  //   document.body.style.overflowX = 'hidden';
+  //   document.body.style.width = '100%';
     
-    // These styles should apply to the main application container
-    const style = document.createElement('style');
-    style.innerHTML = `
-      .app-container {
-        width: 100%;
-        max-width: 100vw;
-        display: flex;
-        flex-direction: column;
-      }
-      .content-area {
-        flex: 1;
-        width: 100%;
-        max-width: 100%;
-      }
-    `;
-    document.head.appendChild(style);
+  //   // These styles should apply to the main application container
+  //   const style = document.createElement('style');
+  //   style.innerHTML = `
+  //     .app-container {
+  //       width: 100%;
+  //       max-width: 100vw;
+  //       display: flex;
+  //       flex-direction: column;
+  //     }
+  //     .content-area {
+  //       flex: 1;
+  //       width: 100%;
+  //       max-width: 100%;
+  //     }
+  //   `;
+  //   document.head.appendChild(style);
     
-    return () => {
-      document.head.removeChild(style);
-    };
-  }, []);
+  //   return () => {
+  //     document.head.removeChild(style);
+  //   };
+  // }, []);
 
   return (
-    <div className="app-container flex flex-col w-full min-h-screen bg-gray-50">
+    <div className="app-container flex flex-col w-full bg-gray-50">
       {/* Main content container */}
       <div
-        className="content-area flex flex-col flex-1 min-h-screen w-full"
+        className="content-area flex flex-col flex-1 w-full"
         style={{ width: '100%' }}
       >
         {/* Top navigation bar - now simplified */}
@@ -79,7 +79,7 @@ function AppLayoutContent({ children }: AppLayoutProps) {
       </div>
       
       {/* Floating Menu (Dock) */}
-      <FloatingMenu />
+      {/* <FloatingMenu /> */}
     </div>
   );
 }

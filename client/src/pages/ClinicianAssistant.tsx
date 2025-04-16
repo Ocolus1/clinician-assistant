@@ -203,9 +203,7 @@ const ClinicianAssistant: React.FC = () => {
   });
   
   // Get conversations array, handling possible undefined cases
-  const conversations = ((conversationsData || {}) as ConversationsResponse)?.conversations?.filter(
-    (conv) => conv.messages && conv.messages.length > 0
-  ) || [];
+  const conversations = ((conversationsData || {}) as ConversationsResponse)?.conversations || [];
 
   
   // Determine if configured from server response OR our local override
@@ -320,7 +318,7 @@ const ClinicianAssistant: React.FC = () => {
   
   
   return (
-    <div className="container mx-auto py-6">
+    <div className="container mx-auto py-6 h-full">
       <div className="flex items-center mb-6">
         <Link href="/">
           <Button variant="ghost" className="mr-2">
@@ -336,7 +334,7 @@ const ClinicianAssistant: React.FC = () => {
         )}
       </div>
       
-      <Card className="border shadow-sm">
+      <Card className="border shadow-sm h-full">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <CardHeader>
             <div className="flex justify-between items-start">
@@ -359,11 +357,11 @@ const ClinicianAssistant: React.FC = () => {
             </div>
           </CardHeader>
           
-          <CardContent className="p-0">
-            <TabsContent value="assistant" className="mt-0">
-              <div className="grid grid-cols-12 h-full">
+          <CardContent className="p-0 h-full">
+            <TabsContent value="assistant" className="mt-0 h-full">
+              <div className="grid grid-cols-12 h-[700px]">
                 {/* Conversation List Sidebar */}
-                <div className="col-span-3 border-r h-9/10 overflow-hidden">
+                <div className="col-span-3 border-r h-[695px] overflow-auto w-full">
                   <ConversationSidebar
                     conversations={conversations}
                     selectedId={selectedConversationId}
@@ -374,7 +372,7 @@ const ClinicianAssistant: React.FC = () => {
                 </div>
                 
                 {/* Chat Area */}
-                <div className="col-span-9 flex flex-col h-full">
+                <div className="col-span-9 flex flex-col">
                   {!isConfigured ? (
                     <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
                       <MessageSquare className="h-16 w-16 mb-4 text-muted-foreground" />
@@ -390,7 +388,7 @@ const ClinicianAssistant: React.FC = () => {
                   ) : selectedConversation ? (
                     <>
                       {/* Messages */}
-                      <div className="flex-1 overflow-auto p-4">
+                      <div className="flex-1 p-4">
                         {selectedConversation.messages.length === 0 ? (
                           <div className="flex flex-col items-center justify-center h-full text-center">
                             <MessageSquare className="h-16 w-16 mb-4 text-muted-foreground" />
@@ -401,7 +399,7 @@ const ClinicianAssistant: React.FC = () => {
                             </p>
                           </div>
                         ) : (
-                          <div>
+                          <div className="overflow-auto h-[460px] border rounded-md p-2">
                             {selectedConversation.messages.map((msg: Message) => (
                               <MessageBubble key={msg.id} message={msg} />
                             ))}
