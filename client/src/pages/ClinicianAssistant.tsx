@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { 
@@ -42,6 +42,7 @@ const ClinicianAssistant: React.FC = () => {
   const [isWaitingForResponse, setIsWaitingForResponse] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   
   // Fetch conversations
   const { 
@@ -316,6 +317,25 @@ const ClinicianAssistant: React.FC = () => {
     }
   }, [conversations, selectedConversationId]);
   
+  // Function to scroll to the bottom of messages
+  const scrollToBottom = () => {
+    if (messagesContainerRef.current) {
+      // First attempt - using scrollTop (works in most browsers)
+      messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+      
+      // Second approach - add a dummy element and scroll it into view
+      const lastChild = messagesContainerRef.current.lastElementChild;
+      if (lastChild) {
+        lastChild.scrollIntoView({ behavior: 'smooth', block: 'end' });
+      }
+    }
+  };
+  
+  // Auto-scroll to bottom when messages are updated or added
+  useEffect(() => {
+    scrollToBottom();
+  }, [selectedConversation?.messages, isWaitingForResponse]);
+  
   
   return (
     <div className="container mx-auto py-6 h-full">
@@ -399,7 +419,10 @@ const ClinicianAssistant: React.FC = () => {
                             </p>
                           </div>
                         ) : (
-                          <div className="overflow-auto h-[460px] border rounded-md p-2">
+                          <div 
+                            ref={messagesContainerRef} 
+                            className="overflow-auto h-[460px] border rounded-md p-2"
+                          >
                             {selectedConversation.messages.map((msg: Message) => (
                               <MessageBubble key={msg.id} message={msg} />
                             ))}
