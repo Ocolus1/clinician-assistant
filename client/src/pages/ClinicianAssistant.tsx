@@ -65,7 +65,6 @@ const ClinicianAssistant: React.FC = () => {
     refetchOnWindowFocus: true, // Ensure fresh data when window is focused
     staleTime: 120, // Consider data immediately stale
   });
-  console.log('Conversations data:', conversationsData)
   // Fetch assistant status
   const { 
     data: statusData, 
@@ -84,9 +83,7 @@ const ClinicianAssistant: React.FC = () => {
       console.log("Assistant status received:", data);
       return data;
     },
-    refetchInterval: 5000, // Refetch every 5 seconds to catch auto-configuration
     refetchOnWindowFocus: true, // Ensure fresh data when window is focused
-    retry: 3, // Retry failed requests 3 times
   });
 
   
