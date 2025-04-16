@@ -146,7 +146,7 @@ const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
   
   return (
     <div className="h-full flex flex-col overflow-hidden relative">
-      <div className="flex items-center p-2 md:p-4 pr-10 relative">
+      <div className="flex items-center p-2 pr-10 relative">
         <h3 className="text-sm md:text-base font-semibold">Conversations</h3>
         <div className="flex-grow"></div>
         <Button size="sm" onClick={onNew} variant="outline" className="h-7 md:h-8 text-xs md:text-sm">
@@ -177,7 +177,7 @@ const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
         </Button>
       </div>
       <Separator />
-      <ScrollArea className="flex-1 px-1 md:px-2">
+      <ScrollArea className="flex-1">
         <div className="p-1 md:p-2">
           {isLoadingConversations ? (
             <div className="p-2 md:p-4 text-xs md:text-sm text-muted-foreground">Loading conversations...</div>

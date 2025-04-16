@@ -20,7 +20,7 @@ const ClinicianAssistantTile: React.FC<ClinicianAssistantTileProps> = ({
   description = "Ask questions about your data using natural language" 
 }) => {
   return (
-    <Link href="/clinician-assistant">
+    <Link href="/clinician-assistant" className="">
       <Card className={cn("overflow-hidden w-64 transition-all hover:shadow-md py-6 cursor-pointer group hover:shadow-md cursor-pointer hover:translate-y-[-2px]", className)}
         style={{ borderTop: `4px solid #10B981`, backgroundColor: "#ffffff" }}
         >
@@ -33,11 +33,6 @@ const ClinicianAssistantTile: React.FC<ClinicianAssistantTileProps> = ({
           <p className="text-sm text-muted-foreground text-center mb-3">
             {description}
           </p>
-          
-          <div className="flex items-center text-indigo-600 text-sm font-medium group-hover:underline">
-            Open Assistant
-            <ChevronRight className="h-4 w-4 ml-1" />
-          </div>
         </CardContent>
       </Card>
     </Link>

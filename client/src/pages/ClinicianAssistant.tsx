@@ -396,7 +396,7 @@ const ClinicianAssistant: React.FC = () => {
         )}
       </div>
       
-      <Card className="border shadow-sm h-full">
+      <Card className="border shadow-sm h-full pb-6">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <CardHeader className="px-3 py-4 md:px-6 md:py-6">
             <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-2">
@@ -483,7 +483,7 @@ const ClinicianAssistant: React.FC = () => {
                   id="conversation-sidebar"
                   className="hidden lg:block lg:col-span-3 border-r overflow-auto bg-background z-50 
                          lg:static lg:z-auto lg:h-auto
-                         fixed top-0 left-0 h-screen w-3/4 max-w-xs shadow-xl p-4 border-r z-[100]"
+                         fixed top-0 left-0 h-screen max-w-xs p-4 border-r z-[100]"
                 >
                   <ConversationSidebar
                     conversations={conversations}
