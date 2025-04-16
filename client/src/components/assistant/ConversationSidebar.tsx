@@ -146,8 +146,9 @@ const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
   
   return (
     <div className="h-full flex flex-col overflow-hidden relative">
-      <div className="flex justify-between items-center p-2 md:p-4">
+      <div className="flex items-center p-2 md:p-4 pr-10 relative">
         <h3 className="text-sm md:text-base font-semibold">Conversations</h3>
+        <div className="flex-grow"></div>
         <Button size="sm" onClick={onNew} variant="outline" className="h-7 md:h-8 text-xs md:text-sm">
           <Plus className="h-3 w-3 md:h-4 md:w-4 mr-1 md:mr-2" />
           New
@@ -163,6 +164,12 @@ const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
             if (sidebar) {
               sidebar.classList.add('hidden');
               sidebar.classList.remove('fixed');
+              
+              // Also remove the overlay
+              const overlay = document.getElementById('mobile-sidebar-overlay');
+              if (overlay) {
+                overlay.remove();
+              }
             }
           }}
         >
