@@ -379,17 +379,18 @@ const ClinicianAssistant: React.FC = () => {
   
   
   return (
-    <div className="container mx-auto py-6 h-full">
-      <div className="flex items-center mb-6">
-        <Link href="/">
-          <Button variant="ghost" className="mr-2">
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Dashboard
+    <div className="container px-2 sm:px-4 md:px-6 mx-auto py-3 md:py-6 h-full">
+      <div className="flex flex-wrap items-center mb-3 md:mb-6">
+        <Link href="/" className="mr-auto md:mr-2">
+          <Button variant="ghost" size="sm" className="text-xs md:text-sm">
+            <ArrowLeft className="h-3 w-3 md:h-4 md:w-4 mr-1 md:mr-2" />
+            <span className="hidden md:inline">Back to Dashboard</span>
+            <span className="inline md:hidden">Back</span>
           </Button>
         </Link>
-        <h1 className="text-2xl font-bold">Clinician Assistant</h1>
+        <h1 className="text-xl md:text-2xl font-bold order-first md:order-none w-full md:w-auto mb-2 md:mb-0">Clinician Assistant</h1>
         {!isConfigured && (
-          <Badge variant="outline" className="ml-4 bg-yellow-100 text-yellow-800">
+          <Badge variant="outline" className="ml-2 md:ml-4 bg-yellow-100 text-yellow-800 text-xs">
             Not Configured
           </Badge>
         )}
@@ -397,22 +398,23 @@ const ClinicianAssistant: React.FC = () => {
       
       <Card className="border shadow-sm h-full">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <CardHeader>
-            <div className="flex justify-between items-start">
+          <CardHeader className="px-3 py-4 md:px-6 md:py-6">
+            <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-2">
               <div>
-                <CardTitle>Clinician Assistant</CardTitle>
-                <CardDescription>
+                <CardTitle className="text-lg md:text-xl">Clinician Assistant</CardTitle>
+                <CardDescription className="text-xs md:text-sm">
                   Query your clinical database using natural language
                 </CardDescription>
               </div>
-              <TabsList>
-                <TabsTrigger value="assistant">
-                  <MessageSquare className="h-4 w-4 mr-2" />
-                  Assistant
+              <TabsList className="self-start h-8 md:h-10">
+                <TabsTrigger value="assistant" className="text-xs md:text-sm px-2 md:px-3 h-7 md:h-9">
+                  <MessageSquare className="h-3 w-3 md:h-4 md:w-4 mr-1 md:mr-2" />
+                  <span className="hidden sm:inline">Assistant</span>
+                  <span className="inline sm:hidden">Chat</span>
                 </TabsTrigger>
-                <TabsTrigger value="settings">
-                  <Settings className="h-4 w-4 mr-2" />
-                  Settings
+                <TabsTrigger value="settings" className="text-xs md:text-sm px-2 md:px-3 h-7 md:h-9">
+                  <Settings className="h-3 w-3 md:h-4 md:w-4 mr-1 md:mr-2" />
+                  <span>Settings</span>
                 </TabsTrigger>
               </TabsList>
             </div>
@@ -420,20 +422,62 @@ const ClinicianAssistant: React.FC = () => {
           
           <CardContent className="p-0 h-full">
             <TabsContent value="assistant" className="mt-0 h-full">
-              <div className="grid grid-cols-12 h-[700px]">
-                {/* Conversation List Sidebar */}
-                <div className="col-span-3 border-r h-[695px] overflow-auto w-full">
+              <div className="grid grid-cols-12 h-[calc(100vh-250px)] min-h-[500px] max-h-[900px]">
+                {/* Mobile Menu Button - Only visible on small screens */}
+                <div className="lg:hidden col-span-12 flex items-center border-b p-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="mr-2"
+                    onClick={() => {
+                      // Toggle mobile sidebar visibility
+                      const sidebar = document.getElementById('conversation-sidebar');
+                      if (sidebar) {
+                        sidebar.classList.toggle('hidden');
+                        sidebar.classList.toggle('fixed');
+                      }
+                    }}
+                  >
+                    <MessageSquare className="h-4 w-4 mr-2" />
+                    Conversations
+                  </Button>
+                  
+                  <Button 
+                    variant="outline"
+                    size="sm"
+                    onClick={createNewConversation}
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    New Conversation
+                  </Button>
+                </div>
+                
+                {/* Conversation List Sidebar - Hidden on mobile, toggleable */}
+                <div 
+                  id="conversation-sidebar"
+                  className="hidden lg:block lg:col-span-3 border-r h-full overflow-auto w-full bg-background z-50 
+                         lg:static lg:z-auto lg:h-auto
+                         fixed top-0 left-0 h-full w-3/4 shadow-xl p-4 border-r"
+                >
                   <ConversationSidebar
                     conversations={conversations}
                     selectedId={selectedConversationId}
-                    onSelect={(id) => setSelectedConversationId(id)}
+                    onSelect={(id) => {
+                      setSelectedConversationId(id);
+                      // Hide sidebar on mobile after selection
+                      const sidebar = document.getElementById('conversation-sidebar');
+                      if (sidebar && window.innerWidth < 1024) {
+                        sidebar.classList.add('hidden');
+                        sidebar.classList.remove('fixed');
+                      }
+                    }}
                     onNew={createNewConversation}
                     isLoadingConversations={isLoadingConversations}
                   />
                 </div>
                 
                 {/* Chat Area */}
-                <div className="col-span-9 flex flex-col">
+                <div className="col-span-12 lg:col-span-9 flex flex-col">
                   {!isConfigured ? (
                     <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
                       <MessageSquare className="h-16 w-16 mb-4 text-muted-foreground" />
@@ -462,7 +506,7 @@ const ClinicianAssistant: React.FC = () => {
                         ) : (
                           <div 
                             ref={messagesContainerRef} 
-                            className="overflow-auto h-[460px] border rounded-md p-3 flex flex-col space-y-4 scroll-smooth"
+                            className="overflow-auto h-[calc(100vh-400px)] min-h-[300px] max-h-[700px] border rounded-md p-3 flex flex-col space-y-4 scroll-smooth"
                           >
                             {selectedConversation.messages.map((msg: Message) => (
                               <MessageBubble key={msg.id} message={msg} />
@@ -485,11 +529,13 @@ const ClinicianAssistant: React.FC = () => {
                       </div>
                       
                       {/* Input Area */}
-                      <div className="p-4 border-t">
+                      <div className="p-2 sm:p-4 border-t">
                         <div className="flex items-center">
                           <Input
-                            className="flex-1 rounded-r-none h-10 focus-visible:ring-1"
-                            placeholder={inputDisabled ? "Assistant not configured or conversation not selected..." : "Type your question here..."}
+                            className="flex-1 rounded-r-none h-9 md:h-10 text-sm md:text-base focus-visible:ring-1"
+                            placeholder={inputDisabled 
+                              ? "Assistant not configured..." 
+                              : "Type your question here..."}
                             value={message}
                             onChange={(e) => setMessage(e.target.value)}
                             disabled={inputDisabled}
@@ -501,19 +547,19 @@ const ClinicianAssistant: React.FC = () => {
                             }}
                           />
                           <Button 
-                            className="rounded-l-none h-10 px-4" 
+                            className="rounded-l-none h-9 md:h-10 px-2 md:px-4 text-xs md:text-sm" 
                             onClick={sendMessage}
                             disabled={!message.trim() || inputDisabled}
                           >
-                            <SendHorizontal className="h-4 w-4 mr-2" />
-                            Send
+                            <SendHorizontal className="h-3 w-3 md:h-4 md:w-4 mr-1 md:mr-2" />
+                            <span className="hidden sm:inline">Send</span>
                           </Button>
                         </div>
-                        <div className="text-xs text-muted-foreground mt-2">
+                        <div className="text-xs text-muted-foreground mt-2 hidden sm:block">
                           <p className="mb-1">Example questions:</p>
-                          <ul className="list-disc list-inside pl-2 space-y-1">
-                            <li>"How many active clients do we have?"</li>
-                            <li>"Show me a list of clients with incomplete assessments"</li>
+                          <ul className="list-disc list-inside pl-2 space-y-1 text-[10px] md:text-xs">
+                            <li className="hidden md:list-item">"How many active clients do we have?"</li>
+                            <li className="hidden md:list-item">"Show me a list of clients with incomplete assessments"</li>
                             <li>"What's the average session duration for therapist Sarah in March?"</li>
                             <li>"List all clients with budgets over 80% utilized"</li>
                           </ul>

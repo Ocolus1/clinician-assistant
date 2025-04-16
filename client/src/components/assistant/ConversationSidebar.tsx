@@ -145,32 +145,48 @@ const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
   };
   
   return (
-    <div className="h-full flex flex-col overflow-hidden">
-      <div className="flex justify-between items-center p-4">
-        <h3 className="font-semibold">Conversations</h3>
-        <Button size="sm" onClick={onNew} variant="outline">
-          <Plus className="h-4 w-4 mr-2" />
+    <div className="h-full flex flex-col overflow-hidden relative">
+      <div className="flex justify-between items-center p-2 md:p-4">
+        <h3 className="text-sm md:text-base font-semibold">Conversations</h3>
+        <Button size="sm" onClick={onNew} variant="outline" className="h-7 md:h-8 text-xs md:text-sm">
+          <Plus className="h-3 w-3 md:h-4 md:w-4 mr-1 md:mr-2" />
           New
+        </Button>
+        
+        {/* Close button for mobile sidebar */}
+        <Button 
+          size="sm" 
+          variant="ghost" 
+          className="h-7 absolute top-2 right-2 lg:hidden"
+          onClick={() => {
+            const sidebar = document.getElementById('conversation-sidebar');
+            if (sidebar) {
+              sidebar.classList.add('hidden');
+              sidebar.classList.remove('fixed');
+            }
+          }}
+        >
+          <X className="h-4 w-4" />
         </Button>
       </div>
       <Separator />
-      <ScrollArea className="flex-1 px-2">
-        <div className="p-2">
+      <ScrollArea className="flex-1 px-1 md:px-2">
+        <div className="p-1 md:p-2">
           {isLoadingConversations ? (
-            <div className="p-4 text-muted-foreground">Loading conversations...</div>
+            <div className="p-2 md:p-4 text-xs md:text-sm text-muted-foreground">Loading conversations...</div>
           ) : conversations.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-32 text-center text-muted-foreground">
-                <MessageSquare className="h-8 w-8 mb-2 opacity-50" />
-                <p>No conversations yet</p>
-                <p className="text-sm">Start a new conversation</p>
+                <MessageSquare className="h-6 w-6 md:h-8 md:w-8 mb-2 opacity-50" />
+                <p className="text-sm md:text-base">No conversations yet</p>
+                <p className="text-xs md:text-sm">Start a new conversation</p>
               </div>
           ) : (
-              <div className="space-y-2">
+              <div className="space-y-1 md:space-y-2">
                 {conversations.map(conv => (
                   <div 
                     key={conv.id}
                     className={cn(
-                      "p-3 rounded-md border",
+                      "p-2 md:p-3 rounded-md border text-sm md:text-base",
                       editingId === conv.id 
                         ? "bg-muted" 
                         : selectedId === conv.id 
