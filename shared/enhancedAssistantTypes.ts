@@ -111,6 +111,10 @@ export interface ConversationMemory {
   lastQuestion?: string;
   activeClientId?: string;
   activeClientName?: string;
+  activeGoalName?: string;
+  activeGoalId?: string;
+  activeTimeframe?: string;
+  activeFilters?: string[];
   recentEntities?: ExtractedEntity[];
   contextCarryover?: {
     subject?: string;

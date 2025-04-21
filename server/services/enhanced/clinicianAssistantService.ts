@@ -144,6 +144,43 @@ export class ClinicianAssistantService {
         memory.activeClientName = entity.text;
       } else if (entity.type === 'ClientID') {
         memory.activeClientId = entity.text;
+      } else if (entity.type === 'GoalName') {
+        memory.activeGoalName = entity.text;
+      } else if (entity.type === 'GoalID') {
+        memory.activeGoalId = entity.text;
+      } else if (entity.type === 'Date') {
+        // Interpret dates as timeframes
+        memory.activeTimeframe = entity.text;
+      } else if (entity.type === 'Category') {
+        // Initialize activeFilters if it doesn't exist
+        if (!memory.activeFilters) {
+          memory.activeFilters = [];
+        }
+        
+        // Add category as a filter if not already present
+        if (!memory.activeFilters.includes(entity.text)) {
+          memory.activeFilters.push(entity.text);
+        }
+      }
+    }
+    
+    // Simple heuristic to detect timeframe-related terms in the question
+    const timeframeTerms = [
+      { term: 'last week', value: 'last week' },
+      { term: 'this week', value: 'this week' },
+      { term: 'next week', value: 'next week' },
+      { term: 'last month', value: 'last month' },
+      { term: 'this month', value: 'this month' },
+      { term: 'next month', value: 'next month' },
+      { term: 'last year', value: 'last year' },
+      { term: 'this year', value: 'this year' },
+      { term: 'next year', value: 'next year' },
+    ];
+    
+    for (const { term, value } of timeframeTerms) {
+      if (question.toLowerCase().includes(term)) {
+        memory.activeTimeframe = value;
+        break;
       }
     }
     
@@ -247,7 +284,7 @@ export class ClinicianAssistantService {
               );
               
               // Generate explanation with the results
-              const explanation = await this.generateExplanation(question, queryResult.data);
+              const explanation = await this.generateExplanation(question, queryResult.data, updatedMemory);
               
               return {
                 originalQuestion: question,
@@ -283,7 +320,7 @@ export class ClinicianAssistantService {
             
             if (executedPlan.complete && executedPlan.finalResults) {
               // Generate explanation with the final results
-              const explanation = await this.generateExplanation(question, executedPlan.finalResults);
+              const explanation = await this.generateExplanation(question, executedPlan.finalResults, updatedMemory);
               
               return {
                 originalQuestion: question,
@@ -330,7 +367,7 @@ export class ClinicianAssistantService {
       }
       
       // Generate explanation with the results
-      const explanation = await this.generateExplanation(question, queryResult.data);
+      const explanation = await this.generateExplanation(question, queryResult.data, updatedMemory);
       
       // Return the response
       return {
@@ -373,7 +410,7 @@ export class ClinicianAssistantService {
   /**
    * Generate a natural language explanation of the query results
    */
-  private async generateExplanation(question: string, data: any[]): Promise<string> {
+  private async generateExplanation(question: string, data: any[], memory?: ConversationMemory): Promise<string> {
     try {
       // If no data, return a simple message
       if (!data || data.length === 0) {
@@ -383,9 +420,14 @@ export class ClinicianAssistantService {
       // If data is too large, summarize it
       const dataToExplain = data.length > 10 ? data.slice(0, 10) : data;
       
+      // Build memory context if available
+      const memoryContext = memory ? this.buildMemoryContext(memory) : '';
+      
       // Create prompt for explanation generation
       const prompt = `
 Based on this question: "${question}"
+
+${memoryContext ? `Context from previous conversation:\n${memoryContext}\n\n` : ''}
 
 The database returned these results:
 ${JSON.stringify(dataToExplain, null, 2)}${data.length > 10 ? `\n\n(showing 10 of ${data.length} results)` : ''}
@@ -393,10 +435,11 @@ ${JSON.stringify(dataToExplain, null, 2)}${data.length > 10 ? `\n\n(showing 10 o
 Please provide a clear, concise explanation of these results in natural language. 
 The explanation should:
 1. Directly answer the question asked, summarizing the key findings
-2. Mention any relevant patterns, outliers, or interesting observations
-3. Be written in a professional but conversational tone suitable for clinicians
-4. Not exceed 3-4 sentences unless necessary for clarity
-5. If appropriate, mention the total count of results (${data.length})
+2. Maintain context about the client or goals mentioned in previous conversation
+3. Mention any relevant patterns, outliers, or interesting observations
+4. Be written in a professional but conversational tone suitable for clinicians
+5. Not exceed 3-4 sentences unless necessary for clarity
+6. If appropriate, mention the total count of results (${data.length})
 
 Your response should be purely explanatory without mentioning the SQL or technical aspects.
 `;
