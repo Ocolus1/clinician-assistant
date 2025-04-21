@@ -28,7 +28,15 @@ async function ensureInitialized(req: express.Request, res: express.Response, ne
  */
 async function askQuestion(req: express.Request, res: express.Response) {
   try {
-    const { question, useBusinessContext, useTemplates, useMultiQuery, specificTemplate } = req.body;
+    const { 
+      question, 
+      useBusinessContext, 
+      useTemplates, 
+      useMultiQuery, 
+      specificTemplate,
+      conversationId,
+      conversationMemory 
+    } = req.body;
     
     if (!question || typeof question !== 'string') {
       return res.status(400).json({ error: 'Question is required and must be a string' });
@@ -39,9 +47,15 @@ async function askQuestion(req: express.Request, res: express.Response) {
       useBusinessContext: useBusinessContext !== false,
       useTemplates: useTemplates !== false,
       useMultiQuery: useMultiQuery !== false,
-      specificTemplate: specificTemplate || undefined
+      specificTemplate: specificTemplate || undefined,
+      conversationId,
+      conversationMemory
     };
     
+    console.log('[EnhancedAssistant] Processing question with memory:', 
+      conversationMemory ? 'Present' : 'None',
+      conversationId ? `ConversationID: ${conversationId}` : '');
+      
     const response = await clinicianAssistantService.processQuestion(enhancedQuestion);
     res.json(response);
   } catch (error: any) {

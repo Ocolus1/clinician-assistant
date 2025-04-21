@@ -57,6 +57,7 @@ export interface SQLQueryContext {
   previousResults?: any[];
   schema?: TableMetadata[];
   userContext?: Record<string, any>;
+  useBusinessContext?: boolean;
 }
 
 // Template parameter definition

@@ -253,7 +253,9 @@ export class ClinicianAssistantService {
                 explanation,
                 usedMultiQuery: true,
                 querySteps: executedPlan.steps,
-                executionTime: executedPlan.totalExecutionTime || (Date.now() - startTime)
+                executionTime: executedPlan.totalExecutionTime || (Date.now() - startTime),
+                updatedMemory,
+                detectedEntities: extractedEntities
               };
             } else {
               console.error('[ClinicianAssistant] Multi-query execution failed:', executedPlan.error);
@@ -283,7 +285,9 @@ export class ClinicianAssistantService {
           originalQuestion: question,
           sqlQuery: queryResult.query,
           errorMessage: queryResult.error,
-          executionTime: Date.now() - startTime
+          executionTime: Date.now() - startTime,
+          updatedMemory,
+          detectedEntities: extractedEntities
         };
       }
       
@@ -296,14 +300,34 @@ export class ClinicianAssistantService {
         sqlQuery: queryResult.query,
         data: queryResult.data,
         explanation,
-        executionTime: Date.now() - startTime
+        executionTime: Date.now() - startTime,
+        updatedMemory,
+        detectedEntities: extractedEntities
       };
     } catch (error: any) {
       console.error('[ClinicianAssistant] Error processing question:', error);
       
+      // Even in error cases, try to update and return conversation memory
+      let errorMemory = undefined;
+      let errorEntities = undefined;
+      
+      try {
+        const extractedEntities = await this.extractEntities(enhancedQuestion.question);
+        errorMemory = this.updateConversationMemory(
+          enhancedQuestion.conversationMemory,
+          enhancedQuestion.question,
+          extractedEntities
+        );
+        errorEntities = extractedEntities;
+      } catch (memoryError) {
+        console.error('[ClinicianAssistant] Failed to save conversation memory during error:', memoryError);
+      }
+      
       return {
         originalQuestion: enhancedQuestion.question,
-        errorMessage: `Error processing question: ${error.message}`
+        errorMessage: `Error processing question: ${error.message}`,
+        updatedMemory: errorMemory,
+        detectedEntities: errorEntities
       };
     }
   }
@@ -400,6 +424,7 @@ Your response should be purely explanatory without mentioning the SQL or technic
         id: 'templates',
         name: 'Query Templates',
         description: 'Pre-built templates for common clinical questions',
+        defaultEnabled: true,
         enabled: true,
         icon: 'template'
       },
@@ -407,6 +432,7 @@ Your response should be purely explanatory without mentioning the SQL or technic
         id: 'multi-query',
         name: 'Complex Analysis',
         description: 'Multi-step analysis for complex questions',
+        defaultEnabled: true,
         enabled: true,
         icon: 'analytics'
       },
@@ -414,6 +440,7 @@ Your response should be purely explanatory without mentioning the SQL or technic
         id: 'business-context',
         name: 'Clinical Context',
         description: 'Enhanced understanding of clinical domain terminology',
+        defaultEnabled: true,
         enabled: true,
         icon: 'brain'
       }
