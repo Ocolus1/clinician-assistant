@@ -7,116 +7,119 @@
 
 import express from 'express';
 import { enhancedClinicianAssistantService } from '../services/enhanced/clinicianAssistantService';
-import { EnhancedAssistantQuestion } from '../../shared/enhancedAssistantTypes';
-
-// Create a router
-const router = express.Router();
+import { EnhancedAssistantQuestion } from '@shared/enhancedAssistantTypes';
 
 /**
  * Helper function to ensure service is initialized
  */
 async function ensureInitialized(req: express.Request, res: express.Response, next: express.NextFunction) {
-  try {
-    if (!enhancedClinicianAssistantService.isConfigured()) {
-      await enhancedClinicianAssistantService.initialize();
-    }
-    next();
-  } catch (error: any) {
-    console.error('Failed to initialize enhanced clinician assistant:', error);
-    res.status(500).json({
-      error: 'Failed to initialize enhanced clinician assistant',
-      message: error.message
+  if (!enhancedClinicianAssistantService.getInitializationStatus()) {
+    return res.status(503).json({
+      error: 'Enhanced assistant service is still initializing. Please try again in a moment.'
     });
   }
+  next();
 }
 
 /**
  * @route POST /api/enhanced-assistant/ask
  * @description Process a question using the enhanced assistant
  */
-router.post('/ask', ensureInitialized, async (req, res) => {
+async function askQuestion(req: express.Request, res: express.Response) {
   try {
-    const { question, useTemplates, useMultiQuery, useBusinessContext } = req.body;
+    const { question, useBusinessContext, useTemplates, useMultiQuery, format, clientId, therapistId } = req.body;
     
     if (!question) {
       return res.status(400).json({ error: 'Question is required' });
     }
     
-    console.log('[Enhanced API] Processing question:', question);
-    
+    // Process the question with enhanced capabilities
     const enhancedQuestion: EnhancedAssistantQuestion = {
       question,
+      useBusinessContext,
       useTemplates,
       useMultiQuery,
-      useBusinessContext
+      format,
+      clientId,
+      therapistId
     };
     
+    console.log(`[EnhancedAssistantAPI] Processing question: "${question}"`);
     const response = await enhancedClinicianAssistantService.processQuestion(enhancedQuestion);
     
-    res.json(response);
+    return res.json(response);
   } catch (error: any) {
-    console.error('[Enhanced API] Error processing question:', error);
-    res.status(500).json({
-      error: 'Error processing question',
-      message: error.message
+    console.error('[EnhancedAssistantAPI] Error processing question:', error);
+    
+    return res.status(500).json({
+      error: `Error processing question: ${error.message}`,
+      details: error.stack
     });
   }
-});
+}
 
 /**
  * @route GET /api/enhanced-assistant/features
  * @description Get available enhanced features
  */
-router.get('/features', ensureInitialized, async (req, res) => {
+async function getFeatures(req: express.Request, res: express.Response) {
   try {
-    // Return information about available features
-    res.json({
-      features: {
-        templateMatching: true,
-        multiQueryChains: true,
-        businessContext: true,
-        enhancedNLGeneration: true
-      }
-    });
+    const features = enhancedClinicianAssistantService.getAvailableFeatures();
+    return res.json(features);
   } catch (error: any) {
-    console.error('[Enhanced API] Error fetching features:', error);
-    res.status(500).json({
-      error: 'Error fetching features',
-      message: error.message
+    console.error('[EnhancedAssistantAPI] Error fetching features:', error);
+    
+    return res.status(500).json({
+      error: `Error fetching features: ${error.message}`
     });
   }
-});
+}
 
 /**
  * @route GET /api/enhanced-assistant/templates
  * @description Get available query templates
  */
-router.get('/templates', ensureInitialized, async (req, res) => {
+async function getTemplates(req: express.Request, res: express.Response) {
   try {
-    // Import the template service here to avoid circular dependencies
-    const { queryTemplateService } = require('../services/enhanced/queryTemplates');
+    const templates = enhancedClinicianAssistantService.getAvailableTemplates();
     
-    const templates = queryTemplateService.getTemplates();
+    // Format templates for client display
+    const formattedTemplates = templates.map(template => ({
+      id: template.id,
+      name: template.name,
+      description: template.description,
+      parameters: template.parameters.map(param => ({
+        name: param.name,
+        description: param.description,
+        type: param.type,
+        required: param.required
+      })),
+      examplePatterns: template.patterns
+    }));
     
-    res.json({
-      templates: templates.map(template => ({
-        id: template.id,
-        name: template.name,
-        description: template.description,
-        exampleQuestions: template.patterns.slice(0, 3)
-      }))
-    });
+    return res.json(formattedTemplates);
   } catch (error: any) {
-    console.error('[Enhanced API] Error fetching templates:', error);
-    res.status(500).json({
-      error: 'Error fetching templates',
-      message: error.message
+    console.error('[EnhancedAssistantAPI] Error fetching templates:', error);
+    
+    return res.status(500).json({
+      error: `Error fetching templates: ${error.message}`
     });
   }
-});
+}
 
-// Register routes
+/**
+ * Register enhanced assistant routes on the Express app
+ */
 export function registerEnhancedAssistantRoutes(app: express.Express) {
-  app.use('/api/enhanced-assistant', router);
+  console.log('STEP 2.6: Registering enhanced assistant API routes');
+  
+  // Register the middleware to ensure service is initialized
+  app.use('/api/enhanced-assistant', ensureInitialized);
+  
+  // Register routes
+  app.post('/api/enhanced-assistant/ask', askQuestion);
+  app.get('/api/enhanced-assistant/features', getFeatures);
+  app.get('/api/enhanced-assistant/templates', getTemplates);
+  
   console.log('STEP 2.6: Registering enhanced assistant API routes');
 }

@@ -230,7 +230,7 @@ export class EnhancedSQLQueryGenerator {
       console.log('[Enhanced] Executing query:', generatedQuery);
       
       try {
-        const results = await db.unsafe(generatedQuery);
+        const results = await sql`${generatedQuery}`;
         
         return {
           query: generatedQuery,
@@ -270,7 +270,7 @@ export class EnhancedSQLQueryGenerator {
           console.log('[Enhanced] Executing fixed query:', sanitizedFixedQuery);
           
           // Try the fixed query
-          const results = await db.unsafe(sanitizedFixedQuery);
+          const results = await sql`${sanitizedFixedQuery}`;
           
           return {
             query: sanitizedFixedQuery,

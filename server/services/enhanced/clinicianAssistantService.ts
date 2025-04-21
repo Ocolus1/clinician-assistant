@@ -1,246 +1,277 @@
 /**
  * Enhanced Clinician Assistant Service
  * 
- * This service extends the original clinician assistant with advanced features:
- * - Schema metadata with business context
- * - Query templates for common questions
- * - Multi-query chains for complex questions
- * - Enhanced natural language responses
+ * This service enhances the base clinician assistant with:
+ * - Improved schema understanding with business context
+ * - Support for query templates for common questions
+ * - Multi-query capability for complex questions
+ * - More robust error handling and query generation
  */
 
-import { EnhancedAssistantQuestion, EnhancedAssistantResponse } from '@shared/enhancedAssistantTypes';
 import { openaiService } from '../openaiService';
 import { schemaMetadataService } from './schemaMetadata';
 import { queryTemplateService } from './queryTemplates';
 import { multiQueryEngine } from './multiQueryEngine';
 import { enhancedSQLQueryGenerator } from './sqlQueryGenerator';
+import { 
+  EnhancedAssistantQuestion, 
+  EnhancedAssistantResponse, 
+  EnhancedFeature,
+  QueryChain
+} from '@shared/enhancedAssistantTypes';
 
 /**
- * Enhanced Clinician Assistant Service class
+ * Enhanced Clinician Assistant Service
  */
 export class EnhancedClinicianAssistantService {
-  private isInitialized = false;
+  private isInitialized: boolean = false;
+  private availableFeatures: EnhancedFeature[] = [];
+  
+  constructor() {
+    this.initialize();
+  }
   
   /**
-   * Initialize the assistant with required dependencies
+   * Initialize the service
    */
   async initialize(): Promise<void> {
-    if (!openaiService.isConfigured()) {
-      throw new Error('OpenAI service is not configured');
-    }
-    
-    this.isInitialized = true;
-    console.log('Enhanced Clinician Assistant Service initialized');
-  }
-  
-  /**
-   * Check if the service is properly initialized
-   */
-  isConfigured(): boolean {
-    return this.isInitialized && openaiService.isConfigured();
-  }
-  
-  /**
-   * Format database results into a human-readable response
-   */
-  formatResults(data: any[], questionContext: string): string {
-    if (!data || data.length === 0) {
-      return 'I couldn\'t find any data matching your query.';
-    }
-    
-    if (data.length === 1 && Object.keys(data[0]).length === 1) {
-      // Single value result (count, sum, etc.)
-      const value = Object.values(data[0])[0];
-      const key = Object.keys(data[0])[0];
+    try {
+      // Initialize schema metadata
+      await schemaMetadataService.getSchemaWithBusinessContext();
       
-      if (typeof value === 'number') {
-        if (questionContext.toLowerCase().includes('how many')) {
-          return `There ${value === 1 ? 'is' : 'are'} ${value} ${key.replace(/_/g, ' ').toLowerCase()}${value === 1 ? '' : 's'}.`;
-        } else {
-          return `The ${key.replace(/_/g, ' ').toLowerCase()} is ${value}.`;
+      // Define available features
+      this.availableFeatures = [
+        {
+          id: 'business_context',
+          name: 'Business Context',
+          description: 'Uses healthcare domain knowledge to better understand tables and their relationships',
+          exampleQuestions: [
+            'What clients are currently active in our system?',
+            'Which therapists have the most sessions this month?',
+            'Show me budget utilization for clients with recent assessments'
+          ],
+          enabled: true
+        },
+        {
+          id: 'query_templates',
+          name: 'Query Templates',
+          description: 'Pre-built query patterns for common questions with parameter extraction',
+          exampleQuestions: [
+            'List all active clients',
+            'Show appointments for the next 2 weeks',
+            'What is the budget utilization for client Smith?'
+          ],
+          enabled: true
+        },
+        {
+          id: 'multi_query',
+          name: 'Multi-Query Engine',
+          description: 'Breaks down complex questions into multiple query steps',
+          exampleQuestions: [
+            'Which therapists have the highest patient satisfaction scores among those with full caseloads?',
+            'Compare budget utilization between clients with and without insurance',
+            'Find clients who improved after their budget was increased'
+          ],
+          enabled: true
+        }
+      ];
+      
+      this.isInitialized = true;
+      console.log('Enhanced Clinician Assistant Service initialized successfully');
+    } catch (error) {
+      console.error('Error initializing Enhanced Clinician Assistant Service:', error);
+    }
+  }
+  
+  /**
+   * Check if the service is initialized
+   */
+  getInitializationStatus(): boolean {
+    return this.isInitialized;
+  }
+  
+  /**
+   * Get available features
+   */
+  getAvailableFeatures(): EnhancedFeature[] {
+    return this.availableFeatures;
+  }
+  
+  /**
+   * Get available query templates
+   */
+  getAvailableTemplates() {
+    return queryTemplateService.getTemplates();
+  }
+  
+  /**
+   * Process a natural language question
+   */
+  async processQuestion(enhancedQuestion: EnhancedAssistantQuestion): Promise<EnhancedAssistantResponse> {
+    const startTime = Date.now();
+    
+    try {
+      // Ensure defaults are set
+      const question = enhancedQuestion.question;
+      const useBusinessContext = enhancedQuestion.useBusinessContext !== false; // Default to true
+      const useTemplates = enhancedQuestion.useTemplates !== false; // Default to true
+      const useMultiQuery = enhancedQuestion.useMultiQuery !== false; // Default to true
+      const format = enhancedQuestion.format || 'natural';
+      
+      console.log(`[EnhancedAssistant] Processing question: "${question}"`);
+      console.log(`[EnhancedAssistant] Options: useBusinessContext=${useBusinessContext}, useTemplates=${useTemplates}, useMultiQuery=${useMultiQuery}, format=${format}`);
+      
+      // Step 1: Check for query template match first
+      let queryResult: any = undefined;
+      let templateId: string | undefined = undefined;
+      let usedTemplate = false;
+      let usedMultiQuery = false;
+      let queryChain: QueryChain | undefined = undefined;
+      
+      if (useTemplates) {
+        const templateResult = await queryTemplateService.processQuestion(question);
+        
+        if (templateResult.matched && templateResult.query) {
+          console.log(`[EnhancedAssistant] Found matching template: ${templateResult.templateId}`);
+          
+          // Execute the template query
+          queryResult = await enhancedSQLQueryGenerator.executeQuery(question, {
+            useTemplates: true,
+            useBusinessContext
+          });
+          
+          if (!queryResult.error) {
+            usedTemplate = true;
+            templateId = templateResult.templateId;
+          }
         }
       }
       
-      return `${key.replace(/_/g, ' ')}: ${value}`;
-    }
-    
-    // Multiple row results
-    if (data.length === 1) {
-      // Single row with multiple columns
-      const row = data[0];
-      const formattedRow = Object.entries(row)
-        .map(([key, value]) => `**${key.replace(/_/g, ' ')}**: ${value}`)
-        .join('\n');
+      // Step 2: If no template match or template execution failed, check for multi-query
+      if (!queryResult && useMultiQuery) {
+        const multiQueryCheck = await multiQueryEngine.checkIfMultiQueryNeeded(question);
+        
+        if (multiQueryCheck.needsMultiQuery) {
+          console.log(`[EnhancedAssistant] Using multi-query approach: ${multiQueryCheck.reason}`);
+          
+          // Generate and execute a multi-query plan
+          const plan = await multiQueryEngine.generateMultiQueryPlan(question);
+          const executedPlan = await multiQueryEngine.executeQueryChain(plan);
+          
+          if (executedPlan.complete && !executedPlan.error && executedPlan.finalResults) {
+            usedMultiQuery = true;
+            queryChain = executedPlan;
+            
+            // Use the results from the multi-query
+            queryResult = {
+              query: executedPlan.steps.map(step => step.query).join('\n\n'),
+              data: executedPlan.finalResults,
+              executionTime: executedPlan.totalExecutionTime,
+              fromMultiQuery: true,
+              usedBusinessContext: useBusinessContext
+            };
+          }
+        }
+      }
       
-      return `Here's the information I found:\n\n${formattedRow}`;
-    } else {
-      // Multiple rows
-      const formatRow = (row: any) => {
-        return Object.entries(row)
-          .map(([key, value]) => `${key.replace(/_/g, ' ')}: ${value}`)
-          .join(', ');
+      // Step 3: If no template match or multi-query, fall back to direct query generation
+      if (!queryResult) {
+        console.log('[EnhancedAssistant] Using direct query generation');
+        
+        queryResult = await enhancedSQLQueryGenerator.executeQuery(question, {
+          useBusinessContext,
+          useTemplates: false,
+          useMultiQuery: false
+        });
+      }
+      
+      // Step 4: Generate a natural language response
+      const answer = await this.generateNaturalLanguageResponse(
+        question,
+        queryResult.data,
+        queryResult.query,
+        format
+      );
+      
+      // Return the complete response
+      return {
+        question,
+        answer,
+        data: queryResult.data,
+        query: queryResult.query,
+        executionTime: Date.now() - startTime,
+        usedTemplate,
+        templateId,
+        usedMultiQuery,
+        queryChain,
+        usedBusinessContext: useBusinessContext,
+        error: queryResult.error
       };
+    } catch (error: any) {
+      console.error('[EnhancedAssistant] Error processing question:', error);
       
-      // Create a bullet-point list for readability
-      return `Here are the ${data.length} results I found:\n\n` + 
-        data.map((row, index) => `${index + 1}. ${formatRow(row)}`).join('\n');
+      return {
+        question: enhancedQuestion.question,
+        answer: `I'm sorry, I encountered an error while processing your question: ${error.message}`,
+        data: [],
+        query: '',
+        executionTime: Date.now() - startTime,
+        error: error.message
+      };
     }
   }
   
   /**
-   * Generate an enhanced natural language response
+   * Generate a natural language response based on query results
    */
-  async generateResponse(question: string, sqlQuery: string, results: any[]): Promise<string> {
-    const prompt = `
-      Answer the following question based on the provided data.
-      
-      Question: "${question}"
-      
-      SQL Query Used:
-      \`\`\`
-      ${sqlQuery}
-      \`\`\`
-      
-      Data Results:
-      \`\`\`
-      ${JSON.stringify(results, null, 2)}
-      \`\`\`
-      
-      Guidelines:
-      1. Provide a concise and direct answer to the question
-      2. Include specific data points from the results to support your answer
-      3. Use clear, simple language appropriate for a clinical setting
-      4. Format numbers and dates in a human-readable way
-      5. If the results show no data, acknowledge this and suggest possible reasons
-      
-      Your response should be informative and helpful to a clinician looking for insights.
-    `;
-    
+  private async generateNaturalLanguageResponse(
+    question: string,
+    data: any[],
+    query: string,
+    format: string = 'natural'
+  ): Promise<string> {
     try {
+      // If there's no data, return a simple no data message
+      if (!data || data.length === 0) {
+        return "I couldn't find any data matching your query. Please try rephrasing your question or asking about different information.";
+      }
+      
+      // For JSON format, just return the stringified data
+      if (format === 'json') {
+        return JSON.stringify(data, null, 2);
+      }
+      
+      // For table format, we'll generate a response that includes the data
+      if (format === 'table') {
+        return "Here are the results of your query:";
+      }
+      
+      // For natural language format, use OpenAI to generate a response
+      const responsePrompt = `
+        Question: "${question}"
+        
+        SQL Query: ${query}
+        
+        Query Results: ${JSON.stringify(data, null, 2)}
+        
+        Please provide a concise natural language summary of these results that directly answers the question.
+        Your response should:
+        1. Be conversational and friendly
+        2. Mention specific numbers and facts from the data
+        3. Contextualize the information for a healthcare provider
+        4. Be no more than 3-4 sentences
+        5. Not include any SQL or technical details
+      `;
+      
       const response = await openaiService.createChatCompletion([
-        { role: 'system', content: 'You are a clinical assistant that provides helpful insights from database queries about therapy clients. You explain data in a clear, concise manner for medical professionals.' },
-        { role: 'user', content: prompt }
+        { role: "system", content: "You are a helpful clinical assistant that specializes in summarizing database query results in natural language." },
+        { role: "user", content: responsePrompt }
       ]);
       
       return response.trim();
     } catch (error) {
-      console.error('Error generating natural language response:', error);
-      
-      // Fall back to simple formatting if AI generation fails
-      return this.formatResults(results, question);
-    }
-  }
-  
-  /**
-   * Process a question and generate an answer
-   */
-  async processQuestion(question: EnhancedAssistantQuestion): Promise<EnhancedAssistantResponse> {
-    if (!this.isConfigured()) {
-      return {
-        answer: 'The Enhanced Clinician Assistant is not properly configured. Please check the API keys and settings.',
-        error: 'Service not configured',
-        success: false
-      };
-    }
-    
-    const startTime = Date.now();
-    
-    try {
-      console.log('[Enhanced] Processing question:', question.question);
-      
-      // Options for generation
-      const queryOptions = {
-        useTemplates: question.useTemplates !== false,
-        useMultiQuery: question.useMultiQuery !== false, 
-        useBusinessContext: question.useBusinessContext !== false
-      };
-      
-      // First, check if this matches a template or multi-query pattern
-      // If so, execute it directly
-      // If not, generate an SQL query and execute it
-      const result = await enhancedSQLQueryGenerator.executeQuery(
-        question.question,
-        queryOptions
-      );
-      
-      // Check for errors in execution
-      if (result.error) {
-        console.error('[Enhanced] Error executing query:', result.error);
-        
-        return {
-          answer: `I encountered an error while processing your question: ${result.error}`,
-          error: result.error,
-          success: false,
-          executionTime: Date.now() - startTime,
-          fromTemplate: result.fromTemplate,
-          fromMultiQuery: result.fromMultiQuery,
-          usedBusinessContext: result.usedBusinessContext
-        };
-      }
-      
-      // No errors, generate a natural language response
-      let nlResponse: string;
-      
-      // Check if we have template-based response mapping
-      if (result.fromTemplate) {
-        // Template-based response 
-        const templateResult = await queryTemplateService.processQuestion(question.question);
-        
-        if (templateResult.matched && templateResult.templateId) {
-          const template = queryTemplateService.getTemplate(templateResult.templateId);
-          
-          if (template && template.responseTemplate && templateResult.parameters) {
-            // Use the template's response template
-            nlResponse = template.responseTemplate;
-            
-            // Replace parameters in the response template
-            for (const [key, value] of Object.entries(templateResult.parameters)) {
-              nlResponse = nlResponse.replace(`{${key}}`, String(value));
-            }
-            
-            // Append the formatted results
-            nlResponse += '\n\n' + this.formatResults(result.data, question.question);
-          } else {
-            // Generate response using AI
-            nlResponse = await this.generateResponse(question.question, result.query, result.data);
-          }
-        } else {
-          // Generate response using AI
-          nlResponse = await this.generateResponse(question.question, result.query, result.data);
-        }
-      } else if (result.fromMultiQuery) {
-        // Multi-query chain response
-        // Include some context about the multi-step nature
-        nlResponse = await this.generateResponse(
-          question.question,
-          result.query,
-          result.data
-        );
-      } else {
-        // Standard query response 
-        nlResponse = await this.generateResponse(question.question, result.query, result.data);
-      }
-      
-      // Return the complete response
-      return {
-        answer: nlResponse,
-        query: result.query,
-        data: result.data,
-        success: true,
-        executionTime: Date.now() - startTime,
-        fromTemplate: result.fromTemplate,
-        fromMultiQuery: result.fromMultiQuery,
-        usedBusinessContext: result.usedBusinessContext
-      };
-    } catch (error: any) {
-      console.error('[Enhanced] Error processing question:', error);
-      
-      return {
-        answer: `I encountered an error while processing your question: ${error.message}`,
-        error: error.message,
-        success: false,
-        executionTime: Date.now() - startTime
-      };
+      console.error('[EnhancedAssistant] Error generating natural language response:', error);
+      return `I found ${data.length} results for your query, but I'm having trouble summarizing them.`;
     }
   }
 }

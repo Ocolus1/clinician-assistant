@@ -1,48 +1,13 @@
 /**
  * Enhanced Clinician Assistant Types
  * 
- * This file extends the base assistant types with additional interfaces
- * for the enhanced clinician assistant features.
+ * This module defines types for the enhanced clinician assistant system.
+ * These types support advanced schema understanding, query templates,
+ * multi-query chains, and enhanced result formatting.
  */
 
-import { Message, MessageRole, QueryResult } from './assistantTypes';
-
-// Base interfaces to replicate and extend
-export interface AssistantQuestion {
-  question: string;
-  conversationId?: string;
-}
-
-export interface AssistantResponse {
-  answer: string;
-  query?: string;
-  data?: any[];
-  error?: string;
-  success: boolean;
-  executionTime?: number;
-}
-
 /**
- * Enhanced Clinician Assistant question with additional metadata options
- */
-export interface EnhancedAssistantQuestion extends AssistantQuestion {
-  useTemplates?: boolean;
-  useMultiQuery?: boolean;
-  useBusinessContext?: boolean;
-}
-
-/**
- * Enhanced Clinician Assistant response with additional metadata
- */
-export interface EnhancedAssistantResponse extends AssistantResponse {
-  fromTemplate?: boolean;
-  fromMultiQuery?: boolean;
-  usedBusinessContext?: boolean;
-  executionPlan?: string;
-}
-
-/**
- * Table metadata information
+ * Metadata for a database table
  */
 export interface TableMetadata {
   name: string;
@@ -56,7 +21,7 @@ export interface TableMetadata {
 }
 
 /**
- * Column metadata information
+ * Metadata for a database column
  */
 export interface ColumnMetadata {
   name: string;
@@ -64,24 +29,47 @@ export interface ColumnMetadata {
   description: string;
   type: string;
   isNullable: boolean;
-  values?: string[];
   businessContext?: string[];
+  values?: string[]; // For enum-like columns
 }
 
 /**
- * Relationship metadata information
+ * Metadata for a relationship between tables
  */
 export interface RelationshipMetadata {
   name: string;
+  description: string;
   targetTable: string;
-  type: 'one-to-one' | 'one-to-many' | 'many-to-one' | 'many-to-many';
   sourceColumn: string;
   targetColumn: string;
-  description: string;
+  type: 'one-to-one' | 'one-to-many' | 'many-to-one' | 'many-to-many';
 }
 
 /**
- * Query template for common question patterns
+ * Parameter for a query template
+ */
+export interface TemplateParameter {
+  name: string;
+  description: string;
+  type: string;
+  required: boolean;
+  default?: any;
+  extractionHints?: string[];
+}
+
+/**
+ * Result mapping for a query template
+ */
+export interface ResultMapping {
+  renameColumns?: Record<string, string>;
+  visualizationType?: 'table' | 'bar' | 'line' | 'pie' | 'card';
+  hideColumns?: string[];
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
+}
+
+/**
+ * Query template
  */
 export interface QueryTemplate {
   id: string;
@@ -95,46 +83,7 @@ export interface QueryTemplate {
 }
 
 /**
- * Parameter for template substitution
- */
-export interface TemplateParameter {
-  name: string;
-  description: string;
-  type: string;
-  required: boolean;
-  default?: any;
-  entityType?: string;
-  extractionHints?: string[];
-}
-
-/**
- * Result mapping for transforming query results
- */
-export interface ResultMapping {
-  renameColumns?: Record<string, string>;
-  formatValues?: Record<string, string>;
-  visualizationType?: 'table' | 'bar' | 'line' | 'pie';
-}
-
-/**
- * Multi-query chain for complex questions
- */
-export interface QueryChain {
-  id: string;
-  originalQuestion: string;
-  steps: QueryStep[];
-  maxSteps: number;
-  currentStep: number;
-  complete: boolean;
-  error?: string;
-  finalResults?: any[];
-  startTime: number;
-  endTime?: number;
-  totalExecutionTime?: number;
-}
-
-/**
- * Single step in a query chain
+ * Step in a multi-query chain
  */
 export interface QueryStep {
   id: string;
@@ -144,4 +93,71 @@ export interface QueryStep {
   results?: any[];
   error?: string;
   executionTime?: number;
+}
+
+/**
+ * Multi-query chain
+ */
+export interface QueryChain {
+  id: string;
+  originalQuestion: string;
+  steps: QueryStep[];
+  maxSteps: number;
+  currentStep: number;
+  complete: boolean;
+  error?: string;
+  startTime: number;
+  endTime?: number;
+  totalExecutionTime?: number;
+  finalResults?: any[];
+}
+
+/**
+ * Enhanced assistant question with options
+ */
+export interface EnhancedAssistantQuestion {
+  question: string;
+  useBusinessContext?: boolean;
+  useTemplates?: boolean;
+  useMultiQuery?: boolean;
+  format?: 'natural' | 'table' | 'json' | 'chart';
+  clientId?: number;
+  therapistId?: number;
+}
+
+/**
+ * Enhanced assistant response
+ */
+export interface EnhancedAssistantResponse {
+  question: string;
+  answer: string;
+  data: any[];
+  query: string;
+  executionTime?: number;
+  usedTemplate?: boolean;
+  templateId?: string;
+  usedMultiQuery?: boolean;
+  queryChain?: QueryChain;
+  usedBusinessContext?: boolean;
+  error?: string;
+}
+
+/**
+ * Context for generating SQL queries
+ */
+export interface SQLQueryContext {
+  schema: TableMetadata[];
+  question: string;
+  useBusinessContext: boolean;
+}
+
+/**
+ * Enhanced assistant feature description
+ */
+export interface EnhancedFeature {
+  id: string;
+  name: string;
+  description: string;
+  exampleQuestions: string[];
+  enabled: boolean;
 }
