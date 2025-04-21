@@ -11,7 +11,13 @@ import { schemaMetadataService } from './schemaMetadata';
 import { queryTemplateService } from './queryTemplates';
 import { multiQueryEngine } from './multiQueryEngine';
 import { enhancedSQLQueryGenerator } from './sqlQueryGenerator';
-import { EnhancedAssistantQuestion, EnhancedAssistantResponse, EnhancedAssistantFeature } from '@shared/enhancedAssistantTypes';
+import { 
+  EnhancedAssistantQuestion, 
+  EnhancedAssistantResponse, 
+  EnhancedAssistantFeature,
+  ExtractedEntity,
+  ConversationMemory
+} from '@shared/enhancedAssistantTypes';
 
 /**
  * Enhanced Clinician Assistant Service class
@@ -46,6 +52,73 @@ export class ClinicianAssistantService {
   /**
    * Process a natural language question and return a response
    */
+  /**
+   * Extract entities from a question for context tracking
+   */
+  private async extractEntities(question: string): Promise<ExtractedEntity[]> {
+    try {
+      const prompt = `
+        Analyze this question and extract any entities related to speech therapy clinical data.
+        Extract only the following entity types if present: ClientName, ClientID, GoalName, GoalID, Date, Category, Amount, Concept.
+        
+        Question: "${question}"
+        
+        Format your response as a JSON array of objects with "text", "type", and optional "value" properties.
+        Example: [{"text": "Radwan", "type": "ClientName"}, {"text": "speech clarity", "type": "GoalName"}]
+        
+        Return an empty array if no entities are found.
+      `;
+      
+      const response = await openaiService.createChatCompletion(
+        [
+          { role: 'system', content: 'You are an entity extraction specialist. Extract entities precisely and respond with only valid JSON.' },
+          { role: 'user', content: prompt }
+        ],
+        true // JSON response
+      );
+      
+      try {
+        const entities = JSON.parse(response);
+        return Array.isArray(entities) ? entities : [];
+      } catch (error) {
+        console.error('[ClinicianAssistant] Error parsing extracted entities:', error);
+        return [];
+      }
+    } catch (error) {
+      console.error('[ClinicianAssistant] Error extracting entities:', error);
+      return [];
+    }
+  }
+  
+  /**
+   * Update conversation memory with new information
+   */
+  private updateConversationMemory(
+    oldMemory: ConversationMemory | undefined, 
+    question: string,
+    entities: ExtractedEntity[]
+  ): ConversationMemory {
+    // Start with previous memory or create new
+    const memory: ConversationMemory = oldMemory || {};
+    
+    // Update last question
+    memory.lastQuestion = question;
+    
+    // Process entities to update memory
+    for (const entity of entities) {
+      if (entity.type === 'ClientName') {
+        memory.activeClientName = entity.text;
+      } else if (entity.type === 'ClientID') {
+        memory.activeClientId = entity.text;
+      }
+    }
+    
+    // Store recent entities
+    memory.recentEntities = entities;
+    
+    return memory;
+  }
+
   async processQuestion(enhancedQuestion: EnhancedAssistantQuestion): Promise<EnhancedAssistantResponse> {
     try {
       if (!this.isInitialized) {
@@ -54,6 +127,17 @@ export class ClinicianAssistantService {
       
       const { question } = enhancedQuestion;
       const startTime = Date.now();
+      
+      // Extract entities from the question
+      const extractedEntities = await this.extractEntities(question);
+      console.log('[ClinicianAssistant] Extracted entities:', extractedEntities);
+      
+      // Update conversation memory
+      const updatedMemory = this.updateConversationMemory(
+        enhancedQuestion.conversationMemory,
+        question,
+        extractedEntities
+      );
       
       // First, check if this is a simple greeting or non-data question
       const isDataQuestion = await this.isDataRelatedQuestion(question);
@@ -84,7 +168,9 @@ export class ClinicianAssistantService {
           data: question.toLowerCase().includes('hello') || question.toLowerCase().includes('hi') 
             ? [{ greeting: true }] 
             : [],
-          executionTime: Date.now() - startTime
+          executionTime: Date.now() - startTime,
+          updatedMemory,
+          detectedEntities: extractedEntities
         };
       }
       
@@ -132,7 +218,9 @@ export class ClinicianAssistantService {
                 explanation,
                 usedTemplate: templateMatch.templateId,
                 templateParameters: templateMatch.parameters,
-                executionTime: Date.now() - startTime
+                executionTime: Date.now() - startTime,
+                updatedMemory,
+                detectedEntities: extractedEntities
               };
             }
           }
