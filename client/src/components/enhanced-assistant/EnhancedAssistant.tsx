@@ -236,47 +236,58 @@ const EnhancedAssistant: React.FC = () => {
     
     // If there's data but no explanation, generate one based on the data
     if (response.data && response.data.length > 0) {
+      // Handle greeting
+      if (response.data.length === 1 && 
+          Object.keys(response.data[0]).length === 1 && 
+          Object.keys(response.data[0])[0] === 'greeting') {
+        return "Hello! How can I assist you today? Are you looking for information about clients, sessions, therapy goals, or anything else related to the clinic?";
+      }
+      
       // Single value result
       if (response.data.length === 1 && Object.keys(response.data[0]).length === 1) {
         const key = Object.keys(response.data[0])[0];
         const value = response.data[0][key];
         
         if (key.includes('count')) {
-          return `The ${key.replace('_', ' ')} is ${value}.`;
+          return `Based on our records, the ${key.replace('_', ' ')} is ${value}. Is there anything specific about this you'd like to know more about?`;
         }
         
-        return `The ${key.replace('_', ' ')} is ${value}.`;
+        return `I found that the ${key.replace('_', ' ')} is ${value}. Would you like any additional information related to this?`;
       }
       
       // Multiple rows or columns
       if (response.data.length === 0) {
-        return `I couldn't find any data matching your query. Please try a different question or criteria.`;
+        return `I've searched our records but couldn't find any data matching your criteria. This might be because the information doesn't exist in our system, or perhaps we need to refine your question. Could you try being more specific or asking in a different way?`;
       } else if (response.data.length === 1) {
-        return `I found 1 record that matches your query. You can see the details in the results below.`;
+        return `I found one record that matches your query. You can see the details in the results below. Is this what you were looking for, or would you like me to explain anything specific about this data?`;
       } else {
-        return `I found ${response.data.length} records that match your query. You can see the details in the results below.`;
+        return `I found ${response.data.length} records that match your query. The details are shown below. Is there anything specific from these results you'd like me to highlight or explain further?`;
       }
     }
     
     // Fallback
-    return "I've processed your request. Here are the results.";
+    return "I've analyzed your request and processed the relevant information. Is there anything specific you'd like me to elaborate on, or would you like to ask a follow-up question?";
   };
 
   // Customize the query error based on the query attempt
   const getQueryErrorMessage = (errorMessage?: string): string => {
-    if (!errorMessage) return "I'm having trouble processing your request right now.";
+    if (!errorMessage) return "I'm sorry, I'm having some trouble understanding your question right now. Could you try rephrasing it or providing more context?";
     
     if (errorMessage.includes("relation") && errorMessage.includes("does not exist")) {
       const match = errorMessage.match(/relation "(.*?)" does not exist/);
-      const tableName = match ? match[1] : "the requested table";
-      return `I couldn't find ${tableName} in the database. This might be because the data is stored differently than expected. Could you try rephrasing your question?`;
+      const tableName = match ? match[1] : "the requested information";
+      return `I apologize, but I couldn't find any records related to ${tableName} in our system. This might be because we track this information differently or use different terminology. Could you try asking about this in a different way, or let me know what specific information you're looking for?`;
     }
     
     if (errorMessage.includes("syntax error")) {
-      return "I couldn't generate a valid query for your question. Could you try rephrasing it or being more specific?";
+      return "I'm sorry, but I'm having difficulty understanding exactly what you're asking for. Could you try rephrasing your question with more details or context? For example, specifying a time period or being more explicit about what you'd like to know.";
     }
     
-    return "I encountered an error while processing your request. This might be due to the way the question was phrased or the specific data you're looking for. Could you try a different approach?";
+    if (errorMessage.includes("permission denied")) {
+      return "I don't have access to the information you're requesting. This might be due to privacy settings or access restrictions. Is there something else I can help you with?";
+    }
+    
+    return "I apologize, but I encountered an issue while trying to answer your question. This could be because the question touches on data we don't track, or perhaps the way it's phrased makes it difficult for me to interpret correctly. Could you try asking in a different way or provide more specific details about what you're looking for?";
   };
 
   // Handle asking a question
@@ -820,10 +831,16 @@ const EnhancedAssistant: React.FC = () => {
           
           {/* Thinking indicator */}
           {askMutation.isPending && (
-            <div className="p-3 border-t bg-muted/5">
-              <div className="flex items-center gap-2">
-                <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                <span className="text-sm">Analyzing your question...</span>
+            <div className="flex justify-start items-start mb-4">
+              <div className="max-w-[80%] p-3 bg-muted rounded-lg rounded-tl-none">
+                <div className="flex items-center gap-2">
+                  <div className="flex space-x-1">
+                    <div className="w-2 h-2 rounded-full bg-current opacity-75 animate-pulse"></div>
+                    <div className="w-2 h-2 rounded-full bg-current opacity-75 animate-pulse delay-75"></div>
+                    <div className="w-2 h-2 rounded-full bg-current opacity-75 animate-pulse delay-150"></div>
+                  </div>
+                  <span className="text-sm">Analyzing your question...</span>
+                </div>
               </div>
             </div>
           )}
