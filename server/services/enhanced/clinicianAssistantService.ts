@@ -7,8 +7,11 @@
 
 import { conversationService } from '../conversationService';
 import { openaiService, ChatMessage } from '../openaiService';
-import { Message, AssistantStatusResponse, QueryResult } from '../../../shared/assistantTypes';
-import { EnhancedAssistantStatusResponse } from '../../../shared/enhancedAssistantTypes';
+import { Message, QueryResult } from '../../../shared/assistantTypes';
+import { 
+  EnhancedAssistantStatusResponse,
+  EnhancedQueryResult
+} from '../../../shared/enhancedAssistantTypes';
 import { enhancedSQLQueryGenerator } from './sqlQueryGenerator';
 import { schemaMetadataService } from './schemaMetadata';
 import { queryTemplateService } from './queryTemplates';
@@ -192,7 +195,7 @@ export class EnhancedClinicianAssistantService {
       const isDataQuestion = await this.isDataRelatedQuestion(messageContent);
       
       let responseContent = '';
-      let queryResult: QueryResult | undefined = undefined;
+      let queryResult: EnhancedQueryResult | undefined = undefined;
       
       if (isDataQuestion) {
         // For data questions, use our enhanced query generation and execution
