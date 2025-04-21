@@ -7,6 +7,7 @@
 
 import React, { useState } from 'react';
 import { EnhancedAssistantResponse as ResponseType, QueryStep } from '@shared/enhancedAssistantTypes';
+import { QueryResult } from '@shared/assistantTypes';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -16,6 +17,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Code, Database, AlertTriangle, Check, ChevronRight, Clock, FileText } from 'lucide-react';
+import QueryResultVisualizer from '../assistant/visualizations/QueryResultVisualizer';
 
 interface EnhancedAssistantResponseProps {
   response: ResponseType;
@@ -208,9 +210,9 @@ const EnhancedAssistantResponse: React.FC<EnhancedAssistantResponseProps> = ({ r
             )}
             
             {hasData && (
-              <Tabs defaultValue="table">
+              <Tabs defaultValue="visualization">
                 <TabsList>
-                  <TabsTrigger value="table">Data Table</TabsTrigger>
+                  <TabsTrigger value="visualization">Visualization</TabsTrigger>
                   {response.sqlQuery && (
                     <TabsTrigger value="query">SQL Query</TabsTrigger>
                   )}
@@ -219,8 +221,21 @@ const EnhancedAssistantResponse: React.FC<EnhancedAssistantResponseProps> = ({ r
                   )}
                 </TabsList>
                 
-                <TabsContent value="table" className="mt-2">
-                  {renderDataTable(response.data!)}
+                <TabsContent value="visualization" className="mt-2">
+                  {/* Convert EnhancedAssistantResponse data to QueryResult format for visualization */}
+                  {response.data && response.data.length > 0 && (
+                    <QueryResultVisualizer 
+                      data={{
+                        columns: Object.keys(response.data[0]),
+                        rows: response.data,
+                        metadata: {
+                          executionTime: response.executionTime || 0,
+                          rowCount: response.data.length,
+                          queryText: response.sqlQuery || ''
+                        }
+                      }}
+                    />
+                  )}
                 </TabsContent>
                 
                 {response.sqlQuery && (
