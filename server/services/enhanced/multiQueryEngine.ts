@@ -73,6 +73,13 @@ A question needs multiple queries if:
 3. It asks for comparisons between different datasets
 4. It has temporal logic that's difficult to express in a single query
 5. It requires intermediate calculations or post-processing
+6. It references a client or therapist by name instead of ID, requiring a lookup step
+7. It asks about goals, budgets, or sessions for a specific client identified by name
+8. It asks for aggregated metrics across relationships (e.g., goal progress for a named client)
+
+Important: Pay special attention to questions involving clients identified by name rather than ID.
+When a client is identified by name, we typically need a first query to get their ID before
+retrieving their related data (goals, budgets, sessions, etc.) in subsequent queries.
 
 Respond with either:
 NEEDS_MULTI_QUERY: <reason>
@@ -114,11 +121,18 @@ For each step, define:
 2. How it relates to the question
 3. How later steps will use its results
 
+Important patterns to follow:
+- For client-related queries where the client is identified by name, first retrieve the client ID in an early step.
+- When asking about client goals, first get the client ID, then query the goals table with that ID.
+- When asking about budget items or utilization, retrieve client and/or budget information first.
+- For therapist-related queries, follow the same pattern - get the therapist ID first if they're identified by name.
+
 Rules:
 - Break it down into 2-5 logical steps
 - Order steps from most basic to most specific
 - Each step should be answerable with a single SQL query
 - Later steps can use results from earlier steps
+- Make sure to include client lookup steps when clients are referenced by name
 
 Format your response as:
 STEP 1: <purpose>
@@ -307,11 +321,18 @@ ${prevResults && Object.keys(prevResults).length > 0
   ? `Previous steps results:\n${prevResultsFormatted}\n` 
   : 'This is the first step.'}
 
+Context-aware patterns to follow:
+- If this step needs client IDs from previous steps, reference them using appropriate WHERE clauses
+- If this step builds on previous steps finding a client, use the client ID as a filter parameter
+- For client name lookups, consider using LIKE or ILIKE with wildcards for partial matches
+- Use LEFT JOIN when looking up potentially missing related data
+
 Create a SQL query that:
 1. Focuses ONLY on the specific purpose of this step
 2. Produces results that are needed for later steps
 3. Uses proper table joins, filtering, and aggregations
 4. Handles NULL values safely
+5. If referring to previous steps' results, explicitly uses those values in WHERE clauses
 
 Return ONLY the SQL query, with no explanations or comments.
 `;
@@ -350,19 +371,43 @@ Return ONLY the SQL query, with no explanations or comments.
    * Synthesize final results from all step results
    */
   private async synthesizeFinalResults(chain: QueryChain): Promise<any[]> {
-    // If there's only one step, use its results directly
-    if (chain.steps.length === 1 && chain.steps[0].results) {
-      return chain.steps[0].results;
+    try {
+      // If there's only one step, use its results directly
+      if (chain.steps.length === 1 && chain.steps[0].results) {
+        return chain.steps[0].results;
+      }
+      
+      // Check if the last step returned meaningful results
+      const lastStep = chain.steps[chain.steps.length - 1];
+      if (lastStep.results && lastStep.results.length > 0) {
+        return lastStep.results;
+      }
+      
+      // If the last step didn't return results but earlier steps did,
+      // generate a combined result that acknowledges the multi-step process
+      const stepsWithResults = chain.steps.filter(step => step.results && step.results.length > 0);
+      
+      if (stepsWithResults.length > 0) {
+        // Create a special synthesized result that provides context from all steps
+        const combinedResult = {
+          _synthesized: true,
+          _originalQuestion: chain.originalQuestion,
+          _steps: stepsWithResults.map(step => ({
+            purpose: step.purpose,
+            resultCount: step.results?.length || 0
+          })),
+          results: stepsWithResults.flatMap(step => step.results || [])
+        };
+        
+        return [combinedResult];
+      }
+      
+      // Fallback in case there are no results
+      return [];
+    } catch (error) {
+      console.error('[MultiQuery] Error synthesizing final results:', error);
+      return [];
     }
-    
-    // Otherwise, use the last step's results as the final results
-    const lastStep = chain.steps[chain.steps.length - 1];
-    if (lastStep.results) {
-      return lastStep.results;
-    }
-    
-    // Fallback in case there are no results
-    return [];
   }
 }
 
