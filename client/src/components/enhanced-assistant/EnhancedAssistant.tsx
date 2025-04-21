@@ -400,21 +400,21 @@ const EnhancedAssistant: React.FC = () => {
         ? getQueryErrorMessage(data.errorMessage)
         : humanizeResponse(data);
       
+      // Create the assistant message with proper typing
+      const assistantMessage: Message = {
+        id: Date.now().toString(),
+        content: humanResponse,
+        sender: 'assistant',
+        timestamp: new Date(),
+        response: data,
+        showResults: false // Always initialize to false
+      };
+      
       // Update conversation with assistant response
-      const updatedConversation = {
+      const updatedConversation: Conversation = {
         ...activeConversation,
         updatedAt: new Date(),
-        messages: [
-          ...activeConversation.messages,
-          {
-            id: Date.now().toString(),
-            content: humanResponse,
-            sender: 'assistant',
-            timestamp: new Date(),
-            response: data,
-            showResults: false // Always initialize to false
-          }
-        ]
+        messages: [...activeConversation.messages, assistantMessage]
       };
       
       // Update the conversations list
@@ -443,7 +443,7 @@ const EnhancedAssistant: React.FC = () => {
     };
     
     // Update the active conversation with the user message
-    const updatedConversation = {
+    const updatedConversation: Conversation = {
       ...activeConversation,
       updatedAt: new Date(),
       messages: [...activeConversation.messages, userMessage]
