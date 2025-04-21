@@ -675,12 +675,40 @@ const EnhancedAssistant: React.FC = () => {
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             <DropdownMenuItem 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                const newTitle = prompt("Rename conversation:", conversation.title);
+                                if (newTitle && newTitle.trim()) {
+                                  // Update conversation title
+                                  const updatedConversation = {
+                                    ...conversation,
+                                    title: newTitle.trim()
+                                  };
+                                  
+                                  // Update the conversations list
+                                  setConversations(prev => 
+                                    prev.map(c => c.id === conversation.id ? updatedConversation : c)
+                                  );
+                                  
+                                  // Update active conversation if needed
+                                  if (activeConversation?.id === conversation.id) {
+                                    setActiveConversation(updatedConversation);
+                                  }
+                                }
+                              }}
+                            >
+                              <MessageSquare className="h-4 w-4 mr-2" />
+                              Rename
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem 
                               className="text-destructive focus:text-destructive"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 handleDeleteConversation(conversation.id);
                               }}
                             >
+                              <Trash className="h-4 w-4 mr-2" />
                               Delete
                             </DropdownMenuItem>
                           </DropdownMenuContent>
