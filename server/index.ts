@@ -4,6 +4,7 @@ import { setupVite, serveStatic, log } from "./vite";
 import { registerReportRoutes } from "./routes/reports";
 import { registerKnowledgeRoutes } from "./routes/knowledge";
 import assistantRoutes from "./routes/assistant";
+import enhancedAssistantRoutes from "./routes/enhancedAssistant";
 // Create debug-routes.ts file if it doesn't exist
 import * as fs from 'fs';
 import * as path from 'path';
