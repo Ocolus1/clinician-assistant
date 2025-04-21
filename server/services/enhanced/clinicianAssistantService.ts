@@ -50,8 +50,42 @@ export class ClinicianAssistantService {
   }
   
   /**
-   * Process a natural language question and return a response
+   * Build memory context string from conversation memory
    */
+  private buildMemoryContext(memory?: ConversationMemory): string {
+    if (!memory) {
+      return '';
+    }
+    
+    const contextParts: string[] = [];
+    
+    // Add active client info if available
+    if (memory.activeClientName) {
+      contextParts.push(`The conversation is about client: ${memory.activeClientName}`);
+      
+      if (memory.activeClientId) {
+        contextParts.push(`Client ID: ${memory.activeClientId}`);
+      }
+    }
+    
+    // Add specific goal info if available
+    if (memory.activeGoalName) {
+      contextParts.push(`The conversation involves the goal: ${memory.activeGoalName}`);
+    }
+    
+    // Add time context if available
+    if (memory.activeTimeframe) {
+      contextParts.push(`The relevant timeframe is: ${memory.activeTimeframe}`);
+    }
+    
+    // Context about other active filters
+    if (memory.activeFilters && memory.activeFilters.length > 0) {
+      contextParts.push(`Active filters: ${memory.activeFilters.join(', ')}`);
+    }
+    
+    return contextParts.join('\n');
+  }
+
   /**
    * Extract entities from a question for context tracking
    */
@@ -146,6 +180,9 @@ export class ClinicianAssistantService {
       if (!isDataQuestion) {
         console.log('[ClinicianAssistant] Non-data question detected. Generating conversational response.');
         
+        // Build context from conversation memory
+        const memoryContext = this.buildMemoryContext(updatedMemory);
+        
         const prompt = `
           You are a helpful clinical assistant for a speech therapy practice. 
           The user has asked a question that doesn't require database access.
@@ -153,6 +190,7 @@ export class ClinicianAssistantService {
           Please respond in a friendly, professional tone appropriate for a clinical setting.
           Keep your response concise but informative.
           
+          ${memoryContext ? `Context from previous conversation:\n${memoryContext}\n\n` : ''}
           User question: "${question}"
         `;
         
