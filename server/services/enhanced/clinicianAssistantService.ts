@@ -229,6 +229,45 @@ Your response should be purely explanatory without mentioning the SQL or technic
   }
   
   /**
+   * Determine if a message is asking about data that would require database access
+   */
+  private async isDataRelatedQuestion(message: string): Promise<boolean> {
+    try {
+      const prompt = `
+        Determine if the following message is asking about data that would require querying a database.
+        Data-related questions typically ask about specific client information, metrics, statistics,
+        or records that would be stored in a database. Examples include:
+        - "How many sessions did client X have last month?"
+        - "What is the progress of client Y on goal Z?"
+        - "Show me all budget items for client A"
+        
+        Simple greetings, clarification questions, requests for explanations, or general questions
+        that don't require looking up specific records should NOT be classified as data questions.
+        Examples of non-data questions:
+        - "Hello"
+        - "How are you?"
+        - "What can you do?"
+        - "Can you explain how goals work?"
+        
+        Message: "${message}"
+        
+        Respond with ONLY "yes" or "no".
+      `;
+      
+      const response = await openaiService.createChatCompletion([
+        { role: 'user', content: prompt }
+      ]);
+      
+      // Check if the response indicates this is a data question
+      return response.toLowerCase().includes('yes');
+    } catch (error) {
+      console.error('[EnhancedClinicianAssistant] Error determining if data question:', error);
+      // Default to true if we can't determine (safer to assume it might need data)
+      return true;
+    }
+  }
+  
+  /**
    * Load available features
    */
   private loadFeatures(): void {
