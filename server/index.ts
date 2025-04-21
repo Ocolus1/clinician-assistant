@@ -66,6 +66,9 @@ app.use((req, res, next) => {
   console.log("STEP 2.5: Registering assistant API routes");
   app.use('/api/assistant', assistantRoutes);
   
+  console.log("STEP 2.6: Registering enhanced assistant API routes");
+  app.use('/api/enhanced-assistant', enhancedAssistantRoutes);
+  
   console.log("STEP 3: Registering main API routes");
   const server = await registerRoutes(app);
   

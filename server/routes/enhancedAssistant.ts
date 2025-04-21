@@ -83,7 +83,7 @@ router.post('/configure', (req, res) => {
  */
 router.get('/conversations', async (_req, res) => {
   try {
-    const conversations = await conversationService.getAllConversations();
+    const conversations = await conversationService.getConversations();
     res.json({ conversations });
   } catch (error: any) {
     console.error('Error retrieving conversations:', error);
@@ -94,9 +94,10 @@ router.get('/conversations', async (_req, res) => {
 /**
  * Create a new conversation
  */
-router.post('/conversations', async (_req, res) => {
+router.post('/conversations', async (req, res) => {
   try {
-    const conversation = await conversationService.createConversation();
+    const name = req.body.name || `New Conversation - ${new Date().toLocaleTimeString()}`;
+    const conversation = await conversationService.createConversation(name);
     
     if (!conversation) {
       return res.status(500).json({ error: 'Failed to create conversation' });

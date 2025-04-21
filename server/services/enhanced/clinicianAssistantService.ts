@@ -8,6 +8,7 @@
 import { conversationService } from '../conversationService';
 import { openaiService, ChatMessage } from '../openaiService';
 import { Message, AssistantStatusResponse, QueryResult } from '../../../shared/assistantTypes';
+import { EnhancedAssistantStatusResponse } from '../../../shared/enhancedAssistantTypes';
 import { enhancedSQLQueryGenerator } from './sqlQueryGenerator';
 import { schemaMetadataService } from './schemaMetadata';
 import { queryTemplateService } from './queryTemplates';
@@ -62,19 +63,17 @@ export class EnhancedClinicianAssistantService {
   /**
    * Get status information about the assistant
    */
-  getStatus(): AssistantStatusResponse {
+  getStatus(): EnhancedAssistantStatusResponse {
     const isConfigured = this.isConfigured();
     
     return {
       isConfigured,
       connectionValid: isConfigured,
       model: this.config?.model || 'Not configured',
-      enhanced: true, // Flag that this is the enhanced version
-      features: {
-        templates: this.config?.useTemplates || false,
-        multiQuery: this.config?.useMultiQuery || false,
-        businessContext: this.config?.useBusinessContext || false
-      }
+      enhanced: true,
+      useTemplates: this.config?.useTemplates || false,
+      useMultiQuery: this.config?.useMultiQuery || false,
+      useBusinessContext: this.config?.useBusinessContext || false
     };
   }
   
