@@ -5,7 +5,22 @@
  * for the enhanced clinician assistant features.
  */
 
-import { AssistantQuestion, AssistantResponse } from './assistantTypes';
+import { Message, MessageRole, QueryResult } from './assistantTypes';
+
+// Base interfaces to replicate and extend
+export interface AssistantQuestion {
+  question: string;
+  conversationId?: string;
+}
+
+export interface AssistantResponse {
+  answer: string;
+  query?: string;
+  data?: any[];
+  error?: string;
+  success: boolean;
+  executionTime?: number;
+}
 
 /**
  * Enhanced Clinician Assistant question with additional metadata options

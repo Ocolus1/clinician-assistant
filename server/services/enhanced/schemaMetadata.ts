@@ -1,605 +1,549 @@
 /**
  * Schema Metadata Service
  * 
- * This service provides enriched metadata about the database schema,
- * including business context, descriptions, and relationships.
+ * This service provides enhanced database schema metadata for the clinician assistant,
+ * including business context and relationships between tables.
  */
 
-import { TableMetadata, ColumnMetadata, RelationshipMetadata } from '../../../shared/enhancedAssistantTypes';
+import { TableMetadata, ColumnMetadata, RelationshipMetadata } from '@shared/enhancedAssistantTypes';
+import { sql } from '../../db';
 
 /**
  * Schema Metadata Service class
  */
 export class SchemaMetadataService {
-  private tables: TableMetadata[];
+  private schemaCache: TableMetadata[] | null = null;
+  private businessContextCache: TableMetadata[] | null = null;
+  private cacheExpirationTime: number = 1000 * 60 * 60; // 1 hour
+  private lastCacheTime: number = 0;
   
-  constructor() {
-    // Initialize with our schema metadata
-    this.tables = [
-      // Clients table
-      {
-        name: 'clients',
-        displayName: 'Clients',
-        description: 'Stores information about therapy clients',
-        primaryKey: ['id'],
-        columns: [
-          {
-            name: 'id',
-            displayName: 'ID',
-            description: 'Unique identifier for the client',
-            type: 'text',
-            isNullable: false
-          },
-          {
-            name: 'name',
-            displayName: 'Name',
-            description: 'Full name of the client',
-            type: 'text',
-            isNullable: false
-          },
-          {
-            name: 'date_of_birth',
-            displayName: 'Date of Birth',
-            description: 'Client\'s date of birth',
-            type: 'date',
-            isNullable: true
-          },
-          {
-            name: 'email',
-            displayName: 'Email',
-            description: 'Client\'s email address for correspondence',
-            type: 'text',
-            isNullable: true
-          },
-          {
-            name: 'phone',
-            displayName: 'Phone',
-            description: 'Client\'s phone number',
-            type: 'text',
-            isNullable: true
-          },
-          {
-            name: 'address',
-            displayName: 'Address',
-            description: 'Client\'s residential address',
-            type: 'text',
-            isNullable: true
-          },
-          {
-            name: 'onboarding_status',
-            displayName: 'Onboarding Status',
-            description: 'Current status of client onboarding process',
-            type: 'text',
-            isNullable: false,
-            values: ['pending', 'incomplete', 'complete']
-          },
-          {
-            name: 'created_at',
-            displayName: 'Created At',
-            description: 'When the client record was created',
-            type: 'timestamp',
-            isNullable: false
-          },
-          {
-            name: 'updated_at',
-            displayName: 'Updated At',
-            description: 'When the client record was last updated',
-            type: 'timestamp',
-            isNullable: false
-          }
-        ],
-        businessContext: [
-          'Active clients have onboarding_status = "complete"',
-          'Clients may be referred to by their unique ID or name in queries',
-          'Client contact information is used for appointment reminders and notifications'
-        ],
-        sampleQueries: [
-          'How many active clients do we have?',
-          'List all clients who joined in the last month',
-          'What percentage of clients have incomplete onboarding?'
-        ]
-      },
+  /**
+   * Get basic database schema metadata
+   */
+  async getSchema(): Promise<TableMetadata[]> {
+    // Check cache first
+    if (this.schemaCache && (Date.now() - this.lastCacheTime) < this.cacheExpirationTime) {
+      return this.schemaCache;
+    }
+    
+    try {
+      // Fetch table information from Postgres information schema
+      const tables = await this.fetchTableMetadata();
       
-      // Sessions table
-      {
-        name: 'sessions',
-        displayName: 'Therapy Sessions',
-        description: 'Records of therapy sessions conducted with clients',
-        primaryKey: ['id'],
-        columns: [
-          {
-            name: 'id',
-            displayName: 'ID',
-            description: 'Unique identifier for the session',
-            type: 'text',
-            isNullable: false
-          },
-          {
-            name: 'client_id',
-            displayName: 'Client ID',
-            description: 'Reference to the client who attended the session',
-            type: 'text',
-            isNullable: false
-          },
-          {
-            name: 'clinician_id',
-            displayName: 'Clinician ID',
-            description: 'Reference to the clinician who conducted the session',
-            type: 'text',
-            isNullable: false
-          },
-          {
-            name: 'session_date',
-            displayName: 'Session Date',
-            description: 'Date when the session took place',
-            type: 'date',
-            isNullable: false
-          },
-          {
-            name: 'session_type',
-            displayName: 'Session Type',
-            description: 'Category or type of therapy session',
-            type: 'text',
-            isNullable: false,
-            values: ['initial_assessment', 'individual', 'group', 'parent_coaching', 'follow_up']
-          },
-          {
-            name: 'status',
-            displayName: 'Status',
-            description: 'Current status of the session',
-            type: 'text',
-            isNullable: false,
-            values: ['scheduled', 'in_progress', 'completed', 'cancelled', 'no_show']
-          },
-          {
-            name: 'duration_minutes',
-            displayName: 'Duration (Minutes)',
-            description: 'Length of the session in minutes',
-            type: 'integer',
-            isNullable: true
-          },
-          {
-            name: 'created_at',
-            displayName: 'Created At',
-            description: 'When the session record was created',
-            type: 'timestamp',
-            isNullable: false
-          },
-          {
-            name: 'updated_at',
-            displayName: 'Updated At',
-            description: 'When the session record was last updated',
-            type: 'timestamp',
-            isNullable: false
-          }
-        ],
-        relationships: [
-          {
-            name: 'client',
-            targetTable: 'clients',
-            type: 'many-to-one',
-            sourceColumn: 'client_id',
-            targetColumn: 'id',
-            description: 'Each session belongs to one client'
-          },
-          {
-            name: 'clinician',
-            targetTable: 'clinicians',
-            type: 'many-to-one',
-            sourceColumn: 'clinician_id',
-            targetColumn: 'id',
-            description: 'Each session is conducted by one clinician'
-          },
-          {
-            name: 'session_notes',
-            targetTable: 'session_notes',
-            type: 'one-to-many',
-            sourceColumn: 'id',
-            targetColumn: 'session_id',
-            description: 'A session may have multiple notes'
-          }
-        ],
-        businessContext: [
-          'Completed sessions contribute to budget usage',
-          'Sessions are the primary billable unit',
-          'Session duration affects billing and resource allocation',
-          'Session types have different billing rates and procedures'
-        ],
-        sampleQueries: [
-          'How many sessions were completed last month?',
-          'What is the average session duration for client X?',
-          'Which session types are most common for our adult clients?',
-          'What is the cancellation rate for sessions?'
-        ]
-      },
+      // Cache the result
+      this.schemaCache = tables;
+      this.lastCacheTime = Date.now();
       
-      // Goals table
-      {
-        name: 'goals',
-        displayName: 'Therapy Goals',
-        description: 'Treatment goals established for clients',
-        primaryKey: ['id'],
-        columns: [
-          {
-            name: 'id',
-            displayName: 'ID',
-            description: 'Unique identifier for the goal',
-            type: 'text',
-            isNullable: false
-          },
-          {
-            name: 'client_id',
-            displayName: 'Client ID',
-            description: 'Reference to the client this goal is for',
-            type: 'text',
-            isNullable: false
-          },
-          {
-            name: 'title',
-            displayName: 'Title',
-            description: 'Short title describing the goal',
-            type: 'text',
-            isNullable: false
-          },
-          {
-            name: 'description',
-            displayName: 'Description',
-            description: 'Detailed description of the goal',
-            type: 'text',
-            isNullable: true
-          },
-          {
-            name: 'status',
-            displayName: 'Status',
-            description: 'Current status of progress toward the goal',
-            type: 'text',
-            isNullable: false,
-            values: ['not_started', 'in_progress', 'achieved', 'discontinued']
-          },
-          {
-            name: 'priority',
-            displayName: 'Priority',
-            description: 'Relative importance of the goal',
-            type: 'text',
-            isNullable: true,
-            values: ['low', 'medium', 'high']
-          },
-          {
-            name: 'created_at',
-            displayName: 'Created At',
-            description: 'When the goal was created',
-            type: 'timestamp',
-            isNullable: false
-          },
-          {
-            name: 'target_date',
-            displayName: 'Target Date',
-            description: 'Date by which the goal should be achieved',
-            type: 'date',
-            isNullable: true
-          },
-          {
-            name: 'achieved_date',
-            displayName: 'Achieved Date',
-            description: 'Date when the goal was achieved',
-            type: 'date',
-            isNullable: true
-          }
-        ],
-        relationships: [
-          {
-            name: 'client',
-            targetTable: 'clients',
-            type: 'many-to-one',
-            sourceColumn: 'client_id',
-            targetColumn: 'id',
-            description: 'Each goal belongs to one client'
-          },
-          {
-            name: 'subgoals',
-            targetTable: 'subgoals',
-            type: 'one-to-many',
-            sourceColumn: 'id',
-            targetColumn: 'goal_id',
-            description: 'A goal may have multiple subgoals'
-          },
-          {
-            name: 'progress_assessments',
-            targetTable: 'goal_progress',
-            type: 'one-to-many',
-            sourceColumn: 'id',
-            targetColumn: 'goal_id',
-            description: 'A goal has multiple progress assessments'
-          }
-        ],
-        businessContext: [
-          'Goals guide the overall treatment plan for clients',
-          'Progress toward goals is a key success metric for therapy',
-          'Goals are regularly reviewed and updated in progress meetings',
-          'Insurance often requires goal-related documentation'
-        ],
-        sampleQueries: [
-          'What percentage of Client X\'s goals are achieved?',
-          'How long does it take on average for high-priority goals to be achieved?',
-          'List all clients with goals that have no progress updates in the last month',
-          'Which clinicians have the highest goal achievement rates?'
-        ]
-      },
+      return tables;
+    } catch (error) {
+      console.error('[SchemaMetadata] Error fetching schema metadata:', error);
       
-      // Budget tables
-      {
-        name: 'budget_settings',
-        displayName: 'Budget Settings',
-        description: 'Budget plans and funding allocations for clients',
-        primaryKey: ['id'],
-        columns: [
-          {
-            name: 'id',
-            displayName: 'ID',
-            description: 'Unique identifier for the budget settings',
-            type: 'text',
-            isNullable: false
-          },
-          {
-            name: 'client_id',
-            displayName: 'Client ID',
-            description: 'Reference to the client these budget settings apply to',
-            type: 'text',
-            isNullable: false
-          },
-          {
-            name: 'name',
-            displayName: 'Budget Name',
-            description: 'Name of the budget or funding source',
-            type: 'text',
-            isNullable: false
-          },
-          {
-            name: 'total_amount',
-            displayName: 'Total Amount',
-            description: 'Total monetary amount allocated in the budget',
-            type: 'numeric',
-            isNullable: false
-          },
-          {
-            name: 'start_date',
-            displayName: 'Start Date',
-            description: 'Date when the budget period begins',
-            type: 'date',
-            isNullable: false
-          },
-          {
-            name: 'end_date',
-            displayName: 'End Date',
-            description: 'Date when the budget period ends',
-            type: 'date',
-            isNullable: false
-          },
-          {
-            name: 'funding_source',
-            displayName: 'Funding Source',
-            description: 'Origin of the budget funds',
-            type: 'text',
-            isNullable: true,
-            values: ['insurance', 'government', 'private', 'scholarship', 'other']
-          },
-          {
-            name: 'active',
-            displayName: 'Active',
-            description: 'Whether this budget is currently active',
-            type: 'boolean',
-            isNullable: false
-          },
-          {
-            name: 'created_at',
-            displayName: 'Created At',
-            description: 'When the budget settings were created',
-            type: 'timestamp',
-            isNullable: false
-          },
-          {
-            name: 'updated_at',
-            displayName: 'Updated At',
-            description: 'When the budget settings were last updated',
-            type: 'timestamp',
-            isNullable: false
-          }
-        ],
-        relationships: [
-          {
-            name: 'client',
-            targetTable: 'clients',
-            type: 'many-to-one',
-            sourceColumn: 'client_id',
-            targetColumn: 'id',
-            description: 'Each budget settings record belongs to one client'
-          },
-          {
-            name: 'budget_items',
-            targetTable: 'budget_items',
-            type: 'one-to-many',
-            sourceColumn: 'id',
-            targetColumn: 'budget_settings_id',
-            description: 'Budget settings contain multiple budget line items'
-          }
-        ],
-        businessContext: [
-          'Budget settings define the overall funding available for a client\'s therapy',
-          'Budgets typically have specific start and end dates (often annual)',
-          'Different funding sources have different requirements and restrictions',
-          'Budget tracking is critical for financial planning and client communication'
-        ],
-        sampleQueries: [
-          'How many clients have budgets expiring in the next 30 days?',
-          'What is the average total budget amount for clients with insurance funding?',
-          'Which clients have used more than 80% of their current budget?',
-          'How many budgets were renewed in the last quarter?'
-        ]
-      },
-      
-      {
-        name: 'budget_items',
-        displayName: 'Budget Items',
-        description: 'Individual line items within a client\'s budget',
-        primaryKey: ['id'],
-        columns: [
-          {
-            name: 'id',
-            displayName: 'ID',
-            description: 'Unique identifier for the budget item',
-            type: 'text',
-            isNullable: false
-          },
-          {
-            name: 'budget_settings_id',
-            displayName: 'Budget Settings ID',
-            description: 'Reference to the parent budget settings',
-            type: 'text',
-            isNullable: false
-          },
-          {
-            name: 'name',
-            displayName: 'Item Name',
-            description: 'Name of the budget item',
-            type: 'text',
-            isNullable: false
-          },
-          {
-            name: 'description',
-            displayName: 'Description',
-            description: 'Detailed description of what this budget item covers',
-            type: 'text',
-            isNullable: true
-          },
-          {
-            name: 'product_code',
-            displayName: 'Product Code',
-            description: 'Service or product code for billing',
-            type: 'text',
-            isNullable: true
-          },
-          {
-            name: 'quantity',
-            displayName: 'Quantity',
-            description: 'Number of units allocated',
-            type: 'numeric',
-            isNullable: false
-          },
-          {
-            name: 'unit_price',
-            displayName: 'Unit Price',
-            description: 'Price per unit',
-            type: 'numeric',
-            isNullable: false
-          },
-          {
-            name: 'total_amount',
-            displayName: 'Total Amount',
-            description: 'Total monetary amount (quantity * unit_price)',
-            type: 'numeric',
-            isNullable: false
-          },
-          {
-            name: 'usage',
-            displayName: 'Usage',
-            description: 'Amount of units used so far',
-            type: 'numeric',
-            isNullable: false,
-            businessContext: [
-              'Usage tracks how many units have been consumed from this budget item',
-              'Usage is updated automatically when sessions are completed'
-            ]
-          },
-          {
-            name: 'created_at',
-            displayName: 'Created At',
-            description: 'When the budget item was created',
-            type: 'timestamp',
-            isNullable: false
-          },
-          {
-            name: 'updated_at',
-            displayName: 'Updated At',
-            description: 'When the budget item was last updated',
-            type: 'timestamp',
-            isNullable: false
-          }
-        ],
-        relationships: [
-          {
-            name: 'budget_settings',
-            targetTable: 'budget_settings',
-            type: 'many-to-one',
-            sourceColumn: 'budget_settings_id',
-            targetColumn: 'id',
-            description: 'Each budget item belongs to one budget settings record'
-          }
-        ],
-        businessContext: [
-          'Budget items represent specific services or products covered by the budget',
-          'Product codes are used to match sessions to budget items for usage tracking',
-          'Monitoring usage vs. quantity helps prevent budget overruns',
-          'Budget items typically correspond to specific billable therapy services'
-        ],
-        sampleQueries: [
-          'What budget items have the highest usage rate for client X?',
-          'Which product codes are most frequently used across all clients?',
-          'List all budget items with less than 10% remaining quantity',
-          'What is the average unit price for individual therapy sessions?'
-        ]
-      }
-    ];
+      // Return empty schema if we can't fetch it
+      return [];
+    }
   }
   
   /**
-   * Get all tables with their metadata
+   * Get schema metadata with business context
    */
-  getMetadata(): TableMetadata[] {
-    return this.tables;
+  async getSchemaWithBusinessContext(): Promise<TableMetadata[]> {
+    // Check cache first
+    if (this.businessContextCache && (Date.now() - this.lastCacheTime) < this.cacheExpirationTime) {
+      return this.businessContextCache;
+    }
+    
+    try {
+      // Fetch basic schema first
+      const basicSchema = await this.getSchema();
+      
+      // Enhance with business context
+      const enhancedSchema = this.addBusinessContext(basicSchema);
+      
+      // Cache the result
+      this.businessContextCache = enhancedSchema;
+      
+      return enhancedSchema;
+    } catch (error) {
+      console.error('[SchemaMetadata] Error enhancing schema with business context:', error);
+      
+      // Fall back to basic schema
+      return this.schemaCache || [];
+    }
+  }
+  
+  /**
+   * Check if a table exists in the schema
+   */
+  async tableExists(tableName: string): Promise<boolean> {
+    try {
+      const schema = await this.getSchema();
+      return schema.some(table => table.name.toLowerCase() === tableName.toLowerCase());
+    } catch (error) {
+      console.error('[SchemaMetadata] Error checking if table exists:', error);
+      return false;
+    }
   }
   
   /**
    * Get metadata for a specific table
    */
-  getTableMetadata(tableName: string): TableMetadata | undefined {
-    return this.tables.find(table => table.name === tableName);
+  async getTableMetadata(tableName: string): Promise<TableMetadata | null> {
+    try {
+      const schema = await this.getSchemaWithBusinessContext();
+      return schema.find(table => table.name.toLowerCase() === tableName.toLowerCase()) || null;
+    } catch (error) {
+      console.error('[SchemaMetadata] Error getting table metadata:', error);
+      return null;
+    }
   }
   
   /**
-   * Get a human-readable description of the database schema
+   * Fetch table metadata from database
    */
-  getDescription(): string {
-    let description = `
-      DATABASE SCHEMA INFORMATION
-      
-      The database contains the following main entities:
-    `;
-    
-    // Add each table description
-    this.tables.forEach(table => {
-      description += `
-        - ${table.displayName}: ${table.description}
-          Key columns: ${table.columns.slice(0, 5).map(col => col.displayName).join(', ')}...
-          ${table.businessContext ? 'Business context: ' + table.businessContext[0] : ''}
+  private async fetchTableMetadata(): Promise<TableMetadata[]> {
+    try {
+      // Get all tables
+      const tablesQuery = `
+        SELECT 
+          table_name 
+        FROM 
+          information_schema.tables 
+        WHERE 
+          table_schema = 'public' 
+          AND table_type = 'BASE TABLE'
+        ORDER BY
+          table_name;
       `;
-    });
-    
-    // Add important relationships
-    description += `
-      KEY RELATIONSHIPS:
-      - Clients have many Sessions, Goals, and Budget Settings
-      - Sessions are linked to Clinicians and can have Session Notes
-      - Goals can have Subgoals and Progress Assessments
-      - Budget Settings contain multiple Budget Items
       
-      IMPORTANT BUSINESS RULES:
-      - Active clients have onboarding_status = "complete"
-      - Completed sessions contribute to budget usage
-      - Budget items track usage against allocated quantities
-      - Goals guide treatment planning and progress measurement
-    `;
+      const tables = await sql`${tablesQuery}`;
+      
+      // For each table, get columns and primary keys
+      const tableMetadata: TableMetadata[] = [];
+      
+      for (const tableRow of tables) {
+        const tableName = tableRow.table_name;
+        
+        // Get columns
+        const columnsQuery = `
+          SELECT 
+            column_name, 
+            data_type, 
+            is_nullable,
+            column_default
+          FROM 
+            information_schema.columns 
+          WHERE 
+            table_schema = 'public' 
+            AND table_name = $1
+          ORDER BY
+            ordinal_position;
+        `;
+        
+        const columns = await sql`
+          SELECT 
+            column_name, 
+            data_type, 
+            is_nullable,
+            column_default
+          FROM 
+            information_schema.columns 
+          WHERE 
+            table_schema = 'public' 
+            AND table_name = ${tableName}
+          ORDER BY
+            ordinal_position;
+        `;
+        
+        // Get primary keys
+        const primaryKeysQuery = `
+          SELECT 
+            c.column_name
+          FROM 
+            information_schema.table_constraints tc
+            JOIN information_schema.constraint_column_usage AS ccu USING (constraint_schema, constraint_name)
+            JOIN information_schema.columns AS c ON c.table_schema = tc.constraint_schema
+              AND tc.table_name = c.table_name AND ccu.column_name = c.column_name
+          WHERE 
+            tc.constraint_type = 'PRIMARY KEY' 
+            AND tc.table_name = $1;
+        `;
+        
+        const primaryKeys = await sql`
+          SELECT 
+            c.column_name
+          FROM 
+            information_schema.table_constraints tc
+            JOIN information_schema.constraint_column_usage AS ccu USING (constraint_schema, constraint_name)
+            JOIN information_schema.columns AS c ON c.table_schema = tc.constraint_schema
+              AND tc.table_name = c.table_name AND ccu.column_name = c.column_name
+          WHERE 
+            tc.constraint_type = 'PRIMARY KEY' 
+            AND tc.table_name = ${tableName};
+        `;
+        const primaryKeyArray = primaryKeys.map((pk: any) => pk.column_name);
+        
+        // Create column metadata
+        const columnMetadata: ColumnMetadata[] = columns.map((col: any) => ({
+          name: col.column_name,
+          displayName: this.formatDisplayName(col.column_name),
+          description: this.generateColumnDescription(col.column_name, col.data_type),
+          type: col.data_type,
+          isNullable: col.is_nullable === 'YES'
+        }));
+        
+        // Create table metadata
+        tableMetadata.push({
+          name: tableName,
+          displayName: this.formatDisplayName(tableName),
+          description: this.generateTableDescription(tableName),
+          primaryKey: primaryKeyArray,
+          columns: columnMetadata
+        });
+      }
+      
+      // Fetch foreign key relationships
+      const relationshipsQuery = `
+        SELECT
+          tc.table_name as source_table, 
+          kcu.column_name as source_column, 
+          ccu.table_name AS target_table,
+          ccu.column_name AS target_column
+        FROM 
+          information_schema.table_constraints AS tc 
+          JOIN information_schema.key_column_usage AS kcu
+            ON tc.constraint_name = kcu.constraint_name
+            AND tc.table_schema = kcu.table_schema
+          JOIN information_schema.constraint_column_usage AS ccu
+            ON ccu.constraint_name = tc.constraint_name
+            AND ccu.table_schema = tc.table_schema
+        WHERE tc.constraint_type = 'FOREIGN KEY';
+      `;
+      
+      const relationships = await sql`
+        SELECT
+          tc.table_name as source_table, 
+          kcu.column_name as source_column, 
+          ccu.table_name AS target_table,
+          ccu.column_name AS target_column
+        FROM 
+          information_schema.table_constraints AS tc 
+          JOIN information_schema.key_column_usage AS kcu
+            ON tc.constraint_name = kcu.constraint_name
+            AND tc.table_schema = kcu.table_schema
+          JOIN information_schema.constraint_column_usage AS ccu
+            ON ccu.constraint_name = tc.constraint_name
+            AND ccu.table_schema = tc.table_schema
+        WHERE tc.constraint_type = 'FOREIGN KEY';
+      `;
+      
+      // Add relationships to tables
+      for (const rel of relationships) {
+        const sourceTable = tableMetadata.find(t => t.name === rel.source_table);
+        const targetTable = tableMetadata.find(t => t.name === rel.target_table);
+        
+        if (sourceTable && targetTable) {
+          if (!sourceTable.relationships) {
+            sourceTable.relationships = [];
+          }
+          
+          // Determine relationship type
+          let relationType: 'one-to-one' | 'one-to-many' | 'many-to-one' | 'many-to-many' = 'many-to-one';
+          
+          // If the source column is part of a primary key, it's likely one-to-one
+          if (sourceTable.primaryKey.includes(rel.source_column)) {
+            relationType = 'one-to-one';
+          }
+          
+          sourceTable.relationships.push({
+            name: `${rel.source_table}_${rel.source_column}_to_${rel.target_table}`,
+            targetTable: rel.target_table,
+            type: relationType,
+            sourceColumn: rel.source_column,
+            targetColumn: rel.target_column,
+            description: this.generateRelationshipDescription(
+              rel.source_table, 
+              rel.source_column, 
+              rel.target_table, 
+              rel.target_column
+            )
+          });
+        }
+      }
+      
+      return tableMetadata;
+    } catch (error) {
+      console.error('[SchemaMetadata] Error fetching table metadata:', error);
+      return [];
+    }
+  }
+  
+  /**
+   * Add business context to schema metadata
+   */
+  private addBusinessContext(schema: TableMetadata[]): TableMetadata[] {
+    // Deep clone the schema
+    const enhancedSchema: TableMetadata[] = JSON.parse(JSON.stringify(schema));
     
-    return description;
+    // Add business context to tables and columns
+    for (const table of enhancedSchema) {
+      // Add table-level business context
+      table.businessContext = this.getTableBusinessContext(table.name);
+      table.sampleQueries = this.getTableSampleQueries(table.name);
+      
+      // Add column-level business context
+      for (const column of table.columns) {
+        column.businessContext = this.getColumnBusinessContext(table.name, column.name);
+        
+        // Add sample values for enum-like columns
+        if (this.isEnumLikeColumn(table.name, column.name)) {
+          column.values = this.getEnumValues(table.name, column.name);
+        }
+      }
+    }
+    
+    return enhancedSchema;
+  }
+  
+  /**
+   * Format a column or table name for display
+   */
+  private formatDisplayName(name: string): string {
+    return name
+      .split('_')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+  }
+  
+  /**
+   * Generate a description for a table
+   */
+  private generateTableDescription(tableName: string): string {
+    // Define descriptions for common tables
+    const tableDescriptions: Record<string, string> = {
+      clients: 'Stores information about therapy clients, including personal details and therapy-related data.',
+      therapists: 'Contains records of therapists and clinicians, including their specializations and contact information.',
+      appointments: 'Records of scheduled therapy sessions, including date, time, and status.',
+      sessions: 'Detailed information about completed therapy sessions, including progress notes and outcomes.',
+      budget_settings: 'Configuration data for client budget plans, including authorized hours and billing parameters.',
+      budget_items: 'Individual line items within a client\'s budget, representing services or products with allocated funds.',
+      assessments: 'Clinical assessments and evaluations performed on clients, including scores and recommendations.',
+      notes: 'Clinical notes and observations recorded by therapists during or after sessions.',
+      products: 'Therapy products, services, and billable items offered by the practice.',
+      insurance_plans: 'Details about insurance plans accepted by the practice, including coverage limits and requirements.',
+      goals: 'Therapy goals set for clients, including descriptions and target outcomes.',
+      payments: 'Records of financial transactions related to therapy services.',
+      documents: 'Client-related documents such as reports, prescriptions, and therapy materials.',
+      progress_reports: 'Periodic reports documenting client progress toward therapy goals.',
+      users: 'System users including clinicians, administrative staff, and application administrators.'
+    };
+    
+    return tableDescriptions[tableName] || `Table containing ${this.formatDisplayName(tableName)} data.`;
+  }
+  
+  /**
+   * Generate a description for a column
+   */
+  private generateColumnDescription(columnName: string, dataType: string): string {
+    // Common column descriptions based on naming patterns
+    if (columnName === 'id') return 'Unique identifier for the record.';
+    if (columnName === 'created_at') return 'Timestamp when the record was created.';
+    if (columnName === 'updated_at') return 'Timestamp when the record was last updated.';
+    if (columnName === 'deleted_at') return 'Timestamp when the record was soft-deleted (null if active).';
+    if (columnName.endsWith('_id')) {
+      const relatedEntity = columnName.replace('_id', '');
+      return `Foreign key reference to the ${this.formatDisplayName(relatedEntity)} table.`;
+    }
+    if (columnName.includes('name')) return 'Name or title.';
+    if (columnName.includes('email')) return 'Email address.';
+    if (columnName.includes('phone')) return 'Phone number.';
+    if (columnName.includes('address')) return 'Physical address.';
+    if (columnName.includes('status')) return 'Current status.';
+    if (columnName.includes('description')) return 'Detailed description or notes.';
+    if (columnName.includes('date')) return 'Date value.';
+    if (columnName.includes('time')) return 'Time value.';
+    if (columnName.includes('amount')) return 'Monetary or numeric amount.';
+    if (columnName.includes('price')) return 'Price or cost value.';
+    if (columnName.includes('type')) return 'Type or category.';
+    if (columnName.includes('code')) return 'Identifying code or reference number.';
+    
+    // Generic description based on data type
+    return `${this.formatDisplayName(columnName)} (${dataType}).`;
+  }
+  
+  /**
+   * Generate a description for a relationship
+   */
+  private generateRelationshipDescription(
+    sourceTable: string, 
+    sourceColumn: string, 
+    targetTable: string, 
+    targetColumn: string
+  ): string {
+    const sourceEntity = sourceTable.endsWith('s') ? sourceTable.slice(0, -1) : sourceTable;
+    const targetEntity = targetTable.endsWith('s') ? targetTable.slice(0, -1) : targetTable;
+    
+    return `A ${sourceEntity} is associated with a ${targetEntity} through the ${sourceColumn} field referencing ${targetTable}.${targetColumn}.`;
+  }
+  
+  /**
+   * Get business context for a table
+   */
+  private getTableBusinessContext(tableName: string): string[] {
+    // Define business context for common tables
+    const tableContext: Record<string, string[]> = {
+      clients: [
+        'Clients are individuals receiving therapy services.',
+        'Each client may have multiple budget plans, goals, and sessions.',
+        'Demographics information is used for reporting and billing purposes.',
+        'Status fields track whether a client is active, on hold, or discharged.'
+      ],
+      therapists: [
+        'Therapists are clinical providers who deliver services to clients.',
+        'They have specializations and certifications in various therapy approaches.',
+        'Therapists may have assigned caseloads of clients.',
+        'Availability is tracked for scheduling purposes.'
+      ],
+      appointments: [
+        'Appointments represent scheduled therapy sessions.',
+        'They have statuses like scheduled, confirmed, completed, or cancelled.',
+        'Appointments link to specific therapists, clients, and locations.',
+        'They contain time, date, and duration information.'
+      ],
+      sessions: [
+        'Sessions represent completed therapy appointments.',
+        'They contain billable time information and clinical notes.',
+        'Each session may use multiple product codes for billing.',
+        'Sessions directly impact budget utilization.'
+      ],
+      budget_settings: [
+        'Budget settings define the overall parameters for a client\'s therapy budget.',
+        'They include authorization periods, funding sources, and total allocated amounts.',
+        'A client can have multiple budget settings over time.',
+        'Budget settings determine which services are billable.'
+      ],
+      budget_items: [
+        'Budget items are specific allocations within a budget plan.',
+        'They relate to specific product codes or service types.',
+        'Each budget item has a quantity, rate, and total value.',
+        'Budget items track utilization against authorized amounts.'
+      ],
+      goals: [
+        'Goals represent therapeutic objectives for clients.',
+        'They have descriptions, target dates, and status tracking.',
+        'Goals are typically organized into short-term and long-term categories.',
+        'Progress toward goals is documented in session notes and assessments.'
+      ]
+    };
+    
+    return tableContext[tableName] || [];
+  }
+  
+  /**
+   * Get sample queries for a table
+   */
+  private getTableSampleQueries(tableName: string): string[] {
+    // Define sample queries for common tables
+    const tableSampleQueries: Record<string, string[]> = {
+      clients: [
+        'How many active clients do we have?',
+        'Which clients have upcoming appointments this week?',
+        'List clients with expiring budgets in the next 30 days',
+        'What\'s the average age of our pediatric clients?'
+      ],
+      therapists: [
+        'Which therapists are available on Mondays?',
+        'What\'s the average caseload size per therapist?',
+        'List therapists with speech therapy certification',
+        'Who has the highest client satisfaction rating?'
+      ],
+      sessions: [
+        'How many sessions were conducted last month?',
+        'What\'s the average session duration?',
+        'Which client had the most sessions this quarter?',
+        'List sessions with billing issues'
+      ],
+      budget_items: [
+        'What\'s the total remaining budget for client #123?',
+        'Which clients have used more than 80% of their allocated therapy hours?',
+        'List budget items expiring within 30 days',
+        'What\'s the average utilization rate across all active budgets?'
+      ],
+      goals: [
+        'How many goals were achieved in the last quarter?',
+        'Which clients have overdue goal reviews?',
+        'List goals related to communication skills',
+        'What\'s the average time to complete articulation goals?'
+      ]
+    };
+    
+    return tableSampleQueries[tableName] || [];
+  }
+  
+  /**
+   * Get business context for a column
+   */
+  private getColumnBusinessContext(tableName: string, columnName: string): string[] {
+    // Define business context for specific columns
+    const columnKey = `${tableName}.${columnName}`;
+    const columnContext: Record<string, string[]> = {
+      'clients.status': [
+        'Active status means the client is currently receiving services.',
+        'On Hold status indicates temporary pause in services.',
+        'Discharged means therapy has been completed.',
+        'Inactive means the client is not currently receiving services but may return.'
+      ],
+      'sessions.billable_time': [
+        'Billable time is the portion of a session that can be charged to insurance or other payers.',
+        'It typically excludes administrative tasks or documentation time.',
+        'Measured in minutes and used for calculating budget utilization.',
+        'Different funding sources may have different rules about billable time.'
+      ],
+      'budget_items.authorized_units': [
+        'Authorized units represent the quantity of a service approved by a funding source.',
+        'Units may represent sessions, hours, or specific products depending on the service.',
+        'When all authorized units are used, the budget item is considered exhausted.',
+        'Additional authorization may be needed if more units are required.'
+      ]
+    };
+    
+    return columnContext[columnKey] || [];
+  }
+  
+  /**
+   * Check if a column is likely an enum
+   */
+  private isEnumLikeColumn(tableName: string, columnName: string): boolean {
+    // Columns likely to contain enumerated values
+    const enumLikeColumns = [
+      'clients.status',
+      'appointments.status',
+      'sessions.session_type',
+      'goals.priority',
+      'therapists.specialization',
+      'budget_settings.funding_source',
+      'goals.status'
+    ];
+    
+    return enumLikeColumns.includes(`${tableName}.${columnName}`);
+  }
+  
+  /**
+   * Get sample enum values for a column
+   */
+  private getEnumValues(tableName: string, columnName: string): string[] {
+    // Define enum values for specific columns
+    const columnKey = `${tableName}.${columnName}`;
+    const enumValues: Record<string, string[]> = {
+      'clients.status': ['active', 'inactive', 'on_hold', 'discharged'],
+      'appointments.status': ['scheduled', 'confirmed', 'completed', 'cancelled', 'no_show'],
+      'sessions.session_type': ['evaluation', 'individual', 'group', 'consultation', 'telehealth'],
+      'goals.priority': ['high', 'medium', 'low'],
+      'therapists.specialization': ['speech', 'language', 'feeding', 'swallowing', 'voice', 'fluency'],
+      'budget_settings.funding_source': ['insurance', 'self_pay', 'grant', 'scholarship', 'school_district'],
+      'goals.status': ['active', 'on_hold', 'completed', 'discontinued']
+    };
+    
+    return enumValues[columnKey] || [];
   }
 }
 

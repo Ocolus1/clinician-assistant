@@ -10,11 +10,10 @@
  */
 
 import { openaiService } from '../openaiService';
-import { schemaProvider } from '../schemaProvider';
-import { sql } from '../../db';
 import { schemaMetadataService } from './schemaMetadata';
 import { queryTemplateService } from './queryTemplates';
 import { multiQueryEngine } from './multiQueryEngine';
+import { sql } from '../../db';
 
 /**
  * Result of an SQL query
@@ -50,84 +49,87 @@ export class EnhancedSQLQueryGenerator {
     useMultiQuery: true,
     useBusinessContext: true,
     maxTokens: 1000,
-    temperature: 0.2
+    temperature: 0.1
   };
   
   /**
    * Generate an SQL query based on a natural language question
    */
   async generateQuery(
-    question: string,
+    naturalLanguageQuestion: string,
     options: QueryGenerationOptions = {}
   ): Promise<string> {
-    // Merge options with defaults
+    // Merge provided options with defaults
     const mergedOptions = { ...this.defaultOptions, ...options };
     
     try {
-      // Step 1: Try to use templates if enabled
+      // Step 1: Check if this matches a template
       if (mergedOptions.useTemplates) {
-        const templateResult = await queryTemplateService.processQuestion(question);
+        const templateResult = await queryTemplateService.processQuestion(naturalLanguageQuestion);
         
-        if (templateResult.matched && templateResult.generatedQuery) {
-          console.log('[Enhanced] Using template for query generation');
-          return templateResult.generatedQuery;
+        if (templateResult.matched && templateResult.query) {
+          console.log('[Enhanced] Using template-based query:', templateResult.query);
+          return templateResult.query;
         }
       }
       
-      // Step 2: Try to use multi-query patterns if enabled
+      // Step 2: Check if this requires a multi-query approach
       if (mergedOptions.useMultiQuery) {
-        const multiQueryChain = multiQueryEngine.createChainForQuestion(question);
+        const multiQueryCheck = await multiQueryEngine.checkIfMultiQueryNeeded(naturalLanguageQuestion);
         
-        if (multiQueryChain) {
-          console.log('[Enhanced] Using multi-query pattern for query generation');
-          // For multi-query, just return the first step's query as a preview
-          const firstStep = multiQueryChain.steps[0];
-          return firstStep.query;
+        if (multiQueryCheck.needsMultiQuery) {
+          console.log('[Enhanced] Multi-query approach needed');
+          const multiQuery = await multiQueryEngine.generateMultiQueryPlan(naturalLanguageQuestion);
+          
+          if (multiQuery && multiQuery.steps.length > 0) {
+            console.log('[Enhanced] Executing multi-query plan');
+            
+            // Execute the first step of the multi-query plan
+            const firstStep = multiQuery.steps[0]; 
+            return firstStep.query;
+          }
         }
       }
       
-      // Step 3: Fall back to direct LLM query generation
-      console.log('[Enhanced] Using direct LLM generation for query');
+      // Step 3: Use direct LLM query generation with schema context
+      console.log('[Enhanced] Using direct LLM query generation');
       
-      // Get schema information for context
-      let schemaInfo = schemaProvider.getSchemaDescription();
+      // Get schema metadata
+      const schemaMetadata = mergedOptions.useBusinessContext 
+        ? await schemaMetadataService.getSchemaWithBusinessContext()
+        : await schemaMetadataService.getSchema();
       
-      // Add business context if enabled
-      if (mergedOptions.useBusinessContext) {
-        schemaInfo = `${schemaInfo}\n\n${schemaMetadataService.getDescription()}`;
-      }
-      
-      // Prepare the prompt for query generation
+      // Format the prompt
       const prompt = `
-        Generate a PostgreSQL query to answer the following question:
-        "${question}"
+        Generate a single SQL query to answer the following question:
+        "${naturalLanguageQuestion}"
         
-        Database schema information:
-        ${schemaInfo}
+        Database Schema:
+        ${JSON.stringify(schemaMetadata, null, 2)}
         
         Requirements:
-        1. Return only the SQL query without explanations or markdown formatting
-        2. Ensure the query is valid PostgreSQL syntax
-        3. Include proper JOINs when querying related tables
-        4. Use aliases for table names to make the query more readable
-        5. Apply sensible LIMIT clauses for queries that could return many rows
-        6. When dealing with dates, ensure proper formatting and date functions
-        
-        The output query should be focused on answering the specific question asked.
+        1. Use only tables and columns from the provided schema
+        2. Generate a single, complete SQL query with proper JOIN syntax
+        3. Use explicit column names (never use SELECT *)
+        4. Include appropriate WHERE clauses to filter results
+        5. Do not use LIMIT unless specifically asked
+        6. Ensure SQL is compatible with PostgreSQL
+        7. Add comments to explain complex parts of the query
+        8. Handle date/time comparisons properly
+        9. Return only the SQL query, no explanation or other text
       `;
       
-      // Generate the SQL query using OpenAI
+      // Generate the query
       const response = await openaiService.createChatCompletion([
-        { role: 'system', content: 'You are an expert SQL query generator for PostgreSQL. Generate only valid SQL queries without explanations or markdown formatting.' },
+        { role: 'system', content: 'You are an SQL expert that generates accurate PostgreSQL queries to answer natural language questions.' },
         { role: 'user', content: prompt }
       ]);
       
-      // Extract the SQL query from the response
-      const query = this.sanitizeQuery(response);
-      return query;
+      // Extract and clean the SQL query
+      return this.sanitizeQuery(response);
     } catch (error: any) {
       console.error('[Enhanced] Error generating SQL query:', error);
-      throw new Error(`Failed to generate SQL query: ${error.message}`);
+      throw new Error(`Failed to generate SQL: ${error.message}`);
     }
   }
   
@@ -135,165 +137,175 @@ export class EnhancedSQLQueryGenerator {
    * Sanitize and validate a generated SQL query
    */
   private sanitizeQuery(query: string): string {
-    // Remove any markdown code block formatting
-    let sanitized = query.replace(/```sql|```/g, '').trim();
+    // Remove markdown code blocks if present
+    let cleanQuery = query.replace(/```sql/g, '').replace(/```/g, '').trim();
     
-    // Ensure the query ends with a semicolon
-    if (!sanitized.endsWith(';')) {
-      sanitized += ';';
-    }
-    
-    // Check if this is a multi-line comment or has hidden content
-    if (sanitized.includes('/*') && sanitized.includes('*/')) {
-      sanitized = sanitized.replace(/\/\*[\s\S]*?\*\//g, '').trim();
-    }
-    
-    // Remove any single-line comments
-    sanitized = sanitized.replace(/--.*$/gm, '').trim();
-    
-    // Validate that this is a SELECT query (for safety)
-    const firstWord = sanitized.split(' ')[0].toUpperCase();
-    if (firstWord !== 'SELECT' && firstWord !== 'WITH') {
-      throw new Error('Only SELECT queries are allowed');
-    }
-    
-    // Check for dangerous commands
-    const dangerousPatterns = [
-      /\bDROP\b/i,
-      /\bDELETE\b/i,
-      /\bTRUNCATE\b/i,
-      /\bALTER\b/i,
-      /\bCREATE\b/i,
-      /\bINSERT\b/i,
-      /\bUPDATE\b/i,
-      /\bGRANT\b/i,
-      /\bREVOKE\b/i,
-      /\bCOPY\b/i
-    ];
-    
-    for (const pattern of dangerousPatterns) {
-      if (pattern.test(sanitized)) {
-        throw new Error('Query contains potentially dangerous operations');
+    // Remove any explanatory text before or after the query
+    if (cleanQuery.toLowerCase().includes('select ')) {
+      const selectIndex = cleanQuery.toLowerCase().indexOf('select ');
+      cleanQuery = cleanQuery.substring(selectIndex);
+      
+      // Find the end of the query (usually ends with a semicolon)
+      const endIndex = cleanQuery.lastIndexOf(';');
+      if (endIndex !== -1) {
+        cleanQuery = cleanQuery.substring(0, endIndex + 1);
       }
     }
     
-    return sanitized;
+    // Make sure we have a valid SQL query
+    if (!cleanQuery.toLowerCase().includes('select ')) {
+      throw new Error('Generated text does not contain a valid SQL query');
+    }
+    
+    return cleanQuery;
   }
   
   /**
    * User-friendly error message for SQL errors
    */
   private formatErrorMessage(error: any, query: string): string {
-    const errorMessage = error.message || String(error);
+    if (!error) return 'Unknown error';
     
-    // Check for common SQL errors
-    if (errorMessage.includes('relation') && errorMessage.includes('does not exist')) {
-      const match = errorMessage.match(/relation "(.*?)" does not exist/);
-      if (match && match[1]) {
-        return `The table "${match[1]}" referenced in the query does not exist in the database.`;
-      }
-      return 'One of the tables referenced in the query does not exist.';
-    } else if (errorMessage.includes('column') && errorMessage.includes('does not exist')) {
-      const match = errorMessage.match(/column "(.*?)" does not exist/);
-      if (match && match[1]) {
-        return `The column "${match[1]}" referenced in the query does not exist in the database.`;
-      }
-      return 'One of the columns referenced in the query does not exist.';
+    const errorMessage = error.message || error.toString();
+    
+    // Common SQL error patterns
+    if (errorMessage.includes('column') && errorMessage.includes('does not exist')) {
+      return 'The query references a column that does not exist in the database schema.';
+    } else if (errorMessage.includes('relation') && errorMessage.includes('does not exist')) {
+      return 'The query references a table that does not exist in the database schema.';
     } else if (errorMessage.includes('syntax error')) {
-      return 'There is a syntax error in the SQL query. The query structure may be incorrect.';
+      return 'There is a syntax error in the generated SQL query.';
+    } else if (errorMessage.includes('permission denied')) {
+      return 'The database user does not have permission to execute this query.';
     }
     
     // Default error message
-    return `Error executing SQL query: ${errorMessage}`;
+    return `Database error: ${errorMessage}`;
   }
   
   /**
    * Execute an SQL query with safeguards
    */
   async executeQuery(
-    query: string,
+    naturalLanguageQuestion: string,
     options: QueryGenerationOptions = {}
   ): Promise<SQLQueryResult> {
     const startTime = Date.now();
+    let generatedQuery: string;
     
     try {
-      // First, check if this query matches a template
-      const templateResult = options.useTemplates 
-        ? await queryTemplateService.processQuestion(query)
-        : { matched: false };
-      
-      let fromTemplate = false;
-      let fromMultiQuery = false;
-      let usedBusinessContext = !!options.useBusinessContext;
-      let sqlQuery = query;
-      
-      // If it matches a template, use the template-generated query
-      if (templateResult.matched && templateResult.generatedQuery) {
-        sqlQuery = templateResult.generatedQuery;
-        fromTemplate = true;
-      } 
-      // Or check for multi-query patterns
-      else if (options.useMultiQuery) {
-        const multiQueryChain = multiQueryEngine.createChainForQuestion(query);
+      // Try to generate a query from templates first, if enabled
+      if (options.useTemplates) {
+        const templateResult = await queryTemplateService.processQuestion(naturalLanguageQuestion);
         
-        if (multiQueryChain) {
-          // Execute the full chain
-          const executedChain = await multiQueryEngine.executeQueryChain(multiQueryChain);
+        if (templateResult.matched && templateResult.query) {
+          generatedQuery = templateResult.query;
           
-          // If chain executed successfully and has final results
-          if (executedChain.finalResults) {
-            // Return the results from the final step
+          // Execute the query
+          try {
+            console.log('[Enhanced] Executing template query:', generatedQuery);
+            const results = await sql`${generatedQuery}`; 
+            
             return {
-              query: executedChain.steps.map(step => step.query).join('\n\n'),
-              data: executedChain.finalResults,
-              executionTime: executedChain.totalExecutionTime,
-              fromTemplate: false,
-              fromMultiQuery: true,
-              usedBusinessContext
+              query: generatedQuery,
+              data: Array.isArray(results) ? results : [results],
+              executionTime: Date.now() - startTime,
+              fromTemplate: true,
+              usedBusinessContext: options.useBusinessContext
             };
-          } 
-          // If chain failed
-          else if (executedChain.error) {
-            return {
-              query: executedChain.steps.map(step => step.query).join('\n\n'),
-              data: [],
-              error: executedChain.error,
-              executionTime: executedChain.totalExecutionTime,
-              fromTemplate: false,
-              fromMultiQuery: true,
-              usedBusinessContext
-            };
+          } catch (error: any) {
+            console.error('[Enhanced] Error executing template query:', error);
+            
+            // Generate a fallback query
+            generatedQuery = await this.generateQuery(naturalLanguageQuestion, options);
           }
+        } else {
+          generatedQuery = await this.generateQuery(naturalLanguageQuestion, options);
         }
+      } else {
+        generatedQuery = await this.generateQuery(naturalLanguageQuestion, options);
       }
       
-      // Sanitize the query for safety
-      const sanitizedQuery = this.sanitizeQuery(sqlQuery);
-      
       // Execute the query
-      const result = await sql`${sanitizedQuery}`;
-      const executionTime = Date.now() - startTime;
+      console.log('[Enhanced] Executing query:', generatedQuery);
       
-      return {
-        query: sanitizedQuery,
-        data: result,
-        executionTime,
-        fromTemplate,
-        fromMultiQuery,
-        usedBusinessContext
-      };
+      try {
+        const results = await db.unsafe(generatedQuery);
+        
+        return {
+          query: generatedQuery,
+          data: Array.isArray(results) ? results : [results],
+          executionTime: Date.now() - startTime,
+          fromTemplate: false,
+          fromMultiQuery: false,
+          usedBusinessContext: options.useBusinessContext
+        };
+      } catch (dbError: any) {
+        console.error('[Enhanced] Database error:', dbError);
+        
+        // Try to generate a safer query as a fallback
+        console.log('[Enhanced] Attempting to generate a safer query...');
+        
+        const fallbackPrompt = `
+          The following query failed with error: "${dbError.message}"
+          
+          Query: ${generatedQuery}
+          
+          Please fix the SQL query to avoid this error. The fixed query should:
+          1. Correct any syntax errors
+          2. Only use tables and columns that exist in the schema
+          3. Handle NULL values safely
+          4. Address the specific error mentioned
+          
+          Return only the fixed SQL query with no explanations.
+        `;
+        
+        try {
+          const fixedQuery = await openaiService.createChatCompletion([
+            { role: 'system', content: 'You are an SQL expert that fixes problematic PostgreSQL queries.' },
+            { role: 'user', content: fallbackPrompt }
+          ]);
+          
+          const sanitizedFixedQuery = this.sanitizeQuery(fixedQuery);
+          console.log('[Enhanced] Executing fixed query:', sanitizedFixedQuery);
+          
+          // Try the fixed query
+          const results = await db.unsafe(sanitizedFixedQuery);
+          
+          return {
+            query: sanitizedFixedQuery,
+            data: Array.isArray(results) ? results : [results],
+            executionTime: Date.now() - startTime,
+            fromTemplate: false,
+            fromMultiQuery: false,
+            usedBusinessContext: options.useBusinessContext
+          };
+        } catch (fallbackError: any) {
+          console.error('[Enhanced] Fallback query also failed:', fallbackError);
+          
+          return {
+            query: generatedQuery,
+            data: [],
+            error: this.formatErrorMessage(dbError, generatedQuery),
+            originalError: dbError.message,
+            executionTime: Date.now() - startTime,
+            fromTemplate: false,
+            fromMultiQuery: false,
+            usedBusinessContext: options.useBusinessContext
+          };
+        }
+      }
     } catch (error: any) {
-      console.error('[Enhanced] Error executing SQL query:', error);
+      console.error('[Enhanced] Error in query generation/execution:', error);
       
       return {
-        query,
+        query: error.query || '',
         data: [],
-        error: this.formatErrorMessage(error, query),
-        originalError: error.message,
+        error: `Failed to generate or execute query: ${error.message}`,
         executionTime: Date.now() - startTime,
         fromTemplate: false,
         fromMultiQuery: false,
-        usedBusinessContext: !!options.useBusinessContext
+        usedBusinessContext: options.useBusinessContext
       };
     }
   }

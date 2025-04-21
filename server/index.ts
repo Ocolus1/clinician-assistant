@@ -4,7 +4,7 @@ import { setupVite, serveStatic, log } from "./vite";
 import { registerReportRoutes } from "./routes/reports";
 import { registerKnowledgeRoutes } from "./routes/knowledge";
 import assistantRoutes from "./routes/assistant";
-import enhancedAssistantRoutes from "./routes/enhancedAssistant";
+import { registerEnhancedAssistantRoutes } from "./routes/enhancedAssistant";
 // Create debug-routes.ts file if it doesn't exist
 import * as fs from 'fs';
 import * as path from 'path';
@@ -67,7 +67,7 @@ app.use((req, res, next) => {
   app.use('/api/assistant', assistantRoutes);
   
   console.log("STEP 2.6: Registering enhanced assistant API routes");
-  app.use('/api/enhanced-assistant', enhancedAssistantRoutes);
+  registerEnhancedAssistantRoutes(app);
   
   console.log("STEP 3: Registering main API routes");
   const server = await registerRoutes(app);
