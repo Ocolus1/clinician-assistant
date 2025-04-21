@@ -12,7 +12,7 @@ import {
   getEnhancedFeatures,
   getQueryTemplates
 } from '../../lib/enhancedAssistantClient';
-import { EnhancedAssistantResponse, QueryTemplate, EnhancedAssistantFeature } from '@shared/enhancedAssistantTypes';
+import { EnhancedAssistantResponse as ResponseType, QueryTemplate, EnhancedAssistantFeature } from '@shared/enhancedAssistantTypes';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -22,7 +22,7 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Loader2, BrainCircuit, Sparkles, FileText } from 'lucide-react';
-import EnhancedAssistantResponse from './EnhancedAssistantResponse';
+import EnhancedAssistantResponseComponent from './EnhancedAssistantResponse';
 import TemplateSelector from './TemplateSelector';
 
 const EnhancedAssistant: React.FC = () => {
@@ -34,7 +34,7 @@ const EnhancedAssistant: React.FC = () => {
     useMultiQuery: true
   });
   const [activeTab, setActiveTab] = useState('ask');
-  const [previousResponses, setPreviousResponses] = useState<EnhancedAssistantResponse[]>([]);
+  const [previousResponses, setPreviousResponses] = useState<ResponseType[]>([]);
 
   // Fetch available features
   const featuresQuery = useQuery({
@@ -208,7 +208,7 @@ const EnhancedAssistant: React.FC = () => {
       {previousResponses.length > 0 && (
         <div className="space-y-6">
           {previousResponses.map((response, index) => (
-            <EnhancedAssistantResponse 
+            <EnhancedAssistantResponseComponent 
               key={index} 
               response={response} 
             />

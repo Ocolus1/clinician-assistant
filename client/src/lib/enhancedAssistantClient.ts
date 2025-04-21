@@ -1,98 +1,40 @@
 /**
- * Enhanced Clinician Assistant Client
+ * Enhanced Assistant API Client
  * 
- * This module provides functions for interacting with the enhanced assistant API.
+ * This file contains the client-side functions for communicating with the
+ * Enhanced Assistant API.
  */
 
-import { EnhancedAssistantQuestion, EnhancedAssistantResponse, EnhancedAssistantFeature, QueryTemplate } from '@shared/enhancedAssistantTypes';
-import { ApiError } from './errors';
+import { apiRequest } from './queryClient';
+import { EnhancedAssistantResponse, EnhancedQuestionRequest, EnhancedAssistantFeature, QueryTemplate } from '@shared/enhancedAssistantTypes';
 
 /**
- * Ask a question to the enhanced assistant
+ * Asks a question to the enhanced assistant
  */
-export async function askEnhancedQuestion(question: EnhancedAssistantQuestion): Promise<EnhancedAssistantResponse> {
-  try {
-    const response = await fetch('/api/enhanced-assistant/ask', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(question),
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new ApiError(
-        `Error from enhanced assistant API: ${errorData.error || response.statusText}`,
-        response.status,
-        errorData
-      );
-    }
-
-    return await response.json();
-  } catch (error) {
-    console.error('Error asking enhanced assistant:', error);
-    if (error instanceof ApiError) throw error;
-    
-    throw new ApiError(
-      `Failed to communicate with enhanced assistant: ${(error as Error).message}`,
-      500
-    );
-  }
+export async function askEnhancedQuestion(data: EnhancedQuestionRequest): Promise<EnhancedAssistantResponse> {
+  return apiRequest('/api/enhanced-assistant/query', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
 }
 
 /**
- * Get all available enhanced assistant features
+ * Gets the list of available enhanced features
  */
 export async function getEnhancedFeatures(): Promise<EnhancedAssistantFeature[]> {
-  try {
-    const response = await fetch('/api/enhanced-assistant/features');
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new ApiError(
-        `Error fetching enhanced features: ${errorData.error || response.statusText}`,
-        response.status,
-        errorData
-      );
-    }
-
-    return await response.json();
-  } catch (error) {
-    console.error('Error fetching enhanced features:', error);
-    if (error instanceof ApiError) throw error;
-    
-    throw new ApiError(
-      `Failed to fetch enhanced features: ${(error as Error).message}`,
-      500
-    );
-  }
+  return apiRequest('/api/enhanced-assistant/features');
 }
 
 /**
- * Get all available query templates
+ * Gets the list of query templates
  */
 export async function getQueryTemplates(): Promise<QueryTemplate[]> {
-  try {
-    const response = await fetch('/api/enhanced-assistant/templates');
+  return apiRequest('/api/enhanced-assistant/templates');
+}
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new ApiError(
-        `Error fetching query templates: ${errorData.error || response.statusText}`,
-        response.status,
-        errorData
-      );
-    }
-
-    return await response.json();
-  } catch (error) {
-    console.error('Error fetching query templates:', error);
-    if (error instanceof ApiError) throw error;
-    
-    throw new ApiError(
-      `Failed to fetch query templates: ${(error as Error).message}`,
-      500
-    );
-  }
+/**
+ * Gets detailed schema metadata for data exploration
+ */
+export async function getSchemaMetadata(): Promise<any> {
+  return apiRequest('/api/enhanced-assistant/schema');
 }
