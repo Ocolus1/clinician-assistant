@@ -17,8 +17,9 @@ import { EnhancedAssistantResponse as ResponseType, QueryTemplate } from '@share
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, BrainCircuit, Sparkles, LightbulbIcon, SearchIcon } from 'lucide-react';
-import EnhancedAssistantResponseComponent from './EnhancedAssistantResponse';
+import { Loader2, BrainCircuit, Sparkles, Search as SearchIcon } from 'lucide-react';
+import { LightbulbIcon } from 'lucide-react';
+import EnhancedAssistantResponseComponent from '@/components/enhanced-assistant/EnhancedAssistantResponse';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Badge } from '@/components/ui/badge';
 

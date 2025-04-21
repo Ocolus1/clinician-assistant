@@ -49,6 +49,9 @@ export interface EnhancedQuestionRequest {
   specificTemplate?: string;
 }
 
+// Alias for server-side usage (same as EnhancedQuestionRequest)
+export interface EnhancedAssistantQuestion extends EnhancedQuestionRequest {}
+
 // Enhanced assistant response
 export interface EnhancedAssistantResponse {
   originalQuestion: string;

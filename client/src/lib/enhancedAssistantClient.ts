@@ -12,7 +12,7 @@ import { EnhancedAssistantResponse, EnhancedQuestionRequest, EnhancedAssistantFe
  * Asks a question to the enhanced assistant
  */
 export async function askEnhancedQuestion(data: EnhancedQuestionRequest): Promise<EnhancedAssistantResponse> {
-  return apiRequest('POST', '/api/enhanced-assistant/query', data);
+  return apiRequest('POST', '/api/enhanced-assistant/ask', data);
 }
 
 /**
