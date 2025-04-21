@@ -1,13 +1,9 @@
 /**
- * Enhanced Clinician Assistant Types
- * 
- * This module defines types for the enhanced clinician assistant system.
- * These types support advanced schema understanding, query templates,
- * multi-query chains, and enhanced result formatting.
+ * Type definitions for the enhanced clinician assistant
  */
 
 /**
- * Metadata for a database table
+ * Database table metadata
  */
 export interface TableMetadata {
   name: string;
@@ -21,7 +17,7 @@ export interface TableMetadata {
 }
 
 /**
- * Metadata for a database column
+ * Database column metadata
  */
 export interface ColumnMetadata {
   name: string;
@@ -30,120 +26,23 @@ export interface ColumnMetadata {
   type: string;
   isNullable: boolean;
   businessContext?: string[];
-  values?: string[]; // For enum-like columns
+  values?: string[];
 }
 
 /**
- * Metadata for a relationship between tables
+ * Database relationship metadata
  */
 export interface RelationshipMetadata {
   name: string;
   description: string;
-  targetTable: string;
   sourceColumn: string;
+  targetTable: string;
   targetColumn: string;
   type: 'one-to-one' | 'one-to-many' | 'many-to-one' | 'many-to-many';
 }
 
 /**
- * Parameter for a query template
- */
-export interface TemplateParameter {
-  name: string;
-  description: string;
-  type: string;
-  required: boolean;
-  default?: any;
-  extractionHints?: string[];
-}
-
-/**
- * Result mapping for a query template
- */
-export interface ResultMapping {
-  renameColumns?: Record<string, string>;
-  visualizationType?: 'table' | 'bar' | 'line' | 'pie' | 'card';
-  hideColumns?: string[];
-  sortBy?: string;
-  sortOrder?: 'asc' | 'desc';
-}
-
-/**
- * Query template
- */
-export interface QueryTemplate {
-  id: string;
-  name: string;
-  description: string;
-  patterns: string[];
-  sqlTemplate: string;
-  parameters: TemplateParameter[];
-  resultMapping: ResultMapping;
-  responseTemplate?: string;
-}
-
-/**
- * Step in a multi-query chain
- */
-export interface QueryStep {
-  id: string;
-  purpose: string;
-  query: string;
-  dependsOn: string[];
-  results?: any[];
-  error?: string;
-  executionTime?: number;
-}
-
-/**
- * Multi-query chain
- */
-export interface QueryChain {
-  id: string;
-  originalQuestion: string;
-  steps: QueryStep[];
-  maxSteps: number;
-  currentStep: number;
-  complete: boolean;
-  error?: string;
-  startTime: number;
-  endTime?: number;
-  totalExecutionTime?: number;
-  finalResults?: any[];
-}
-
-/**
- * Enhanced assistant question with options
- */
-export interface EnhancedAssistantQuestion {
-  question: string;
-  useBusinessContext?: boolean;
-  useTemplates?: boolean;
-  useMultiQuery?: boolean;
-  format?: 'natural' | 'table' | 'json' | 'chart';
-  clientId?: number;
-  therapistId?: number;
-}
-
-/**
- * Enhanced assistant response
- */
-export interface EnhancedAssistantResponse {
-  question: string;
-  answer: string;
-  data: any[];
-  query: string;
-  executionTime?: number;
-  usedTemplate?: boolean;
-  templateId?: string;
-  usedMultiQuery?: boolean;
-  queryChain?: QueryChain;
-  usedBusinessContext?: boolean;
-  error?: string;
-}
-
-/**
- * Context for generating SQL queries
+ * Context for SQL query generation
  */
 export interface SQLQueryContext {
   schema: TableMetadata[];
@@ -152,12 +51,76 @@ export interface SQLQueryContext {
 }
 
 /**
- * Enhanced assistant feature description
+ * A step in a multi-query chain
  */
-export interface EnhancedFeature {
+export interface QueryStep {
+  id: string;
+  purpose: string;
+  query: string;
+  dependsOn: string[];
+  results?: any[];
+  executionTime?: number;
+  error?: string;
+}
+
+/**
+ * A chain of dependent queries for complex questions
+ */
+export interface QueryChain {
+  id: string;
+  originalQuestion: string;
+  steps: QueryStep[];
+  maxSteps: number;
+  currentStep: number;
+  complete: boolean;
+  startTime: number;
+  endTime?: number;
+  totalExecutionTime?: number;
+  finalResults?: any[];
+  error?: string;
+}
+
+/**
+ * Question with enhanced features
+ */
+export interface EnhancedAssistantQuestion {
+  question: string;
+  useBusinessContext?: boolean;
+  useTemplates?: boolean;
+  useMultiQuery?: boolean;
+  specificTemplate?: string;
+}
+
+/**
+ * Response from the enhanced assistant
+ */
+export interface EnhancedAssistantResponse {
+  originalQuestion: string;
+  // If the question could be answered with SQL
+  sqlQuery?: string;
+  data?: any[];
+  explanation?: string;
+  
+  // If a template was used
+  usedTemplate?: string;
+  templateParameters?: Record<string, any>;
+  
+  // If multi-query was used
+  usedMultiQuery?: boolean;
+  querySteps?: QueryStep[];
+  
+  // Execution details
+  executionTime?: number;
+  errorMessage?: string;
+}
+
+/**
+ * Feature flag/capability of the enhanced assistant
+ */
+export interface EnhancedAssistantFeature {
   id: string;
   name: string;
   description: string;
-  exampleQuestions: string[];
   enabled: boolean;
+  icon?: string;
 }

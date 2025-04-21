@@ -1,323 +1,366 @@
 /**
  * Multi-Query Engine
  * 
- * This service provides the ability to break down complex queries into multiple
- * interconnected steps. It allows the clinician assistant to answer questions
- * that require multiple database operations to solve.
+ * This service enables complex multi-step query execution for questions
+ * that cannot be answered with a single SQL query. It can break down
+ * complex questions into a series of dependent query steps and synthesize
+ * the results.
  */
 
-import { openaiService } from '../openaiService';
-import { schemaMetadataService } from './schemaMetadata';
-import { QueryChain, QueryStep } from '@shared/enhancedAssistantTypes';
 import { v4 as uuidv4 } from 'uuid';
+import { openaiService } from '../openaiService';
+import { enhancedSQLQueryGenerator } from './sqlQueryGenerator';
+import { schemaMetadataService } from './schemaMetadata';
 import { sql } from '../../db';
+import { QueryChain, QueryStep } from '@shared/enhancedAssistantTypes';
 
 /**
- * Multi-Query Engine class
+ * Result of checking if a question needs multi-query approach
+ */
+interface MultiQueryCheckResult {
+  needsMultiQuery: boolean;
+  reason?: string;
+}
+
+/**
+ * Multi-Query Engine service class
  */
 export class MultiQueryEngine {
-  private MAX_STEPS = 5;
+  /**
+   * Get database schema in simplified format for planning
+   */
+  private async getSimplifiedSchema(): Promise<any> {
+    try {
+      const fullSchema = await schemaMetadataService.getSchemaMetadata();
+      
+      // Simplify the schema for planning
+      return fullSchema.map(table => {
+        const simpleTable = {
+          name: table.name,
+          description: table.description,
+          columns: table.columns.map(col => ({
+            name: col.name,
+            type: col.type,
+            description: col.description
+          }))
+        };
+        
+        return simpleTable;
+      });
+    } catch (error) {
+      console.error('[MultiQuery] Error getting simplified schema:', error);
+      return [];
+    }
+  }
   
   /**
    * Check if a question requires multiple queries to answer
    */
-  async checkIfMultiQueryNeeded(question: string): Promise<{ needsMultiQuery: boolean; reason?: string }> {
+  async checkIfMultiQueryNeeded(question: string): Promise<MultiQueryCheckResult> {
     try {
-      // Get schema information
-      const schema = await schemaMetadataService.getSchema();
+      // Get simplified schema
+      const schema = await this.getSimplifiedSchema();
       
-      // Create a prompt to analyze query complexity
+      // Create prompt for OpenAI to analyze if multi-query is needed
       const prompt = `
-        Analyze the following user question and determine if it requires multiple SQL queries to answer completely:
-        
-        Question: "${question}"
-        
-        Database Schema Summary:
-        ${JSON.stringify(schema.map(table => ({
-          name: table.name,
-          primaryKey: table.primaryKey,
-          columns: table.columns.map(col => col.name)
-        })), null, 2)}
-        
-        A question requires multiple queries if:
-        1. It involves aggregation across different granularities (e.g., "Which therapist has the most clients AND what is their average session duration?")
-        2. It requires intermediate temporary results (e.g., "How many clients who missed appointments this month have overdue payments?")
-        3. It compares results between different data subsets (e.g., "Compare budget utilization for clients with and without insurance coverage")
-        4. It involves temporal sequences that can't be captured in a single query (e.g., "Find clients who had improved assessment scores after their budget was increased")
-        
-        Respond with only a JSON object in this format:
-        {
-          "needsMultiQuery": true/false,
-          "reason": "Brief explanation of why multiple queries are needed or why a single query is sufficient"
-        }
-      `;
+Analyze this natural language question and determine if it requires multiple SQL queries to be answered completely:
+
+Question: "${question}"
+
+A question needs multiple queries if:
+1. It involves aggregating data from disconnected tables or multiple time periods
+2. It requires conditional processing (e.g., "Find X and if Y, show Z")
+3. It asks for comparisons between different datasets
+4. It has temporal logic that's difficult to express in a single query
+5. It requires intermediate calculations or post-processing
+
+Respond with either:
+NEEDS_MULTI_QUERY: <reason>
+SINGLE_QUERY_SUFFICIENT
+`;
       
-      // Call the OpenAI API
-      const responseText = await openaiService.createChatCompletion([
-        { role: 'system', content: 'You are a query complexity analyzer that determines if questions require multiple SQL queries to answer. Respond only with valid JSON.' },
+      const response = await openaiService.createChatCompletion([
+        { role: 'system', content: 'You are an expert SQL analyst.' },
         { role: 'user', content: prompt }
       ]);
       
-      try {
-        const response = JSON.parse(responseText);
-        return {
-          needsMultiQuery: response.needsMultiQuery === true,
-          reason: response.reason
-        };
-      } catch (parseError) {
-        console.error('[MultiQuery] Failed to parse response as JSON:', parseError);
+      if (response.includes('NEEDS_MULTI_QUERY')) {
+        const reason = response.replace('NEEDS_MULTI_QUERY:', '').trim();
+        return { needsMultiQuery: true, reason };
+      } else {
         return { needsMultiQuery: false };
       }
     } catch (error) {
-      console.error('[MultiQuery] Error checking multi-query need:', error);
+      console.error('[MultiQuery] Error checking if multi-query needed:', error);
       return { needsMultiQuery: false };
     }
   }
   
   /**
-   * Generate a multi-query plan for a complex question
+   * Generate a plan for multiple queries to answer a complex question
    */
   async generateMultiQueryPlan(question: string): Promise<QueryChain> {
-    // Create a new query chain
-    const queryChain: QueryChain = {
-      id: uuidv4(),
-      originalQuestion: question,
-      steps: [],
-      maxSteps: this.MAX_STEPS,
-      currentStep: 0,
-      complete: false,
-      startTime: Date.now()
-    };
-    
     try {
-      // Get schema information with business context
-      const schema = await schemaMetadataService.getSchemaWithBusinessContext();
+      // Get simplified schema
+      const schema = await this.getSimplifiedSchema();
       
-      // Create a prompt to generate a multi-query plan
-      const prompt = `
-        Create a multi-step query plan to answer this complex question:
-        "${question}"
-        
-        Database Schema:
-        ${JSON.stringify(schema, null, 2)}
-        
-        Please break down the solution into discrete SQL query steps. For each step:
-        1. Describe its purpose
-        2. Provide the complete SQL query
-        3. Explain how this step's results will be used in subsequent steps
-        
-        Respond with only a JSON array of step objects:
-        [
-          {
-            "id": "step1",
-            "purpose": "Brief description of what this step accomplishes",
-            "query": "The complete SQL query for this step",
-            "dependsOn": [] // Empty for the first step
-          },
-          {
-            "id": "step2",
-            "purpose": "Purpose of the second step",
-            "query": "SQL query that may use results from step1",
-            "dependsOn": ["step1"] // This step depends on step1
-          },
-          ...
-        ]
-      `;
+      // Create prompt for OpenAI to generate a query plan
+      const planningPrompt = `
+I need to answer this complex question with multiple SQL queries: "${question}"
+
+Create a step-by-step query plan where each step builds on previous results. 
+For each step, define:
+1. What specific data that step retrieves
+2. How it relates to the question
+3. How later steps will use its results
+
+Rules:
+- Break it down into 2-5 logical steps
+- Order steps from most basic to most specific
+- Each step should be answerable with a single SQL query
+- Later steps can use results from earlier steps
+
+Format your response as:
+STEP 1: <purpose>
+STEP 2: <purpose>
+...etc.
+`;
       
-      // Call the OpenAI API
-      const responseText = await openaiService.createChatCompletion([
-        { role: 'system', content: 'You are a query planning assistant that breaks down complex questions into multiple SQL query steps. Respond only with valid JSON.' },
-        { role: 'user', content: prompt }
+      // Generate plan steps
+      const planResponse = await openaiService.createChatCompletion([
+        { role: 'system', content: 'You are an expert database analyst.' },
+        { role: 'user', content: planningPrompt }
       ]);
       
-      try {
-        const steps: QueryStep[] = JSON.parse(responseText);
+      // Parse the steps from the response
+      const stepLines = planResponse.split('\n')
+        .filter(line => line.trim().startsWith('STEP'))
+        .map(line => line.trim());
+      
+      // Create query steps
+      const steps: QueryStep[] = [];
+      for (let i = 0; i < stepLines.length; i++) {
+        const line = stepLines[i];
+        const purposeMatch = line.match(/STEP \d+: (.*)/);
         
-        if (Array.isArray(steps) && steps.length > 0) {
-          // Validate and add each step to the chain
-          for (const step of steps.slice(0, this.MAX_STEPS)) {
-            queryChain.steps.push({
-              id: step.id || `step${queryChain.steps.length + 1}`,
-              purpose: step.purpose,
-              query: step.query,
-              dependsOn: step.dependsOn || []
-            });
-          }
-        } else {
-          // Fallback: create a single step
-          queryChain.steps.push({
-            id: 'step1',
-            purpose: 'Answer the complete question',
-            query: await this.generateFallbackQuery(question),
-            dependsOn: []
+        if (purposeMatch && purposeMatch[1]) {
+          const purpose = purposeMatch[1].trim();
+          steps.push({
+            id: `step-${i + 1}`,
+            purpose,
+            query: '', // Will be generated later
+            dependsOn: i > 0 ? [`step-${i}`] : []
           });
         }
-      } catch (parseError) {
-        console.error('[MultiQuery] Failed to parse steps as JSON:', parseError);
-        
-        // Fallback: create a single step
-        queryChain.steps.push({
-          id: 'step1',
-          purpose: 'Answer the complete question',
-          query: await this.generateFallbackQuery(question),
-          dependsOn: []
-        });
       }
       
-      return queryChain;
+      // Create chain object
+      const chain: QueryChain = {
+        id: uuidv4(),
+        originalQuestion: question,
+        steps,
+        maxSteps: steps.length,
+        currentStep: 0,
+        complete: false,
+        startTime: Date.now()
+      };
+      
+      return chain;
     } catch (error) {
       console.error('[MultiQuery] Error generating multi-query plan:', error);
       
-      // Fallback: create a single step
-      queryChain.steps.push({
-        id: 'step1',
-        purpose: 'Answer the complete question',
-        query: await this.generateFallbackQuery(question),
-        dependsOn: []
-      });
-      
-      return queryChain;
+      // Return a simple fallback plan
+      return {
+        id: uuidv4(),
+        originalQuestion: question,
+        steps: [
+          {
+            id: 'step-1',
+            purpose: 'Retrieve data related to the question',
+            query: '',
+            dependsOn: []
+          }
+        ],
+        maxSteps: 1,
+        currentStep: 0,
+        complete: false,
+        startTime: Date.now()
+      };
     }
   }
   
   /**
-   * Generate a fallback query when multi-query generation fails
-   */
-  private async generateFallbackQuery(question: string): Promise<string> {
-    try {
-      // Get schema information
-      const schema = await schemaMetadataService.getSchema();
-      
-      // Create a prompt to generate a single query
-      const prompt = `
-        Generate a single SQL query to answer this question as best as possible:
-        "${question}"
-        
-        Database Schema:
-        ${JSON.stringify(schema, null, 2)}
-        
-        Create the most complete query possible even though this might be better answered with multiple queries.
-        Return only the SQL query without explanations.
-      `;
-      
-      // Call the OpenAI API
-      const response = await openaiService.createChatCompletion([
-        { role: 'system', content: 'You are an SQL query generator. Return only the SQL query without explanations.' },
-        { role: 'user', content: prompt }
-      ]);
-      
-      // Clean up the response
-      return this.sanitizeQuery(response);
-    } catch (error) {
-      console.error('[MultiQuery] Error generating fallback query:', error);
-      return `SELECT 'Error generating query' AS error`;
-    }
-  }
-  
-  /**
-   * Execute a multi-query chain
+   * Execute a query chain
    */
   async executeQueryChain(chain: QueryChain): Promise<QueryChain> {
     try {
-      // Mark the chain as in progress
-      chain.complete = false;
+      // Make a copy of the chain to avoid modifying the original
+      const workingChain = { ...chain, steps: [...chain.steps] };
       
-      // Execute steps in order
-      for (let i = 0; i < chain.steps.length; i++) {
-        const step = chain.steps[i];
-        chain.currentStep = i;
+      // Get simplified schema
+      const schema = await this.getSimplifiedSchema();
+      
+      // For each step in the chain
+      for (let i = 0; i < workingChain.steps.length; i++) {
+        const step = workingChain.steps[i];
+        workingChain.currentStep = i;
         
-        console.log(`[MultiQuery] Executing step ${i + 1}/${chain.steps.length}: ${step.id}`);
-        
-        // Check dependencies
-        for (const dependencyId of step.dependsOn) {
-          const dependencyStep = chain.steps.find(s => s.id === dependencyId);
-          if (!dependencyStep || !dependencyStep.results) {
-            throw new Error(`Dependency step ${dependencyId} not found or has no results`);
+        // Get previous step results if any
+        const prevResults: Record<string, any[]> = {};
+        for (const depId of step.dependsOn) {
+          const depStep = workingChain.steps.find(s => s.id === depId);
+          if (depStep && depStep.results) {
+            prevResults[depId] = depStep.results;
           }
         }
         
-        // If the query contains placeholders for previous results, replace them
-        let finalQuery = step.query;
-        
-        for (const dependencyId of step.dependsOn) {
-          const dependencyStep = chain.steps.find(s => s.id === dependencyId);
-          if (dependencyStep && dependencyStep.results) {
-            // Look for placeholders like {{step1.result[0].column}}
-            const placeholderRegex = new RegExp(`{{${dependencyId}\\.result\\[(\\d+)\\]\\.(\\w+)}}`, 'g');
-            
-            finalQuery = finalQuery.replace(placeholderRegex, (match, resultIndex, columnName) => {
-              if (dependencyStep.results && 
-                  dependencyStep.results[parseInt(resultIndex)] && 
-                  dependencyStep.results[parseInt(resultIndex)][columnName] !== undefined) {
-                return JSON.stringify(dependencyStep.results[parseInt(resultIndex)][columnName]);
-              }
-              return 'NULL';
-            });
-          }
-        }
-        
-        // Execute the query
-        const startTime = Date.now();
+        // Generate SQL query for this step
         try {
-          const results = await sql`${finalQuery}`;
-          step.results = Array.isArray(results) ? results : [results];
-          step.executionTime = Date.now() - startTime;
-        } catch (error: any) {
-          step.error = error.message;
-          step.executionTime = Date.now() - startTime;
+          const query = await this.generateStepQuery(workingChain.originalQuestion, step, prevResults, schema);
+          step.query = query;
           
-          // Stop execution if a step fails
+          // Execute the query
+          console.log(`[MultiQuery] Executing step ${i + 1}/${workingChain.steps.length}: ${step.purpose}`);
+          const startTime = Date.now();
+          
+          try {
+            const results = await sql.unsafe(query);
+            step.results = Array.isArray(results) ? results : [results];
+            step.executionTime = Date.now() - startTime;
+            console.log(`[MultiQuery] Step ${i + 1} completed, got ${step.results.length} results`);
+          } catch (error: any) {
+            console.error(`[MultiQuery] Error executing step ${i + 1}:`, error);
+            step.error = `Error executing query: ${error.message}`;
+            
+            // Don't continue with further steps if this one failed
+            workingChain.error = `Failed at step ${i + 1}: ${error.message}`;
+            break;
+          }
+        } catch (error: any) {
+          console.error(`[MultiQuery] Error generating query for step ${i + 1}:`, error);
+          step.error = `Error generating query: ${error.message}`;
+          
+          // Don't continue with further steps if this one failed
+          workingChain.error = `Failed at step ${i + 1}: ${error.message}`;
           break;
         }
       }
       
-      // Mark the chain as complete
-      chain.complete = true;
-      chain.endTime = Date.now();
-      chain.totalExecutionTime = chain.endTime - chain.startTime;
+      // Finish the chain
+      workingChain.complete = !workingChain.error;
+      workingChain.endTime = Date.now();
+      workingChain.totalExecutionTime = workingChain.endTime - workingChain.startTime;
       
-      // Set the final results to the results of the last successful step
-      for (let i = chain.steps.length - 1; i >= 0; i--) {
-        if (chain.steps[i].results) {
-          chain.finalResults = chain.steps[i].results;
-          break;
+      // If all steps succeeded, generate final result set
+      if (workingChain.complete) {
+        try {
+          workingChain.finalResults = await this.synthesizeFinalResults(workingChain);
+        } catch (error: any) {
+          console.error('[MultiQuery] Error synthesizing final results:', error);
+          workingChain.error = `Error synthesizing final results: ${error.message}`;
+          workingChain.complete = false;
         }
       }
       
-      return chain;
+      return workingChain;
     } catch (error: any) {
       console.error('[MultiQuery] Error executing query chain:', error);
       
-      chain.complete = true;
-      chain.error = error.message;
-      chain.endTime = Date.now();
-      chain.totalExecutionTime = chain.endTime - chain.startTime;
-      
-      return chain;
+      return {
+        ...chain,
+        error: `Error executing query chain: ${error.message}`,
+        complete: false,
+        endTime: Date.now(),
+        totalExecutionTime: Date.now() - chain.startTime
+      };
     }
   }
   
   /**
-   * Clean up SQL query output from LLM
+   * Generate SQL query for a specific step
    */
-  private sanitizeQuery(query: string): string {
-    // Remove markdown code blocks if present
-    let cleanQuery = query.replace(/```sql/g, '').replace(/```/g, '').trim();
-    
-    // Find the actual SQL query if there's explanation text
-    if (cleanQuery.toLowerCase().includes('select ')) {
-      const selectIndex = cleanQuery.toLowerCase().indexOf('select ');
-      cleanQuery = cleanQuery.substring(selectIndex);
+  private async generateStepQuery(
+    originalQuestion: string,
+    step: QueryStep,
+    prevResults: Record<string, any[]>,
+    schema: any
+  ): Promise<string> {
+    // Create context for query generation
+    const prevResultsFormatted = Object.entries(prevResults).map(([stepId, results]) => {
+      const resultSample = results.length > 3 
+        ? results.slice(0, 3) 
+        : results;
       
-      // Find the end of the query
-      const endIndex = cleanQuery.lastIndexOf(';');
-      if (endIndex !== -1) {
-        cleanQuery = cleanQuery.substring(0, endIndex + 1);
+      return `${stepId} results (${results.length} rows):\n${JSON.stringify(resultSample, null, 2)}`;
+    }).join('\n\n');
+    
+    // Create prompt for query generation
+    const prompt = `
+Generate a PostgreSQL query for step ${step.id} in a multi-query plan to answer:
+"${originalQuestion}"
+
+Step purpose: ${step.purpose}
+
+${prevResults && Object.keys(prevResults).length > 0 
+  ? `Previous steps results:\n${prevResultsFormatted}\n` 
+  : 'This is the first step.'}
+
+Create a SQL query that:
+1. Focuses ONLY on the specific purpose of this step
+2. Produces results that are needed for later steps
+3. Uses proper table joins, filtering, and aggregations
+4. Handles NULL values safely
+
+Return ONLY the SQL query, with no explanations or comments.
+`;
+    
+    // Generate query using OpenAI
+    const generatedQuery = await openaiService.createChatCompletion([
+      { role: 'system', content: 'You are an expert SQL query writer.' },
+      { role: 'user', content: prompt }
+    ]);
+    
+    // Extract and sanitize the query
+    return this.sanitizeStepQuery(generatedQuery);
+  }
+  
+  /**
+   * Sanitize a generated step query
+   */
+  private sanitizeStepQuery(query: string): string {
+    // Extract SQL from markdown code blocks if present
+    if (query.includes('```')) {
+      const matches = query.match(/```(?:sql)?\s*([\s\S]*?)```/);
+      if (matches && matches[1]) {
+        query = matches[1].trim();
       }
     }
     
-    return cleanQuery;
+    // Ensure query ends with semicolon
+    if (!query.trim().endsWith(';')) {
+      query += ';';
+    }
+    
+    return query;
+  }
+  
+  /**
+   * Synthesize final results from all step results
+   */
+  private async synthesizeFinalResults(chain: QueryChain): Promise<any[]> {
+    // If there's only one step, use its results directly
+    if (chain.steps.length === 1 && chain.steps[0].results) {
+      return chain.steps[0].results;
+    }
+    
+    // Otherwise, use the last step's results as the final results
+    const lastStep = chain.steps[chain.steps.length - 1];
+    if (lastStep.results) {
+      return lastStep.results;
+    }
+    
+    // Fallback in case there are no results
+    return [];
   }
 }
 

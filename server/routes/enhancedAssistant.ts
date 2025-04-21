@@ -6,19 +6,20 @@
  */
 
 import express from 'express';
-import { enhancedClinicianAssistantService } from '../services/enhanced/clinicianAssistantService';
+import { clinicianAssistantService } from '../services/enhanced/clinicianAssistantService';
 import { EnhancedAssistantQuestion } from '@shared/enhancedAssistantTypes';
 
 /**
  * Helper function to ensure service is initialized
  */
 async function ensureInitialized(req: express.Request, res: express.Response, next: express.NextFunction) {
-  if (!enhancedClinicianAssistantService.getInitializationStatus()) {
-    return res.status(503).json({
-      error: 'Enhanced assistant service is still initializing. Please try again in a moment.'
-    });
+  try {
+    await clinicianAssistantService.initialize();
+    next();
+  } catch (error) {
+    console.error('[EnhancedAssistant] Error initializing service:', error);
+    res.status(500).json({ error: 'Failed to initialize enhanced assistant service' });
   }
-  next();
 }
 
 /**
@@ -27,33 +28,27 @@ async function ensureInitialized(req: express.Request, res: express.Response, ne
  */
 async function askQuestion(req: express.Request, res: express.Response) {
   try {
-    const { question, useBusinessContext, useTemplates, useMultiQuery, format, clientId, therapistId } = req.body;
+    const { question, useBusinessContext, useTemplates, useMultiQuery, specificTemplate } = req.body;
     
-    if (!question) {
-      return res.status(400).json({ error: 'Question is required' });
+    if (!question || typeof question !== 'string') {
+      return res.status(400).json({ error: 'Question is required and must be a string' });
     }
     
-    // Process the question with enhanced capabilities
     const enhancedQuestion: EnhancedAssistantQuestion = {
       question,
-      useBusinessContext,
-      useTemplates,
-      useMultiQuery,
-      format,
-      clientId,
-      therapistId
+      useBusinessContext: useBusinessContext !== false,
+      useTemplates: useTemplates !== false,
+      useMultiQuery: useMultiQuery !== false,
+      specificTemplate: specificTemplate || undefined
     };
     
-    console.log(`[EnhancedAssistantAPI] Processing question: "${question}"`);
-    const response = await enhancedClinicianAssistantService.processQuestion(enhancedQuestion);
-    
-    return res.json(response);
+    const response = await clinicianAssistantService.processQuestion(enhancedQuestion);
+    res.json(response);
   } catch (error: any) {
-    console.error('[EnhancedAssistantAPI] Error processing question:', error);
-    
-    return res.status(500).json({
-      error: `Error processing question: ${error.message}`,
-      details: error.stack
+    console.error('[EnhancedAssistant] Error handling question:', error);
+    res.status(500).json({ 
+      error: `Failed to process question: ${error.message}`,
+      originalQuestion: req.body.question
     });
   }
 }
@@ -64,14 +59,11 @@ async function askQuestion(req: express.Request, res: express.Response) {
  */
 async function getFeatures(req: express.Request, res: express.Response) {
   try {
-    const features = enhancedClinicianAssistantService.getAvailableFeatures();
-    return res.json(features);
+    const features = clinicianAssistantService.getFeatures();
+    res.json(features);
   } catch (error: any) {
-    console.error('[EnhancedAssistantAPI] Error fetching features:', error);
-    
-    return res.status(500).json({
-      error: `Error fetching features: ${error.message}`
-    });
+    console.error('[EnhancedAssistant] Error getting features:', error);
+    res.status(500).json({ error: `Failed to get features: ${error.message}` });
   }
 }
 
@@ -81,29 +73,11 @@ async function getFeatures(req: express.Request, res: express.Response) {
  */
 async function getTemplates(req: express.Request, res: express.Response) {
   try {
-    const templates = enhancedClinicianAssistantService.getAvailableTemplates();
-    
-    // Format templates for client display
-    const formattedTemplates = templates.map(template => ({
-      id: template.id,
-      name: template.name,
-      description: template.description,
-      parameters: template.parameters.map(param => ({
-        name: param.name,
-        description: param.description,
-        type: param.type,
-        required: param.required
-      })),
-      examplePatterns: template.patterns
-    }));
-    
-    return res.json(formattedTemplates);
+    const templates = clinicianAssistantService.getTemplates();
+    res.json(templates);
   } catch (error: any) {
-    console.error('[EnhancedAssistantAPI] Error fetching templates:', error);
-    
-    return res.status(500).json({
-      error: `Error fetching templates: ${error.message}`
-    });
+    console.error('[EnhancedAssistant] Error getting templates:', error);
+    res.status(500).json({ error: `Failed to get templates: ${error.message}` });
   }
 }
 
@@ -111,15 +85,13 @@ async function getTemplates(req: express.Request, res: express.Response) {
  * Register enhanced assistant routes on the Express app
  */
 export function registerEnhancedAssistantRoutes(app: express.Express) {
-  console.log('STEP 2.6: Registering enhanced assistant API routes');
-  
-  // Register the middleware to ensure service is initialized
+  // Middleware to ensure the service is initialized
   app.use('/api/enhanced-assistant', ensureInitialized);
   
-  // Register routes
+  // Route definitions
   app.post('/api/enhanced-assistant/ask', askQuestion);
   app.get('/api/enhanced-assistant/features', getFeatures);
   app.get('/api/enhanced-assistant/templates', getTemplates);
   
-  console.log('STEP 2.6: Registering enhanced assistant API routes');
+  console.log('[EnhancedAssistant] Routes registered');
 }
