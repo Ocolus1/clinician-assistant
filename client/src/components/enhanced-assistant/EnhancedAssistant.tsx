@@ -313,7 +313,8 @@ const EnhancedAssistant: React.FC = () => {
             content: humanResponse,
             sender: 'assistant',
             timestamp: new Date(),
-            response: data
+            response: data,
+            showResults: false // Always initialize to false
           }
         ]
       };
@@ -777,8 +778,12 @@ const EnhancedAssistant: React.FC = () => {
                               </div>
                             </div>
                             
-                            {/* Render data results if available */}
-                            {message.response?.data && message.response.data.length > 0 && (
+                            {/* Render data results if available and it's not a greeting */}
+                            {message.response?.data && 
+                             message.response.data.length > 0 && 
+                             // Check if this is NOT a greeting or an empty data array
+                             !(message.response.data.length === 1 && 
+                               message.response.data[0].greeting !== undefined) && (
                               <>
                                 {/* Show a toggle button for query results */}
                                 <div className="mt-2 flex justify-end">
