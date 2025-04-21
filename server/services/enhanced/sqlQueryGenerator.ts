@@ -9,9 +9,9 @@
  * The enhanced generator uses business context and domain knowledge to improve accuracy.
  */
 
-import { sql } from '../../db';
 import { openaiService } from '../openaiService';
 import { schemaProvider } from '../schemaProvider';
+import { sql } from '../../db';
 import { schemaMetadataService } from './schemaMetadata';
 import { queryTemplateService } from './queryTemplates';
 import { multiQueryEngine } from './multiQueryEngine';
@@ -57,109 +57,80 @@ export class EnhancedSQLQueryGenerator {
    * Generate an SQL query based on a natural language question
    */
   async generateQuery(
-    question: string, 
-    options: Partial<QueryGenerationOptions> = {}
+    question: string,
+    options: QueryGenerationOptions = {}
   ): Promise<string> {
-    const opts = { ...this.defaultOptions, ...options };
+    // Merge options with defaults
+    const mergedOptions = { ...this.defaultOptions, ...options };
     
     try {
-      console.log(`[Enhanced] Generating query for: "${question}"`);
-      
-      // 1. First, try to match a template
-      if (opts.useTemplates) {
-        const templateResult = queryTemplateService.processQuestion(question);
+      // Step 1: Try to use templates if enabled
+      if (mergedOptions.useTemplates) {
+        const templateResult = await queryTemplateService.processQuestion(question);
         
-        if (templateResult.usedTemplate && templateResult.sql) {
-          console.log(`[Enhanced] Used template: ${templateResult.templateId}`);
-          return templateResult.sql;
+        if (templateResult.matched && templateResult.generatedQuery) {
+          console.log('[Enhanced] Using template for query generation');
+          return templateResult.generatedQuery;
         }
       }
       
-      // 2. Next, try to create a multi-query chain
-      if (opts.useMultiQuery) {
-        const queryChain = multiQueryEngine.createChainForQuestion(question);
+      // Step 2: Try to use multi-query patterns if enabled
+      if (mergedOptions.useMultiQuery) {
+        const multiQueryChain = multiQueryEngine.createChainForQuestion(question);
         
-        if (queryChain) {
-          // Execute the chain
-          const completedChain = await multiQueryEngine.executeQueryChain(queryChain);
-          
-          if (completedChain.finalResults && completedChain.finalResults.length > 0) {
-            // Use the query from the last successful step
-            const lastSuccessfulStep = [...completedChain.steps]
-              .reverse()
-              .find(step => step.results && step.results.length > 0);
-              
-            if (lastSuccessfulStep) {
-              console.log(`[Enhanced] Used multi-query chain: ${completedChain.id}`);
-              return lastSuccessfulStep.query;
-            }
-          }
+        if (multiQueryChain) {
+          console.log('[Enhanced] Using multi-query pattern for query generation');
+          // For multi-query, just return the first step's query as a preview
+          const firstStep = multiQueryChain.steps[0];
+          return firstStep.query;
         }
       }
       
-      // 3. Fall back to direct LLM query generation with enhanced context
-      // Get technical schema description
-      const technicalSchema = schemaProvider.getSchemaDescription();
+      // Step 3: Fall back to direct LLM query generation
+      console.log('[Enhanced] Using direct LLM generation for query');
       
-      // Get enhanced business context if enabled
-      const businessContext = opts.useBusinessContext 
-        ? schemaMetadataService.getDescription()
-        : '';
+      // Get schema information for context
+      let schemaInfo = schemaProvider.getSchemaDescription();
       
-      // Define system prompt with enhanced guidance
-      const systemPrompt = `
-        You are an SQL expert assistant that generates PostgreSQL queries based on user questions.
+      // Add business context if enabled
+      if (mergedOptions.useBusinessContext) {
+        schemaInfo = `${schemaInfo}\n\n${schemaMetadataService.getDescription()}`;
+      }
+      
+      // Prepare the prompt for query generation
+      const prompt = `
+        Generate a PostgreSQL query to answer the following question:
+        "${question}"
         
-        ${opts.useBusinessContext ? '# BUSINESS CONTEXT\n' + businessContext : ''}
+        Database schema information:
+        ${schemaInfo}
         
-        # TECHNICAL SCHEMA
-        ${technicalSchema}
+        Requirements:
+        1. Return only the SQL query without explanations or markdown formatting
+        2. Ensure the query is valid PostgreSQL syntax
+        3. Include proper JOINs when querying related tables
+        4. Use aliases for table names to make the query more readable
+        5. Apply sensible LIMIT clauses for queries that could return many rows
+        6. When dealing with dates, ensure proper formatting and date functions
         
-        CRITICAL SECURITY RULES:
-        1. NEVER use DELETE, UPDATE, INSERT, CREATE, ALTER, DROP, GRANT, REVOKE, or any other mutations - ONLY use SELECT statements.
-        2. Never use SQL comments (-- or /* */) in your queries.
-        3. Never use multiple SQL statements separated by semicolons.
-        4. Never include UNION statements unless specifically required to address the user's question.
-        
-        QUALITY AND FORMAT RULES:
-        1. Always use explicit column names instead of * in your queries.
-        2. Return ONLY the SQL query, without any explanations, formatting, code blocks, etc.
-        3. When querying multiple tables, always use JOINs with proper ON conditions to ensure correct relationships.
-        4. Use appropriate WHERE clauses to filter data based on the user's question.
-        5. Use table aliases to make the query more readable (e.g., SELECT c.name FROM clients c).
-        6. Include ORDER BY when the question implies sorting (like "most", "least", "top", "recent").
-        7. For PostgreSQL, always add a LIMIT clause at the very end of your query (after any ORDER BY).
-           Format it correctly as: "LIMIT 100" (not "LIMIT 100;" or anything else).
-
-        GUIDANCE FOR CLIENT REFERENCES:
-        1. Client identifiers often follow the pattern "Name-123456" or just "Name"
-        2. When searching for clients, use this pattern:
-           WHERE (c.name LIKE '%ClientName%' OR c.unique_identifier = 'Identifier')
-
-        GUIDANCE FOR DATE HANDLING:
-        1. For "this month" use: date_trunc('month', CURRENT_DATE)
-        2. For "last month" use: date_trunc('month', CURRENT_DATE - interval '1 month')
-        3. For "this year" use: date_trunc('year', CURRENT_DATE)
+        The output query should be focused on answering the specific question asked.
       `;
       
-      // Call OpenAI to generate the SQL query
-      const generatedQuery = await openaiService.createChatCompletion([
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: question }
+      // Generate the SQL query using OpenAI
+      const response = await openaiService.createChatCompletion([
+        { role: 'system', content: 'You are an expert SQL query generator for PostgreSQL. Generate only valid SQL queries without explanations or markdown formatting.' },
+        { role: 'user', content: prompt }
       ], {
-        temperature: opts.temperature,
-        max_tokens: opts.maxTokens
+        temperature: mergedOptions.temperature,
+        max_tokens: mergedOptions.maxTokens
       });
       
-      // Format and sanitize the query
-      console.log('[Enhanced] Generated raw SQL query:', generatedQuery);
-      const sanitizedQuery = this.sanitizeQuery(generatedQuery);
-      console.log('[Enhanced] Sanitized SQL query:', sanitizedQuery);
-      
-      return sanitizedQuery;
-    } catch (error) {
+      // Extract the SQL query from the response
+      const query = this.sanitizeQuery(response);
+      return query;
+    } catch (error: any) {
       console.error('[Enhanced] Error generating SQL query:', error);
-      throw new Error('Failed to generate SQL query');
+      throw new Error(`Failed to generate SQL query: ${error.message}`);
     }
   }
   
@@ -167,103 +138,45 @@ export class EnhancedSQLQueryGenerator {
    * Sanitize and validate a generated SQL query
    */
   private sanitizeQuery(query: string): string {
-    console.log("[Enhanced] Original query received:", query);
+    // Remove any markdown code block formatting
+    let sanitized = query.replace(/```sql|```/g, '').trim();
     
-    // Remove any Markdown formatting that might be present
-    let sanitized = query.replace(/```sql/gi, '')
-                         .replace(/```/g, '')
-                         .trim();
-                         
-    console.log("[Enhanced] After markdown removal:", sanitized);
-    
-    // Check for empty or clearly invalid queries
-    if (!sanitized || sanitized.length < 10) {
-      console.error("[Enhanced] Empty or extremely short query detected:", sanitized);
-      throw new Error("Query is too short or invalid");
+    // Ensure the query ends with a semicolon
+    if (!sanitized.endsWith(';')) {
+      sanitized += ';';
     }
     
-    // Remove trailing semicolons which can cause issues
-    sanitized = sanitized.replace(/;+\s*$/, '');
-    
-    // Reject queries with mutation statements (with enhanced detection)
-    const mutationKeywords = [
-      'DELETE', 'DROP', 'INSERT', 'UPDATE', 'ALTER', 'CREATE', 'TRUNCATE', 
-      'GRANT', 'REVOKE', 'CONNECT', 'COPY', 'VACUUM'
-    ];
-    
-    // More thorough check for mutation statements with word boundary detection
-    const mutationRegexes = mutationKeywords.map(keyword => 
-      new RegExp(`\\b${keyword}\\b`, 'i')
-    );
-    
-    for (const regex of mutationRegexes) {
-      if (regex.test(sanitized)) {
-        const keyword = regex.toString().replace(/\\b|\\/g, '');
-        console.error(`[Enhanced] SQL mutation operation detected: ${keyword}`);
-        throw new Error(`SQL mutation operation (${keyword}) is not allowed`);
-      }
+    // Check if this is a multi-line comment or has hidden content
+    if (sanitized.includes('/*') && sanitized.includes('*/')) {
+      sanitized = sanitized.replace(/\/\*[\s\S]*?\*\//g, '').trim();
     }
     
-    // Ensure the query is a SELECT statement (improved check)
-    const selectPattern = /^\s*SELECT\b/i;
-    if (!selectPattern.test(sanitized)) {
-      console.error("[Enhanced] Query doesn't start with SELECT:", sanitized);
+    // Remove any single-line comments
+    sanitized = sanitized.replace(/--.*$/gm, '').trim();
+    
+    // Validate that this is a SELECT query (for safety)
+    const firstWord = sanitized.split(' ')[0].toUpperCase();
+    if (firstWord !== 'SELECT' && firstWord !== 'WITH') {
       throw new Error('Only SELECT queries are allowed');
     }
     
-    // Prevent execution of multiple statements with semicolons
-    if (sanitized.indexOf(';') !== sanitized.lastIndexOf(';')) {
-      console.error("[Enhanced] Multiple statements detected in:", sanitized);
-      throw new Error('Multiple SQL statements are not allowed');
-    }
-    
-    // Check for SQL injection attempts
+    // Check for dangerous commands
     const dangerousPatterns = [
-      /(\bUNION\b.*\bSELECT\b)/i,           // UNION-based injections
-      /(\bOR\b\s+\d+\s*=\s*\d+)/i,           // OR 1=1 type injections
-      /(--)/,                                // SQL comments
-      /(\/\*|\*\/)/                          // Block comments
+      /\bDROP\b/i,
+      /\bDELETE\b/i,
+      /\bTRUNCATE\b/i,
+      /\bALTER\b/i,
+      /\bCREATE\b/i,
+      /\bINSERT\b/i,
+      /\bUPDATE\b/i,
+      /\bGRANT\b/i,
+      /\bREVOKE\b/i,
+      /\bCOPY\b/i
     ];
     
     for (const pattern of dangerousPatterns) {
       if (pattern.test(sanitized)) {
-        console.error("[Enhanced] Dangerous SQL pattern detected:", pattern, "in query:", sanitized);
-        throw new Error('Potentially dangerous SQL pattern detected');
-      }
-    }
-    
-    // Add a LIMIT if not present to prevent large result sets
-    if (!sanitized.toUpperCase().includes('LIMIT')) {
-      sanitized = `${sanitized} LIMIT 100`;
-    } else {
-      // Fix potential syntax issues with LIMIT clause (ensure PostgreSQL format)
-      
-      // First check for trailing semicolons anywhere in the query and remove them
-      sanitized = sanitized.replace(/;/g, '');
-      
-      // Check for incorrect LIMIT formats like "LIMIT 10,20" (MySQL style)
-      const limitRegex = /\bLIMIT\s+(\d+)(?:\s*,\s*(\d+))?/i;
-      if (limitRegex.test(sanitized)) {
-        // Convert MySQL style LIMIT clause to PostgreSQL format
-        sanitized = sanitized.replace(limitRegex, (match, p1, p2) => {
-          if (p2) {
-            // Convert MySQL style "LIMIT offset, limit" to PostgreSQL "LIMIT limit OFFSET offset"
-            return `LIMIT ${p2} OFFSET ${p1}`;
-          }
-          return `LIMIT ${p1}`;
-        });
-      }
-      
-      // Ensure LIMIT is properly positioned at the end of the query
-      // and is correctly formatted for PostgreSQL
-      const limitMatch = sanitized.match(/\bLIMIT\s+(\d+)(?:\s+OFFSET\s+(\d+))?/i);
-      if (limitMatch) {
-        // Extract the LIMIT clause
-        const limitClause = limitMatch[0];
-        // Extract the base query without the LIMIT clause
-        const baseQuery = sanitized.replace(limitClause, '').trim();
-        // Rebuild the query with properly formatted LIMIT clause at the end
-        sanitized = `${baseQuery} ${limitClause}`;
+        throw new Error('Query contains potentially dangerous operations');
       }
     }
     
@@ -274,104 +187,116 @@ export class EnhancedSQLQueryGenerator {
    * User-friendly error message for SQL errors
    */
   private formatErrorMessage(error: any, query: string): string {
-    if (typeof error === 'string') {
-      return error;
-    }
+    const errorMessage = error.message || String(error);
     
-    // Extract the core message from PostgreSQL errors which can be verbose
-    let errorMessage = error.message || 'Failed to execute SQL query';
-    
-    // Check for common error types
-    if (errorMessage.includes('does not exist')) {
-      if (errorMessage.includes('relation') && errorMessage.includes('does not exist')) {
-        const matches = errorMessage.match(/relation\s+"([^"]+)"/);
-        const tableName = matches ? matches[1] : 'specified table';
-        return `The table '${tableName}' does not exist in the database.`;
+    // Check for common SQL errors
+    if (errorMessage.includes('relation') && errorMessage.includes('does not exist')) {
+      const match = errorMessage.match(/relation "(.*?)" does not exist/);
+      if (match && match[1]) {
+        return `The table "${match[1]}" referenced in the query does not exist in the database.`;
       }
-      if (errorMessage.includes('column') && errorMessage.includes('does not exist')) {
-        const matches = errorMessage.match(/column\s+"([^"]+)"/);
-        const columnName = matches ? matches[1] : 'specified column';
-        return `The column '${columnName}' does not exist in the database.`;
+      return 'One of the tables referenced in the query does not exist.';
+    } else if (errorMessage.includes('column') && errorMessage.includes('does not exist')) {
+      const match = errorMessage.match(/column "(.*?)" does not exist/);
+      if (match && match[1]) {
+        return `The column "${match[1]}" referenced in the query does not exist in the database.`;
       }
+      return 'One of the columns referenced in the query does not exist.';
+    } else if (errorMessage.includes('syntax error')) {
+      return 'There is a syntax error in the SQL query. The query structure may be incorrect.';
     }
     
-    // Syntax errors
-    if (errorMessage.includes('syntax error')) {
-      // Check for specific PostgreSQL syntax issues with LIMIT
-      if (errorMessage.includes('syntax error at or near "LIMIT"')) {
-        console.log('[Enhanced] Detected PostgreSQL LIMIT syntax error, will attempt to fix in future queries');
-        return `SQL syntax error with LIMIT clause. I'll try to correct the format in future queries.`;
-      }
-      return `SQL syntax error in the query. Please rephrase your question.`;
-    }
-    
-    // Type conversion errors
-    if (errorMessage.includes('invalid input syntax') || errorMessage.includes('cannot cast')) {
-      return `Data type mismatch in the query. Please be more specific about data types.`;
-    }
-    
-    // Connection errors
-    if (errorMessage.includes('connection') && errorMessage.includes('closed')) {
-      return `Database connection error. Please try again in a moment.`;
-    }
-    
-    // Timeout errors
-    if (errorMessage.includes('timeout')) {
-      return `The query took too long to execute. Try simplifying your question.`;
-    }
-    
-    // Format other errors in a user-friendly way
-    return `Error executing query: ${errorMessage.split('\n')[0]}`;
+    // Default error message
+    return `Error executing SQL query: ${errorMessage}`;
   }
   
   /**
    * Execute an SQL query with safeguards
    */
   async executeQuery(
-    sqlQuery: string, 
-    options: Partial<QueryGenerationOptions> = {}
+    query: string,
+    options: QueryGenerationOptions = {}
   ): Promise<SQLQueryResult> {
-    let sanitizedQuery = sqlQuery;
+    const startTime = Date.now();
+    
     try {
-      // Sanitize the query one more time
-      sanitizedQuery = this.sanitizeQuery(sqlQuery);
+      // First, check if this query matches a template
+      const templateResult = options.useTemplates 
+        ? await queryTemplateService.processQuestion(query)
+        : { matched: false };
       
-      // Add timing for debugging/monitoring (can help identify slow queries)
-      const startTime = Date.now();
+      let fromTemplate = false;
+      let fromMultiQuery = false;
+      let usedBusinessContext = !!options.useBusinessContext;
+      let sqlQuery = query;
       
-      // Execute the query with a timeout safety
-      const queryPromise = sql.unsafe(sanitizedQuery);
-      const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Query timeout - exceeded 10 seconds')), 10000);
-      });
+      // If it matches a template, use the template-generated query
+      if (templateResult.matched && templateResult.generatedQuery) {
+        sqlQuery = templateResult.generatedQuery;
+        fromTemplate = true;
+      } 
+      // Or check for multi-query patterns
+      else if (options.useMultiQuery) {
+        const multiQueryChain = multiQueryEngine.createChainForQuestion(query);
+        
+        if (multiQueryChain) {
+          // Execute the full chain
+          const executedChain = await multiQueryEngine.executeQueryChain(multiQueryChain);
+          
+          // If chain executed successfully and has final results
+          if (executedChain.finalResults) {
+            // Return the results from the final step
+            return {
+              query: executedChain.steps.map(step => step.query).join('\n\n'),
+              data: executedChain.finalResults,
+              executionTime: executedChain.totalExecutionTime,
+              fromTemplate: false,
+              fromMultiQuery: true,
+              usedBusinessContext
+            };
+          } 
+          // If chain failed
+          else if (executedChain.error) {
+            return {
+              query: executedChain.steps.map(step => step.query).join('\n\n'),
+              data: [],
+              error: executedChain.error,
+              executionTime: executedChain.totalExecutionTime,
+              fromTemplate: false,
+              fromMultiQuery: true,
+              usedBusinessContext
+            };
+          }
+        }
+      }
       
-      // Race between query and timeout
-      const result = await Promise.race([queryPromise, timeoutPromise]) as any[];
+      // Sanitize the query for safety
+      const sanitizedQuery = this.sanitizeQuery(sqlQuery);
+      
+      // Execute the query
+      const result = await db.query(sanitizedQuery);
       const executionTime = Date.now() - startTime;
-      
-      // Log execution time for monitoring
-      console.log(`[Enhanced] SQL query executed in ${executionTime}ms: ${sanitizedQuery.substring(0, 100)}...`);
       
       return {
         query: sanitizedQuery,
-        data: result,
+        data: result.rows,
         executionTime,
-        fromTemplate: options.useTemplates || false,
-        fromMultiQuery: options.useMultiQuery || false,
-        usedBusinessContext: options.useBusinessContext || false
+        fromTemplate,
+        fromMultiQuery,
+        usedBusinessContext
       };
     } catch (error: any) {
       console.error('[Enhanced] Error executing SQL query:', error);
-      const friendlyError = this.formatErrorMessage(error, sanitizedQuery);
       
       return {
-        query: sanitizedQuery,
+        query,
         data: [],
-        error: friendlyError,
+        error: this.formatErrorMessage(error, query),
         originalError: error.message,
-        fromTemplate: options.useTemplates || false,
-        fromMultiQuery: options.useMultiQuery || false,
-        usedBusinessContext: options.useBusinessContext || false
+        executionTime: Date.now() - startTime,
+        fromTemplate: false,
+        fromMultiQuery: false,
+        usedBusinessContext: !!options.useBusinessContext
       };
     }
   }

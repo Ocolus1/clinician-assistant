@@ -5,38 +5,10 @@
  * to resolve complex questions that can't be answered with a single query.
  */
 
+import { QueryChain, QueryStep } from '../../../shared/enhancedAssistantTypes';
+import { randomUUID } from 'crypto';
 import { sql } from '../../db';
-import { schemaMetadataService } from './schemaMetadata';
-
-/**
- * Step in a query chain
- */
-export interface QueryStep {
-  id: string;
-  purpose: string;
-  query: string;
-  dependsOn: string[];
-  results?: any[];
-  error?: string;
-  executionTime?: number;
-}
-
-/**
- * Full query chain definition
- */
-export interface QueryChain {
-  id: string;
-  originalQuestion: string;
-  steps: QueryStep[];
-  maxSteps: number;
-  currentStep: number;
-  complete: boolean;
-  startTime: number;
-  endTime?: number;
-  totalExecutionTime?: number;
-  finalResults?: any[];
-  error?: string;
-}
+import { openaiService } from '../openaiService';
 
 /**
  * Result of a single query execution
@@ -73,22 +45,21 @@ export enum QueryType {
  * Execute a single SQL query with safeguards
  */
 export async function executeQuery(queryText: string): Promise<QueryResult> {
+  const startTime = Date.now();
+  
   try {
-    const startTime = Date.now();
+    // Clean up the query
+    const cleanQuery = queryText.trim();
     
-    // Execute the query with a timeout safety
-    const queryPromise = sql.unsafe(queryText);
-    const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => reject(new Error('Query timeout - exceeded 10 seconds')), 10000);
-    });
+    // Execute query
+    const result = await sql`${cleanQuery}`;
     
-    // Race between query and timeout
-    const result = await Promise.race([queryPromise, timeoutPromise]) as any[];
+    // Calculate execution time
     const executionTime = Date.now() - startTime;
     
     return {
       success: true,
-      data: result,
+      data: result.rows,
       executionTime
     };
   } catch (error: any) {
@@ -97,10 +68,32 @@ export async function executeQuery(queryText: string): Promise<QueryResult> {
     return {
       success: false,
       data: [],
-      error: error.message,
-      originalError: error.toString()
+      error: generateUserFriendlyError(error),
+      originalError: error.message,
+      executionTime: Date.now() - startTime
     };
   }
+}
+
+/**
+ * Generate a user-friendly error message
+ */
+function generateUserFriendlyError(error: any): string {
+  const errorMessage = error.message || String(error);
+  
+  // Check for common SQL errors
+  if (errorMessage.includes('relation') && errorMessage.includes('does not exist')) {
+    return 'The table or view referenced in the query does not exist.';
+  } else if (errorMessage.includes('column') && errorMessage.includes('does not exist')) {
+    return 'One of the columns referenced in the query does not exist.';
+  } else if (errorMessage.includes('permission denied')) {
+    return 'The query was denied due to insufficient permissions.';
+  } else if (errorMessage.includes('syntax error')) {
+    return 'There is a syntax error in the SQL query.';
+  }
+  
+  // Default error message
+  return 'An error occurred while executing the query.';
 }
 
 /**
@@ -109,25 +102,57 @@ export async function executeQuery(queryText: string): Promise<QueryResult> {
 export function replaceParameters(query: string, dependencies: DependencyMap): string {
   let result = query;
   
-  // Find and replace {step:stepId.field} patterns
-  const paramRegex = /\{step:([^.}]+)\.([^}]+)\}/g;
+  // Find all parameter placeholders in the form of ${stepId.field}
+  const paramMatches = query.match(/\${([^}]+)}/g) || [];
   
-  result = result.replace(paramRegex, (match, stepId, field) => {
-    if (!dependencies[stepId]) {
-      throw new Error(`Missing dependency: ${stepId}`);
+  for (const match of paramMatches) {
+    // Extract step ID and field name
+    const placeholder = match.substring(2, match.length - 1);
+    const [stepId, field] = placeholder.split('.');
+    
+    // Check if dependency exists
+    if (dependencies[stepId]) {
+      let replacementValue: any;
+      
+      // Handle array results
+      if (Array.isArray(dependencies[stepId])) {
+        if (field === 'all') {
+          // All rows as a comma-separated list of values
+          const allValues = dependencies[stepId]
+            .map(row => Object.values(row)[0])
+            .filter(val => val !== null && val !== undefined)
+            .map(val => typeof val === 'string' ? `'${val}'` : val);
+          
+          replacementValue = allValues.join(', ');
+        } else if (field === 'first') {
+          // First row's first column
+          const firstRow = dependencies[stepId][0];
+          replacementValue = firstRow ? Object.values(firstRow)[0] : null;
+          
+          if (typeof replacementValue === 'string') {
+            replacementValue = `'${replacementValue}'`;
+          }
+        } else if (dependencies[stepId][0] && field in dependencies[stepId][0]) {
+          // Specific field from the first row
+          const value = dependencies[stepId][0][field];
+          replacementValue = typeof value === 'string' ? `'${value}'` : value;
+        } else {
+          // Default to empty if field not found
+          replacementValue = 'NULL';
+        }
+      } else {
+        // Single value dependency
+        replacementValue = typeof dependencies[stepId] === 'string' 
+          ? `'${dependencies[stepId]}'` 
+          : dependencies[stepId];
+      }
+      
+      // Replace in the query
+      result = result.replace(match, replacementValue !== null && replacementValue !== undefined 
+        ? String(replacementValue) 
+        : 'NULL');
     }
-    
-    // If the dependency has multiple rows, use the first one
-    const data = Array.isArray(dependencies[stepId]) ? dependencies[stepId][0] : dependencies[stepId];
-    
-    if (data[field] === undefined) {
-      throw new Error(`Field ${field} not found in step ${stepId}`);
-    }
-    
-    // Return the value, properly escaped if it's a string
-    const value = data[field];
-    return typeof value === 'string' ? `'${value.replace(/'/g, "''")}'` : value;
-  });
+  }
   
   return result;
 }
@@ -136,20 +161,24 @@ export function replaceParameters(query: string, dependencies: DependencyMap): s
  * Create a new query chain from a question
  */
 export function createQueryChain(question: string, initialSteps: Partial<QueryStep>[]): QueryChain {
+  const chainId = randomUUID();
+  const now = Date.now();
+  
+  const steps: QueryStep[] = initialSteps.map(step => ({
+    id: step.id || randomUUID(),
+    purpose: step.purpose || 'Unknown purpose',
+    query: step.query || '',
+    dependsOn: step.dependsOn || [],
+  }));
+  
   return {
-    id: `chain-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
+    id: chainId,
     originalQuestion: question,
-    steps: initialSteps.map((step, index) => ({
-      id: step.id || `step-${index + 1}`,
-      purpose: step.purpose || `Step ${index + 1}`,
-      query: step.query || '',
-      dependsOn: step.dependsOn || [],
-      results: step.results
-    })),
-    maxSteps: 7, // Maximum number of steps allowed
+    steps,
+    maxSteps: 10,
     currentStep: 0,
     complete: false,
-    startTime: Date.now()
+    startTime: now
   };
 }
 
@@ -157,6 +186,10 @@ export function createQueryChain(question: string, initialSteps: Partial<QuerySt
  * Check if all dependencies for a step are satisfied
  */
 export function areDependenciesSatisfied(step: QueryStep, chain: QueryChain): boolean {
+  if (step.dependsOn.length === 0) {
+    return true;
+  }
+  
   return step.dependsOn.every(depId => {
     const depStep = chain.steps.find(s => s.id === depId);
     return depStep && depStep.results !== undefined;
@@ -182,99 +215,93 @@ export function buildDependencyMap(chain: QueryChain): DependencyMap {
  * Execute the next step in a query chain
  */
 export async function executeNextStep(chain: QueryChain): Promise<QueryChain> {
-  // Clone the chain to avoid modifying the original
-  const updatedChain = { ...chain };
-  
-  // Check if chain is already complete
-  if (updatedChain.complete) {
-    return updatedChain;
-  }
-  
-  // Check if we've reached the maximum number of steps
-  if (updatedChain.currentStep >= updatedChain.maxSteps) {
-    updatedChain.complete = true;
-    updatedChain.error = 'Maximum number of steps reached';
-    updatedChain.endTime = Date.now();
-    updatedChain.totalExecutionTime = updatedChain.endTime - updatedChain.startTime;
-    return updatedChain;
+  if (chain.complete) {
+    return chain;
   }
   
   // Find the next executable step
-  let nextStep: QueryStep | undefined;
+  const executableSteps = chain.steps.filter(step => 
+    step.results === undefined && 
+    !step.error && 
+    areDependenciesSatisfied(step, chain)
+  );
   
-  for (let i = 0; i < updatedChain.steps.length; i++) {
-    const step = updatedChain.steps[i];
+  if (executableSteps.length === 0) {
+    // No more steps to execute, check if any failed
+    const failedSteps = chain.steps.filter(step => step.error);
     
-    // Skip steps that already have results
-    if (step.results !== undefined) {
-      continue;
-    }
-    
-    // Check if all dependencies are satisfied
-    if (areDependenciesSatisfied(step, updatedChain)) {
-      nextStep = step;
-      break;
-    }
-  }
-  
-  // If no step can be executed, the chain is complete
-  if (!nextStep) {
-    updatedChain.complete = true;
-    updatedChain.endTime = Date.now();
-    updatedChain.totalExecutionTime = updatedChain.endTime - updatedChain.startTime;
-    
-    // Set the final results to the results of the last step
-    const lastStepWithResults = [...updatedChain.steps]
-      .reverse()
-      .find(s => s.results !== undefined);
+    if (failedSteps.length > 0) {
+      chain.error = `Chain execution failed: ${failedSteps[0].error}`;
+    } else {
+      // Collect results from the final step(s)
+      const finalSteps = chain.steps.filter(step => 
+        !chain.steps.some(otherStep => otherStep.dependsOn.includes(step.id))
+      );
       
-    if (lastStepWithResults) {
-      updatedChain.finalResults = lastStepWithResults.results;
+      if (finalSteps.length > 0) {
+        chain.finalResults = finalSteps[0].results;
+      }
     }
     
-    return updatedChain;
+    chain.complete = true;
+    chain.endTime = Date.now();
+    chain.totalExecutionTime = chain.endTime - chain.startTime;
+    
+    return chain;
   }
+  
+  // Execute the first executable step
+  const stepToExecute = executableSteps[0];
+  chain.currentStep++;
   
   // Build dependency map
-  const dependencies = buildDependencyMap(updatedChain);
+  const dependencies = buildDependencyMap(chain);
+  
+  // Replace parameter placeholders with actual values
+  const parametrizedQuery = replaceParameters(stepToExecute.query, dependencies);
   
   try {
-    // Replace parameters in the query
-    const query = replaceParameters(nextStep.query, dependencies);
+    // Execute the step
+    const startTime = Date.now();
+    const result = await executeQuery(parametrizedQuery);
+    const executionTime = Date.now() - startTime;
     
-    // Execute the query
-    const result = await executeQuery(query);
-    const stepIndex = updatedChain.steps.findIndex(s => s.id === nextStep!.id);
-    
-    // Update the step with the results
-    updatedChain.steps[stepIndex] = {
-      ...nextStep,
-      query, // Store the processed query
-      results: result.success ? result.data : [],
-      error: result.error,
-      executionTime: result.executionTime
+    // Update the step with results
+    const updatedStep: QueryStep = {
+      ...stepToExecute,
+      query: parametrizedQuery, // Store the parametrized query
+      executionTime,
+      results: result.success ? result.data : undefined,
+      error: result.success ? undefined : result.error
     };
     
-    // Increment the current step
-    updatedChain.currentStep++;
+    // Update the chain
+    const updatedSteps = chain.steps.map(step => 
+      step.id === updatedStep.id ? updatedStep : step
+    );
     
+    return {
+      ...chain,
+      steps: updatedSteps
+    };
   } catch (error: any) {
-    // Handle errors in parameter replacement
-    const stepIndex = updatedChain.steps.findIndex(s => s.id === nextStep!.id);
-    
-    updatedChain.steps[stepIndex] = {
-      ...nextStep,
-      error: `Error processing step: ${error.message}`
+    // Update the step with error
+    const updatedStep: QueryStep = {
+      ...stepToExecute,
+      query: parametrizedQuery, // Store the parametrized query
+      error: error.message || 'Unknown error'
     };
     
-    // Mark the chain as complete with an error
-    updatedChain.complete = true;
-    updatedChain.error = `Failed at step ${nextStep.id}: ${error.message}`;
-    updatedChain.endTime = Date.now();
-    updatedChain.totalExecutionTime = updatedChain.endTime - updatedChain.startTime;
+    // Update the chain
+    const updatedSteps = chain.steps.map(step => 
+      step.id === updatedStep.id ? updatedStep : step
+    );
+    
+    return {
+      ...chain,
+      steps: updatedSteps
+    };
   }
-  
-  return updatedChain;
 }
 
 /**
@@ -283,7 +310,7 @@ export async function executeNextStep(chain: QueryChain): Promise<QueryChain> {
 export async function executeQueryChain(chain: QueryChain): Promise<QueryChain> {
   let currentChain = { ...chain };
   
-  while (!currentChain.complete) {
+  while (!currentChain.complete && currentChain.currentStep < currentChain.maxSteps) {
     currentChain = await executeNextStep(currentChain);
   }
   
@@ -295,72 +322,46 @@ export async function executeQueryChain(chain: QueryChain): Promise<QueryChain> 
  */
 export function createEntityIdentificationStep(entityType: string, entityIdentifier: string): QueryStep {
   let query = '';
+  let purpose = '';
   
   switch (entityType) {
     case 'client':
       query = `
-        SELECT id, name, unique_identifier, date_of_birth, onboarding_status
-        FROM clients
-        WHERE name LIKE '%${entityIdentifier}%' 
-           OR unique_identifier = '${entityIdentifier}'
-        LIMIT 5
+        SELECT id, name, onboarding_status 
+        FROM clients 
+        WHERE name LIKE '%${entityIdentifier}%' OR id = '${entityIdentifier}'
+        LIMIT 1
       `;
+      purpose = `Identify client with name or ID containing "${entityIdentifier}"`;
       break;
-      
     case 'goal':
       query = `
-        SELECT id, title, description, status, progress_percentage, client_id
-        FROM goals
-        WHERE title LIKE '%${entityIdentifier}%'
-           OR description LIKE '%${entityIdentifier}%'
-        LIMIT 5
+        SELECT id, title, client_id, status 
+        FROM goals 
+        WHERE title LIKE '%${entityIdentifier}%' OR id = '${entityIdentifier}'
+        LIMIT 1
       `;
+      purpose = `Identify goal with title or ID containing "${entityIdentifier}"`;
       break;
-      
-    case 'clinician':
-      query = `
-        SELECT id, name, title, email, specialization
-        FROM clinicians
-        WHERE name LIKE '%${entityIdentifier}%'
-           OR email LIKE '%${entityIdentifier}%'
-        LIMIT 5
-      `;
-      break;
-      
     case 'session':
       query = `
-        SELECT id, title, description, session_date, client_id
-        FROM sessions
-        WHERE title LIKE '%${entityIdentifier}%'
-           OR id::text = '${entityIdentifier}'
-        LIMIT 5
+        SELECT id, client_id, session_date, status 
+        FROM sessions 
+        WHERE id = '${entityIdentifier}'
+        LIMIT 1
       `;
+      purpose = `Identify session with ID "${entityIdentifier}"`;
       break;
-      
-    case 'strategy':
-      query = `
-        SELECT id, name, category, description
-        FROM strategies
-        WHERE name LIKE '%${entityIdentifier}%'
-           OR category LIKE '%${entityIdentifier}%'
-        LIMIT 5
-      `;
-      break;
-      
     default:
-      // Generic entity identification
       query = `
-        SELECT *
-        FROM ${entityType}
-        WHERE name LIKE '%${entityIdentifier}%'
-           OR id::text = '${entityIdentifier}'
-        LIMIT 5
+        SELECT 'entity_not_supported' as error_message
       `;
+      purpose = `Entity type "${entityType}" not supported for identification`;
   }
   
   return {
-    id: `identify_${entityType}`,
-    purpose: `Identify ${entityType} matching "${entityIdentifier}"`,
+    id: `identify_${entityType}_${randomUUID().slice(0, 8)}`,
+    purpose,
     query,
     dependsOn: []
   };
@@ -372,25 +373,45 @@ export function createEntityIdentificationStep(entityType: string, entityIdentif
 export function createClientGoalsChain(clientIdentifier: string, goalStatus?: string): QueryChain {
   const steps: Partial<QueryStep>[] = [
     // Step 1: Identify the client
-    createEntityIdentificationStep('client', clientIdentifier),
-    
-    // Step 2: Retrieve client's goals
+    {
+      id: 'identify_client',
+      purpose: `Identify client "${clientIdentifier}"`,
+      query: `
+        SELECT id, name 
+        FROM clients 
+        WHERE name LIKE '%${clientIdentifier}%' OR id = '${clientIdentifier}'
+        LIMIT 1
+      `,
+      dependsOn: []
+    },
+    // Step 2: Get the client's goals
     {
       id: 'get_client_goals',
-      purpose: 'Retrieve goals for the client',
+      purpose: 'Get goals for the identified client',
       query: `
-        SELECT g.id, g.title, g.description, g.status, g.progress_percentage, 
-               g.start_date, g.target_date
+        SELECT g.id, g.title, g.description, g.status, g.priority, g.created_at, g.target_date
         FROM goals g
-        WHERE g.client_id = {step:identify_client.id}
+        WHERE g.client_id = '\${identify_client.id}'
         ${goalStatus ? `AND g.status = '${goalStatus}'` : ''}
-        ORDER BY g.start_date DESC
+        ORDER BY 
+          CASE 
+            WHEN g.status = 'in_progress' THEN 1
+            WHEN g.status = 'not_started' THEN 2
+            WHEN g.status = 'achieved' THEN 3
+            ELSE 4
+          END,
+          CASE 
+            WHEN g.priority = 'high' THEN 1
+            WHEN g.priority = 'medium' THEN 2
+            WHEN g.priority = 'low' THEN 3
+            ELSE 4
+          END
       `,
       dependsOn: ['identify_client']
     }
   ];
   
-  return createQueryChain(`Find goals for client ${clientIdentifier}`, steps);
+  return createQueryChain(`Get goals for client "${clientIdentifier}"`, steps);
 }
 
 /**
@@ -399,41 +420,72 @@ export function createClientGoalsChain(clientIdentifier: string, goalStatus?: st
 export function createGoalProgressChain(clientIdentifier: string, goalKeyword: string): QueryChain {
   const steps: Partial<QueryStep>[] = [
     // Step 1: Identify the client
-    createEntityIdentificationStep('client', clientIdentifier),
-    
+    {
+      id: 'identify_client',
+      purpose: `Identify client "${clientIdentifier}"`,
+      query: `
+        SELECT id, name 
+        FROM clients 
+        WHERE name LIKE '%${clientIdentifier}%' OR id = '${clientIdentifier}'
+        LIMIT 1
+      `,
+      dependsOn: []
+    },
     // Step 2: Find the specific goal
     {
-      id: 'find_goal',
-      purpose: `Find goal related to "${goalKeyword}"`,
+      id: 'identify_goal',
+      purpose: `Find goal containing "${goalKeyword}" for the client`,
       query: `
-        SELECT g.id, g.title, g.description, g.status, g.progress_percentage
-        FROM goals g
-        WHERE g.client_id = {step:identify_client.id}
-        AND (g.title LIKE '%${goalKeyword}%' OR g.description LIKE '%${goalKeyword}%')
-        ORDER BY g.start_date DESC
+        SELECT id, title, description, status, priority, target_date
+        FROM goals
+        WHERE client_id = '\${identify_client.id}'
+          AND title LIKE '%${goalKeyword}%'
         LIMIT 1
       `,
       dependsOn: ['identify_client']
     },
-    
     // Step 3: Get progress assessments for the goal
     {
       id: 'get_goal_progress',
-      purpose: 'Retrieve progress assessments for the goal',
+      purpose: 'Get progress assessments for the goal',
       query: `
-        SELECT pa.id, pa.rating, pa.score, pa.notes, 
-               sn.session_id, s.session_date
-        FROM performance_assessments pa
-        JOIN session_notes sn ON pa.session_note_id = sn.id
-        JOIN sessions s ON sn.session_id = s.id
-        WHERE pa.goal_id = {step:find_goal.id}
-        ORDER BY s.session_date DESC
+        SELECT 
+          gp.assessment_date,
+          gp.score,
+          gp.notes,
+          s.session_date
+        FROM goal_progress gp
+        JOIN sessions s ON gp.session_id = s.id
+        WHERE gp.goal_id = '\${identify_goal.id}'
+        ORDER BY gp.assessment_date DESC
       `,
-      dependsOn: ['find_goal']
+      dependsOn: ['identify_goal']
+    },
+    // Step 4: Get subgoals for the goal
+    {
+      id: 'get_subgoals',
+      purpose: 'Get subgoals for the goal',
+      query: `
+        SELECT 
+          id,
+          title,
+          status,
+          priority
+        FROM subgoals
+        WHERE goal_id = '\${identify_goal.id}'
+        ORDER BY
+          CASE 
+            WHEN status = 'in_progress' THEN 1
+            WHEN status = 'not_started' THEN 2
+            WHEN status = 'achieved' THEN 3
+            ELSE 4
+          END
+      `,
+      dependsOn: ['identify_goal']
     }
   ];
   
-  return createQueryChain(`Track progress for ${clientIdentifier} on goal related to ${goalKeyword}`, steps);
+  return createQueryChain(`Get progress on "${goalKeyword}" goal for client "${clientIdentifier}"`, steps);
 }
 
 /**
@@ -442,39 +494,59 @@ export function createGoalProgressChain(clientIdentifier: string, goalKeyword: s
 export function createBudgetInfoChain(clientIdentifier: string): QueryChain {
   const steps: Partial<QueryStep>[] = [
     // Step 1: Identify the client
-    createEntityIdentificationStep('client', clientIdentifier),
-    
-    // Step 2: Get budget settings
+    {
+      id: 'identify_client',
+      purpose: `Identify client "${clientIdentifier}"`,
+      query: `
+        SELECT id, name 
+        FROM clients 
+        WHERE name LIKE '%${clientIdentifier}%' OR id = '${clientIdentifier}'
+        LIMIT 1
+      `,
+      dependsOn: []
+    },
+    // Step 2: Get active budget settings
     {
       id: 'get_budget_settings',
-      purpose: 'Retrieve budget settings for the client',
+      purpose: 'Get active budget settings for the client',
       query: `
-        SELECT bs.id, bs.start_date, bs.end_date, bs.settings
-        FROM budget_settings bs
-        WHERE bs.client_id = {step:identify_client.id}
-        ORDER BY bs.end_date DESC
+        SELECT 
+          id,
+          name,
+          total_amount,
+          start_date,
+          end_date,
+          funding_source
+        FROM budget_settings
+        WHERE client_id = '\${identify_client.id}'
+          AND active = true
         LIMIT 1
       `,
       dependsOn: ['identify_client']
     },
-    
-    // Step 3: Get budget items and usage
+    // Step 3: Get budget items
     {
       id: 'get_budget_items',
-      purpose: 'Retrieve budget items and usage',
+      purpose: 'Get budget items for the active budget',
       query: `
-        SELECT bi.id, bi.product_code, bi.item_number, 
-               bi.quantity, bi.total_allocated, bi.total_used,
-               (bi.total_allocated - bi.total_used) as remaining
-        FROM budget_items bi
-        WHERE bi.budget_settings_id = {step:get_budget_settings.id}
-        ORDER BY bi.total_allocated DESC
+        SELECT 
+          name,
+          product_code,
+          quantity,
+          usage,
+          (quantity - usage) as remaining,
+          ROUND((usage / quantity) * 100, 1) as usage_percentage,
+          unit_price,
+          total_amount
+        FROM budget_items
+        WHERE budget_settings_id = '\${get_budget_settings.id}'
+        ORDER BY usage_percentage DESC
       `,
       dependsOn: ['get_budget_settings']
     }
   ];
   
-  return createQueryChain(`Budget information for ${clientIdentifier}`, steps);
+  return createQueryChain(`Get budget information for client "${clientIdentifier}"`, steps);
 }
 
 /**
@@ -483,47 +555,63 @@ export function createBudgetInfoChain(clientIdentifier: string): QueryChain {
 export function createStrategyEffectivenessChain(clientIdentifier: string, strategyName?: string): QueryChain {
   const steps: Partial<QueryStep>[] = [
     // Step 1: Identify the client
-    createEntityIdentificationStep('client', clientIdentifier),
-    
+    {
+      id: 'identify_client',
+      purpose: `Identify client "${clientIdentifier}"`,
+      query: `
+        SELECT id, name 
+        FROM clients 
+        WHERE name LIKE '%${clientIdentifier}%' OR id = '${clientIdentifier}'
+        LIMIT 1
+      `,
+      dependsOn: []
+    },
     // Step 2: Get strategies used with this client
     {
-      id: 'get_client_strategies',
-      purpose: 'Identify strategies used with this client',
+      id: 'get_strategies',
+      purpose: 'Get strategies used with the client',
       query: `
-        SELECT DISTINCT unnest(pa.strategies) as strategy_name
-        FROM performance_assessments pa
-        JOIN session_notes sn ON pa.session_note_id = sn.id
-        JOIN sessions s ON sn.session_id = s.id
-        WHERE s.client_id = {step:identify_client.id}
-        ${strategyName ? `AND unnest(pa.strategies) LIKE '%${strategyName}%'` : ''}
+        SELECT 
+          st.id,
+          st.name,
+          st.description,
+          COUNT(ss.id) as usage_count
+        FROM strategies st
+        JOIN session_strategies ss ON st.id = ss.strategy_id
+        JOIN sessions s ON ss.session_id = s.id
+        WHERE s.client_id = '\${identify_client.id}'
+        ${strategyName ? `AND st.name LIKE '%${strategyName}%'` : ''}
+        GROUP BY st.id, st.name, st.description
+        ORDER BY usage_count DESC
       `,
       dependsOn: ['identify_client']
     },
-    
-    // Step 3: Get strategy details and ratings
+    // Step 3: Get effectiveness ratings
     {
-      id: 'get_strategy_effectiveness',
-      purpose: 'Analyze effectiveness of strategies',
+      id: 'get_effectiveness',
+      purpose: 'Get effectiveness ratings for strategies',
       query: `
         SELECT 
-          s.name as strategy_name,
-          s.category,
-          AVG(pa.rating) as avg_rating,
-          AVG(pa.score) as avg_score,
-          COUNT(*) as usage_count
-        FROM performance_assessments pa
-        JOIN session_notes sn ON pa.session_note_id = sn.id
-        JOIN sessions sess ON sn.session_id = sess.id
-        JOIN strategies s ON s.name = ANY(pa.strategies)
-        WHERE sess.client_id = {step:identify_client.id}
-        GROUP BY s.name, s.category
-        ORDER BY avg_rating DESC, usage_count DESC
+          st.name as strategy_name,
+          AVG(ss.effectiveness_rating) as avg_rating,
+          COUNT(ss.id) as rating_count
+        FROM strategies st
+        JOIN session_strategies ss ON st.id = ss.strategy_id
+        JOIN sessions s ON ss.session_id = s.id
+        WHERE s.client_id = '\${identify_client.id}'
+        ${strategyName ? `AND st.name LIKE '%${strategyName}%'` : ''}
+        GROUP BY st.name
+        ORDER BY avg_rating DESC
       `,
       dependsOn: ['identify_client']
     }
   ];
   
-  return createQueryChain(`Strategy effectiveness for ${clientIdentifier}`, steps);
+  const questionDescription = strategyName 
+    ? `Get effectiveness of "${strategyName}" strategy for client "${clientIdentifier}"`
+    : `Get strategy effectiveness for client "${clientIdentifier}"`;
+  
+  return createQueryChain(questionDescription, steps);
 }
 
 /**
@@ -532,131 +620,110 @@ export function createStrategyEffectivenessChain(clientIdentifier: string, strat
 export function createRecentSessionsChain(clientIdentifier: string, periodDays: number = 30): QueryChain {
   const steps: Partial<QueryStep>[] = [
     // Step 1: Identify the client
-    createEntityIdentificationStep('client', clientIdentifier),
-    
+    {
+      id: 'identify_client',
+      purpose: `Identify client "${clientIdentifier}"`,
+      query: `
+        SELECT id, name 
+        FROM clients 
+        WHERE name LIKE '%${clientIdentifier}%' OR id = '${clientIdentifier}'
+        LIMIT 1
+      `,
+      dependsOn: []
+    },
     // Step 2: Get recent sessions
     {
       id: 'get_recent_sessions',
-      purpose: `Get sessions in the last ${periodDays} days`,
+      purpose: `Get sessions from the last ${periodDays} days`,
       query: `
-        SELECT s.id, s.title, s.description, s.session_date, s.duration,
-               s.status, s.location
-        FROM sessions s
-        WHERE s.client_id = {step:identify_client.id}
-        AND s.session_date >= CURRENT_DATE - INTERVAL '${periodDays} days'
-        ORDER BY s.session_date DESC
+        SELECT 
+          id,
+          session_date,
+          session_type,
+          duration_minutes,
+          status
+        FROM sessions
+        WHERE client_id = '\${identify_client.id}'
+          AND session_date >= CURRENT_DATE - INTERVAL '${periodDays} days'
+        ORDER BY session_date DESC
       `,
       dependsOn: ['identify_client']
     },
-    
     // Step 3: Get session notes for context
     {
       id: 'get_session_notes',
-      purpose: 'Get detailed notes for the sessions',
+      purpose: 'Get notes for the recent sessions',
       query: `
-        SELECT sn.id, sn.session_id, sn.notes, sn.mood_rating, 
-               sn.physical_activity_rating, sn.focus_rating, sn.cooperation_rating
+        SELECT 
+          sn.session_id,
+          sn.note_text,
+          sn.created_at
         FROM session_notes sn
         JOIN sessions s ON sn.session_id = s.id
-        WHERE s.client_id = {step:identify_client.id}
-        AND s.session_date >= CURRENT_DATE - INTERVAL '${periodDays} days'
-        ORDER BY s.session_date DESC
+        WHERE s.client_id = '\${identify_client.id}'
+          AND s.session_date >= CURRENT_DATE - INTERVAL '${periodDays} days'
+        ORDER BY sn.created_at DESC
       `,
       dependsOn: ['identify_client']
     }
   ];
   
-  return createQueryChain(`Recent sessions for ${clientIdentifier} in the last ${periodDays} days`, steps);
+  return createQueryChain(`Get recent sessions for client "${clientIdentifier}" in the last ${periodDays} days`, steps);
 }
 
 /**
  * Create a multi-query chain based on a question pattern
  */
 export function createChainForQuestion(question: string): QueryChain | null {
-  // Normalize the question
-  const normalizedQuestion = question.toLowerCase().trim();
-  
-  // Look for client identifiers
-  const clientMatch = normalizedQuestion.match(/\b([a-z]+)[- ](\d{6})\b/i) || // Pattern like "Name-123456"
-                 normalizedQuestion.match(/\b([a-z]+)['']?s?\b/i);  // Pattern like "Name's" or "Name"
-  
-  const clientIdentifier = clientMatch ? clientMatch[0] : null;
-  
-  // Check for common question patterns
-  
-  // 1. Questions about client goals
-  if (normalizedQuestion.includes('goal') && clientIdentifier) {
-    const goalStatus = normalizedQuestion.includes('active') ? 'active' : 
-                    normalizedQuestion.includes('completed') ? 'completed' : null;
-                    
-    return createClientGoalsChain(clientIdentifier, goalStatus || undefined);
+  // Client goals pattern
+  const clientGoalsMatch = question.match(/(?:what|show|list|get)\s+(?:are|is|the)?\s*(?:goals|objectives)\s+(?:for|of)\s+(?:client|patient)?\s*(?:named|called)?\s*['""]?([a-zA-Z0-9\s-]+)['""]?/i);
+  if (clientGoalsMatch) {
+    return createClientGoalsChain(clientGoalsMatch[1].trim());
   }
   
-  // 2. Questions about goal progress
-  if ((normalizedQuestion.includes('progress') || normalizedQuestion.includes('improvement')) && 
-      clientIdentifier && normalizedQuestion.includes('goal')) {
-    // Extract goal keyword
-    const goalKeywords = [
-      'communication', 'social', 'speech', 'language', 'mobility',
-      'motor', 'sensory', 'cognitive', 'behavior', 'self-care'
-    ];
-    
-    let goalKeyword = '';
-    for (const keyword of goalKeywords) {
-      if (normalizedQuestion.includes(keyword)) {
-        goalKeyword = keyword;
-        break;
-      }
-    }
-    
-    if (goalKeyword) {
-      return createGoalProgressChain(clientIdentifier, goalKeyword);
-    }
+  // Goal progress pattern
+  const goalProgressMatch = question.match(/(?:how|what)\s+(?:is|are)\s+(?:the)?\s*(?:progress|status)\s+(?:on|of|for)\s+(?:goal|objective)?\s*['""]?([a-zA-Z0-9\s-]+)['""]?\s+(?:for|of)\s+(?:client|patient)?\s*(?:named|called)?\s*['""]?([a-zA-Z0-9\s-]+)['""]?/i);
+  if (goalProgressMatch) {
+    return createGoalProgressChain(goalProgressMatch[2].trim(), goalProgressMatch[1].trim());
   }
   
-  // 3. Questions about budget or funding
-  if ((normalizedQuestion.includes('budget') || normalizedQuestion.includes('fund') || 
-       normalizedQuestion.includes('funding') || normalizedQuestion.includes('ndis')) && 
-      clientIdentifier) {
-    return createBudgetInfoChain(clientIdentifier);
+  // Budget information pattern
+  const budgetMatch = question.match(/(?:what|show|get)\s+(?:is|are|the)?\s*(?:budget|funds|funding)\s+(?:for|of)\s+(?:client|patient)?\s*(?:named|called)?\s*['""]?([a-zA-Z0-9\s-]+)['""]?/i);
+  if (budgetMatch) {
+    return createBudgetInfoChain(budgetMatch[1].trim());
   }
   
-  // 4. Questions about strategies
-  if (normalizedQuestion.includes('strateg') && clientIdentifier) {
-    // Check for specific strategy
-    let strategyName;
-    if (normalizedQuestion.includes('visual')) strategyName = 'visual';
-    else if (normalizedQuestion.includes('sensory')) strategyName = 'sensory';
-    else if (normalizedQuestion.includes('social')) strategyName = 'social';
-    
-    return createStrategyEffectivenessChain(clientIdentifier, strategyName);
+  // Strategy effectiveness pattern
+  const strategyMatch = question.match(/(?:how|what)\s+(?:effective|is)\s+(?:the|is)?\s*(?:strategy|approach|technique)\s+['""]?([a-zA-Z0-9\s-]+)['""]?\s+(?:for|with)\s+(?:client|patient)?\s*(?:named|called)?\s*['""]?([a-zA-Z0-9\s-]+)['""]?/i);
+  if (strategyMatch) {
+    return createStrategyEffectivenessChain(strategyMatch[2].trim(), strategyMatch[1].trim());
   }
   
-  // 5. Questions about recent sessions
-  if ((normalizedQuestion.includes('session') || normalizedQuestion.includes('appointment') || 
-       normalizedQuestion.includes('visit')) && clientIdentifier) {
-    // Check for time period
-    let periodDays = 30; // Default to last 30 days
-    
-    if (normalizedQuestion.includes('week')) {
-      periodDays = 7;
-    } else if (normalizedQuestion.includes('month')) {
-      periodDays = 30;
-    } else if (normalizedQuestion.includes('year')) {
-      periodDays = 365;
-    }
-    
-    return createRecentSessionsChain(clientIdentifier, periodDays);
+  // Recent sessions pattern
+  const recentSessionsMatch = question.match(/(?:what|show|list|get)\s+(?:are|the)?\s*(?:recent|latest|last)\s+(?:sessions|appointments|visits)\s+(?:for|of)\s+(?:client|patient)?\s*(?:named|called)?\s*['""]?([a-zA-Z0-9\s-]+)['""]?(?:\s+in\s+the\s+last\s+(\d+)\s+days)?/i);
+  if (recentSessionsMatch) {
+    const periodDays = recentSessionsMatch[2] ? parseInt(recentSessionsMatch[2], 10) : 30;
+    return createRecentSessionsChain(recentSessionsMatch[1].trim(), periodDays);
   }
   
-  // No matching pattern found
+  // No match
   return null;
 }
 
-// Singleton instance
+// Export the module as a single object
 export const multiQueryEngine = {
+  executeQuery,
+  replaceParameters,
   createQueryChain,
+  areDependenciesSatisfied,
+  buildDependencyMap,
   executeNextStep,
   executeQueryChain,
+  createEntityIdentificationStep,
+  createClientGoalsChain,
+  createGoalProgressChain,
+  createBudgetInfoChain,
+  createStrategyEffectivenessChain,
+  createRecentSessionsChain,
   createChainForQuestion
 };
