@@ -23,6 +23,8 @@ import {
   ArrowLeft,
   Loader2, 
   ChevronLeft,
+  ChevronDown,
+  ChevronUp,
   PlusCircle,
   MessageSquare, 
   MoreVertical,
@@ -33,7 +35,8 @@ import {
   BarChart3,
   Database,
   ChevronsUpDown,
-  RefreshCw
+  RefreshCw,
+  Trash
 } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -143,14 +146,64 @@ const EnhancedAssistant: React.FC = () => {
     queryFn: getQueryTemplates
   });
 
-  // Initialize with a default conversation on mount
+  // Load conversations from localStorage
   useEffect(() => {
-    if (conversations.length === 0) {
-      const newConversation = createNewConversation();
-      setConversations([newConversation]);
-      setActiveConversation(newConversation);
+    const savedConversations = localStorage.getItem('assistant-conversations');
+    const savedActiveId = localStorage.getItem('assistant-active-conversation');
+    
+    if (savedConversations) {
+      try {
+        const parsed = JSON.parse(savedConversations);
+        // Convert string dates back to Date objects
+        const convertedConversations = parsed.map((conv: any) => ({
+          ...conv,
+          createdAt: new Date(conv.createdAt),
+          updatedAt: new Date(conv.updatedAt),
+          messages: conv.messages.map((msg: any) => ({
+            ...msg,
+            timestamp: new Date(msg.timestamp)
+          }))
+        }));
+        
+        setConversations(convertedConversations);
+        
+        // Set active conversation if available
+        if (savedActiveId) {
+          const activeConv = convertedConversations.find((c: Conversation) => c.id === savedActiveId);
+          if (activeConv) {
+            setActiveConversation(activeConv);
+          } else if (convertedConversations.length > 0) {
+            setActiveConversation(convertedConversations[0]);
+          }
+        } else if (convertedConversations.length > 0) {
+          setActiveConversation(convertedConversations[0]);
+        }
+      } catch (e) {
+        console.error('Error parsing saved conversations:', e);
+        createDefaultConversation();
+      }
+    } else {
+      createDefaultConversation();
     }
   }, []);
+  
+  // Save conversations to localStorage whenever they change
+  useEffect(() => {
+    if (conversations.length > 0) {
+      localStorage.setItem('assistant-conversations', JSON.stringify(conversations));
+      
+      if (activeConversation) {
+        localStorage.setItem('assistant-active-conversation', activeConversation.id);
+      }
+    }
+  }, [conversations, activeConversation]);
+  
+  // Create a default conversation if needed
+  const createDefaultConversation = () => {
+    const newConversation = createNewConversation();
+    setConversations([newConversation]);
+    setActiveConversation(newConversation);
+  };
 
   // Scroll to bottom of messages
   const scrollToBottom = () => {
@@ -241,7 +294,7 @@ const EnhancedAssistant: React.FC = () => {
       if (response.data.length === 1 && 
           Object.keys(response.data[0]).length === 1 && 
           Object.keys(response.data[0])[0] === 'greeting') {
-        return "Hello! How can I assist you today? Are you looking for information about clients, sessions, therapy goals, or anything else related to the clinic?";
+        return "Hello! How can I assist you with your speech therapy needs today?";
       }
       
       // Single value result
@@ -250,45 +303,44 @@ const EnhancedAssistant: React.FC = () => {
         const value = response.data[0][key];
         
         if (key.includes('count')) {
-          return `Based on our records, the ${key.replace('_', ' ')} is ${value}. Is there anything specific about this you'd like to know more about?`;
+          return `The ${key.replace('_', ' ')} is ${value}. Would you like more information?`;
         }
         
-        return `I found that the ${key.replace('_', ' ')} is ${value}. Would you like any additional information related to this?`;
+        return `The ${key.replace('_', ' ')} is ${value}. Can I help with anything else?`;
       }
       
       // Multiple rows or columns
       if (response.data.length === 0) {
-        return `I've searched our records but couldn't find any data matching your criteria. This might be because the information doesn't exist in our system, or perhaps we need to refine your question. Could you try being more specific or asking in a different way?`;
+        return `I couldn't find any information matching that in our records. Could you try asking in a different way?`;
       } else if (response.data.length === 1) {
-        return `I found one record that matches your query. You can see the details in the results below. Is this what you were looking for, or would you like me to explain anything specific about this data?`;
+        return `I found the information you asked about. Can I help with anything else?`;
       } else {
-        return `I found ${response.data.length} records that match your query. The details are shown below. Is there anything specific from these results you'd like me to highlight or explain further?`;
+        // For multiple rows, craft a more insightful summary without mentioning queries
+        return `I found information about ${response.data.length} items that match your question. Is there anything specific you'd like to know about them?`;
       }
     }
     
     // Fallback
-    return "I've analyzed your request and processed the relevant information. Is there anything specific you'd like me to elaborate on, or would you like to ask a follow-up question?";
+    return "I understand what you're asking about. How else can I help with your practice today?";
   };
 
   // Customize the query error based on the query attempt
   const getQueryErrorMessage = (errorMessage?: string): string => {
-    if (!errorMessage) return "I'm sorry, I'm having some trouble understanding your question right now. Could you try rephrasing it or providing more context?";
+    if (!errorMessage) return "I'm not sure I understand your question. Could you try asking it differently?";
     
     if (errorMessage.includes("relation") && errorMessage.includes("does not exist")) {
-      const match = errorMessage.match(/relation "(.*?)" does not exist/);
-      const tableName = match ? match[1] : "the requested information";
-      return `I apologize, but I couldn't find any records related to ${tableName} in our system. This might be because we track this information differently or use different terminology. Could you try asking about this in a different way, or let me know what specific information you're looking for?`;
+      return "I don't have information about that in our clinic records. Could you try asking about something else?";
     }
     
     if (errorMessage.includes("syntax error")) {
-      return "I'm sorry, but I'm having difficulty understanding exactly what you're asking for. Could you try rephrasing your question with more details or context? For example, specifying a time period or being more explicit about what you'd like to know.";
+      return "I'm having trouble understanding your question. Could you try phrasing it differently?";
     }
     
     if (errorMessage.includes("permission denied")) {
-      return "I don't have access to the information you're requesting. This might be due to privacy settings or access restrictions. Is there something else I can help you with?";
+      return "I don't have access to that information. Is there something else I can help you with?";
     }
     
-    return "I apologize, but I encountered an issue while trying to answer your question. This could be because the question touches on data we don't track, or perhaps the way it's phrased makes it difficult for me to interpret correctly. Could you try asking in a different way or provide more specific details about what you're looking for?";
+    return "I'm sorry, I can't answer that question right now. Could you try asking about something else?";
   };
 
   // Handle asking a question
@@ -785,12 +837,12 @@ const EnhancedAssistant: React.FC = () => {
                              !(message.response.data.length === 1 && 
                                message.response.data[0].greeting !== undefined) && (
                               <>
-                                {/* Show a toggle button for query results */}
+                                {/* Show a toggle button for detailed data */}
                                 <div className="mt-2 flex justify-end">
                                   <Button
-                                    variant="outline"
+                                    variant="ghost"
                                     size="sm"
-                                    className="text-xs flex items-center"
+                                    className="text-xs flex items-center text-muted-foreground"
                                     onClick={() => {
                                       // Find this message in state and toggle its visibility
                                       if (activeConversation) {
@@ -819,8 +871,17 @@ const EnhancedAssistant: React.FC = () => {
                                       }
                                     }}
                                   >
-                                    <Database className="h-3.5 w-3.5 mr-1" />
-                                    {message.showResults ? 'Hide Results' : 'Show Results'}
+                                    {message.showResults ? (
+                                      <>
+                                        <ChevronUp className="h-3.5 w-3.5 mr-1" />
+                                        Hide Details
+                                      </>
+                                    ) : (
+                                      <>
+                                        <ChevronDown className="h-3.5 w-3.5 mr-1" />
+                                        Show Details
+                                      </>
+                                    )}
                                   </Button>
                                 </div>
                                 
