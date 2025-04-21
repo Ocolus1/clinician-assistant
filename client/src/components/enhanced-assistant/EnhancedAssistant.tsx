@@ -36,7 +36,10 @@ import {
   Database,
   ChevronsUpDown,
   RefreshCw,
-  Trash
+  Trash,
+  Pencil,
+  Check,
+  X
 } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -112,6 +115,8 @@ const EnhancedAssistant: React.FC = () => {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [settings, setSettings] = useState<AssistantSettings>(DEFAULT_SETTINGS);
   const [question, setQuestion] = useState('');
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editName, setEditName] = useState('');
   
   // Refs
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -281,6 +286,47 @@ const EnhancedAssistant: React.FC = () => {
       ...prev,
       [key]: value
     }));
+  };
+  
+  // Start editing a conversation title
+  const startEditing = (conversation: Conversation) => {
+    setEditingId(conversation.id);
+    setEditName(conversation.title);
+  };
+  
+  // Cancel editing
+  const cancelEditing = () => {
+    setEditingId(null);
+    setEditName('');
+  };
+  
+  // Save edited conversation title
+  const handleSaveEdit = (id: string) => {
+    if (editName.trim()) {
+      // Find the conversation in the list
+      const updatedConversation = conversations.find(c => c.id === id);
+      
+      if (updatedConversation) {
+        // Update the title
+        const conversationWithNewTitle = {
+          ...updatedConversation,
+          title: editName.trim()
+        };
+        
+        // Update conversations list
+        setConversations(prev => 
+          prev.map(c => c.id === id ? conversationWithNewTitle : c)
+        );
+        
+        // Update active conversation if needed
+        if (activeConversation?.id === id) {
+          setActiveConversation(conversationWithNewTitle);
+        }
+      }
+    }
+    
+    // Reset editing state
+    cancelEditing();
   };
 
   // Get a more human-like response from the assistant
@@ -647,74 +693,96 @@ const EnhancedAssistant: React.FC = () => {
                 {conversations.map((conversation) => (
                   <div 
                     key={conversation.id}
-                    onClick={() => handleSwitchConversation(conversation)}
+                    onClick={() => editingId !== conversation.id && handleSwitchConversation(conversation)}
                     className={`
-                      p-2 rounded-md cursor-pointer
-                      ${activeConversation?.id === conversation.id ? 'bg-primary/10' : 'hover:bg-muted'}
+                      p-2 rounded-md
+                      ${editingId === conversation.id 
+                        ? 'bg-muted' 
+                        : activeConversation?.id === conversation.id 
+                          ? 'bg-primary/10 cursor-pointer' 
+                          : 'hover:bg-muted cursor-pointer'}
                     `}
                   >
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-sm truncate">{conversation.title}</p>
-                        <p className="text-xs text-muted-foreground truncate">
-                          {getConversationSummary(conversation)}
-                        </p>
+                    {editingId === conversation.id ? (
+                      // Editing mode
+                      <div className="space-y-2">
+                        <Input
+                          value={editName}
+                          onChange={(e) => setEditName(e.target.value)}
+                          className="text-sm"
+                          autoFocus
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              handleSaveEdit(conversation.id);
+                            } else if (e.key === 'Escape') {
+                              cancelEditing();
+                            }
+                          }}
+                        />
+                        <div className="flex justify-end space-x-2">
+                          <Button 
+                            size="sm" 
+                            variant="ghost" 
+                            onClick={cancelEditing}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            variant="default" 
+                            onClick={() => handleSaveEdit(conversation.id)}
+                          >
+                            <Check className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </div>
-                      <div className="flex items-center">
-                        <span className="text-xs text-muted-foreground mr-1">{formatDisplayDate(conversation.updatedAt)}</span>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-6 w-6 p-0"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              <MoreVertical className="h-3 w-3" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem 
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                const newTitle = prompt("Rename conversation:", conversation.title);
-                                if (newTitle && newTitle.trim()) {
-                                  // Update conversation title
-                                  const updatedConversation = {
-                                    ...conversation,
-                                    title: newTitle.trim()
-                                  };
-                                  
-                                  // Update the conversations list
-                                  setConversations(prev => 
-                                    prev.map(c => c.id === conversation.id ? updatedConversation : c)
-                                  );
-                                  
-                                  // Update active conversation if needed
-                                  if (activeConversation?.id === conversation.id) {
-                                    setActiveConversation(updatedConversation);
-                                  }
-                                }
-                              }}
-                            >
-                              <MessageSquare className="h-4 w-4 mr-2" />
-                              Rename
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem 
-                              className="text-destructive focus:text-destructive"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleDeleteConversation(conversation.id);
-                              }}
-                            >
-                              <Trash className="h-4 w-4 mr-2" />
-                              Delete
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                    ) : (
+                      // Display mode
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-sm truncate">{conversation.title}</p>
+                          <p className="text-xs text-muted-foreground truncate">
+                            {getConversationSummary(conversation)}
+                          </p>
+                        </div>
+                        <div className="flex items-center">
+                          <span className="text-xs text-muted-foreground mr-1">{formatDisplayDate(conversation.updatedAt)}</span>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-6 w-6 p-0"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <MoreVertical className="h-3 w-3" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  startEditing(conversation);
+                                }}
+                              >
+                                <Pencil className="h-4 w-4 mr-2" />
+                                Rename
+                              </DropdownMenuItem>
+                              <DropdownMenuItem 
+                                className="text-destructive focus:text-destructive"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeleteConversation(conversation.id);
+                                }}
+                              >
+                                <Trash className="h-4 w-4 mr-2" />
+                                Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
                       </div>
-                    </div>
+                    )}
                   </div>
                 ))}
               </div>
