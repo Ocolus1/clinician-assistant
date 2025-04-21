@@ -59,7 +59,7 @@ export async function executeQuery(queryText: string): Promise<QueryResult> {
     
     return {
       success: true,
-      data: result.rows,
+      data: result,
       executionTime
     };
   } catch (error: any) {

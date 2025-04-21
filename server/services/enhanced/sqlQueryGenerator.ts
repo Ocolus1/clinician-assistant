@@ -120,10 +120,7 @@ export class EnhancedSQLQueryGenerator {
       const response = await openaiService.createChatCompletion([
         { role: 'system', content: 'You are an expert SQL query generator for PostgreSQL. Generate only valid SQL queries without explanations or markdown formatting.' },
         { role: 'user', content: prompt }
-      ], {
-        temperature: mergedOptions.temperature,
-        max_tokens: mergedOptions.maxTokens
-      });
+      ]);
       
       // Extract the SQL query from the response
       const query = this.sanitizeQuery(response);
@@ -274,12 +271,12 @@ export class EnhancedSQLQueryGenerator {
       const sanitizedQuery = this.sanitizeQuery(sqlQuery);
       
       // Execute the query
-      const result = await db.query(sanitizedQuery);
+      const result = await sql`${sanitizedQuery}`;
       const executionTime = Date.now() - startTime;
       
       return {
         query: sanitizedQuery,
-        data: result.rows,
+        data: result,
         executionTime,
         fromTemplate,
         fromMultiQuery,

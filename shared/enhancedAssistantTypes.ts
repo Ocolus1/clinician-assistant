@@ -1,62 +1,61 @@
 /**
- * Shared types for the Enhanced Clinician Assistant
+ * Enhanced Clinician Assistant Types
  * 
- * This file extends the base assistant types with new functionality
- * specific to the enhanced assistant.
+ * This file extends the base assistant types with additional interfaces
+ * for the enhanced clinician assistant features.
  */
 
-import { AssistantStatusResponse, QueryResult } from './assistantTypes';
+import { AssistantQuestion, AssistantResponse } from './assistantTypes';
 
 /**
- * Enhanced assistant status response interface
- * Extends the base AssistantStatusResponse with enhanced features
+ * Enhanced Clinician Assistant question with additional metadata options
  */
-export interface EnhancedAssistantStatusResponse extends AssistantStatusResponse {
-  enhanced: boolean;
+export interface EnhancedAssistantQuestion extends AssistantQuestion {
   useTemplates?: boolean;
   useMultiQuery?: boolean;
   useBusinessContext?: boolean;
 }
 
 /**
- * Enhanced query result interface
- * Extends the base QueryResult with enhanced features
+ * Enhanced Clinician Assistant response with additional metadata
  */
-export interface EnhancedQueryResult extends QueryResult {
-  metadata: {
-    executionTime?: number;
-    rowCount?: number;
-    queryText?: string;
-    fromTemplate?: boolean;
-    fromMultiQuery?: boolean;
-    usedBusinessContext?: boolean;
-  };
+export interface EnhancedAssistantResponse extends AssistantResponse {
+  fromTemplate?: boolean;
+  fromMultiQuery?: boolean;
+  usedBusinessContext?: boolean;
+  executionPlan?: string;
 }
 
 /**
- * Schema metadata interfaces
+ * Table metadata information
  */
 export interface TableMetadata {
   name: string;
   displayName: string;
   description: string;
+  primaryKey: string[];
   columns: ColumnMetadata[];
-  primaryKey?: string[];
   relationships?: RelationshipMetadata[];
   businessContext?: string[];
   sampleQueries?: string[];
 }
 
+/**
+ * Column metadata information
+ */
 export interface ColumnMetadata {
   name: string;
   displayName: string;
   description: string;
   type: string;
   isNullable: boolean;
+  values?: string[];
   businessContext?: string[];
-  values?: string[]; // For enum-like fields, list of possible values
 }
 
+/**
+ * Relationship metadata information
+ */
 export interface RelationshipMetadata {
   name: string;
   targetTable: string;
@@ -67,7 +66,7 @@ export interface RelationshipMetadata {
 }
 
 /**
- * Query template interfaces
+ * Query template for common question patterns
  */
 export interface QueryTemplate {
   id: string;
@@ -76,31 +75,51 @@ export interface QueryTemplate {
   patterns: string[];
   sqlTemplate: string;
   parameters: TemplateParameter[];
-  resultMapping?: ResultMapping;
+  resultMapping: ResultMapping;
   responseTemplate?: string;
 }
 
+/**
+ * Parameter for template substitution
+ */
 export interface TemplateParameter {
   name: string;
   description: string;
-  type: 'string' | 'number' | 'date' | 'boolean' | 'entity';
+  type: string;
   required: boolean;
-  entityType?: string; // For entity parameters, e.g., 'client', 'goal', etc.
   default?: any;
-  extractionHints?: string[]; // Patterns to help extract this parameter from natural language
-}
-
-export interface ResultMapping {
-  renameColumns?: Record<string, string>; // Original column name -> display name
-  formatColumns?: Record<string, string>; // Column name -> format (e.g., 'date', 'currency', 'percent')
-  visualizationType?: string;
-  groupBy?: string[];
-  sortBy?: string[];
-  limit?: number;
+  entityType?: string;
+  extractionHints?: string[];
 }
 
 /**
- * Multi-query interfaces
+ * Result mapping for transforming query results
+ */
+export interface ResultMapping {
+  renameColumns?: Record<string, string>;
+  formatValues?: Record<string, string>;
+  visualizationType?: 'table' | 'bar' | 'line' | 'pie';
+}
+
+/**
+ * Multi-query chain for complex questions
+ */
+export interface QueryChain {
+  id: string;
+  originalQuestion: string;
+  steps: QueryStep[];
+  maxSteps: number;
+  currentStep: number;
+  complete: boolean;
+  error?: string;
+  finalResults?: any[];
+  startTime: number;
+  endTime?: number;
+  totalExecutionTime?: number;
+}
+
+/**
+ * Single step in a query chain
  */
 export interface QueryStep {
   id: string;
@@ -110,18 +129,4 @@ export interface QueryStep {
   results?: any[];
   error?: string;
   executionTime?: number;
-}
-
-export interface QueryChain {
-  id: string;
-  originalQuestion: string;
-  steps: QueryStep[];
-  maxSteps: number;
-  currentStep: number;
-  complete: boolean;
-  startTime: number;
-  endTime?: number;
-  totalExecutionTime?: number;
-  finalResults?: any[];
-  error?: string;
 }
