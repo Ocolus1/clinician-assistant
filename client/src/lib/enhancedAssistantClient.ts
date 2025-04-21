@@ -12,29 +12,26 @@ import { EnhancedAssistantResponse, EnhancedQuestionRequest, EnhancedAssistantFe
  * Asks a question to the enhanced assistant
  */
 export async function askEnhancedQuestion(data: EnhancedQuestionRequest): Promise<EnhancedAssistantResponse> {
-  return apiRequest('/api/enhanced-assistant/query', {
-    method: 'POST',
-    body: JSON.stringify(data),
-  });
+  return apiRequest('/api/enhanced-assistant/query', 'POST', data);
 }
 
 /**
  * Gets the list of available enhanced features
  */
 export async function getEnhancedFeatures(): Promise<EnhancedAssistantFeature[]> {
-  return apiRequest('/api/enhanced-assistant/features');
+  return apiRequest('/api/enhanced-assistant/features', 'GET');
 }
 
 /**
  * Gets the list of query templates
  */
 export async function getQueryTemplates(): Promise<QueryTemplate[]> {
-  return apiRequest('/api/enhanced-assistant/templates');
+  return apiRequest('/api/enhanced-assistant/templates', 'GET');
 }
 
 /**
  * Gets detailed schema metadata for data exploration
  */
 export async function getSchemaMetadata(): Promise<any> {
-  return apiRequest('/api/enhanced-assistant/schema');
+  return apiRequest('/api/enhanced-assistant/schema', 'GET');
 }

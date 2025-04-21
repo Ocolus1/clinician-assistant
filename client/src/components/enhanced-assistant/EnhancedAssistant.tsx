@@ -71,7 +71,7 @@ const EnhancedAssistant: React.FC = () => {
   };
 
   // Handle template selection
-  const handleTemplateSelect = (templateId: string | null) => {
+  const handleTemplateSelect = (templateId: string | null): void => {
     setSelectedTemplate(templateId);
   };
 
@@ -184,7 +184,7 @@ const EnhancedAssistant: React.FC = () => {
                 templates={templatesQuery.data || []}
                 isLoading={templatesQuery.isLoading}
                 error={templatesQuery.error ? String(templatesQuery.error) : undefined}
-                onSelect={(templateId) => {
+                onSelect={(templateId: string | null) => {
                   handleTemplateSelect(templateId);
                   setActiveTab('ask'); // Switch back to ask tab
                 }}

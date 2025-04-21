@@ -33,7 +33,7 @@ const TemplateSelector: React.FC<TemplateSelectorProps> = ({
     return (
       template.name.toLowerCase().includes(search) ||
       template.description.toLowerCase().includes(search) ||
-      template.patterns.some(pattern => pattern.toLowerCase().includes(search))
+      template.patterns.some((pattern: string) => pattern.toLowerCase().includes(search))
     );
   });
 
@@ -81,7 +81,7 @@ const TemplateSelector: React.FC<TemplateSelectorProps> = ({
                 <div className="space-y-2">
                   <h4 className="text-sm font-medium">Example Patterns:</h4>
                   <div className="flex flex-wrap gap-2">
-                    {template.patterns.slice(0, 3).map((pattern, index) => (
+                    {template.patterns.slice(0, 3).map((pattern: string, index: number) => (
                       <Badge key={index} variant="outline" className="text-xs">
                         {pattern}
                       </Badge>
@@ -98,7 +98,7 @@ const TemplateSelector: React.FC<TemplateSelectorProps> = ({
                   <div className="mt-3">
                     <h4 className="text-sm font-medium">Parameters:</h4>
                     <ul className="text-xs text-muted-foreground ml-4 list-disc">
-                      {template.parameters.map((param, index) => (
+                      {template.parameters.map((param: any, index: number) => (
                         <li key={index}>
                           {param.name}
                           {param.required && <span className="text-destructive">*</span>}

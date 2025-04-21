@@ -15,7 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { Code, Database, AlertTriangle, Check, ChevronRight, Clock } from 'lucide-react';
+import { Code, Database, AlertTriangle, Check, ChevronRight, Clock, FileText } from 'lucide-react';
 
 interface EnhancedAssistantResponseProps {
   response: ResponseType;
