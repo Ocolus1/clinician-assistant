@@ -207,10 +207,12 @@ STEP 2: <purpose>
         
         // Get previous step results if any
         const prevResults: Record<string, any[]> = {};
-        for (const depId of step.dependsOn) {
-          const depStep = workingChain.steps.find(s => s.id === depId);
-          if (depStep && depStep.results) {
-            prevResults[depId] = depStep.results;
+        if (step.dependsOn && Array.isArray(step.dependsOn)) {
+          for (const depId of step.dependsOn) {
+            const depStep = workingChain.steps.find(s => s.id === depId);
+            if (depStep && depStep.results) {
+              prevResults[depId] = depStep.results;
+            }
           }
         }
         

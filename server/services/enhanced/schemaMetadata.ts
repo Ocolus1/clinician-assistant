@@ -152,7 +152,11 @@ export class SchemaMetadataService {
         displayName: this.formatDisplayName(row.displayName),
         description: row.description || `The ${this.formatDisplayName(row.displayName.toLowerCase())} of the ${this.formatDisplayName(tableName.toLowerCase())}`,
         type: row.type,
-        isNullable: row.isNullable
+        isNullable: row.isNullable,
+        isPrimaryKey: !!row.isPrimaryKey,
+        isForeignKey: !!row.isForeignKey,
+        referencesTable: row.referencesTable,
+        referencesColumn: row.referencesColumn
       }));
     } catch (error) {
       console.error(`[SchemaMetadata] Error fetching column metadata for table ${tableName}:`, error);
@@ -199,6 +203,7 @@ export class SchemaMetadataService {
         return {
           name: row.name,
           description: `${this.formatDisplayName(sourceTable)} is related to ${this.formatDisplayName(targetTable)}`,
+          sourceTable,
           sourceColumn,
           targetTable,
           targetColumn,

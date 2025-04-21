@@ -457,12 +457,33 @@ const EnhancedAssistant: React.FC = () => {
     // Update active conversation
     setActiveConversation(updatedConversation);
     
-    // Send to API with current settings
+    // Get the latest assistant response to extract conversation memory
+    const previousMessages = updatedConversation.messages;
+    let conversationMemory = undefined;
+    
+    // Find the last assistant response that has updated memory
+    for (let i = previousMessages.length - 1; i >= 0; i--) {
+      const msg = previousMessages[i];
+      if (
+        msg.sender === 'assistant' && 
+        msg.response && 
+        msg.response.updatedMemory
+      ) {
+        conversationMemory = msg.response.updatedMemory;
+        break;
+      }
+    }
+    
+    console.log('Using conversation memory:', conversationMemory);
+    
+    // Send to API with current settings and conversation memory
     askMutation.mutate({
       question,
       useBusinessContext: settings.useBusinessContext,
       useTemplates: settings.useTemplates,
-      useMultiQuery: settings.useMultiQuery
+      useMultiQuery: settings.useMultiQuery,
+      conversationId: activeConversation.id,
+      conversationMemory
     });
   };
 
