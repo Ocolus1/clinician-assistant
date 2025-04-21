@@ -55,6 +55,42 @@ export class ClinicianAssistantService {
       const { question } = enhancedQuestion;
       const startTime = Date.now();
       
+      // First, check if this is a simple greeting or non-data question
+      const isDataQuestion = await this.isDataRelatedQuestion(question);
+      
+      // If it's not a data question, handle it without database access
+      if (!isDataQuestion) {
+        console.log('[ClinicianAssistant] Non-data question detected. Generating conversational response.');
+        
+        const prompt = `
+          You are a helpful clinical assistant for a speech therapy practice. 
+          The user has asked a question that doesn't require database access.
+          
+          Please respond in a friendly, professional tone appropriate for a clinical setting.
+          Keep your response concise but informative.
+          
+          User question: "${question}"
+        `;
+        
+        const explanation = await openaiService.createChatCompletion([
+          { role: 'system', content: 'You are a clinical assistant for a speech therapy practice.' },
+          { role: 'user', content: prompt }
+        ]);
+        
+        // Return conversational response without database query
+        return {
+          originalQuestion: question,
+          explanation,
+          data: question.toLowerCase().includes('hello') || question.toLowerCase().includes('hi') 
+            ? [{ greeting: true }] 
+            : [],
+          executionTime: Date.now() - startTime
+        };
+      }
+      
+      // For data questions, proceed with regular processing
+      console.log('[ClinicianAssistant] Data question detected. Processing with database access.');
+      
       // Step 1: Try to match a template if enabled
       if (enhancedQuestion.useTemplates !== false) {
         try {
