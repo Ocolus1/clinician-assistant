@@ -65,6 +65,7 @@ interface Message {
   sender: 'user' | 'assistant';
   timestamp: Date;
   response?: ResponseType;
+  showResults?: boolean; // Flag to control visibility of results
 }
 
 interface Conversation {
@@ -733,7 +734,7 @@ const EnhancedAssistant: React.FC = () => {
                     {message.sender === 'user' && (
                       <div className="flex justify-end items-start mb-4">
                         <div className="max-w-[80%] bg-primary text-primary-foreground rounded-lg rounded-tr-none p-3">
-                          <p className="break-words">{message.content}</p>
+                          <p className="break-words whitespace-pre-wrap">{message.content}</p>
                           <div className="mt-1 flex justify-end">
                             <span className="text-xs opacity-80">
                               {formatTime(message.timestamp)}
@@ -778,34 +779,78 @@ const EnhancedAssistant: React.FC = () => {
                             
                             {/* Render data results if available */}
                             {message.response?.data && message.response.data.length > 0 && (
-                              <Card className="mt-2 overflow-hidden">
-                                <Tabs defaultValue="results" className="w-full">
-                                  <TabsList className="w-full justify-start bg-card">
-                                    <TabsTrigger value="results">
-                                      <BarChart3 className="h-3.5 w-3.5 mr-1" />
-                                      Results
-                                    </TabsTrigger>
-                                    {settings.showSQLQueries && message.response.sqlQuery && (
-                                      <TabsTrigger value="query">
-                                        <Database className="h-3.5 w-3.5 mr-1" />
-                                        SQL Query
-                                      </TabsTrigger>
-                                    )}
-                                  </TabsList>
-                                  <CardContent className="p-3">
-                                    <TabsContent value="results" className="mt-1">
-                                      {renderDataTable(message.response.data)}
-                                    </TabsContent>
-                                    {settings.showSQLQueries && message.response.sqlQuery && (
-                                      <TabsContent value="query" className="mt-1">
-                                        <pre className="bg-muted p-2 rounded text-xs whitespace-pre-wrap">
-                                          {message.response.sqlQuery}
-                                        </pre>
-                                      </TabsContent>
-                                    )}
-                                  </CardContent>
-                                </Tabs>
-                              </Card>
+                              <>
+                                {/* Show a toggle button for query results */}
+                                <div className="mt-2 flex justify-end">
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="text-xs flex items-center"
+                                    onClick={() => {
+                                      // Find this message in state and toggle its visibility
+                                      if (activeConversation) {
+                                        const updatedMessages = activeConversation.messages.map(m => {
+                                          if (m.id === message.id) {
+                                            return {
+                                              ...m,
+                                              showResults: !m.showResults
+                                            };
+                                          }
+                                          return m;
+                                        });
+                                        
+                                        const updatedConversation = {
+                                          ...activeConversation,
+                                          messages: updatedMessages
+                                        };
+                                        
+                                        // Update the conversations list
+                                        setConversations(prev => 
+                                          prev.map(c => c.id === updatedConversation.id ? updatedConversation : c)
+                                        );
+                                        
+                                        // Update active conversation
+                                        setActiveConversation(updatedConversation);
+                                      }
+                                    }}
+                                  >
+                                    <Database className="h-3.5 w-3.5 mr-1" />
+                                    {message.showResults ? 'Hide Results' : 'Show Results'}
+                                  </Button>
+                                </div>
+                                
+                                {/* Show data and query results if showResults is true */}
+                                {message.showResults && (
+                                  <Card className="mt-2 overflow-hidden">
+                                    <Tabs defaultValue="results" className="w-full">
+                                      <TabsList className="w-full justify-start bg-card">
+                                        <TabsTrigger value="results">
+                                          <BarChart3 className="h-3.5 w-3.5 mr-1" />
+                                          Results
+                                        </TabsTrigger>
+                                        {settings.showSQLQueries && message.response.sqlQuery && (
+                                          <TabsTrigger value="query">
+                                            <Database className="h-3.5 w-3.5 mr-1" />
+                                            SQL Query
+                                          </TabsTrigger>
+                                        )}
+                                      </TabsList>
+                                      <CardContent className="p-3">
+                                        <TabsContent value="results" className="mt-1">
+                                          {renderDataTable(message.response.data)}
+                                        </TabsContent>
+                                        {settings.showSQLQueries && message.response.sqlQuery && (
+                                          <TabsContent value="query" className="mt-1">
+                                            <pre className="bg-muted p-2 rounded text-xs whitespace-pre-wrap">
+                                              {message.response.sqlQuery}
+                                            </pre>
+                                          </TabsContent>
+                                        )}
+                                      </CardContent>
+                                    </Tabs>
+                                  </Card>
+                                )}
+                              </>
                             )}
                             
                             {/* Show error message if present */}
