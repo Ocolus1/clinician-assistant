@@ -4,6 +4,9 @@
  * This service provides LangChain-based conversation and memory management for
  * more sophisticated AI interactions. It replaces direct OpenAI API calls with
  * LangChain's more powerful abstractions.
+ * 
+ * It now includes long-term memory using PostgreSQL vector storage for improved
+ * context retention across conversations.
  */
 
 import { ChatOpenAI } from "@langchain/openai";
@@ -24,6 +27,7 @@ import {
 import { BaseMessage, HumanMessage, AIMessage, SystemMessage } from "@langchain/core/messages";
 import { ChatMessage } from "./openaiService";
 import { StructuredTool } from "@langchain/core/tools";
+import { vectorStoreService } from "./vectorStoreService";
 
 /**
  * Configuration for the LangChain service
@@ -77,7 +81,7 @@ export class LangChainService {
   /**
    * Initialize the LangChain service with API credentials
    */
-  initialize(config: LangChainConfig, executeQueryFn: (query: string) => Promise<any>): void {
+  async initialize(config: LangChainConfig, executeQueryFn: (query: string) => Promise<any>): Promise<void> {
     this.config = config;
     this.model = new ChatOpenAI({
       openAIApiKey: config.apiKey,
@@ -86,6 +90,15 @@ export class LangChainService {
     });
     
     this.sqlQueryTool = new SQLQueryTool(executeQueryFn);
+    
+    // Initialize vector store for long-term memory
+    try {
+      await vectorStoreService.initialize(config.apiKey);
+      console.log('Vector store long-term memory initialized');
+    } catch (error) {
+      console.error('Failed to initialize vector store:', error);
+      // Continue even if vector store initialization fails
+    }
     
     console.log(`LangChain service initialized with model: ${config.model}`);
   }
@@ -178,10 +191,70 @@ export class LangChainService {
       // Get the conversation chain for this conversation
       const chain = this.getConversationChain(conversationId, systemPrompt);
       
+      // Try to retrieve relevant past messages from the vector store
+      let longTermContext = "";
+      if (vectorStoreService.isInitialized()) {
+        try {
+          // Retrieve similar messages from long-term memory
+          const similarMessages = await vectorStoreService.retrieveSimilarMessages(
+            conversationId, 
+            userMessage,
+            5 // Limit to 5 most relevant messages
+          );
+          
+          if (similarMessages.length > 0) {
+            // Format the messages for context
+            longTermContext = `\n\nRelevant information from past conversations:\n`;
+            similarMessages.forEach(msg => {
+              longTermContext += `- ${msg.role === 'user' ? 'User asked' : 'You responded'}: ${msg.content.substring(0, 150)}${msg.content.length > 150 ? '...' : ''}\n`;
+            });
+            
+            console.log(`Added ${similarMessages.length} relevant past messages as context`);
+          }
+        } catch (error) {
+          console.error('Error retrieving from long-term memory:', error);
+          // Continue without long-term memory if it fails
+        }
+      }
+      
+      // Include long-term memory context if available
+      const enhancedUserMessage = longTermContext ? 
+        `${userMessage}\n\n${longTermContext}` : 
+        userMessage;
+      
       // Process the message through the chain
       const response = await chain.invoke({
-        input: userMessage
+        input: enhancedUserMessage
       });
+      
+      // After successful processing, store the messages in the vector database
+      if (vectorStoreService.isInitialized()) {
+        try {
+          // Create message objects for storage
+          const messagesToStore = [
+            {
+              id: `user-${Date.now()}`,
+              role: 'user' as MessageRole,
+              content: userMessage,
+              createdAt: new Date().toISOString()
+            },
+            {
+              id: `assistant-${Date.now()}`,
+              role: 'assistant' as MessageRole,
+              content: response.response,
+              createdAt: new Date().toISOString()
+            }
+          ];
+          
+          // Store in vector database asynchronously (don't wait for completion)
+          vectorStoreService.storeMessages(conversationId, messagesToStore)
+            .catch(error => console.error('Error storing messages in vector database:', error));
+            
+        } catch (error) {
+          console.error('Error preparing messages for vector storage:', error);
+          // Continue even if storing fails
+        }
+      }
       
       return response.response;
     } catch (error: any) {

@@ -6,9 +6,7 @@
  */
 
 import { sql } from '../db';
-import { OpenAIEmbeddings } from "langchain/embeddings/openai";
-import { MemoryVectorStore } from "langchain/vectorstores/memory";
-import { Document } from "langchain/document";
+import { OpenAIEmbeddings } from "@langchain/openai";
 import { Message, MessageRole } from '@shared/assistantTypes';
 
 /**
@@ -28,7 +26,6 @@ interface EmbeddingEntry {
  */
 export class VectorStoreService {
   private embeddings: OpenAIEmbeddings | null = null;
-  private memoryStore: MemoryVectorStore | null = null;
   private initialized = false;
 
   /**
