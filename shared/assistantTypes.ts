@@ -109,3 +109,24 @@ export interface UpdateSettingsRequest {
   temperature?: number;
   readOnly?: boolean;
 }
+
+/**
+ * Memory management types
+ */
+export interface MemorySummary {
+  id: string;
+  conversationId: string;
+  content: string;
+  startTimestamp: string;
+  endTimestamp: string;
+  messageCount: number;
+  topics: string[];
+  createdAt: string;
+}
+
+export interface MemoryRetrievalResult {
+  recentMessages: Message[];
+  relevantMessages: Message[];
+  summaries: MemorySummary[];
+  combinedContext: string;
+}

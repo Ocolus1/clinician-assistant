@@ -164,6 +164,22 @@ export class VectorStoreService {
   }
 
   /**
+   * Create embedding for a text string (utility method)
+   */
+  async createEmbedding(text: string): Promise<number[]> {
+    if (!this.initialized || !this.embeddings) {
+      throw new Error('Vector Store Service not initialized');
+    }
+    
+    try {
+      return await this.embeddings.embedQuery(text);
+    } catch (error) {
+      console.error('Error creating embedding:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Check if the service is initialized
    */
   isInitialized(): boolean {

@@ -28,6 +28,7 @@ import { BaseMessage, HumanMessage, AIMessage, SystemMessage } from "@langchain/
 import { ChatMessage } from "./openaiService";
 import { StructuredTool } from "@langchain/core/tools";
 import { vectorStoreService } from "./vectorStoreService";
+import { memoryManagementService } from "./memoryManagementService";
 import { Message, MessageRole } from '@shared/assistantTypes';
 import { z } from "zod";
 
@@ -90,9 +91,13 @@ export class LangChainService {
     try {
       await vectorStoreService.initialize(config.apiKey);
       console.log('Vector store long-term memory initialized');
+      
+      // Initialize the memory management service
+      await memoryManagementService.initialize(config.apiKey, config.model);
+      console.log('Memory summarization service initialized');
     } catch (error) {
-      console.error('Failed to initialize vector store:', error);
-      // Continue even if vector store initialization fails
+      console.error('Failed to initialize memory services:', error);
+      // Continue even if memory service initialization fails
     }
     
     console.log(`LangChain service initialized with model: ${config.model}`);
@@ -186,9 +191,42 @@ export class LangChainService {
       // Get the conversation chain for this conversation
       const chain = this.getConversationChain(conversationId, systemPrompt);
       
-      // Try to retrieve relevant past messages from the vector store
-      let longTermContext = "";
-      if (vectorStoreService.isInitialized()) {
+      // Try to retrieve context from tiered memory management
+      let context = "";
+      let convertedRecentMessages: Message[] = [];
+      
+      // Convert ChatMessage array to our Message format
+      if (recentMessages && recentMessages.length > 0) {
+        convertedRecentMessages = recentMessages.map(msg => ({
+          id: `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          role: msg.role as MessageRole,
+          content: msg.content,
+          createdAt: new Date().toISOString()
+        }));
+      }
+      
+      // Use the tiered memory system if possible
+      if (memoryManagementService.isInitialized()) {
+        try {
+          // Get context from all memory tiers
+          const memoryContext = await memoryManagementService.getTieredMemoryContext(
+            conversationId,
+            userMessage,
+            convertedRecentMessages
+          );
+          
+          if (memoryContext.combinedContext) {
+            context = memoryContext.combinedContext;
+            console.log('Using tiered memory context with summaries');
+          }
+        } catch (error) {
+          console.error('Error retrieving from tiered memory:', error);
+          // Fall back to simpler vector retrieval
+        }
+      }
+      
+      // If tiered memory failed, fall back to simpler vector retrieval
+      if (!context && vectorStoreService.isInitialized()) {
         try {
           // Retrieve similar messages from long-term memory
           const similarMessages = await vectorStoreService.retrieveSimilarMessages(
@@ -199,22 +237,22 @@ export class LangChainService {
           
           if (similarMessages.length > 0) {
             // Format the messages for context
-            longTermContext = `\n\nRelevant information from past conversations:\n`;
+            context = `\n\nRelevant information from past conversations:\n`;
             similarMessages.forEach(msg => {
-              longTermContext += `- ${msg.role === 'user' ? 'User asked' : 'You responded'}: ${msg.content.substring(0, 150)}${msg.content.length > 150 ? '...' : ''}\n`;
+              context += `- ${msg.role === 'user' ? 'User asked' : 'You responded'}: ${msg.content.substring(0, 150)}${msg.content.length > 150 ? '...' : ''}\n`;
             });
             
-            console.log(`Added ${similarMessages.length} relevant past messages as context`);
+            console.log(`Added ${similarMessages.length} relevant past messages as context (fallback method)`);
           }
         } catch (error) {
-          console.error('Error retrieving from long-term memory:', error);
-          // Continue without long-term memory if it fails
+          console.error('Error retrieving from vector store:', error);
+          // Continue without memory context if both methods fail
         }
       }
       
-      // Include long-term memory context if available
-      const enhancedUserMessage = longTermContext ? 
-        `${userMessage}\n\n${longTermContext}` : 
+      // Include memory context if available
+      const enhancedUserMessage = context ? 
+        `${userMessage}\n\n${context}` : 
         userMessage;
       
       // Process the message through the chain
@@ -222,33 +260,37 @@ export class LangChainService {
         input: enhancedUserMessage
       });
       
-      // After successful processing, store the messages in the vector database
-      if (vectorStoreService.isInitialized()) {
-        try {
-          // Create message objects for storage
-          const messagesToStore = [
-            {
-              id: `user-${Date.now()}`,
-              role: 'user' as MessageRole,
-              content: userMessage,
-              createdAt: new Date().toISOString()
-            },
-            {
-              id: `assistant-${Date.now()}`,
-              role: 'assistant' as MessageRole,
-              content: response.response,
-              createdAt: new Date().toISOString()
-            }
-          ];
-          
-          // Store in vector database asynchronously (don't wait for completion)
+      // After successful processing, store the messages for future context
+      try {
+        // Create message objects for storage
+        const messagesToStore = [
+          {
+            id: `user-${Date.now()}`,
+            role: 'user' as MessageRole,
+            content: userMessage,
+            createdAt: new Date().toISOString()
+          },
+          {
+            id: `assistant-${Date.now()}`,
+            role: 'assistant' as MessageRole,
+            content: response.response,
+            createdAt: new Date().toISOString()
+          }
+        ];
+        
+        // Process in the memory management system (which will handle both vector storage and summarization)
+        if (memoryManagementService.isInitialized()) {
+          // This handles both vector storage and potential summarization
+          memoryManagementService.processConversationMemory(conversationId, messagesToStore)
+            .catch(error => console.error('Error processing in memory management:', error));
+        } else if (vectorStoreService.isInitialized()) {
+          // Fallback to just vector storage if memory management isn't available
           vectorStoreService.storeMessages(conversationId, messagesToStore)
-            .catch(error => console.error('Error storing messages in vector database:', error));
-            
-        } catch (error) {
-          console.error('Error preparing messages for vector storage:', error);
-          // Continue even if storing fails
+            .catch(error => console.error('Error storing in vector database:', error));
         }
+      } catch (error) {
+        console.error('Error preparing messages for storage:', error);
+        // Continue even if storage fails
       }
       
       return response.response;
