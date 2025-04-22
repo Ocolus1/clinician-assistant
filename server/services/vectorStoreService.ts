@@ -80,7 +80,7 @@ export class VectorStoreService {
               messageId: message.id,
               createdAt: message.createdAt
             })}, 
-            ${new Date()}
+            ${new Date().toISOString()}
           )
         `;
       }

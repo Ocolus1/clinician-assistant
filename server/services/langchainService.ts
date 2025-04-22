@@ -28,6 +28,8 @@ import { BaseMessage, HumanMessage, AIMessage, SystemMessage } from "@langchain/
 import { ChatMessage } from "./openaiService";
 import { StructuredTool } from "@langchain/core/tools";
 import { vectorStoreService } from "./vectorStoreService";
+import { Message, MessageRole } from '@shared/assistantTypes';
+import { z } from "zod";
 
 /**
  * Configuration for the LangChain service
@@ -44,16 +46,9 @@ export interface LangChainConfig {
 class SQLQueryTool extends StructuredTool {
   name = "query_database";
   description = "Useful for querying the database to answer questions about client data";
-  schema = {
-    type: "object",
-    properties: {
-      query: {
-        type: "string",
-        description: "The SQL query to execute"
-      }
-    },
-    required: ["query"]
-  };
+  schema = z.object({
+    query: z.string().describe("The SQL query to execute")
+  });
 
   constructor(private executeQueryFn: (query: string) => Promise<any>) {
     super();
