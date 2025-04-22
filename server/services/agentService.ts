@@ -43,10 +43,50 @@ class SQLQueryTool extends StructuredTool {
     try {
       console.log(`Executing SQL query: ${input.query}`);
       
-      const result = await this.executeQueryFn(input.query);
+      // First try executing the original query
+      let result = await this.executeQueryFn(input.query);
       
+      // If no results were found, try to enhance the query using schema analysis
       if (result.rows.length === 0) {
-        return "No results found for this query.";
+        console.log("Query returned no results, attempting to enhance with schema analysis...");
+        
+        // Try to find and fix identifier format issues using schema analysis
+        const alternativeQueries = await this.generateAlternativeQueries(input.query);
+        
+        // Try each alternative query
+        for (const alternativeQuery of alternativeQueries) {
+          console.log(`Trying alternative query: ${alternativeQuery}`);
+          
+          try {
+            const alternativeResult = await this.executeQueryFn(alternativeQuery);
+            
+            // If this alternative query returns results, use those
+            if (alternativeResult.rows.length > 0) {
+              console.log("Alternative query returned results!");
+              result = alternativeResult;
+              break;
+            }
+          } catch (error: any) {
+            console.error(`Error with alternative query: ${error.message || 'Unknown error'}`);
+            // Continue trying other alternatives
+          }
+        }
+        
+        // If still no results after trying alternatives
+        if (result.rows.length === 0) {
+          // Import schemaAnalysisService dynamically to avoid circular dependencies
+          const { schemaAnalysisService } = await import('./schemaAnalysisService');
+          
+          // Initialize schema analysis if needed
+          if (!schemaAnalysisService.isInitialized()) {
+            await schemaAnalysisService.initialize();
+          }
+          
+          // Get schema suggestions for the query
+          const schemaSuggestions = schemaAnalysisService.getSchemaSuggestionsForQuery(input.query);
+          
+          return `No results found for this query. Here are some suggestions based on database schema analysis:\n\n${schemaSuggestions}`;
+        }
       }
       
       // Format result as a markdown table for better readability
@@ -85,77 +125,321 @@ class SQLQueryTool extends StructuredTool {
       return `Error executing query: ${error.message || 'Unknown error'}. Please check your SQL syntax and try again.`;
     }
   }
+  
+  /**
+   * Generate alternative versions of a query that might return results
+   * This handles special cases like identifier format inconsistencies
+   */
+  private async generateAlternativeQueries(query: string): Promise<string[]> {
+    try {
+      // Import schemaAnalysisService dynamically to avoid circular dependencies
+      const { schemaAnalysisService } = await import('./schemaAnalysisService');
+      
+      // Check if the schema analysis service is initialized
+      if (!schemaAnalysisService.isInitialized()) {
+        console.log('Schema analysis service not initialized for query enhancement, initializing now...');
+        await schemaAnalysisService.initialize();
+      }
+      
+      // Extract table and column names from the query
+      const tablePattern = /\bFROM\s+(\w+)|JOIN\s+(\w+)/gi;
+      const wherePattern = /\bWHERE\s+(?:(\w+)\.)?(\w+)\s*=\s*['"]([^'"]+)['"]/gi;
+      
+      const tableMatches = Array.from(query.matchAll(tablePattern));
+      const whereMatches = Array.from(query.matchAll(wherePattern));
+      
+      const alternativeQueries: string[] = [];
+      
+      // For each WHERE clause with string equality, try alternative identifier formats
+      for (const whereMatch of whereMatches) {
+        const tableAlias = whereMatch[1]; // Might be undefined if no alias
+        const columnName = whereMatch[2];
+        const value = whereMatch[3];
+        
+        // If the value matches a name-number pattern, or is just a number
+        if (/^[A-Za-z]+-\d+$/.test(value) || /^\d+$/.test(value)) {
+          // Find which table this column belongs to
+          let tableName = "";
+          
+          // If there's a table alias in the WHERE clause
+          if (tableAlias) {
+            // Find the actual table name from the alias
+            const aliasPattern = new RegExp(`\\b(\\w+)\\s+(?:AS\\s+)?${tableAlias}\\b`, 'i');
+            const aliasMatch = query.match(aliasPattern);
+            if (aliasMatch) {
+              tableName = aliasMatch[1];
+            }
+          } 
+          // If no alias or couldn't find the table name from alias
+          if (!tableName) {
+            // If there's only one table in the query, use that
+            if (tableMatches.length === 1) {
+              tableName = tableMatches[0][1] || tableMatches[0][2];
+            } else {
+              // Try to find tables that have this column
+              const tablesWithColumn = schemaAnalysisService.findTableWithColumn(columnName);
+              if (tablesWithColumn.length === 1) {
+                tableName = tablesWithColumn[0];
+              }
+            }
+          }
+          
+          // If we found the table, generate alternative queries
+          if (tableName) {
+            const altQueries = schemaAnalysisService.generateAlternativeQueries(
+              query, tableName, columnName, value
+            );
+            
+            // Add all alternative queries except the original (which is already being tried)
+            alternativeQueries.push(...altQueries.slice(1));
+          }
+        }
+      }
+      
+      return alternativeQueries;
+    } catch (error) {
+      console.error("Error generating alternative queries:", error);
+      return []; // Return empty array if there's an error
+    }
+  }
 }
 
 /**
  * Database Schema Tool - provides information about database tables and structure
+ * Enhanced with schemaAnalysisService for richer schema understanding
  */
 class DatabaseSchemaTool extends StructuredTool {
   name = "get_database_schema";
-  description = "Get information about the database schema, tables, and columns";
+  description = "Get comprehensive information about the database schema, tables, relationships, and data patterns";
   schema = z.object({
-    tableName: z.string().optional().describe("Optional table name to get specific schema information")
+    tableName: z.string().optional().describe("Optional table name to get specific schema information"),
+    includeExamples: z.boolean().optional().describe("Whether to include sample data and examples in the response")
   });
   
-  async _call(input: { tableName?: string }): Promise<string> {
+  async _call(input: { tableName?: string, includeExamples?: boolean }): Promise<string> {
     try {
+      // Import schemaAnalysisService dynamically to avoid circular dependencies
+      const { schemaAnalysisService } = await import('./schemaAnalysisService');
+      
+      // Check if the schema analysis service is initialized
+      if (!schemaAnalysisService.isInitialized()) {
+        console.log('Schema analysis service not initialized, initializing now...');
+        await schemaAnalysisService.initialize();
+      }
+      
       let schemaInfo = "";
       
+      // If a specific table is requested
       if (input.tableName) {
-        // Get schema for specific table
-        const tableInfo = await sql`
-          SELECT column_name, data_type, is_nullable
-          FROM information_schema.columns
-          WHERE table_name = ${input.tableName}
-          ORDER BY ordinal_position;
-        `;
+        // Get enriched table metadata from schema analysis service
+        const tableMetadata = schemaAnalysisService.getTableMetadata(input.tableName);
         
-        if (tableInfo.length === 0) {
-          return `Table '${input.tableName}' not found in the database.`;
+        if (!tableMetadata) {
+          // Fall back to basic schema info if the table is not in the analysis service
+          const tableInfo = await sql`
+            SELECT column_name, data_type, is_nullable
+            FROM information_schema.columns
+            WHERE table_name = ${input.tableName}
+            ORDER BY ordinal_position;
+          `;
+          
+          if (tableInfo.length === 0) {
+            return `Table '${input.tableName}' not found in the database.`;
+          }
+          
+          schemaInfo = `Table: ${input.tableName}\n\nColumns:\n`;
+          tableInfo.forEach(col => {
+            schemaInfo += `- ${col.column_name} (${col.data_type}, ${col.is_nullable === 'YES' ? 'nullable' : 'not nullable'})\n`;
+          });
+          
+          return schemaInfo;
         }
         
-        schemaInfo = `Table: ${input.tableName}\n\nColumns:\n`;
-        tableInfo.forEach(col => {
-          schemaInfo += `- ${col.column_name} (${col.data_type}, ${col.is_nullable === 'YES' ? 'nullable' : 'not nullable'})\n`;
-        });
+        // Generate enhanced schema information
+        schemaInfo = `Table: ${tableMetadata.name} (${tableMetadata.rowCount} rows)\n\n`;
         
-        // Get foreign keys
-        const foreignKeys = await sql`
-          SELECT
-            kcu.column_name,
-            ccu.table_name AS foreign_table_name,
-            ccu.column_name AS foreign_column_name
-          FROM
-            information_schema.table_constraints AS tc
-            JOIN information_schema.key_column_usage AS kcu
-              ON tc.constraint_name = kcu.constraint_name
-              AND tc.table_schema = kcu.table_schema
-            JOIN information_schema.constraint_column_usage AS ccu
-              ON ccu.constraint_name = tc.constraint_name
-              AND ccu.table_schema = tc.table_schema
-          WHERE tc.constraint_type = 'FOREIGN KEY' AND tc.table_name = ${input.tableName};
-        `;
+        // Column information with enriched metadata
+        schemaInfo += "Columns:\n";
+        for (const column of tableMetadata.columns) {
+          // Formatted column info with key details
+          const flags = [];
+          if (column.isPrimaryKey) flags.push("PRIMARY KEY");
+          if (column.isForeignKey) flags.push("FOREIGN KEY");
+          if (!column.isNullable) flags.push("NOT NULL");
+          
+          const flagsText = flags.length > 0 ? ` [${flags.join(", ")}]` : "";
+          schemaInfo += `- ${column.name} (${column.dataType})${flagsText}\n`;
+          schemaInfo += `  Description: ${column.description}\n`;
+          
+          // Add field patterns if identified
+          if (column.valueFormats.length > 0) {
+            schemaInfo += `  Format: ${column.valueFormats.join(", ")}\n`;
+          }
+          
+          // Only include examples if specifically requested to avoid over-verbose responses
+          if (input.includeExamples && column.examples.length > 0) {
+            schemaInfo += `  Examples: ${column.examples.slice(0, 3).join(", ")}\n`;
+          }
+          
+          // Add statistics if available
+          if (column.distinctValueCount !== undefined) {
+            schemaInfo += `  Distinct values: ${column.distinctValueCount}\n`;
+          }
+          
+          // Add range info for numeric columns
+          if (column.minValue !== undefined && column.maxValue !== undefined) {
+            schemaInfo += `  Range: ${column.minValue} to ${column.maxValue}\n`;
+          }
+        }
         
-        if (foreignKeys.length > 0) {
-          schemaInfo += "\nForeign Keys:\n";
-          foreignKeys.forEach(fk => {
-            schemaInfo += `- ${fk.column_name} references ${fk.foreign_table_name}(${fk.foreign_column_name})\n`;
-          });
+        // Relationship information
+        if (tableMetadata.relationships.length > 0) {
+          schemaInfo += "\nRelationships:\n";
+          for (const rel of tableMetadata.relationships) {
+            schemaInfo += `- ${rel.relationType.toUpperCase()} relationship with ${rel.targetTable}\n`;
+            schemaInfo += `  ${tableMetadata.name}.${rel.sourceColumn} -> ${rel.targetTable}.${rel.targetColumn}\n`;
+          }
+        }
+        
+        // Sample data if requested
+        if (input.includeExamples && tableMetadata.sampleData.length > 0) {
+          schemaInfo += "\nSample Data (up to 3 rows):\n";
+          const sampleRows = tableMetadata.sampleData.slice(0, 3);
+          for (const [index, row] of sampleRows.entries()) {
+            schemaInfo += `Row ${index + 1}:\n`;
+            for (const column of tableMetadata.columns) {
+              const value = row[column.name] !== undefined ? row[column.name] : 'NULL';
+              schemaInfo += `  ${column.name}: ${value}\n`;
+            }
+          }
+        }
+        
+        // Identifier field information
+        const identifierFields = schemaAnalysisService.getIdentifierFields(input.tableName);
+        if (identifierFields.length > 0) {
+          schemaInfo += "\nIdentifier Fields:\n";
+          schemaInfo += `- ${identifierFields.join(", ")}\n`;
+          
+          // Special case for clients table with its three identifier fields
+          if (input.tableName === 'clients' && 
+              tableMetadata.columns.some(c => c.name === 'name') &&
+              tableMetadata.columns.some(c => c.name === 'unique_identifier') &&
+              tableMetadata.columns.some(c => c.name === 'original_name')) {
+            
+            schemaInfo += "\nClient Identifier Pattern:\n";
+            schemaInfo += "- The clients table uses a specific pattern with three related identifier fields:\n";
+            schemaInfo += "  * original_name: Contains just the name portion (e.g., 'Radwan')\n";
+            schemaInfo += "  * unique_identifier: Contains just the numeric ID (e.g., '585666')\n";
+            schemaInfo += "  * name: Contains the combined format (e.g., 'Radwan-585666')\n\n";
+            schemaInfo += "  When querying clients, if you search by one format but get no results,\n";
+            schemaInfo += "  try the alternative formats. The system will automatically try these\n";
+            schemaInfo += "  variations when possible.\n";
+          }
+          // Special cases for known identifier pattern issues in other tables
+          else {
+            for (const idField of identifierFields) {
+              const column = tableMetadata.columns.find(c => c.name === idField);
+              if (column && column.valueFormats.includes('name-number')) {
+                schemaInfo += `  Note: '${idField}' uses a name-number format (e.g., "Name-123456").\n`;
+                schemaInfo += `  When querying, consider whether to use the full value (Name-123456) or just the number part (123456).\n`;
+                
+                if (idField === 'name' && tableMetadata.columns.some(c => c.name === 'unique_identifier')) {
+                  schemaInfo += `  Important: The 'name' field may store the full pattern (e.g., "Radwan-585666"),\n`;
+                  schemaInfo += `  while 'unique_identifier' may store only the number part (e.g., "585666").\n`;
+                }
+              }
+            }
+          }
         }
       } else {
-        // Get list of all tables
-        const tables = await sql`
-          SELECT tablename
-          FROM pg_catalog.pg_tables
-          WHERE schemaname != 'pg_catalog' AND schemaname != 'information_schema';
-        `;
+        // No specific table requested, provide overview of all tables
+        const fullSchema = schemaAnalysisService.getFullSchema();
         
-        schemaInfo = "Database Tables:\n\n";
-        tables.forEach(table => {
-          schemaInfo += `- ${table.tablename}\n`;
-        });
+        if (fullSchema.size === 0) {
+          // Fall back to basic table list if schema analysis hasn't processed tables
+          const tables = await sql`
+            SELECT tablename
+            FROM pg_catalog.pg_tables
+            WHERE schemaname != 'pg_catalog' AND schemaname != 'information_schema';
+          `;
+          
+          schemaInfo = "Database Tables:\n\n";
+          tables.forEach(table => {
+            schemaInfo += `- ${table.tablename}\n`;
+          });
+          
+          schemaInfo += "\nUse the tool again with a specific tableName to get detailed information about a table.";
+          return schemaInfo;
+        }
         
-        schemaInfo += "\nUse the tool again with a specific tableName to get detailed information about a table.";
+        // Generate enhanced schema overview
+        schemaInfo = "Database Schema Overview:\n\n";
+        
+        // Group tables by domain based on name patterns
+        const domains: Record<string, string[]> = {
+          'Client Data': [],
+          'Clinical': [],
+          'Financial': [],
+          'Session': [],
+          'Other': []
+        };
+        
+        for (const [tableName, metadata] of fullSchema.entries()) {
+          if (tableName.includes('client') || tableName.includes('ally')) {
+            domains['Client Data'].push(tableName);
+          } else if (tableName.includes('goal') || tableName.includes('clinician') || tableName.includes('strategies')) {
+            domains['Clinical'].push(tableName);
+          } else if (tableName.includes('budget') || tableName.includes('fund')) {
+            domains['Financial'].push(tableName);
+          } else if (tableName.includes('session') || tableName.includes('note')) {
+            domains['Session'].push(tableName);
+          } else {
+            domains['Other'].push(tableName);
+          }
+        }
+        
+        // List tables by domain with brief descriptions
+        for (const [domain, tables] of Object.entries(domains)) {
+          if (tables.length === 0) continue;
+          
+          schemaInfo += `${domain}:\n`;
+          for (const tableName of tables) {
+            const metadata = fullSchema.get(tableName);
+            if (metadata) {
+              // Count relationships
+              const relationshipCount = metadata.relationships.length;
+              const relationshipInfo = relationshipCount > 0 ? ` (${relationshipCount} relationships)` : '';
+              
+              // Find some key columns
+              const keyColumns = metadata.columns
+                .filter(c => c.isPrimaryKey || c.isForeignKey || c.name.includes('name') || c.name.includes('id'))
+                .map(c => c.name)
+                .slice(0, 3);
+              
+              schemaInfo += `- ${tableName} (${metadata.rowCount} rows)${relationshipInfo}\n`;
+              if (keyColumns.length > 0) {
+                schemaInfo += `  Key columns: ${keyColumns.join(', ')}\n`;
+              }
+            }
+          }
+          schemaInfo += '\n';
+        }
+        
+        // Highlight important known issues with identifiers
+        schemaInfo += 'Important Identifier Patterns:\n';
+        
+        // Special highlight for clients table identifiers
+        schemaInfo += '- The clients table uses three related identifier fields:\n';
+        schemaInfo += '  * original_name: Contains just the name (e.g., "Radwan")\n';
+        schemaInfo += '  * unique_identifier: Contains just the number (e.g., "585666")\n';
+        schemaInfo += '  * name: Contains the combined format (e.g., "Radwan-585666")\n\n';
+        
+        // General guidance for other tables
+        schemaInfo += '- Other tables may use compound identifiers (e.g., "Name-123456")\n';
+        schemaInfo += '- When querying by identifier, if you get no results, try alternative formats\n';
+        schemaInfo += '- The system will automatically try to use the correct format when possible\n\n';
+        
+        schemaInfo += "Use this tool with a specific tableName parameter to get detailed information about a table.";
       }
       
       return schemaInfo;
