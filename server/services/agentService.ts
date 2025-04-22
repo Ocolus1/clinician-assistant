@@ -470,6 +470,7 @@ class NaturalLanguageQueryTool extends StructuredTool {
       
       // Import the SQL Query Generation Service
       const { sqlQueryGenerationService } = await import('./sqlQueryGenerationService');
+      const { schemaAnalysisService } = await import('./schemaAnalysisService');
       
       // Generate a SQL query from the natural language question using the two-phase approach
       const generationResult = await sqlQueryGenerationService.generateQuery({
@@ -492,6 +493,78 @@ Could you please rephrase your question or provide more details?`;
         const result = await this.executeQueryFn(generationResult.query);
         
         if (result.rows.length === 0) {
+          // Special handling for client names and identifiers - check if this is about clients
+          const isClientQuery = 
+            input.question.toLowerCase().includes('client') ||
+            input.question.toLowerCase().match(/name.*radwan|radwan.*name/) ||
+            generationResult.query.toLowerCase().includes('clients');
+            
+          if (isClientQuery) {
+            // Check for client identifier patterns
+            let possibleClientIdentifier = null;
+            
+            // Extract possible client name from the query
+            const nameMatch = input.question.match(/client(?:s)?\s+(?:named|called|with\s+(?:the\s+)?name)\s+['"]?([a-zA-Z0-9_\-]+)['"]?/i);
+            if (nameMatch && nameMatch[1]) {
+              possibleClientIdentifier = nameMatch[1];
+            }
+            
+            // Also check for simple name patterns
+            const simpleNameMatch = input.question.match(/['"]?([a-zA-Z0-9_\-]+)['"]?/);
+            if (simpleNameMatch && simpleNameMatch[1] && !possibleClientIdentifier) {
+              // Only use this if it's plausibly a name (not a common word)
+              const potentialName = simpleNameMatch[1];
+              if (potentialName.length > 3 && !['have', 'client', 'name', 'with', 'find'].includes(potentialName.toLowerCase())) {
+                possibleClientIdentifier = potentialName;
+              }
+            }
+            
+            // If we found a potential client identifier, try alternative query strategies
+            if (possibleClientIdentifier) {
+              console.log(`Trying fallback strategies for client identifier: ${possibleClientIdentifier}`);
+              
+              // Try different identifier patterns
+              const fallbackQueries = [
+                // Try original_name (just the name part)
+                `SELECT * FROM clients WHERE original_name ILIKE '%${possibleClientIdentifier}%'`,
+                
+                // Try unique_identifier (numeric part)
+                isNaN(Number(possibleClientIdentifier)) ? null : 
+                  `SELECT * FROM clients WHERE unique_identifier = '${possibleClientIdentifier}'`,
+                
+                // Try name field with wildcards (combined format)
+                `SELECT * FROM clients WHERE name ILIKE '%${possibleClientIdentifier}%'`
+              ].filter(Boolean); // Remove null entries
+              
+              // Try each query strategy
+              for (const fallbackQuery of fallbackQueries) {
+                try {
+                  console.log(`Trying fallback query: ${fallbackQuery}`);
+                  const fallbackResult = await this.executeQueryFn(fallbackQuery);
+                  
+                  if (fallbackResult.rows.length > 0) {
+                    // We found results with a fallback strategy!
+                    return `Yes, I found ${fallbackResult.rows.length} client(s) related to "${possibleClientIdentifier}" using an alternative search strategy.
+
+Here's what I found:
+\`\`\`
+${fallbackResult.rows.slice(0, 5).map(client => 
+  `ID: ${client.id}, Name: ${client.name}, Status: ${client.onboarding_status}`
+).join('\n')}
+${fallbackResult.rows.length > 5 ? `\n...and ${fallbackResult.rows.length - 5} more` : ''}
+\`\`\`
+
+Note: I had to search across different client identifier fields to find these results. The clients' "name" field contains the combined format (e.g., "Radwan-585666"), while the "original_name" field contains just the name part.`;
+                  }
+                } catch (fallbackError) {
+                  console.error(`Error in fallback query:`, fallbackError);
+                  // Continue to the next fallback query
+                }
+              }
+            }
+          }
+          
+          // If we reach here, even fallback strategies didn't work
           return `I generated a SQL query based on your question, but it didn't return any results. This could mean one of three things:
           
 1. The data you're looking for doesn't exist in the database
