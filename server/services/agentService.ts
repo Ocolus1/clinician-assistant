@@ -451,6 +451,117 @@ class DatabaseSchemaTool extends StructuredTool {
 }
 
 /**
+ * Natural Language Query Tool - converts natural language to SQL with validation
+ */
+class NaturalLanguageQueryTool extends StructuredTool {
+  name = "natural_language_to_sql";
+  description = "Convert a natural language question about clinical data into a SQL query, execute it, and return the results. Use this for questions about client data, goals, sessions, etc.";
+  schema = z.object({
+    question: z.string().describe("The natural language question to convert to SQL")
+  });
+  
+  constructor(private executeQueryFn: (query: string) => Promise<QueryResult>) {
+    super();
+  }
+  
+  async _call(input: { question: string }): Promise<string> {
+    try {
+      console.log(`Converting natural language to SQL: "${input.question}"`);
+      
+      // Import the SQL Query Generation Service
+      const { sqlQueryGenerationService } = await import('./sqlQueryGenerationService');
+      
+      // Generate a SQL query from the natural language question using the two-phase approach
+      const generationResult = await sqlQueryGenerationService.generateQuery({
+        question: input.question
+      });
+      
+      if (!generationResult.success || !generationResult.query) {
+        return `I couldn't generate a valid SQL query for your question. ${generationResult.errorMessage || ''}
+        
+Here's why I struggled:
+${generationResult.reasoning}
+
+Could you please rephrase your question or provide more details?`;
+      }
+      
+      console.log(`Generated SQL query: ${generationResult.query}`);
+      
+      // Execute the generated query
+      try {
+        const result = await this.executeQueryFn(generationResult.query);
+        
+        if (result.rows.length === 0) {
+          return `I generated a SQL query based on your question, but it didn't return any results. This could mean one of three things:
+          
+1. The data you're looking for doesn't exist in the database
+2. The names or identifiers in your question might be slightly different from what's in the database
+3. Your question might need to be more specific
+
+Here's the query I tried:
+\`\`\`sql
+${generationResult.query}
+\`\`\`
+
+My reasoning process:
+${generationResult.reasoning}
+
+Could you try rephrasing your question or be more specific about what you're looking for?`;
+        }
+        
+        // Format result as a markdown table for better readability
+        let formattedResult = "Here are the results based on your question:\n\n```\n";
+        
+        // Add column headers
+        formattedResult += result.columns.join(" | ") + "\n";
+        formattedResult += result.columns.map(() => "---").join(" | ") + "\n";
+        
+        // Add rows (limit to 20 rows for readability)
+        const limitedRows = result.rows.slice(0, 20);
+        for (const row of limitedRows) {
+          formattedResult += result.columns.map(col => {
+            const value = row[col];
+            return value === null || value === undefined ? "NULL" : String(value);
+          }).join(" | ") + "\n";
+        }
+        
+        formattedResult += "```\n";
+        
+        // Add row count information
+        if (result.rows.length > 20) {
+          formattedResult += `\nShowing 20 of ${result.rows.length} rows.`;
+        } else {
+          formattedResult += `\nTotal rows: ${result.rows.length}`;
+        }
+        
+        // Add information about how the query was generated
+        formattedResult += `\n\nI answered this by converting your question into a SQL query and running it against the database.`;
+        
+        return formattedResult;
+      } catch (error: any) {
+        console.error("Error executing generated query:", error);
+        return `I created a SQL query based on your question, but encountered an error when executing it: ${error.message || 'Unknown error'}.
+        
+Here's the query I generated:
+\`\`\`sql
+${generationResult.query}
+\`\`\`
+
+My reasoning process:
+${generationResult.reasoning}
+
+Could you try rephrasing your question to be more specific?`;
+      }
+    } catch (error: any) {
+      console.error("Error in natural language to SQL conversion:", error);
+      return `I encountered an error while trying to convert your question to SQL: ${error.message || 'Unknown error'}.
+      
+Could you please rephrase your question or be more specific?`;
+    }
+  }
+}
+
+/**
  * Clinical Records Tool - provides information about specific client records
  */
 class ClinicalRecordsTool extends StructuredTool {
@@ -609,10 +720,24 @@ export class AgentService {
       // Create tools
       const queryFunction = executeQueryFn || this.executeQuery.bind(this);
       
+      // Import and initialize SQL Query Generation Service
+      const { sqlQueryGenerationService } = await import('./sqlQueryGenerationService');
+      if (!sqlQueryGenerationService.isInitialized()) {
+        await sqlQueryGenerationService.initialize(config.apiKey, config.model);
+      }
+      
       this.tools = [
+        // Standard SQL query tool
         new SQLQueryTool(queryFunction),
+        
+        // Schema information tool
         new DatabaseSchemaTool(),
-        new ClinicalRecordsTool()
+        
+        // Client records tool
+        new ClinicalRecordsTool(),
+        
+        // Advanced natural language to SQL tool with two-phase validation
+        new NaturalLanguageQueryTool(queryFunction)
       ];
       
       // Initialize the agent executor

@@ -130,3 +130,63 @@ export interface MemoryRetrievalResult {
   summaries: MemorySummary[];
   combinedContext: string;
 }
+
+/**
+ * Schema Analysis and SQL Generation Types
+ */
+
+// Column Metadata
+export interface ColumnMetadata {
+  name: string;
+  dataType: string;
+  isNullable: boolean;
+  description: string;
+  format?: string;
+  examples?: string[];
+  isIdentifier?: boolean;
+  foreignKey?: {
+    table: string;
+    column: string;
+  };
+  statistics?: {
+    distinctValuesCount?: number;
+    nullCount?: number;
+    minValue?: string | number;
+    maxValue?: string | number;
+    distributionDescription?: string;
+  };
+}
+
+// Table Metadata
+export interface TableMetadata {
+  name: string;
+  description: string;
+  columns: ColumnMetadata[];
+  primaryKey?: string[];
+  foreignKeys?: {
+    column: string;
+    referencedTable: string;
+    referencedColumn: string;
+  }[];
+  rowCount?: number;
+  identifierFields?: string[];
+  isJoinTable?: boolean;
+  childTables?: string[];
+  parentTables?: string[];
+  relatedTables?: string[];
+  sampleData?: any[];
+}
+
+// SQL Query Generation Types
+export interface QueryGenerationRequest {
+  question: string;
+  context?: string;
+  attemptCount?: number;
+}
+
+export interface QueryGenerationResult {
+  query: string;
+  reasoning: string;
+  success: boolean;
+  errorMessage?: string;
+}
