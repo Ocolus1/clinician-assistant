@@ -40,13 +40,6 @@ export class SQLQueryGenerator {
    * Generate an SQL query based on a natural language question
    */
   async generateQuery(question: string): Promise<string> {
-    // SPECIAL CASE: Direct handling for Radwan queries
-    if (question.toLowerCase().includes('radwan')) {
-      console.log('DIRECT RADWAN QUERY DETECTED - Using pre-built query with fallback strategy');
-      // Return a direct query that uses the ILIKE operator for case-insensitive partial matching
-      return 'SELECT id, name, original_name, unique_identifier, date_of_birth, onboarding_status FROM clients WHERE original_name ILIKE \'%Radwan%\' OR name ILIKE \'%Radwan%\' LIMIT 100';
-    }
-    
     try {
       // Get database schema description
       const schemaDescription = schemaProvider.getSchemaDescription();
