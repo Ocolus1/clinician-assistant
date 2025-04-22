@@ -68,30 +68,21 @@ export class OpenAIService {
   
   /**
    * Create a chat completion
-   * @param messages - Array of chat messages
-   * @param jsonResponse - Whether to request a JSON response format
    */
-  async createChatCompletion(messages: ChatMessage[], jsonResponse = false): Promise<string> {
+  async createChatCompletion(messages: ChatMessage[]): Promise<string> {
     if (!this.openai || !this.config) {
       throw new Error('OpenAI service not initialized');
     }
     
     try {
-      const completionOptions: any = {
+      const response = await this.openai.chat.completions.create({
         model: this.config.model,
         messages: messages.map(msg => ({
           role: msg.role,
           content: msg.content
         })),
         temperature: this.config.temperature
-      };
-      
-      // If JSON response is requested, add the response_format option
-      if (jsonResponse) {
-        completionOptions.response_format = { type: "json_object" };
-      }
-      
-      const response = await this.openai.chat.completions.create(completionOptions);
+      });
       
       // Return the message content
       return response.choices[0]?.message?.content || '';
