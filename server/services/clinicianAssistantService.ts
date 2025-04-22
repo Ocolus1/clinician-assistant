@@ -13,6 +13,7 @@ import { schemaProvider } from './schemaProvider';
 import { ChatMessage } from './openaiService';
 import { Message, AssistantStatusResponse, AssistantConfig, QueryResult } from '@shared/assistantTypes';
 import { langchainService, LangChainConfig } from './langchainService';
+import { agentService, AgentServiceConfig } from './agentService';
 
 /**
  * Clinician Assistant Service class
@@ -78,6 +79,13 @@ export class ClinicianAssistantService {
       temperature: config.temperature
     };
     
+    // Initialize AgentService with the same configuration
+    const agentConfig: AgentServiceConfig = {
+      apiKey: config.apiKey,
+      model: config.model,
+      temperature: config.temperature
+    };
+    
     openaiService.initialize(openAIConfig);
     
     // Initialize LangChain with SQL query execution function
@@ -88,6 +96,37 @@ export class ClinicianAssistantService {
         return result;
       }
     );
+    
+    // Initialize AgentService with the SQL query execution function
+    agentService.initialize(
+      agentConfig,
+      async (query: string) => {
+        const result = await sqlQueryGenerator.executeRawQuery(query);
+        // Extract column names from first result if available
+        let columns: string[] = [];
+        let rows: any[] = [];
+        let rowCount = 0;
+        
+        if (result.success && result.data && result.data.length > 0) {
+          // Extract column names from the first row
+          columns = Object.keys(result.data[0]);
+          rows = result.data;
+          rowCount = result.data.length;
+        }
+        
+        return {
+          columns,
+          rows,
+          metadata: {
+            executionTime: result.executionTime || 0,
+            rowCount,
+            queryText: query
+          }
+        };
+      }
+    ).catch(error => {
+      console.error('Failed to initialize AgentService:', error);
+    });
   }
   
   /**
@@ -193,8 +232,195 @@ export class ClinicianAssistantService {
       
       let responseContent = '';
       
-      // Check if we should use LangChain or fall back to direct OpenAI
-      if (langchainService.isConfigured()) {
+      // Check if we should use the Agent, LangChain, or fall back to direct OpenAI
+      if (agentService.isInitialized()) {
+        // First, check if this query requires multi-step reasoning with the agent
+        const requiresAgent = await agentService.requiresAgentProcessing(messageContent);
+        
+        if (requiresAgent) {
+          console.log('Using Agent Service for step-by-step reasoning');
+          
+          // For complex queries requiring multi-step reasoning, use the agent
+          try {
+            responseContent = await agentService.processAgentQuery(
+              conversationId,
+              messageContent,
+              recentMessages
+            );
+          } catch (error) {
+            console.error('Agent processing failed, falling back to standard method:', error);
+            // Fall back to standard method if agent fails
+            const isDataQuestion = await langchainService.isDataRelatedQuestion(messageContent);
+            
+            if (isDataQuestion) {
+              // Use the standard SQL generation approach as fallback
+              const query = await sqlQueryGenerator.generateQuery(messageContent);
+              const result = await sqlQueryGenerator.executeQuery(query);
+              
+              // Generate standard SQL context for response
+              const sqlContext = `
+                I attempted to use advanced reasoning but encountered an issue.
+                Falling back to direct SQL approach.
+                
+                Query: ${result.query}
+                Result: ${result.error ? 'Error: ' + result.error : JSON.stringify(result.data, null, 2)}
+                
+                Please provide a helpful response based on this information.
+              `;
+              
+              responseContent = await langchainService.processDataQuery(
+                conversationId,
+                messageContent,
+                systemPrompt,
+                sqlContext
+              );
+            } else {
+              // For non-data questions, use conversation management
+              responseContent = await langchainService.processConversation(
+                conversationId,
+                messageContent,
+                systemPrompt,
+                recentMessages
+              );
+            }
+          }
+        } else if (langchainService.isConfigured()) {
+          // For standard data questions, use the regular approach
+          // First, determine if this is a data-related question
+          const isDataQuestion = await langchainService.isDataRelatedQuestion(messageContent);
+          
+          if (isDataQuestion) {
+            // For data questions, we need to handle SQL generation and execution
+            const query = await sqlQueryGenerator.generateQuery(messageContent);
+            const result = await sqlQueryGenerator.executeQuery(query);
+            
+            // Generate the SQL context for LangChain with enhanced error handling
+            let sqlContext;
+            
+            if (result.error) {
+              // For error cases, provide specific guidance based on error type
+              sqlContext = `
+                I executed the following SQL query:
+                \`\`\`sql
+                ${result.query}
+                \`\`\`
+                
+                The query encountered an error: ${result.error}
+                
+                Original technical error details: ${result.originalError || 'Unknown error'}
+                
+                Please provide a helpful response that:
+                1. Acknowledges there was a problem getting the requested information
+                2. Explains in simple terms what might have gone wrong (missing data, incorrect query parameters, etc.)
+                3. Suggests how the user might rephrase their question or what information they might need to provide
+                4. If appropriate, suggests alternative ways to get similar information
+                
+                Don't mention the SQL query or technical details, focus on the user's original intent.
+                Frame the response in a professional, supportive manner appropriate for clinical staff.
+              `;
+            } else if (result.data && result.data.length === 0) {
+              // For empty result sets
+              sqlContext = `
+                I executed the following SQL query:
+                \`\`\`sql
+                ${result.query}
+                \`\`\`
+                
+                The query executed successfully in ${result.executionTime || 'unknown'}ms, but returned no data.
+                
+                Please provide a helpful response that:
+                1. Informs the user that no matching information was found
+                2. Suggests possible reasons for this (e.g., data might not exist, filters might be too restrictive)
+                3. Suggests how they might broaden their search or check if the entities they're asking about exist
+                
+                Don't mention the SQL query itself unless the user specifically asked about database queries.
+              `;
+            } else {
+              // For successful queries with data
+              sqlContext = `
+                I executed the following SQL query:
+                \`\`\`sql
+                ${result.query}
+                \`\`\`
+                
+                The query executed successfully in ${result.executionTime || 'unknown'}ms and returned ${result.data.length} rows of data:
+                ${JSON.stringify(result.data, null, 2)}
+                
+                Based on this data, provide a clear, well-structured response to the user's question.
+                Highlight key insights or patterns if they exist.
+                Format numerical data clearly (round to 2 decimal places where appropriate).
+                Use proper clinical terminology given this is a speech therapy context.
+                Don't mention that you ran an SQL query unless the user specifically asked about database queries.
+              `;
+            }
+            
+            // Use LangChain's processDataQuery with SQL context
+            responseContent = await langchainService.processDataQuery(
+              conversationId,
+              messageContent,
+              systemPrompt,
+              sqlContext
+            );
+          } else {
+            // For regular conversational questions, use LangChain's conversation management
+            responseContent = await langchainService.processConversation(
+              conversationId,
+              messageContent,
+              systemPrompt,
+              recentMessages
+            );
+          }
+        } else {
+          // Fallback to direct OpenAI if LangChain isn't configured
+          // Create the OpenAI system message
+          const systemMessage: ChatMessage = {
+            role: 'system',
+            content: systemPrompt
+          };
+          
+          // First, try to understand if this is a data-related question
+          const isDataQuestion = await this.isDataRelatedQuestion(messageContent);
+          
+          if (isDataQuestion) {
+            // Generate SQL query
+            const query = await sqlQueryGenerator.generateQuery(messageContent);
+            
+            // Execute the query
+            const result = await sqlQueryGenerator.executeQuery(query);
+            
+            // Generate a response based on the query results
+            const sqlContext = `
+              I executed the following SQL query:
+              \`\`\`sql
+              ${result.query}
+              \`\`\`
+              
+              ${result.error 
+                ? `The query failed with error: ${result.error}`
+                : `The query returned ${result.data.length} rows of data: ${JSON.stringify(result.data, null, 2)}`
+              }
+              
+              Based on this data, provide a clear, concise response to the user's question.
+              If there was an error or no data, explain what might be the issue.
+              Don't mention that you ran an SQL query unless the user specifically asked about database queries.
+            `;
+            
+            // Generate response with SQL context
+            responseContent = await openaiService.createChatCompletion([
+              systemMessage,
+              ...recentMessages,
+              { role: 'user', content: sqlContext }
+            ]);
+          } else {
+            // For non-data questions, just use the conversation history
+            responseContent = await openaiService.createChatCompletion([
+              systemMessage,
+              ...recentMessages
+            ]);
+          }
+        }
+      } else if (langchainService.isConfigured()) {
+        // If agent is not initialized but LangChain is, use standard approach
         // First, determine if this is a data-related question
         const isDataQuestion = await langchainService.isDataRelatedQuestion(messageContent);
         
@@ -280,7 +506,7 @@ export class ClinicianAssistantService {
           );
         }
       } else {
-        // Fallback to direct OpenAI if LangChain isn't configured
+        // Fallback to direct OpenAI if neither Agent nor LangChain is configured
         // Create the OpenAI system message
         const systemMessage: ChatMessage = {
           role: 'system',
