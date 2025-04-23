@@ -505,9 +505,12 @@ class DatabaseSchemaTool extends StructuredTool {
 class NaturalLanguageQueryTool extends StructuredTool {
   name = "natural_language_to_sql";
   description = "Convert a natural language question about clinical data into a SQL query, execute it, and return the results. Use this for questions about client data, goals, sessions, etc.";
-  schema = z.object({
-    question: z.string().describe("The natural language question to convert to SQL")
-  });
+  schema = z.union([
+    z.object({
+      question: z.string().describe("The natural language question to convert to SQL")
+    }),
+    z.string().describe("The natural language question to convert to SQL")
+  ]);
   
   constructor(private executeQueryFn: (query: string) => Promise<QueryResult>) {
     super();
