@@ -996,11 +996,14 @@ export class AgentService {
                     }
                   } else {
                     // Multiple clients found
+                    console.log(`Multiple clients found: ${result.rows.length} for name "${clientName}"`);
+                    console.log(`Sample client data: ${JSON.stringify(result.rows[0])}`);
+                    
                     response = `Yes, I found ${result.rows.length} clients matching the name "${clientName}". Here they are:\n\n`;
                     
                     // List the clients with key information
                     result.rows.forEach((client, index) => {
-                      if (client.name) {
+                      if (client) {
                         response += `${index + 1}. ${client.name || 'Unnamed client'} (ID: ${client.id || 'unknown'})`;
                         if (client.date_of_birth) response += `, born on ${formatDate(client.date_of_birth)}`;
                         if (client.original_name && client.original_name !== client.name) {
@@ -1015,6 +1018,8 @@ export class AgentService {
                     } else {
                       response += `\nWhich client would you like to know more about?`;
                     }
+                    
+                    console.log(`Generated multiple clients response: ${response.substring(0, 100)}...`);
                   }
                 } else if (result.rows.length === 1 && Object.keys(result.rows[0]).includes('exists')) {
                   // Handle EXISTS queries specifically
