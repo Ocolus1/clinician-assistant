@@ -350,28 +350,15 @@ export class SQLQueryGenerator {
    */
   private isClientQuery(query: string): boolean {
     const lowerQuery = query.toLowerCase();
-    
-    // Always log the query to see what's coming in
-    console.log('CHECKING QUERY FOR CLIENT RELATION:', lowerQuery);
-    
-    // Special case for direct questions about Radwan
-    if (lowerQuery.includes('radwan')) {
-      console.log('RADWAN QUERY DETECTED! Returning true for client query check');
-      return true;
-    }
-    
-    const isClientRelated = (
+    return (
       lowerQuery.includes('from clients') || 
       lowerQuery.includes('join clients') ||
       lowerQuery.includes('client') && (
         lowerQuery.includes('name') || 
+        lowerQuery.includes('radwan') ||
         lowerQuery.includes('identifier')
       )
     );
-    
-    console.log('IS CLIENT QUERY?', isClientRelated);
-    
-    return isClientRelated;
   }
   
   /**
