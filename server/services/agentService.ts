@@ -492,13 +492,14 @@ Could you please rephrase your question or provide more details?`;
       
       // Execute the generated query
       try {
-        const result = await this.executeQueryFn(generationResult.query);
+        // Need to use this.executeQuery instead of this.executeQueryFn since we're in a class instance
+        const result = await this.executeQuery(generationResult.query);
         
         if (result.rows.length === 0) {
           // Special handling for client names and identifiers - check if this is about clients
           const isClientQuery = 
-            input.question.toLowerCase().includes('client') ||
-            input.question.toLowerCase().match(/name.*radwan|radwan.*name/) ||
+            question.toLowerCase().includes('client') ||
+            question.toLowerCase().match(/name.*radwan|radwan.*name/) ||
             generationResult.query.toLowerCase().includes('clients');
             
           if (isClientQuery) {
@@ -506,13 +507,13 @@ Could you please rephrase your question or provide more details?`;
             let possibleClientIdentifier = null;
             
             // Extract possible client name from the query
-            const nameMatch = input.question.match(/client(?:s)?\s+(?:named|called|with\s+(?:the\s+)?name)\s+['"]?([a-zA-Z0-9_\-]+)['"]?/i);
+            const nameMatch = question.match(/client(?:s)?\s+(?:named|called|with\s+(?:the\s+)?name)\s+['"]?([a-zA-Z0-9_\-]+)['"]?/i);
             if (nameMatch && nameMatch[1]) {
               possibleClientIdentifier = nameMatch[1];
             }
             
             // Also check for simple name patterns
-            const simpleNameMatch = input.question.match(/['"]?([a-zA-Z0-9_\-]+)['"]?/);
+            const simpleNameMatch = question.match(/['"]?([a-zA-Z0-9_\-]+)['"]?/);
             if (simpleNameMatch && simpleNameMatch[1] && !possibleClientIdentifier) {
               // Only use this if it's plausibly a name (not a common word)
               const potentialName = simpleNameMatch[1];
@@ -896,7 +897,7 @@ export class AgentService {
             console.log('Generated raw SQL query:', sqlResult.query);
             
             try {
-              const result = await this.executeQueryFn(sqlResult.query);
+              const result = await this.executeQuery(sqlResult.query);
               
               // Format the result in a readable way
               let response: string;
