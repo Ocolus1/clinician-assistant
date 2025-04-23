@@ -8,8 +8,9 @@ import { formatDistance, format } from 'date-fns';
 
 // Question pattern constants
 const CLIENT_NAME_PATTERN = /(?:what|which|when|show)\s+\w+\s+(?:for|by|about)\s+([A-Za-z']+)/i;
-const CLIENT_POSSESSIVE_PATTERN = /([A-Za-z']+)(?:'s)?\s+(?:goals|goal|milestone|milestones|progress|session)/i;
+const CLIENT_POSSESSIVE_PATTERN = /([A-Za-z']+)(?:'s)?\s+(?:goals|goal|milestone|milestones|progress|session|recent)/i;
 const HAS_CLIENT_PATTERN = /has\s+([A-Za-z']+)/i;
+const DIRECT_NAME_PATTERN = /(?:what|which|how|when|where|show)\s+(?:are|is|has|have)\s+([A-Za-z']+)(?:'s)?(?:\s|$)/i;
 const GOAL_PATTERN = /(?:goals?|working on|milestone)/i;
 const MILESTONE_PATTERN = /milestone|subgoal/i;
 const PROGRESS_PATTERN = /progress|improvement|advancement|score/i;
@@ -98,21 +99,37 @@ export async function handleGoalTrackingQuestion(question: string): Promise<stri
  * Extract client name from question
  */
 function extractClientName(question: string): string | null {
+  console.log('Extracting client name from question:', question);
+  
   // Check for possessive pattern first (e.g., "Olivia's goals")
   const possessiveMatch = question.match(CLIENT_POSSESSIVE_PATTERN);
   if (possessiveMatch && possessiveMatch[1]) {
+    console.log('Found client name via possessive pattern:', possessiveMatch[1]);
     return possessiveMatch[1];
   }
   
   // Check for "has [name]" pattern (e.g., "Has Olivia completed any milestones?")
   const hasMatch = question.match(HAS_CLIENT_PATTERN);
   if (hasMatch && hasMatch[1]) {
+    console.log('Found client name via "has [name]" pattern:', hasMatch[1]);
     return hasMatch[1];
+  }
+  
+  // Check for direct question pattern (e.g., "What are Olivia's most recent scores?")
+  const directMatch = question.match(DIRECT_NAME_PATTERN);
+  if (directMatch && directMatch[1]) {
+    // Skip common keywords that might be matched
+    const skipWords = ['most', 'recent', 'all', 'any', 'last', 'current', 'previous', 'their'];
+    if (!skipWords.includes(directMatch[1].toLowerCase())) {
+      console.log('Found client name via direct pattern:', directMatch[1]);
+      return directMatch[1];
+    }
   }
   
   // Check for "for/by/about [name]" pattern
   const nameMatch = question.match(CLIENT_NAME_PATTERN);
   if (nameMatch && nameMatch[1]) {
+    console.log('Found client name via name pattern:', nameMatch[1]);
     return nameMatch[1];
   }
   
@@ -120,16 +137,19 @@ function extractClientName(question: string): string | null {
   const capitalizedWords = question.match(/\b[A-Z][a-z]+\b/g);
   if (capitalizedWords && capitalizedWords.length > 0) {
     // Skip common words that might be capitalized
-    const commonWords = ['what', 'which', 'where', 'when', 'how', 'has', 'goal', 'milestone', 'session', 'progress'];
+    const commonWords = ['what', 'which', 'where', 'when', 'how', 'has', 'goal', 'milestone', 'session', 'progress', 
+                        'recent', 'most', 'all', 'any', 'last', 'current', 'previous', 'their'];
     const filteredNames = capitalizedWords.filter(word => 
       !commonWords.includes(word.toLowerCase())
     );
     
     if (filteredNames.length > 0) {
+      console.log('Found client name via capitalized word:', filteredNames[0]);
       return filteredNames[0];
     }
   }
   
+  console.log('Could not extract client name from question');
   return null;
 }
 

@@ -75,19 +75,58 @@ export class AgentQueryService {
    */
   async findClientByName(name: string): Promise<number | null> {
     try {
-      // Try to find exact or partial match using name fields
-      const result = await sql`
-        SELECT id FROM clients 
+      console.log(`Finding client by name: "${name}"`);
+      
+      // Try to find exact match on original_name first (highest priority)
+      let result = await sql`
+        SELECT id, original_name FROM clients 
+        WHERE original_name ILIKE ${name}
+        LIMIT 1
+      `;
+      
+      if (result.length > 0) {
+        console.log(`Found exact match on original_name: ${result[0].original_name}`);
+        return result[0].id;
+      }
+      
+      // Try to find partial match prioritizing original_name
+      result = await sql`
+        SELECT id, original_name FROM clients 
+        WHERE original_name ILIKE ${`${name}%`}
+        LIMIT 1
+      `;
+      
+      if (result.length > 0) {
+        console.log(`Found partial match (starts with) on original_name: ${result[0].original_name}`);
+        return result[0].id;
+      }
+      
+      // More flexible matching (contains)
+      result = await sql`
+        SELECT id, original_name FROM clients 
+        WHERE original_name ILIKE ${`%${name}%`}
+        LIMIT 1
+      `;
+      
+      if (result.length > 0) {
+        console.log(`Found flexible match (contains) on original_name: ${result[0].original_name}`);
+        return result[0].id;
+      }
+      
+      // Fall back to checking other fields
+      result = await sql`
+        SELECT id, name, original_name FROM clients 
         WHERE name ILIKE ${`%${name}%`}
-        OR original_name ILIKE ${`%${name}%`}
         OR unique_identifier = ${name}
         LIMIT 1
       `;
       
       if (result.length > 0) {
+        console.log(`Found match on other fields: ${result[0].name}`);
         return result[0].id;
       }
       
+      console.log(`No client found with name: "${name}"`);
       return null;
     } catch (error) {
       console.error(`Error finding client by name '${name}':`, error);
