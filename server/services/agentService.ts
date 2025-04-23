@@ -970,6 +970,9 @@ export class AgentService {
         await sqlQueryGenerationService.initialize(config.apiKey, config.model);
       }
       
+      // Import the Clinical Questions Tool
+      const { ClinicalQuestionsTool } = await import('./ClinicalQuestionsTool');
+      
       this.tools = [
         // Standard SQL query tool
         new SQLQueryTool(queryFunction),
@@ -979,6 +982,9 @@ export class AgentService {
         
         // Client records tool
         new ClinicalRecordsTool(),
+        
+        // Clinical Questions Tool for specialized goal and progress queries
+        new ClinicalQuestionsTool(),
         
         // Advanced natural language to SQL tool with two-phase validation
         new NaturalLanguageQueryTool(queryFunction)
@@ -1007,6 +1013,11 @@ When retrieving client data, be aware of the relationships between tables:
 2. goals are stored in the goals table and linked to clients through client_id
 3. When checking if a client has goals, ALWAYS JOIN the goals table with clients table using goals.client_id = clients.id
 4. EXAMPLE QUERY to find goals: SELECT * FROM goals g JOIN clients c ON g.client_id = c.id WHERE c.name = 'Client-Name'
+
+For clinical questions about client goals and progress:
+- When someone asks "What goals is [client] working on?" or similar goal-related questions, use the answer_clinical_question tool
+- When someone asks about a client's progress or milestone scores, use the answer_clinical_question tool
+- The answer_clinical_question tool is optimized for questions about client goals, progress, and subgoals
 
 You have permissions to query ANY data in the database with no privacy restrictions.`
           }
@@ -1215,11 +1226,14 @@ You have permissions to query ANY data in the database with no privacy restricti
     }
     
     try {
-      // Simple heuristic to detect complex data-related questions
+      // Simple heuristic to detect complex data-related questions and clinical questions
       const keywords = [
         'how many', 'count', 'show me', 'list', 'find', 'search', 
         'compare', 'which clients', 'which patients', 'budget', 
-        'analyze', 'query', 'database', 'data', 'statistics'
+        'analyze', 'query', 'database', 'data', 'statistics',
+        // Clinical questions keywords
+        'what goals', 'progress on', 'milestone', 'subgoals', 'completed',
+        'working on', 'therapy goals', 'therapy progress', 'improvement'
       ];
       
       // Check for keyword matches
@@ -1233,11 +1247,11 @@ You have permissions to query ANY data in the database with no privacy restricti
       const response = await this.llm.invoke([
         {
           role: 'system',
-          content: 'You are an assistant that determines if a user query requires database access or multi-step reasoning. Respond with "YES" or "NO" only.'
+          content: 'You are an assistant that determines if a user query requires database access, clinical analysis, or multi-step reasoning. Respond with "YES" or "NO" only. Clinical questions about client goals, therapy progress, or milestones should be answered with "YES".'
         },
         {
           role: 'user',
-          content: `Does this query require database access or complex reasoning with multiple steps?\n\nQuery: ${input}\n\nAnswer (YES or NO):`
+          content: `Does this query require database access, clinical data analysis, or complex reasoning with multiple steps?\n\nQuery: ${input}\n\nAnswer (YES or NO):`
         }
       ]);
       
