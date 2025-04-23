@@ -6,8 +6,6 @@ import { registerKnowledgeRoutes } from "./routes/knowledge";
 import assistantRoutes from "./routes/assistant";
 // Import agent debug routes directly
 import agentDebugRoutes from "./routes/agent-debug-routes";
-// Import client progress routes registration function
-import { registerClientProgressRoutes } from "./routes/client-progress-routes";
 // Create debug-routes.ts file if it doesn't exist
 import * as fs from 'fs';
 import * as path from 'path';
@@ -68,16 +66,6 @@ app.use((req, res, next) => {
   
   console.log("STEP 2.5: Registering assistant API routes");
   app.use('/api/assistant', assistantRoutes);
-  
-  // Register client progress routes
-  console.log("STEP 2.75: Registering client progress routes");
-  try {
-    const clientProgressRouter = await registerClientProgressRoutes();
-    app.use(clientProgressRouter);
-    console.log("Client progress routes registered successfully");
-  } catch (error) {
-    console.error("Error registering client progress routes:", error);
-  }
   
   console.log("STEP 3: Registering main API routes");
   const server = await registerRoutes(app);
