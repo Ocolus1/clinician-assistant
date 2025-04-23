@@ -16,7 +16,23 @@ const router = Router();
  */
 export async function registerClientProgressRoutes(): Promise<Router> {
   try {
-    // Initialize client progress service if not already initialized
+    // Import and ensure SQLQueryGenerationService is initialized first
+    const { sqlQueryGenerationService } = await import('../services/sqlQueryGenerationService');
+    
+    // Initialize SQL Query Generation Service if not already initialized
+    if (!sqlQueryGenerationService.isInitialized()) {
+      // Get OpenAI API key from environment
+      const apiKey = process.env.OPENAI_API_KEY;
+      if (!apiKey) {
+        console.error('OpenAI API key not found in environment');
+        throw new Error('OpenAI API key required to initialize SQL Query Generation Service');
+      }
+      
+      await sqlQueryGenerationService.initialize(apiKey, 'gpt-4o');
+      console.log('SQL Query Generation Service initialized for Client Progress Service');
+    }
+    
+    // Now initialize client progress service
     if (!clientProgressService.isInitialized()) {
       await clientProgressService.initialize();
     }

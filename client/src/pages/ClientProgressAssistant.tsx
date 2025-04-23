@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ChevronLeft, User } from 'lucide-react';
 import ClientProgressAssistantComponent from '@/components/clinical-assistant/ClientProgressAssistant';
 import { useQuery } from '@tanstack/react-query';
+import type { Client } from '@shared/schema';
 
 /**
  * Client Progress Assistant Page
