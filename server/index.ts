@@ -4,6 +4,8 @@ import { setupVite, serveStatic, log } from "./vite";
 import { registerReportRoutes } from "./routes/reports";
 import { registerKnowledgeRoutes } from "./routes/knowledge";
 import assistantRoutes from "./routes/assistant";
+// Import agent debug routes directly
+import agentDebugRoutes from "./routes/agent-debug-routes";
 // Create debug-routes.ts file if it doesn't exist
 import * as fs from 'fs';
 import * as path from 'path';
@@ -69,6 +71,11 @@ app.use((req, res, next) => {
   const server = await registerRoutes(app);
   
   console.log("STEP 3.5: Registering debug API routes");
+  
+  // Direct registration of agent debug routes (imported at top)
+  app.use('/api/debug/agent', agentDebugRoutes);
+  console.log("Agent debug routes registered directly");
+  
   try {
     // Import debug routes directly
     import('./routes/debug-routes.js').then(({ default: debugRouter }) => {
