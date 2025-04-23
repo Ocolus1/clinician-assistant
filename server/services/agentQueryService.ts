@@ -75,8 +75,11 @@ export class AgentQueryService {
    */
   async findClientByName(name: string): Promise<number | null> {
     try {
-      console.log(`Finding client by name: "${name}"`);
+      // Handle possessive forms and plural forms by removing trailing 's'
+      const normalizedName = name.replace(/s$/, '');
+      console.log(`Finding client by name: "${name}" (normalized: "${normalizedName}")`);
       
+      // Try with the original name first
       // Try to find exact match on original_name first (highest priority)
       let result = await sql`
         SELECT id, original_name FROM clients 
@@ -89,10 +92,24 @@ export class AgentQueryService {
         return result[0].id;
       }
       
+      // If nothing found and name was normalized, try with the normalized version
+      if (normalizedName !== name) {
+        result = await sql`
+          SELECT id, original_name FROM clients 
+          WHERE original_name ILIKE ${normalizedName}
+          LIMIT 1
+        `;
+        
+        if (result.length > 0) {
+          console.log(`Found exact match with normalized name: ${result[0].original_name}`);
+          return result[0].id;
+        }
+      }
+      
       // Try to find partial match prioritizing original_name
       result = await sql`
         SELECT id, original_name FROM clients 
-        WHERE original_name ILIKE ${`${name}%`}
+        WHERE original_name ILIKE ${`${normalizedName}%`}
         LIMIT 1
       `;
       
@@ -104,7 +121,7 @@ export class AgentQueryService {
       // More flexible matching (contains)
       result = await sql`
         SELECT id, original_name FROM clients 
-        WHERE original_name ILIKE ${`%${name}%`}
+        WHERE original_name ILIKE ${`%${normalizedName}%`}
         LIMIT 1
       `;
       
@@ -116,8 +133,8 @@ export class AgentQueryService {
       // Fall back to checking other fields
       result = await sql`
         SELECT id, name, original_name FROM clients 
-        WHERE name ILIKE ${`%${name}%`}
-        OR unique_identifier = ${name}
+        WHERE name ILIKE ${`%${normalizedName}%`}
+        OR unique_identifier = ${normalizedName}
         LIMIT 1
       `;
       
@@ -126,7 +143,7 @@ export class AgentQueryService {
         return result[0].id;
       }
       
-      console.log(`No client found with name: "${name}"`);
+      console.log(`No client found with name: "${name}" or normalized "${normalizedName}"`);
       return null;
     } catch (error) {
       console.error(`Error finding client by name '${name}':`, error);
