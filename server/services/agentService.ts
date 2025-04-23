@@ -464,9 +464,11 @@ class NaturalLanguageQueryTool extends StructuredTool {
     super();
   }
   
-  async _call(input: { question: string }): Promise<string> {
+  async _call(input: { question: string } | string): Promise<string> {
+    // Handle both object and string inputs for more flexibility
+    const question = typeof input === 'string' ? input : input.question;
     try {
-      console.log(`Converting natural language to SQL: "${input.question}"`);
+      console.log(`Converting natural language to SQL: "${question}"`);
       
       // Import the SQL Query Generation Service
       const { sqlQueryGenerationService } = await import('./sqlQueryGenerationService');
@@ -474,7 +476,7 @@ class NaturalLanguageQueryTool extends StructuredTool {
       
       // Generate a SQL query from the natural language question using the two-phase approach
       const generationResult = await sqlQueryGenerationService.generateQuery({
-        question: input.question
+        question: question
       });
       
       if (!generationResult.success || !generationResult.query) {
@@ -869,13 +871,54 @@ export class AgentService {
         formattedMessages
       );
       
-      // Execute the agent with the query and context
-      const result = await this.executor.invoke({
-        input: message,
-        context: memoryContext.combinedContext || ''
-      });
-      
-      return result.output;
+      try {
+        // Execute the agent with the query and context
+        const result = await this.executor.invoke({
+          input: message,
+          context: memoryContext.combinedContext || ''
+        });
+        
+        return result.output;
+      } catch (agentError: any) {
+        // If we get a schema validation error, try a more direct approach
+        if (agentError.message?.includes('schema')) {
+          console.log('Schema validation error detected, trying direct SQL generation');
+          
+          // Use SQL query generation service directly
+          const { sqlQueryGenerationService } = await import('./sqlQueryGenerationService');
+          
+          const sqlResult = await sqlQueryGenerationService.generateQuery({
+            question: message
+          });
+          
+          if (sqlResult.success && sqlResult.query) {
+            // Execute the query
+            console.log('Generated raw SQL query:', sqlResult.query);
+            
+            try {
+              const result = await this.executeQueryFn(sqlResult.query);
+              
+              // Format the result in a readable way
+              let response: string;
+              
+              if (result.rows.length === 0) {
+                response = `I couldn't find any data matching your query about "${message}". Would you like to refine your search?`;
+              } else {
+                response = `Here's what I found about "${message}":\n\n${JSON.stringify(result.rows, null, 2)}`;
+              }
+              
+              return response;
+            } catch (sqlError: any) {
+              return `I tried to generate SQL for your question, but encountered an error executing it: ${sqlError.message}. Could you please rephrase your question?`;
+            }
+          } else {
+            return `I tried to generate SQL for your question, but couldn't create a valid query: ${sqlResult.errorMessage || 'Unknown error'}. Could you please rephrase your question?`;
+          }
+        }
+        
+        // For other types of errors, rethrow
+        throw agentError;
+      }
     } catch (error: any) {
       console.error('Error processing agent query:', error);
       return `I encountered an error while processing your question: ${error.message || 'Unknown error'}. Could you please rephrase or simplify your question?`;
