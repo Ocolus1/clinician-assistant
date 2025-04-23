@@ -145,32 +145,7 @@ app.use((req, res, next) => {
     console.log(`SUCCESS: Server is now listening on port 5000`);
     log(`serving on port 5000`);
   }).on('error', (err: any) => {
-    if (err.code === 'EADDRINUSE') {
-      console.log(`Port 5000 is busy, attempting to force it closed and retry...`);
-      
-      // Make one final attempt on port 5000, which is what Replit expects
-      server.listen({
-        port: 5000,
-        host: "0.0.0.0",
-        exclusive: true
-      }, () => {
-        console.log(`SUCCESS: Server is now listening on port 5000 after retry`);
-        log(`serving on port 5000`);
-      }).on('error', (finalErr: any) => {
-        console.error('Could not bind to port 5000, using fallback port 3000');
-        
-        // Last resort - try port 3000
-        server.listen({
-          port: 3000,
-          host: "0.0.0.0"
-        }, () => {
-          console.log(`SUCCESS: Server is now listening on fallback port 3000`);
-          log(`serving on port 3000`);
-        });
-      });
-    } else {
-      console.error('CRITICAL ERROR: Server startup failed:', err);
-      process.exit(1);
-    }
+    console.error('CRITICAL ERROR: Server startup failed:', err);
+    process.exit(1);
   });
 })();
