@@ -974,29 +974,47 @@ export class AgentService {
                   
                   if (result.rows.length === 1) {
                     const client = result.rows[0];
-                    response = `Yes, we have a client named ${clientName}. Their client ID is ${client.id}, and they were born on ${formatDate(client.date_of_birth)}.`;
+                    if (client.id && client.date_of_birth) {
+                      response = `Yes, we have a client named ${clientName}. Their client ID is ${client.id}, and they were born on ${formatDate(client.date_of_birth)}.`;
                     
-                    // Add contact information if available
-                    if (client.contact_email || client.contact_phone) {
-                      response += "\n\nContact information:";
-                      if (client.contact_email) response += `\n- Email: ${client.contact_email}`;
-                      if (client.contact_phone) response += `\n- Phone: ${client.contact_phone}`;
+                      // Add contact information if available
+                      if (client.contact_email || client.contact_phone) {
+                        response += "\n\nContact information:";
+                        if (client.contact_email) response += `\n- Email: ${client.contact_email}`;
+                        if (client.contact_phone) response += `\n- Phone: ${client.contact_phone}`;
+                      }
+                    
+                      // Add additional metrics
+                      response += "\n\nWould you like to see more information about this client, such as their sessions, goals, or budget details?";
+                    } else {
+                      // Handle case where client data is incomplete
+                      response = `Yes, we have a client named ${clientName}.`;
+                      if (client.id) response += ` Their client ID is ${client.id}.`;
+                      if (client.date_of_birth) response += ` They were born on ${formatDate(client.date_of_birth)}.`;
+                      
+                      response += "\n\nWould you like to see more information about this client?";
                     }
-                    
-                    // Add additional metrics
-                    response += "\n\nWould you like to see more information about this client, such as their sessions, goals, or budget details?";
                   } else {
                     // Multiple clients found
                     response = `Yes, I found ${result.rows.length} clients matching the name "${clientName}". Here they are:\n\n`;
                     
                     // List the clients with key information
                     result.rows.forEach((client, index) => {
-                      response += `${index + 1}. ${client.name} (ID: ${client.id})`;
-                      if (client.date_of_birth) response += `, born on ${formatDate(client.date_of_birth)}`;
-                      response += "\n";
+                      if (client.name) {
+                        response += `${index + 1}. ${client.name || 'Unnamed client'} (ID: ${client.id || 'unknown'})`;
+                        if (client.date_of_birth) response += `, born on ${formatDate(client.date_of_birth)}`;
+                        if (client.original_name && client.original_name !== client.name) {
+                          response += ` (original name: ${client.original_name})`;
+                        }
+                        response += "\n";
+                      }
                     });
                     
-                    response += `\nWhich client would you like to know more about? You can ask for more information by saying "Tell me more about client #3" or "Show details for client ID ${result.rows[0].id}".`;
+                    if (result.rows.length > 0 && result.rows[0].id) {
+                      response += `\nWhich client would you like to know more about? You can ask for more information by saying "Tell me more about client #3" or "Show details for client ID ${result.rows[0].id}".`;
+                    } else {
+                      response += `\nWhich client would you like to know more about?`;
+                    }
                   }
                 } else if (result.rows.length === 1 && Object.keys(result.rows[0]).includes('exists')) {
                   // Handle EXISTS queries specifically
