@@ -17,6 +17,55 @@ import { memoryManagementService } from "./memoryManagementService";
 import { sql } from "../db";
 
 /**
+ * Format a date string for display
+ */
+function formatDate(dateString: string | null | undefined): string {
+  if (!dateString) return "unknown date";
+  
+  try {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    });
+  } catch (e) {
+    return dateString; // If parsing fails, return the original string
+  }
+}
+
+/**
+ * Extract client name from a natural language query
+ */
+function extractClientNameFromQuery(query: string): string {
+  // Extract potential client name using regex
+  const patterns = [
+    /client(?:s)?\s+(?:named|called|with\s+(?:the\s+)?name)\s+['"]?([a-zA-Z0-9_\-]+)['"]?/i,  // "client named X"
+    /['"]?([a-zA-Z0-9_\-]+)['"]?\s+client/i,  // "X client"
+    /name\s+['"]?([a-zA-Z0-9_\-]+)['"]?/i      // "name X"
+  ];
+  
+  for (const pattern of patterns) {
+    const match = query.match(pattern);
+    if (match && match[1]) {
+      return match[1];
+    }
+  }
+  
+  // Fall back to trying to find any word that might be a name
+  const words = query.split(/\s+/);
+  for (const word of words) {
+    const cleaned = word.replace(/['",.?!]/g, '');
+    if (cleaned.length > 2 && /^[A-Z]/.test(cleaned)) {
+      return cleaned;
+    }
+  }
+  
+  // If all else fails, just return a placeholder
+  return "mentioned";
+}
+
+/**
  * Configuration for the agent service
  */
 export interface AgentServiceConfig {
@@ -913,13 +962,79 @@ export class AgentService {
             try {
               const result = await this.executeQuery(sqlResult.query);
               
-              // Format the result in a readable way
+              // Format the result in a readable, conversational way
               let response: string;
               
               if (result.rows.length === 0) {
                 response = `I couldn't find any data matching your query about "${message}". Would you like to refine your search?`;
               } else {
-                response = `Here's what I found about "${message}":\n\n${JSON.stringify(result.rows, null, 2)}`;
+                // For client name queries, provide a more helpful response
+                if (message.toLowerCase().includes("client") && message.toLowerCase().includes("name")) {
+                  const clientName = extractClientNameFromQuery(message);
+                  
+                  if (result.rows.length === 1) {
+                    const client = result.rows[0];
+                    response = `Yes, we have a client named ${clientName}. Their client ID is ${client.id}, and they were born on ${formatDate(client.date_of_birth)}.`;
+                    
+                    // Add contact information if available
+                    if (client.contact_email || client.contact_phone) {
+                      response += "\n\nContact information:";
+                      if (client.contact_email) response += `\n- Email: ${client.contact_email}`;
+                      if (client.contact_phone) response += `\n- Phone: ${client.contact_phone}`;
+                    }
+                    
+                    // Add additional metrics
+                    response += "\n\nWould you like to see more information about this client, such as their sessions, goals, or budget details?";
+                  } else {
+                    // Multiple clients found
+                    response = `Yes, I found ${result.rows.length} clients matching the name "${clientName}". Here they are:\n\n`;
+                    
+                    // List the clients with key information
+                    result.rows.forEach((client, index) => {
+                      response += `${index + 1}. ${client.name} (ID: ${client.id})`;
+                      if (client.date_of_birth) response += `, born on ${formatDate(client.date_of_birth)}`;
+                      response += "\n";
+                    });
+                    
+                    response += `\nWhich client would you like to know more about? You can ask for more information by saying "Tell me more about client #3" or "Show details for client ID ${result.rows[0].id}".`;
+                  }
+                } else if (result.rows.length === 1 && Object.keys(result.rows[0]).includes('exists')) {
+                  // Handle EXISTS queries specifically
+                  const exists = result.rows[0].exists;
+                  const entityType = message.toLowerCase().includes('client') ? 'client' : 'record';
+                  
+                  if (exists) {
+                    response = `Yes, we do have the ${entityType} you're looking for. Would you like me to provide more details?`;
+                  } else {
+                    response = `No, we don't have the ${entityType} you're looking for in our database.`;
+                  }
+                } else {
+                  // For other types of queries, format results better than raw JSON
+                  response = `Here's what I found for your query:\n\n`;
+                  
+                  // Create a readable table format
+                  const keys = Object.keys(result.rows[0]);
+                  
+                  // Add headers
+                  response += keys.join(" | ") + "\n";
+                  response += keys.map(() => "---").join(" | ") + "\n";
+                  
+                  // Add top 5 rows
+                  const topRows = result.rows.slice(0, 5);
+                  topRows.forEach(row => {
+                    response += keys.map(key => {
+                      const value = row[key];
+                      return value === null ? "N/A" : String(value);
+                    }).join(" | ") + "\n";
+                  });
+                  
+                  // Add summary if there are more rows
+                  if (result.rows.length > 5) {
+                    response += `\n...and ${result.rows.length - 5} more rows.\n`;
+                  }
+                  
+                  response += `\nIs there anything specific about these results you'd like me to explain?`;
+                }
               }
               
               return response;
