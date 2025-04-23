@@ -193,4 +193,172 @@ router.post('/generate-sql', async (req, res) => {
   }
 });
 
+// Get detailed schema information for better understanding of SQL generation
+router.get('/schema-analysis', async (req, res) => {
+  try {
+    // Import the schema analysis service
+    const { schemaAnalysisService } = await import('../services/schemaAnalysisService');
+    
+    if (!schemaAnalysisService.isInitialized()) {
+      return res.status(500).json({
+        success: false,
+        error: 'Schema analysis service not initialized'
+      });
+    }
+    
+    // Get the full schema description
+    const schemaDescription = schemaAnalysisService.getSchemaDescription();
+    
+    // Get the specific tables the user is interested in (optional query parameter)
+    const tableName = req.query.table as string;
+    
+    if (tableName) {
+      // Get metadata for a specific table
+      const tableMetadata = schemaAnalysisService.getTableMetadata(tableName);
+      
+      if (!tableMetadata) {
+        return res.status(404).json({
+          success: false,
+          error: `Table '${tableName}' not found`
+        });
+      }
+      
+      res.json({
+        success: true,
+        table: tableMetadata
+      });
+    } else {
+      // Return the full schema information
+      const tableNames = schemaAnalysisService.getTableNames();
+      
+      // Instead of complex schema parsing which is causing TypeScript errors,
+      // let's use a simpler approach with the database directly
+      
+      // Query the database for tables and columns
+      const tableData = await sql`
+        SELECT 
+          t.table_name, 
+          c.column_name
+        FROM 
+          information_schema.tables t
+        JOIN 
+          information_schema.columns c 
+        ON 
+          t.table_name = c.table_name
+        WHERE 
+          t.table_schema = 'public' 
+        ORDER BY 
+          t.table_name, 
+          c.ordinal_position;
+      `;
+      
+      // Extract potential foreign key relationships based on column naming conventions
+      const foreignKeyPattern = /_id$/;
+      const potentialRelationships = [];
+      
+      for (const row of tableData) {
+        const { table_name: tableName, column_name: columnName } = row;
+        
+        if (foreignKeyPattern.test(columnName)) {
+          // Extract the referenced table name (remove the _id suffix)
+          const referencedTable = columnName.replace(foreignKeyPattern, '');
+          
+          // Check if the referenced table exists in our table list
+          if (tableNames.includes(referencedTable)) {
+            potentialRelationships.push({
+              sourceTable: tableName,
+              targetTable: referencedTable,
+              sourceColumn: columnName,
+              relationship: 'many-to-one'
+            });
+          }
+        }
+      }
+      
+      res.json({
+        success: true,
+        schemaDescription,
+        tables: tableNames,
+        potentialRelationships
+      });
+    }
+  } catch (error: any) {
+    console.error('Error in schema analysis endpoint:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Unknown error'
+    });
+  }
+});
+
+// Get query suggestions for a partial SQL query
+router.post('/query-suggestions', async (req, res) => {
+  try {
+    // Import the schema analysis service
+    const { schemaAnalysisService } = await import('../services/schemaAnalysisService');
+    
+    if (!schemaAnalysisService.isInitialized()) {
+      return res.status(500).json({
+        success: false,
+        error: 'Schema analysis service not initialized'
+      });
+    }
+    
+    const { query } = req.body;
+    
+    if (!query) {
+      return res.status(400).json({
+        success: false,
+        error: 'Query is required'
+      });
+    }
+    
+    // Check if getSchemaSuggestionsForQuery method exists
+    if (typeof schemaAnalysisService.getSchemaSuggestionsForQuery !== 'function') {
+      // Fallback to our own basic suggestion logic
+      const tableNames = schemaAnalysisService.getTableNames();
+      
+      // Very basic suggestion logic based on what's in the query
+      const lowerQuery = query.toLowerCase();
+      let suggestions = [];
+      
+      if (lowerQuery.includes('select')) {
+        // Suggest table names for SELECT queries
+        suggestions = tableNames.map(table => ({
+          type: 'table',
+          name: table,
+          suggestion: `SELECT * FROM ${table}`
+        }));
+      } else {
+        // Simple suggestions for different SQL operations
+        suggestions = [
+          { type: 'operation', name: 'SELECT', suggestion: 'SELECT * FROM ' },
+          { type: 'operation', name: 'COUNT', suggestion: 'SELECT COUNT(*) FROM ' },
+          { type: 'operation', name: 'JOIN', suggestion: ' JOIN  ON ' }
+        ];
+      }
+      
+      return res.json({
+        success: true,
+        suggestions,
+        message: 'Basic suggestions provided (advanced suggestion method not available)'
+      });
+    }
+    
+    // Get suggestions for the partial query using the service's method
+    const suggestions = schemaAnalysisService.getSchemaSuggestionsForQuery(query);
+    
+    res.json({
+      success: true,
+      suggestions
+    });
+  } catch (error: any) {
+    console.error('Error in query suggestions endpoint:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Unknown error'
+    });
+  }
+});
+
 export default router;
