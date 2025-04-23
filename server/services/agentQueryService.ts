@@ -116,66 +116,37 @@ export class AgentQueryService {
         let scoreCount = 0;
         let latestScore = null;
         
-        // Query performance assessments for this goal
-        const performanceResults = await db
-          .select({
-            id: performanceAssessments.id,
-            rating: performanceAssessments.rating,
-            score: performanceAssessments.score,
-            subgoalId: performanceAssessments.subgoalId,
-            sessionNoteId: performanceAssessments.sessionNoteId,
-            strategies: performanceAssessments.strategies
-          })
-          .from(performanceAssessments)
-          .innerJoin(sessionNotes, eq(performanceAssessments.sessionNoteId, sessionNotes.id))
-          .where(and(
-            eq(performanceAssessments.goalId, goal.id),
-            eq(sessionNotes.clientId, clientId)
-          ))
-          .orderBy(desc(sessionNotes.createdAt));
-        
-        // Process performance assessments
-        for (const perf of performanceResults) {
-          // Find the subgoal (if any)
-          const subgoal = subgoalsList.find(sg => sg.id === perf.subgoalId);
+        // For each subgoal, get milestone progress data from our milestone_progress table
+        for (const subgoal of subgoalsList) {
+          console.log(`Getting milestone progress for subgoal ${subgoal.id}`);
           
-          if (perf.score !== null) {
-            totalScore += perf.score;
+          // Query milestone_progress for this subgoal
+          const milestoneResults = await db.query.milestone_progress.findMany({
+            where: eq(milestone_progress.subgoal_id, subgoal.id),
+            orderBy: [desc(milestone_progress.date)]
+          });
+          
+          console.log(`Found ${milestoneResults.length} milestone progress records for subgoal ${subgoal.id}`);
+          
+          // Process milestone progress data
+          for (const milestone of milestoneResults) {
+            // Convert rating to score (rating is 1-5, score is 1-10)
+            const score = milestone.rating * 2;
+            
+            totalScore += score;
             scoreCount++;
             
-            // Update latest score if not set yet
+            // Update latest score if not set yet or if this is more recent
             if (latestScore === null) {
-              latestScore = perf.score;
+              latestScore = score;
             }
-          }
-          
-          // Get session date
-          const sessionNote = await db
-            .select({
-              createdAt: sessionNotes.createdAt
-            })
-            .from(sessionNotes)
-            .where(eq(sessionNotes.id, perf.sessionNoteId))
-            .limit(1);
-          
-          // Get milestone assessments for this performance assessment
-          const milestoneResults = await db
-            .select({
-              id: milestoneAssessments.id,
-              milestoneId: milestoneAssessments.milestoneId,
-              rating: milestoneAssessments.rating,
-              strategies: milestoneAssessments.strategies
-            })
-            .from(milestoneAssessments)
-            .where(eq(milestoneAssessments.performanceAssessmentId, perf.id));
-          
-          // Add milestone progress data
-          for (const milestone of milestoneResults) {
+            
+            // Add milestone progress data
             milestoneProgressItems.push({
-              milestoneId: milestone.milestoneId,
-              milestoneTitle: subgoal ? subgoal.title : `Milestone ${milestone.milestoneId}`,
+              milestoneId: subgoal.id,
+              milestoneTitle: subgoal.title,
               rating: milestone.rating,
-              date: sessionNote.length > 0 ? new Date(sessionNote[0].createdAt) : new Date(),
+              date: new Date(milestone.date),
               strategies: milestone.strategies || []
             });
           }

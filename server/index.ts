@@ -8,6 +8,7 @@ import assistantRoutes from "./routes/assistant";
 import agentDebugRoutes from "./routes/agent-debug-routes";
 // Import goal tracking routes
 import goalTrackingRoutes from "./routes/goal-tracking-routes";
+import testGoalTrackingRoutes from "./routes/test-goal-tracking";
 // Create debug-routes.ts file if it doesn't exist
 import * as fs from 'fs';
 import * as path from 'path';
@@ -81,6 +82,10 @@ app.use((req, res, next) => {
   // Register goal tracking routes
   app.use('/', goalTrackingRoutes);
   console.log("Goal tracking routes registered");
+  
+  // Register test goal tracking routes
+  app.use('/api/debug', testGoalTrackingRoutes);
+  console.log("Test goal tracking routes registered");
   
   try {
     // Import debug routes directly
