@@ -46,7 +46,7 @@ async function runTests() {
       console.log(`Question: "${test.question}"`);
       
       // Call the agent query endpoint
-      const response = await axios.post('http://localhost:5000/api/agent/debug/test-agent-query', {
+      const response = await axios.post('http://localhost:5000/api/debug/agent/test-agent-query', {
         question: test.question,
         conversationId
       });
