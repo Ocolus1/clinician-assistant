@@ -8,9 +8,11 @@ import { formatDistance, format } from 'date-fns';
 
 // Question pattern constants
 const CLIENT_NAME_PATTERN = /(?:what|which|when|show)\s+\w+\s+(?:for|by|about)\s+([A-Za-z']+)/i;
-const CLIENT_POSSESSIVE_PATTERN = /([A-Za-z']+)(?:'s)?\s+(?:goals|goal|milestone|milestones|progress|session|recent)/i;
+const CLIENT_POSSESSIVE_PATTERN = /([A-Za-z']+)(?:'s)?\s+(?:goals|goal|milestone|milestones|progress|session)/i;
 const HAS_CLIENT_PATTERN = /has\s+([A-Za-z']+)/i;
-const DIRECT_NAME_PATTERN = /(?:what|which|how|when|where|show)\s+(?:are|is|has|have)\s+([A-Za-z']+)(?:'s)?(?:\s|$)/i;
+const DIRECT_NAME_PATTERN = /(?:what|which|how|when|where|show)\s+(?:are|is|has|have)\s+([A-Za-z']+)(?:'s)?(?:\s)/i;
+const RECENT_PATTERN = /(?:what|what's|which|show)\s+(?:are|is)\s+([A-Za-z']+)(?:'|'s)?\s+(?:most\s+recent|recent|latest|most)/i;
+const MILESTONE_SCORE_PATTERN = /what\s+are\s+([A-Za-z]+)(?:s|'s)?\s+most\s+recent\s+milestone\s+scores/i;
 const GOAL_PATTERN = /(?:goals?|working on|milestone)/i;
 const MILESTONE_PATTERN = /milestone|subgoal/i;
 const PROGRESS_PATTERN = /progress|improvement|advancement|score/i;
@@ -101,7 +103,25 @@ export async function handleGoalTrackingQuestion(question: string): Promise<stri
 function extractClientName(question: string): string | null {
   console.log('Extracting client name from question:', question);
   
-  // Check for possessive pattern first (e.g., "Olivia's goals")
+  // Check for exact milestone score pattern, handles the "what are Olivias most recent milestone scores" case
+  const milestoneScoreMatch = question.match(MILESTONE_SCORE_PATTERN);
+  if (milestoneScoreMatch && milestoneScoreMatch[1]) {
+    console.log('Found client name via milestone score pattern:', milestoneScoreMatch[1]);
+    return milestoneScoreMatch[1];
+  }
+  
+  // Check for recent pattern (e.g., "What are Olivia's most recent milestone scores?")
+  const recentMatch = question.match(RECENT_PATTERN);
+  if (recentMatch && recentMatch[1]) {
+    // Skip common keywords that might be matched
+    const skipWords = ['most', 'recent', 'all', 'any', 'last', 'current', 'previous', 'their'];
+    if (!skipWords.includes(recentMatch[1].toLowerCase())) {
+      console.log('Found client name via recent pattern:', recentMatch[1]);
+      return recentMatch[1];
+    }
+  }
+  
+  // Check for possessive pattern (e.g., "Olivia's goals")
   const possessiveMatch = question.match(CLIENT_POSSESSIVE_PATTERN);
   if (possessiveMatch && possessiveMatch[1]) {
     console.log('Found client name via possessive pattern:', possessiveMatch[1]);
@@ -115,7 +135,7 @@ function extractClientName(question: string): string | null {
     return hasMatch[1];
   }
   
-  // Check for direct question pattern (e.g., "What are Olivia's most recent scores?")
+  // Check for direct question pattern (e.g., "What are Olivia's scores?")
   const directMatch = question.match(DIRECT_NAME_PATTERN);
   if (directMatch && directMatch[1]) {
     // Skip common keywords that might be matched
