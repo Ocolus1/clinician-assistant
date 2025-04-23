@@ -492,8 +492,8 @@ Could you please rephrase your question or provide more details?`;
       
       // Execute the generated query
       try {
-        // Need to use this.executeQuery instead of this.executeQueryFn since we're in a class instance
-        const result = await this.executeQuery(generationResult.query);
+        // Use the executeQueryFn property that was passed in the constructor
+        const result = await this.executeQueryFn(generationResult.query);
         
         if (result.rows.length === 0) {
           // Special handling for client names and identifiers - check if this is about clients
@@ -527,17 +527,18 @@ Could you please rephrase your question or provide more details?`;
               console.log(`Trying fallback strategies for client identifier: ${possibleClientIdentifier}`);
               
               // Try different identifier patterns
-              const fallbackQueries = [
-                // Try original_name (just the name part)
-                `SELECT * FROM clients WHERE original_name ILIKE '%${possibleClientIdentifier}%'`,
-                
-                // Try unique_identifier (numeric part)
-                isNaN(Number(possibleClientIdentifier)) ? null : 
-                  `SELECT * FROM clients WHERE unique_identifier = '${possibleClientIdentifier}'`,
-                
-                // Try name field with wildcards (combined format)
-                `SELECT * FROM clients WHERE name ILIKE '%${possibleClientIdentifier}%'`
-              ].filter(Boolean); // Remove null entries
+              const fallbackQueries: string[] = [];
+              
+              // Try original_name (just the name part)
+              fallbackQueries.push(`SELECT * FROM clients WHERE original_name ILIKE '%${possibleClientIdentifier}%'`);
+              
+              // Try unique_identifier (numeric part) if it looks like a number
+              if (!isNaN(Number(possibleClientIdentifier))) {
+                fallbackQueries.push(`SELECT * FROM clients WHERE unique_identifier = '${possibleClientIdentifier}'`);
+              }
+              
+              // Try name field with wildcards (combined format)
+              fallbackQueries.push(`SELECT * FROM clients WHERE name ILIKE '%${possibleClientIdentifier}%'`);
               
               // Try each query strategy
               for (const fallbackQuery of fallbackQueries) {
