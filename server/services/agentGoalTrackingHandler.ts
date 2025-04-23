@@ -29,18 +29,24 @@ const STRATEGY_PATTERN = /strateg(?:y|ies)|technique|approach|method/i;
 export async function handleGoalTrackingQuestion(question: string): Promise<string> {
   try {
     // Try to extract client name from the question
-    const clientName = extractClientName(question);
+    let clientName = extractClientName(question);
     
     if (!clientName) {
       return "I couldn't determine which client you're asking about. Please specify the client name in your question.";
     }
     
-    // Find client ID from name
-    const clientId = await agentQueryService.findClientByName(clientName);
+    // Normalize client name here (remove trailing 's' if it exists)
+    const normalizedName = clientName.replace(/s$/, '');
+    
+    // Find client ID from normalized name
+    const clientId = await agentQueryService.findClientByName(normalizedName);
     
     if (!clientId) {
-      return `I couldn't find a client named "${clientName}" in the system. Please check the spelling or try another client name.`;
+      return `I couldn't find a client named "${normalizedName}" in the system. Please check the spelling or try another client name.`;
     }
+    
+    // Use the normalized name for all handler functions
+    clientName = normalizedName;
     
     // Determine question type and call appropriate handler
     // Check for completed milestone questions first (including "has X completed" pattern)
