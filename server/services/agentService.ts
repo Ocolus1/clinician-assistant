@@ -504,7 +504,24 @@ class DatabaseSchemaTool extends StructuredTool {
  */
 class NaturalLanguageQueryTool extends StructuredTool {
   name = "natural_language_to_sql";
-  description = "Convert a natural language question about clinical data into a SQL query, execute it, and return the results. Use this for questions about client data, goals, sessions, etc. When checking if a client has goals, you MUST join the goals table with clients table using goals.client_id = clients.id. Example query to find goals: SELECT * FROM goals g JOIN clients c ON g.client_id = c.id WHERE c.name = 'Client-Name'";
+  description = "Convert a natural language question about clinical data into a SQL query, execute it, and return the results.\n\n" +
+    "DATABASE RELATIONSHIP GUIDE:\n" +
+    "1. Clients → Goals: clients.id = goals.client_id\n" +
+    "2. Goals → Subgoals: goals.id = subgoals.goal_id\n" +
+    "3. Clients → Sessions: clients.id = sessions.client_id\n" +
+    "4. Clients → Budget Settings: clients.id = budget_settings.client_id\n" +
+    "5. Budget Settings → Budget Items: budget_settings.id = budget_items.budget_settings_id\n\n" +
+    "QUERY EXAMPLES:\n" +
+    "- Client Goals: SELECT g.* FROM goals g JOIN clients c ON g.client_id = c.id WHERE c.name = 'Radwan-585666'\n" +
+    "- Client Sessions: SELECT s.* FROM sessions s JOIN clients c ON s.client_id = c.id WHERE c.name = 'Client-Name'\n" +
+    "- Budget Items: SELECT bi.* FROM budget_items bi JOIN budget_settings bs ON bi.budget_settings_id = bs.id JOIN clients c ON bs.client_id = c.id WHERE c.name = 'Client-Name'\n" +
+    "- Subgoals: SELECT s.* FROM subgoals s JOIN goals g ON s.goal_id = g.id JOIN clients c ON g.client_id = c.id WHERE c.name = 'Client-Name'\n\n" +
+    "IMPORTANT CLIENT IDENTIFICATION:\n" +
+    "Clients can be identified using three fields:\n" +
+    "- name: Combined format (e.g., 'Radwan-585666')\n" +
+    "- unique_identifier: Just the numeric part (e.g., '585666')\n" +
+    "- original_name: Just the name part (e.g., 'Radwan')\n\n" +
+    "Always ensure you are properly joining tables when querying related data.";
   schema = z.union([
     z.object({
       question: z.string().describe("The natural language question to convert to SQL")

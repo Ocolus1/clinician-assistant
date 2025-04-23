@@ -99,37 +99,87 @@ export class SchemaAnalysisService {
         description += '\n';
       }
       
-      // Add relevant information about related tables
+      // Add detailed relationship information
+      description += '\nRelationships:\n';
+      
+      // Parent tables (tables that this table references)
       if (metadata.parentTables && metadata.parentTables.length > 0) {
-        description += `Parent tables: ${metadata.parentTables.join(', ')}\n`;
+        description += `Parent tables (tables this references):\n`;
+        for (const parentTable of metadata.parentTables) {
+          const fkColumns = metadata.columns.filter(col => 
+            col.foreignKey && col.foreignKey.table === parentTable
+          );
+          
+          for (const fkCol of fkColumns) {
+            description += `  - This table's ${fkCol.name} references ${parentTable}.${fkCol.foreignKey?.column}\n`;
+            description += `    Join: ${tableName}.${fkCol.name} = ${parentTable}.${fkCol.foreignKey?.column}\n`;
+            description += `    Example: SELECT * FROM ${tableName} JOIN ${parentTable} ON ${tableName}.${fkCol.name} = ${parentTable}.${fkCol.foreignKey?.column}\n`;
+          }
+        }
       }
+      
+      // Child tables (tables that reference this table)
       if (metadata.childTables && metadata.childTables.length > 0) {
-        description += `Child tables: ${metadata.childTables.join(', ')}\n`;
+        description += `Child tables (tables that reference this):\n`;
         
-        // Add specific join information for child tables
         for (const childTable of metadata.childTables) {
           const childMetadata = this.tablesMetadata.get(childTable);
           if (childMetadata) {
-            // Find the foreign key column that points to this table
-            const fkColumn = childMetadata.columns.find(col => 
+            // Find the foreign key columns that point to this table
+            const fkColumns = childMetadata.columns.filter(col => 
               col.foreignKey && col.foreignKey.table === tableName
             );
             
-            if (fkColumn) {
-              description += `  - To query ${childTable} for this ${tableName}, use: ${childTable}.${fkColumn.name} = ${tableName}.id\n`;
+            for (const fkCol of fkColumns) {
+              description += `  - ${childTable}.${fkCol.name} references this table's ${fkCol.foreignKey?.column}\n`;
+              description += `    Join: ${childTable}.${fkCol.name} = ${tableName}.${fkCol.foreignKey?.column}\n`;
+              description += `    Example: SELECT * FROM ${childTable} JOIN ${tableName} ON ${childTable}.${fkCol.name} = ${tableName}.${fkCol.foreignKey?.column}\n`;
             }
           }
         }
       }
       
-      // Add special notes for known tables
+      // Add special notes for specific tables
       if (tableName === 'clients') {
-        description += `Note: Clients can be identified by three fields:\n`;
+        description += `\nSpecial note for clients table:\n`;
+        description += `Clients can be identified by three fields:\n`;
         description += `- name: Combined format (e.g., "Radwan-585666")\n`;
         description += `- unique_identifier: Just the numeric part (e.g., "585666")\n`;
         description += `- original_name: Just the name part (e.g., "Radwan")\n`;
-        description += `Important: When checking if a client has goals, you need to join the goals table with clients using: goals.client_id = clients.id\n`;
-        description += `Example query: "SELECT * FROM goals WHERE client_id IN (SELECT id FROM clients WHERE name = 'Client-Name' OR unique_identifier = 'ID' OR original_name = 'Name')"\n`;
+        description += `\nTo check if a client has goals:\n`;
+        description += `SELECT g.* FROM goals g JOIN clients c ON g.client_id = c.id WHERE c.name = 'Radwan-585666'\n`;
+        description += `Alternative: SELECT g.* FROM goals g WHERE g.client_id IN (SELECT id FROM clients WHERE name = 'Radwan-585666')\n`;
+      }
+      
+      if (tableName === 'goals') {
+        description += `\nSpecial note for goals table:\n`;
+        description += `Goals belong to clients through the client_id foreign key.\n`;
+        description += `To find all goals for a client:\n`;
+        description += `SELECT * FROM goals WHERE client_id = (SELECT id FROM clients WHERE name = 'Client-Name')\n`;
+        description += `\nTo find subgoals for a goal:\n`;
+        description += `SELECT * FROM subgoals WHERE goal_id = [goal_id]\n`;
+      }
+      
+      if (tableName === 'subgoals') {
+        description += `\nSpecial note for subgoals table:\n`;
+        description += `Subgoals are linked to goals through the goal_id foreign key.\n`;
+        description += `Goals are linked to clients, so there's a hierarchical relationship: client -> goals -> subgoals.\n`;
+        description += `To find all subgoals for a client:\n`;
+        description += `SELECT s.* FROM subgoals s JOIN goals g ON s.goal_id = g.id JOIN clients c ON g.client_id = c.id WHERE c.name = 'Client-Name'\n`;
+      }
+      
+      if (tableName === 'sessions') {
+        description += `\nSpecial note for sessions table:\n`;
+        description += `Sessions are linked to clients through the client_id foreign key.\n`;
+        description += `To find all sessions for a client:\n`;
+        description += `SELECT * FROM sessions WHERE client_id = (SELECT id FROM clients WHERE name = 'Client-Name')\n`;
+      }
+      
+      if (tableName === 'budget_items') {
+        description += `\nSpecial note for budget_items table:\n`;
+        description += `Budget items are linked to clients through budget_settings, which are linked to clients.\n`;
+        description += `To find all budget items for a client:\n`;
+        description += `SELECT bi.* FROM budget_items bi JOIN budget_settings bs ON bi.budget_settings_id = bs.id WHERE bs.client_id = (SELECT id FROM clients WHERE name = 'Client-Name')\n`;
       }
       
       description += '\n';
@@ -144,23 +194,67 @@ export class SchemaAnalysisService {
   getSchemaSuggestionsForQuery(query: string): string {
     try {
       let suggestions = '';
+      const lowerQuery = query.toLowerCase();
       
-      // Check if this query uses the clients table and might need identifier help
-      if (query.toLowerCase().includes('clients') || query.toLowerCase().includes('client')) {
+      // Check for common relationship patterns in the query
+      
+      // Client-related queries
+      if (lowerQuery.includes('clients') || lowerQuery.includes('client')) {
         suggestions += `Client Identification: The clients table has three related identifier fields:\n`;
         suggestions += `- name: Combined format (e.g., "Radwan-585666")\n`;
         suggestions += `- unique_identifier: Just the numeric part (e.g., "585666")\n`;
         suggestions += `- original_name: Just the name part (e.g., "Radwan")\n`;
         suggestions += `Try using all three fields in your query conditions to maximize the chances of finding a match.\n\n`;
         
-        // If this query might be about goals
-        if (query.toLowerCase().includes('goal') || query.toLowerCase().includes('goals')) {
+        // Client-Goal relationship
+        if (lowerQuery.includes('goal') || lowerQuery.includes('goals')) {
           suggestions += `Client-Goal Relationship: To find goals for a specific client:\n`;
           suggestions += `1. First identify the client's ID using the client identifiers\n`;
           suggestions += `2. Then query the goals table using client_id to join with the clients table\n`;
           suggestions += `Example: SELECT g.* FROM goals g JOIN clients c ON g.client_id = c.id WHERE c.name = 'Radwan-585666'\n`;
           suggestions += `Alternative: SELECT g.* FROM goals g WHERE g.client_id IN (SELECT id FROM clients WHERE name = 'Radwan-585666')\n\n`;
         }
+        
+        // Client-Session relationship
+        if (lowerQuery.includes('session') || lowerQuery.includes('sessions')) {
+          suggestions += `Client-Session Relationship: To find sessions for a specific client:\n`;
+          suggestions += `Example: SELECT s.* FROM sessions s JOIN clients c ON s.client_id = c.id WHERE c.name = 'Client-Name'\n`;
+          suggestions += `Alternative: SELECT * FROM sessions WHERE client_id = (SELECT id FROM clients WHERE name = 'Client-Name')\n\n`;
+        }
+        
+        // Client-Budget relationship
+        if (lowerQuery.includes('budget') || lowerQuery.includes('fund')) {
+          suggestions += `Client-Budget Relationship: To find budget information for a client:\n`;
+          suggestions += `Example: SELECT bs.*, bi.* FROM budget_settings bs JOIN clients c ON bs.client_id = c.id LEFT JOIN budget_items bi ON bi.budget_settings_id = bs.id WHERE c.name = 'Client-Name'\n\n`;
+        }
+      }
+      
+      // Goal-related queries
+      if (lowerQuery.includes('goal') && !lowerQuery.includes('client')) {
+        suggestions += `Goal Information: Goals are linked to clients through client_id.\n`;
+        suggestions += `To find details about a goal including its client: \n`;
+        suggestions += `Example: SELECT g.*, c.name as client_name FROM goals g JOIN clients c ON g.client_id = c.id WHERE g.id = [goal_id]\n\n`;
+      }
+      
+      // Subgoal-related queries
+      if (lowerQuery.includes('subgoal')) {
+        suggestions += `Subgoal Relationships: Subgoals belong to goals which belong to clients.\n`;
+        suggestions += `To find all subgoals with their parent goals and clients:\n`;
+        suggestions += `Example: SELECT s.*, g.title as goal_title, c.name as client_name FROM subgoals s JOIN goals g ON s.goal_id = g.id JOIN clients c ON g.client_id = c.id\n\n`;
+      }
+      
+      // Budget-related queries
+      if ((lowerQuery.includes('budget') || lowerQuery.includes('fund')) && !lowerQuery.includes('client')) {
+        suggestions += `Budget Structure: Budget items belong to budget settings which belong to clients.\n`;
+        suggestions += `To find all budget items with their settings and client information:\n`;
+        suggestions += `Example: SELECT bi.*, bs.name as budget_name, c.name as client_name FROM budget_items bi JOIN budget_settings bs ON bi.budget_settings_id = bs.id JOIN clients c ON bs.client_id = c.id\n\n`;
+      }
+      
+      // Session-related queries
+      if (lowerQuery.includes('session') && !lowerQuery.includes('client')) {
+        suggestions += `Session Information: Sessions are linked directly to clients via client_id.\n`;
+        suggestions += `To find details about sessions including client information:\n`;
+        suggestions += `Example: SELECT s.*, c.name as client_name FROM sessions s JOIN clients c ON s.client_id = c.id\n\n`;
       }
       
       // Extract table names from the query
