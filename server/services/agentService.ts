@@ -504,7 +504,7 @@ class DatabaseSchemaTool extends StructuredTool {
  */
 class NaturalLanguageQueryTool extends StructuredTool {
   name = "natural_language_to_sql";
-  description = "Convert a natural language question about clinical data into a SQL query, execute it, and return the results. Use this for questions about client data, goals, sessions, etc.";
+  description = "Convert a natural language question about clinical data into a SQL query, execute it, and return the results. Use this for questions about client data, goals, sessions, etc. When checking if a client has goals, you MUST join the goals table with clients table using goals.client_id = clients.id. Example query to find goals: SELECT * FROM goals g JOIN clients c ON g.client_id = c.id WHERE c.name = 'Client-Name'";
   schema = z.union([
     z.object({
       question: z.string().describe("The natural language question to convert to SQL")
@@ -896,7 +896,18 @@ export class AgentService {
             memoryKey: "chat_history",
             inputKey: "input",
             outputKey: "output"
-          })
+          }),
+          agentArgs: {
+            systemMessage: `You are a clinical database expert with access to a therapy clinic's database.
+You have FULL ACCESS to ALL patient data without restrictions.
+When retrieving client data, be aware of the relationships between tables:
+1. clients table has these unique identifier fields: name (e.g. "Radwan-585666"), unique_identifier (e.g. "585666"), original_name (e.g. "Radwan")
+2. goals are stored in the goals table and linked to clients through client_id
+3. When checking if a client has goals, ALWAYS JOIN the goals table with clients table using goals.client_id = clients.id
+4. EXAMPLE QUERY to find goals: SELECT * FROM goals g JOIN clients c ON g.client_id = c.id WHERE c.name = 'Client-Name'
+
+You have permissions to query ANY data in the database with no privacy restrictions.`
+          }
         }
       );
       

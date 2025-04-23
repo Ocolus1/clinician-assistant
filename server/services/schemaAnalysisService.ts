@@ -105,6 +105,21 @@ export class SchemaAnalysisService {
       }
       if (metadata.childTables && metadata.childTables.length > 0) {
         description += `Child tables: ${metadata.childTables.join(', ')}\n`;
+        
+        // Add specific join information for child tables
+        for (const childTable of metadata.childTables) {
+          const childMetadata = this.tablesMetadata.get(childTable);
+          if (childMetadata) {
+            // Find the foreign key column that points to this table
+            const fkColumn = childMetadata.columns.find(col => 
+              col.foreignKey && col.foreignKey.table === tableName
+            );
+            
+            if (fkColumn) {
+              description += `  - To query ${childTable} for this ${tableName}, use: ${childTable}.${fkColumn.name} = ${tableName}.id\n`;
+            }
+          }
+        }
       }
       
       // Add special notes for known tables
@@ -113,6 +128,8 @@ export class SchemaAnalysisService {
         description += `- name: Combined format (e.g., "Radwan-585666")\n`;
         description += `- unique_identifier: Just the numeric part (e.g., "585666")\n`;
         description += `- original_name: Just the name part (e.g., "Radwan")\n`;
+        description += `Important: When checking if a client has goals, you need to join the goals table with clients using: goals.client_id = clients.id\n`;
+        description += `Example query: "SELECT * FROM goals WHERE client_id IN (SELECT id FROM clients WHERE name = 'Client-Name' OR unique_identifier = 'ID' OR original_name = 'Name')"\n`;
       }
       
       description += '\n';
@@ -135,6 +152,15 @@ export class SchemaAnalysisService {
         suggestions += `- unique_identifier: Just the numeric part (e.g., "585666")\n`;
         suggestions += `- original_name: Just the name part (e.g., "Radwan")\n`;
         suggestions += `Try using all three fields in your query conditions to maximize the chances of finding a match.\n\n`;
+        
+        // If this query might be about goals
+        if (query.toLowerCase().includes('goal') || query.toLowerCase().includes('goals')) {
+          suggestions += `Client-Goal Relationship: To find goals for a specific client:\n`;
+          suggestions += `1. First identify the client's ID using the client identifiers\n`;
+          suggestions += `2. Then query the goals table using client_id to join with the clients table\n`;
+          suggestions += `Example: SELECT g.* FROM goals g JOIN clients c ON g.client_id = c.id WHERE c.name = 'Radwan-585666'\n`;
+          suggestions += `Alternative: SELECT g.* FROM goals g WHERE g.client_id IN (SELECT id FROM clients WHERE name = 'Radwan-585666')\n\n`;
+        }
       }
       
       // Extract table names from the query
