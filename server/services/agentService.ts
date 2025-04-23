@@ -14,7 +14,6 @@ import { ConversationChain } from "langchain/chains";
 import { BufferMemory } from "langchain/memory";
 import { z } from "zod";
 import { memoryManagementService } from "./memoryManagementService";
-import { detectGoalTrackingQuestion } from "../routes/goal-tracking-routes";
 import { sql } from "../db";
 
 /**
@@ -1022,26 +1021,6 @@ You have permissions to query ANY data in the database with no privacy restricti
     }
   }
   
-  // Import the goal tracking handler
-  private async importGoalTracking() {
-    const module = await import('./agentGoalTrackingHandler');
-    return module.handleGoalTrackingQuestion;
-  }
-  
-  /**
-   * Check if a question is related to goal tracking
-   */
-  private isGoalTrackingQuestion(question: string): boolean {
-    // Use the imported detectGoalTrackingQuestion function
-    const isGoalTracking = detectGoalTrackingQuestion(question);
-    
-    // Also check if there's likely a client name in the question
-    // Look for potential client names (capitalized words)
-    const hasClientName = /\b[A-Z][a-z]+\b/.test(question);
-    
-    return isGoalTracking && hasClientName;
-  }
-  
   /**
    * Process a message with the agent executor
    */
@@ -1056,14 +1035,6 @@ You have permissions to query ANY data in the database with no privacy restricti
     
     try {
       console.log(`Processing agent query: "${message.substring(0, 50)}..."`);
-      
-      // First check if this is a goal tracking related question
-      // that can be handled by our specialized handler
-      if (this.isGoalTrackingQuestion(message)) {
-        console.log('Query is related to goal tracking, using specialized handler');
-        const handler = await this.importGoalTracking();
-        return await handler(message);
-      }
       
       // Convert the message format to what memoryManagementService expects
       const formattedMessages: Message[] = recentMessages.map((msg, index) => ({

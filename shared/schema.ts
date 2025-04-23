@@ -255,19 +255,6 @@ export const strategies = pgTable("strategies", {
   description: text("description"),
 });
 
-// Milestone progress schema
-export const milestone_progress = pgTable("milestone_progress", {
-  id: serial("id").primaryKey(),
-  subgoal_id: integer("subgoal_id").notNull(),
-  session_id: integer("session_id").notNull(),
-  client_id: integer("client_id").notNull(),
-  rating: integer("rating").notNull(),
-  notes: text("notes"),
-  strategies: text("strategies").array(),
-  date: timestamp("date").defaultNow(),
-  created_at: timestamp("created_at").defaultNow(),
-});
-
 // Clinicians table for staff that can be assigned to clients
 export const clinicians = pgTable("clinicians", {
   id: serial("id").primaryKey(),
@@ -326,7 +313,6 @@ export type MilestoneAssessment = typeof milestoneAssessments.$inferSelect;
 export type Strategy = typeof strategies.$inferSelect;
 export type Clinician = typeof clinicians.$inferSelect;
 export type ClientClinician = typeof clientClinicians.$inferSelect;
-export type MilestoneProgress = typeof milestone_progress.$inferSelect;
 
 // Assistant related tables
 export const assistantSettings = pgTable("assistant_settings", {
