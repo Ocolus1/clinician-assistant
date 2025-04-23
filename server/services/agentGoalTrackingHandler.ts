@@ -29,14 +29,17 @@ const STRATEGY_PATTERN = /strateg(?:y|ies)|technique|approach|method/i;
 export async function handleGoalTrackingQuestion(question: string): Promise<string> {
   try {
     // Try to extract client name from the question
-    let clientName = extractClientName(question);
+    let extractedName = extractClientName(question);
     
-    if (!clientName) {
+    if (!extractedName) {
       return "I couldn't determine which client you're asking about. Please specify the client name in your question.";
     }
     
+    console.log(`Original extracted name: "${extractedName}"`);
+    
     // Normalize client name here (remove trailing 's' if it exists)
-    const normalizedName = clientName.replace(/s$/, '');
+    const normalizedName = extractedName.replace(/s$/, '');
+    console.log(`Normalized name for database lookup: "${normalizedName}"`);
     
     // Find client ID from normalized name
     const clientId = await agentQueryService.findClientByName(normalizedName);
@@ -45,8 +48,8 @@ export async function handleGoalTrackingQuestion(question: string): Promise<stri
       return `I couldn't find a client named "${normalizedName}" in the system. Please check the spelling or try another client name.`;
     }
     
-    // Use the normalized name for all handler functions
-    clientName = normalizedName;
+    // Always use the normalized name for all handler functions
+    const clientName = normalizedName;
     
     // Determine question type and call appropriate handler
     // Check for completed milestone questions first (including "has X completed" pattern)
@@ -156,13 +159,25 @@ function extractClientName(question: string): string | null {
   }
   
   // Check for "has [name]" pattern (e.g., "Has Olivia completed any milestones?")
+  // Also handles "How many sessions has [name] had" pattern
   const hasMatch = question.match(HAS_CLIENT_PATTERN);
   if (hasMatch && hasMatch[1]) {
     // Skip common keywords that might be matched
-    const skipWords = ['most', 'recent', 'all', 'any', 'last', 'current', 'previous', 'their'];
+    const skipWords = ['most', 'recent', 'all', 'any', 'last', 'current', 'previous', 'their', 'many'];
     if (!skipWords.includes(hasMatch[1].toLowerCase())) {
       console.log('Found client name via "has [name]" pattern:', hasMatch[1]);
       return hasMatch[1];
+    }
+  }
+  
+  // Special case for "How many sessions has [name] had this month?"
+  const sessionCountPattern = /how\s+many\s+sessions\s+has\s+([A-Za-z']+)s?\s+had/i;
+  const sessionMatch = question.match(sessionCountPattern);
+  if (sessionMatch && sessionMatch[1]) {
+    const skipWords = ['most', 'recent', 'all', 'any', 'last', 'current', 'previous', 'their', 'many'];
+    if (!skipWords.includes(sessionMatch[1].toLowerCase())) {
+      console.log('Found client name via session count pattern:', sessionMatch[1]);
+      return sessionMatch[1];
     }
   }
   
