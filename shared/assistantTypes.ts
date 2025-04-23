@@ -17,6 +17,7 @@ export interface QueryResult {
     executionTime?: number;
     rowCount?: number;
     queryText?: string;
+    originalQuery?: string;
   };
 }
 

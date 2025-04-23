@@ -359,8 +359,12 @@ Please fix the query to work correctly with our database.`;
    * Execute a SQL query for validation
    */
   private async executeQuery(query: string): Promise<QueryResult> {
+    // First check if this is a client query that needs enhancement
+    const enhancedQuery = this.enhanceClientQueryIfNeeded(query);
+    const queryToExecute = enhancedQuery || query;
+    
     const startTime = Date.now();
-    const result = await sql.unsafe(query);
+    const result = await sql.unsafe(queryToExecute);
     const endTime = Date.now();
     const executionTime = endTime - startTime;
     
@@ -375,9 +379,86 @@ Please fix the query to work correctly with our database.`;
       metadata: {
         executionTime,
         rowCount: result.length,
-        queryText: query
+        queryText: queryToExecute,
+        originalQuery: enhancedQuery ? query : undefined
       }
     };
+  }
+  
+  /**
+   * Enhance client queries to handle multiple client identifier fields
+   */
+  private enhanceClientQueryIfNeeded(query: string): string | null {
+    const lowerQuery = query.toLowerCase();
+    
+    // Only process if this is a query on the clients table
+    if (!lowerQuery.includes('clients') && !lowerQuery.includes(' c ')) {
+      return null;
+    }
+    
+    // Check if this is a query trying to find clients by name
+    const clientNameRegex = /where\s+(?:clients\.|c\.)?(?:name|original_name|unique_identifier)\s*=\s*['"]([^'"]+)['"]/i;
+    const match = query.match(clientNameRegex);
+    
+    if (!match) {
+      return null;
+    }
+    
+    // Get the client identifier value
+    const clientValue = match[1];
+    
+    // Don't enhance if it's already a complex query using multiple conditions
+    if (lowerQuery.includes(' or ') && lowerQuery.includes('original_name') && 
+        lowerQuery.includes('unique_identifier')) {
+      return null;
+    }
+    
+    console.log(`Enhancing client query for identifier: ${clientValue}`);
+    
+    try {
+      // Extract table alias if present
+      const aliasMatch = query.match(/from\s+clients(?:\s+as)?\s+([a-z])/i);
+      const tablePrefix = aliasMatch ? `${aliasMatch[1]}.` : 'clients.';
+      
+      // Determine where clause position
+      const wherePos = lowerQuery.indexOf('where');
+      if (wherePos === -1) {
+        return null;
+      }
+      
+      // Extract the entire WHERE clause
+      const whereClause = query.substring(wherePos);
+      
+      // Create enhanced condition using OR with all client identifier fields
+      let enhancedCondition = `WHERE (${tablePrefix}name = '${clientValue}' OR ` +
+                              `${tablePrefix}name LIKE '%${clientValue}%' OR ` +
+                              `${tablePrefix}original_name = '${clientValue}' OR ` +
+                              `${tablePrefix}original_name LIKE '%${clientValue}%'`;
+      
+      // If client value has hyphen, split it for possible name-id format
+      if (clientValue.includes('-')) {
+        const [namePart, idPart] = clientValue.split('-');
+        enhancedCondition += ` OR ${tablePrefix}original_name = '${namePart}' OR ` +
+                             `${tablePrefix}unique_identifier = '${idPart}'`;
+      } else if (/^\d+$/.test(clientValue)) {
+        // If it's just a number, check unique_identifier
+        enhancedCondition += ` OR ${tablePrefix}unique_identifier = '${clientValue}'`;
+      }
+      
+      enhancedCondition += ')';
+      
+      // Replace the original WHERE clause
+      const enhancedQuery = query.substring(0, wherePos) + enhancedCondition + 
+                         whereClause.substring(whereClause.indexOf(' ', 6));
+      
+      console.log(`Original query: ${query}`);
+      console.log(`Enhanced query: ${enhancedQuery}`);
+      
+      return enhancedQuery;
+    } catch (error) {
+      console.error('Error enhancing client query:', error);
+      return null; // Return null to use original query if enhancement fails
+    }
   }
   
   /**

@@ -568,61 +568,146 @@ Could you please rephrase your question or provide more details?`;
           // Special handling for client names and identifiers - check if this is about clients
           const isClientQuery = 
             question.toLowerCase().includes('client') ||
-            question.toLowerCase().match(/name.*radwan|radwan.*name/) ||
+            question.toLowerCase().match(/name.*\b\w+\b|\b\w+\b.*name/) ||
             generationResult.query.toLowerCase().includes('clients');
             
           if (isClientQuery) {
             // Check for client identifier patterns
             let possibleClientIdentifier = null;
             
-            // Extract possible client name from the query
-            const nameMatch = question.match(/client(?:s)?\s+(?:named|called|with\s+(?:the\s+)?name)\s+['"]?([a-zA-Z0-9_\-]+)['"]?/i);
-            if (nameMatch && nameMatch[1]) {
-              possibleClientIdentifier = nameMatch[1];
-            }
+            // Extract possible client name from the query using various patterns
+            const namePatterns = [
+              // "client named X" pattern
+              /client(?:s)?\s+(?:named|called|with\s+(?:the\s+)?name)\s+['"]?([a-zA-Z0-9_\-]+)['"]?/i,
+              // "X client" pattern
+              /['"]?([a-zA-Z0-9_\-]+)['"]?\s+client/i,
+              // "name X" pattern 
+              /name\s+['"]?([a-zA-Z0-9_\-]+)['"]?/i,
+              // "named X" pattern
+              /named\s+['"]?([a-zA-Z0-9_\-]+)['"]?/i,
+              // "any client with name X" pattern
+              /client(?:s)?\s+with\s+name\s+['"]?([a-zA-Z0-9_\-]+)['"]?/i,
+              // General word pattern (last resort)
+              /\b([a-zA-Z][a-zA-Z0-9_\-]{2,})\b/i
+            ];
             
-            // Also check for simple name patterns
-            const simpleNameMatch = question.match(/['"]?([a-zA-Z0-9_\-]+)['"]?/);
-            if (simpleNameMatch && simpleNameMatch[1] && !possibleClientIdentifier) {
-              // Only use this if it's plausibly a name (not a common word)
-              const potentialName = simpleNameMatch[1];
-              if (potentialName.length > 3 && !['have', 'client', 'name', 'with', 'find'].includes(potentialName.toLowerCase())) {
-                possibleClientIdentifier = potentialName;
+            // Try each pattern until we find a match
+            for (const pattern of namePatterns) {
+              const match = question.match(pattern);
+              if (match && match[1]) {
+                const potentialName = match[1];
+                // Filter out common words that aren't likely to be names
+                if (potentialName.length > 2 && 
+                    !['have', 'has', 'any', 'the', 'client', 'name', 'with', 'find', 
+                     'goals', 'goal', 'list', 'show', 'get', 'all', 'called'].includes(potentialName.toLowerCase())) {
+                  possibleClientIdentifier = potentialName;
+                  break;
+                }
               }
             }
             
-            // If we found a potential client identifier, try alternative query strategies
+            console.log(`Extracted possible client identifier: ${possibleClientIdentifier}`);
+            
+            // If we found a potential client identifier, try comprehensive search strategies
             if (possibleClientIdentifier) {
-              console.log(`Trying fallback strategies for client identifier: ${possibleClientIdentifier}`);
+              console.log(`Trying enhanced search strategies for client identifier: ${possibleClientIdentifier}`);
               
-              // Try different identifier patterns
-              const fallbackQueries: string[] = [];
+              // Try a comprehensive query that searches across all identifier fields
+              const enhancedQuery = `
+                SELECT * FROM clients 
+                WHERE name ILIKE '%${possibleClientIdentifier}%' 
+                OR original_name ILIKE '%${possibleClientIdentifier}%'
+                ${!isNaN(Number(possibleClientIdentifier)) ? `OR unique_identifier = '${possibleClientIdentifier}'` : ''}
+              `;
               
-              // Try original_name (just the name part)
-              fallbackQueries.push(`SELECT * FROM clients WHERE original_name ILIKE '%${possibleClientIdentifier}%'`);
+              try {
+                console.log(`Trying enhanced client search query: ${enhancedQuery}`);
+                const enhancedResult = await this.executeQueryFn(enhancedQuery);
+                
+                if (enhancedResult.rows.length > 0) {
+                  // We found results with the enhanced query!
+                  
+                  // If the client was asking about goals, automatically query for goals too
+                  if (question.toLowerCase().includes('goal')) {
+                    // Get goals for the first client found
+                    const clientId = enhancedResult.rows[0].id;
+                    const goalQuery = `
+                      SELECT g.* FROM goals g WHERE g.client_id = ${clientId}
+                    `;
+                    
+                    try {
+                      const goalResults = await this.executeQueryFn(goalQuery);
+                      
+                      if (goalResults.rows.length > 0) {
+                        return `Yes, I found a client matching "${possibleClientIdentifier}" and they have ${goalResults.rows.length} goals.
+
+Client Information:
+\`\`\`
+ID: ${enhancedResult.rows[0].id}
+Name: ${enhancedResult.rows[0].name}
+Status: ${enhancedResult.rows[0].onboarding_status || 'N/A'}
+\`\`\`
+
+Goals:
+\`\`\`
+${goalResults.rows.map((goal, index) => 
+  `${index + 1}. ${goal.title}: ${goal.description || 'No description'} (Priority: ${goal.priority || 'N/A'})`
+).join('\n')}
+\`\`\``;
+                      } else {
+                        return `Yes, I found a client matching "${possibleClientIdentifier}", but they don't have any goals recorded in the system.
+
+Client Information:
+\`\`\`
+ID: ${enhancedResult.rows[0].id}
+Name: ${enhancedResult.rows[0].name}
+Status: ${enhancedResult.rows[0].onboarding_status || 'N/A'}
+\`\`\``;
+                      }
+                    } catch (goalError) {
+                      console.error('Error querying goals:', goalError);
+                    }
+                  }
+                  
+                  // Default response for client information
+                  return `Yes, I found ${enhancedResult.rows.length} client(s) matching "${possibleClientIdentifier}".
+
+Here's what I found:
+\`\`\`
+${enhancedResult.rows.slice(0, 5).map(client => 
+  `ID: ${client.id}, Name: ${client.name}, Status: ${client.onboarding_status || 'N/A'}`
+).join('\n')}
+${enhancedResult.rows.length > 5 ? `\n...and ${enhancedResult.rows.length - 5} more` : ''}
+\`\`\``;
+                }
+              } catch (enhancedError) {
+                console.error(`Error in enhanced client query:`, enhancedError);
+              }
               
-              // Try unique_identifier (numeric part) if it looks like a number
+              // If enhanced query failed, try individual fallback strategies
+              const fallbackQueries = [
+                `SELECT * FROM clients WHERE original_name ILIKE '%${possibleClientIdentifier}%'`,
+                `SELECT * FROM clients WHERE name ILIKE '%${possibleClientIdentifier}%'`
+              ];
+              
+              // Add unique_identifier query if it looks like a number
               if (!isNaN(Number(possibleClientIdentifier))) {
                 fallbackQueries.push(`SELECT * FROM clients WHERE unique_identifier = '${possibleClientIdentifier}'`);
               }
               
-              // Try name field with wildcards (combined format)
-              fallbackQueries.push(`SELECT * FROM clients WHERE name ILIKE '%${possibleClientIdentifier}%'`);
-              
-              // Try each query strategy
+              // Try each fallback query
               for (const fallbackQuery of fallbackQueries) {
                 try {
                   console.log(`Trying fallback query: ${fallbackQuery}`);
                   const fallbackResult = await this.executeQueryFn(fallbackQuery);
                   
                   if (fallbackResult.rows.length > 0) {
-                    // We found results with a fallback strategy!
                     return `Yes, I found ${fallbackResult.rows.length} client(s) related to "${possibleClientIdentifier}" using an alternative search strategy.
 
 Here's what I found:
 \`\`\`
 ${fallbackResult.rows.slice(0, 5).map(client => 
-  `ID: ${client.id}, Name: ${client.name}, Status: ${client.onboarding_status}`
+  `ID: ${client.id}, Name: ${client.name}, Status: ${client.onboarding_status || 'N/A'}`
 ).join('\n')}
 ${fallbackResult.rows.length > 5 ? `\n...and ${fallbackResult.rows.length - 5} more` : ''}
 \`\`\`
