@@ -4,28 +4,17 @@
  * This service provides specialized functionality to answer common clinical questions
  * about client goals, progress, milestone scores, and other therapy-related queries.
  * 
- * It leverages the database schema to generate accurate SQL queries for specific
- * question patterns, without requiring LLM-based query generation for every request.
+ * It implements optimized query handlers for specific question patterns about client
+ * goals and progress to enhance the clinician assistant's capabilities.
  */
 
 import { sql } from "../db";
-import { 
-  clients, 
-  goals, 
-  subgoals, 
-  sessions,
-  sessionNotes,
-  performanceAssessments,
-  milestoneAssessments 
-} from "@shared/schema";
-
-// Import the OpenAI service for response formatting
 import { openaiService } from "./openaiService";
 
 /**
  * Interface for a clinical question response
  */
-interface ClinicalQuestionResponse {
+export interface ClinicalQuestionResponse {
   answer: string;
   data?: any;
   query?: string;
@@ -90,7 +79,7 @@ class ClinicalQuestionsService {
           return await this.getOutdatedGoals(client.id);
           
         default:
-          // For unrecognized questions, we'll call the OpenAI service to generate a response
+          // For unrecognized questions, we'll return a low confidence response
           return {
             answer: `I don't have a specific answer pattern for that question. Please try rephrasing or ask a more specific question about ${client.name}'s goals or progress.`,
             confidence: 0.5
@@ -249,7 +238,7 @@ class ClinicalQuestionsService {
       
       // Format the response with OpenAI to make it more natural
       const goalsData = JSON.stringify(result);
-      const formattedResponse = await openaiService.chat([
+      const formattedResponse = await openaiService.createChatCompletion([
         {
           role: 'system',
           content: `You are a clinical assistant helping summarize therapy goals. Format the response in a natural, conversational way. The client has ${result.length} goals. Only mention actual data from the provided goals JSON.`
@@ -278,7 +267,7 @@ class ClinicalQuestionsService {
   private async getGoalProgress(clientId: number, goalKeyword: string | null): Promise<ClinicalQuestionResponse> {
     try {
       // Build the SQL query based on whether we have a goal keyword
-      let whereClause = 'g.client_id = ${clientId}';
+      let whereClause = `g.client_id = ${clientId}`;
       if (goalKeyword) {
         whereClause += ` AND (LOWER(g.title) LIKE '%${goalKeyword.toLowerCase()}%' OR LOWER(g.description) LIKE '%${goalKeyword.toLowerCase()}%')`;
       }
@@ -340,7 +329,7 @@ class ClinicalQuestionsService {
         ? `Summarize the progress on goals related to "${goalKeyword}" for this client based on the following data: ${progressData}`
         : `Summarize the overall goal progress for this client based on the following data: ${progressData}`;
       
-      const formattedResponse = await openaiService.chat([
+      const formattedResponse = await openaiService.createChatCompletion([
         {
           role: 'system',
           content: `You are a clinical assistant helping summarize therapy progress. Format the response in a natural, conversational way. Explain what the ratings mean (higher is better, scale of 1-10) and highlight improvements or setbacks.`
@@ -407,7 +396,7 @@ class ClinicalQuestionsService {
       
       // Format the response with OpenAI to make it more natural
       const subgoalData = JSON.stringify(latestSubgoals);
-      const formattedResponse = await openaiService.chat([
+      const formattedResponse = await openaiService.createChatCompletion([
         {
           role: 'system',
           content: `You are a clinical assistant helping summarize therapy subgoals. Format the response in a natural, conversational way. Focus on the subgoals from the most recent session. Explain what the ratings mean (higher is better, typically on a scale of 1-5).`
@@ -624,7 +613,7 @@ class ClinicalQuestionsService {
       
       // Format the response with OpenAI to make it more natural
       const subgoalData = JSON.stringify(subgoalsByGoal);
-      const formattedResponse = await openaiService.chat([
+      const formattedResponse = await openaiService.createChatCompletion([
         {
           role: 'system',
           content: `You are a clinical assistant helping summarize therapy progress. Format the response in a natural, conversational way. The client has completed ${result.length} subgoals across ${Object.keys(subgoalsByGoal).length} goals.`
@@ -701,7 +690,7 @@ class ClinicalQuestionsService {
       
       // Format the response with OpenAI to make it more natural
       const formattedData = JSON.stringify(scoreData);
-      const formattedResponse = await openaiService.chat([
+      const formattedResponse = await openaiService.createChatCompletion([
         {
           role: 'system',
           content: `You are a clinical assistant helping summarize therapy progress scores. Format the response in a natural, conversational way. The scores are on a scale of 1-5 where higher is better. Include trends over time if available.`
@@ -821,7 +810,7 @@ class ClinicalQuestionsService {
       
       // Format the response with OpenAI to make it more natural
       const goalData = JSON.stringify(result);
-      const formattedResponse = await openaiService.chat([
+      const formattedResponse = await openaiService.createChatCompletion([
         {
           role: 'system',
           content: `You are a clinical assistant helping track therapy goals. Format the response in a natural, conversational way. Focus on which goals need attention and how long it's been since they were updated.`
