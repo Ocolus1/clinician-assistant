@@ -770,9 +770,22 @@ export class AgentService {
       throw new Error('Unsafe SQL operation detected');
     }
     
-    // Add LIMIT if not present to prevent huge result sets
+    // Add LIMIT if not present to prevent huge result sets, but be smarter about it
     if (!upperQuery.includes('LIMIT ') && upperQuery.includes('SELECT ')) {
+      // Don't add LIMIT to EXISTS queries, which have a different syntax
+      if (upperQuery.includes('SELECT EXISTS')) {
+        console.log('Query contains EXISTS - skipping automatic LIMIT addition');
+        return query;
+      }
+      
+      // Don't add LIMIT to queries with semicolons, as they might be compound queries
+      if (query.includes(';')) {
+        console.log('Query contains semicolon - skipping automatic LIMIT addition');
+        return query;
+      }
+      
       // Simple case - add LIMIT to the end
+      console.log('Adding LIMIT 100 to query');
       return `${query} LIMIT 100`;
     }
     
