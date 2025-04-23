@@ -119,7 +119,7 @@ export class ClientProgressService {
       const formattedAnswer = await this.formatAnswer(
         analysis.questionType,
         analysis.clientName,
-        queryResult.data,
+        queryResult.data || [],
         analysis.goalName,
         analysis.timeframe
       );
@@ -330,7 +330,7 @@ Output your analysis in JSON format with the following fields:
   private async formatAnswer(
     questionType: ClinicalQuestionType,
     clientName: string,
-    data: any[],
+    data: any[] | undefined,
     goalName?: string,
     timeframe?: string
   ): Promise<string> {
