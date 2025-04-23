@@ -7,8 +7,9 @@ import { agentQueryService } from './agentQueryService';
 import { formatDistance, format } from 'date-fns';
 
 // Question pattern constants
-const CLIENT_NAME_PATTERN = /(?:what|which|has|when|show)\s+\w+\s+(?:for|by|about)\s+([A-Za-z']+)/i;
+const CLIENT_NAME_PATTERN = /(?:what|which|when|show)\s+\w+\s+(?:for|by|about)\s+([A-Za-z']+)/i;
 const CLIENT_POSSESSIVE_PATTERN = /([A-Za-z']+)'s\s+(?:goals|goal|milestone|milestones|progress|session)/i;
+const HAS_CLIENT_PATTERN = /has\s+([A-Za-z']+)/i;
 const GOAL_PATTERN = /(?:goals?|working on|milestone)/i;
 const MILESTONE_PATTERN = /milestone|subgoal/i;
 const PROGRESS_PATTERN = /progress|improvement|advancement|score/i;

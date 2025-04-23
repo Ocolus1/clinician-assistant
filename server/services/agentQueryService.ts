@@ -116,15 +116,16 @@ export class AgentQueryService {
         let scoreCount = 0;
         let latestScore = null;
         
-        // For each subgoal, get milestone progress data from our milestone_progress table
+        // For each subgoal, get milestone progress data from our milestone_progress table using SQL directly
         for (const subgoal of subgoalsList) {
           console.log(`Getting milestone progress for subgoal ${subgoal.id}`);
           
-          // Query milestone_progress for this subgoal
-          const milestoneResults = await db.query.milestone_progress.findMany({
-            where: eq(milestone_progress.subgoal_id, subgoal.id),
-            orderBy: [desc(milestone_progress.date)]
-          });
+          // Query milestone_progress for this subgoal using SQL
+          const milestoneResults = await sql`
+            SELECT * FROM milestone_progress 
+            WHERE subgoal_id = ${subgoal.id} 
+            ORDER BY date DESC
+          `;
           
           console.log(`Found ${milestoneResults.length} milestone progress records for subgoal ${subgoal.id}`);
           
