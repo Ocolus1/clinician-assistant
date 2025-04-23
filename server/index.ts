@@ -86,6 +86,14 @@ app.use((req, res, next) => {
       console.error("Error importing debug assistant routes:", err);
     });
     
+    // Import debug-assistant.ts router which contains the test-agent-query endpoint
+    import('./routes/debug-assistant.js').then(({ default: debugAssistantRouter }) => {
+      app.use('/api/debug/assistant', debugAssistantRouter);
+      console.log("Debug assistant routes registered successfully");
+    }).catch(err => {
+      console.error("Error importing debug-assistant routes:", err);
+    });
+    
     // Register new structured debug routes
     import('./routes/debugRoutes.js').then(({ registerDebugAssistantRoutes }) => {
       registerDebugAssistantRoutes(app);
