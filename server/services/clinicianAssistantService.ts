@@ -14,6 +14,7 @@ import { ChatMessage } from './openaiService';
 import { Message, AssistantStatusResponse, AssistantConfig, QueryResult } from '@shared/assistantTypes';
 import { langchainService, LangChainConfig } from './langchainService';
 import { agentService, AgentServiceConfig } from './agentService';
+import { conversationalAgentService } from './conversationalAgentService';
 
 /**
  * Clinician Assistant Service class
@@ -127,6 +128,12 @@ export class ClinicianAssistantService {
     ).catch(error => {
       console.error('Failed to initialize AgentService:', error);
     });
+    
+    // Initialize the Conversational Agent Service
+    conversationalAgentService.initialize(config.apiKey, config.model)
+      .catch(error => {
+        console.error('Failed to initialize Conversational Agent Service:', error);
+      });
   }
   
   /**
