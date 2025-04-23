@@ -965,11 +965,23 @@ export class AgentService {
               // Format the result in a readable, conversational way
               let response: string;
               
+              // Debug the result structure
+              console.log(`Query result contains ${result.rows?.length || 0} rows.`);
+              console.log('Query metadata:', JSON.stringify(result.metadata || {}));
+              
               if (result.rows.length === 0) {
                 response = `I couldn't find any data matching your query about "${message}". Would you like to refine your search?`;
               } else {
+                console.log(`Found ${result.rows.length} results for query about "${message}"`);
+                
                 // For client name queries, provide a more helpful response
-                if (message.toLowerCase().includes("client") && message.toLowerCase().includes("name")) {
+                // Use broader matching to ensure we handle all client-related queries
+                const isClientQuery = message.toLowerCase().includes("client") || 
+                                     (message.toLowerCase().includes("radwan") && message.toLowerCase().includes("name")) ||
+                                     result.metadata?.queryText?.toLowerCase().includes("clients");
+                                     
+                if (isClientQuery) {
+                  console.log("Detected client-related query, using enhanced formatting");
                   const clientName = extractClientNameFromQuery(message);
                   
                   if (result.rows.length === 1) {
