@@ -30,7 +30,8 @@ import {
   Mail,
   Phone,
   Archive,
-  Star
+  Star,
+  Bot
 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Badge } from "@/components/ui/badge";
@@ -390,7 +391,7 @@ export default function ClientProfile() {
   
   return (
     <div className={`w-full mx-auto py-6 px-4 sm:px-6 lg:px-8 ${!isFullScreenTab ? 'max-w-6xl' : ''}`}>
-      <div className="flex items-center mb-6">
+      <div className="flex items-center justify-between mb-6">
         <Button 
           variant="ghost" 
           className="mr-4" 
@@ -399,6 +400,20 @@ export default function ClientProfile() {
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back
         </Button>
+        
+        {/* Action buttons */}
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setLocation(`/client-progress/${clientId}`)}
+            className="flex items-center gap-1"
+          >
+            <Bot className="h-4 w-4" />
+            <span className="hidden md:inline">Progress Assistant</span>
+            <span className="inline md:hidden">Assistant</span>
+          </Button>
+        </div>
       </div>
       
       {/* Edit Client Info Dialog */}
