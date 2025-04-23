@@ -8,7 +8,7 @@ import { formatDistance, format } from 'date-fns';
 
 // Question pattern constants
 const CLIENT_NAME_PATTERN = /(?:what|which|when|show)\s+\w+\s+(?:for|by|about)\s+([A-Za-z']+)/i;
-const CLIENT_POSSESSIVE_PATTERN = /([A-Za-z']+)'s\s+(?:goals|goal|milestone|milestones|progress|session)/i;
+const CLIENT_POSSESSIVE_PATTERN = /([A-Za-z']+)(?:'s)?\s+(?:goals|goal|milestone|milestones|progress|session)/i;
 const HAS_CLIENT_PATTERN = /has\s+([A-Za-z']+)/i;
 const GOAL_PATTERN = /(?:goals?|working on|milestone)/i;
 const MILESTONE_PATTERN = /milestone|subgoal/i;
@@ -37,6 +37,11 @@ export async function handleGoalTrackingQuestion(question: string): Promise<stri
     }
     
     // Determine question type and call appropriate handler
+    // Check for completed milestone questions first (including "has X completed" pattern)
+    if (question.toLowerCase().includes('completed') || question.toLowerCase().includes('finished')) {
+      return await handleCompletedMilestonesQuestion(clientId, clientName);
+    }
+    
     if (GOAL_PATTERN.test(question)) {
       if (question.toLowerCase().includes('working on')) {
         return await handleCurrentGoalsQuestion(clientId, clientName);
@@ -57,9 +62,6 @@ export async function handleGoalTrackingQuestion(question: string): Promise<stri
       }
       if (question.toLowerCase().includes('score')) {
         return await handleMilestoneScoreQuestion(clientId, clientName);
-      }
-      if (question.toLowerCase().includes('completed') || question.toLowerCase().includes('finished')) {
-        return await handleCompletedMilestonesQuestion(clientId, clientName);
       }
       // Default to all milestones
       return await handleAllMilestonesQuestion(clientId, clientName);
@@ -102,6 +104,12 @@ function extractClientName(question: string): string | null {
     return possessiveMatch[1];
   }
   
+  // Check for "has [name]" pattern (e.g., "Has Olivia completed any milestones?")
+  const hasMatch = question.match(HAS_CLIENT_PATTERN);
+  if (hasMatch && hasMatch[1]) {
+    return hasMatch[1];
+  }
+  
   // Check for "for/by/about [name]" pattern
   const nameMatch = question.match(CLIENT_NAME_PATTERN);
   if (nameMatch && nameMatch[1]) {
@@ -112,7 +120,7 @@ function extractClientName(question: string): string | null {
   const capitalizedWords = question.match(/\b[A-Z][a-z]+\b/g);
   if (capitalizedWords && capitalizedWords.length > 0) {
     // Skip common words that might be capitalized
-    const commonWords = ['what', 'which', 'where', 'when', 'how', 'goal', 'milestone', 'session', 'progress'];
+    const commonWords = ['what', 'which', 'where', 'when', 'how', 'has', 'goal', 'milestone', 'session', 'progress'];
     const filteredNames = capitalizedWords.filter(word => 
       !commonWords.includes(word.toLowerCase())
     );
