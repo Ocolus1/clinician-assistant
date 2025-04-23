@@ -13,6 +13,9 @@ const HAS_CLIENT_PATTERN = /has\s+([A-Za-z']+)/i;
 const DIRECT_NAME_PATTERN = /(?:what|which|how|when|where|show)\s+(?:are|is|has|have)\s+([A-Za-z']+)(?:'s)?(?:\s)/i;
 const RECENT_PATTERN = /(?:what|what's|which|show)\s+(?:are|is)\s+([A-Za-z']+)(?:'|'s)?\s+(?:most\s+recent|recent|latest|most)/i;
 const MILESTONE_SCORE_PATTERN = /what\s+are\s+([A-Za-z]+)(?:s|'s)?\s+(?:most\s+recent|recent)\s+milestone\s+scores/i;
+
+// Special pattern to catch possessive forms without apostrophes (e.g., "Olivias goals")
+const POSSESSIVE_NO_APOSTROPHE_PATTERN = /what\s+are\s+([A-Za-z]+)s\s+(?:most\s+recent|recent|latest|current)/i;
 const GOAL_PATTERN = /(?:goals?|working on|milestone)/i;
 const MILESTONE_PATTERN = /milestone|subgoal/i;
 const PROGRESS_PATTERN = /progress|improvement|advancement|score/i;
@@ -103,11 +106,12 @@ export async function handleGoalTrackingQuestion(question: string): Promise<stri
 function extractClientName(question: string): string | null {
   console.log('Extracting client name from question:', question);
   
-  // Handle the exact case that's giving us trouble
-  const noApostropheCase = question.toLowerCase().trim();
-  if (noApostropheCase === "what are olivias most recent milestone scores?") {
-    console.log('Found client name via exact match for problematic case:', 'Olivia');
-    return 'Olivia';
+  // Handle possessive patterns in special cases without apostrophes
+  const noApostropheMatch = question.match(POSSESSIVE_NO_APOSTROPHE_PATTERN);
+  if (noApostropheMatch && noApostropheMatch[1]) {
+    const name = noApostropheMatch[1];
+    console.log('Found client name via possessive pattern without apostrophe:', name);
+    return name; 
   }
   
   // Check for exact milestone score pattern, handles the "what are Olivias most recent milestone scores" case
