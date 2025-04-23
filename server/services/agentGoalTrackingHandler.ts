@@ -8,7 +8,8 @@ import { formatDistance, format } from 'date-fns';
 
 // Question pattern constants
 const CLIENT_NAME_PATTERN = /(?:what|which|when|show)\s+\w+\s+(?:for|by|about)\s+([A-Za-z']+)/i;
-const CLIENT_POSSESSIVE_PATTERN = /([A-Za-z']+)(?:'s)?\s+(?:goals|goal|milestone|milestones|progress|session)/i;
+// Modified to match possessive forms (excluding the word "many")
+const CLIENT_POSSESSIVE_PATTERN = /(?<!how\s+)([A-Za-z']+)(?:'s)?\s+(?:goals|goal|milestone|milestones|progress|session)/i;
 const HAS_CLIENT_PATTERN = /has\s+([A-Za-z']+)/i;
 const DIRECT_NAME_PATTERN = /(?:what|which|how|when|where|show)\s+(?:are|is|has|have)\s+([A-Za-z']+)(?:'s)?(?:\s)/i;
 const RECENT_PATTERN = /(?:what|what's|which|show)\s+(?:are|is)\s+([A-Za-z']+)(?:'|'s)?\s+(?:most\s+recent|recent|latest|most)/i;
@@ -22,6 +23,8 @@ const PROGRESS_PATTERN = /progress|improvement|advancement|score/i;
 const BUDGET_PATTERN = /budget|funding|money|left|remaining|expire/i;
 const SESSION_PATTERN = /session|appointment|attended|visit/i;
 const STRATEGY_PATTERN = /strateg(?:y|ies)|technique|approach|method/i;
+// Specialized pattern for session count questions
+const SESSION_COUNT_PATTERN = /how\s+many\s+sessions\s+has\s+([A-Za-z']+)(?:s)?\s+had/i;
 
 /**
  * Core handler for goal tracking related questions
@@ -171,17 +174,14 @@ function extractClientName(question: string): string | null {
   }
   
   // Special handling for "How many sessions has Olivias had this month?" pattern
-  if (question.toLowerCase().includes("how many sessions has")) {
-    // Find any capitalized word followed by the word "had"
-    const sessionMatch = question.match(/how many sessions has\s+([A-Z][a-z']+)(?:s)?\s+had/i);
-    if (sessionMatch && sessionMatch[1]) {
-      const name = sessionMatch[1];
-      // Skip common words
-      const skipWords = ['most', 'recent', 'all', 'any', 'last', 'current', 'previous', 'their', 'many'];
-      if (!skipWords.includes(name.toLowerCase())) {
-        console.log('Found client name in session count query:', name);
-        return name;
-      }
+  const sessionCountMatch = question.match(SESSION_COUNT_PATTERN);
+  if (sessionCountMatch && sessionCountMatch[1]) {
+    const name = sessionCountMatch[1];
+    // Skip common words
+    const skipWords = ['most', 'recent', 'all', 'any', 'last', 'current', 'previous', 'their', 'many'];
+    if (!skipWords.includes(name.toLowerCase())) {
+      console.log('Found client name in session count query:', name);
+      return name;
     }
   }
   
