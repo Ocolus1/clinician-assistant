@@ -188,19 +188,45 @@ class ClinicalQuestionsService {
     try {
       console.log(`Searching for client with identifier: "${identifier}"`);
       
-      // Try to find by exact name, unique identifier, or partial match
-      const result = await sql`
+      // First try exact match with full identifier, unique id, or original name
+      const exactResult = await sql`
         SELECT * FROM clients
         WHERE name = ${identifier}
         OR unique_identifier = ${identifier}
         OR original_name = ${identifier}
-        OR LOWER(name) LIKE ${`%${identifier.toLowerCase()}%`}
         LIMIT 1
       `;
       
-      if (result.length > 0) {
-        console.log(`Found client in database:`, result[0]);
-        return result[0];
+      if (exactResult.length > 0) {
+        console.log(`Found client by exact match:`, exactResult[0]);
+        return exactResult[0];
+      }
+      
+      // If exact match fails, try looking for complete clients with partial match
+      // Prioritize clients with onboarding_status = 'complete'
+      const completeClientResult = await sql`
+        SELECT * FROM clients
+        WHERE LOWER(name) LIKE ${`%${identifier.toLowerCase()}%`}
+        AND onboarding_status = 'complete'
+        LIMIT 1
+      `;
+      
+      if (completeClientResult.length > 0) {
+        console.log(`Found complete client with partial match:`, completeClientResult[0]);
+        return completeClientResult[0];
+      }
+      
+      // As a last resort, try any partial match
+      const partialMatchResult = await sql`
+        SELECT * FROM clients
+        WHERE LOWER(name) LIKE ${`%${identifier.toLowerCase()}%`}
+        OR LOWER(original_name) LIKE ${`%${identifier.toLowerCase()}%`}
+        LIMIT 1
+      `;
+      
+      if (partialMatchResult.length > 0) {
+        console.log(`Found client with partial match:`, partialMatchResult[0]);
+        return partialMatchResult[0];
       }
       
       console.log(`No client found for identifier: "${identifier}"`);

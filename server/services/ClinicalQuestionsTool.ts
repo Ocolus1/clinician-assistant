@@ -46,38 +46,53 @@ INPUT EXAMPLES:
       // Extract client from input
       let clientIdentifier: string | undefined;
       
-      // Direct match for client names with identifiers
-      if (input.includes("Radwan-585666") || input.includes("Test-577472")) {
-        const matches = input.match(/([A-Za-z0-9-]+)/g);
-        if (matches) {
-          // Find the client name pattern in the matches
-          for (const match of matches) {
-            if (match.includes("-")) {
-              clientIdentifier = match;
-              console.log(`Detected client with ID: "${clientIdentifier}" (direct match)`);
-              break;
-            }
-          }
-        }
-      } 
+      // Direct match for client names with identifiers (format: Name-123456)
+      const clientWithId = input.match(/([A-Za-z]+)-([0-9]+)/);
+      if (clientWithId && clientWithId[0]) {
+        clientIdentifier = clientWithId[0];
+        console.log(`Detected client with ID pattern: "${clientIdentifier}"`);
+      }
       
-      // If no direct match, look for capitalized words that might be base names like "Radwan" or "Test"
+      // If no direct identifier match, look for capitalized client names
       if (!clientIdentifier) {
-        const nameMatch = input.match(/\b([A-Z][a-z]+)\b/);
-        if (nameMatch && !["What", "Which", "Where", "When", "Does", "Is"].includes(nameMatch[1])) {
-          clientIdentifier = nameMatch[1];
-          console.log(`Detected client base name: "${clientIdentifier}" (capitalized word)`);
+        // First try multi-word names (like "Leo Smith")
+        const fullNameMatch = input.match(/\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)\b/);
+        if (fullNameMatch && fullNameMatch[1]) {
+          clientIdentifier = fullNameMatch[1];
+          console.log(`Detected potential full name: "${clientIdentifier}"`);
+        } else {
+          // Then try single capitalized words that might be names
+          const nameMatch = input.match(/\b([A-Z][a-z]+)\b/);
+          if (nameMatch && !["What", "Which", "Where", "When", "Does", "Is", "Has", "Can", "Will", "How"].includes(nameMatch[1])) {
+            clientIdentifier = nameMatch[1];
+            console.log(`Detected potential client name: "${clientIdentifier}" (capitalized word)`);
+          }
         }
       }
       
-      // If no client found yet, try common client base names from our database
+      // If still no match, try known client names from our database
       if (!clientIdentifier) {
-        const commonClients = ["Radwan", "Test", "MAriam", "Gabriel", "Mohamad", "Muhammad"];
+        // Include all known common client base names
+        const commonClients = ["Radwan", "Test", "MAriam", "Mariam", "Gabriel", "Mohamad", "Muhammad", "Leo", "Olivia"];
+        
+        // Special handling for known client names with priority for exact matches
         for (const name of commonClients) {
-          if (input.toLowerCase().includes(name.toLowerCase())) {
+          const regex = new RegExp(`\\b${name}\\b`, 'i');
+          if (regex.test(input)) {
             clientIdentifier = name;
-            console.log(`Found common client base name: "${clientIdentifier}"`);
+            console.log(`Found exact match for known client name: "${clientIdentifier}"`);
             break;
+          }
+        }
+        
+        // If no exact match found, try substring matches
+        if (!clientIdentifier) {
+          for (const name of commonClients) {
+            if (input.toLowerCase().includes(name.toLowerCase())) {
+              clientIdentifier = name;
+              console.log(`Found known client name as substring: "${clientIdentifier}"`);
+              break;
+            }
           }
         }
       }
