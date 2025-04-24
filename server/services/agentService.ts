@@ -77,23 +77,30 @@ export interface AgentServiceConfig {
 /**
  * SQL Query Tool for LangChain Agent
  */
-class SQLQueryTool extends StructuredTool {
-  name = "query_database";
-  description = "Useful for querying the database to answer questions about clinical data";
-  schema = z.object({
-    query: z.string().describe("The SQL query to execute. Should be a valid PostgreSQL query.")
-  });
-  
+class SQLQueryTool extends DynamicTool {
   constructor(private executeQueryFn: (query: string) => Promise<QueryResult>) {
-    super();
+    super({
+      name: "query_database",
+      description: "Useful for querying the database to answer questions about clinical data",
+      func: async (input: string | { query: string }) => {
+        return this._dynamicCall(input);
+      }
+    });
   }
   
-  async _call(input: { query: string }): Promise<string> {
+  private async _dynamicCall(input: string | { query: string }): Promise<string> {
     try {
-      console.log(`Executing SQL query: ${input.query}`);
+      // Extract query from input, handling both string and object forms
+      const sqlQuery = typeof input === 'string' ? input : input.query;
+      
+      if (!sqlQuery) {
+        throw new Error("SQL query is required");
+      }
+      
+      console.log(`Executing SQL query: ${sqlQuery}`);
       
       // First try executing the original query
-      let result = await this.executeQueryFn(input.query);
+      let result = await this.executeQueryFn(sqlQuery);
       
       // If no results were found, try to enhance the query using schema analysis
       if (result.rows.length === 0) {
