@@ -126,7 +126,38 @@ class ConversationalAgentService {
    * Determine if a message requires data processing
    */
   private async requiresDataProcessing(message: string): Promise<boolean> {
-    // Delegate to the existing agent's classification logic
+    // Always treat questions about clients as requiring data processing
+    const clientNamePatterns = [
+      // Look for questions about clients by name
+      /what(?:.*)(?:goal|progress|milestone|subgoal)(?:.*)(is|has|did)\s+([A-Za-z0-9\-]+)/i,
+      /(?:goal|progress|milestone|subgoal)(?:.*)(?:for|of|by)\s+([A-Za-z0-9\-]+)/i,
+      // General patterns for client names
+      /\b(?:client|patient)\s+(?:named|called)\s+([A-Za-z0-9\-]+)/i,
+      // Direct name mentions in goal-related contexts
+      /\b([A-Za-z][a-zA-Z0-9\-]{2,})'s\s+(?:goal|progress|milestone|therapy)/i,
+      /\b([A-Za-z][a-zA-Z0-9\-]{2,})\s+(?:is working on|has completed)/i,
+      // Capture names with hyphens (ID format)
+      /\b([A-Za-z0-9]+-[0-9]+)\b/i
+    ];
+    
+    // Check if message matches any client name patterns
+    for (const pattern of clientNamePatterns) {
+      if (pattern.test(message)) {
+        console.log('Message matches client name pattern, treating as data query');
+        return true;
+      }
+    }
+    
+    // Common client base names (should match what's in the database)
+    const commonClientBaseNames = ["Radwan", "Test", "MAriam", "Gabriel", "Mohamad", "Muhammad"];
+    for (const name of commonClientBaseNames) {
+      if (message.toLowerCase().includes(name.toLowerCase())) {
+        console.log(`Message contains common client name "${name}", treating as data query`);
+        return true;
+      }
+    }
+    
+    // Fall back to the existing agent's classification logic
     return await agentService.requiresAgentProcessing(message);
   }
   
@@ -145,11 +176,23 @@ class ConversationalAgentService {
     
     try {
       // Get memory context to help with continuity
+      // Convert messages to the format required by the memory service
+      const formattedMessages: Message[] = recentMessages.map((msg, idx) => ({
+        id: `temp-${idx}`,
+        role: msg.role,
+        content: msg.content,
+        createdAt: new Date().toISOString()
+      }));
+      
+      // Get memory context to help with continuity
       const memoryContext = await memoryManagementService.getTieredMemoryContext(
         conversationId,
         userMessage,
-        recentMessages
-      ).then(result => result.recentMemory || '');
+        formattedMessages
+      ).then(result => {
+        // Extract the combined context from the memory retrieval result
+        return result.combinedContext || '';
+      });
       
       // Create a system prompt to transform the raw agent response
       const systemPrompt = `You are a professional clinical assistant helping therapists manage client data.
@@ -205,6 +248,14 @@ Recent conversation context: ${memoryContext || 'No recent context available.'}`
     message: string,
     recentMessages: { role: MessageRole; content: string }[]
   ): Promise<string> {
+    // Convert messages to the format required by the langchain service
+    const formattedMessages: Message[] = recentMessages.map((msg, idx) => ({
+      id: `temp-${idx}`,
+      role: msg.role,
+      content: msg.content,
+      createdAt: new Date().toISOString()
+    }));
+    
     // Use the existing LangChain service for conversation
     const systemPrompt = `You are a professional clinical assistant helping therapists manage client data and treatment plans. 
     Provide brief, actionable insights and respond to queries professionally.
@@ -217,7 +268,7 @@ Recent conversation context: ${memoryContext || 'No recent context available.'}`
       conversationId,
       message,
       systemPrompt,
-      recentMessages
+      formattedMessages
     );
   }
   
