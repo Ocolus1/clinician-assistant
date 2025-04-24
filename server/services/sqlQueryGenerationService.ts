@@ -417,8 +417,14 @@ Please fix the query to work correctly with our database.`;
     
     try {
       // Extract table alias if present
-      const aliasMatch = query.match(/from\s+clients(?:\s+as)?\s+([a-z])/i);
-      const tablePrefix = aliasMatch ? `${aliasMatch[1]}.` : 'clients.';
+      const aliasMatch = query.match(/from\s+clients(?:\s+as)?\s+([a-z])/i) || 
+                         query.match(/join\s+clients(?:\s+as)?\s+([a-z])/i);  // Also check JOIN clauses
+                         
+      // Check if we found the 'clients' table with an alias
+      let tablePrefix = 'c.';  // Default to 'c.' as that's the most common alias
+      if (aliasMatch && aliasMatch[1]) {
+        tablePrefix = `${aliasMatch[1]}.`;
+      }
       
       // Determine where clause position
       const wherePos = lowerQuery.indexOf('where');
@@ -430,6 +436,7 @@ Please fix the query to work correctly with our database.`;
       const whereClause = query.substring(wherePos);
       
       // Create enhanced condition using OR with all client identifier fields
+      // Make sure we're using the correct table prefix (alias)
       let enhancedCondition = `WHERE (${tablePrefix}name = '${clientValue}' OR ` +
                               `${tablePrefix}name LIKE '%${clientValue}%' OR ` +
                               `${tablePrefix}original_name = '${clientValue}' OR ` +

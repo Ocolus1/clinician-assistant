@@ -212,10 +212,7 @@ export function ChatInterface() {
     }
   }, [statusData]);
   
-  useEffect(() => {
-    // Scroll to bottom when messages change
-    scrollToBottom();
-  }, [conversations, activeConversationId]);
+  
   
   // Handlers
   const handleCreateConversation = () => {
