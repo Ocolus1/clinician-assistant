@@ -42,13 +42,40 @@ router.post('/test-agent-query', async (req, res) => {
     
     try {
       // Process with agent
-      const result = await agentService.processAgentQuery(
+      let result = await agentService.processAgentQuery(
         conversationId || 'debug-session',
         question,
         [{ role: 'user', content: question }]
       );
       
       console.log("Agent query processed successfully");
+      
+      // Check if the result is a JSON string containing action/action_input
+      if (typeof result === 'string' && result.includes('```json') && result.includes('action')) {
+        console.log("Detected raw action format in result, attempting to process");
+        try {
+          // Extract the JSON part
+          const jsonMatch = result.match(/```json\s*([\s\S]*?)\s*```/);
+          if (jsonMatch && jsonMatch[1]) {
+            const actionData = JSON.parse(jsonMatch[1]);
+            
+            if (actionData.action === 'answer_clinical_question' && actionData.action_input) {
+              // If it's a clinical question action, handle it directly
+              console.log("Processing clinical question directly:", actionData.action_input);
+              
+              const { ClinicalQuestionsTool } = await import('../services/ClinicalQuestionsTool');
+              const clinicalTool = new ClinicalQuestionsTool();
+              
+              // Call the tool directly
+              result = await clinicalTool._call(actionData.action_input);
+              console.log("Processed clinical question result:", result);
+            }
+          }
+        } catch (parseError) {
+          console.error("Error parsing or processing action format:", parseError);
+          // Continue with original result if parsing fails
+        }
+      }
       
       res.json({
         success: true,
