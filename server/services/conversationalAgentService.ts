@@ -126,6 +126,34 @@ class ConversationalAgentService {
    * Determine if a message requires data processing
    */
   private async requiresDataProcessing(message: string): Promise<boolean> {
+    // First check for explicit clinical questions about goals and progress
+    const clinicalQuestionPatterns = [
+      // Goal-specific patterns
+      /what\s+goals?\s+(?:is|are|has|have)\s+([A-Za-z0-9\-]+)/i,
+      /what\s+(?:is|are)\s+([A-Za-z0-9\-]+)(?:'s)?\s+goals?/i,
+      /goals?\s+(?:for|of)\s+([A-Za-z0-9\-]+)/i,
+      
+      // Progress patterns
+      /progress\s+(?:on|for|of)\s+([A-Za-z0-9\-]+)/i,
+      /([A-Za-z0-9\-]+)(?:'s)?\s+progress/i,
+      
+      // Milestone/subgoal patterns
+      /(?:milestone|subgoal)s?\s+(?:for|of|completed\s+by)\s+([A-Za-z0-9\-]+)/i,
+      /what\s+(?:milestone|subgoal)s?\s+(?:is|has|did)\s+([A-Za-z0-9\-]+)/i,
+      
+      // Working on patterns
+      /what\s+is\s+([A-Za-z0-9\-]+)\s+working\s+on/i,
+      /([A-Za-z0-9\-]+)\s+(?:is|has been)\s+working\s+on/i
+    ];
+    
+    // Check clinical question patterns first
+    for (const pattern of clinicalQuestionPatterns) {
+      if (pattern.test(message)) {
+        console.log('Message matches clinical question pattern, routing to clinical questions tool');
+        return true;
+      }
+    }
+    
     // Always treat questions about clients as requiring data processing
     const clientNamePatterns = [
       // Look for questions about clients by name
@@ -149,10 +177,23 @@ class ConversationalAgentService {
     }
     
     // Common client base names (should match what's in the database)
-    const commonClientBaseNames = ["Radwan", "Test", "MAriam", "Gabriel", "Mohamad", "Muhammad"];
+    const commonClientBaseNames = ["Radwan", "Test", "Mariam", "Gabriel", "Mohamad", "Muhammad", "Leo", "Olivia"];
     for (const name of commonClientBaseNames) {
       if (message.toLowerCase().includes(name.toLowerCase())) {
         console.log(`Message contains common client name "${name}", treating as data query`);
+        return true;
+      }
+    }
+    
+    // Keywords related to clinical questions that should trigger the agent
+    const clinicalKeywords = [
+      'goals', 'subgoals', 'milestones', 'progress', 'therapy goal', 
+      'improvement', 'recently worked on', 'last session'
+    ];
+    
+    for (const keyword of clinicalKeywords) {
+      if (message.toLowerCase().includes(keyword.toLowerCase())) {
+        console.log(`Message contains clinical keyword "${keyword}", treating as data query`);
         return true;
       }
     }
