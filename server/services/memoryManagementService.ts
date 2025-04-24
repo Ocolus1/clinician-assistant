@@ -368,41 +368,6 @@ export class MemoryManagementService {
   }
   
   /**
-   * Extract entities from message content for memory context
-   */
-  private extractEntities(message: string): Record<string, any> {
-    const entities: Record<string, any> = {};
-    
-    // Extract client identifiers (Name-ID format)
-    const clientPattern = /([A-Za-z]+)-([0-9]+)/g;
-    const clientMatches = Array.from(message.matchAll(clientPattern));
-    
-    if (clientMatches.length > 0) {
-      entities.clients = clientMatches.map(match => match[0]);
-    }
-    
-    // Extract common client base names without identifiers
-    if (!entities.clients || entities.clients.length === 0) {
-      const commonClients = ["Radwan", "Test", "Mariam", "Gabriel", "Mohamad", "Muhammad", "Leo", "Olivia"];
-      const foundClients = [];
-      
-      // Look for exact name matches (using word boundaries)
-      for (const name of commonClients) {
-        const nameRegex = new RegExp(`\\b${name}\\b`, 'i');
-        if (nameRegex.test(message)) {
-          foundClients.push(name);
-        }
-      }
-      
-      if (foundClients.length > 0) {
-        entities.clients = foundClients;
-      }
-    }
-    
-    return entities;
-  }
-  
-  /**
    * Get tiered memory context for a conversation
    */
   async getTieredMemoryContext(
@@ -497,37 +462,6 @@ export class MemoryManagementService {
     summaries: MemorySummary[]
   ): string {
     let context = '';
-    
-    // Extract entities from recent messages to add as context
-    const entityContext: Record<string, any> = {};
-    
-    // Process recent messages to extract entities
-    if (recentMessages.length > 0) {
-      // Combine all user messages for entity extraction
-      const allUserContent = recentMessages
-        .filter(msg => msg.role === 'user')
-        .map(msg => msg.content)
-        .join(' ');
-      
-      // Extract entities
-      const extractedEntities = this.extractEntities(allUserContent);
-      
-      // Add client context if found
-      if (extractedEntities.clients && extractedEntities.clients.length > 0) {
-        entityContext.clients = extractedEntities.clients;
-      }
-    }
-    
-    // Add entity context to the beginning for highest visibility
-    if (Object.keys(entityContext).length > 0) {
-      context += 'Current context entities:\n';
-      
-      if (entityContext.clients) {
-        context += `- Client(s) being discussed: ${entityContext.clients.join(', ')}\n`;
-      }
-      
-      context += '\n';
-    }
     
     // Add recent conversation
     if (recentMessages.length > 0) {
