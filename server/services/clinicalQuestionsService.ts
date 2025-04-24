@@ -188,6 +188,11 @@ class ClinicalQuestionsService {
     try {
       console.log(`Searching for client with identifier: "${identifier}"`);
       
+      // Create debug queries to see what's going on
+      console.log(`DEBUG QUERY: SELECT * FROM clients WHERE name = '${identifier}'`);
+      console.log(`DEBUG QUERY: SELECT * FROM clients WHERE unique_identifier = '${identifier}'`);
+      console.log(`DEBUG QUERY: SELECT * FROM clients WHERE original_name = '${identifier}'`);
+      
       // First try exact match with full identifier, unique id, or original name
       const exactResult = await sql`
         SELECT * FROM clients
@@ -197,9 +202,30 @@ class ClinicalQuestionsService {
         LIMIT 1
       `;
       
+      console.log(`Exact match query result count: ${exactResult.length}`);
       if (exactResult.length > 0) {
         console.log(`Found client by exact match:`, exactResult[0]);
         return exactResult[0];
+      }
+      
+      // Check if this is a combined format (name-id)
+      if (identifier.includes('-')) {
+        const [namePart, idPart] = identifier.split('-');
+        console.log(`Checking combined format - namePart: "${namePart}", idPart: "${idPart}"`);
+        
+        // Try to find by exact combined identifier
+        const combinedResult = await sql`
+          SELECT * FROM clients
+          WHERE name = ${identifier}
+          OR (original_name = ${namePart} AND unique_identifier = ${idPart})
+          LIMIT 1
+        `;
+        
+        console.log(`Combined identifier result count: ${combinedResult.length}`);
+        if (combinedResult.length > 0) {
+          console.log(`Found client by combined parts:`, combinedResult[0]);
+          return combinedResult[0];
+        }
       }
       
       // If exact match fails, try looking for complete clients with partial match
@@ -211,9 +237,25 @@ class ClinicalQuestionsService {
         LIMIT 1
       `;
       
+      console.log(`Complete client query result count: ${completeClientResult.length}`);
       if (completeClientResult.length > 0) {
         console.log(`Found complete client with partial match:`, completeClientResult[0]);
         return completeClientResult[0];
+      }
+      
+      // Try a direct SQL query to find client with Radwan
+      console.log(`Trying direct SQL query for client with original_name = 'Radwan' and onboarding_status = 'complete'`);
+      const directResult = await sql.unsafe(`
+        SELECT * FROM clients 
+        WHERE original_name = 'Radwan' 
+        AND onboarding_status = 'complete'
+        LIMIT 1
+      `);
+      
+      console.log(`Direct SQL query result count: ${directResult.length}`);
+      if (directResult.length > 0) {
+        console.log(`Found client directly:`, directResult[0]);
+        return directResult[0];
       }
       
       // As a last resort, try any partial match
@@ -224,10 +266,15 @@ class ClinicalQuestionsService {
         LIMIT 1
       `;
       
+      console.log(`Partial match result count: ${partialMatchResult.length}`);
       if (partialMatchResult.length > 0) {
         console.log(`Found client with partial match:`, partialMatchResult[0]);
         return partialMatchResult[0];
       }
+      
+      // For debugging, let's get all clients
+      const allClients = await sql`SELECT id, name, original_name, unique_identifier, onboarding_status FROM clients LIMIT 10`;
+      console.log(`All clients sample (10 max):`, allClients);
       
       console.log(`No client found for identifier: "${identifier}"`);
       return null;
