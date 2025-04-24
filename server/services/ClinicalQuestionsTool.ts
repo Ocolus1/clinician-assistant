@@ -31,28 +31,39 @@ export class ClinicalQuestionsTool extends DynamicTool {
       const question = input;
       let clientIdentifier: string | undefined;
       
-      // Extract client identifier from the question
-      const questionLower = question.toLowerCase();
-      const possibleNames = [
-        "Olivia", "Leo", "Sofia", "Noah", "Emma", "Liam", 
-        "Ava", "Ethan", "Mia", "Lucas"
-      ];
+      // Extract client identifier from the question, looking for name patterns like "Radwan-585666"
+      // Match patterns like "Name-123456" or just "Name" or just capitalized words that might be names
+      const nameIdRegex = /\b([A-Z][a-z]+)(?:-(\d+))?\b/g;
+      const matches = Array.from(question.matchAll(nameIdRegex));
       
-      for (const name of possibleNames) {
-        if (questionLower.includes(name.toLowerCase())) {
-          clientIdentifier = name;
-          break;
+      if (matches.length > 0) {
+        // Use the first found name or name-id combo
+        const match = matches[0];
+        // If we have both name and ID (like "Radwan-585666"), use the full match
+        if (match[2]) {
+          clientIdentifier = match[0]; // Full match like "Radwan-585666"
+        } else {
+          clientIdentifier = match[1]; // Just the name part like "Radwan"
         }
       }
       
-      // If still not found, use a default approach to extract names
+      // If still not found, look for any word that might be a name or identifier
       if (!clientIdentifier) {
-        // Look for names that are likely to be capitalized words
-        const words = question.split(' ');
+        // Look for words that are likely to be names or identifiers
+        const words = question.split(/\s+/);
         for (const word of words) {
-          // If it starts with capital letter and is not at the beginning of a sentence
-          if (word.length > 1 && word[0] === word[0].toUpperCase() && word[0] !== word[0].toLowerCase()) {
-            clientIdentifier = word;
+          // Remove any punctuation that might be attached to the word
+          const cleaned = word.replace(/['",.?!]/g, '');
+          
+          // Check for hyphenated format (name-number)
+          if (/^[A-Za-z]+-\d+$/.test(cleaned)) {
+            clientIdentifier = cleaned;
+            break;
+          }
+          
+          // If it's capitalized and not at sentence start
+          if (cleaned.length > 1 && /^[A-Z]/.test(cleaned) && !/^(What|Where|When|Why|How|Is|Are|Can|Do|Does|Did|Has|Have|Will)$/i.test(cleaned)) {
+            clientIdentifier = cleaned;
             break;
           }
         }

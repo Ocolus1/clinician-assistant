@@ -212,20 +212,23 @@ class ClinicalQuestionsService {
    */
   private async getCurrentGoals(clientId: number): Promise<ClinicalQuestionResponse> {
     try {
+      console.log(`Fetching goals for client ID: ${clientId}`);
+      
       const query = `
         SELECT g.id, g.title, g.description, g.priority
         FROM goals g
         WHERE g.client_id = ${clientId}
         ORDER BY 
-          CASE g.priority 
-            WHEN 'high' THEN 1
-            WHEN 'medium' THEN 2
-            WHEN 'low' THEN 3
+          CASE 
+            WHEN g.priority = 'High Priority' THEN 1
+            WHEN g.priority = 'Medium Priority' THEN 2
+            WHEN g.priority = 'Low Priority' THEN 3
             ELSE 4
           END
       `;
       
       const result = await sql.unsafe(query);
+      console.log(`Found ${result.length} goals for client ID: ${clientId}`);
       
       if (result.length === 0) {
         return {

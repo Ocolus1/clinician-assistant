@@ -107,7 +107,7 @@ class SQLQueryTool extends DynamicTool {
         console.log("Query returned no results, attempting to enhance with schema analysis...");
         
         // Try to find and fix identifier format issues using schema analysis
-        const alternativeQueries = await this.generateAlternativeQueries(input.query);
+        const alternativeQueries = await this.generateAlternativeQueries(sqlQuery);
         
         // Try each alternative query
         for (const alternativeQuery of alternativeQueries) {
@@ -139,7 +139,7 @@ class SQLQueryTool extends DynamicTool {
           }
           
           // Get schema suggestions for the query
-          const schemaSuggestions = schemaAnalysisService.getSchemaSuggestionsForQuery(input.query);
+          const schemaSuggestions = schemaAnalysisService.getSchemaSuggestionsForQuery(sqlQuery);
           
           return `No results found for this query. Here are some suggestions based on database schema analysis:\n\n${schemaSuggestions}`;
         }
@@ -232,22 +232,51 @@ class SQLQueryTool extends DynamicTool {
             if (tableMatches.length === 1) {
               tableName = tableMatches[0][1] || tableMatches[0][2];
             } else {
-              // Try to find tables that have this column
-              const tablesWithColumn = schemaAnalysisService.findTableWithColumn(columnName);
-              if (tablesWithColumn.length === 1) {
-                tableName = tablesWithColumn[0];
+              // Handle schema analysis without specialized methods by manually building queries
+              // If we're looking for a name pattern, add client query alternatives
+              if (columnName === 'name' || columnName === 'unique_identifier' || columnName === 'original_name') {
+                // Simple approach - build alternative queries directly for client identifiers
+                if (/^[A-Za-z]+-\d+$/.test(value)) {
+                  // For name-number pattern, build alternatives with name and id
+                  const parts = value.split('-');
+                  const name = parts[0];
+                  const id = parts[1];
+                  
+                  // Create alternative queries for the three identifier patterns we've seen
+                  let baseQuery = query.replace(`${columnName} = '${value}'`, `(${columnName} = '${value}' OR original_name = '${name}' OR unique_identifier = '${id}')`);
+                  alternativeQueries.push(baseQuery);
+                }
+                return alternativeQueries;
               }
             }
           }
           
-          // If we found the table, generate alternative queries
-          if (tableName) {
-            const altQueries = schemaAnalysisService.generateAlternativeQueries(
-              query, tableName, columnName, value
-            );
-            
-            // Add all alternative queries except the original (which is already being tried)
-            alternativeQueries.push(...altQueries.slice(1));
+          // If we found the table, manually create alternative queries based on known patterns
+          if (tableName === 'clients') {
+            // Special handling for clients table with its three identifier fields
+            // This is a simplified alternative to schema-based query generation
+            if (/^[A-Za-z]+-\d+$/.test(value)) {
+              const parts = value.split('-');
+              const name = parts[0];
+              const id = parts[1];
+              
+              let baseQuery = query;
+              if (tableAlias) {
+                // For aliased tables, use the alias
+                baseQuery = baseQuery.replace(
+                  `${tableAlias}.${columnName} = '${value}'`, 
+                  `(${tableAlias}.${columnName} = '${value}' OR ${tableAlias}.original_name = '${name}' OR ${tableAlias}.unique_identifier = '${id}')`
+                );
+              } else {
+                // For non-aliased tables
+                baseQuery = baseQuery.replace(
+                  `${columnName} = '${value}'`, 
+                  `(${columnName} = '${value}' OR original_name = '${name}' OR unique_identifier = '${id}')`
+                );
+              }
+              
+              alternativeQueries.push(baseQuery);
+            }
           }
         }
       }
