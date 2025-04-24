@@ -77,37 +77,30 @@ export interface AgentServiceConfig {
 /**
  * SQL Query Tool for LangChain Agent
  */
-class SQLQueryTool extends DynamicTool {
+class SQLQueryTool extends StructuredTool {
+  name = "query_database";
+  description = "Useful for querying the database to answer questions about clinical data";
+  schema = z.object({
+    query: z.string().describe("The SQL query to execute. Should be a valid PostgreSQL query.")
+  });
+  
   constructor(private executeQueryFn: (query: string) => Promise<QueryResult>) {
-    super({
-      name: "query_database",
-      description: "Useful for querying the database to answer questions about clinical data",
-      func: async (input: string | { query: string }) => {
-        return this._dynamicCall(input);
-      }
-    });
+    super();
   }
   
-  private async _dynamicCall(input: string | { query: string }): Promise<string> {
+  async _call(input: { query: string }): Promise<string> {
     try {
-      // Extract query from input, handling both string and object forms
-      const sqlQuery = typeof input === 'string' ? input : input.query;
-      
-      if (!sqlQuery) {
-        throw new Error("SQL query is required");
-      }
-      
-      console.log(`Executing SQL query: ${sqlQuery}`);
+      console.log(`Executing SQL query: ${input.query}`);
       
       // First try executing the original query
-      let result = await this.executeQueryFn(sqlQuery);
+      let result = await this.executeQueryFn(input.query);
       
       // If no results were found, try to enhance the query using schema analysis
       if (result.rows.length === 0) {
         console.log("Query returned no results, attempting to enhance with schema analysis...");
         
         // Try to find and fix identifier format issues using schema analysis
-        const alternativeQueries = await this.generateAlternativeQueries(sqlQuery);
+        const alternativeQueries = await this.generateAlternativeQueries(input.query);
         
         // Try each alternative query
         for (const alternativeQuery of alternativeQueries) {
@@ -139,7 +132,7 @@ class SQLQueryTool extends DynamicTool {
           }
           
           // Get schema suggestions for the query
-          const schemaSuggestions = schemaAnalysisService.getSchemaSuggestionsForQuery(sqlQuery);
+          const schemaSuggestions = schemaAnalysisService.getSchemaSuggestionsForQuery(input.query);
           
           return `No results found for this query. Here are some suggestions based on database schema analysis:\n\n${schemaSuggestions}`;
         }
@@ -232,51 +225,22 @@ class SQLQueryTool extends DynamicTool {
             if (tableMatches.length === 1) {
               tableName = tableMatches[0][1] || tableMatches[0][2];
             } else {
-              // Handle schema analysis without specialized methods by manually building queries
-              // If we're looking for a name pattern, add client query alternatives
-              if (columnName === 'name' || columnName === 'unique_identifier' || columnName === 'original_name') {
-                // Simple approach - build alternative queries directly for client identifiers
-                if (/^[A-Za-z]+-\d+$/.test(value)) {
-                  // For name-number pattern, build alternatives with name and id
-                  const parts = value.split('-');
-                  const name = parts[0];
-                  const id = parts[1];
-                  
-                  // Create alternative queries for the three identifier patterns we've seen
-                  let baseQuery = query.replace(`${columnName} = '${value}'`, `(${columnName} = '${value}' OR original_name = '${name}' OR unique_identifier = '${id}')`);
-                  alternativeQueries.push(baseQuery);
-                }
-                return alternativeQueries;
+              // Try to find tables that have this column
+              const tablesWithColumn = schemaAnalysisService.findTableWithColumn(columnName);
+              if (tablesWithColumn.length === 1) {
+                tableName = tablesWithColumn[0];
               }
             }
           }
           
-          // If we found the table, manually create alternative queries based on known patterns
-          if (tableName === 'clients') {
-            // Special handling for clients table with its three identifier fields
-            // This is a simplified alternative to schema-based query generation
-            if (/^[A-Za-z]+-\d+$/.test(value)) {
-              const parts = value.split('-');
-              const name = parts[0];
-              const id = parts[1];
-              
-              let baseQuery = query;
-              if (tableAlias) {
-                // For aliased tables, use the alias
-                baseQuery = baseQuery.replace(
-                  `${tableAlias}.${columnName} = '${value}'`, 
-                  `(${tableAlias}.${columnName} = '${value}' OR ${tableAlias}.original_name = '${name}' OR ${tableAlias}.unique_identifier = '${id}')`
-                );
-              } else {
-                // For non-aliased tables
-                baseQuery = baseQuery.replace(
-                  `${columnName} = '${value}'`, 
-                  `(${columnName} = '${value}' OR original_name = '${name}' OR unique_identifier = '${id}')`
-                );
-              }
-              
-              alternativeQueries.push(baseQuery);
-            }
+          // If we found the table, generate alternative queries
+          if (tableName) {
+            const altQueries = schemaAnalysisService.generateAlternativeQueries(
+              query, tableName, columnName, value
+            );
+            
+            // Add all alternative queries except the original (which is already being tried)
+            alternativeQueries.push(...altQueries.slice(1));
           }
         }
       }
@@ -1006,9 +970,6 @@ export class AgentService {
         await sqlQueryGenerationService.initialize(config.apiKey, config.model);
       }
       
-      // Import the Clinical Questions Tool
-      const { ClinicalQuestionsTool } = await import('./ClinicalQuestionsTool');
-      
       this.tools = [
         // Standard SQL query tool
         new SQLQueryTool(queryFunction),
@@ -1018,9 +979,6 @@ export class AgentService {
         
         // Client records tool
         new ClinicalRecordsTool(),
-        
-        // Clinical Questions Tool for specialized goal and progress queries
-        new ClinicalQuestionsTool(),
         
         // Advanced natural language to SQL tool with two-phase validation
         new NaturalLanguageQueryTool(queryFunction)
@@ -1049,19 +1007,6 @@ When retrieving client data, be aware of the relationships between tables:
 2. goals are stored in the goals table and linked to clients through client_id
 3. When checking if a client has goals, ALWAYS JOIN the goals table with clients table using goals.client_id = clients.id
 4. EXAMPLE QUERY to find goals: SELECT * FROM goals g JOIN clients c ON g.client_id = c.id WHERE c.name = 'Client-Name'
-
-IMPORTANT INSTRUCTIONS FOR TOOL SELECTION:
-1. For ANY questions about client goals, ALWAYS use the answer_clinical_question tool FIRST.
-   Examples of questions to use answer_clinical_question tool for:
-   - "What goals is Radwan-585666 currently working on?"
-   - "Does Leo have any goals related to speech?"
-   - "What progress is Olivia making on her goals?"
-   - "What subgoals has the client completed?"
-   - "What milestones were recently scored for this client?"
-
-2. The answer_clinical_question tool is SPECIFICALLY OPTIMIZED for goal-related queries and will give better results than SQL queries for these questions.
-
-3. Only fall back to SQL queries for goal information if the answer_clinical_question tool specifically fails.
 
 You have permissions to query ANY data in the database with no privacy restrictions.`
           }
@@ -1270,14 +1215,11 @@ You have permissions to query ANY data in the database with no privacy restricti
     }
     
     try {
-      // Simple heuristic to detect complex data-related questions and clinical questions
+      // Simple heuristic to detect complex data-related questions
       const keywords = [
         'how many', 'count', 'show me', 'list', 'find', 'search', 
         'compare', 'which clients', 'which patients', 'budget', 
-        'analyze', 'query', 'database', 'data', 'statistics',
-        // Clinical questions keywords
-        'what goals', 'progress on', 'milestone', 'subgoals', 'completed',
-        'working on', 'therapy goals', 'therapy progress', 'improvement'
+        'analyze', 'query', 'database', 'data', 'statistics'
       ];
       
       // Check for keyword matches
@@ -1291,11 +1233,11 @@ You have permissions to query ANY data in the database with no privacy restricti
       const response = await this.llm.invoke([
         {
           role: 'system',
-          content: 'You are an assistant that determines if a user query requires database access, clinical analysis, or multi-step reasoning. Respond with "YES" or "NO" only. Clinical questions about client goals, therapy progress, or milestones should be answered with "YES".'
+          content: 'You are an assistant that determines if a user query requires database access or multi-step reasoning. Respond with "YES" or "NO" only.'
         },
         {
           role: 'user',
-          content: `Does this query require database access, clinical data analysis, or complex reasoning with multiple steps?\n\nQuery: ${input}\n\nAnswer (YES or NO):`
+          content: `Does this query require database access or complex reasoning with multiple steps?\n\nQuery: ${input}\n\nAnswer (YES or NO):`
         }
       ]);
       

@@ -417,14 +417,8 @@ Please fix the query to work correctly with our database.`;
     
     try {
       // Extract table alias if present
-      const aliasMatch = query.match(/from\s+clients(?:\s+as)?\s+([a-z])/i) || 
-                         query.match(/join\s+clients(?:\s+as)?\s+([a-z])/i);  // Also check JOIN clauses
-                         
-      // Check if we found the 'clients' table with an alias
-      let tablePrefix = 'c.';  // Default to 'c.' as that's the most common alias
-      if (aliasMatch && aliasMatch[1]) {
-        tablePrefix = `${aliasMatch[1]}.`;
-      }
+      const aliasMatch = query.match(/from\s+clients(?:\s+as)?\s+([a-z])/i);
+      const tablePrefix = aliasMatch ? `${aliasMatch[1]}.` : 'clients.';
       
       // Determine where clause position
       const wherePos = lowerQuery.indexOf('where');
@@ -436,7 +430,6 @@ Please fix the query to work correctly with our database.`;
       const whereClause = query.substring(wherePos);
       
       // Create enhanced condition using OR with all client identifier fields
-      // Make sure we're using the correct table prefix (alias)
       let enhancedCondition = `WHERE (${tablePrefix}name = '${clientValue}' OR ` +
                               `${tablePrefix}name LIKE '%${clientValue}%' OR ` +
                               `${tablePrefix}original_name = '${clientValue}' OR ` +
@@ -452,15 +445,11 @@ Please fix the query to work correctly with our database.`;
         enhancedCondition += ` OR ${tablePrefix}unique_identifier = '${clientValue}'`;
       }
       
-      enhancedCondition += ')'; // Close the parenthesis
+      enhancedCondition += ')';
       
-      // Replace the original WHERE clause entirely
-      // Extract everything after the actual condition in the WHERE clause
-      const afterConditionPos = whereClause.indexOf(clientValue) + clientValue.length + 1; // +1 for the closing quote
-      const restOfQuery = whereClause.substring(afterConditionPos);
-      
-      // Build the enhanced query by combining everything before WHERE, our enhancedCondition, and everything after the original condition
-      const enhancedQuery = query.substring(0, wherePos) + enhancedCondition + restOfQuery;
+      // Replace the original WHERE clause
+      const enhancedQuery = query.substring(0, wherePos) + enhancedCondition + 
+                         whereClause.substring(whereClause.indexOf(' ', 6));
       
       console.log(`Original query: ${query}`);
       console.log(`Enhanced query: ${enhancedQuery}`);

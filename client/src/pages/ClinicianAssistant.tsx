@@ -422,7 +422,7 @@ const ClinicianAssistant: React.FC = () => {
           
           <CardContent className="p-0 h-full">
             <TabsContent value="assistant" className="mt-0 h-full">
-              <div className="grid grid-cols-12 min-h-[500px] max-h-[900px]">
+              <div className="grid grid-cols-12 h-[calc(100vh-250px)] min-h-[500px] max-h-[900px]">
                 {/* Mobile Menu Button - Only visible on small screens */}
                 <div className="lg:hidden col-span-12 flex items-center border-b p-2">
                   <Button 
@@ -538,7 +538,7 @@ const ClinicianAssistant: React.FC = () => {
                         ) : (
                           <div 
                             ref={messagesContainerRef} 
-                            className="overflow-auto h-[calc(100vh-250px)] min-h-[300px]  border rounded-md p-3 flex flex-col space-y-4 scroll-smooth"
+                            className="overflow-auto h-[calc(100vh-400px)] min-h-[300px] max-h-[700px] border rounded-md p-3 flex flex-col space-y-4 scroll-smooth"
                           >
                             {selectedConversation.messages.map((msg: Message) => (
                               <MessageBubble key={msg.id} message={msg} />
@@ -586,6 +586,15 @@ const ClinicianAssistant: React.FC = () => {
                             <SendHorizontal className="h-3 w-3 md:h-4 md:w-4 mr-1 md:mr-2" />
                             <span className="hidden sm:inline">Send</span>
                           </Button>
+                        </div>
+                        <div className="text-xs text-muted-foreground mt-2 hidden sm:block">
+                          <p className="mb-1">Example questions:</p>
+                          <ul className="list-disc list-inside pl-2 space-y-1 text-[10px] md:text-xs">
+                            <li className="hidden md:list-item">"How many active clients do we have?"</li>
+                            <li className="hidden md:list-item">"Show me a list of clients with incomplete assessments"</li>
+                            <li>"What's the average session duration for therapist Sarah in March?"</li>
+                            <li>"List all clients with budgets over 80% utilized"</li>
+                          </ul>
                         </div>
                       </div>
                     </>

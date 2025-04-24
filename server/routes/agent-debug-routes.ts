@@ -8,7 +8,6 @@ import express from 'express';
 import { schemaAnalysisService } from '../services/schemaAnalysisService';
 import { sqlQueryGenerationService } from '../services/sqlQueryGenerationService';
 import { agentService } from '../services/agentService';
-import { clinicalQuestionsService } from '../services/clinicalQuestionsService';
 import { sql } from '../db';
 
 const router = express.Router();
@@ -42,40 +41,13 @@ router.post('/test-agent-query', async (req, res) => {
     
     try {
       // Process with agent
-      let result = await agentService.processAgentQuery(
+      const result = await agentService.processAgentQuery(
         conversationId || 'debug-session',
         question,
         [{ role: 'user', content: question }]
       );
       
       console.log("Agent query processed successfully");
-      
-      // Check if the result is a JSON string containing action/action_input
-      if (typeof result === 'string' && result.includes('```json') && result.includes('action')) {
-        console.log("Detected raw action format in result, attempting to process");
-        try {
-          // Extract the JSON part
-          const jsonMatch = result.match(/```json\s*([\s\S]*?)\s*```/);
-          if (jsonMatch && jsonMatch[1]) {
-            const actionData = JSON.parse(jsonMatch[1]);
-            
-            if (actionData.action === 'answer_clinical_question' && actionData.action_input) {
-              // If it's a clinical question action, handle it directly
-              console.log("Processing clinical question directly:", actionData.action_input);
-              
-              const { ClinicalQuestionsTool } = await import('../services/ClinicalQuestionsTool');
-              const clinicalTool = new ClinicalQuestionsTool();
-              
-              // Call the tool directly
-              result = await clinicalTool._call(actionData.action_input);
-              console.log("Processed clinical question result:", result);
-            }
-          }
-        } catch (parseError) {
-          console.error("Error parsing or processing action format:", parseError);
-          // Continue with original result if parsing fails
-        }
-      }
       
       res.json({
         success: true,
@@ -382,54 +354,6 @@ router.post('/query-suggestions', async (req, res) => {
     });
   } catch (error: any) {
     console.error('Error in query suggestions endpoint:', error);
-    res.status(500).json({
-      success: false,
-      error: error.message || 'Unknown error'
-    });
-  }
-});
-
-// Test the clinical questions service directly
-router.post('/test-clinical-question', async (req, res) => {
-  try {
-    const { question, clientIdentifier } = req.body;
-    
-    if (!question) {
-      return res.status(400).json({
-        success: false,
-        error: 'Question is required'
-      });
-    }
-    
-    if (!clientIdentifier) {
-      return res.status(400).json({
-        success: false,
-        error: 'Client identifier is required'
-      });
-    }
-    
-    console.log(`Testing clinical question: "${question}" for client: ${clientIdentifier}`);
-    
-    try {
-      // Process the clinical question directly using the service
-      const response = await clinicalQuestionsService.answerQuestion(question, clientIdentifier);
-      
-      console.log("Clinical question processed successfully");
-      console.log(JSON.stringify(response, null, 2));
-      
-      res.json({
-        success: true,
-        response
-      });
-    } catch (error: any) {
-      console.error('Error processing clinical question:', error);
-      res.status(500).json({
-        success: false,
-        error: error.message || 'Unknown error'
-      });
-    }
-  } catch (error: any) {
-    console.error('Error in test clinical question endpoint:', error);
     res.status(500).json({
       success: false,
       error: error.message || 'Unknown error'
