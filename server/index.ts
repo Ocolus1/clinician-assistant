@@ -5,13 +5,6 @@ import { setupVite, serveStatic, log } from "./vite";
 import { registerReportRoutes } from "./routes/reports";
 import { registerKnowledgeRoutes } from "./routes/knowledge";
 import assistantRoutes from "./routes/assistant";
-// Import agent debug routes directly
-import agentDebugRoutes from "./routes/agent-debug-routes";
-// Create debug-routes.ts file if it doesn't exist
-import * as fs from "fs";
-import * as path from "path";
-
-// Debug routes will be registered dynamically if the file exists
 
 const app = express();
 app.use(express.json());
@@ -70,56 +63,6 @@ app.use((req, res, next) => {
 
   console.log("STEP 3: Registering main API routes");
   const server = await registerRoutes(app);
-
-  console.log("STEP 3.5: Registering debug API routes");
-
-  // Direct registration of agent debug routes (imported at top)
-  app.use("/api/debug/agent", agentDebugRoutes);
-  console.log("Agent debug routes registered directly");
-
-  try {
-    // Import debug routes directly
-    import("./routes/debug-routes.js")
-      .then(({ default: debugRouter }) => {
-        app.use(debugRouter);
-        console.log("Debug routes registered successfully");
-      })
-      .catch((err) => {
-        console.error("Error importing debug routes:", err);
-      });
-
-    // Import assistant debug routes
-    import("./routes/debugAssistantRoutes.js")
-      .then(({ default: debugAssistantRouter }) => {
-        app.use(debugAssistantRouter);
-        console.log("Debug assistant routes registered successfully");
-      })
-      .catch((err) => {
-        console.error("Error importing debug assistant routes:", err);
-      });
-
-    // Import debug-assistant.ts router which contains the test-agent-query endpoint
-    import("./routes/debug-assistant.js")
-      .then(({ default: debugAssistantRouter }) => {
-        app.use("/api/debug/assistant", debugAssistantRouter);
-        console.log("Debug assistant routes registered successfully");
-      })
-      .catch((err) => {
-        console.error("Error importing debug-assistant routes:", err);
-      });
-
-    // Register new structured debug routes
-    import("./routes/debugRoutes.js")
-      .then(({ registerDebugAssistantRoutes }) => {
-        registerDebugAssistantRoutes(app);
-        console.log("Debug assistant routes registered successfully");
-      })
-      .catch((err) => {
-        console.error("Error importing debug routes:", err);
-      });
-  } catch (error) {
-    console.error("Error registering debug routes:", error);
-  }
 
   console.log("STEP 4: All routes registered successfully");
 

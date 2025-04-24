@@ -308,6 +308,43 @@ export class SchemaAnalysisService {
   }
   
   /**
+   * Find tables containing a given column
+   */
+  public findTableWithColumn(columnName: string): string[] {
+    const tables: string[] = [];
+    for (const [name, metadata] of this.tablesMetadata) {
+      if (metadata.columns.some(col => col.name === columnName)) {
+        tables.push(name);
+      }
+    }
+    return tables;
+  }
+
+  /**
+   * Generate alternative queries (stub)
+   */
+  public generateAlternativeQueries(query: string, tableName: string, columnName: string, value: string): string[] {
+    // Stub: return original query only
+    return [query];
+  }
+
+  /**
+   * Get full schema (stub)
+   */
+  public getFullSchema(): Map<string, TableMetadata> {
+    // Stub: return empty map to use fallback logic in agentService
+    return new Map();
+  }
+
+  /**
+   * Get identifier fields for a table
+   */
+  public getIdentifierFields(tableName: string): string[] {
+    const metadata = this.tablesMetadata.get(tableName.toLowerCase());
+    return metadata?.identifierFields ?? [];
+  }
+  
+  /**
    * Analyze schema to gather metadata
    */
   private async analyzeSchema(): Promise<void> {

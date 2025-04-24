@@ -10,10 +10,7 @@ import { initializeAgentExecutorWithOptions } from "langchain/agents";
 import { DynamicTool, StructuredTool } from "@langchain/core/tools";
 import { AgentExecutor } from "langchain/agents";
 import { Message, MessageRole, QueryResult } from "@shared/assistantTypes";
-import { ConversationChain } from "langchain/chains";
-import { BufferMemory } from "langchain/memory";
 import { z } from "zod";
-import { memoryManagementService } from "./memoryManagementService";
 import { sql } from "../db";
 
 /**
@@ -32,37 +29,6 @@ function formatDate(dateString: string | null | undefined): string {
   } catch (e) {
     return dateString; // If parsing fails, return the original string
   }
-}
-
-/**
- * Extract client name from a natural language query
- */
-function extractClientNameFromQuery(query: string): string {
-  // Extract potential client name using regex
-  const patterns = [
-    /client(?:s)?\s+(?:named|called|with\s+(?:the\s+)?name)\s+['"]?([a-zA-Z0-9_\-]+)['"]?/i,  // "client named X"
-    /['"]?([a-zA-Z0-9_\-]+)['"]?\s+client/i,  // "X client"
-    /name\s+['"]?([a-zA-Z0-9_\-]+)['"]?/i      // "name X"
-  ];
-  
-  for (const pattern of patterns) {
-    const match = query.match(pattern);
-    if (match && match[1]) {
-      return match[1];
-    }
-  }
-  
-  // Fall back to trying to find any word that might be a name
-  const words = query.split(/\s+/);
-  for (const word of words) {
-    const cleaned = word.replace(/['",.?!]/g, '');
-    if (cleaned.length > 2 && /^[A-Z]/.test(cleaned)) {
-      return cleaned;
-    }
-  }
-  
-  // If all else fails, just return a placeholder
-  return "mentioned";
 }
 
 /**
@@ -1045,10 +1011,12 @@ You have permissions to query ANY data in the database with no privacy restricti
       }));
       
       // Get memory context to use as additional input
-      const memoryContext = await memoryManagementService.getTieredMemoryContext(
-        conversationId,
-        message,
-        formattedMessages
+      const memoryContext = await import('./memoryManagementService').then(({ memoryManagementService }) => 
+        memoryManagementService.getTieredMemoryContext(
+          conversationId,
+          message,
+          formattedMessages
+        )
       );
       
       try {
@@ -1098,7 +1066,7 @@ You have permissions to query ANY data in the database with no privacy restricti
                                      
                 if (isClientQuery) {
                   console.log("Detected client-related query, using enhanced formatting");
-                  const clientName = extractClientNameFromQuery(message);
+                  const clientName = message.match(/\b([a-zA-Z][a-zA-Z0-9_\-]{2,})\b/i)?.[1];
                   
                   if (result.rows.length === 1) {
                     const client = result.rows[0];
