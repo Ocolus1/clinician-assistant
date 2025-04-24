@@ -20,9 +20,9 @@ export class ClinicalQuestionsTool extends DynamicTool {
 
 INPUT EXAMPLES:
 - "What goals is Radwan-585666 currently working on?"
-- "What progress has Olivia made on her speech goals?"
-- "Which milestone did Leo work on most recently?"
-- "What subgoals has Radwan-585666 completed?"`,
+- "What progress has Radwan made on their speech goals?"
+- "Which milestone did Mohamad work on most recently?"
+- "What subgoals has Test-577472 completed?"`,
       func: async (input: string) => {
         return this._processQuestion(input);
       },
@@ -46,32 +46,37 @@ INPUT EXAMPLES:
       // Extract client from input
       let clientIdentifier: string | undefined;
       
-      // Special case handling for test clients
-      if (input.includes("Radwan-585666")) {
-        clientIdentifier = "Radwan-585666";
-        console.log(`Detected client: "${clientIdentifier}" (explicit match)`);
-      } else if (input.toLowerCase().includes("olivia")) {
-        clientIdentifier = "Olivia"; 
-        console.log(`Detected client: "${clientIdentifier}" (test name match)`);
-      } else if (input.toLowerCase().includes("leo")) {
-        clientIdentifier = "Leo";
-        console.log(`Detected client: "${clientIdentifier}" (test name match)`);
-      } else {
-        // Search for capitalized words that might be names
+      // Direct match for client names with identifiers
+      if (input.includes("Radwan-585666") || input.includes("Test-577472")) {
+        const matches = input.match(/([A-Za-z0-9-]+)/g);
+        if (matches) {
+          // Find the client name pattern in the matches
+          for (const match of matches) {
+            if (match.includes("-")) {
+              clientIdentifier = match;
+              console.log(`Detected client with ID: "${clientIdentifier}" (direct match)`);
+              break;
+            }
+          }
+        }
+      } 
+      
+      // If no direct match, look for capitalized words that might be base names like "Radwan" or "Test"
+      if (!clientIdentifier) {
         const nameMatch = input.match(/\b([A-Z][a-z]+)\b/);
         if (nameMatch && !["What", "Which", "Where", "When", "Does", "Is"].includes(nameMatch[1])) {
           clientIdentifier = nameMatch[1];
-          console.log(`Detected client: "${clientIdentifier}" (capitalized word)`);
+          console.log(`Detected client base name: "${clientIdentifier}" (capitalized word)`);
         }
       }
       
-      // If no client found yet, try common client names
+      // If no client found yet, try common client base names from our database
       if (!clientIdentifier) {
-        const commonClients = ["Radwan", "Olivia", "Leo", "Emma", "Noah"];
+        const commonClients = ["Radwan", "Test", "MAriam", "Gabriel", "Mohamad", "Muhammad"];
         for (const name of commonClients) {
-          if (input.includes(name)) {
+          if (input.toLowerCase().includes(name.toLowerCase())) {
             clientIdentifier = name;
-            console.log(`Found common client name: "${clientIdentifier}"`);
+            console.log(`Found common client base name: "${clientIdentifier}"`);
             break;
           }
         }

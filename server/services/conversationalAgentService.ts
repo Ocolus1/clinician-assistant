@@ -13,6 +13,7 @@ import { Message, MessageRole } from "@shared/assistantTypes";
 import { agentService } from "./agentService";
 import { langchainService } from "./langchainService";
 import { memoryManagementService } from "./memoryManagementService";
+import { sql } from "../db";
 
 /**
  * Conversational Agent Service class
