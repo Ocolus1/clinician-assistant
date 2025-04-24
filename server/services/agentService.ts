@@ -1050,10 +1050,18 @@ When retrieving client data, be aware of the relationships between tables:
 3. When checking if a client has goals, ALWAYS JOIN the goals table with clients table using goals.client_id = clients.id
 4. EXAMPLE QUERY to find goals: SELECT * FROM goals g JOIN clients c ON g.client_id = c.id WHERE c.name = 'Client-Name'
 
-For clinical questions about client goals and progress:
-- When someone asks "What goals is [client] working on?" or similar goal-related questions, use the answer_clinical_question tool
-- When someone asks about a client's progress or milestone scores, use the answer_clinical_question tool
-- The answer_clinical_question tool is optimized for questions about client goals, progress, and subgoals
+IMPORTANT INSTRUCTIONS FOR TOOL SELECTION:
+1. For ANY questions about client goals, ALWAYS use the answer_clinical_question tool FIRST.
+   Examples of questions to use answer_clinical_question tool for:
+   - "What goals is Radwan-585666 currently working on?"
+   - "Does Leo have any goals related to speech?"
+   - "What progress is Olivia making on her goals?"
+   - "What subgoals has the client completed?"
+   - "What milestones were recently scored for this client?"
+
+2. The answer_clinical_question tool is SPECIFICALLY OPTIMIZED for goal-related queries and will give better results than SQL queries for these questions.
+
+3. Only fall back to SQL queries for goal information if the answer_clinical_question tool specifically fails.
 
 You have permissions to query ANY data in the database with no privacy restrictions.`
           }
