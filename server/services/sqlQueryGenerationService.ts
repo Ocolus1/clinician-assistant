@@ -452,11 +452,15 @@ Please fix the query to work correctly with our database.`;
         enhancedCondition += ` OR ${tablePrefix}unique_identifier = '${clientValue}'`;
       }
       
-      enhancedCondition += ')';
+      enhancedCondition += ')'; // Close the parenthesis
       
-      // Replace the original WHERE clause
-      const enhancedQuery = query.substring(0, wherePos) + enhancedCondition + 
-                         whereClause.substring(whereClause.indexOf(' ', 6));
+      // Replace the original WHERE clause entirely
+      // Extract everything after the actual condition in the WHERE clause
+      const afterConditionPos = whereClause.indexOf(clientValue) + clientValue.length + 1; // +1 for the closing quote
+      const restOfQuery = whereClause.substring(afterConditionPos);
+      
+      // Build the enhanced query by combining everything before WHERE, our enhancedCondition, and everything after the original condition
+      const enhancedQuery = query.substring(0, wherePos) + enhancedCondition + restOfQuery;
       
       console.log(`Original query: ${query}`);
       console.log(`Enhanced query: ${enhancedQuery}`);
