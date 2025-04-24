@@ -8,6 +8,7 @@ import express from 'express';
 import { schemaAnalysisService } from '../services/schemaAnalysisService';
 import { sqlQueryGenerationService } from '../services/sqlQueryGenerationService';
 import { agentService } from '../services/agentService';
+import { clinicalQuestionsService } from '../services/clinicalQuestionsService';
 import { sql } from '../db';
 
 const router = express.Router();
@@ -354,6 +355,54 @@ router.post('/query-suggestions', async (req, res) => {
     });
   } catch (error: any) {
     console.error('Error in query suggestions endpoint:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Unknown error'
+    });
+  }
+});
+
+// Test the clinical questions service directly
+router.post('/test-clinical-question', async (req, res) => {
+  try {
+    const { question, clientIdentifier } = req.body;
+    
+    if (!question) {
+      return res.status(400).json({
+        success: false,
+        error: 'Question is required'
+      });
+    }
+    
+    if (!clientIdentifier) {
+      return res.status(400).json({
+        success: false,
+        error: 'Client identifier is required'
+      });
+    }
+    
+    console.log(`Testing clinical question: "${question}" for client: ${clientIdentifier}`);
+    
+    try {
+      // Process the clinical question directly using the service
+      const response = await clinicalQuestionsService.answerQuestion(question, clientIdentifier);
+      
+      console.log("Clinical question processed successfully");
+      console.log(JSON.stringify(response, null, 2));
+      
+      res.json({
+        success: true,
+        response
+      });
+    } catch (error: any) {
+      console.error('Error processing clinical question:', error);
+      res.status(500).json({
+        success: false,
+        error: error.message || 'Unknown error'
+      });
+    }
+  } catch (error: any) {
+    console.error('Error in test clinical question endpoint:', error);
     res.status(500).json({
       success: false,
       error: error.message || 'Unknown error'
