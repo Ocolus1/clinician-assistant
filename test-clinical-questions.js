@@ -9,27 +9,19 @@
 
 import axios from 'axios';
 
-// Test questions to run
-const TEST_QUESTIONS = [
+// Sample clinical questions to test
+const testQuestions = [
   {
-    question: "What goals is Olivia currently working on?",
-    description: "Basic current goals question"
+    description: "Basic current goals question",
+    question: "What goals is Olivia currently working on?"
   },
   {
-    question: "Has Leo made any progress on his language goal?",
-    description: "Goal progress with specific goal"
+    description: "Progress tracking question",
+    question: "Has Leo made progress on his speech goal?"
   },
   {
-    question: "What's the most recent milestone Sofia worked on?",
-    description: "Recent milestone"
-  },
-  {
-    question: "Which of Noah's subgoals have been completed?",
-    description: "Completed subgoals"
-  },
-  {
-    question: "Is Emma making progress on her therapy goals?",
-    description: "General progress question"
+    description: "Milestone score question",
+    question: "What milestone scores does Sofia have?"
   }
 ];
 
@@ -37,26 +29,17 @@ async function runTests() {
   console.log("Testing Clinical Questions Tool");
   console.log("===============================\n");
   
-  // Create a test conversation ID
-  const conversationId = "clinical-questions-test-" + Date.now();
-  
-  for (const test of TEST_QUESTIONS) {
+  for (const test of testQuestions) {
     try {
       console.log(`Testing: ${test.description}`);
       console.log(`Question: "${test.question}"`);
       
-      // Call the agent query endpoint
+      // Use the agent API to process the question
       const response = await axios.post('http://localhost:5000/api/debug/agent/test-agent-query', {
-        question: test.question,
-        conversationId
+        question: test.question
       });
       
-      if (response.data.success) {
-        console.log(`\nResponse: ${response.data.result}`);
-        console.log(`Required agent: ${response.data.requiresAgent}`);
-      } else {
-        console.log(`\nError: ${response.data.error}`);
-      }
+      console.log(`\nResponse: ${response.data.result}`);
     } catch (error) {
       console.error(`\nError calling API: ${error.message}`);
       if (error.response) {

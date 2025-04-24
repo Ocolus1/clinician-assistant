@@ -5,76 +5,62 @@
  * leveraging the ClinicalQuestionsService for optimized query handling.
  */
 
-import { Tool } from "@langchain/core/tools";
-import { z } from "zod";
+import { DynamicTool } from "langchain/tools";
 import { clinicalQuestionsService } from "./clinicalQuestionsService";
 
 /**
  * Clinical Questions Tool for LangChain Agent
- * Using the Tool base class instead of StructuredTool to allow more flexible input handling
+ * Using DynamicTool to handle more flexible input formats
  */
-export class ClinicalQuestionsTool extends Tool {
-  name = "answer_clinical_question";
-  description = "Provides answers to clinical questions about client goals, progress, and milestones. Use for questions about specific client's therapy goals, milestone scores, progress tracking, etc.";
+export class ClinicalQuestionsTool extends DynamicTool {
+  constructor() {
+    super({
+      name: "answer_clinical_question",
+      description: "Provides answers to clinical questions about client goals, progress, and milestones. Use for questions about specific client's therapy goals, milestone scores, progress tracking, etc.",
+      func: async (input: string) => {
+        return this.processQuestion(input);
+      },
+    });
+  }
   
-  // Schema is for documentation, but we'll handle parsing manually
-  schema = z.object({
-    question: z.string().optional().describe("The clinical question to answer, for example 'What goals is John working on?' or 'Has Maria made progress on her communication goal?'")
-  });
-  
-  async _call(input: any): Promise<string> {
+  /**
+   * Process the clinical question and return an answer
+   */
+  private async processQuestion(input: string): Promise<string> {
     try {
-      // Handle the case where input is a string
-      let question: string;
+      const question = input;
       let clientIdentifier: string | undefined;
       
-      if (typeof input === 'string') {
-        question = input;
-        clientIdentifier = undefined;
-      } else {
-        // Handle the case where input is an object
-        question = input.question;
-        clientIdentifier = input.clientIdentifier;
+      // Extract client identifier from the question
+      const questionLower = question.toLowerCase();
+      const possibleNames = [
+        "Olivia", "Leo", "Sofia", "Noah", "Emma", "Liam", 
+        "Ava", "Ethan", "Mia", "Lucas"
+      ];
+      
+      for (const name of possibleNames) {
+        if (questionLower.includes(name.toLowerCase())) {
+          clientIdentifier = name;
+          break;
+        }
       }
       
-      // Check if question is provided
-      if (!question) {
-        throw new Error("Question is required for the clinical questions tool");
-      }
-      
-      // Extract client identifier from the question if not provided
+      // If still not found, use a default approach to extract names
       if (!clientIdentifier) {
-        // Extract client name from the question
-        const questionLower = question.toLowerCase();
-        const possibleNames = [
-          "Olivia", "Leo", "Sofia", "Noah", "Emma", "Liam", 
-          "Ava", "Ethan", "Mia", "Lucas"
-        ];
-        
-        for (const name of possibleNames) {
-          if (questionLower.includes(name.toLowerCase())) {
-            clientIdentifier = name;
+        // Look for names that are likely to be capitalized words
+        const words = question.split(' ');
+        for (const word of words) {
+          // If it starts with capital letter and is not at the beginning of a sentence
+          if (word.length > 1 && word[0] === word[0].toUpperCase() && word[0] !== word[0].toLowerCase()) {
+            clientIdentifier = word;
             break;
           }
         }
-        
-        // If still not found, use a default approach to extract names
-        if (!clientIdentifier) {
-          // Look for names that are likely to be capitalized words
-          const words = question.split(' ');
-          for (const word of words) {
-            // If it starts with capital letter and is not at the beginning of a sentence
-            if (word.length > 1 && word[0] === word[0].toUpperCase() && word[0] !== word[0].toLowerCase()) {
-              clientIdentifier = word;
-              break;
-            }
-          }
-        }
-        
-        // If still no identifier, we can't proceed
-        if (!clientIdentifier) {
-          return "I couldn't identify which client you're asking about. Please specify the client's name in your question.";
-        }
+      }
+      
+      // If still no identifier, we can't proceed
+      if (!clientIdentifier) {
+        return "I couldn't identify which client you're asking about. Please specify the client's name in your question.";
       }
       
       console.log(`Answering clinical question: "${question}" for client: "${clientIdentifier}"`);
