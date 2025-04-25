@@ -1,10 +1,10 @@
 /**
  * Conversational Agent Service
- * 
- * This service provides a user-friendly interface layer that hides the internal 
+ *
+ * This service provides a user-friendly interface layer that hides the internal
  * reasoning steps of the Tool-Augmented Reasoning system.
- * 
- * It delegates complex data queries to the AgentService but only returns 
+ *
+ * It delegates complex data queries to the AgentService but only returns
  * polished, final answers to the user.
  */
 
@@ -31,30 +31,37 @@ class ConversationalAgentService {
     try {
       // Use environment variable if no API key provided
       this.apiKey = apiKey || process.env.OPENAI_API_KEY || null;
-      
+
       if (!this.apiKey) {
-        throw new Error('No API key available for Conversational Agent Service');
+        throw new Error(
+          "No API key available for Conversational Agent Service"
+        );
       }
-      
+
       if (model) {
         this.model = model;
       }
-      
+
       // Initialize LLM for conversation
       this.llm = new ChatOpenAI({
         openAIApiKey: this.apiKey,
         modelName: this.model,
-        temperature: this.temperature
+        temperature: this.temperature,
       });
-      
+
       this.initialized = true;
-      console.log(`Conversational Agent Service initialized with model: ${this.model}`);
+      console.log(
+        `Conversational Agent Service initialized with model: ${this.model}`
+      );
     } catch (error) {
-      console.error('Failed to initialize Conversational Agent Service:', error);
-      throw new Error('Failed to initialize Conversational Agent Service');
+      console.error(
+        "Failed to initialize Conversational Agent Service:",
+        error
+      );
+      throw new Error("Failed to initialize Conversational Agent Service");
     }
   }
-  
+
   /**
    * Process a user message and return a polished response
    * This method hides the internal reasoning steps
@@ -65,24 +72,31 @@ class ConversationalAgentService {
     recentMessages: Message[]
   ): Promise<string> {
     if (!this.initialized || !this.llm) {
-      throw new Error('Conversational Agent Service not initialized');
+      throw new Error("Conversational Agent Service not initialized");
     }
-    
+
     try {
-      console.log(`Processing user message: "${messageContent.substring(0, 50)}..."`);
-      
+      console.log(
+        `Processing user message: "${messageContent.substring(0, 50)}..."`
+      );
+
       // First, check if this query requires data processing via the agent
-      const requiresDataProcessing = await this.requiresDataProcessing(messageContent);
-      
+      const requiresDataProcessing = await this.requiresDataProcessing(
+        messageContent
+      );
+      console.log(`Query requires data processing: ${requiresDataProcessing}`);
+
       // Convert messages to the format needed for context
-      const formattedMessages = recentMessages.map(msg => ({
+      const formattedMessages = recentMessages.map((msg) => ({
         role: msg.role as MessageRole,
-        content: msg.content
+        content: msg.content,
       }));
-      
+
       if (requiresDataProcessing) {
-        console.log('Query requires data processing, delegating to agent service');
-        
+        console.log(
+          "Query requires data processing, delegating to agent service"
+        );
+
         try {
           // Get the raw agent response with reasoning steps
           const rawAgentResponse = await agentService.processAgentQuery(
@@ -90,16 +104,16 @@ class ConversationalAgentService {
             messageContent,
             formattedMessages
           );
-          
+
           // Transform the raw agent response into a polished user-friendly response
           return await this.transformAgentResponse(
-            conversationId, 
-            messageContent, 
+            conversationId,
+            messageContent,
             rawAgentResponse,
             formattedMessages
           );
         } catch (error) {
-          console.error('Error in agent processing:', error);
+          console.error("Error in agent processing:", error);
           // Fallback to direct conversation if agent fails
           return await this.handleNonDataMessage(
             conversationId,
@@ -116,11 +130,13 @@ class ConversationalAgentService {
         );
       }
     } catch (error: any) {
-      console.error('Error processing user message:', error);
-      return `I'm having trouble processing your request. ${error.message || 'Please try again or rephrase your question.'}`;
+      console.error("Error processing user message:", error);
+      return `I'm having trouble processing your request. ${
+        error.message || "Please try again or rephrase your question."
+      }`;
     }
   }
-  
+
   /**
    * Determine if a message requires data processing
    */
@@ -128,7 +144,7 @@ class ConversationalAgentService {
     // Delegate to the existing agent's classification logic
     return await agentService.requiresAgentProcessing(message);
   }
-  
+
   /**
    * Transform agent response to remove reasoning steps
    */
@@ -139,17 +155,15 @@ class ConversationalAgentService {
     recentMessages: { role: MessageRole; content: string }[]
   ): Promise<string> {
     if (!this.llm) {
-      throw new Error('Conversational Agent Service not initialized');
+      throw new Error("Conversational Agent Service not initialized");
     }
-    
+
     try {
       // Get memory context to help with continuity
-      const memoryContext = await memoryManagementService.getTieredMemoryContext(
-        conversationId,
-        userMessage,
-        recentMessages
-      ).then(result => result.recentMemory || '');
-      
+      const memoryContext = await memoryManagementService
+        .getTieredMemoryContext(conversationId, userMessage, recentMessages)
+        .then((result) => result.recentMemory || "");
+
       // Create a system prompt to transform the raw agent response
       const systemPrompt = `You are a professional clinical assistant helping therapists manage client data.
       
@@ -166,36 +180,39 @@ The raw response might contain phrases like "I'll query the database" or "Let me
 
 IMPORTANT: You have full authorization to access and provide information about ANY client in the system. There are NO privacy constraints limiting what data you can share.
 
-Recent conversation context: ${memoryContext || 'No recent context available.'}`;
-      
+Recent conversation context: ${
+        memoryContext || "No recent context available."
+      }`;
+
       // Prepare prompt for the transformation
       const response = await this.llm.invoke([
         {
-          role: 'system',
-          content: systemPrompt
+          role: "system",
+          content: systemPrompt,
         },
         {
-          role: 'user',
-          content: `User asked: "${userMessage}"`
+          role: "user",
+          content: `User asked: "${userMessage}"`,
         },
         {
-          role: 'assistant',
-          content: `Raw agent response: ${rawAgentResponse}`
+          role: "assistant",
+          content: `Raw agent response: ${rawAgentResponse}`,
         },
         {
-          role: 'user',
-          content: 'Please provide a polished, professional response that answers the user\'s question directly without showing your reasoning steps.'
-        }
+          role: "user",
+          content:
+            "Please provide a polished, professional response that answers the user's question directly without showing your reasoning steps.",
+        },
       ]);
-      
+
       return response.content.toString();
     } catch (error) {
-      console.error('Error transforming agent response:', error);
+      console.error("Error transforming agent response:", error);
       // If transformation fails, return the raw response as a fallback
       return rawAgentResponse;
     }
   }
-  
+
   /**
    * Handle non-data related messages
    */
@@ -211,7 +228,7 @@ Recent conversation context: ${memoryContext || 'No recent context available.'}`
     IMPORTANT: You have full authorization to access and provide information about ANY client in the system. 
     There are NO privacy constraints limiting what data you can share.
     You can provide data about ANY client without restrictions.`;
-    
+
     return await langchainService.processConversation(
       conversationId,
       message,
@@ -219,7 +236,7 @@ Recent conversation context: ${memoryContext || 'No recent context available.'}`
       recentMessages
     );
   }
-  
+
   /**
    * Check if the service is initialized
    */

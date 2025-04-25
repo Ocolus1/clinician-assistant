@@ -1,6 +1,6 @@
 /**
  * Agent Service
- * 
+ *
  * This service provides a Tool-Augmented Reasoning approach (ReAct + SQL Agent)
  * to handle complex queries requiring multi-step reasoning and database interactions.
  */
@@ -12,19 +12,20 @@ import { AgentExecutor } from "langchain/agents";
 import { Message, MessageRole, QueryResult } from "@shared/assistantTypes";
 import { z } from "zod";
 import { sql } from "../db";
+import { BufferMemory } from "langchain/memory";
 
 /**
  * Format a date string for display
  */
 function formatDate(dateString: string | null | undefined): string {
   if (!dateString) return "unknown date";
-  
+
   try {
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { 
-      year: 'numeric', 
-      month: 'long', 
-      day: 'numeric' 
+    return date.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
     });
   } catch (e) {
     return dateString; // If parsing fails, return the original string
@@ -45,36 +46,47 @@ export interface AgentServiceConfig {
  */
 class SQLQueryTool extends StructuredTool {
   name = "query_database";
-  description = "Useful for querying the database to answer questions about clinical data";
+  description =
+    "Useful for querying the database to answer questions about clinical data";
   schema = z.object({
-    query: z.string().describe("The SQL query to execute. Should be a valid PostgreSQL query.")
+    query: z
+      .string()
+      .describe(
+        "The SQL query to execute. Should be a valid PostgreSQL query."
+      ),
   });
-  
+
   constructor(private executeQueryFn: (query: string) => Promise<QueryResult>) {
     super();
   }
-  
+
   async _call(input: { query: string }): Promise<string> {
     try {
       console.log(`Executing SQL query: ${input.query}`);
-      
+
       // First try executing the original query
       let result = await this.executeQueryFn(input.query);
-      
+
       // If no results were found, try to enhance the query using schema analysis
       if (result.rows.length === 0) {
-        console.log("Query returned no results, attempting to enhance with schema analysis...");
-        
+        console.log(
+          "Query returned no results, attempting to enhance with schema analysis..."
+        );
+
         // Try to find and fix identifier format issues using schema analysis
-        const alternativeQueries = await this.generateAlternativeQueries(input.query);
-        
+        const alternativeQueries = await this.generateAlternativeQueries(
+          input.query
+        );
+
         // Try each alternative query
         for (const alternativeQuery of alternativeQueries) {
           console.log(`Trying alternative query: ${alternativeQuery}`);
-          
+
           try {
-            const alternativeResult = await this.executeQueryFn(alternativeQuery);
-            
+            const alternativeResult = await this.executeQueryFn(
+              alternativeQuery
+            );
+
             // If this alternative query returns results, use those
             if (alternativeResult.rows.length > 0) {
               console.log("Alternative query returned results!");
@@ -82,65 +94,79 @@ class SQLQueryTool extends StructuredTool {
               break;
             }
           } catch (error: any) {
-            console.error(`Error with alternative query: ${error.message || 'Unknown error'}`);
+            console.error(
+              `Error with alternative query: ${
+                error.message || "Unknown error"
+              }`
+            );
             // Continue trying other alternatives
           }
         }
-        
+
         // If still no results after trying alternatives
         if (result.rows.length === 0) {
           // Import schemaAnalysisService dynamically to avoid circular dependencies
-          const { schemaAnalysisService } = await import('./schemaAnalysisService');
-          
+          const { schemaAnalysisService } = await import(
+            "./schemaAnalysisService"
+          );
+
           // Initialize schema analysis if needed
           if (!schemaAnalysisService.isInitialized()) {
             await schemaAnalysisService.initialize();
           }
-          
+
           // Get schema suggestions for the query
-          const schemaSuggestions = schemaAnalysisService.getSchemaSuggestionsForQuery(input.query);
-          
+          const schemaSuggestions =
+            schemaAnalysisService.getSchemaSuggestionsForQuery(input.query);
+
           return `No results found for this query. Here are some suggestions based on database schema analysis:\n\n${schemaSuggestions}`;
         }
       }
-      
+
       // Format result as a markdown table for better readability
       let formattedResult = "Here are the results:\n\n```\n";
-      
+
       // Add column headers
       formattedResult += result.columns.join(" | ") + "\n";
       formattedResult += result.columns.map(() => "---").join(" | ") + "\n";
-      
+
       // Add rows (limit to 20 rows for readability)
       const limitedRows = result.rows.slice(0, 20);
       for (const row of limitedRows) {
-        formattedResult += result.columns.map(col => {
-          const value = row[col];
-          return value === null || value === undefined ? "NULL" : String(value);
-        }).join(" | ") + "\n";
+        formattedResult +=
+          result.columns
+            .map((col) => {
+              const value = row[col];
+              return value === null || value === undefined
+                ? "NULL"
+                : String(value);
+            })
+            .join(" | ") + "\n";
       }
-      
+
       formattedResult += "```\n";
-      
+
       // Add row count information
       if (result.rows.length > 20) {
         formattedResult += `\nShowing 20 of ${result.rows.length} rows.`;
       } else {
         formattedResult += `\nTotal rows: ${result.rows.length}`;
       }
-      
+
       // Add execution time if available
       if (result.metadata?.executionTime) {
         formattedResult += `\nQuery execution time: ${result.metadata.executionTime}ms`;
       }
-      
+
       return formattedResult;
     } catch (error: any) {
       console.error("Error executing SQL query:", error);
-      return `Error executing query: ${error.message || 'Unknown error'}. Please check your SQL syntax and try again.`;
+      return `Error executing query: ${
+        error.message || "Unknown error"
+      }. Please check your SQL syntax and try again.`;
     }
   }
-  
+
   /**
    * Generate alternative versions of a query that might return results
    * This handles special cases like identifier format inconsistencies
@@ -148,43 +174,49 @@ class SQLQueryTool extends StructuredTool {
   private async generateAlternativeQueries(query: string): Promise<string[]> {
     try {
       // Import schemaAnalysisService dynamically to avoid circular dependencies
-      const { schemaAnalysisService } = await import('./schemaAnalysisService');
-      
+      const { schemaAnalysisService } = await import("./schemaAnalysisService");
+
       // Check if the schema analysis service is initialized
       if (!schemaAnalysisService.isInitialized()) {
-        console.log('Schema analysis service not initialized for query enhancement, initializing now...');
+        console.log(
+          "Schema analysis service not initialized for query enhancement, initializing now..."
+        );
         await schemaAnalysisService.initialize();
       }
-      
+
       // Extract table and column names from the query
       const tablePattern = /\bFROM\s+(\w+)|JOIN\s+(\w+)/gi;
-      const wherePattern = /\bWHERE\s+(?:(\w+)\.)?(\w+)\s*=\s*['"]([^'"]+)['"]/gi;
-      
+      const wherePattern =
+        /\bWHERE\s+(?:(\w+)\.)?(\w+)\s*=\s*['"]([^'"]+)['"]/gi;
+
       const tableMatches = Array.from(query.matchAll(tablePattern));
       const whereMatches = Array.from(query.matchAll(wherePattern));
-      
+
       const alternativeQueries: string[] = [];
-      
+
       // For each WHERE clause with string equality, try alternative identifier formats
       for (const whereMatch of whereMatches) {
         const tableAlias = whereMatch[1]; // Might be undefined if no alias
         const columnName = whereMatch[2];
         const value = whereMatch[3];
-        
+
         // If the value matches a name-number pattern, or is just a number
         if (/^[A-Za-z]+-\d+$/.test(value) || /^\d+$/.test(value)) {
           // Find which table this column belongs to
           let tableName = "";
-          
+
           // If there's a table alias in the WHERE clause
           if (tableAlias) {
             // Find the actual table name from the alias
-            const aliasPattern = new RegExp(`\\b(\\w+)\\s+(?:AS\\s+)?${tableAlias}\\b`, 'i');
+            const aliasPattern = new RegExp(
+              `\\b(\\w+)\\s+(?:AS\\s+)?${tableAlias}\\b`,
+              "i"
+            );
             const aliasMatch = query.match(aliasPattern);
             if (aliasMatch) {
               tableName = aliasMatch[1];
             }
-          } 
+          }
           // If no alias or couldn't find the table name from alias
           if (!tableName) {
             // If there's only one table in the query, use that
@@ -192,25 +224,29 @@ class SQLQueryTool extends StructuredTool {
               tableName = tableMatches[0][1] || tableMatches[0][2];
             } else {
               // Try to find tables that have this column
-              const tablesWithColumn = schemaAnalysisService.findTableWithColumn(columnName);
+              const tablesWithColumn =
+                schemaAnalysisService.findTableWithColumn(columnName);
               if (tablesWithColumn.length === 1) {
                 tableName = tablesWithColumn[0];
               }
             }
           }
-          
+
           // If we found the table, generate alternative queries
           if (tableName) {
             const altQueries = schemaAnalysisService.generateAlternativeQueries(
-              query, tableName, columnName, value
+              query,
+              tableName,
+              columnName,
+              value
             );
-            
+
             // Add all alternative queries except the original (which is already being tried)
             alternativeQueries.push(...altQueries.slice(1));
           }
         }
       }
-      
+
       return alternativeQueries;
     } catch (error) {
       console.error("Error generating alternative queries:", error);
@@ -225,30 +261,44 @@ class SQLQueryTool extends StructuredTool {
  */
 class DatabaseSchemaTool extends StructuredTool {
   name = "get_database_schema";
-  description = "Get comprehensive information about the database schema, tables, relationships, and data patterns";
+  description =
+    "Get comprehensive information about the database schema, tables, relationships, and data patterns";
   schema = z.object({
-    tableName: z.string().optional().describe("Optional table name to get specific schema information"),
-    includeExamples: z.boolean().optional().describe("Whether to include sample data and examples in the response")
+    tableName: z
+      .string()
+      .optional()
+      .describe("Optional table name to get specific schema information"),
+    includeExamples: z
+      .boolean()
+      .optional()
+      .describe("Whether to include sample data and examples in the response"),
   });
-  
-  async _call(input: { tableName?: string, includeExamples?: boolean }): Promise<string> {
+
+  async _call(input: {
+    tableName?: string;
+    includeExamples?: boolean;
+  }): Promise<string> {
     try {
       // Import schemaAnalysisService dynamically to avoid circular dependencies
-      const { schemaAnalysisService } = await import('./schemaAnalysisService');
-      
+      const { schemaAnalysisService } = await import("./schemaAnalysisService");
+
       // Check if the schema analysis service is initialized
       if (!schemaAnalysisService.isInitialized()) {
-        console.log('Schema analysis service not initialized, initializing now...');
+        console.log(
+          "Schema analysis service not initialized, initializing now..."
+        );
         await schemaAnalysisService.initialize();
       }
-      
+
       let schemaInfo = "";
-      
+
       // If a specific table is requested
       if (input.tableName) {
         // Get enriched table metadata from schema analysis service
-        const tableMetadata = schemaAnalysisService.getTableMetadata(input.tableName);
-        
+        const tableMetadata = schemaAnalysisService.getTableMetadata(
+          input.tableName
+        );
+
         if (!tableMetadata) {
           // Fall back to basic schema info if the table is not in the analysis service
           const tableInfo = await sql`
@@ -257,22 +307,24 @@ class DatabaseSchemaTool extends StructuredTool {
             WHERE table_name = ${input.tableName}
             ORDER BY ordinal_position;
           `;
-          
+
           if (tableInfo.length === 0) {
             return `Table '${input.tableName}' not found in the database.`;
           }
-          
+
           schemaInfo = `Table: ${input.tableName}\n\nColumns:\n`;
-          tableInfo.forEach(col => {
-            schemaInfo += `- ${col.column_name} (${col.data_type}, ${col.is_nullable === 'YES' ? 'nullable' : 'not nullable'})\n`;
+          tableInfo.forEach((col) => {
+            schemaInfo += `- ${col.column_name} (${col.data_type}, ${
+              col.is_nullable === "YES" ? "nullable" : "not nullable"
+            })\n`;
           });
-          
+
           return schemaInfo;
         }
-        
+
         // Generate enhanced schema information
         schemaInfo = `Table: ${tableMetadata.name} (${tableMetadata.rowCount} rows)\n\n`;
-        
+
         // Column information with enriched metadata
         schemaInfo += "Columns:\n";
         for (const column of tableMetadata.columns) {
@@ -281,41 +333,45 @@ class DatabaseSchemaTool extends StructuredTool {
           if (column.isPrimaryKey) flags.push("PRIMARY KEY");
           if (column.isForeignKey) flags.push("FOREIGN KEY");
           if (!column.isNullable) flags.push("NOT NULL");
-          
+
           const flagsText = flags.length > 0 ? ` [${flags.join(", ")}]` : "";
           schemaInfo += `- ${column.name} (${column.dataType})${flagsText}\n`;
           schemaInfo += `  Description: ${column.description}\n`;
-          
+
           // Add field patterns if identified
           if (column.valueFormats.length > 0) {
             schemaInfo += `  Format: ${column.valueFormats.join(", ")}\n`;
           }
-          
+
           // Only include examples if specifically requested to avoid over-verbose responses
           if (input.includeExamples && column.examples.length > 0) {
-            schemaInfo += `  Examples: ${column.examples.slice(0, 3).join(", ")}\n`;
+            schemaInfo += `  Examples: ${column.examples
+              .slice(0, 3)
+              .join(", ")}\n`;
           }
-          
+
           // Add statistics if available
           if (column.distinctValueCount !== undefined) {
             schemaInfo += `  Distinct values: ${column.distinctValueCount}\n`;
           }
-          
+
           // Add range info for numeric columns
           if (column.minValue !== undefined && column.maxValue !== undefined) {
             schemaInfo += `  Range: ${column.minValue} to ${column.maxValue}\n`;
           }
         }
-        
+
         // Relationship information
         if (tableMetadata.relationships.length > 0) {
           schemaInfo += "\nRelationships:\n";
           for (const rel of tableMetadata.relationships) {
-            schemaInfo += `- ${rel.relationType.toUpperCase()} relationship with ${rel.targetTable}\n`;
+            schemaInfo += `- ${rel.relationType.toUpperCase()} relationship with ${
+              rel.targetTable
+            }\n`;
             schemaInfo += `  ${tableMetadata.name}.${rel.sourceColumn} -> ${rel.targetTable}.${rel.targetColumn}\n`;
           }
         }
-        
+
         // Sample data if requested
         if (input.includeExamples && tableMetadata.sampleData.length > 0) {
           schemaInfo += "\nSample Data (up to 3 rows):\n";
@@ -323,42 +379,59 @@ class DatabaseSchemaTool extends StructuredTool {
           for (const [index, row] of sampleRows.entries()) {
             schemaInfo += `Row ${index + 1}:\n`;
             for (const column of tableMetadata.columns) {
-              const value = row[column.name] !== undefined ? row[column.name] : 'NULL';
+              const value =
+                row[column.name] !== undefined ? row[column.name] : "NULL";
               schemaInfo += `  ${column.name}: ${value}\n`;
             }
           }
         }
-        
+
         // Identifier field information
-        const identifierFields = schemaAnalysisService.getIdentifierFields(input.tableName);
+        const identifierFields = schemaAnalysisService.getIdentifierFields(
+          input.tableName
+        );
         if (identifierFields.length > 0) {
           schemaInfo += "\nIdentifier Fields:\n";
           schemaInfo += `- ${identifierFields.join(", ")}\n`;
-          
+
           // Special case for clients table with its three identifier fields
-          if (input.tableName === 'clients' && 
-              tableMetadata.columns.some(c => c.name === 'name') &&
-              tableMetadata.columns.some(c => c.name === 'unique_identifier') &&
-              tableMetadata.columns.some(c => c.name === 'original_name')) {
-            
+          if (
+            input.tableName === "clients" &&
+            tableMetadata.columns.some((c) => c.name === "name") &&
+            tableMetadata.columns.some((c) => c.name === "unique_identifier") &&
+            tableMetadata.columns.some((c) => c.name === "original_name")
+          ) {
             schemaInfo += "\nClient Identifier Pattern:\n";
-            schemaInfo += "- The clients table uses a specific pattern with three related identifier fields:\n";
-            schemaInfo += "  * original_name: Contains just the name portion (e.g., 'Radwan')\n";
-            schemaInfo += "  * unique_identifier: Contains just the numeric ID (e.g., '585666')\n";
-            schemaInfo += "  * name: Contains the combined format (e.g., 'Radwan-585666')\n\n";
-            schemaInfo += "  When querying clients, if you search by one format but get no results,\n";
-            schemaInfo += "  try the alternative formats. The system will automatically try these\n";
+            schemaInfo +=
+              "- The clients table uses a specific pattern with three related identifier fields:\n";
+            schemaInfo +=
+              "  * original_name: Contains just the name portion (e.g., 'Radwan')\n";
+            schemaInfo +=
+              "  * unique_identifier: Contains just the numeric ID (e.g., '585666')\n";
+            schemaInfo +=
+              "  * name: Contains the combined format (e.g., 'Radwan-585666')\n\n";
+            schemaInfo +=
+              "  When querying clients, if you search by one format but get no results,\n";
+            schemaInfo +=
+              "  try the alternative formats. The system will automatically try these\n";
             schemaInfo += "  variations when possible.\n";
           }
           // Special cases for known identifier pattern issues in other tables
           else {
             for (const idField of identifierFields) {
-              const column = tableMetadata.columns.find(c => c.name === idField);
-              if (column && column.valueFormats.includes('name-number')) {
+              const column = tableMetadata.columns.find(
+                (c) => c.name === idField
+              );
+              if (column && column.valueFormats.includes("name-number")) {
                 schemaInfo += `  Note: '${idField}' uses a name-number format (e.g., "Name-123456").\n`;
                 schemaInfo += `  When querying, consider whether to use the full value (Name-123456) or just the number part (123456).\n`;
-                
-                if (idField === 'name' && tableMetadata.columns.some(c => c.name === 'unique_identifier')) {
+
+                if (
+                  idField === "name" &&
+                  tableMetadata.columns.some(
+                    (c) => c.name === "unique_identifier"
+                  )
+                ) {
                   schemaInfo += `  Important: The 'name' field may store the full pattern (e.g., "Radwan-585666"),\n`;
                   schemaInfo += `  while 'unique_identifier' may store only the number part (e.g., "585666").\n`;
                 }
@@ -369,7 +442,7 @@ class DatabaseSchemaTool extends StructuredTool {
       } else {
         // No specific table requested, provide overview of all tables
         const fullSchema = schemaAnalysisService.getFullSchema();
-        
+
         if (fullSchema.size === 0) {
           // Fall back to basic table list if schema analysis hasn't processed tables
           const tables = await sql`
@@ -377,90 +450,120 @@ class DatabaseSchemaTool extends StructuredTool {
             FROM pg_catalog.pg_tables
             WHERE schemaname != 'pg_catalog' AND schemaname != 'information_schema';
           `;
-          
+
           schemaInfo = "Database Tables:\n\n";
-          tables.forEach(table => {
+          tables.forEach((table) => {
             schemaInfo += `- ${table.tablename}\n`;
           });
-          
-          schemaInfo += "\nUse the tool again with a specific tableName to get detailed information about a table.";
+
+          schemaInfo +=
+            "\nUse the tool again with a specific tableName to get detailed information about a table.";
           return schemaInfo;
         }
-        
+
         // Generate enhanced schema overview
         schemaInfo = "Database Schema Overview:\n\n";
-        
+
         // Group tables by domain based on name patterns
         const domains: Record<string, string[]> = {
-          'Client Data': [],
-          'Clinical': [],
-          'Financial': [],
-          'Session': [],
-          'Other': []
+          "Client Data": [],
+          Clinical: [],
+          Financial: [],
+          Session: [],
+          Other: [],
         };
-        
+
         for (const [tableName, metadata] of fullSchema.entries()) {
-          if (tableName.includes('client') || tableName.includes('ally')) {
-            domains['Client Data'].push(tableName);
-          } else if (tableName.includes('goal') || tableName.includes('clinician') || tableName.includes('strategies')) {
-            domains['Clinical'].push(tableName);
-          } else if (tableName.includes('budget') || tableName.includes('fund')) {
-            domains['Financial'].push(tableName);
-          } else if (tableName.includes('session') || tableName.includes('note')) {
-            domains['Session'].push(tableName);
+          if (tableName.includes("client") || tableName.includes("ally")) {
+            domains["Client Data"].push(tableName);
+          } else if (
+            tableName.includes("goal") ||
+            tableName.includes("clinician") ||
+            tableName.includes("strategies")
+          ) {
+            domains["Clinical"].push(tableName);
+          } else if (
+            tableName.includes("budget") ||
+            tableName.includes("fund")
+          ) {
+            domains["Financial"].push(tableName);
+          } else if (
+            tableName.includes("session") ||
+            tableName.includes("note")
+          ) {
+            domains["Session"].push(tableName);
           } else {
-            domains['Other'].push(tableName);
+            domains["Other"].push(tableName);
           }
         }
-        
+
         // List tables by domain with brief descriptions
         for (const [domain, tables] of Object.entries(domains)) {
           if (tables.length === 0) continue;
-          
+
           schemaInfo += `${domain}:\n`;
           for (const tableName of tables) {
             const metadata = fullSchema.get(tableName);
             if (metadata) {
               // Count relationships
               const relationshipCount = metadata.relationships.length;
-              const relationshipInfo = relationshipCount > 0 ? ` (${relationshipCount} relationships)` : '';
-              
+              const relationshipInfo =
+                relationshipCount > 0
+                  ? ` (${relationshipCount} relationships)`
+                  : "";
+
               // Find some key columns
               const keyColumns = metadata.columns
-                .filter(c => c.isPrimaryKey || c.isForeignKey || c.name.includes('name') || c.name.includes('id'))
-                .map(c => c.name)
+                .filter(
+                  (c) =>
+                    c.isPrimaryKey ||
+                    c.isForeignKey ||
+                    c.name.includes("name") ||
+                    c.name.includes("id")
+                )
+                .map((c) => c.name)
                 .slice(0, 3);
-              
+
               schemaInfo += `- ${tableName} (${metadata.rowCount} rows)${relationshipInfo}\n`;
               if (keyColumns.length > 0) {
-                schemaInfo += `  Key columns: ${keyColumns.join(', ')}\n`;
+                schemaInfo += `  Key columns: ${keyColumns.join(", ")}\n`;
               }
             }
           }
-          schemaInfo += '\n';
+          schemaInfo += "\n";
         }
-        
+
         // Highlight important known issues with identifiers
-        schemaInfo += 'Important Identifier Patterns:\n';
-        
+        schemaInfo += "Important Identifier Patterns:\n";
+
         // Special highlight for clients table identifiers
-        schemaInfo += '- The clients table uses three related identifier fields:\n';
-        schemaInfo += '  * original_name: Contains just the name (e.g., "Radwan")\n';
-        schemaInfo += '  * unique_identifier: Contains just the number (e.g., "585666")\n';
-        schemaInfo += '  * name: Contains the combined format (e.g., "Radwan-585666")\n\n';
-        
+        schemaInfo +=
+          "- The clients table uses three related identifier fields:\n";
+        schemaInfo +=
+          '  * original_name: Contains just the name (e.g., "Radwan")\n';
+        schemaInfo +=
+          '  * unique_identifier: Contains just the number (e.g., "585666")\n';
+        schemaInfo +=
+          '  * name: Contains the combined format (e.g., "Radwan-585666")\n\n';
+
         // General guidance for other tables
-        schemaInfo += '- Other tables may use compound identifiers (e.g., "Name-123456")\n';
-        schemaInfo += '- When querying by identifier, if you get no results, try alternative formats\n';
-        schemaInfo += '- The system will automatically try to use the correct format when possible\n\n';
-        
-        schemaInfo += "Use this tool with a specific tableName parameter to get detailed information about a table.";
+        schemaInfo +=
+          '- Other tables may use compound identifiers (e.g., "Name-123456")\n';
+        schemaInfo +=
+          "- When querying by identifier, if you get no results, try alternative formats\n";
+        schemaInfo +=
+          "- The system will automatically try to use the correct format when possible\n\n";
+
+        schemaInfo +=
+          "Use this tool with a specific tableName parameter to get detailed information about a table.";
       }
-      
+
       return schemaInfo;
     } catch (error: any) {
       console.error("Error retrieving database schema:", error);
-      return `Error retrieving database schema: ${error.message || 'Unknown error'}`;
+      return `Error retrieving database schema: ${
+        error.message || "Unknown error"
+      }`;
     }
   }
 }
@@ -470,7 +573,8 @@ class DatabaseSchemaTool extends StructuredTool {
  */
 class NaturalLanguageQueryTool extends StructuredTool {
   name = "natural_language_to_sql";
-  description = "Convert a natural language question about clinical data into a SQL query, execute it, and return the results.\n\n" +
+  description =
+    "Convert a natural language question about clinical data into a SQL query, execute it, and return the results.\n\n" +
     "DATABASE RELATIONSHIP GUIDE:\n" +
     "1. Clients → Goals: clients.id = goals.client_id\n" +
     "2. Goals → Subgoals: goals.id = subgoals.goal_id\n" +
@@ -490,135 +594,175 @@ class NaturalLanguageQueryTool extends StructuredTool {
     "Always ensure you are properly joining tables when querying related data.";
   schema = z.union([
     z.object({
-      question: z.string().describe("The natural language question to convert to SQL")
+      question: z
+        .string()
+        .describe("The natural language question to convert to SQL"),
     }),
-    z.string().describe("The natural language question to convert to SQL")
+    z.string().describe("The natural language question to convert to SQL"),
   ]);
-  
+
   constructor(private executeQueryFn: (query: string) => Promise<QueryResult>) {
     super();
   }
-  
+
   async _call(input: { question: string } | string): Promise<string> {
     // Handle both object and string inputs for more flexibility
-    const question = typeof input === 'string' ? input : input.question;
+    const question = typeof input === "string" ? input : input.question;
     try {
       console.log(`Converting natural language to SQL: "${question}"`);
-      
+
       // Import the SQL Query Generation Service
-      const { sqlQueryGenerationService } = await import('./sqlQueryGenerationService');
-      const { schemaAnalysisService } = await import('./schemaAnalysisService');
-      
+      const { sqlQueryGenerationService } = await import(
+        "./sqlQueryGenerationService"
+      );
+      const { schemaAnalysisService } = await import("./schemaAnalysisService");
+
       // Generate a SQL query from the natural language question using the two-phase approach
       const generationResult = await sqlQueryGenerationService.generateQuery({
-        question: question
+        question: question,
       });
-      
+
       if (!generationResult.success || !generationResult.query) {
-        return `I couldn't generate a valid SQL query for your question. ${generationResult.errorMessage || ''}
+        return `I couldn't generate a valid SQL query for your question. ${
+          generationResult.errorMessage || ""
+        }
         
 Here's why I struggled:
 ${generationResult.reasoning}
 
 Could you please rephrase your question or provide more details?`;
       }
-      
+
       console.log(`Generated SQL query: ${generationResult.query}`);
-      
+
       // Execute the generated query
       try {
         // Use the executeQueryFn property that was passed in the constructor
         const result = await this.executeQueryFn(generationResult.query);
-        
+
         if (result.rows.length === 0) {
           // Special handling for client names and identifiers - check if this is about clients
-          const isClientQuery = 
-            question.toLowerCase().includes('client') ||
+          const isClientQuery =
+            question.toLowerCase().includes("client") ||
             question.toLowerCase().match(/name.*\b\w+\b|\b\w+\b.*name/) ||
-            generationResult.query.toLowerCase().includes('clients');
-            
+            generationResult.query.toLowerCase().includes("clients");
+
           if (isClientQuery) {
             // Check for client identifier patterns
             let possibleClientIdentifier = null;
-            
+
             // Extract possible client name from the query using various patterns
             const namePatterns = [
               // "client named X" pattern
               /client(?:s)?\s+(?:named|called|with\s+(?:the\s+)?name)\s+['"]?([a-zA-Z0-9_\-]+)['"]?/i,
               // "X client" pattern
               /['"]?([a-zA-Z0-9_\-]+)['"]?\s+client/i,
-              // "name X" pattern 
+              // "name X" pattern
               /name\s+['"]?([a-zA-Z0-9_\-]+)['"]?/i,
               // "named X" pattern
               /named\s+['"]?([a-zA-Z0-9_\-]+)['"]?/i,
               // "any client with name X" pattern
               /client(?:s)?\s+with\s+name\s+['"]?([a-zA-Z0-9_\-]+)['"]?/i,
               // General word pattern (last resort)
-              /\b([a-zA-Z][a-zA-Z0-9_\-]{2,})\b/i
+              /\b([a-zA-Z][a-zA-Z0-9_\-]{2,})\b/i,
             ];
-            
+
             // Try each pattern until we find a match
             for (const pattern of namePatterns) {
               const match = question.match(pattern);
               if (match && match[1]) {
                 const potentialName = match[1];
                 // Filter out common words that aren't likely to be names
-                if (potentialName.length > 2 && 
-                    !['have', 'has', 'any', 'the', 'client', 'name', 'with', 'find', 
-                     'goals', 'goal', 'list', 'show', 'get', 'all', 'called'].includes(potentialName.toLowerCase())) {
+                if (
+                  potentialName.length > 2 &&
+                  ![
+                    "have",
+                    "has",
+                    "any",
+                    "the",
+                    "client",
+                    "name",
+                    "with",
+                    "find",
+                    "goals",
+                    "goal",
+                    "list",
+                    "show",
+                    "get",
+                    "all",
+                    "called",
+                  ].includes(potentialName.toLowerCase())
+                ) {
                   possibleClientIdentifier = potentialName;
                   break;
                 }
               }
             }
-            
-            console.log(`Extracted possible client identifier: ${possibleClientIdentifier}`);
-            
+
+            console.log(
+              `Extracted possible client identifier: ${possibleClientIdentifier}`
+            );
+
             // If we found a potential client identifier, try comprehensive search strategies
             if (possibleClientIdentifier) {
-              console.log(`Trying enhanced search strategies for client identifier: ${possibleClientIdentifier}`);
-              
+              console.log(
+                `Trying enhanced search strategies for client identifier: ${possibleClientIdentifier}`
+              );
+
               // Try a comprehensive query that searches across all identifier fields
               const enhancedQuery = `
                 SELECT * FROM clients 
                 WHERE name ILIKE '%${possibleClientIdentifier}%' 
                 OR original_name ILIKE '%${possibleClientIdentifier}%'
-                ${!isNaN(Number(possibleClientIdentifier)) ? `OR unique_identifier = '${possibleClientIdentifier}'` : ''}
+                ${
+                  !isNaN(Number(possibleClientIdentifier))
+                    ? `OR unique_identifier = '${possibleClientIdentifier}'`
+                    : ""
+                }
               `;
-              
+
               try {
-                console.log(`Trying enhanced client search query: ${enhancedQuery}`);
+                console.log(
+                  `Trying enhanced client search query: ${enhancedQuery}`
+                );
                 const enhancedResult = await this.executeQueryFn(enhancedQuery);
-                
+
                 if (enhancedResult.rows.length > 0) {
                   // We found results with the enhanced query!
-                  
+
                   // If the client was asking about goals, automatically query for goals too
-                  if (question.toLowerCase().includes('goal')) {
+                  if (question.toLowerCase().includes("goal")) {
                     // Get goals for the first client found
                     const clientId = enhancedResult.rows[0].id;
                     const goalQuery = `
                       SELECT g.* FROM goals g WHERE g.client_id = ${clientId}
                     `;
-                    
+
                     try {
                       const goalResults = await this.executeQueryFn(goalQuery);
-                      
+
                       if (goalResults.rows.length > 0) {
-                        return `Yes, I found a client matching "${possibleClientIdentifier}" and they have ${goalResults.rows.length} goals.
+                        return `Yes, I found a client matching "${possibleClientIdentifier}" and they have ${
+                          goalResults.rows.length
+                        } goals.
 
 Client Information:
 \`\`\`
 ID: ${enhancedResult.rows[0].id}
 Name: ${enhancedResult.rows[0].name}
-Status: ${enhancedResult.rows[0].onboarding_status || 'N/A'}
+Status: ${enhancedResult.rows[0].onboarding_status || "N/A"}
 \`\`\`
 
 Goals:
 \`\`\`
-${goalResults.rows.map((goal, index) => 
-  `${index + 1}. ${goal.title}: ${goal.description || 'No description'} (Priority: ${goal.priority || 'N/A'})`
-).join('\n')}
+${goalResults.rows
+  .map(
+    (goal, index) =>
+      `${index + 1}. ${goal.title}: ${
+        goal.description || "No description"
+      } (Priority: ${goal.priority || "N/A"})`
+  )
+  .join("\n")}
 \`\`\``;
                       } else {
                         return `Yes, I found a client matching "${possibleClientIdentifier}", but they don't have any goals recorded in the system.
@@ -627,55 +771,83 @@ Client Information:
 \`\`\`
 ID: ${enhancedResult.rows[0].id}
 Name: ${enhancedResult.rows[0].name}
-Status: ${enhancedResult.rows[0].onboarding_status || 'N/A'}
+Status: ${enhancedResult.rows[0].onboarding_status || "N/A"}
 \`\`\``;
                       }
                     } catch (goalError) {
-                      console.error('Error querying goals:', goalError);
+                      console.error("Error querying goals:", goalError);
                     }
                   }
-                  
+
                   // Default response for client information
-                  return `Yes, I found ${enhancedResult.rows.length} client(s) matching "${possibleClientIdentifier}".
+                  return `Yes, I found ${
+                    enhancedResult.rows.length
+                  } client(s) matching "${possibleClientIdentifier}".
 
 Here's what I found:
 \`\`\`
-${enhancedResult.rows.slice(0, 5).map(client => 
-  `ID: ${client.id}, Name: ${client.name}, Status: ${client.onboarding_status || 'N/A'}`
-).join('\n')}
-${enhancedResult.rows.length > 5 ? `\n...and ${enhancedResult.rows.length - 5} more` : ''}
+${enhancedResult.rows
+  .slice(0, 5)
+  .map(
+    (client) =>
+      `ID: ${client.id}, Name: ${client.name}, Status: ${
+        client.onboarding_status || "N/A"
+      }`
+  )
+  .join("\n")}
+${
+  enhancedResult.rows.length > 5
+    ? `\n...and ${enhancedResult.rows.length - 5} more`
+    : ""
+}
 \`\`\``;
                 }
               } catch (enhancedError) {
                 console.error(`Error in enhanced client query:`, enhancedError);
               }
-              
+
               // If enhanced query failed, try individual fallback strategies
               const fallbackQueries = [
                 `SELECT * FROM clients WHERE original_name ILIKE '%${possibleClientIdentifier}%'`,
-                `SELECT * FROM clients WHERE name ILIKE '%${possibleClientIdentifier}%'`
+                `SELECT * FROM clients WHERE name ILIKE '%${possibleClientIdentifier}%'`,
               ];
-              
+
               // Add unique_identifier query if it looks like a number
               if (!isNaN(Number(possibleClientIdentifier))) {
-                fallbackQueries.push(`SELECT * FROM clients WHERE unique_identifier = '${possibleClientIdentifier}'`);
+                fallbackQueries.push(
+                  `SELECT * FROM clients WHERE unique_identifier = '${possibleClientIdentifier}'`
+                );
               }
-              
+
               // Try each fallback query
               for (const fallbackQuery of fallbackQueries) {
                 try {
                   console.log(`Trying fallback query: ${fallbackQuery}`);
-                  const fallbackResult = await this.executeQueryFn(fallbackQuery);
-                  
+                  const fallbackResult = await this.executeQueryFn(
+                    fallbackQuery
+                  );
+
                   if (fallbackResult.rows.length > 0) {
-                    return `Yes, I found ${fallbackResult.rows.length} client(s) related to "${possibleClientIdentifier}" using an alternative search strategy.
+                    return `Yes, I found ${
+                      fallbackResult.rows.length
+                    } client(s) related to "${possibleClientIdentifier}" using an alternative search strategy.
 
 Here's what I found:
 \`\`\`
-${fallbackResult.rows.slice(0, 5).map(client => 
-  `ID: ${client.id}, Name: ${client.name}, Status: ${client.onboarding_status || 'N/A'}`
-).join('\n')}
-${fallbackResult.rows.length > 5 ? `\n...and ${fallbackResult.rows.length - 5} more` : ''}
+${fallbackResult.rows
+  .slice(0, 5)
+  .map(
+    (client) =>
+      `ID: ${client.id}, Name: ${client.name}, Status: ${
+        client.onboarding_status || "N/A"
+      }`
+  )
+  .join("\n")}
+${
+  fallbackResult.rows.length > 5
+    ? `\n...and ${fallbackResult.rows.length - 5} more`
+    : ""
+}
 \`\`\`
 
 Note: I had to search across different client identifier fields to find these results. The clients' "name" field contains the combined format (e.g., "Radwan-585666"), while the "original_name" field contains just the name part.`;
@@ -687,7 +859,7 @@ Note: I had to search across different client identifier fields to find these re
               }
             }
           }
-          
+
           // If we reach here, even fallback strategies didn't work
           return `I generated a SQL query based on your question, but it didn't return any results. This could mean one of three things:
           
@@ -705,39 +877,47 @@ ${generationResult.reasoning}
 
 Could you try rephrasing your question or be more specific about what you're looking for?`;
         }
-        
+
         // Format result as a markdown table for better readability
-        let formattedResult = "Here are the results based on your question:\n\n```\n";
-        
+        let formattedResult =
+          "Here are the results based on your question:\n\n```\n";
+
         // Add column headers
         formattedResult += result.columns.join(" | ") + "\n";
         formattedResult += result.columns.map(() => "---").join(" | ") + "\n";
-        
+
         // Add rows (limit to 20 rows for readability)
         const limitedRows = result.rows.slice(0, 20);
         for (const row of limitedRows) {
-          formattedResult += result.columns.map(col => {
-            const value = row[col];
-            return value === null || value === undefined ? "NULL" : String(value);
-          }).join(" | ") + "\n";
+          formattedResult +=
+            result.columns
+              .map((col) => {
+                const value = row[col];
+                return value === null || value === undefined
+                  ? "NULL"
+                  : String(value);
+              })
+              .join(" | ") + "\n";
         }
-        
+
         formattedResult += "```\n";
-        
+
         // Add row count information
         if (result.rows.length > 20) {
           formattedResult += `\nShowing 20 of ${result.rows.length} rows.`;
         } else {
           formattedResult += `\nTotal rows: ${result.rows.length}`;
         }
-        
+
         // Add information about how the query was generated
         formattedResult += `\n\nI answered this by converting your question into a SQL query and running it against the database.`;
-        
+
         return formattedResult;
       } catch (error: any) {
         console.error("Error executing generated query:", error);
-        return `I created a SQL query based on your question, but encountered an error when executing it: ${error.message || 'Unknown error'}.
+        return `I created a SQL query based on your question, but encountered an error when executing it: ${
+          error.message || "Unknown error"
+        }.
         
 Here's the query I generated:
 \`\`\`sql
@@ -751,7 +931,9 @@ Could you try rephrasing your question to be more specific?`;
       }
     } catch (error: any) {
       console.error("Error in natural language to SQL conversion:", error);
-      return `I encountered an error while trying to convert your question to SQL: ${error.message || 'Unknown error'}.
+      return `I encountered an error while trying to convert your question to SQL: ${
+        error.message || "Unknown error"
+      }.
       
 Could you please rephrase your question or be more specific?`;
     }
@@ -765,65 +947,73 @@ class ClinicalRecordsTool extends StructuredTool {
   name = "get_client_records";
   description = "Get clinical records for a specific client";
   schema = z.object({
-    clientId: z.number().describe("The client ID to retrieve records for")
+    clientId: z.number().describe("The client ID to retrieve records for"),
   });
-  
+
   async _call(input: { clientId: number }): Promise<string> {
     try {
       // Check if client exists
       const client = await sql`
         SELECT * FROM clients WHERE id = ${input.clientId};
       `;
-      
+
       if (client.length === 0) {
         return `Client with ID ${input.clientId} not found.`;
       }
-      
+
       // Get basic client information
       const clientInfo = client[0];
       let result = `Client Information:\n`;
       result += `- Name: ${clientInfo.first_name} ${clientInfo.last_name}\n`;
       result += `- Date of Birth: ${clientInfo.date_of_birth}\n`;
       result += `- Status: ${clientInfo.status}\n\n`;
-      
+
       // Get goals
       const goals = await sql`
         SELECT * FROM goals WHERE client_id = ${input.clientId};
       `;
-      
+
       if (goals.length > 0) {
         result += `Goals (${goals.length}):\n`;
-        goals.forEach(goal => {
+        goals.forEach((goal) => {
           result += `- ${goal.title}: ${goal.description}\n`;
         });
         result += "\n";
       }
-      
+
       // Get budget information
       const budgetItems = await sql`
         SELECT * FROM budget_items WHERE client_id = ${input.clientId};
       `;
-      
+
       if (budgetItems.length > 0) {
         result += `Budget Items (${budgetItems.length}):\n`;
         result += `- Total Items: ${budgetItems.length}\n`;
-        result += `- Used Units: ${budgetItems.reduce((acc, item) => acc + (item.used_units || 0), 0)}\n`;
-        result += `- Total Units: ${budgetItems.reduce((acc, item) => acc + (item.total_units || 0), 0)}\n\n`;
+        result += `- Used Units: ${budgetItems.reduce(
+          (acc, item) => acc + (item.used_units || 0),
+          0
+        )}\n`;
+        result += `- Total Units: ${budgetItems.reduce(
+          (acc, item) => acc + (item.total_units || 0),
+          0
+        )}\n\n`;
       }
-      
+
       // Get sessions count
       const sessions = await sql`
         SELECT COUNT(*) AS count FROM sessions WHERE client_id = ${input.clientId};
       `;
-      
+
       result += `Sessions: ${sessions[0].count}\n\n`;
-      
+
       result += `To get more specific information, please use the query_database tool with a SQL query.`;
-      
+
       return result;
     } catch (error: any) {
       console.error("Error retrieving client records:", error);
-      return `Error retrieving client records: ${error.message || 'Unknown error'}`;
+      return `Error retrieving client records: ${
+        error.message || "Unknown error"
+      }`;
     }
   }
 }
@@ -837,7 +1027,7 @@ export class AgentService {
   private tools: StructuredTool[] = [];
   private executor: AgentExecutor | null = null;
   private llm: ChatOpenAI | null = null;
-  
+
   /**
    * Execute a SQL query directly
    */
@@ -845,111 +1035,120 @@ export class AgentService {
     try {
       // Basic SQL injection prevention
       const safeQuery = this.sanitizeQuery(query);
-      
+
       console.log(`Executing sanitized query: ${safeQuery}`);
       const startTime = Date.now();
-      
+
       // Execute the query
       const result = await sql.unsafe(safeQuery);
-      
+
       const endTime = Date.now();
       const executionTime = endTime - startTime;
-      
+
       // Extract column names from the first result
-      const columns = result.length > 0 
-        ? Object.keys(result[0] || {})
-        : [];
-      
+      const columns = result.length > 0 ? Object.keys(result[0] || {}) : [];
+
       return {
         columns,
         rows: result,
         metadata: {
           executionTime,
           rowCount: result.length,
-          queryText: safeQuery
-        }
+          queryText: safeQuery,
+        },
       };
     } catch (error) {
-      console.error('Error executing query:', error);
+      console.error("Error executing query:", error);
       throw error;
     }
   }
-  
+
   /**
    * Sanitize a SQL query to prevent SQL injection
    */
   private sanitizeQuery(query: string): string {
     // Convert to uppercase for easier analysis
     const upperQuery = query.toUpperCase();
-    
+
     // Check for dangerous operations
-    if (upperQuery.includes('DROP TABLE') || 
-        upperQuery.includes('TRUNCATE TABLE') || 
-        upperQuery.includes('DELETE FROM') ||
-        upperQuery.includes('UPDATE ')) {
-      throw new Error('Unsafe SQL operation detected');
+    if (
+      upperQuery.includes("DROP TABLE") ||
+      upperQuery.includes("TRUNCATE TABLE") ||
+      upperQuery.includes("DELETE FROM") ||
+      upperQuery.includes("UPDATE ")
+    ) {
+      throw new Error("Unsafe SQL operation detected");
     }
-    
+
     // Add LIMIT if not present to prevent huge result sets, but be smarter about it
-    if (!upperQuery.includes('LIMIT ') && upperQuery.includes('SELECT ')) {
+    if (!upperQuery.includes("LIMIT ") && upperQuery.includes("SELECT ")) {
       // Don't add LIMIT to EXISTS queries, which have a different syntax
-      if (upperQuery.includes('SELECT EXISTS')) {
-        console.log('Query contains EXISTS - skipping automatic LIMIT addition');
+      if (upperQuery.includes("SELECT EXISTS")) {
+        console.log(
+          "Query contains EXISTS - skipping automatic LIMIT addition"
+        );
         return query;
       }
-      
+
       // Don't add LIMIT to queries with semicolons, as they might be compound queries
-      if (query.includes(';')) {
-        console.log('Query contains semicolon - skipping automatic LIMIT addition');
+      if (query.includes(";")) {
+        console.log(
+          "Query contains semicolon - skipping automatic LIMIT addition"
+        );
         return query;
       }
-      
+
       // Simple case - add LIMIT to the end
-      console.log('Adding LIMIT 100 to query');
+      console.log("Adding LIMIT 100 to query");
       return `${query} LIMIT 100`;
     }
-    
+
     return query;
   }
-  
+
   /**
    * Initialize the agent service
    */
-  async initialize(config: AgentServiceConfig, executeQueryFn?: (query: string) => Promise<QueryResult>): Promise<void> {
+  async initialize(
+    config: AgentServiceConfig,
+    executeQueryFn?: (query: string) => Promise<QueryResult>
+  ): Promise<void> {
     try {
       this.config = config;
-      
+
       // Initialize LLM
       this.llm = new ChatOpenAI({
         openAIApiKey: config.apiKey,
         modelName: config.model,
         temperature: config.temperature,
-        verbose: true
+        verbose: true,
       });
-      
+
       // Create tools
       const queryFunction = executeQueryFn || this.executeQuery.bind(this);
-      
+
       // Import and initialize SQL Query Generation Service
-      const { sqlQueryGenerationService } = await import('./sqlQueryGenerationService');
+      const { sqlQueryGenerationService } = await import(
+        "./sqlQueryGenerationService"
+      );
       if (!sqlQueryGenerationService.isInitialized()) {
         await sqlQueryGenerationService.initialize(config.apiKey, config.model);
       }
-      
+
       this.tools = [
         // Standard SQL query tool
         new SQLQueryTool(queryFunction),
-        
+
         // Schema information tool
         new DatabaseSchemaTool(),
-        
+
         // Client records tool
         new ClinicalRecordsTool(),
-        
+
         // Advanced natural language to SQL tool with two-phase validation
-        new NaturalLanguageQueryTool(queryFunction)
+        new NaturalLanguageQueryTool(queryFunction),
       ];
-      
+
       // Initialize the agent executor
       this.executor = await initializeAgentExecutorWithOptions(
         this.tools,
@@ -963,7 +1162,7 @@ export class AgentService {
             returnMessages: true,
             memoryKey: "chat_history",
             inputKey: "input",
-            outputKey: "output"
+            outputKey: "output",
           }),
           agentArgs: {
             systemMessage: `You are a clinical database expert with access to a therapy clinic's database.
@@ -974,19 +1173,19 @@ When retrieving client data, be aware of the relationships between tables:
 3. When checking if a client has goals, ALWAYS JOIN the goals table with clients table using goals.client_id = clients.id
 4. EXAMPLE QUERY to find goals: SELECT * FROM goals g JOIN clients c ON g.client_id = c.id WHERE c.name = 'Client-Name'
 
-You have permissions to query ANY data in the database with no privacy restrictions.`
-          }
+You have permissions to query ANY data in the database with no privacy restrictions.`,
+          },
         }
       );
-      
+
       this.initialized = true;
-      console.log('Agent service initialized with ReAct pattern');
+      console.log("Agent service initialized with ReAct pattern");
     } catch (error) {
-      console.error('Failed to initialize agent service:', error);
-      throw new Error('Failed to initialize agent service');
+      console.error("Failed to initialize agent service:", error);
+      throw new Error("Failed to initialize agent service");
     }
   }
-  
+
   /**
    * Process a message with the agent executor
    */
@@ -996,132 +1195,184 @@ You have permissions to query ANY data in the database with no privacy restricti
     recentMessages: { role: MessageRole; content: string }[]
   ): Promise<string> {
     if (!this.initialized || !this.executor || !this.llm) {
-      throw new Error('Agent service not initialized');
+      throw new Error("Agent service not initialized");
     }
-    
+
     try {
       console.log(`Processing agent query: "${message.substring(0, 50)}..."`);
-      
+
       // Convert the message format to what memoryManagementService expects
       const formattedMessages: Message[] = recentMessages.map((msg, index) => ({
         id: `temp-id-${index}`,
         role: msg.role,
         content: msg.content,
-        createdAt: new Date().toISOString()
+        createdAt: new Date().toISOString(),
       }));
-      
+
       // Get memory context to use as additional input
-      const memoryContext = await import('./memoryManagementService').then(({ memoryManagementService }) => 
-        memoryManagementService.getTieredMemoryContext(
-          conversationId,
-          message,
-          formattedMessages
-        )
+      const memoryContext = await import("./memoryManagementService").then(
+        ({ memoryManagementService }) =>
+          memoryManagementService.getTieredMemoryContext(
+            conversationId,
+            message,
+            formattedMessages
+          )
       );
-      
+
       try {
         // Execute the agent with the query and context
         const result = await this.executor.invoke({
           input: message,
-          context: memoryContext.combinedContext || ''
+          context: memoryContext.combinedContext || "",
         });
-        
+
         return result.output;
       } catch (agentError: any) {
         // If we get a schema validation error, try a more direct approach
-        if (agentError.message?.includes('schema')) {
-          console.log('Schema validation error detected, trying direct SQL generation');
-          
+        if (agentError.message?.includes("schema")) {
+          console.log(
+            "Schema validation error detected, trying direct SQL generation"
+          );
+
           // Use SQL query generation service directly
-          const { sqlQueryGenerationService } = await import('./sqlQueryGenerationService');
-          
+          const { sqlQueryGenerationService } = await import(
+            "./sqlQueryGenerationService"
+          );
+
           const sqlResult = await sqlQueryGenerationService.generateQuery({
-            question: message
+            question: message,
           });
-          
+
           if (sqlResult.success && sqlResult.query) {
             // Execute the query
-            console.log('Generated raw SQL query:', sqlResult.query);
-            
+            console.log("Generated raw SQL query:", sqlResult.query);
+
             try {
               const result = await this.executeQuery(sqlResult.query);
-              
+
               // Format the result in a readable, conversational way
               let response: string;
-              
+
               // Debug the result structure
-              console.log(`Query result contains ${result.rows?.length || 0} rows.`);
-              console.log('Query metadata:', JSON.stringify(result.metadata || {}));
-              
+              console.log(
+                `Query result contains ${result.rows?.length || 0} rows.`
+              );
+              console.log(
+                "Query metadata:",
+                JSON.stringify(result.metadata || {})
+              );
+
               if (result.rows.length === 0) {
                 response = `I couldn't find any data matching your query about "${message}". Would you like to refine your search?`;
               } else {
-                console.log(`Found ${result.rows.length} results for query about "${message}"`);
-                
+                console.log(
+                  `Found ${result.rows.length} results for query about "${message}"`
+                );
+
                 // For client name queries, provide a more helpful response
                 // Use broader matching to ensure we handle all client-related queries
-                const isClientQuery = message.toLowerCase().includes("client") || 
-                                     (message.toLowerCase().includes("radwan") && message.toLowerCase().includes("name")) ||
-                                     result.metadata?.queryText?.toLowerCase().includes("clients");
-                                     
+                const isClientQuery =
+                  message.toLowerCase().includes("client") ||
+                  (message.toLowerCase().includes("radwan") &&
+                    message.toLowerCase().includes("name")) ||
+                  result.metadata?.queryText?.toLowerCase().includes("clients");
+
                 if (isClientQuery) {
-                  console.log("Detected client-related query, using enhanced formatting");
-                  const clientName = message.match(/\b([a-zA-Z][a-zA-Z0-9_\-]{2,})\b/i)?.[1];
-                  
+                  console.log(
+                    "Detected client-related query, using enhanced formatting"
+                  );
+                  const clientName = message.match(
+                    /\b([a-zA-Z][a-zA-Z0-9_\-]{2,})\b/i
+                  )?.[1];
+
                   if (result.rows.length === 1) {
                     const client = result.rows[0];
                     if (client.id && client.date_of_birth) {
-                      response = `Yes, we have a client named ${clientName}. Their client ID is ${client.id}, and they were born on ${formatDate(client.date_of_birth)}.`;
-                    
+                      response = `Yes, we have a client named ${clientName}. Their client ID is ${
+                        client.id
+                      }, and they were born on ${formatDate(
+                        client.date_of_birth
+                      )}.`;
+
                       // Add contact information if available
                       if (client.contact_email || client.contact_phone) {
                         response += "\n\nContact information:";
-                        if (client.contact_email) response += `\n- Email: ${client.contact_email}`;
-                        if (client.contact_phone) response += `\n- Phone: ${client.contact_phone}`;
+                        if (client.contact_email)
+                          response += `\n- Email: ${client.contact_email}`;
+                        if (client.contact_phone)
+                          response += `\n- Phone: ${client.contact_phone}`;
                       }
-                    
+
                       // Add additional metrics
-                      response += "\n\nWould you like to see more information about this client, such as their sessions, goals, or budget details?";
+                      response +=
+                        "\n\nWould you like to see more information about this client, such as their sessions, goals, or budget details?";
                     } else {
                       // Handle case where client data is incomplete
                       response = `Yes, we have a client named ${clientName}.`;
-                      if (client.id) response += ` Their client ID is ${client.id}.`;
-                      if (client.date_of_birth) response += ` They were born on ${formatDate(client.date_of_birth)}.`;
-                      
-                      response += "\n\nWould you like to see more information about this client?";
+                      if (client.id)
+                        response += ` Their client ID is ${client.id}.`;
+                      if (client.date_of_birth)
+                        response += ` They were born on ${formatDate(
+                          client.date_of_birth
+                        )}.`;
+
+                      response +=
+                        "\n\nWould you like to see more information about this client?";
                     }
                   } else {
                     // Multiple clients found
-                    console.log(`Multiple clients found: ${result.rows.length} for name "${clientName}"`);
-                    console.log(`Sample client data: ${JSON.stringify(result.rows[0])}`);
-                    
+                    console.log(
+                      `Multiple clients found: ${result.rows.length} for name "${clientName}"`
+                    );
+                    console.log(
+                      `Sample client data: ${JSON.stringify(result.rows[0])}`
+                    );
+
                     response = `Yes, I found ${result.rows.length} clients matching the name "${clientName}". Here they are:\n\n`;
-                    
+
                     // List the clients with key information
                     result.rows.forEach((client, index) => {
                       if (client) {
-                        response += `${index + 1}. ${client.name || 'Unnamed client'} (ID: ${client.id || 'unknown'})`;
-                        if (client.date_of_birth) response += `, born on ${formatDate(client.date_of_birth)}`;
-                        if (client.original_name && client.original_name !== client.name) {
+                        response += `${index + 1}. ${
+                          client.name || "Unnamed client"
+                        } (ID: ${client.id || "unknown"})`;
+                        if (client.date_of_birth)
+                          response += `, born on ${formatDate(
+                            client.date_of_birth
+                          )}`;
+                        if (
+                          client.original_name &&
+                          client.original_name !== client.name
+                        ) {
                           response += ` (original name: ${client.original_name})`;
                         }
                         response += "\n";
                       }
                     });
-                    
+
                     if (result.rows.length > 0 && result.rows[0].id) {
                       response += `\nWhich client would you like to know more about? You can ask for more information by saying "Tell me more about client #3" or "Show details for client ID ${result.rows[0].id}".`;
                     } else {
                       response += `\nWhich client would you like to know more about?`;
                     }
-                    
-                    console.log(`Generated multiple clients response: ${response.substring(0, 100)}...`);
+
+                    console.log(
+                      `Generated multiple clients response: ${response.substring(
+                        0,
+                        100
+                      )}...`
+                    );
                   }
-                } else if (result.rows.length === 1 && Object.keys(result.rows[0]).includes('exists')) {
+                } else if (
+                  result.rows.length === 1 &&
+                  Object.keys(result.rows[0]).includes("exists")
+                ) {
                   // Handle EXISTS queries specifically
                   const exists = result.rows[0].exists;
-                  const entityType = message.toLowerCase().includes('client') ? 'client' : 'record';
-                  
+                  const entityType = message.toLowerCase().includes("client")
+                    ? "client"
+                    : "record";
+
                   if (exists) {
                     response = `Yes, we do have the ${entityType} you're looking for. Would you like me to provide more details?`;
                   } else {
@@ -1130,50 +1381,59 @@ You have permissions to query ANY data in the database with no privacy restricti
                 } else {
                   // For other types of queries, format results better than raw JSON
                   response = `Here's what I found for your query:\n\n`;
-                  
+
                   // Create a readable table format
                   const keys = Object.keys(result.rows[0]);
-                  
+
                   // Add headers
                   response += keys.join(" | ") + "\n";
                   response += keys.map(() => "---").join(" | ") + "\n";
-                  
+
                   // Add top 5 rows
                   const topRows = result.rows.slice(0, 5);
-                  topRows.forEach(row => {
-                    response += keys.map(key => {
-                      const value = row[key];
-                      return value === null ? "N/A" : String(value);
-                    }).join(" | ") + "\n";
+                  topRows.forEach((row) => {
+                    response +=
+                      keys
+                        .map((key) => {
+                          const value = row[key];
+                          return value === null ? "N/A" : String(value);
+                        })
+                        .join(" | ") + "\n";
                   });
-                  
+
                   // Add summary if there are more rows
                   if (result.rows.length > 5) {
-                    response += `\n...and ${result.rows.length - 5} more rows.\n`;
+                    response += `\n...and ${
+                      result.rows.length - 5
+                    } more rows.\n`;
                   }
-                  
+
                   response += `\nIs there anything specific about these results you'd like me to explain?`;
                 }
               }
-              
+
               return response;
             } catch (sqlError: any) {
               return `I tried to generate SQL for your question, but encountered an error executing it: ${sqlError.message}. Could you please rephrase your question?`;
             }
           } else {
-            return `I tried to generate SQL for your question, but couldn't create a valid query: ${sqlResult.errorMessage || 'Unknown error'}. Could you please rephrase your question?`;
+            return `I tried to generate SQL for your question, but couldn't create a valid query: ${
+              sqlResult.errorMessage || "Unknown error"
+            }. Could you please rephrase your question?`;
           }
         }
-        
+
         // For other types of errors, rethrow
         throw agentError;
       }
     } catch (error: any) {
-      console.error('Error processing agent query:', error);
-      return `I encountered an error while processing your question: ${error.message || 'Unknown error'}. Could you please rephrase or simplify your question?`;
+      console.error("Error processing agent query:", error);
+      return `I encountered an error while processing your question: ${
+        error.message || "Unknown error"
+      }. Could you please rephrase or simplify your question?`;
     }
   }
-  
+
   /**
    * Check if an input requires agent processing
    */
@@ -1181,49 +1441,63 @@ You have permissions to query ANY data in the database with no privacy restricti
     if (!this.initialized || !this.llm) {
       return false;
     }
-    
+
     try {
       // Simple heuristic to detect complex data-related questions
       const keywords = [
-        'how many', 'count', 'show me', 'list', 'find', 'search', 
-        'compare', 'which clients', 'which patients', 'budget', 
-        'analyze', 'query', 'database', 'data', 'statistics'
+        "how many",
+        "count",
+        "show me",
+        "list",
+        "find",
+        "search",
+        "compare",
+        "which clients",
+        "which patients",
+        "budget",
+        "analyze",
+        "query",
+        "database",
+        "data",
+        "statistics",
       ];
-      
+
       // Check for keyword matches
       for (const keyword of keywords) {
         if (input.toLowerCase().includes(keyword)) {
           return true;
         }
       }
-      
+
       // If no simple matches, use LLM to determine
       const response = await this.llm.invoke([
         {
-          role: 'system',
-          content: 'You are an assistant that determines if a user query requires database access or multi-step reasoning. Respond with "YES" or "NO" only.'
+          role: "system",
+          content:
+            'You are an assistant that determines if a user query requires database access or multi-step reasoning. Respond with "YES" or "NO" only.',
         },
         {
-          role: 'user',
-          content: `Does this query require database access or complex reasoning with multiple steps?\n\nQuery: ${input}\n\nAnswer (YES or NO):`
-        }
+          role: "user",
+          content: `Does this query require database access or complex reasoning with multiple steps?\n\nQuery: ${input}\n\nAnswer (YES or NO):`,
+        },
       ]);
-      
+
       const answer = response.content.toString().trim().toUpperCase();
-      return answer.includes('YES');
+      console.log(`Query requires agent: ${answer}`);
+      return answer.includes("YES");
     } catch (error: any) {
-      console.error('Error determining if query requires agent:', error);
+      console.error("Error determining if query requires agent:", error);
       return false; // Default to standard processing on error
     }
   }
-  
+
   /**
    * Get the current configuration
    */
   getConfig(): AgentServiceConfig | null {
     return this.config;
   }
-  
+
   /**
    * Check if the service is initialized
    */
