@@ -13,6 +13,30 @@ async function transferData() {
   });
 
   try {
+    // First get schema from source database
+    const schemaResult = await sourcePool.query(`
+      SELECT 
+        table_name,
+        array_agg(
+          column_name || ' ' || data_type || 
+          CASE 
+            WHEN character_maximum_length IS NOT NULL THEN '(' || character_maximum_length || ')'
+            ELSE ''
+          END
+        ) as columns
+      FROM information_schema.columns
+      WHERE table_schema = 'public'
+      AND table_name NOT IN ('assistant_settings', 'assistant_messages', 'assistant_conversations')
+      GROUP BY table_name
+    `);
+
+    // Create tables in target database
+    for (const table of schemaResult.rows) {
+      const createTableSQL = `CREATE TABLE IF NOT EXISTS ${table.table_name} (${table.columns.join(', ')})`;
+      await targetPool.query(createTableSQL);
+      console.log(`Created table: ${table.table_name}`);
+    }
+
     // Get list of tables
     const tablesResult = await sourcePool.query(`
       SELECT table_name 
