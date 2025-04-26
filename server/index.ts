@@ -65,21 +65,6 @@ app.use((req, res, next) => {
   console.log("STEP 3: Registering main API routes");
   const server = await registerRoutes(app);
 
-  console.log("STEP 3.5: Registering debug API routes");
-  try {
-    // Import debug routes directly
-    import("./routes/debug-routes.js")
-      .then(({ default: debugRouter }) => {
-        app.use(debugRouter);
-        console.log("Debug routes registered successfully");
-      })
-      .catch((err) => {
-        console.error("Error importing debug routes:", err);
-      });
-  } catch (error) {
-    console.error("Error registering debug routes:", error);
-  }
-
   console.log("STEP 4: All routes registered successfully");
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
