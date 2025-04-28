@@ -6,7 +6,7 @@
  */
 import { Request, Response, Express } from "express";
 import { db } from "../db";
-import { storage } from "../storage";
+import { DrizzleStorage } from "../storage";
 import { knowledgeService } from "../services/knowledgeService";
 
 /**
@@ -159,15 +159,15 @@ export function registerKnowledgeRoutes(app: Express) {
   });
 
   /**
-   * Client statistics from the actual database
+   * Patient statistics from the actual database
    */
-  app.get('/api/knowledge/clients/stats', async (req: Request, res: Response) => {
+  app.get('/api/knowledge/patients/stats', async (req: Request, res: Response) => {
     try {
-      const clientStats = await knowledgeService.getClientStatistics();
-      res.json(clientStats);
+      const patientStats = await knowledgeService.getPatientStatistics();
+      res.json(patientStats);
     } catch (error) {
-      console.error("Error fetching client statistics:", error);
-      res.status(500).json({ error: 'Failed to retrieve client statistics' });
+      console.error("Error fetching patient statistics:", error);
+      res.status(500).json({ error: 'Failed to retrieve patient statistics' });
     }
   });
 }
