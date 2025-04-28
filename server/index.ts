@@ -4,6 +4,7 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { registerReportRoutes } from "./routes/reports";
 import { registerKnowledgeRoutes } from "./routes/knowledge";
+import { chatbotRoutes } from "./routes/index";
 // Create debug-routes.ts file if it doesn't exist
 import * as fs from "fs";
 import * as path from "path";
@@ -62,10 +63,13 @@ app.use((req, res, next) => {
   console.log("STEP 2: Registering report API routes");
   registerReportRoutes(app);
 
-  console.log("STEP 3: Registering main API routes");
+  console.log("STEP 3: Registering chatbot API routes");
+  app.use("/api/chatbot", chatbotRoutes);
+
+  console.log("STEP 4: Registering main API routes");
   const server = await registerRoutes(app);
 
-  console.log("STEP 4: All routes registered successfully");
+  console.log("STEP 5: All routes registered successfully");
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
@@ -103,7 +107,7 @@ app.use((req, res, next) => {
   }
 
   // Try to serve the app on port 5000, which is what Replit workflow expects
-  console.log("STEP 5: Starting server on port 5000");
+  console.log("STEP 6: Starting server on port 5000");
   const startServer = (port = 5000, maxRetries = 3, retryCount = 0) => {
     console.log(
       `Attempting to start server on port ${port} (attempt ${retryCount + 1}/${
