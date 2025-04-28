@@ -53,7 +53,7 @@ export interface ProgressKnowledge {
   
   // Goal data
   topGoalCategories?: string[];
-  avgGoalsPerClient?: number;
+  avgGoalsPerPatient?: number;
   avgSubgoalsPerGoal?: number;
   
   // Trends
@@ -108,7 +108,7 @@ export const knowledgeService = {
   },
   
   /**
-   * Get general information about client progress
+   * Get general information about patient progress
    */
   async getGeneralProgressInfo(subtopic?: string): Promise<ProgressKnowledge> {
     try {
@@ -171,15 +171,20 @@ export const knowledgeService = {
   },
   
   /**
-   * Get aggregate statistics about clients
+   * Get aggregate statistics about patients
    */
-  async getClientStatistics(): Promise<any> {
+  async getPatientStatistics(): Promise<any> {
     try {
-      const stats = await apiRequest('GET', '/api/knowledge/clients/stats');
-      return stats;
+      // Query API for patient statistics
+      const data = await apiRequest('GET', '/api/knowledge/patients/stats');
+      return data;
     } catch (error) {
-      console.error('Error fetching client statistics:', error);
-      return {};
+      console.error('Error fetching patient statistics:', error);
+      return {
+        totalPatients: 0,
+        ageDistribution: {},
+        fundsManagement: {}
+      };
     }
   },
   
@@ -310,8 +315,8 @@ export const knowledgeService = {
       topFundingSource,
       avgBudgetSize,
       budgetCount: budgetSettings.length,
-      budgetingApproach: 'client-centered allocation',
-      budgetingDescription: 'analyzing client needs, prioritizing goals, and allocating resources based on evidence-based practices'
+      budgetingApproach: 'patient-centered allocation',
+      budgetingDescription: 'analyzing patient needs, prioritizing goals, and allocating resources based on evidence-based practices'
     };
   },
   
@@ -319,10 +324,10 @@ export const knowledgeService = {
    * Calculate local progress statistics until backend is ready
    */
   async calculateLocalProgressStats(goals: Goal[], subgoals: Subgoal[], sessions: Session[]): Promise<ProgressKnowledge> {
-    // Calculate average goals per client
-    const clientIds = [...new Set(goals.map(goal => goal.clientId))];
-    const avgGoalsPerClient = clientIds.length > 0 
-      ? goals.length / clientIds.length 
+    // Calculate average goals per patient
+    const patientIds = [...new Set(goals.map(goal => goal.patientId))];
+    const avgGoalsPerPatient = patientIds.length > 0 
+      ? goals.length / patientIds.length 
       : 0;
     
     // Calculate average subgoals per goal
@@ -356,7 +361,7 @@ export const knowledgeService = {
       : 0;
     
     return {
-      avgGoalsPerClient,
+      avgGoalsPerPatient,
       avgSubgoalsPerGoal,
       topGoalCategories: sortedCategories,
       avgAttendanceRate,
