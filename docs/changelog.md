@@ -39,6 +39,20 @@ All notable changes to this project will be documented in this file.
 
 ## 2025-04-28
 
+### Code Review Fixes
+
+- Fixed security vulnerabilities and bugs in server code:
+  - Fixed SQL injection vulnerability in `getGoalPerformanceData` method by replacing string interpolation with parameterized queries
+  - Fixed SQL injection vulnerability in `/api/debug/budget-items/:itemCode` endpoint by using Drizzle query builder instead of raw SQL
+  - Fixed TypeScript error with Drizzle query builder by properly using the `and` operator for multiple conditions instead of chaining `where` methods
+  - Fixed TypeScript errors in `getGoalPerformanceData` method by restructuring the query building approach to collect all conditions and apply them at once
+  - Fixed error handling in DELETE `/api/patient-clinicians/:id` endpoint to properly handle the case when assignment is not found
+  - Improved error handling consistency by using the `formatError()` function throughout the codebase
+  - Fixed type safety issues by replacing `any` type with proper type definitions in `updateSubgoal` method
+  - Fixed duplicate `patientId` field in the `IStorage` interface
+  - Fixed syntax errors in route handler parentheses
+  - Added proper error handling for dynamic import of report routes
+
 ### Project Organization
 
 - Reorganized documentation files into a more structured directory layout:
@@ -132,5 +146,3 @@ All notable changes to this project will be documented in this file.
   - Properly updates column names (client_id → patient_id, ally_id → caregiver_id)
   - Includes validation to prevent duplicate data and ensure data integrity
   - Restores missing goals to maintain referential integrity with goal_assessments
-
-{{ ... }}
