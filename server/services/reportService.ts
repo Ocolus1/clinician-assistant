@@ -1,33 +1,44 @@
 /**
  * Report Service
  * 
- * Provides aggregated data for client performance reports including:
- * - Client details with allies information
+ * Provides aggregated data for patient performance reports including:
+ * - Patient details with caregivers information
  * - Spending deviation and plan expiration
  * - General observations average scores
  * - Cancellation statistics
  * - Strategy usage and effectiveness
  * - Goal achievement metrics
  */
-import { db } from "../db";
-import { sql, eq, and, gte, lte, desc, asc } from "drizzle-orm";
-import { pool } from "../db";
-import { 
-  clients, 
-  allies, 
-  goals,
-  subgoals,
+import { Pool } from "@neondatabase/serverless";
+import { eq, and, gte, lte, desc, asc } from "drizzle-orm";
+import { format, parseISO, subMonths } from "date-fns";
+
+// Import from shared schema
+import {
   budgetSettings,
   budgetItems,
+  budgetItemCatalog,
+  goals,
+  subgoals,
+  patients, 
+  caregivers, 
+  clinicians,
+  patientClinicians, 
   sessions,
   sessionNotes,
   strategies,
-  performanceAssessments,
+  goalAssessments,
   milestoneAssessments
 } from "@shared/schema";
 
-export interface ClientReportData {
-  clientDetails: ClientDetailsData;
+// Import database connection
+import { db } from "../db";
+
+// Create a pool for raw SQL queries
+const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+
+export interface PatientReportData {
+  patientDetails: PatientDetailsData;
   keyMetrics: KeyMetricsData;
   observations: ObservationsData;
   cancellations: CancellationsData;
@@ -35,12 +46,12 @@ export interface ClientReportData {
   goals: GoalsData;
 }
 
-export interface ClientDetailsData {
+export interface PatientDetailsData {
   id: number;
   name: string;
   age: number;
   fundsManagement: string;
-  allies: Array<{
+  caregivers: Array<{
     name: string;
     relationship: string;
     preferredLanguage: string;
@@ -99,51 +110,65 @@ function toSqlDateString(date?: Date | string): string | undefined {
 }
 
 /**
- * Generate a comprehensive performance report for a client
+ * Parse a date string or Date object to a Date object
  */
-export async function generateClientReport(
-  clientId: number,
-  dateRange?: DateRangeParams
-): Promise<ClientReportData> {
+function parseDate(date?: Date | string): Date | undefined {
+  if (!date) return undefined;
+  if (date instanceof Date) return date;
   try {
-    console.log(`Generating report for client ${clientId}`);
+    return new Date(date);
+  } catch (error) {
+    console.error("Error parsing date:", error);
+    return undefined;
+  }
+}
+
+/**
+ * Generate a comprehensive performance report for a patient
+ */
+export async function generatePatientReport(
+  patientId: number,
+  dateRange?: DateRangeParams
+): Promise<PatientReportData> {
+  try {
+    console.log(`Generating report for patient ${patientId}`);
     
     // Convert date strings to Date objects if provided
     let startDate: Date | undefined;
     let endDate: Date | undefined;
     
     if (dateRange?.startDate) {
-      startDate = new Date(dateRange.startDate);
-      console.log(`Using start date: ${startDate.toISOString()}`);
+      startDate = parseDate(dateRange.startDate);
+      console.log(`Using start date: ${startDate?.toISOString()}`);
     }
     
     if (dateRange?.endDate) {
-      endDate = new Date(dateRange.endDate);
-      console.log(`Using end date: ${endDate.toISOString()}`);
+      endDate = parseDate(dateRange.endDate);
+      console.log(`Using end date: ${endDate?.toISOString()}`);
     }
     
     // Gather all report sections
     const [
-      clientDetailsData,
+      patientDetailsData,
       keyMetricsData,
       observationsData,
       cancellationsData,
       strategiesData,
       goalsData
     ] = await Promise.all([
-      getClientDetails(clientId),
-      getKeyMetrics(clientId),
-      getObservationScores(clientId, startDate, endDate),
-      getCancellationStats(clientId, startDate, endDate),
-      getStrategyStats(clientId, startDate, endDate),
-      getGoalAchievementScores(clientId, startDate, endDate)
+      getPatientDetails(patientId),
+      getKeyMetrics(patientId),
+      getObservationScores(patientId, startDate, endDate),
+      getCancellationStats(patientId, startDate, endDate),
+      getStrategyStats(patientId, startDate, endDate),
+      getGoalAchievementScores(patientId, startDate, endDate)
     ]);
     
-    console.log(`Successfully generated report for client ${clientId}`);
+    console.log(`Successfully generated report for patient ${patientId}`);
     
     // Return complete report
     return {
-      clientDetails: clientDetailsData,
+      patientDetails: patientDetailsData,
       keyMetrics: keyMetricsData,
       observations: observationsData,
       cancellations: cancellationsData,
@@ -151,29 +176,29 @@ export async function generateClientReport(
       goals: goalsData
     };
   } catch (error) {
-    console.error("Error generating client report:", error);
-    throw new Error(`Failed to generate client report: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    console.error("Error generating patient report:", error);
+    throw new Error(`Failed to generate patient report: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }
 
 /**
- * Get client details including age and allies
+ * Get patient details including age and caregivers
  */
-async function getClientDetails(clientId: number): Promise<ClientDetailsData> {
-  // Query client information
-  const [clientResult] = await db
+async function getPatientDetails(patientId: number): Promise<PatientDetailsData> {
+  // Query patient information
+  const [patientResult] = await db
     .select()
-    .from(clients)
-    .where(eq(clients.id, clientId));
+    .from(patients)
+    .where(eq(patients.id, patientId));
   
-  if (!clientResult) {
-    throw new Error(`Client with ID ${clientId} not found`);
+  if (!patientResult) {
+    throw new Error(`Patient with ID ${patientId} not found`);
   }
   
   // Calculate age from date of birth
   let age = 0;
-  if (clientResult.dateOfBirth) {
-    const dob = new Date(clientResult.dateOfBirth);
+  if (patientResult.dateOfBirth) {
+    const dob = new Date(patientResult.dateOfBirth);
     const today = new Date();
     age = today.getFullYear() - dob.getFullYear();
     // Adjust age if birthday hasn't occurred yet this year
@@ -183,38 +208,38 @@ async function getClientDetails(clientId: number): Promise<ClientDetailsData> {
     }
   }
   
-  // Get allies
-  const clientAllies = await db
+  // Get caregivers
+  const patientCaregivers = await db
     .select()
-    .from(allies)
-    .where(eq(allies.clientId, clientId));
+    .from(caregivers)
+    .where(eq(caregivers.patientId, patientId));
   
-  // Build allies array with required fields
-  const alliesFormatted = clientAllies.map(ally => ({
-    name: ally.name,
-    relationship: ally.relationship || 'Unknown',
-    preferredLanguage: ally.preferredLanguage || 'English'
+  // Build caregivers array with required fields
+  const caregiversFormatted = patientCaregivers.map(caregiver => ({
+    name: caregiver.name,
+    relationship: caregiver.relationship || 'Unknown',
+    preferredLanguage: caregiver.preferredLanguage || 'English'
   }));
   
   return {
-    id: clientResult.id,
-    name: clientResult.name,
+    id: patientResult.id,
+    name: patientResult.name,
     age,
-    fundsManagement: clientResult.fundsManagement || 'Unknown',
-    allies: alliesFormatted
+    fundsManagement: patientResult.fundsManagement || 'Unknown',
+    caregivers: caregiversFormatted
   };
 }
 
 /**
  * Get key metrics: spending deviation and plan expiration
  */
-async function getKeyMetrics(clientId: number): Promise<KeyMetricsData> {
+async function getKeyMetrics(patientId: number): Promise<KeyMetricsData> {
   // Get active budget settings
   const [budgetResult] = await db
     .select()
     .from(budgetSettings)
     .where(and(
-      eq(budgetSettings.clientId, clientId),
+      eq(budgetSettings.patientId, patientId),
       eq(budgetSettings.isActive, true)
     ));
   
@@ -268,19 +293,19 @@ async function getKeyMetrics(clientId: number): Promise<KeyMetricsData> {
  * Get average observation scores from session notes
  */
 async function getObservationScores(
-  clientId: number,
+  patientId: number,
   startDate?: Date,
   endDate?: Date
 ): Promise<ObservationsData> {
   try {
-    // Get sessions for the client
+    // Get sessions for the patient
     let sessionsQuery = `
       SELECT s.id 
       FROM sessions s
-      WHERE s.client_id = $1
+      WHERE s.patient_id = $1
     `;
     
-    const queryParams = [clientId];
+    const queryParams = [patientId];
     
     // Add date filtering if provided
     if (startDate || endDate) {
@@ -356,21 +381,21 @@ async function getObservationScores(
  * Get cancellation statistics
  */
 async function getCancellationStats(
-  clientId: number,
+  patientId: number,
   startDate?: Date,
   endDate?: Date
 ): Promise<CancellationsData> {
   try {
-    // Get sessions for the client
+    // Get sessions for the patient
     let sessionsQuery = `
       SELECT 
         status,
         COUNT(*) as count
       FROM sessions
-      WHERE client_id = $1
+      WHERE patient_id = $1
     `;
     
-    const queryParams = [clientId];
+    const queryParams = [patientId];
     
     // Add date filtering if provided
     if (startDate || endDate) {
@@ -434,18 +459,18 @@ async function getCancellationStats(
  * Get strategy usage and effectiveness
  */
 async function getStrategyStats(
-  clientId: number,
+  patientId: number,
   startDate?: Date,
   endDate?: Date
 ): Promise<StrategiesData> {
   try {
-    // Get sessions for the client
+    // Get sessions for the patient
     let sessionsQuery = `
       SELECT id FROM sessions
-      WHERE client_id = $1
+      WHERE patient_id = $1
     `;
     
-    const queryParams = [clientId];
+    const queryParams = [patientId];
     
     // Add date filtering if provided
     if (startDate || endDate) {
@@ -469,18 +494,18 @@ async function getStrategyStats(
     }
     
     // Get strategies used in sessions and their average scores
-    // The strategies are stored as an array of strategy names directly in the performance_assessments table
+    // The strategies are stored as an array of strategy names directly in the goal_assessments table
     // We need to join multiple tables to get the strategy usage and scores
     const strategyQuery = `
       WITH strategy_usages AS (
         -- Unnest the strategies array to get individual strategy uses
         SELECT 
-          pa.rating,
-          unnest(pa.strategies) as strategy_name
-        FROM performance_assessments pa
-        JOIN session_notes sn ON pa.session_note_id = sn.id
+          ga.achievement_level as rating,
+          unnest(ga.strategies) as strategy_name
+        FROM goal_assessments ga
+        JOIN session_notes sn ON ga.session_note_id = sn.id
         JOIN sessions s ON sn.session_id = s.id
-        WHERE s.client_id = $1
+        WHERE s.patient_id = $1
           ${sessionIds.length > 0 ? `AND s.id IN (${sessionIds.map((_, i) => `$${i + 2}`).join(',')})` : ''}
       )
       SELECT 
@@ -499,7 +524,7 @@ async function getStrategyStats(
     `;
     
     // Add sessionIds to the query parameters if there are any
-    const strategyParams = [clientId, ...sessionIds];
+    const strategyParams = [patientId, ...sessionIds];
     const strategyResult = await pool.query(strategyQuery, strategyParams);
     
     // Format strategy results
@@ -521,16 +546,16 @@ async function getStrategyStats(
  * Get goal achievement scores
  */
 async function getGoalAchievementScores(
-  clientId: number,
+  patientId: number,
   startDate?: Date,
   endDate?: Date
 ): Promise<GoalsData> {
   try {
-    // Get goals for the client
+    // Get goals for the patient
     const goalsResult = await db
       .select()
       .from(goals)
-      .where(eq(goals.clientId, clientId));
+      .where(eq(goals.patientId, patientId));
     
     // If no goals found, return empty array
     if (goalsResult.length === 0) {
@@ -540,10 +565,10 @@ async function getGoalAchievementScores(
     // Get sessions in date range
     let sessionsQuery = `
       SELECT id FROM sessions
-      WHERE client_id = $1
+      WHERE patient_id = $1
     `;
     
-    const queryParams = [clientId];
+    const queryParams = [patientId];
     
     // Add date filtering if provided
     if (startDate || endDate) {
@@ -561,7 +586,7 @@ async function getGoalAchievementScores(
     const sessionsResult = await pool.query(sessionsQuery, queryParams);
     const sessionIds = sessionsResult.rows.map(row => row.id);
     
-    // Calculate scores for each goal based on performance assessments
+    // Calculate scores for each goal based on goal assessments
     const goalScores = await Promise.all(
       goalsResult.map(async (goal) => {
         // Get subgoals
@@ -579,19 +604,19 @@ async function getGoalAchievementScores(
           };
         }
         
-        // Get performance assessments for this goal's subgoals
+        // Get goal assessments for this goal's subgoals
         let avgScore = 0;
         
-        // Use raw query to get performance assessments by subgoal IDs
+        // Use raw query to get goal assessments by subgoal IDs
         const subgoalIds = subgoalsList.map(s => s.id);
         
         const scoreQuery = `
-          SELECT AVG(COALESCE(pa.rating, 0)) as avg_score
-          FROM performance_assessments pa
-          JOIN session_notes sn ON pa.session_note_id = sn.id
+          SELECT AVG(COALESCE(ga.achievement_level, 0)) as avg_score
+          FROM goal_assessments ga
+          JOIN session_notes sn ON ga.session_note_id = sn.id
           WHERE 
             sn.session_id = ANY($1) AND
-            pa.goal_id = $2
+            ga.goal_id = $2
         `;
         
         const scoreResult = await pool.query(

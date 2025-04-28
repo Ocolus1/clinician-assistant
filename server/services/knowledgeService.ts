@@ -5,11 +5,11 @@
  * to power the agent's responses with real data from the therapy practice.
  */
 import { db } from "../db";
-import { storage } from "../storage";
+import { DrizzleStorage } from "../storage";
 import { sql } from "drizzle-orm";
 import { 
-  clients, 
-  allies, 
+  patients, 
+  caregivers, 
   goals, 
   subgoals, 
   budgetSettings,
@@ -17,7 +17,7 @@ import {
   sessions,
   sessionNotes,
   strategies,
-  performanceAssessments,
+  goalAssessments,
   milestoneAssessments
 } from "@shared/schema";
 
@@ -43,7 +43,7 @@ export const knowledgeService = {
         totalBudget += item.unitPrice * item.quantity;
         
         // Aggregate by category
-        const category = item.supportCategory || 'Uncategorized';
+        const category = item.category || 'Uncategorized';
         const categoryStats = categories.get(category) || { count: 0, total: 0 };
         categoryStats.count += 1;
         categoryStats.total += item.unitPrice * item.quantity;
@@ -103,21 +103,21 @@ export const knowledgeService = {
    */
   async getProgressInfo(subtopic?: string): Promise<any> {
     try {
-      // Get client goals and subgoals
+      // Get patient goals and subgoals
       const allGoals = await db.select().from(goals);
       const allSubgoals = await db.select().from(subgoals);
       const allSessions = await db.select().from(sessions);
       
-      // Calculate average goals per client
-      const clientGoalMap = new Map<number, number>();
+      // Calculate average goals per patient
+      const patientGoalMap = new Map<number, number>();
       for (const goal of allGoals) {
-        const count = clientGoalMap.get(goal.clientId) || 0;
-        clientGoalMap.set(goal.clientId, count + 1);
+        const count = patientGoalMap.get(goal.patientId) || 0;
+        patientGoalMap.set(goal.patientId, count + 1);
       }
       
-      const goalsPerClient = Array.from(clientGoalMap.values());
-      const avgGoalsPerClient = goalsPerClient.length > 0
-        ? goalsPerClient.reduce((sum, count) => sum + count, 0) / goalsPerClient.length
+      const goalsPerPatient = Array.from(patientGoalMap.values());
+      const avgGoalsPerPatient = goalsPerPatient.length > 0
+        ? goalsPerPatient.reduce((sum, count) => sum + count, 0) / goalsPerPatient.length
         : 0;
       
       // Calculate average subgoals per goal
@@ -137,7 +137,7 @@ export const knowledgeService = {
         overview: {
           totalGoals: allGoals.length,
           totalSubgoals: allSubgoals.length,
-          avgGoalsPerClient,
+          avgGoalsPerPatient,
           avgSubgoalsPerGoal,
           totalSessions: allSessions.length
         },
@@ -165,7 +165,7 @@ export const knowledgeService = {
           typicalTimeframe: "3-6 months for significant progress on most goals",
           factorsAffectingProgress: [
             "Consistency of sessions",
-            "Parent/caregiver involvement",
+            "Caregiver involvement",
             "Age appropriate goal setting",
             "Therapist experience"
           ]
@@ -253,19 +253,19 @@ export const knowledgeService = {
       return {
         tables: [
           {
-            name: "clients",
-            description: "Contains client personal and demographic information",
+            name: "patients",
+            description: "Contains patient personal and demographic information",
             keyFields: ["id", "name", "dateOfBirth", "email", "phone"]
           },
           {
-            name: "allies",
-            description: "Contains information about client allies (parents, caregivers, etc.)",
-            keyFields: ["id", "clientId", "name", "relationship", "email"]
+            name: "caregivers",
+            description: "Contains information about patient caregivers",
+            keyFields: ["id", "patientId", "name", "relationship", "email"]
           },
           {
             name: "goals",
-            description: "Contains therapy goals for clients",
-            keyFields: ["id", "clientId", "title", "description", "status"]
+            description: "Contains therapy goals for patients",
+            keyFields: ["id", "patientId", "title", "description", "status"]
           },
           {
             name: "subgoals",
@@ -274,18 +274,18 @@ export const knowledgeService = {
           },
           {
             name: "budget_settings",
-            description: "Contains budget plan settings for clients",
-            keyFields: ["id", "clientId", "ndis_funds", "isActive"]
+            description: "Contains budget plan settings for patients",
+            keyFields: ["id", "patientId", "ndis_funds", "isActive"]
           },
           {
             name: "budget_items",
             description: "Contains detailed budget line items for therapy",
-            keyFields: ["id", "clientId", "budgetSettingsId", "itemNumber", "description", "unitPrice", "quantity"]
+            keyFields: ["id", "patientId", "budgetSettingsId", "itemNumber", "description", "unitPrice", "quantity"]
           },
           {
             name: "sessions",
             description: "Contains therapy session records",
-            keyFields: ["id", "clientId", "title", "status"]
+            keyFields: ["id", "patientId", "title", "status"]
           },
           {
             name: "session_notes",
@@ -299,10 +299,10 @@ export const knowledgeService = {
           }
         ],
         relationships: [
-          { parent: "clients", child: "allies", type: "one-to-many" },
-          { parent: "clients", child: "goals", type: "one-to-many" },
-          { parent: "clients", child: "budget_settings", type: "one-to-many" },
-          { parent: "clients", child: "sessions", type: "one-to-many" },
+          { parent: "patients", child: "caregivers", type: "one-to-many" },
+          { parent: "patients", child: "goals", type: "one-to-many" },
+          { parent: "patients", child: "budget_settings", type: "one-to-many" },
+          { parent: "patients", child: "sessions", type: "one-to-many" },
           { parent: "goals", child: "subgoals", type: "one-to-many" },
           { parent: "budget_settings", child: "budget_items", type: "one-to-many" },
           { parent: "sessions", child: "session_notes", type: "one-to-one" }
@@ -402,18 +402,18 @@ export const knowledgeService = {
   },
   
   /**
-   * Get client statistics from the database
+   * Get patient statistics from the database
    */
-  async getClientStatistics(): Promise<any> {
+  async getPatientStatistics(): Promise<any> {
     try {
-      // Get all clients
-      const allClients = await db.select().from(clients);
+      // Get all patients
+      const allPatients = await db.select().from(patients);
       
       // Get age distribution
-      const ages = allClients
-        .filter(client => client.dateOfBirth)
-        .map(client => {
-          const dob = new Date(client.dateOfBirth);
+      const ages = allPatients
+        .filter(patient => patient.dateOfBirth)
+        .map(patient => {
+          const dob = new Date(patient.dateOfBirth);
           const today = new Date();
           let age = today.getFullYear() - dob.getFullYear();
           const monthDiff = today.getMonth() - dob.getMonth();
@@ -450,28 +450,28 @@ export const knowledgeService = {
         'Unknown': 0
       };
       
-      for (const client of allClients) {
-        const management = client.fundsManagement;
+      for (const patient of allPatients) {
+        const management = patient.fundsManagement;
         if (management === 'Self-Managed') fundsManagement['Self-Managed']++;
         else if (management === 'Advisor-Managed') fundsManagement['Advisor-Managed']++;
         else if (management === 'Custodian-Managed') fundsManagement['Custodian-Managed']++;
         else fundsManagement['Unknown']++;
       }
       
-      // Return client statistics
+      // Return patient statistics
       return {
-        totalClients: allClients.length,
+        totalPatients: allPatients.length,
         ageDistribution: ageRanges,
         fundsManagement,
         onboardingStatus: {
-          complete: allClients.filter(c => c.onboardingStatus === 'complete').length,
-          pending: allClients.filter(c => c.onboardingStatus === 'pending').length
+          complete: allPatients.filter(p => p.onboardingStatus === 'complete').length,
+          pending: allPatients.filter(p => p.onboardingStatus === 'pending').length
         }
       };
     } catch (error) {
-      console.error("Error retrieving client statistics:", error);
+      console.error("Error retrieving patient statistics:", error);
       return {
-        error: "Failed to retrieve client statistics",
+        error: "Failed to retrieve patient statistics",
         details: error instanceof Error ? error.message : "Unknown error"
       };
     }
