@@ -25,7 +25,7 @@ export interface ClientDetailsData {
   name: string;
   age: number;
   fundsManagement: string;
-  allies: Array<{
+  caregivers: Array<{ // Renamed from allies
     name: string;
     relationship: string;
     preferredLanguage: string;
@@ -305,16 +305,16 @@ function getPlanName() {
 export const dummyBudgetExpirationData: BudgetExpirationStats = {
   expiringNextMonth: {
     count: 7,
-    byClient: Array.from({ length: 7 }, (_, i) => {
+    byPatient: Array.from({ length: 7 }, (_, i) => {
       // Generate realistic budget data with varying degrees of urgency
       const daysLeft = Math.floor(Math.random() * 28) + 1; // 1-28 days left
       const totalBudget = (Math.random() * 15000) + 5000; // $5,000-$20,000 total budget
-      const percentUnused = Math.floor(Math.random() * 75) + 15; // 15-90% unutilized
+      const percentUnused = Math.floor(Math.random() * 80) + 10; // 10-90% unused
       const unutilizedAmount = Math.round(totalBudget * (percentUnused / 100)); // Calculate amount based on percentage
       
       return {
-        clientId: 1000 + i,
-        clientName: getClientName(),
+        patientId: 1000 + i,
+        patientName: getClientName(),
         planId: 2000 + i,
         planName: getPlanName(),
         daysLeft: daysLeft,
@@ -812,7 +812,7 @@ export function getDummyClientReport(clientId: number = 100): ClientReportData {
     name: getClientName(),
     age: Math.floor(Math.random() * 15) + 3, // 3-18 years old
     fundsManagement: getFundsManagementType(),
-    allies: Array.from({ length: Math.floor(Math.random() * 3) + 1 }, () => ({
+    caregivers: Array.from({ length: Math.floor(Math.random() * 3) + 1 }, () => ({ // Renamed from allies
       name: getClientName(),
       relationship: getRelationshipType(),
       preferredLanguage: getLanguage()
