@@ -1,401 +1,884 @@
-import { 
-  Client, InsertClient,
-  Ally, InsertAlly,
-  Goal, InsertGoal,
-  Subgoal, InsertSubgoal,
-  BudgetItem, InsertBudgetItem,
-  BudgetSettings, InsertBudgetSettings,
-  BudgetItemCatalog, InsertBudgetItemCatalog,
-  Session, InsertSession,
-  SessionNote, InsertSessionNote,
-  PerformanceAssessment, InsertPerformanceAssessment,
-  MilestoneAssessment, InsertMilestoneAssessment,
-  Strategy, InsertStrategy,
-  Clinician, InsertClinician,
-  ClientClinician, InsertClientClinician,
-  // Import dashboard data types
-  AppointmentStats, BudgetExpirationStats, UpcomingTaskStats, 
-  clients, allies, goals, subgoals, budgetItems, budgetSettings, budgetItemCatalog, sessions,
-  sessionNotes, performanceAssessments, milestoneAssessments, strategies, clinicians, clientClinicians
-} from "@shared/schema";
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  gt,
+  gte,
+  inArray,
+  isNotNull,
+  isNull,
+  lt,
+  lte,
+  or,
+  sql,
+} from "drizzle-orm";
 import { db } from "./db";
-import { pool } from "./db"; // Import the PostgreSQL pool for raw queries
-import { eq, and } from "drizzle-orm";
+import {
+  patients,
+  clinicians,
+  patientClinicians,
+  sessions,
+  sessionNotes,
+  caregivers,
+  budgetSettings,
+  budgetItems,
+  Subgoal,
+  subgoals,
+  InsertSubgoal,
+  budgetItemCatalog,
+  strategies,
+  goals,
+  goalAssessments,
+  milestoneAssessments,
+} from "@shared/schema";
+
+// Import types from the schema
+import type {
+  // Renamed types (using the new schema names)
+  Patient,
+  Caregiver,
+  PatientClinician,
+  InsertPatient,
+  InsertCaregiver,
+  InsertPatientClinician,
+
+  // Regular types
+  Clinician,
+  Session,
+  SessionNote,
+  BudgetSettings,
+  BudgetItem,
+  BudgetItemCatalog,
+  Strategy,
+  Goal,
+  GoalAssessment,
+  MilestoneAssessment,
+
+  // Insert types
+  InsertClinician,
+  InsertSession,
+  InsertSessionNote,
+  InsertBudgetSettings,
+  InsertBudgetItem,
+  InsertBudgetItemCatalog,
+  InsertStrategy,
+  InsertGoal,
+  InsertGoalAssessment,
+  InsertMilestoneAssessment,
+  AppointmentStats,
+  BudgetExpirationStats,
+  UpcomingTaskStats,
+} from "@shared/schema";
+
+// Define DateRangeParams type for filtering by date range
+export type DateRangeParams = {
+  startDate?: Date;
+  endDate?: Date;
+};
 
 export interface IStorage {
-  // Clients
-  createClient(client: InsertClient): Promise<Client>;
-  getClient(id: number): Promise<Client | undefined>;
-  getAllClients(): Promise<Client[]>; // Added method to get all clients for debugging
-  deleteClient(id: number): Promise<void>; // Added deleteClient function
-  updateClient(id: number, client: Partial<InsertClient>): Promise<Client>; // Added updateClient function
+  // Patients (formerly Clients)
+  createPatient(patient: InsertPatient): Promise<Patient>;
+  getPatient(id: number): Promise<Patient | undefined>;
+  getAllPatients(includeIncomplete?: boolean): Promise<Patient[]>;
+  updatePatient(id: number, patient: Partial<InsertPatient>): Promise<Patient>;
+  deletePatient(id: number): Promise<void>;
 
-  // Allies
-  createAlly(clientId: number, ally: InsertAlly): Promise<Ally>;
-  getAlliesByClient(clientId: number): Promise<Ally[]>;
-  updateAlly(id: number, ally: InsertAlly): Promise<Ally>; // Added updateAlly function
-  deleteAlly(id: number): Promise<void>; // Added deleteAlly function
-  
+  // Caregivers (formerly Allies)
+  getCaregiver(id: number): Promise<Caregiver | undefined>;
+  getCaregiverByPatient(patientId: number): Promise<Caregiver | undefined>;
+  getCaregiversByPatient(patientId: number): Promise<Caregiver[]>;
+  getAllCaregivers(): Promise<Caregiver[]>;
+  createCaregiver(
+    patientIdOrCaregiver: number | InsertCaregiver,
+    caregiverData?: Omit<InsertCaregiver, "patientId">
+  ): Promise<Caregiver>;
+  updateCaregiver(
+    id: number,
+    caregiver: Partial<InsertCaregiver>
+  ): Promise<Caregiver>;
+  deleteCaregiver(id: number): Promise<void>;
+
   // Clinicians
   createClinician(clinician: InsertClinician): Promise<Clinician>;
   getClinician(id: number): Promise<Clinician | undefined>;
   getAllClinicians(): Promise<Clinician[]>;
-  updateClinician(id: number, clinician: Partial<InsertClinician>): Promise<Clinician>;
+  updateClinician(
+    id: number,
+    clinician: Partial<InsertClinician>
+  ): Promise<Clinician>;
   deleteClinician(id: number): Promise<void>;
-  
-  // Client-Clinician Assignments
-  assignClinicianToClient(clientId: number, assignment: InsertClientClinician): Promise<ClientClinician>;
-  getCliniciansByClient(clientId: number): Promise<(ClientClinician & { clinician: Clinician })[]>;
-  removeClinicianFromClient(assignmentId: number): Promise<void>;
-  
+
+  // Patient-Clinician Assignments
+  assignClinicianToPatient(
+    patientIdOrAssignment: number | InsertPatientClinician,
+    assignmentData?: InsertPatientClinician
+  ): Promise<PatientClinician>;
+  getCliniciansByPatient(patientId: number): Promise<Clinician[]>;
+  getPatientsByClinician(clinicianId: number): Promise<Patient[]>;
+  removeClinicianFromPatient(
+    patientId: number,
+    clinicianId: number
+  ): Promise<void>;
+
   // Strategies
   getAllStrategies(): Promise<Strategy[]>;
   getStrategyById(id: number): Promise<Strategy | undefined>;
   getStrategiesByCategory(category: string): Promise<Strategy[]>;
   createStrategy(strategy: InsertStrategy): Promise<Strategy>;
-  updateStrategy(id: number, strategy: Partial<InsertStrategy>): Promise<Strategy>;
+  updateStrategy(
+    id: number,
+    strategy: Partial<InsertStrategy>
+  ): Promise<Strategy>;
   deleteStrategy(id: number): Promise<void>;
 
   // Goals
-  createGoal(clientId: number, goal: InsertGoal): Promise<Goal>;
-  getGoalsByClient(clientId: number): Promise<Goal[]>;
-  updateGoal(id: number, goal: InsertGoal): Promise<Goal>;
+  createGoal(goal: InsertGoal & { patientId: number }): Promise<Goal>;
+  getGoalById(id: number): Promise<Goal | undefined>;
+  getGoalsByPatient(patientId: number): Promise<Goal[]>;
+  updateGoal(id: number, goal: Partial<InsertGoal>): Promise<Goal>;
+  deleteGoal(id: number): Promise<void>;
 
-  // Subgoals  
+  // Subgoals
   createSubgoal(goalId: number, subgoal: InsertSubgoal): Promise<Subgoal>;
   getSubgoalsByGoal(goalId: number): Promise<Subgoal[]>;
-  updateSubgoal(id: number, data: any): Promise<Subgoal>; //Added updateSubgoal
-  deleteSubgoal(id: number): Promise<void>; // Added deleteSubgoal function
+  updateSubgoal(id: number, data: Partial<InsertSubgoal>): Promise<Subgoal>;
+  deleteSubgoal(id: number): Promise<void>;
+
+  // Goal Assessments (formerly Performance Assessments)
+  createGoalAssessment(
+    assessment: InsertGoalAssessment
+  ): Promise<GoalAssessment>;
+  getGoalAssessmentsByGoal(goalId: number): Promise<GoalAssessment[]>;
+  getGoalAssessmentsBySessionNote(
+    sessionNoteId: number
+  ): Promise<GoalAssessment[]>;
+  getGoalAssessmentById(id: number): Promise<GoalAssessment | undefined>;
+  updateGoalAssessment(
+    id: number,
+    assessment: Partial<InsertGoalAssessment>
+  ): Promise<GoalAssessment>;
+  deleteGoalAssessment(id: number): Promise<void>;
 
   // Budget Settings
-  createBudgetSettings(clientId: number, settings: InsertBudgetSettings): Promise<BudgetSettings>;
-  getBudgetSettingsByClient(clientId: number): Promise<BudgetSettings | undefined>;
-  getAllBudgetSettingsByClient(clientId: number): Promise<BudgetSettings[]>;
-  updateBudgetSettings(id: number, settings: InsertBudgetSettings): Promise<BudgetSettings>;
+  getBudgetSettings(patientId: number): Promise<BudgetSettings | undefined>;
+  createBudgetSettings(
+    settings: InsertBudgetSettings & { patientId: number }
+  ): Promise<BudgetSettings>;
+  updateBudgetSettings(
+    patientId: number,
+    settings: Partial<InsertBudgetSettings>
+  ): Promise<BudgetSettings>;
 
-  // Budget Items
-  createBudgetItem(clientId: number, budgetSettingsId: number, item: InsertBudgetItem): Promise<BudgetItem>;
-  getBudgetItemsByClient(clientId: number): Promise<BudgetItem[]>;
-  getBudgetItemsBySettings(budgetSettingsId: number): Promise<BudgetItem[]>;
-  updateBudgetItem(id: number, item: Partial<InsertBudgetItem>): Promise<BudgetItem>;
-  deleteBudgetItem(id: number): Promise<void>;
-  
-  // Budget Item Catalog
-  createBudgetItemCatalog(item: InsertBudgetItemCatalog): Promise<BudgetItemCatalog>;
-  getBudgetItemCatalog(): Promise<BudgetItemCatalog[]>;
-  getBudgetItemCatalogByCode(itemCode: string): Promise<BudgetItemCatalog | undefined>;
-  updateBudgetItemCatalog(id: number, item: InsertBudgetItemCatalog): Promise<BudgetItemCatalog>;
-  
-  // Sessions
-  createSession(session: InsertSession): Promise<Session>;
-  getSessionById(id: number): Promise<Session | undefined>;
-  getAllSessions(): Promise<Session[]>;
-  getSessionsByClient(clientId: number): Promise<Session[]>;
-  updateSession(id: number, session: InsertSession): Promise<Session>;
-  deleteSession(id: number): Promise<void>;
-  
+  // Dashboard related methods
+  getDashboardAppointmentStats(groupBy: string): Promise<any>;
+  getBudgetExpirationStats(months: number): Promise<any>;
+  getUpcomingTaskStats(months: number): Promise<any>;
+
+  // Goal Performance Data
+  getGoalPerformanceData(
+    patientIdOrGoalId: number,
+    goalIdOrDateRange?: number | DateRangeParams,
+    dateRange?: DateRangeParams
+  ): Promise<GoalAssessment[]>;
+
   // Session Notes
   createSessionNote(note: InsertSessionNote): Promise<SessionNote>;
   getSessionNoteById(id: number): Promise<SessionNote | undefined>;
-  getSessionNoteBySessionId(sessionId: number): Promise<SessionNote | undefined>;
-  getSessionNotesWithProductsByClient(clientId: number): Promise<SessionNote[]>;
-  updateSessionNote(id: number, note: InsertSessionNote): Promise<SessionNote>;
+  getSessionNotesByPatient(patientId: number): Promise<SessionNote[]>;
+  updateSessionNote(
+    id: number,
+    note: Partial<InsertSessionNote>
+  ): Promise<SessionNote>;
   deleteSessionNote(id: number): Promise<void>;
-  
-  // Performance Assessments
-  createPerformanceAssessment(assessment: InsertPerformanceAssessment): Promise<PerformanceAssessment>;
-  getPerformanceAssessmentsBySessionNote(sessionNoteId: number): Promise<PerformanceAssessment[]>;
-  getPerformanceAssessmentById(id: number): Promise<PerformanceAssessment | undefined>;
-  updatePerformanceAssessment(id: number, assessment: InsertPerformanceAssessment): Promise<PerformanceAssessment>;
-  deletePerformanceAssessment(id: number): Promise<void>;
-  
-  // Milestone Assessments
-  createMilestoneAssessment(assessment: InsertMilestoneAssessment): Promise<MilestoneAssessment>;
-  getMilestoneAssessmentsByPerformanceAssessment(performanceAssessmentId: number): Promise<MilestoneAssessment[]>;
-  updateMilestoneAssessment(id: number, assessment: InsertMilestoneAssessment): Promise<MilestoneAssessment>;
-  deleteMilestoneAssessment(id: number): Promise<void>;
-  
-  // Dashboard Data
-  getDashboardAppointmentStats(timeframe: 'day' | 'week' | 'month' | 'year'): Promise<AppointmentStats>;
-  getBudgetExpirationStats(months: number): Promise<BudgetExpirationStats>;
-  getUpcomingTaskStats(months: number): Promise<UpcomingTaskStats>;
-  
-  // Goal Performance Data
-  getGoalPerformanceData(clientId: number, goalId?: number): Promise<Record<number, number | null>>;
 }
 
-/**
- * PostgreSQL database implementation of the Storage interface
- */
-export class DBStorage implements IStorage {
-  async createClient(client: InsertClient): Promise<Client> {
-    console.log(`Creating client:`, JSON.stringify(client));
-    
-    // Generate a unique 6-digit identifier
-    const uniqueIdentifier = Math.floor(100000 + Math.random() * 900000).toString();
-    const originalName = client.name;
-    const nameWithIdentifier = `${originalName}-${uniqueIdentifier}`;
-    
-    console.log(`Generated unique identifier: ${uniqueIdentifier}`);
-    console.log(`Original name: ${originalName}`);
-    console.log(`Name with identifier: ${nameWithIdentifier}`);
-    
-    // Process client data for storage
-    const processedClient = {
-      ...client,
-      name: nameWithIdentifier, // Set the name with identifier
-      originalName: originalName, // Store the original name
-      uniqueIdentifier: uniqueIdentifier, // Store just the identifier
-      ndisFunds: Number(client.ndisFunds) || 0,
-      fundsManagement: client.fundsManagement || null,
-      // Make sure these fields are passed through properly
-      gender: client.gender || null,
-      preferredLanguage: client.preferredLanguage || null,
-      contactEmail: client.contactEmail || null,
-      contactPhone: client.contactPhone || null,
-      address: client.address || null,
-      medicalHistory: client.medicalHistory || null,
-      communicationNeeds: client.communicationNeeds || null,
-      therapyPreferences: client.therapyPreferences || null
-    };
-    
-    console.log("Processed client data:", processedClient);
-    
+export class DrizzleStorage implements IStorage {
+  // Patients (formerly Clients)
+  async createPatient(patient: InsertPatient): Promise<Patient> {
+    console.log(`Creating new patient: ${patient.name}`);
     try {
-      const [newClient] = await db.insert(clients)
-        .values(processedClient)
+      // Convert Date to string format for database insertion
+      const patientToInsert = {
+        ...patient,
+        // Convert Date to ISO string format that PostgreSQL can handle
+        dateOfBirth:
+          patient.dateOfBirth instanceof Date
+            ? patient.dateOfBirth.toISOString().split("T")[0]
+            : patient.dateOfBirth,
+      };
+
+      const [newPatient] = await db
+        .insert(patients)
+        .values(patientToInsert)
         .returning();
-      
-      console.log(`Successfully created client with ID ${newClient.id}:`, newClient);
-      return newClient;
+      return newPatient;
     } catch (error) {
-      console.error("Error creating client:", error);
+      console.error(`Error creating patient: ${error}`);
       throw error;
     }
   }
 
-  async getClient(id: number): Promise<Client | undefined> {
-    console.log(`Attempting to get client with ID: ${id}`);
-    if (isNaN(id) || id <= 0) {
-      console.error(`Invalid client ID: ${id}`);
-      return undefined;
-    }
-    
+  async getPatient(id: number): Promise<Patient | undefined> {
+    console.log(`Getting patient with ID ${id}`);
     try {
-      const result = await db.select()
-        .from(clients)
-        .where(eq(clients.id, id));
-      
-      if (result.length === 0) {
-        console.log(`Client with ID ${id} not found in database`);
-        return undefined;
-      }
-      
-      console.log(`Found client with ID ${id}: ${JSON.stringify(result[0])}`);
+      const result = await db
+        .select()
+        .from(patients)
+        .where(eq(patients.id, id));
       return result[0];
     } catch (error) {
-      console.error(`Error fetching client with ID ${id}:`, error);
+      console.error(`Error getting patient with ID ${id}: ${error}`);
       throw error;
     }
   }
 
-  async getAllClients(): Promise<Client[]> {
-    console.log("Getting all clients from database");
+  async getAllPatients(includeIncomplete: boolean = true): Promise<Patient[]> {
+    console.log(`Getting all patients, includeIncomplete=${includeIncomplete}`);
     try {
-      const allClients = await db.select().from(clients);
-      console.log(`Found ${allClients.length} clients in database`);
-      return allClients;
-    } catch (error) {
-      console.error("Error fetching all clients:", error);
-      throw error;
-    }
-  }
-  
-  async deleteClient(id: number): Promise<void> {
-    console.log(`Deleting client with ID ${id}`);
-    try {
-      await db.delete(clients)
-        .where(eq(clients.id, id));
-      console.log(`Successfully deleted client with ID ${id}`);
-    } catch (error) {
-      console.error(`Error deleting client with ID ${id}:`, error);
-      throw error;
-    }
-  }
-  
-  async updateClient(id: number, client: Partial<InsertClient>): Promise<Client> {
-    console.log(`Updating client with ID ${id}:`, JSON.stringify(client));
-    try {
-      // Process client data for storage - handle nullable fields properly
-      const processedClient = {
-        ...client,
-        // Convert any string numbers to actual numbers
-        ndisFunds: client.ndisFunds !== undefined ? Number(client.ndisFunds) : undefined,
-        // Ensure null fields are properly handled
-        fundsManagement: client.fundsManagement || null,
-        gender: client.gender || null,
-        preferredLanguage: client.preferredLanguage || null,
-        contactEmail: client.contactEmail || null,
-        contactPhone: client.contactPhone || null,
-        address: client.address || null,
-        medicalHistory: client.medicalHistory || null,
-        communicationNeeds: client.communicationNeeds || null,
-        therapyPreferences: client.therapyPreferences || null
-      };
-      
-      const [updatedClient] = await db.update(clients)
-        .set(processedClient)
-        .where(eq(clients.id, id))
-        .returning();
-      
-      if (!updatedClient) {
-        console.error(`Client with ID ${id} not found`);
-        throw new Error("Client not found");
+      if (includeIncomplete) {
+        // Get all patients regardless of onboarding status
+        const result = await db
+          .select()
+          .from(patients)
+          .orderBy(asc(patients.name));
+        return result as Patient[];
+      } else {
+        // Only get patients with complete onboarding status
+        const result = await db
+          .select()
+          .from(patients)
+          .where(eq(patients.onboardingStatus, "complete"))
+          .orderBy(asc(patients.name));
+        return result as Patient[];
       }
-      
-      console.log(`Successfully updated client with ID ${id}`);
-      return updatedClient;
     } catch (error) {
-      console.error(`Error updating client with ID ${id}:`, error);
+      console.error(`Error getting all patients: ${error}`);
       throw error;
     }
   }
 
-  async createAlly(clientId: number, ally: InsertAlly): Promise<Ally> {
-    console.log(`Creating ally for client ${clientId}:`, JSON.stringify(ally));
+  async updatePatient(
+    id: number,
+    patient: Partial<InsertPatient>
+  ): Promise<Patient> {
+    console.log(`Updating patient with ID ${id}`);
     try {
-      const [newAlly] = await db.insert(allies)
-        .values({
-          ...ally,
-          clientId
-        })
+      // Convert Date to string format for database insertion
+      const patientToInsert = {
+        ...patient,
+        // Convert Date to ISO string format that PostgreSQL can handle
+        dateOfBirth:
+          patient.dateOfBirth instanceof Date
+            ? patient.dateOfBirth.toISOString().split("T")[0]
+            : patient.dateOfBirth,
+      };
+
+      const [updatedPatient] = await db
+        .update(patients)
+        .set(patientToInsert)
+        .where(eq(patients.id, id))
         .returning();
-      
-      console.log(`Successfully created ally with ID ${newAlly.id}`);
-      return newAlly;
+      return updatedPatient;
     } catch (error) {
-      console.error(`Error creating ally for client ${clientId}:`, error);
+      console.error(`Error updating patient with ID ${id}: ${error}`);
       throw error;
     }
   }
 
-  async getAlliesByClient(clientId: number): Promise<Ally[]> {
-    console.log(`Getting allies for client ${clientId}`);
+  async deletePatient(id: number): Promise<void> {
+    console.log(`Deleting patient with ID ${id}`);
     try {
-      const clientAllies = await db.select()
-        .from(allies)
+      await db.delete(patients).where(eq(patients.id, id));
+    } catch (error) {
+      console.error(`Error deleting patient with ID ${id}: ${error}`);
+      throw error;
+    }
+  }
+
+  // Caregivers (formerly Allies)
+  async getCaregiver(id: number): Promise<Caregiver | undefined> {
+    console.log(`Getting caregiver with ID ${id}`);
+    try {
+      const result = await db
+        .select()
+        .from(caregivers)
+        .where(eq(caregivers.id, id));
+      return result[0];
+    } catch (error) {
+      console.error(`Error getting caregiver with ID ${id}: ${error}`);
+      throw error;
+    }
+  }
+
+  async getCaregiverByPatient(
+    patientId: number
+  ): Promise<Caregiver | undefined> {
+    console.log(`Getting caregiver for patient with ID ${patientId}`);
+    try {
+      const result = await db
+        .select()
+        .from(caregivers)
+        .where(eq(caregivers.patientId, patientId));
+      return result[0];
+    } catch (error) {
+      console.error(
+        `Error getting caregiver for patient with ID ${patientId}: ${error}`
+      );
+      throw error;
+    }
+  }
+
+  async getCaregiversByPatient(patientId: number): Promise<Caregiver[]> {
+    console.log(`Getting caregivers for patient with ID ${patientId}`);
+    try {
+      const result = await db
+        .select()
+        .from(caregivers)
+        .where(eq(caregivers.patientId, patientId));
+      return result;
+    } catch (error) {
+      console.error(
+        `Error getting caregivers for patient with ID ${patientId}: ${error}`
+      );
+      throw error;
+    }
+  }
+
+  async getAllCaregivers(): Promise<Caregiver[]> {
+    console.log(`Getting all caregivers`);
+    try {
+      return await db.select().from(caregivers);
+    } catch (error) {
+      console.error(`Error getting all caregivers: ${error}`);
+      throw error;
+    }
+  }
+
+  async createCaregiver(
+    patientIdOrCaregiver: number | InsertCaregiver,
+    caregiverData?: Omit<InsertCaregiver, "patientId">
+  ): Promise<Caregiver> {
+    try {
+      let caregiverToInsert: any; // Use any temporarily to bypass type checking
+
+      if (typeof patientIdOrCaregiver === "number") {
+        if (!caregiverData) {
+          throw new Error(
+            "Caregiver data is required when providing patientId"
+          );
+        }
+        // For database insertion, we need to add patientId to the caregiverData
+        caregiverToInsert = {
+          ...caregiverData,
+          patientId: patientIdOrCaregiver,
+        };
+      } else {
+        // If the first argument is already a caregiver object, use it directly
+        caregiverToInsert = patientIdOrCaregiver;
+      }
+
+      console.log(
+        `Creating new caregiver for patient ${
+          typeof patientIdOrCaregiver === "number"
+            ? patientIdOrCaregiver
+            : "from object"
+        }`
+      );
+      const [newCaregiver] = await db
+        .insert(caregivers)
+        .values(caregiverToInsert)
+        .returning();
+      return newCaregiver;
+    } catch (error) {
+      console.error(`Error creating caregiver: ${error}`);
+      throw error;
+    }
+  }
+
+  async updateCaregiver(
+    id: number,
+    caregiver: Partial<InsertCaregiver>
+  ): Promise<Caregiver> {
+    console.log(`Updating caregiver with ID ${id}`);
+    try {
+      const [updatedCaregiver] = await db
+        .update(caregivers)
+        .set(caregiver)
+        .where(eq(caregivers.id, id))
+        .returning();
+      return updatedCaregiver;
+    } catch (error) {
+      console.error(`Error updating caregiver with ID ${id}: ${error}`);
+      throw error;
+    }
+  }
+
+  async deleteCaregiver(id: number): Promise<void> {
+    console.log(`Deleting caregiver with ID ${id}`);
+    try {
+      await db.delete(caregivers).where(eq(caregivers.id, id));
+    } catch (error) {
+      console.error(`Error deleting caregiver with ID ${id}: ${error}`);
+      throw error;
+    }
+  }
+
+  // Clinicians
+  async createClinician(clinician: InsertClinician): Promise<Clinician> {
+    console.log(`Creating new clinician ${clinician.name}`);
+    try {
+      const [newClinician] = await db
+        .insert(clinicians)
+        .values(clinician)
+        .returning();
+      return newClinician;
+    } catch (error) {
+      console.error(`Error creating clinician: ${error}`);
+      throw error;
+    }
+  }
+
+  async getClinician(id: number): Promise<Clinician | undefined> {
+    console.log(`Getting clinician with ID ${id}`);
+    try {
+      const result = await db
+        .select()
+        .from(clinicians)
+        .where(eq(clinicians.id, id));
+      return result[0];
+    } catch (error) {
+      console.error(`Error getting clinician with ID ${id}: ${error}`);
+      throw error;
+    }
+  }
+
+  async getAllClinicians(): Promise<Clinician[]> {
+    console.log("Getting all clinicians");
+    try {
+      return await db.select().from(clinicians);
+    } catch (error) {
+      console.error(`Error getting all clinicians: ${error}`);
+      throw error;
+    }
+  }
+
+  async updateClinician(
+    id: number,
+    clinician: Partial<InsertClinician>
+  ): Promise<Clinician> {
+    console.log(`Updating clinician with ID ${id}`);
+    try {
+      const [updatedClinician] = await db
+        .update(clinicians)
+        .set(clinician)
+        .where(eq(clinicians.id, id))
+        .returning();
+      return updatedClinician;
+    } catch (error) {
+      console.error(`Error updating clinician with ID ${id}: ${error}`);
+      throw error;
+    }
+  }
+
+  async deleteClinician(id: number): Promise<void> {
+    console.log(`Deleting clinician with ID ${id}`);
+    try {
+      await db.delete(clinicians).where(eq(clinicians.id, id));
+    } catch (error) {
+      console.error(`Error deleting clinician with ID ${id}: ${error}`);
+      throw error;
+    }
+  }
+
+  // Patient-Clinician Assignments
+  async assignClinicianToPatient(
+    patientIdOrAssignment: number | InsertPatientClinician,
+    assignmentData?: InsertPatientClinician
+  ): Promise<PatientClinician> {
+    try {
+      let assignmentToInsert: InsertPatientClinician;
+
+      if (typeof patientIdOrAssignment === "number") {
+        if (!assignmentData) {
+          throw new Error(
+            "Assignment data is required when providing patientId"
+          );
+        }
+        assignmentToInsert = assignmentData;
+      } else {
+        assignmentToInsert = patientIdOrAssignment;
+      }
+
+      console.log(
+        `Assigning clinician ${assignmentToInsert.clinicianId} to patient ${assignmentToInsert.patientId}`
+      );
+      const [newAssignment] = await db
+        .insert(patientClinicians)
+        .values(assignmentToInsert)
+        .returning();
+      return newAssignment;
+    } catch (error) {
+      console.error(`Error assigning clinician to patient: ${error}`);
+      throw error;
+    }
+  }
+
+  async getCliniciansByPatient(patientId: number): Promise<Clinician[]> {
+    console.log(`Getting clinicians for patient with ID ${patientId}`);
+    try {
+      const assignments = await db
+        .select({
+          clinicianId: patientClinicians.clinicianId,
+        })
+        .from(patientClinicians)
+        .where(eq(patientClinicians.patientId, patientId));
+
+      if (assignments.length === 0) {
+        return [];
+      }
+
+      const clinicianIds = assignments.map((a) => a.clinicianId);
+      const result = await db
+        .select()
+        .from(clinicians)
+        .where(inArray(clinicians.id, clinicianIds));
+
+      return result;
+    } catch (error) {
+      console.error(
+        `Error getting clinicians for patient with ID ${patientId}: ${error}`
+      );
+      throw error;
+    }
+  }
+
+  async getPatientsByClinician(clinicianId: number): Promise<Patient[]> {
+    console.log(`Getting patients for clinician with ID ${clinicianId}`);
+    try {
+      const assignments = await db
+        .select({
+          patientId: patientClinicians.patientId,
+        })
+        .from(patientClinicians)
+        .where(eq(patientClinicians.clinicianId, clinicianId));
+
+      if (assignments.length === 0) {
+        return [];
+      }
+
+      const patientIds = assignments.map((a) => a.patientId);
+      const result = await db
+        .select()
+        .from(patients)
+        .where(inArray(patients.id, patientIds));
+
+      return result;
+    } catch (error) {
+      console.error(
+        `Error getting patients for clinician with ID ${clinicianId}: ${error}`
+      );
+      throw error;
+    }
+  }
+
+  async removeClinicianFromPatient(
+    patientId: number,
+    clinicianId: number
+  ): Promise<void> {
+    console.log(`Removing clinician ${clinicianId} from patient ${patientId}`);
+    try {
+      await db
+        .delete(patientClinicians)
         .where(
           and(
-            eq(allies.clientId, clientId),
-            eq(allies.archived, false) // Only return non-archived allies
+            eq(patientClinicians.patientId, patientId),
+            eq(patientClinicians.clinicianId, clinicianId)
           )
         );
-      
-      console.log(`Found ${clientAllies.length} allies for client ${clientId}`);
-      return clientAllies;
     } catch (error) {
-      console.error(`Error fetching allies for client ${clientId}:`, error);
+      console.error(
+        `Error removing clinician ${clinicianId} from patient ${patientId}: ${error}`
+      );
       throw error;
     }
   }
 
-  async updateAlly(id: number, ally: InsertAlly): Promise<Ally> {
-    console.log(`Updating ally with ID ${id}:`, JSON.stringify(ally));
+  // Milestone Assessment Methods
+  async createMilestoneAssessment(
+    assessment: InsertMilestoneAssessment
+  ): Promise<MilestoneAssessment> {
+    console.log(
+      `Creating milestone assessment for goal assessment ${assessment.goalAssessmentId}:`,
+      JSON.stringify(assessment)
+    );
     try {
-      const [updatedAlly] = await db.update(allies)
-        .set(ally)
-        .where(eq(allies.id, id))
+      const [newAssessment] = await db
+        .insert(milestoneAssessments)
+        .values(assessment)
         .returning();
-      
-      if (!updatedAlly) {
-        console.error(`Ally with ID ${id} not found`);
-        throw new Error("Ally not found");
+
+      console.log(
+        `Successfully created milestone assessment with ID ${newAssessment.id}`
+      );
+      return newAssessment;
+    } catch (error) {
+      console.error(
+        `Error creating milestone assessment for goal assessment ${assessment.goalAssessmentId}:`,
+        error
+      );
+      throw error;
+    }
+  }
+
+  async getMilestoneAssessmentsByGoalAssessment(
+    goalAssessmentId: number
+  ): Promise<MilestoneAssessment[]> {
+    console.log(
+      `Getting milestone assessments for goal assessment ${goalAssessmentId}`
+    );
+    try {
+      const assessments = await db
+        .select()
+        .from(milestoneAssessments)
+        .where(eq(milestoneAssessments.goalAssessmentId, goalAssessmentId));
+
+      console.log(
+        `Found ${assessments.length} milestone assessments for goal assessment ${goalAssessmentId}`
+      );
+      return assessments;
+    } catch (error) {
+      console.error(
+        `Error getting milestone assessments for goal assessment ${goalAssessmentId}:`,
+        error
+      );
+      throw error;
+    }
+  }
+
+  async updateMilestoneAssessment(
+    id: number,
+    assessment: InsertMilestoneAssessment
+  ): Promise<MilestoneAssessment> {
+    console.log(
+      `Updating milestone assessment with ID ${id}:`,
+      JSON.stringify(assessment)
+    );
+    try {
+      const [updatedAssessment] = await db
+        .update(milestoneAssessments)
+        .set(assessment)
+        .where(eq(milestoneAssessments.id, id))
+        .returning();
+
+      if (!updatedAssessment) {
+        console.error(`Milestone assessment with ID ${id} not found`);
+        throw new Error("Milestone assessment not found");
       }
-      
-      console.log(`Successfully updated ally with ID ${id}`);
-      return updatedAlly;
+
+      console.log(`Successfully updated milestone assessment with ID ${id}`);
+      return updatedAssessment;
     } catch (error) {
-      console.error(`Error updating ally with ID ${id}:`, error);
+      console.error(
+        `Error updating milestone assessment with ID ${id}:`,
+        error
+      );
       throw error;
     }
   }
 
-  async deleteAlly(id: number): Promise<void> {
-    console.log(`Deleting ally with ID ${id}`);
+  async deleteMilestoneAssessment(id: number): Promise<void> {
+    console.log(`Deleting milestone assessment with ID ${id}`);
     try {
-      await db.delete(allies)
-        .where(eq(allies.id, id));
-      console.log(`Successfully deleted ally with ID ${id}`);
+      await db
+        .delete(milestoneAssessments)
+        .where(eq(milestoneAssessments.id, id));
+      console.log(`Successfully deleted milestone assessment with ID ${id}`);
     } catch (error) {
-      console.error(`Error deleting ally with ID ${id}:`, error);
+      console.error(
+        `Error deleting milestone assessment with ID ${id}:`,
+        error
+      );
       throw error;
     }
   }
 
-  async updateGoal(id: number, goal: InsertGoal): Promise<Goal> {
-    console.log(`Updating goal with ID ${id}:`, JSON.stringify(goal));
+  // Strategies
+  async getAllStrategies(): Promise<Strategy[]> {
+    console.log("Getting all strategies");
     try {
-      const [updatedGoal] = await db.update(goals)
+      return await db.select().from(strategies);
+    } catch (error) {
+      console.error(`Error getting all strategies: ${error}`);
+      throw error;
+    }
+  }
+
+  async getStrategyById(id: number): Promise<Strategy | undefined> {
+    console.log(`Getting strategy with ID ${id}`);
+    try {
+      const result = await db
+        .select()
+        .from(strategies)
+        .where(eq(strategies.id, id));
+      return result[0];
+    } catch (error) {
+      console.error(`Error getting strategy with ID ${id}: ${error}`);
+      throw error;
+    }
+  }
+
+  async getStrategiesByCategory(category: string): Promise<Strategy[]> {
+    console.log(`Getting strategies with category ${category}`);
+    try {
+      return await db
+        .select()
+        .from(strategies)
+        .where(eq(strategies.category, category));
+    } catch (error) {
+      console.error(
+        `Error getting strategies with category ${category}: ${error}`
+      );
+      throw error;
+    }
+  }
+
+  async createStrategy(strategy: InsertStrategy): Promise<Strategy> {
+    console.log(`Creating new strategy: ${strategy.name}`);
+    try {
+      const [newStrategy] = await db
+        .insert(strategies)
+        .values(strategy)
+        .returning();
+      return newStrategy;
+    } catch (error) {
+      console.error(`Error creating strategy: ${error}`);
+      throw error;
+    }
+  }
+
+  async updateStrategy(
+    id: number,
+    strategy: Partial<InsertStrategy>
+  ): Promise<Strategy> {
+    console.log(`Updating strategy with ID ${id}`);
+    try {
+      const [updatedStrategy] = await db
+        .update(strategies)
+        .set(strategy)
+        .where(eq(strategies.id, id))
+        .returning();
+      return updatedStrategy;
+    } catch (error) {
+      console.error(`Error updating strategy with ID ${id}: ${error}`);
+      throw error;
+    }
+  }
+
+  async deleteStrategy(id: number): Promise<void> {
+    console.log(`Deleting strategy with ID ${id}`);
+    try {
+      await db.delete(strategies).where(eq(strategies.id, id));
+    } catch (error) {
+      console.error(`Error deleting strategy with ID ${id}: ${error}`);
+      throw error;
+    }
+  }
+
+  // Goals
+  async createGoal(goal: InsertGoal & { patientId: number }): Promise<Goal> {
+    console.log(`Creating new goal for patient ${goal.patientId}`);
+    try {
+      // We need to ensure patientId is included in the goal
+      const goalToInsert = {
+        ...goal,
+      };
+
+      const [newGoal] = await db.insert(goals).values(goalToInsert).returning();
+      return newGoal;
+    } catch (error) {
+      console.error(`Error creating goal: ${error}`);
+      throw error;
+    }
+  }
+
+  async getGoalById(id: number): Promise<Goal | undefined> {
+    console.log(`Getting goal with ID ${id}`);
+    try {
+      const result = await db.select().from(goals).where(eq(goals.id, id));
+      return result[0];
+    } catch (error) {
+      console.error(`Error getting goal with ID ${id}: ${error}`);
+      throw error;
+    }
+  }
+
+  async getGoalsByPatient(patientId: number): Promise<Goal[]> {
+    console.log(`Getting goals for patient with ID ${patientId}`);
+    try {
+      const result = await db
+        .select()
+        .from(goals)
+        .where(eq(goals.patientId, patientId))
+        .orderBy(asc(goals.id));
+
+      console.log(
+        `Found ${result.length} goals for patient with ID ${patientId}`
+      );
+      return result;
+    } catch (error) {
+      console.error(
+        `Error getting goals for patient with ID ${patientId}:`,
+        error
+      );
+      throw error;
+    }
+  }
+
+  async updateGoal(id: number, goal: Partial<InsertGoal>): Promise<Goal> {
+    console.log(`Updating goal with ID ${id}`);
+    try {
+      const [updatedGoal] = await db
+        .update(goals)
         .set(goal)
         .where(eq(goals.id, id))
         .returning();
-      
-      if (!updatedGoal) {
-        console.error(`Goal with ID ${id} not found`);
-        throw new Error("Goal not found");
-      }
-      
-      console.log(`Successfully updated goal with ID ${id}`);
       return updatedGoal;
     } catch (error) {
-      console.error(`Error updating goal with ID ${id}:`, error);
+      console.error(`Error updating goal with ID ${id}: ${error}`);
       throw error;
     }
   }
 
-  async createGoal(clientId: number, goal: InsertGoal): Promise<Goal> {
-    console.log(`Creating goal for client ${clientId}:`, JSON.stringify(goal));
+  async deleteGoal(id: number): Promise<void> {
+    console.log(`Deleting goal with ID ${id}`);
     try {
-      const [newGoal] = await db.insert(goals)
-        .values({
-          ...goal,
-          clientId
-        })
-        .returning();
-      
-      console.log(`Successfully created goal with ID ${newGoal.id}`);
-      return newGoal;
+      await db.delete(goals).where(eq(goals.id, id));
     } catch (error) {
-      console.error(`Error creating goal for client ${clientId}:`, error);
+      console.error(`Error deleting goal with ID ${id}: ${error}`);
       throw error;
     }
   }
 
-  async getGoalsByClient(clientId: number): Promise<Goal[]> {
-    console.log(`Getting goals for client ${clientId}`);
+  // Subgoals
+  async createSubgoal(
+    goalId: number,
+    subgoal: InsertSubgoal
+  ): Promise<Subgoal> {
+    console.log(
+      `Creating subgoal for goal ${goalId}:`,
+      JSON.stringify(subgoal)
+    );
     try {
-      const clientGoals = await db.select()
-        .from(goals)
-        .where(eq(goals.clientId, clientId));
-      
-      console.log(`Found ${clientGoals.length} goals for client ${clientId}`);
-      return clientGoals;
-    } catch (error) {
-      console.error(`Error fetching goals for client ${clientId}:`, error);
-      throw error;
-    }
-  }
-
-  async createSubgoal(goalId: number, subgoal: InsertSubgoal): Promise<Subgoal> {
-    console.log(`Creating subgoal for goal ${goalId}:`, JSON.stringify(subgoal));
-    try {
-      const [newSubgoal] = await db.insert(subgoals)
+      const [newSubgoal] = await db
+        .insert(subgoals)
         .values({
           ...subgoal,
-          goalId
+          goalId,
         })
         .returning();
-      
+
       console.log(`Successfully created subgoal with ID ${newSubgoal.id}`);
       return newSubgoal;
     } catch (error) {
@@ -407,10 +890,11 @@ export class DBStorage implements IStorage {
   async getSubgoalsByGoal(goalId: number): Promise<Subgoal[]> {
     console.log(`Getting subgoals for goal ${goalId}`);
     try {
-      const goalSubgoals = await db.select()
+      const goalSubgoals = await db
+        .select()
         .from(subgoals)
         .where(eq(subgoals.goalId, goalId));
-      
+
       console.log(`Found ${goalSubgoals.length} subgoals for goal ${goalId}`);
       return goalSubgoals;
     } catch (error) {
@@ -419,19 +903,20 @@ export class DBStorage implements IStorage {
     }
   }
 
-  async updateSubgoal(id: number, data: any): Promise<Subgoal> {
+  async updateSubgoal(id: number, data: Partial<InsertSubgoal>): Promise<Subgoal> {
     console.log(`Updating subgoal with ID ${id}:`, JSON.stringify(data));
     try {
-      const [updatedSubgoal] = await db.update(subgoals)
+      const [updatedSubgoal] = await db
+        .update(subgoals)
         .set(data)
         .where(eq(subgoals.id, id))
         .returning();
-      
+
       if (!updatedSubgoal) {
         console.error(`Subgoal with ID ${id} not found`);
         throw new Error("Subgoal not found");
       }
-      
+
       console.log(`Successfully updated subgoal with ID ${id}`);
       return updatedSubgoal;
     } catch (error) {
@@ -439,12 +924,11 @@ export class DBStorage implements IStorage {
       throw error;
     }
   }
-  
+
   async deleteSubgoal(id: number): Promise<void> {
     console.log(`Deleting subgoal with ID ${id}`);
     try {
-      await db.delete(subgoals)
-        .where(eq(subgoals.id, id));
+      await db.delete(subgoals).where(eq(subgoals.id, id));
       console.log(`Successfully deleted subgoal with ID ${id}`);
     } catch (error) {
       console.error(`Error deleting subgoal with ID ${id}:`, error);
@@ -452,102 +936,199 @@ export class DBStorage implements IStorage {
     }
   }
 
-  async createBudgetItem(clientId: number, budgetSettingsId: number, item: InsertBudgetItem): Promise<BudgetItem> {
-    console.log(`Creating budget item for client ${clientId} and budgetSettings ${budgetSettingsId}:`, JSON.stringify(item));
+  // Goal Assessments (formerly Performance Assessments)
+  async getGoalAssessmentsByGoal(goalId: number): Promise<GoalAssessment[]> {
+    console.log(`Getting goal assessments for goal ${goalId}`);
+    try {
+      const assessments = await db
+        .select()
+        .from(goalAssessments)
+        .where(eq(goalAssessments.goalId, goalId))
+        .orderBy(asc(goalAssessments.id));
+
+      console.log(
+        `Found ${assessments.length} goal assessments for goal ${goalId}`
+      );
+      return assessments;
+    } catch (error) {
+      console.error(
+        `Error getting goal assessments for goal ${goalId}: ${error}`
+      );
+      throw error;
+    }
+  }
+
+  async getGoalAssessmentsBySessionNote(
+    sessionNoteId: number
+  ): Promise<GoalAssessment[]> {
+    console.log(`Getting goal assessments for session note ${sessionNoteId}`);
+    try {
+      const assessments = await db
+        .select()
+        .from(goalAssessments)
+        .where(eq(goalAssessments.sessionNoteId, sessionNoteId))
+        .orderBy(asc(goalAssessments.id));
+
+      console.log(
+        `Found ${assessments.length} goal assessments for session note ${sessionNoteId}`
+      );
+      return assessments;
+    } catch (error) {
+      console.error(
+        `Error getting goal assessments for session note ${sessionNoteId}: ${error}`
+      );
+      throw error;
+    }
+  }
+
+  async getGoalAssessmentById(id: number): Promise<GoalAssessment | undefined> {
+    console.log(`Getting goal assessment with ID ${id}`);
+    try {
+      const result = await db
+        .select()
+        .from(goalAssessments)
+        .where(eq(goalAssessments.id, id));
+
+      if (result.length === 0) {
+        console.log(`Goal assessment with ID ${id} not found`);
+        return undefined;
+      }
+
+      console.log(`Found goal assessment with ID ${id}`);
+      return result[0];
+    } catch (error) {
+      console.error(`Error getting goal assessment with ID ${id}: ${error}`);
+      throw error;
+    }
+  }
+
+  async updateGoalAssessment(
+    id: number,
+    assessment: Partial<InsertGoalAssessment>
+  ): Promise<GoalAssessment> {
+    console.log(`Updating goal assessment with ID ${id}`);
+    try {
+      const [updatedAssessment] = await db
+        .update(goalAssessments)
+        .set(assessment)
+        .where(eq(goalAssessments.id, id))
+        .returning();
+      return updatedAssessment;
+    } catch (error) {
+      console.error(`Error updating goal assessment with ID ${id}: ${error}`);
+      throw error;
+    }
+  }
+
+  async deleteGoalAssessment(id: number): Promise<void> {
+    console.log(`Deleting goal assessment with ID ${id}`);
+    try {
+      await db.delete(goalAssessments).where(eq(goalAssessments.id, id));
+    } catch (error) {
+      console.error(`Error deleting goal assessment with ID ${id}: ${error}`);
+      throw error;
+    }
+  }
+
+  async createGoalAssessment(
+    assessment: InsertGoalAssessment
+  ): Promise<GoalAssessment> {
+    console.log(`Creating new goal assessment for goal ${assessment.goalId}`);
+    try {
+      const [newAssessment] = await db
+        .insert(goalAssessments)
+        .values(assessment)
+        .returning();
+      return newAssessment;
+    } catch (error) {
+      console.error(`Error creating goal assessment: ${error}`);
+      throw error;
+    }
+  }
+
+  //Budget Items
+  async createBudgetItem(
+    patientId: number,
+    budgetSettingsId: number,
+    item: InsertBudgetItem
+  ): Promise<BudgetItem> {
+    console.log(
+      `Creating budget item for patient ${patientId} and budgetSettings ${budgetSettingsId}:`,
+      JSON.stringify(item)
+    );
     try {
       // Process item data for storage
       const processedItem = {
         ...item,
         unitPrice: Number(item.unitPrice),
-        quantity: Number(item.quantity)
+        quantity: Number(item.quantity),
       };
-      
+
       // Make sure budgetSettingsId is stored correctly
-      const [newBudgetItem] = await db.insert(budgetItems)
+      const [newBudgetItem] = await db
+        .insert(budgetItems)
         .values({
           ...processedItem,
-          clientId,
-          budgetSettingsId
+          patientId,
+          budgetSettingsId,
         })
         .returning();
-      
-      console.log(`Successfully created budget item with ID ${newBudgetItem.id}`);
+
+      console.log(
+        `Successfully created budget item with ID ${newBudgetItem.id}`
+      );
       return newBudgetItem;
     } catch (error) {
-      console.error(`Error creating budget item for client ${clientId}:`, error);
+      console.error(
+        `Error creating budget item for patient ${patientId}:`,
+        error
+      );
       throw error;
     }
   }
 
-  async getBudgetItemsByClient(clientId: number): Promise<BudgetItem[]> {
-    console.log(`Getting budget items for client ${clientId}`);
-    try {
-      const clientBudgetItems = await db.select()
-        .from(budgetItems)
-        .where(eq(budgetItems.clientId, clientId));
-      
-      console.log(`Found ${clientBudgetItems.length} budget items for client ${clientId}`);
-      return clientBudgetItems;
-    } catch (error) {
-      console.error(`Error fetching budget items for client ${clientId}:`, error);
-      throw error;
-    }
-  }
-  
-  async getBudgetItemsBySettings(budgetSettingsId: number): Promise<BudgetItem[]> {
-    console.log(`Getting budget items for budget settings ${budgetSettingsId}`);
-    try {
-      const settingsBudgetItems = await db.select()
-        .from(budgetItems)
-        .where(eq(budgetItems.budgetSettingsId, budgetSettingsId));
-      
-      console.log(`Found ${settingsBudgetItems.length} budget items for budget settings ${budgetSettingsId}`);
-      return settingsBudgetItems;
-    } catch (error) {
-      console.error(`Error fetching budget items for budget settings ${budgetSettingsId}:`, error);
-      throw error;
-    }
-  }
-  
   async deleteBudgetItem(id: number): Promise<void> {
     console.log(`Deleting budget item with ID ${id}`);
     try {
-      await db.delete(budgetItems)
-        .where(eq(budgetItems.id, id));
+      await db.delete(budgetItems).where(eq(budgetItems.id, id));
       console.log(`Successfully deleted budget item with ID ${id}`);
     } catch (error) {
       console.error(`Error deleting budget item with ID ${id}:`, error);
       throw error;
     }
   }
-  
-  async updateBudgetItem(id: number, item: Partial<InsertBudgetItem>): Promise<BudgetItem> {
+
+  async updateBudgetItem(
+    id: number,
+    item: Partial<InsertBudgetItem>
+  ): Promise<BudgetItem> {
     console.log(`Updating budget item with ID ${id}:`, JSON.stringify(item));
     try {
       // Process item data for storage
       const processedItem: Partial<InsertBudgetItem> = {
-        ...item
+        ...item,
       };
-      
+
       // Convert values to numbers if present
       if (item.unitPrice !== undefined) {
         processedItem.unitPrice = Number(item.unitPrice);
       }
-      
+
       if (item.quantity !== undefined) {
         processedItem.quantity = Number(item.quantity);
       }
-      
-      const [updatedBudgetItem] = await db.update(budgetItems)
+
+      const [updatedBudgetItem] = await db
+        .update(budgetItems)
         .set(processedItem)
         .where(eq(budgetItems.id, id))
         .returning();
-      
+
       if (!updatedBudgetItem) {
         console.error(`Budget item with ID ${id} not found`);
         throw new Error("Budget item not found");
       }
-      
+
       console.log(`Successfully updated budget item with ID ${id}`);
       return updatedBudgetItem;
     } catch (error) {
@@ -556,182 +1137,58 @@ export class DBStorage implements IStorage {
     }
   }
 
-  async createBudgetSettings(clientId: number, settings: InsertBudgetSettings): Promise<BudgetSettings> {
-    console.log(`Creating budget settings for client ${clientId}:`, JSON.stringify(settings));
+  async getBudgetItemsByPatientId(patientId: number): Promise<BudgetItem[]> {
+    console.log(`Getting budget items for patient ${patientId}`);
     try {
-      // If the new plan is set to active, deactivate any existing active plans for this client
-      if (settings.isActive) {
-        console.log(`New plan is active, deactivating any existing active plans for client ${clientId}`);
-        
-        // Find all active plans for this client
-        const activePlans = await db.select()
-          .from(budgetSettings)
-          .where(and(
-            eq(budgetSettings.clientId, clientId),
-            eq(budgetSettings.isActive, true)
-          ));
-        
-        // If there are any active plans, deactivate them
-        if (activePlans.length > 0) {
-          console.log(`Found ${activePlans.length} active plans to deactivate`);
-          
-          for (const plan of activePlans) {
-            console.log(`Deactivating plan ${plan.id}`);
-            await db.update(budgetSettings)
-              .set({ isActive: false })
-              .where(eq(budgetSettings.id, plan.id));
-          }
-        }
-      }
-      
-      // Process settings data for storage
-      const processedSettings = {
-        ...settings,
-        ndisFunds: Number(settings.ndisFunds || 0),
-        endOfPlan: settings.endOfPlan || null
-      };
-      
-      const [newBudgetSettings] = await db.insert(budgetSettings)
-        .values({
-          ...processedSettings,
-          clientId
-        })
-        .returning();
-      
-      console.log(`Successfully created budget settings with ID ${newBudgetSettings.id}`);
-      return newBudgetSettings;
+      const patientBudgetItems = await db
+        .select()
+        .from(budgetItems)
+        .where(eq(budgetItems.patientId, patientId));
+
+      console.log(
+        `Found ${patientBudgetItems.length} budget items for patient ${patientId}`
+      );
+      return patientBudgetItems;
     } catch (error) {
-      console.error(`Error creating budget settings for client ${clientId}:`, error);
+      console.error(
+        `Error fetching budget items for patient ${patientId}:`,
+        error
+      );
       throw error;
     }
   }
 
-  async getBudgetSettingsByClient(clientId: number): Promise<BudgetSettings | undefined> {
-    console.log(`Getting budget settings for client ${clientId}`);
-    try {
-      const result = await db.select()
-        .from(budgetSettings)
-        .where(eq(budgetSettings.clientId, clientId));
-      
-      if (result.length === 0) {
-        console.log(`Budget settings for client ${clientId} not found`);
-        return undefined;
-      }
-      
-      // Find and return the active budget settings
-      const activeSetting = result.find(setting => setting.isActive);
-      
-      console.log(`Found budget settings for client ${clientId}`);
-      return activeSetting || result[0]; // Return active or first one if no active is found
-    } catch (error) {
-      console.error(`Error fetching budget settings for client ${clientId}:`, error);
-      throw error;
-    }
-  }
-  
-  // New method to get all budget settings for a client
-  async getAllBudgetSettingsByClient(clientId: number): Promise<BudgetSettings[]> {
-    console.log(`Getting all budget settings for client ${clientId}`);
-    try {
-      const result = await db.select()
-        .from(budgetSettings)
-        .where(eq(budgetSettings.clientId, clientId));
-      
-      console.log(`Found ${result.length} budget settings for client ${clientId}`);
-      return result;
-    } catch (error) {
-      console.error(`Error fetching all budget settings for client ${clientId}:`, error);
-      throw error;
-    }
-  }
-
-  async updateBudgetSettings(id: number, settings: InsertBudgetSettings): Promise<BudgetSettings> {
-    console.log(`Updating budget settings with ID ${id}:`, JSON.stringify(settings));
-    try {
-      // First get the existing settings to check if active status is changing
-      const existingSettings = await db.select()
-        .from(budgetSettings)
-        .where(eq(budgetSettings.id, id));
-      
-      if (existingSettings.length === 0) {
-        console.error(`Budget settings with ID ${id} not found`);
-        throw new Error("Budget settings not found");
-      }
-      
-      const existing = existingSettings[0];
-      
-      // If this plan is being activated and it wasn't active before, deactivate other active plans
-      if (settings.isActive === true && existing.isActive === false) {
-        console.log(`Plan ${id} is being activated, deactivating other active plans for client ${existing.clientId}`);
-        
-        // Find all other active plans for this client
-        const activePlans = await db.select()
-          .from(budgetSettings)
-          .where(and(
-            eq(budgetSettings.clientId, existing.clientId),
-            eq(budgetSettings.isActive, true)
-          ));
-        
-        // If there are any active plans, deactivate them
-        if (activePlans.length > 0) {
-          console.log(`Found ${activePlans.length} active plans to deactivate`);
-          
-          for (const plan of activePlans) {
-            console.log(`Deactivating plan ${plan.id}`);
-            await db.update(budgetSettings)
-              .set({ isActive: false })
-              .where(eq(budgetSettings.id, plan.id));
-          }
-        }
-      }
-      
-      // Process settings data for update
-      const processedSettings = {
-        ...settings,
-        ndisFunds: Number(settings.ndisFunds || 0),
-        endOfPlan: settings.endOfPlan || null
-      };
-      
-      const [updatedSettings] = await db.update(budgetSettings)
-        .set(processedSettings)
-        .where(eq(budgetSettings.id, id))
-        .returning();
-      
-      console.log(`Successfully updated budget settings with ID ${id}`);
-      return updatedSettings;
-    } catch (error) {
-      console.error(`Error updating budget settings with ID ${id}:`, error);
-      throw error;
-    }
-  }
-  
   // Budget Item Catalog methods
-  async createBudgetItemCatalog(item: InsertBudgetItemCatalog): Promise<BudgetItemCatalog> {
+  async createBudgetItemCatalog(
+    item: InsertBudgetItemCatalog
+  ): Promise<BudgetItemCatalog> {
     console.log(`Creating budget item catalog entry:`, JSON.stringify(item));
     try {
       const processedItem = {
         ...item,
-        defaultUnitPrice: Number(item.defaultUnitPrice || 0)
+        defaultUnitPrice: Number(item.defaultUnitPrice || 0),
       };
-      
-      const [newCatalogItem] = await db.insert(budgetItemCatalog)
+
+      const [newCatalogItem] = await db
+        .insert(budgetItemCatalog)
         .values(processedItem)
         .returning();
-      
-      console.log(`Successfully created budget item catalog entry with ID ${newCatalogItem.id}`);
+
+      console.log(
+        `Successfully created budget item catalog entry with ID ${newCatalogItem.id}`
+      );
       return newCatalogItem;
     } catch (error) {
       console.error(`Error creating budget item catalog entry:`, error);
       throw error;
     }
   }
-  
+
   async getBudgetItemCatalog(): Promise<BudgetItemCatalog[]> {
     console.log(`Getting all budget item catalog entries`);
     try {
-      const catalogItems = await db.select()
-        .from(budgetItemCatalog);
-      
+      const catalogItems = await db.select().from(budgetItemCatalog);
+
       console.log(`Found ${catalogItems.length} budget item catalog entries`);
       return catalogItems;
     } catch (error) {
@@ -739,141 +1196,629 @@ export class DBStorage implements IStorage {
       throw error;
     }
   }
-  
-  async getBudgetItemCatalogByCode(itemCode: string): Promise<BudgetItemCatalog | undefined> {
+
+  async getBudgetItemCatalogByCode(
+    itemCode: string
+  ): Promise<BudgetItemCatalog | undefined> {
     console.log(`Getting budget item catalog entry with code ${itemCode}`);
     try {
-      const result = await db.select()
+      const result = await db
+        .select()
         .from(budgetItemCatalog)
         .where(eq(budgetItemCatalog.itemCode, itemCode));
-      
+
       if (result.length === 0) {
-        console.log(`Budget item catalog entry with code ${itemCode} not found`);
+        console.log(
+          `Budget item catalog entry with code ${itemCode} not found`
+        );
         return undefined;
       }
-      
+
       console.log(`Found budget item catalog entry for code ${itemCode}`);
       return result[0];
     } catch (error) {
-      console.error(`Error fetching budget item catalog entry with code ${itemCode}:`, error);
+      console.error(
+        `Error fetching budget item catalog entry with code ${itemCode}:`,
+        error
+      );
       throw error;
     }
   }
-  
-  async updateBudgetItemCatalog(id: number, item: InsertBudgetItemCatalog): Promise<BudgetItemCatalog> {
-    console.log(`Updating budget item catalog entry with ID ${id}:`, JSON.stringify(item));
+
+  async updateBudgetItemCatalog(
+    id: number,
+    item: InsertBudgetItemCatalog
+  ): Promise<BudgetItemCatalog> {
+    console.log(
+      `Updating budget item catalog entry with ID ${id}:`,
+      JSON.stringify(item)
+    );
     try {
       const processedItem = {
         ...item,
-        defaultUnitPrice: Number(item.defaultUnitPrice || 0)
+        defaultUnitPrice: Number(item.defaultUnitPrice || 0),
       };
-      
-      const [updatedCatalogItem] = await db.update(budgetItemCatalog)
+
+      const [updatedCatalogItem] = await db
+        .update(budgetItemCatalog)
         .set(processedItem)
         .where(eq(budgetItemCatalog.id, id))
         .returning();
-      
+
       if (!updatedCatalogItem) {
         console.error(`Budget item catalog entry with ID ${id} not found`);
         throw new Error("Budget item catalog entry not found");
       }
-      
-      console.log(`Successfully updated budget item catalog entry with ID ${id}`);
+
+      console.log(
+        `Successfully updated budget item catalog entry with ID ${id}`
+      );
       return updatedCatalogItem;
     } catch (error) {
-      console.error(`Error updating budget item catalog entry with ID ${id}:`, error);
+      console.error(
+        `Error updating budget item catalog entry with ID ${id}:`,
+        error
+      );
       throw error;
     }
   }
-  
-  // Sessions methods implementation
-  async createSession(session: InsertSession): Promise<Session> {
-    console.log(`Creating session:`, JSON.stringify(session));
+
+  // Budget Settings
+  async getBudgetSettings(
+    patientId: number
+  ): Promise<BudgetSettings | undefined> {
+    console.log(`Getting budget settings for patient with ID ${patientId}`);
     try {
-      const [newSession] = await db.insert(sessions)
-        .values(session)
-        .returning();
-      
-      console.log(`Successfully created session with ID ${newSession.id}`);
-      return newSession;
-    } catch (error) {
-      console.error("Error creating session:", error);
-      throw error;
-    }
-  }
-  
-  async getSessionById(id: number): Promise<Session | undefined> {
-    console.log(`Getting session with ID ${id}`);
-    try {
-      const result = await db.select()
-        .from(sessions)
-        .where(eq(sessions.id, id));
-      
-      if (result.length === 0) {
-        console.log(`Session with ID ${id} not found`);
-        return undefined;
-      }
-      
-      console.log(`Found session with ID ${id}`);
+      const result = await db
+        .select()
+        .from(budgetSettings)
+        .where(eq(budgetSettings.patientId, patientId));
       return result[0];
     } catch (error) {
-      console.error(`Error fetching session with ID ${id}:`, error);
+      console.error(
+        `Error getting budget settings for patient with ID ${patientId}: ${error}`
+      );
       throw error;
     }
   }
-  
-  async getAllSessions(): Promise<Session[]> {
-    console.log(`Getting all sessions`);
+
+  async createBudgetSettings(
+    settings: InsertBudgetSettings & { patientId: number }
+  ): Promise<BudgetSettings> {
+    console.log(`Creating budget settings for patient ${settings.patientId}`);
     try {
-      const allSessions = await db.select().from(sessions);
-      console.log(`Found ${allSessions.length} sessions`);
-      return allSessions;
+      // We need to ensure patientId is included in the settings
+      const settingsToInsert = {
+        ...settings,
+      };
+
+      const [newSettings] = await db
+        .insert(budgetSettings)
+        .values(settingsToInsert)
+        .returning();
+      return newSettings;
     } catch (error) {
-      console.error("Error fetching all sessions:", error);
+      console.error(`Error creating budget settings: ${error}`);
       throw error;
     }
   }
-  
-  async getSessionsByClient(clientId: number): Promise<Session[]> {
-    console.log(`Getting sessions for client ${clientId}`);
+
+  async getBudgetSettingsByPatientId(
+    patientId: number
+  ): Promise<BudgetSettings | undefined> {
+    console.log(`Getting budget settings for patient ${patientId}`);
     try {
-      // First get all sessions for this client
-      const clientSessions = await db.select()
+      const result = await db
+        .select()
+        .from(budgetSettings)
+        .where(eq(budgetSettings.patientId, patientId));
+
+      if (result.length === 0) {
+        console.log(`Budget settings for patient ${patientId} not found`);
+        return undefined;
+      }
+
+      // Find and return the active budget settings
+      const activeSetting = result.find((setting) => setting.isActive);
+
+      console.log(`Found budget settings for patient ${patientId}`);
+      return activeSetting || result[0]; // Return active or first one if no active is found
+    } catch (error) {
+      console.error(
+        `Error fetching budget settings for patient ${patientId}:`,
+        error
+      );
+      throw error;
+    }
+  }
+
+  // New method to get all budget settings for a client
+  async getAllBudgetSettingsByPatientId(
+    patientId: number
+  ): Promise<BudgetSettings[]> {
+    console.log(`Getting all budget settings for patient ${patientId}`);
+    try {
+      const result = await db
+        .select()
+        .from(budgetSettings)
+        .where(eq(budgetSettings.patientId, patientId));
+
+      console.log(
+        `Found ${result.length} budget settings for patient ${patientId}`
+      );
+      return result;
+    } catch (error) {
+      console.error(
+        `Error fetching all budget settings for patient ${patientId}:`,
+        error
+      );
+      throw error;
+    }
+  }
+
+  async updateBudgetSettings(
+    patientId: number,
+    settings: Partial<InsertBudgetSettings>
+  ): Promise<BudgetSettings> {
+    console.log(`Updating budget settings for patient with ID ${patientId}`);
+    try {
+      const [updatedSettings] = await db
+        .update(budgetSettings)
+        .set(settings)
+        .where(eq(budgetSettings.patientId, patientId))
+        .returning();
+      return updatedSettings;
+    } catch (error) {
+      console.error(
+        `Error updating budget settings for patient with ID ${patientId}: ${error}`
+      );
+      throw error;
+    }
+  }
+
+  // Dashboard related methods
+  async getDashboardAppointmentStats(
+    timeframe: "day" | "week" | "month" | "year"
+  ): Promise<AppointmentStats> {
+    console.log(
+      `Getting dashboard appointment stats with timeframe: ${timeframe}`
+    );
+    try {
+      // Get session data from the database
+      const allSessions = await db.select().from(sessions);
+      console.log(`Found ${allSessions.length} sessions in database`);
+
+      // Initialize stats with empty arrays
+      const stats: AppointmentStats = {
+        daily: [],
+        weekly: [],
+        monthly: [],
+        yearly: [],
+      };
+
+      if (allSessions.length === 0) {
+        return stats;
+      }
+
+      // Group sessions by day, week, month, and year
+      const today = new Date();
+      const oneYearAgo = new Date();
+      oneYearAgo.setFullYear(today.getFullYear() - 1);
+
+      // Filter to sessions within the last year
+      const recentSessions = allSessions.filter((session) => {
+        const sessionDate = new Date(session.sessionDate);
+        return sessionDate >= oneYearAgo && sessionDate <= today;
+      });
+
+      // Process stats based on timeframe
+      const dailyStats = this.processDailyStats(recentSessions);
+      const weeklyStats = this.processWeeklyStats(recentSessions);
+      const monthlyStats = this.processMonthlyStats(recentSessions);
+      const yearlyStats = this.processYearlyStats(recentSessions);
+
+      return {
+        daily: dailyStats,
+        weekly: weeklyStats,
+        monthly: monthlyStats,
+        yearly: yearlyStats,
+      };
+    } catch (error) {
+      console.error("Error getting dashboard appointment stats:", error);
+      throw error;
+    }
+  }
+
+  async getBudgetExpirationStats(
+    months: number
+  ): Promise<BudgetExpirationStats> {
+    console.log(
+      `Getting budget expiration stats for the next ${months} months`
+    );
+    try {
+      // Get all budget settings and join with patients
+      const allBudgetSettings = await db.select().from(budgetSettings);
+      const allPatients = await db.select().from(patients);
+
+      // Get all budget items for calculating used funds
+      const allBudgetItems = await db.select().from(budgetItems);
+
+      // Identify which plans expire next month
+      const today = new Date();
+      const nextMonthStart = new Date(
+        today.getFullYear(),
+        today.getMonth() + 1,
+        1
+      );
+      const nextMonthEnd = new Date(
+        today.getFullYear(),
+        today.getMonth() + 2,
+        0
+      );
+
+      // Find plans expiring next month
+      const expiringPlans = allBudgetSettings.filter((plan) => {
+        if (!plan.endOfPlan) return false;
+
+        const endDate = new Date(plan.endOfPlan);
+        return endDate >= nextMonthStart && endDate <= nextMonthEnd;
+      });
+
+      // Format client info for expiring plans
+      const expiringClientsInfo = expiringPlans.map((plan) => {
+        const patient = allPatients.find((c) => c.id === plan.patientId);
+        return {
+          patientId: plan.patientId,
+          patientName: patient ? patient.name : `Patient ${plan.patientId}`,
+          planId: plan.id,
+          planName: plan.planCode || `Plan ${plan.id}`,
+        };
+      });
+
+      // Calculate remaining funds by month for the requested number of months
+      const monthlyData = Array.from({ length: months }, (_, i) => {
+        const month = new Date(today.getFullYear(), today.getMonth() + i, 1);
+        const monthEnd = new Date(month.getFullYear(), month.getMonth() + 1, 0);
+
+        // Format for display: MMM YYYY
+        const monthLabel = month.toISOString().split("T")[0].substring(0, 7);
+
+        // Find plans active during this month
+        const activePlans = allBudgetSettings.filter((plan) => {
+          if (!plan.endOfPlan) return true; // Plans with no end date are considered active
+
+          const endDate = new Date(plan.endOfPlan);
+          return endDate >= month;
+        });
+
+        // Calculate total funds and remaining funds
+        let totalRemainingAmount = 0;
+
+        activePlans.forEach((plan) => {
+          // Calculate used funds for this plan
+          const planItems = allBudgetItems.filter(
+            (item) => item.budgetSettingsId === plan.id
+          );
+
+          const usedFunds = planItems.reduce(
+            (sum, item) => sum + Number(item.unitPrice) * Number(item.quantity),
+            0
+          );
+
+          // Add remaining funds to total
+          const planRemainingFunds = Number(plan.ndisFunds) - usedFunds;
+          if (planRemainingFunds > 0) {
+            totalRemainingAmount += planRemainingFunds;
+          }
+        });
+
+        return {
+          month: monthLabel,
+          amount: totalRemainingAmount,
+          planCount: activePlans.length,
+        };
+      });
+
+      return {
+        expiringNextMonth: {
+          count: expiringPlans.length,
+          byPatient: expiringClientsInfo,
+        },
+        remainingFunds: monthlyData,
+      };
+    } catch (error) {
+      console.error("Error getting budget expiration stats:", error);
+      throw error;
+    }
+  }
+
+  async getUpcomingTaskStats(months: number): Promise<UpcomingTaskStats> {
+    console.log(`Getting upcoming task stats for the next ${months} months`);
+    try {
+      // Get all sessions to calculate future tasks
+      const allSessions = await db.select().from(sessions);
+
+      // Generate data for the next X months
+      const today = new Date();
+      const monthlyData = Array.from({ length: months }, (_, i) => {
+        const month = new Date(today.getFullYear(), today.getMonth() + i, 1);
+        const monthEnd = new Date(month.getFullYear(), month.getMonth() + 1, 0);
+
+        // Format for display: YYYY-MM
+        const monthLabel = month.toISOString().split("T")[0].substring(0, 7);
+
+        // Calculate upcoming sessions for different task types
+        const monthSessions = allSessions.filter((session) => {
+          const sessionDate = new Date(session.sessionDate);
+          return sessionDate >= month && sessionDate <= monthEnd;
+        });
+
+        // Categorize sessions based on title/description
+        // This is a simplification - in a real system, you'd have actual task types
+        const reports = monthSessions.filter(
+          (s) =>
+            s.title.toLowerCase().includes("report") ||
+            (s.description && s.description.toLowerCase().includes("report"))
+        ).length;
+
+        const letters = monthSessions.filter(
+          (s) =>
+            s.title.toLowerCase().includes("letter") ||
+            (s.description && s.description.toLowerCase().includes("letter"))
+        ).length;
+
+        const assessments = monthSessions.filter(
+          (s) =>
+            s.title.toLowerCase().includes("assessment") ||
+            (s.description &&
+              s.description.toLowerCase().includes("assessment"))
+        ).length;
+
+        // Count other sessions (those not in above categories)
+        const categorizedCount = reports + letters + assessments;
+        const other = Math.max(0, monthSessions.length - categorizedCount);
+
+        return {
+          month: monthLabel,
+          reports,
+          letters,
+          assessments,
+          other,
+        };
+      });
+
+      return {
+        byMonth: monthlyData,
+      };
+    } catch (error) {
+      console.error("Error getting upcoming task stats:", error);
+      throw error;
+    }
+  }
+
+  // Helper methods for processing appointment stats
+  private processDailyStats(
+    sessions: Session[]
+  ): Array<{ period: string; count: number; percentChange?: number }> {
+    const last30Days = Array.from({ length: 30 }, (_, i) => {
+      const date = new Date();
+      date.setDate(date.getDate() - i);
+      return date.toISOString().split("T")[0]; // Format as YYYY-MM-DD
+    }).reverse();
+
+    const dailyCounts = last30Days.map((day) => {
+      const count = sessions.filter((session) => {
+        const sessionDate = new Date(session.sessionDate);
+        return sessionDate.toISOString().split("T")[0] === day;
+      }).length;
+
+      return {
+        period: day,
+        count,
+        percentChange: undefined as number | undefined,
+      };
+    });
+
+    // Calculate percent changes
+    for (let i = 1; i < dailyCounts.length; i++) {
+      const prevCount = dailyCounts[i - 1].count;
+      const currCount = dailyCounts[i].count;
+
+      if (prevCount > 0) {
+        dailyCounts[i].percentChange =
+          ((currCount - prevCount) / prevCount) * 100;
+      }
+    }
+
+    return dailyCounts;
+  }
+
+  private processWeeklyStats(
+    sessions: Session[]
+  ): Array<{ period: string; count: number; percentChange?: number }> {
+    // Group by week for the last 12 weeks
+    const last12Weeks = Array.from({ length: 12 }, (_, i) => {
+      const date = new Date();
+      date.setDate(date.getDate() - i * 7);
+      const weekStart = new Date(date);
+      weekStart.setDate(date.getDate() - date.getDay()); // Sunday of week
+      const weekEnd = new Date(weekStart);
+      weekEnd.setDate(weekStart.getDate() + 6); // Saturday of week
+
+      return {
+        start: weekStart,
+        end: weekEnd,
+        label: `${weekStart.toISOString().split("T")[0]} to ${
+          weekEnd.toISOString().split("T")[0]
+        }`,
+      };
+    }).reverse();
+
+    const weeklyCounts = last12Weeks.map((week) => {
+      const count = sessions.filter((session) => {
+        const sessionDate = new Date(session.sessionDate);
+        return sessionDate >= week.start && sessionDate <= week.end;
+      }).length;
+
+      return {
+        period: week.label,
+        count,
+        percentChange: undefined as number | undefined,
+      };
+    });
+
+    // Calculate percent changes
+    for (let i = 1; i < weeklyCounts.length; i++) {
+      const prevCount = weeklyCounts[i - 1].count;
+      const currCount = weeklyCounts[i].count;
+
+      if (prevCount > 0) {
+        weeklyCounts[i].percentChange =
+          ((currCount - prevCount) / prevCount) * 100;
+      }
+    }
+
+    return weeklyCounts;
+  }
+
+  private processMonthlyStats(
+    sessions: Session[]
+  ): Array<{ period: string; count: number; percentChange?: number }> {
+    // Group by month for the last 12 months
+    const last12Months = Array.from({ length: 12 }, (_, i) => {
+      const date = new Date();
+      date.setMonth(date.getMonth() - i);
+      const year = date.getFullYear();
+      const month = date.getMonth();
+
+      const monthStart = new Date(year, month, 1);
+      const monthEnd = new Date(year, month + 1, 0);
+
+      const monthName = monthStart.toLocaleString("default", { month: "long" });
+      return {
+        start: monthStart,
+        end: monthEnd,
+        label: `${monthName} ${year}`,
+      };
+    }).reverse();
+
+    const monthlyCounts = last12Months.map((month) => {
+      const count = sessions.filter((session) => {
+        const sessionDate = new Date(session.sessionDate);
+        return sessionDate >= month.start && sessionDate <= month.end;
+      }).length;
+
+      return {
+        period: month.label,
+        count,
+        percentChange: undefined as number | undefined,
+      };
+    });
+
+    // Calculate percent changes
+    for (let i = 1; i < monthlyCounts.length; i++) {
+      const prevCount = monthlyCounts[i - 1].count;
+      const currCount = monthlyCounts[i].count;
+
+      if (prevCount > 0) {
+        monthlyCounts[i].percentChange =
+          ((currCount - prevCount) / prevCount) * 100;
+      }
+    }
+
+    return monthlyCounts;
+  }
+
+  private processYearlyStats(
+    sessions: Session[]
+  ): Array<{ period: string; count: number; percentChange?: number }> {
+    // Group by year for the last 3 years
+    const last3Years = Array.from({ length: 3 }, (_, i) => {
+      const year = new Date().getFullYear() - i;
+      const yearStart = new Date(year, 0, 1);
+      const yearEnd = new Date(year, 11, 31);
+
+      return {
+        start: yearStart,
+        end: yearEnd,
+        label: `${year}`,
+      };
+    }).reverse();
+
+    const yearlyCounts = last3Years.map((year) => {
+      const count = sessions.filter((session) => {
+        const sessionDate = new Date(session.sessionDate);
+        return sessionDate >= year.start && sessionDate <= year.end;
+      }).length;
+
+      return {
+        period: year.label,
+        count,
+        percentChange: undefined as number | undefined,
+      };
+    });
+
+    // Calculate percent changes
+    for (let i = 1; i < yearlyCounts.length; i++) {
+      const prevCount = yearlyCounts[i - 1].count;
+      const currCount = yearlyCounts[i].count;
+
+      if (prevCount > 0) {
+        yearlyCounts[i].percentChange =
+          ((currCount - prevCount) / prevCount) * 100;
+      }
+    }
+
+    return yearlyCounts;
+  }
+
+  async getSessionsByPatientId(patientId: number): Promise<Session[]> {
+    console.log(`Getting sessions for patient ${patientId}`);
+    try {
+      // First get all sessions for this patient
+      const patientSessions = await db
+        .select()
         .from(sessions)
-        .where(eq(sessions.clientId, clientId));
-      
-      console.log(`Found ${clientSessions.length} sessions for client ${clientId}`);
-      
+        .where(eq(sessions.patientId, patientId));
+
+      console.log(
+        `Found ${patientSessions.length} sessions for patient ${patientId}`
+      );
+
       // Now get all session notes for these sessions
-      if (clientSessions.length > 0) {
-        const sessionIds = clientSessions.map(session => session.id);
+      if (patientSessions.length > 0) {
+        const sessionIds = patientSessions.map((session) => session.id);
         console.log(`Fetching session notes for ${sessionIds.length} sessions`);
-        
+
         // Use direct SQL query to get all notes for these sessions
         // This approach is more efficient and guarantees we get all needed data
         const query = `
           SELECT * FROM session_notes 
-          WHERE session_id IN (${sessionIds.join(',')})
+          WHERE session_id IN (${sessionIds.join(",")})
         `;
-        
-        const notesResult = await pool.query(query);
-        const notes = notesResult.rows;
-        
-        console.log(`Found ${notes.length} session notes using direct SQL query`);
-        
+
+        const result = await db.execute(sql.raw(query));
+        const notes = result.rows || [];
+
+        console.log(
+          `Found ${notes.length} session notes using direct SQL query`
+        );
+
         // Attach notes to their sessions
-        const sessionsWithNotes = clientSessions.map(session => {
+        const sessionsWithNotes = patientSessions.map((session) => {
           // Find the corresponding session note
-          const sessionNote = notes.find(note => note.session_id === session.id);
-          
+          const sessionNote = notes.find(
+            (note) => note.session_id === session.id
+          );
+
           if (!sessionNote) {
             console.log(`No session note found for session ${session.id}`);
             return {
               ...session,
-              sessionNote: null
+              sessionNote: null,
             };
           }
-          
+
           // Convert column names from snake_case to camelCase for API consistency
           const formattedNote = {
             id: sessionNote.id,
@@ -889,43 +1834,97 @@ export class DBStorage implements IStorage {
             createdAt: sessionNote.created_at,
             updatedAt: sessionNote.updated_at,
             // Properly handle products data - parse JSON string for client consumption
-            products: sessionNote.products ? 
-              (typeof sessionNote.products === 'string' ? 
-                JSON.parse(sessionNote.products) : sessionNote.products)
-              : '[]'
+            products: sessionNote.products
+              ? typeof sessionNote.products === "string"
+                ? JSON.parse(sessionNote.products)
+                : sessionNote.products
+              : "[]",
           };
-          
-          console.log(`Attached session note ${formattedNote.id} to session ${session.id}`);
-          
+
+          console.log(
+            `Attached session note ${formattedNote.id} to session ${session.id}`
+          );
+
           return {
             ...session,
-            sessionNote: formattedNote
+            sessionNote: formattedNote,
           };
         });
-        
+
         return sessionsWithNotes;
       }
-      
-      return clientSessions;
+
+      return patientSessions;
     } catch (error) {
-      console.error(`Error fetching sessions for client ${clientId}:`, error);
+      console.error(`Error fetching sessions for patient ${patientId}:`, error);
       throw error;
     }
   }
-  
+
+  // Sessions methods implementation
+  async createSession(session: InsertSession): Promise<Session> {
+    console.log(`Creating session:`, JSON.stringify(session));
+    try {
+      const [newSession] = await db
+        .insert(sessions)
+        .values(session)
+        .returning();
+
+      console.log(`Successfully created session with ID ${newSession.id}`);
+      return newSession;
+    } catch (error) {
+      console.error("Error creating session:", error);
+      throw error;
+    }
+  }
+
+  async getSessionById(id: number): Promise<Session | undefined> {
+    console.log(`Getting session with ID ${id}`);
+    try {
+      const result = await db
+        .select()
+        .from(sessions)
+        .where(eq(sessions.id, id));
+
+      if (result.length === 0) {
+        console.log(`Session with ID ${id} not found`);
+        return undefined;
+      }
+
+      console.log(`Found session with ID ${id}`);
+      return result[0];
+    } catch (error) {
+      console.error(`Error fetching session with ID ${id}:`, error);
+      throw error;
+    }
+  }
+
+  async getAllSessions(): Promise<Session[]> {
+    console.log(`Getting all sessions`);
+    try {
+      const allSessions = await db.select().from(sessions);
+      console.log(`Found ${allSessions.length} sessions`);
+      return allSessions;
+    } catch (error) {
+      console.error("Error fetching all sessions:", error);
+      throw error;
+    }
+  }
+
   async updateSession(id: number, session: InsertSession): Promise<Session> {
     console.log(`Updating session with ID ${id}:`, JSON.stringify(session));
     try {
-      const [updatedSession] = await db.update(sessions)
+      const [updatedSession] = await db
+        .update(sessions)
         .set(session)
         .where(eq(sessions.id, id))
         .returning();
-      
+
       if (!updatedSession) {
         console.error(`Session with ID ${id} not found`);
         throw new Error("Session not found");
       }
-      
+
       console.log(`Successfully updated session with ID ${id}`);
       return updatedSession;
     } catch (error) {
@@ -933,12 +1932,11 @@ export class DBStorage implements IStorage {
       throw error;
     }
   }
-  
+
   async deleteSession(id: number): Promise<void> {
     console.log(`Deleting session with ID ${id}`);
     try {
-      await db.delete(sessions)
-        .where(eq(sessions.id, id));
+      await db.delete(sessions).where(eq(sessions.id, id));
       console.log(`Successfully deleted session with ID ${id}`);
     } catch (error) {
       console.error(`Error deleting session with ID ${id}:`, error);
@@ -946,385 +1944,109 @@ export class DBStorage implements IStorage {
     }
   }
 
-  // Session Notes Methods
+  // Session Notes
   async createSessionNote(note: InsertSessionNote): Promise<SessionNote> {
-    console.log(`Creating session note for session ${note.sessionId}:`, JSON.stringify(note));
+    console.log(`Creating new session note for patient ${note.patientId}`);
     try {
-      // Get the parent session to ensure we update its status
-      let parentSession;
-      try {
-        parentSession = await this.getSessionById(note.sessionId);
-        console.log(`Parent session found: ID=${parentSession?.id}, status=${parentSession?.status}`);
-      } catch (e) {
-        console.warn(`Error fetching parent session: ${e}`);
-      }
-      
-      const [newNote] = await db.insert(sessionNotes)
-        .values(note)
-        .returning();
-      
-      console.log(`Successfully created session note with ID ${newNote.id}`);
-      
-      // Update parent session status if note is completed
-      if (parentSession && note.status === 'completed' && parentSession.status !== 'completed') {
-        console.log(`Updating parent session ${parentSession.id} status to completed`);
-        await db.update(sessions)
-          .set({ status: 'completed' })
-          .where(eq(sessions.id, parentSession.id));
-          
-        // Verify update was successful
-        const updatedSession = await this.getSessionById(parentSession.id);
-        console.log(`Updated parent session status: ${updatedSession?.status}`);
-      }
-      
-      // Only update budget item usage if session note status is 'completed' AND parent session is 'completed'
-      // This ensures budget usage is only updated when the entire session is fully completed
-      const parentSessionCompleted = parentSession && parentSession.status === 'completed';
-      const updatedParentStatus = parentSession && note.status === 'completed' && parentSession.status !== 'completed';
-      
-      // Check if both session note is completed and either parent session is already completed or was just updated to completed
-      if (note.products && note.status === 'completed' && (parentSessionCompleted || updatedParentStatus)) {
-        console.log(`Session note ${newNote.id} is completed and parent session is completed, updating budget item usage`);
-        
-        // Ensure products is properly formatted
-        let newProducts: string;
-        if (typeof note.products === 'string') {
-          try {
-            // Verify JSON is valid
-            JSON.parse(note.products);
-            newProducts = note.products;
-          } catch (e) {
-            console.error(`Invalid products JSON: ${note.products}`, e);
-            // Try to fix common format issues
-            if (note.products.trim().startsWith('{')) {
-              newProducts = `[${note.products}]`;
-              console.log(`Fixed products JSON format: ${newProducts}`);
-            } else {
-              newProducts = '[]';
-            }
-          }
-        } else if (Array.isArray(note.products)) {
-          newProducts = JSON.stringify(note.products);
-        } else if (note.products && typeof note.products === 'object') {
-          newProducts = JSON.stringify([note.products]);
-        } else {
-          newProducts = '[]';
-        }
-        
-        console.log(`Formatted products for budget tracking: ${newProducts}`);
-        console.log(`Updating budget items for client ${note.clientId}`);
-        
-        // Get current budget items before update
-        const beforeItems = await this.getBudgetItemsByClient(note.clientId);
-        console.log(`Budget items before update:`, 
-          beforeItems.map(item => `${item.id}: ${item.itemCode} - ${item.usedQuantity}/${item.quantity}`));
-        
-        // Update budget usage
-        await this.updateBudgetItemUsage(note.clientId, newProducts, "[]");
-        
-        // Verify budget items were updated
-        const afterItems = await this.getBudgetItemsByClient(note.clientId);
-        console.log(`Budget items after update:`, 
-          afterItems.map(item => `${item.id}: ${item.itemCode} - ${item.usedQuantity}/${item.quantity}`));
-      } else if (note.products) {
-        if (note.status !== 'completed') {
-          console.log(`Session note ${newNote.id} is not completed (status: ${note.status}), skipping budget usage update`);
-        } else if (!parentSessionCompleted && !updatedParentStatus) {
-          console.log(`Session note ${newNote.id} is completed but parent session is not completed (status: ${parentSession?.status}), skipping budget usage update`);
-        }
-      }
-      
+      const [newNote] = await db.insert(sessionNotes).values(note).returning();
       return newNote;
     } catch (error) {
-      console.error(`Error creating session note for session ${note.sessionId}:`, error);
+      console.error(`Error creating session note: ${error}`);
       throw error;
-    }
-  }
-  
-  // Helper method to update budget item usage when products are used in sessions
-  private async updateBudgetItemUsage(
-    clientId: number, 
-    newProductsJson: string | null, 
-    oldProductsJson: string | null
-  ): Promise<void> {
-    try {
-      console.log(`=== BUDGET ITEM USAGE UPDATE FOR CLIENT ${clientId} ===`);
-      console.log(`Raw new products: ${newProductsJson?.substring(0, 200)}`);
-      console.log(`Raw old products: ${oldProductsJson?.substring(0, 200)}`);
-      
-      // Parse products from JSON strings
-      let newProducts: any[] = [];
-      let oldProducts: any[] = [];
-      
-      if (newProductsJson) {
-        try {
-          if (typeof newProductsJson === 'string') {
-            console.log("Parsing new products from JSON string:", newProductsJson.substring(0, 100) + (newProductsJson.length > 100 ? "..." : ""));
-            newProducts = JSON.parse(newProductsJson);
-          } else if (Array.isArray(newProductsJson)) {
-            console.log("New products already an array:", newProductsJson);
-            newProducts = newProductsJson as any[];
-          }
-          
-          console.log(`Successfully parsed ${newProducts.length} new products`);
-          
-          // Validate that each product has the required fields
-          if (newProducts.length > 0) {
-            console.log(`First product keys: ${Object.keys(newProducts[0]).join(', ')}`);
-            const missingFields = newProducts.filter(p => !p.itemCode && !p.productCode);
-            if (missingFields.length > 0) {
-              console.warn(`${missingFields.length} products are missing both itemCode and productCode:`, missingFields);
-            }
-          }
-        } catch (e) {
-          console.error("Error parsing new products JSON:", e);
-          console.error("Raw new products data:", newProductsJson);
-        }
-      } else {
-        console.log("No new products to process");
-      }
-      
-      if (oldProductsJson) {
-        try {
-          if (typeof oldProductsJson === 'string') {
-            console.log("Parsing old products from JSON string:", oldProductsJson.substring(0, 100) + (oldProductsJson.length > 100 ? "..." : ""));
-            oldProducts = JSON.parse(oldProductsJson);
-          } else if (Array.isArray(oldProductsJson)) {
-            console.log("Old products already an array:", oldProductsJson);
-            oldProducts = oldProductsJson as any[];
-          }
-          
-          console.log(`Successfully parsed ${oldProducts.length} old products`);
-          
-          // Validate that each product has the required fields
-          if (oldProducts.length > 0) {
-            console.log(`First product keys: ${Object.keys(oldProducts[0]).join(', ')}`);
-            const missingFields = oldProducts.filter(p => !p.itemCode && !p.productCode);
-            if (missingFields.length > 0) {
-              console.warn(`${missingFields.length} old products are missing both itemCode and productCode:`, missingFields);
-            }
-          }
-        } catch (e) {
-          console.error("Error parsing old products JSON:", e);
-          console.error("Raw old products data:", oldProductsJson);
-        }
-      } else {
-        console.log("No old products to process");
-      }
-      
-      // Skip if no products to process
-      if (newProducts.length === 0 && oldProducts.length === 0) {
-        console.log("No products to process for budget item usage update");
-        return;
-      }
-      
-      // Create a map of what's changing for each item code
-      const changeMap: Record<string, number> = {};
-      
-      // Process products being removed (decrease usage)
-      for (const product of oldProducts) {
-        // Try multiple product code field names (itemCode, productCode)
-        const itemCode = product.itemCode || product.productCode;
-        if (itemCode) {
-          const quantity = Number(product.quantity) || 0;
-          console.log(`Removing product with code ${itemCode}, quantity ${quantity}`);
-          changeMap[itemCode] = (changeMap[itemCode] || 0) - quantity;
-        } else {
-          console.warn("Product being removed is missing both itemCode and productCode:", product);
-        }
-      }
-      
-      // Process products being added (increase usage)
-      for (const product of newProducts) {
-        // Try multiple product code field names (itemCode, productCode)
-        const itemCode = product.itemCode || product.productCode;
-        if (itemCode) {
-          const quantity = Number(product.quantity) || 0;
-          console.log(`Adding product with code ${itemCode}, quantity ${quantity}`);
-          changeMap[itemCode] = (changeMap[itemCode] || 0) + quantity;
-        } else {
-          console.warn("Product missing both itemCode and productCode:", product);
-        }
-      }
-      
-      console.log(`Product change map: ${JSON.stringify(changeMap)}`);
-      
-      // Apply changes to budget items
-      for (const [itemCode, quantityChange] of Object.entries(changeMap)) {
-        if (quantityChange !== 0) {
-          console.log(`Processing changes for item code ${itemCode}`);
-          
-          // Find all budget items with this item code for the client
-          let budgetItemsList = await db.select()
-            .from(budgetItems)
-            .where(and(
-              eq(budgetItems.clientId, clientId),
-              eq(budgetItems.itemCode, itemCode)
-            ));
-            
-          if (budgetItemsList.length === 0) {
-            console.log(`No budget items found with itemCode=${itemCode} for client ${clientId}`);
-            console.log(`Looking for matching budget items using the raw SQL query to improve matching...`);
-            
-            // Try a direct SQL query as a fallback that ignores case and trims whitespace
-            try {
-              const result = await pool.query(
-                `SELECT * FROM budget_items 
-                 WHERE client_id = $1 
-                 AND LOWER(TRIM(item_code)) = LOWER(TRIM($2))`,
-                [clientId, itemCode]
-              );
-              
-              if (result.rows.length > 0) {
-                console.log(`Found ${result.rows.length} budget items with case-insensitive matching for ${itemCode}`);
-                budgetItemsList = result.rows;
-              } else {
-                console.log(`Still no budget items found for ${itemCode} after case-insensitive search`);
-                
-                // List all budget items for this client to help debug
-                const allClientItems = await db.select()
-                  .from(budgetItems)
-                  .where(eq(budgetItems.clientId, clientId));
-                
-                console.log(`All budget items for client ${clientId}:`, 
-                  allClientItems.map(item => `${item.id}: ${item.itemCode} (used: ${item.usedQuantity}/${item.quantity})`).join(", "));
-              }
-            } catch (sqlError) {
-              console.error("Error during SQL fallback query:", sqlError);
-            }
-          }
-          
-          // Update each matching budget item
-          for (const item of budgetItemsList) {
-            // Get current usedQuantity
-            const currentUsed = item.usedQuantity || 0;
-            // Calculate new used quantity (ensure it doesn't go below 0)
-            const newUsed = Math.max(0, currentUsed + quantityChange);
-            
-            console.log(`Updating budget item ${item.id} (${item.itemCode}): ${currentUsed} → ${newUsed} (change: ${quantityChange})`);
-            
-            try {
-              // Update using the full ORM method
-              const result = await db.update(budgetItems)
-                .set({ usedQuantity: newUsed })
-                .where(eq(budgetItems.id, item.id))
-                .returning();
-              
-              if (result.length > 0) {
-                console.log(`Successfully updated budget item ${item.id} usage to ${result[0].usedQuantity}`);
-              } else {
-                console.error(`Failed to update budget item ${item.id} using ORM`);
-                
-                // Fall back to direct SQL if ORM update fails
-                try {
-                  const sqlResult = await pool.query(
-                    `UPDATE budget_items 
-                     SET used_quantity = $1 
-                     WHERE id = $2 
-                     RETURNING *`,
-                    [newUsed, item.id]
-                  );
-                  
-                  if (sqlResult.rows.length > 0) {
-                    console.log(`Successfully updated budget item ${item.id} usage to ${sqlResult.rows[0].used_quantity} using direct SQL`);
-                  } else {
-                    console.error(`Failed to update budget item ${item.id} even with direct SQL`);
-                  }
-                } catch (sqlUpdateError) {
-                  console.error(`Error during SQL update fallback:`, sqlUpdateError);
-                }
-              }
-            } catch (updateError) {
-              console.error(`Error updating budget item ${item.id}:`, updateError);
-            }
-          }
-        }
-      }
-      
-      console.log("Budget item usage update completed");
-    } catch (error) {
-      console.error("Error updating budget item usage:", error);
-      // Don't throw, just log error to prevent blocking session note creation
     }
   }
 
   async getSessionNoteById(id: number): Promise<SessionNote | undefined> {
     console.log(`Getting session note with ID ${id}`);
     try {
-      const result = await db.select()
+      const result = await db
+        .select()
         .from(sessionNotes)
         .where(eq(sessionNotes.id, id));
-      
-      if (result.length === 0) {
-        console.log(`Session note with ID ${id} not found`);
-        return undefined;
-      }
-      
-      // Parse products if it exists
-      const sessionNote = result[0];
-      if (sessionNote.products && typeof sessionNote.products === 'string') {
-        try {
-          sessionNote.products = JSON.parse(sessionNote.products);
-        } catch (e) {
-          console.error(`Error parsing products for session note ${id}:`, e);
-          sessionNote.products = '[]';
-        }
-      }
-      
-      console.log(`Found session note with ID ${id} with ${Array.isArray(sessionNote.products) ? sessionNote.products.length : 0} products`);
-      return sessionNote;
+      return result[0];
     } catch (error) {
-      console.error(`Error getting session note with ID ${id}:`, error);
+      console.error(`Error getting session note with ID ${id}: ${error}`);
       throw error;
     }
   }
 
-  async getSessionNoteBySessionId(sessionId: number): Promise<SessionNote | undefined> {
+  async getSessionNotesByPatient(patientId: number): Promise<SessionNote[]> {
+    console.log(`Getting session notes for patient with ID ${patientId}`);
+    try {
+      return await db
+        .select()
+        .from(sessionNotes)
+        .where(eq(sessionNotes.patientId, patientId))
+        .orderBy(desc(sessionNotes.createdAt));
+    } catch (error) {
+      console.error(
+        `Error getting session notes for patient with ID ${patientId}: ${error}`
+      );
+      throw error;
+    }
+  }
+
+  async getSessionNoteBySessionId(
+    sessionId: number
+  ): Promise<SessionNote | undefined> {
     console.log(`Getting session note for session ${sessionId}`);
     try {
-      const result = await db.select()
+      const result = await db
+        .select()
         .from(sessionNotes)
         .where(eq(sessionNotes.sessionId, sessionId));
-      
+
       if (result.length === 0) {
         console.log(`No session note found for session ${sessionId}`);
         return undefined;
       }
-      
+
       // Parse products if it exists
       const sessionNote = result[0];
-      if (sessionNote.products && typeof sessionNote.products === 'string') {
+      if (sessionNote.products && typeof sessionNote.products === "string") {
         try {
           sessionNote.products = JSON.parse(sessionNote.products);
         } catch (e) {
-          console.error(`Error parsing products for session note ${sessionNote.id}:`, e);
-          sessionNote.products = '[]';
+          console.error(
+            `Error parsing products for session note ${sessionNote.id}:`,
+            e
+          );
+          sessionNote.products = "[]";
         }
       }
-      
-      console.log(`Found session note for session ${sessionId} with ${Array.isArray(sessionNote.products) ? sessionNote.products.length : 0} products`);
+
+      console.log(
+        `Found session note for session ${sessionId} with ${
+          Array.isArray(sessionNote.products) ? sessionNote.products.length : 0
+        } products`
+      );
       return sessionNote;
     } catch (error) {
-      console.error(`Error getting session note for session ${sessionId}:`, error);
+      console.error(
+        `Error getting session note for session ${sessionId}:`,
+        error
+      );
       throw error;
     }
   }
-  
-  async getSessionNotesWithProductsByClient(clientId: number): Promise<SessionNote[]> {
-    console.log(`Getting session notes with products for client ${clientId}`);
+
+  async getSessionNotesWithProductsByPatientId(
+    patientId: number
+  ): Promise<SessionNote[]> {
+    console.log(`Getting session notes with products for patient ${patientId}`);
     try {
-      // First get all sessions for this client
-      const sessions = await this.getSessionsByClient(clientId);
-      console.log(`Found ${sessions.length} sessions for client ${clientId}`);
-      
+      // First get all sessions for this patient
+      const sessions = await this.getSessionsByPatientId(patientId);
+      console.log(`Found ${sessions.length} sessions for patient ${patientId}`);
+
       // Then get notes for all these sessions
-      const sessionIds = sessions.map(session => session.id);
-      
+      const sessionIds = sessions.map((session) => session.id);
+
       // If no sessions, return empty array
       if (sessionIds.length === 0) {
         return [];
       }
-      
+
       // Get session notes for all sessions
       const notes: SessionNote[] = [];
       for (const sessionId of sessionIds) {
@@ -1334,159 +2056,40 @@ export class DBStorage implements IStorage {
             notes.push(note);
           }
         } catch (e) {
-          console.error(`Error fetching session note for session ${sessionId}:`, e);
+          console.error(
+            `Error fetching session note for session ${sessionId}:`,
+            e
+          );
         }
       }
-      
-      console.log(`Found ${notes.length} session notes with products for client ${clientId}`);
+
+      console.log(
+        `Found ${notes.length} session notes with products for patient ${patientId}`
+      );
       return notes;
     } catch (error) {
-      console.error(`Error getting session notes with products for client ${clientId}:`, error);
+      console.error(
+        `Error getting session notes with products for patient ${patientId}:`,
+        error
+      );
       throw error;
     }
   }
 
-  async updateSessionNote(id: number, note: InsertSessionNote): Promise<SessionNote> {
-    console.log(`Updating session note with ID ${id}:`, JSON.stringify(note));
+  async updateSessionNote(
+    id: number,
+    note: Partial<InsertSessionNote>
+  ): Promise<SessionNote> {
+    console.log(`Updating session note with ID ${id}`);
     try {
-      // Get the existing note to compare products
-      const existingNote = await this.getSessionNoteById(id);
-      if (!existingNote) {
-        console.error(`Session note with ID ${id} not found`);
-        throw new Error("Session note not found");
-      }
-      
-      // Get the parent session to ensure we update its status
-      let parentSession;
-      try {
-        parentSession = await this.getSessionById(existingNote.sessionId);
-        console.log(`Parent session found: ID=${parentSession?.id}, status=${parentSession?.status}`);
-      } catch (e) {
-        console.warn(`Error fetching parent session: ${e}`);
-      }
-      
-      // Update the note
-      const [updatedNote] = await db.update(sessionNotes)
+      const [updatedNote] = await db
+        .update(sessionNotes)
         .set(note)
         .where(eq(sessionNotes.id, id))
         .returning();
-      
-      if (!updatedNote) {
-        console.error(`Session note with ID ${id} not found after update`);
-        throw new Error("Session note not found after update");
-      }
-      
-      // Update parent session status if note is completed
-      if (parentSession && note.status === 'completed' && parentSession.status !== 'completed') {
-        console.log(`Updating parent session ${parentSession.id} status to completed`);
-        await db.update(sessions)
-          .set({ status: 'completed' })
-          .where(eq(sessions.id, parentSession.id));
-          
-        // Verify update was successful
-        const updatedSession = await this.getSessionById(parentSession.id);
-        console.log(`Updated parent session status: ${updatedSession?.status}`);
-      }
-      
-      // Special handling for status changes from incomplete to completed
-      const statusChangedToCompleted = 
-        existingNote.status !== 'completed' && 
-        note.status === 'completed';
-      
-      // Check if parent session is already completed (or will be completed)
-      const parentSessionCompleted = parentSession && parentSession.status === 'completed';
-      const updatedParentStatus = parentSession && note.status === 'completed' && parentSession.status !== 'completed';
-      const canUpdateBudgetItems = note.status === 'completed' && (parentSessionCompleted || updatedParentStatus);
-      
-      // Update budget item usage if products changed OR if status changed to completed
-      // But only if parent session is also completed or being updated to completed
-      if ((existingNote.products !== note.products || statusChangedToCompleted) && canUpdateBudgetItems) {
-        const clientId = note.clientId || existingNote.clientId;
-        
-        console.log(`Session note ${id} and parent session ${parentSession?.id} are both completed, updating budget item usage`);
-        
-        // Ensure products is properly formatted
-        let newProducts: string;
-        if (typeof note.products === 'string') {
-          try {
-            // Verify JSON is valid
-            JSON.parse(note.products);
-            newProducts = note.products;
-          } catch (e) {
-            console.error(`Invalid products JSON: ${note.products}`, e);
-            // Try to fix common format issues
-            if (note.products.trim().startsWith('{')) {
-              newProducts = `[${note.products}]`;
-              console.log(`Fixed products JSON format: ${newProducts}`);
-            } else {
-              newProducts = '[]';
-            }
-          }
-        } else if (Array.isArray(note.products)) {
-          newProducts = JSON.stringify(note.products);
-        } else if (note.products && typeof note.products === 'object') {
-          newProducts = JSON.stringify([note.products]);
-        } else {
-          newProducts = '[]';
-        }
-        
-        // Format old products consistently
-        let oldProducts: string;
-        if (typeof existingNote.products === 'string') {
-          try {
-            // Verify JSON is valid
-            JSON.parse(existingNote.products);
-            oldProducts = existingNote.products;
-          } catch (e) {
-            console.error(`Invalid old products JSON: ${existingNote.products}`, e);
-            oldProducts = '[]';
-          }
-        } else if (existingNote.products === null) {
-          oldProducts = '[]';
-        } else {
-          oldProducts = '[]';
-        }
-        
-        // Get current budget items before update
-        console.log(`Updating budget items for client ${clientId}`);
-        const beforeItems = await this.getBudgetItemsByClient(clientId);
-        console.log(`Budget items before update:`, 
-          beforeItems.map(item => `${item.id}: ${item.itemCode} - ${item.usedQuantity}/${item.quantity}`));
-        
-        // If status changed to completed, we need to process all products as new
-        if (statusChangedToCompleted && newProducts && newProducts !== '[]') {
-          console.log(`Session note ${id} status changed to completed, updating budget item usage for all products`);
-          await this.updateBudgetItemUsage(clientId, newProducts, "[]");
-        } else if (newProducts !== oldProducts) {
-          // Normal case - just process the difference in products
-          console.log(`Session note ${id} products changed, updating budget item usage`);
-          console.log(`New products: ${newProducts}`);
-          console.log(`Old products: ${oldProducts}`);
-          await this.updateBudgetItemUsage(clientId, newProducts, oldProducts);
-        }
-      } else if ((existingNote.products !== note.products || statusChangedToCompleted) && !canUpdateBudgetItems) {
-        // Log why budget items aren't being updated
-        console.log(`Not updating budget items despite product changes because:`);
-        if (note.status !== 'completed') {
-          console.log(`- Session note ${id} is not completed (status: ${note.status})`);
-        } else if (!parentSessionCompleted && !updatedParentStatus) {
-          console.log(`- Parent session ${parentSession?.id} is not completed (status: ${parentSession?.status})`);
-        }
-      }
-      
-      // Only attempt to get client items if we processed budget usage update
-      if ((existingNote.products !== note.products || statusChangedToCompleted) && canUpdateBudgetItems) {
-        const clientId = note.clientId || existingNote.clientId;
-        // Verify budget items were updated
-        const afterItems = await this.getBudgetItemsByClient(clientId);
-        console.log(`Budget items after update:`, 
-          afterItems.map(item => `${item.id}: ${item.itemCode} - ${item.usedQuantity}/${item.quantity}`));
-      }
-      
-      console.log(`Successfully updated session note with ID ${id}`);
       return updatedNote;
     } catch (error) {
-      console.error(`Error updating session note with ID ${id}:`, error);
+      console.error(`Error updating session note with ID ${id}: ${error}`);
       throw error;
     }
   }
@@ -1494,888 +2097,121 @@ export class DBStorage implements IStorage {
   async deleteSessionNote(id: number): Promise<void> {
     console.log(`Deleting session note with ID ${id}`);
     try {
-      await db.delete(sessionNotes)
-        .where(eq(sessionNotes.id, id));
-      console.log(`Successfully deleted session note with ID ${id}`);
+      await db.delete(sessionNotes).where(eq(sessionNotes.id, id));
     } catch (error) {
-      console.error(`Error deleting session note with ID ${id}:`, error);
+      console.error(`Error deleting session note with ID ${id}: ${error}`);
       throw error;
     }
   }
 
-  // Performance Assessment Methods
-  async createPerformanceAssessment(assessment: InsertPerformanceAssessment): Promise<PerformanceAssessment> {
-    console.log(`Creating performance assessment for session note ${assessment.sessionNoteId}:`, JSON.stringify(assessment));
-    try {
-      // Handle strategies if provided as a string instead of array
-      const processedAssessment = { ...assessment };
-      
-      // If strategies is provided as a JSON string, parse it
-      if (typeof processedAssessment.strategies === 'string') {
-        try {
-          processedAssessment.strategies = JSON.parse(processedAssessment.strategies as unknown as string);
-        } catch (parseError) {
-          console.warn('Failed to parse strategies as JSON string, keeping as is:', parseError);
-        }
-      }
-      
-      const [newAssessment] = await db.insert(performanceAssessments)
-        .values(processedAssessment)
-        .returning();
-      
-      console.log(`Successfully created performance assessment with ID ${newAssessment.id}`);
-      return newAssessment;
-    } catch (error) {
-      console.error(`Error creating performance assessment for session note ${assessment.sessionNoteId}:`, error);
-      throw error;
-    }
-  }
+  async getGoalPerformanceData(
+    patientIdOrGoalId: number,
+    goalIdOrDateRange?: number | DateRangeParams,
+    dateRange?: DateRangeParams
+  ): Promise<GoalAssessment[]> {
+    // Determine if first parameter is patientId or goalId
+    let patientId: number | undefined;
+    let goalId: number | undefined;
+    let dateRangeParam: DateRangeParams | undefined;
 
-  async getPerformanceAssessmentsBySessionNote(sessionNoteId: number): Promise<PerformanceAssessment[]> {
-    console.log(`Getting performance assessments for session note ${sessionNoteId}`);
-    try {
-      const assessments = await db.select()
-        .from(performanceAssessments)
-        .where(eq(performanceAssessments.sessionNoteId, sessionNoteId));
-      
-      console.log(`Found ${assessments.length} performance assessments for session note ${sessionNoteId}`);
-      return assessments;
-    } catch (error) {
-      console.error(`Error getting performance assessments for session note ${sessionNoteId}:`, error);
-      throw error;
+    if (typeof goalIdOrDateRange === "number") {
+      // Case: getGoalPerformanceData(patientId, goalId, dateRange?)
+      patientId = patientIdOrGoalId;
+      goalId = goalIdOrDateRange;
+      dateRangeParam = dateRange;
+    } else {
+      // Case: getGoalPerformanceData(goalId, dateRange?)
+      goalId = patientIdOrGoalId;
+      dateRangeParam = goalIdOrDateRange;
     }
-  }
 
-  async getPerformanceAssessmentById(id: number): Promise<PerformanceAssessment | undefined> {
-    console.log(`Getting performance assessment with ID ${id}`);
-    try {
-      const result = await db.select()
-        .from(performanceAssessments)
-        .where(eq(performanceAssessments.id, id));
-      
-      if (result.length === 0) {
-        console.log(`Performance assessment with ID ${id} not found`);
-        return undefined;
-      }
-      
-      console.log(`Found performance assessment with ID ${id}`);
-      return result[0];
-    } catch (error) {
-      console.error(`Error getting performance assessment with ID ${id}:`, error);
-      throw error;
-    }
-  }
+    console.log(
+      `Getting performance data for goal ${goalId}${
+        patientId ? ` of patient ${patientId}` : ""
+      }`
+    );
 
-  async updatePerformanceAssessment(id: number, assessment: InsertPerformanceAssessment): Promise<PerformanceAssessment> {
-    console.log(`Updating performance assessment with ID ${id}:`, JSON.stringify(assessment));
     try {
-      // Handle strategies if provided as a string instead of array
-      const processedAssessment = { ...assessment };
+      // We'll build our conditions array and then apply them all at once
+      let conditions = [];
       
-      // If strategies is provided as a JSON string, parse it
-      if (typeof processedAssessment.strategies === 'string') {
-        try {
-          processedAssessment.strategies = JSON.parse(processedAssessment.strategies as unknown as string);
-        } catch (parseError) {
-          console.warn('Failed to parse strategies as JSON string, keeping as is:', parseError);
-        }
-      }
-      
-      const [updatedAssessment] = await db.update(performanceAssessments)
-        .set(processedAssessment)
-        .where(eq(performanceAssessments.id, id))
-        .returning();
-      
-      if (!updatedAssessment) {
-        console.error(`Performance assessment with ID ${id} not found`);
-        throw new Error("Performance assessment not found");
-      }
-      
-      console.log(`Successfully updated performance assessment with ID ${id}`);
-      return updatedAssessment;
-    } catch (error) {
-      console.error(`Error updating performance assessment with ID ${id}:`, error);
-      throw error;
-    }
-  }
-
-  async deletePerformanceAssessment(id: number): Promise<void> {
-    console.log(`Deleting performance assessment with ID ${id}`);
-    try {
-      await db.delete(performanceAssessments)
-        .where(eq(performanceAssessments.id, id));
-      console.log(`Successfully deleted performance assessment with ID ${id}`);
-    } catch (error) {
-      console.error(`Error deleting performance assessment with ID ${id}:`, error);
-      throw error;
-    }
-  }
-
-  // Milestone Assessment Methods
-  async createMilestoneAssessment(assessment: InsertMilestoneAssessment): Promise<MilestoneAssessment> {
-    console.log(`Creating milestone assessment for performance assessment ${assessment.performanceAssessmentId}:`, JSON.stringify(assessment));
-    try {
-      const [newAssessment] = await db.insert(milestoneAssessments)
-        .values(assessment)
-        .returning();
-      
-      console.log(`Successfully created milestone assessment with ID ${newAssessment.id}`);
-      return newAssessment;
-    } catch (error) {
-      console.error(`Error creating milestone assessment for performance assessment ${assessment.performanceAssessmentId}:`, error);
-      throw error;
-    }
-  }
-
-  async getMilestoneAssessmentsByPerformanceAssessment(performanceAssessmentId: number): Promise<MilestoneAssessment[]> {
-    console.log(`Getting milestone assessments for performance assessment ${performanceAssessmentId}`);
-    try {
-      const assessments = await db.select()
-        .from(milestoneAssessments)
-        .where(eq(milestoneAssessments.performanceAssessmentId, performanceAssessmentId));
-      
-      console.log(`Found ${assessments.length} milestone assessments for performance assessment ${performanceAssessmentId}`);
-      return assessments;
-    } catch (error) {
-      console.error(`Error getting milestone assessments for performance assessment ${performanceAssessmentId}:`, error);
-      throw error;
-    }
-  }
-
-  async updateMilestoneAssessment(id: number, assessment: InsertMilestoneAssessment): Promise<MilestoneAssessment> {
-    console.log(`Updating milestone assessment with ID ${id}:`, JSON.stringify(assessment));
-    try {
-      const [updatedAssessment] = await db.update(milestoneAssessments)
-        .set(assessment)
-        .where(eq(milestoneAssessments.id, id))
-        .returning();
-      
-      if (!updatedAssessment) {
-        console.error(`Milestone assessment with ID ${id} not found`);
-        throw new Error("Milestone assessment not found");
-      }
-      
-      console.log(`Successfully updated milestone assessment with ID ${id}`);
-      return updatedAssessment;
-    } catch (error) {
-      console.error(`Error updating milestone assessment with ID ${id}:`, error);
-      throw error;
-    }
-  }
-
-  async deleteMilestoneAssessment(id: number): Promise<void> {
-    console.log(`Deleting milestone assessment with ID ${id}`);
-    try {
-      await db.delete(milestoneAssessments)
-        .where(eq(milestoneAssessments.id, id));
-      console.log(`Successfully deleted milestone assessment with ID ${id}`);
-    } catch (error) {
-      console.error(`Error deleting milestone assessment with ID ${id}:`, error);
-      throw error;
-    }
-  }
-
-  // Strategy Methods
-  async getAllStrategies(): Promise<Strategy[]> {
-    console.log("Getting all strategies");
-    try {
-      const allStrategies = await db.select().from(strategies);
-      console.log(`Found ${allStrategies.length} strategies`);
-      return allStrategies;
-    } catch (error) {
-      console.error("Error getting all strategies:", error);
-      throw error;
-    }
-  }
-
-  async getStrategyById(id: number): Promise<Strategy | undefined> {
-    console.log(`Getting strategy with ID ${id}`);
-    try {
-      const result = await db.select()
-        .from(strategies)
-        .where(eq(strategies.id, id));
-      
-      if (result.length === 0) {
-        console.log(`Strategy with ID ${id} not found`);
-        return undefined;
-      }
-      
-      console.log(`Found strategy with ID ${id}`);
-      return result[0];
-    } catch (error) {
-      console.error(`Error getting strategy with ID ${id}:`, error);
-      throw error;
-    }
-  }
-
-  async getStrategiesByCategory(category: string): Promise<Strategy[]> {
-    console.log(`Getting strategies for category ${category}`);
-    try {
-      const categoryStrategies = await db.select()
-        .from(strategies)
-        .where(eq(strategies.category, category));
-      
-      console.log(`Found ${categoryStrategies.length} strategies for category ${category}`);
-      return categoryStrategies;
-    } catch (error) {
-      console.error(`Error getting strategies for category ${category}:`, error);
-      throw error;
-    }
-  }
-  
-  async createStrategy(strategy: InsertStrategy): Promise<Strategy> {
-    console.log(`Creating strategy:`, JSON.stringify(strategy));
-    try {
-      const [newStrategy] = await db.insert(strategies)
-        .values(strategy)
-        .returning();
-      
-      console.log(`Successfully created strategy with ID ${newStrategy.id}`);
-      return newStrategy;
-    } catch (error) {
-      console.error("Error creating strategy:", error);
-      throw error;
-    }
-  }
-  
-  async updateStrategy(id: number, strategy: Partial<InsertStrategy>): Promise<Strategy> {
-    console.log(`Updating strategy with ID ${id}:`, JSON.stringify(strategy));
-    try {
-      const [updatedStrategy] = await db.update(strategies)
-        .set(strategy)
-        .where(eq(strategies.id, id))
-        .returning();
-      
-      if (!updatedStrategy) {
-        console.error(`Strategy with ID ${id} not found`);
-        throw new Error("Strategy not found");
-      }
-      
-      console.log(`Successfully updated strategy with ID ${id}`);
-      return updatedStrategy;
-    } catch (error) {
-      console.error(`Error updating strategy with ID ${id}:`, error);
-      throw error;
-    }
-  }
-  
-  async deleteStrategy(id: number): Promise<void> {
-    console.log(`Deleting strategy with ID ${id}`);
-    try {
-      await db.delete(strategies)
-        .where(eq(strategies.id, id));
-      console.log(`Successfully deleted strategy with ID ${id}`);
-    } catch (error) {
-      console.error(`Error deleting strategy with ID ${id}:`, error);
-      throw error;
-    }
-  }
-
-  // Clinician methods
-  async createClinician(clinician: InsertClinician): Promise<Clinician> {
-    console.log(`Creating clinician:`, JSON.stringify(clinician));
-    try {
-      const [newClinician] = await db.insert(clinicians)
-        .values(clinician)
-        .returning();
-      
-      console.log(`Successfully created clinician with ID ${newClinician.id}`);
-      return newClinician;
-    } catch (error) {
-      console.error("Error creating clinician:", error);
-      throw error;
-    }
-  }
-
-  async getClinician(id: number): Promise<Clinician | undefined> {
-    console.log(`Getting clinician with ID ${id}`);
-    try {
-      const result = await db.select()
-        .from(clinicians)
-        .where(eq(clinicians.id, id));
-      
-      if (result.length === 0) {
-        console.log(`Clinician with ID ${id} not found`);
-        return undefined;
-      }
-      
-      return result[0];
-    } catch (error) {
-      console.error(`Error fetching clinician with ID ${id}:`, error);
-      throw error;
-    }
-  }
-
-  async getAllClinicians(): Promise<Clinician[]> {
-    console.log("Getting all clinicians");
-    try {
-      const allClinicians = await db.select()
-        .from(clinicians)
-        .where(eq(clinicians.active, true));
-      
-      console.log(`Found ${allClinicians.length} active clinicians`);
-      return allClinicians;
-    } catch (error) {
-      console.error("Error fetching clinicians:", error);
-      throw error;
-    }
-  }
-
-  async updateClinician(id: number, clinician: Partial<InsertClinician>): Promise<Clinician> {
-    console.log(`Updating clinician with ID ${id}:`, JSON.stringify(clinician));
-    try {
-      const [updatedClinician] = await db.update(clinicians)
-        .set(clinician)
-        .where(eq(clinicians.id, id))
-        .returning();
-      
-      if (!updatedClinician) {
-        console.error(`Clinician with ID ${id} not found`);
-        throw new Error("Clinician not found");
-      }
-      
-      console.log(`Successfully updated clinician with ID ${id}`);
-      return updatedClinician;
-    } catch (error) {
-      console.error(`Error updating clinician with ID ${id}:`, error);
-      throw error;
-    }
-  }
-
-  async deleteClinician(id: number): Promise<void> {
-    console.log(`Deleting clinician with ID ${id}`);
-    try {
-      // Soft delete by setting active to false
-      await db.update(clinicians)
-        .set({ active: false })
-        .where(eq(clinicians.id, id));
-        
-      console.log(`Successfully deactivated clinician with ID ${id}`);
-    } catch (error) {
-      console.error(`Error deactivating clinician with ID ${id}:`, error);
-      throw error;
-    }
-  }
-
-  // Client-Clinician Assignment methods
-  async assignClinicianToClient(clientId: number, assignment: InsertClientClinician): Promise<ClientClinician> {
-    console.log(`Assigning clinician to client ${clientId}:`, JSON.stringify(assignment));
-    try {
-      const [newAssignment] = await db.insert(clientClinicians)
-        .values({
-          ...assignment,
-          clientId
-        })
-        .returning();
-      
-      console.log(`Successfully assigned clinician to client with assignment ID ${newAssignment.id}`);
-      return newAssignment;
-    } catch (error) {
-      console.error(`Error assigning clinician to client ${clientId}:`, error);
-      throw error;
-    }
-  }
-
-  async getCliniciansByClient(clientId: number): Promise<(ClientClinician & { clinician: Clinician })[]> {
-    console.log(`Getting clinicians for client ${clientId}`);
-    try {
-      // Join client_clinicians with clinicians to get full clinician info
-      const result = await db.select({
-        assignment: clientClinicians,
-        clinician: clinicians
-      })
-      .from(clientClinicians)
-      .innerJoin(clinicians, eq(clientClinicians.clinicianId, clinicians.id))
-      .where(eq(clientClinicians.clientId, clientId));
-      
-      // Transform the result to match the expected return type
-      const formattedResult = result.map(item => ({
-        ...item.assignment,
-        clinician: item.clinician
-      }));
-      
-      console.log(`Found ${formattedResult.length} clinicians assigned to client ${clientId}`);
-      return formattedResult;
-    } catch (error) {
-      console.error(`Error fetching clinicians for client ${clientId}:`, error);
-      throw error;
-    }
-  }
-
-  async removeClinicianFromClient(assignmentId: number): Promise<void> {
-    console.log(`Removing clinician assignment with ID ${assignmentId}`);
-    try {
-      await db.delete(clientClinicians)
-        .where(eq(clientClinicians.id, assignmentId));
-      
-      console.log(`Successfully removed clinician assignment with ID ${assignmentId}`);
-    } catch (error) {
-      console.error(`Error removing clinician assignment with ID ${assignmentId}:`, error);
-      throw error;
-    }
-  }
-
-  // Dashboard Data Methods
-  async getDashboardAppointmentStats(timeframe: 'day' | 'week' | 'month' | 'year'): Promise<AppointmentStats> {
-    console.log(`Getting dashboard appointment stats with timeframe: ${timeframe}`);
-    try {
-      // Get session data from the database
-      const allSessions = await db.select().from(sessions);
-      console.log(`Found ${allSessions.length} sessions in database`);
-      
-      // Initialize stats with empty arrays
-      const stats: AppointmentStats = {
-        daily: [],
-        weekly: [],
-        monthly: [],
-        yearly: []
-      };
-      
-      if (allSessions.length === 0) {
-        return stats;
-      }
-      
-      // Group sessions by day, week, month, and year
-      const today = new Date();
-      const oneYearAgo = new Date();
-      oneYearAgo.setFullYear(today.getFullYear() - 1);
-      
-      // Filter to sessions within the last year
-      const recentSessions = allSessions.filter(session => {
-        const sessionDate = new Date(session.sessionDate);
-        return sessionDate >= oneYearAgo && sessionDate <= today;
-      });
-      
-      // Process stats based on timeframe
-      const dailyStats = this.processDailyStats(recentSessions);
-      const weeklyStats = this.processWeeklyStats(recentSessions);
-      const monthlyStats = this.processMonthlyStats(recentSessions);
-      const yearlyStats = this.processYearlyStats(recentSessions);
-      
-      return {
-        daily: dailyStats,
-        weekly: weeklyStats,
-        monthly: monthlyStats,
-        yearly: yearlyStats
-      };
-    } catch (error) {
-      console.error("Error getting dashboard appointment stats:", error);
-      throw error;
-    }
-  }
-  
-  // Helper methods for processing appointment stats
-  private processDailyStats(sessions: Session[]): Array<{ period: string, count: number, percentChange?: number }> {
-    const last30Days = Array.from({ length: 30 }, (_, i) => {
-      const date = new Date();
-      date.setDate(date.getDate() - i);
-      return date.toISOString().split('T')[0]; // Format as YYYY-MM-DD
-    }).reverse();
-    
-    const dailyCounts = last30Days.map(day => {
-      const count = sessions.filter(session => {
-        const sessionDate = new Date(session.sessionDate);
-        return sessionDate.toISOString().split('T')[0] === day;
-      }).length;
-      
-      return { period: day, count, percentChange: undefined as number | undefined };
-    });
-    
-    // Calculate percent changes
-    for (let i = 1; i < dailyCounts.length; i++) {
-      const prevCount = dailyCounts[i - 1].count;
-      const currCount = dailyCounts[i].count;
-      
-      if (prevCount > 0) {
-        dailyCounts[i].percentChange = ((currCount - prevCount) / prevCount) * 100;
-      }
-    }
-    
-    return dailyCounts;
-  }
-  
-  private processWeeklyStats(sessions: Session[]): Array<{ period: string, count: number, percentChange?: number }> {
-    // Group by week for the last 12 weeks
-    const last12Weeks = Array.from({ length: 12 }, (_, i) => {
-      const date = new Date();
-      date.setDate(date.getDate() - (i * 7));
-      const weekStart = new Date(date);
-      weekStart.setDate(date.getDate() - date.getDay()); // Sunday of week
-      const weekEnd = new Date(weekStart);
-      weekEnd.setDate(weekStart.getDate() + 6); // Saturday of week
-      
-      return {
-        start: weekStart,
-        end: weekEnd,
-        label: `${weekStart.toISOString().split('T')[0]} to ${weekEnd.toISOString().split('T')[0]}`
-      };
-    }).reverse();
-    
-    const weeklyCounts = last12Weeks.map(week => {
-      const count = sessions.filter(session => {
-        const sessionDate = new Date(session.sessionDate);
-        return sessionDate >= week.start && sessionDate <= week.end;
-      }).length;
-      
-      return { period: week.label, count, percentChange: undefined as number | undefined };
-    });
-    
-    // Calculate percent changes
-    for (let i = 1; i < weeklyCounts.length; i++) {
-      const prevCount = weeklyCounts[i - 1].count;
-      const currCount = weeklyCounts[i].count;
-      
-      if (prevCount > 0) {
-        weeklyCounts[i].percentChange = ((currCount - prevCount) / prevCount) * 100;
-      }
-    }
-    
-    return weeklyCounts;
-  }
-  
-  private processMonthlyStats(sessions: Session[]): Array<{ period: string, count: number, percentChange?: number }> {
-    // Group by month for the last 12 months
-    const last12Months = Array.from({ length: 12 }, (_, i) => {
-      const date = new Date();
-      date.setMonth(date.getMonth() - i);
-      const year = date.getFullYear();
-      const month = date.getMonth();
-      
-      const monthStart = new Date(year, month, 1);
-      const monthEnd = new Date(year, month + 1, 0);
-      
-      const monthName = monthStart.toLocaleString('default', { month: 'long' });
-      return {
-        start: monthStart,
-        end: monthEnd,
-        label: `${monthName} ${year}`
-      };
-    }).reverse();
-    
-    const monthlyCounts = last12Months.map(month => {
-      const count = sessions.filter(session => {
-        const sessionDate = new Date(session.sessionDate);
-        return sessionDate >= month.start && sessionDate <= month.end;
-      }).length;
-      
-      return { period: month.label, count, percentChange: undefined as number | undefined };
-    });
-    
-    // Calculate percent changes
-    for (let i = 1; i < monthlyCounts.length; i++) {
-      const prevCount = monthlyCounts[i - 1].count;
-      const currCount = monthlyCounts[i].count;
-      
-      if (prevCount > 0) {
-        monthlyCounts[i].percentChange = ((currCount - prevCount) / prevCount) * 100;
-      }
-    }
-    
-    return monthlyCounts;
-  }
-  
-  private processYearlyStats(sessions: Session[]): Array<{ period: string, count: number, percentChange?: number }> {
-    // Group by year for the last 3 years
-    const last3Years = Array.from({ length: 3 }, (_, i) => {
-      const year = new Date().getFullYear() - i;
-      const yearStart = new Date(year, 0, 1);
-      const yearEnd = new Date(year, 11, 31);
-      
-      return {
-        start: yearStart,
-        end: yearEnd,
-        label: `${year}`
-      };
-    }).reverse();
-    
-    const yearlyCounts = last3Years.map(year => {
-      const count = sessions.filter(session => {
-        const sessionDate = new Date(session.sessionDate);
-        return sessionDate >= year.start && sessionDate <= year.end;
-      }).length;
-      
-      return { period: year.label, count, percentChange: undefined as number | undefined };
-    });
-    
-    // Calculate percent changes
-    for (let i = 1; i < yearlyCounts.length; i++) {
-      const prevCount = yearlyCounts[i - 1].count;
-      const currCount = yearlyCounts[i].count;
-      
-      if (prevCount > 0) {
-        yearlyCounts[i].percentChange = ((currCount - prevCount) / prevCount) * 100;
-      }
-    }
-    
-    return yearlyCounts;
-  }
-  
-  async getBudgetExpirationStats(months: number): Promise<BudgetExpirationStats> {
-    console.log(`Getting budget expiration stats for the next ${months} months`);
-    try {
-      // Get all budget settings and join with clients
-      const allBudgetSettings = await db.select().from(budgetSettings);
-      const allClients = await db.select().from(clients);
-      
-      // Get all budget items for calculating used funds
-      const allBudgetItems = await db.select().from(budgetItems);
-      
-      // Identify which plans expire next month
-      const today = new Date();
-      const nextMonthStart = new Date(today.getFullYear(), today.getMonth() + 1, 1);
-      const nextMonthEnd = new Date(today.getFullYear(), today.getMonth() + 2, 0);
-      
-      // Find plans expiring next month
-      const expiringPlans = allBudgetSettings.filter(plan => {
-        if (!plan.endOfPlan) return false;
-        
-        const endDate = new Date(plan.endOfPlan);
-        return endDate >= nextMonthStart && endDate <= nextMonthEnd;
-      });
-      
-      // Format client info for expiring plans
-      const expiringClientsInfo = expiringPlans.map(plan => {
-        const client = allClients.find(c => c.id === plan.clientId);
-        return {
-          clientId: plan.clientId,
-          clientName: client ? client.name : `Client ${plan.clientId}`,
-          planId: plan.id,
-          planName: plan.planCode || `Plan ${plan.id}`
-        };
-      });
-      
-      // Calculate remaining funds by month for the requested number of months
-      const monthlyData = Array.from({ length: months }, (_, i) => {
-        const month = new Date(today.getFullYear(), today.getMonth() + i, 1);
-        const monthEnd = new Date(month.getFullYear(), month.getMonth() + 1, 0);
-        
-        // Format for display: MMM YYYY
-        const monthLabel = month.toISOString().split('T')[0].substring(0, 7);
-        
-        // Find plans active during this month
-        const activePlans = allBudgetSettings.filter(plan => {
-          if (!plan.endOfPlan) return true; // Plans with no end date are considered active
-          
-          const endDate = new Date(plan.endOfPlan);
-          return endDate >= month;
-        });
-        
-        // Calculate total funds and remaining funds
-        let totalRemainingAmount = 0;
-        
-        activePlans.forEach(plan => {
-          // Calculate used funds for this plan
-          const planItems = allBudgetItems.filter(item => 
-            item.budgetSettingsId === plan.id
-          );
-          
-          const usedFunds = planItems.reduce((sum, item) => 
-            sum + (Number(item.unitPrice) * Number(item.quantity)), 0);
-          
-          // Add remaining funds to total
-          const planRemainingFunds = Number(plan.ndisFunds) - usedFunds;
-          if (planRemainingFunds > 0) {
-            totalRemainingAmount += planRemainingFunds;
-          }
-        });
-        
-        return {
-          month: monthLabel,
-          amount: totalRemainingAmount,
-          planCount: activePlans.length
-        };
-      });
-      
-      return {
-        expiringNextMonth: {
-          count: expiringPlans.length,
-          byClient: expiringClientsInfo
-        },
-        remainingFunds: monthlyData
-      };
-    } catch (error) {
-      console.error("Error getting budget expiration stats:", error);
-      throw error;
-    }
-  }
-  
-  async getUpcomingTaskStats(months: number): Promise<UpcomingTaskStats> {
-    console.log(`Getting upcoming task stats for the next ${months} months`);
-    try {
-      // Get all sessions to calculate future tasks
-      const allSessions = await db.select().from(sessions);
-      
-      // Generate data for the next X months
-      const today = new Date();
-      const monthlyData = Array.from({ length: months }, (_, i) => {
-        const month = new Date(today.getFullYear(), today.getMonth() + i, 1);
-        const monthEnd = new Date(month.getFullYear(), month.getMonth() + 1, 0);
-        
-        // Format for display: YYYY-MM
-        const monthLabel = month.toISOString().split('T')[0].substring(0, 7);
-        
-        // Calculate upcoming sessions for different task types
-        const monthSessions = allSessions.filter(session => {
-          const sessionDate = new Date(session.sessionDate);
-          return sessionDate >= month && sessionDate <= monthEnd;
-        });
-        
-        // Categorize sessions based on title/description
-        // This is a simplification - in a real system, you'd have actual task types
-        const reports = monthSessions.filter(s => 
-          s.title.toLowerCase().includes('report') || 
-          (s.description && s.description.toLowerCase().includes('report'))
-        ).length;
-        
-        const letters = monthSessions.filter(s => 
-          s.title.toLowerCase().includes('letter') || 
-          (s.description && s.description.toLowerCase().includes('letter'))
-        ).length;
-        
-        const assessments = monthSessions.filter(s => 
-          s.title.toLowerCase().includes('assessment') || 
-          (s.description && s.description.toLowerCase().includes('assessment'))
-        ).length;
-        
-        // Count other sessions (those not in above categories)
-        const categorizedCount = reports + letters + assessments;
-        const other = Math.max(0, monthSessions.length - categorizedCount);
-        
-        return {
-          month: monthLabel,
-          reports,
-          letters,
-          assessments,
-          other
-        };
-      });
-      
-      return {
-        byMonth: monthlyData
-      };
-    } catch (error) {
-      console.error("Error getting upcoming task stats:", error);
-      throw error;
-    }
-  }
-  
-  /**
-   * Get performance data for goals
-   * Returns a map of goalId -> average score (or null if no data)
-   */
-  async getGoalPerformanceData(clientId: number, goalId?: number): Promise<Record<number, number | null>> {
-    console.log(`Getting goal performance data for client ${clientId}${goalId ? ` and goal ${goalId}` : ''}`);
-    
-    try {
-      const result: Record<number, number | null> = {};
-      
-      // If a specific goal is requested
+      // Add goal or patient conditions
       if (goalId) {
-        // First, get all subgoals for this goal
-        const goalSubgoals = await this.getSubgoalsByGoal(goalId);
-        
-        if (goalSubgoals.length === 0) {
-          console.log(`No subgoals found for goal ${goalId}, returning null score`);
-          result[goalId] = null;
-          return result;
+        conditions.push(eq(goalAssessments.goalId, goalId));
+      } else if (patientId) {
+        // Get all goals for this patient
+        const patientGoals = await this.getGoalsByPatient(patientId);
+        if (patientGoals.length === 0) {
+          console.log(`No goals found for patient ${patientId}`);
+          return [];
         }
-        
-        // Get subgoal IDs
-        const subgoalIds = goalSubgoals.map(sg => sg.id);
-        
-        // Execute individual queries for each subgoal and combine results
-        const performanceData = [];
-        
-        for (const subgoalId of subgoalIds) {
-          const result = await db
-            .select({
-              subgoalId: performanceAssessments.subgoalId,
-              score: performanceAssessments.score
-            })
-            .from(performanceAssessments)
-            .where(eq(performanceAssessments.subgoalId, subgoalId));
-          
-          performanceData.push(...result);
-        }
-        
-        if (performanceData.length === 0) {
-          console.log(`No performance data found for goal ${goalId}, returning null score`);
-          result[goalId] = null;
-          return result;
-        }
-        
-        // Calculate average score
-        const totalScore = performanceData.reduce((sum, item) => sum + Number(item.score || 0), 0);
-        const avgScore = totalScore / performanceData.length;
-        
-        // Convert to percentage (assuming scores are out of 10)
-        const percentage = Math.round((avgScore / 10) * 100);
-        
-        console.log(`Calculated average score for goal ${goalId}: ${avgScore} (${percentage}%)`);
-        result[goalId] = percentage;
-      } else {
-        // Get all goals for this client
-        const clientGoals = await this.getGoalsByClient(clientId);
-        
-        if (clientGoals.length === 0) {
-          console.log(`No goals found for client ${clientId}`);
-          return result;
-        }
-        
-        // Process each goal
-        for (const goal of clientGoals) {
-          // Get subgoals for this goal
-          const goalSubgoals = await this.getSubgoalsByGoal(goal.id);
-          
-          if (goalSubgoals.length === 0) {
-            console.log(`No subgoals found for goal ${goal.id}, setting null score`);
-            result[goal.id] = null;
-            continue;
-          }
-          
-          // Get subgoal IDs
-          const subgoalIds = goalSubgoals.map(sg => sg.id);
-          
-          // Execute individual queries for each subgoal and combine results
-          const performanceData = [];
-          
-          for (const subgoalId of subgoalIds) {
-            const result = await db
-              .select({
-                subgoalId: performanceAssessments.subgoalId,
-                score: performanceAssessments.score
-              })
-              .from(performanceAssessments)
-              .where(eq(performanceAssessments.subgoalId, subgoalId));
-            
-            performanceData.push(...result);
-          }
-          
-          if (performanceData.length === 0) {
-            console.log(`No performance data found for goal ${goal.id}, setting null score`);
-            result[goal.id] = null;
-            continue;
-          }
-          
-          // Calculate average score
-          const totalScore = performanceData.reduce((sum, item) => sum + Number(item.score || 0), 0);
-          const avgScore = totalScore / performanceData.length;
-          
-          // Convert to percentage (assuming scores are out of 10)
-          const percentage = Math.round((avgScore / 10) * 100);
-          
-          console.log(`Calculated average score for goal ${goal.id}: ${avgScore} (${percentage}%)`);
-          result[goal.id] = percentage;
-        }
+
+        const goalIds = patientGoals.map((goal) => goal.id);
+        conditions.push(inArray(goalAssessments.goalId, goalIds));
       }
+
+      let assessments: GoalAssessment[];
       
-      console.log(`Returning performance data for ${Object.keys(result).length} goals`);
-      return result;
+      if (dateRangeParam) {
+        // If we have date filtering, we need to join with sessions
+        const query = db
+          .select({
+            goalAssessment: goalAssessments
+          })
+          .from(goalAssessments)
+          .innerJoin(sessionNotes, eq(goalAssessments.sessionNoteId, sessionNotes.id))
+          .innerJoin(sessions, eq(sessionNotes.sessionId, sessions.id));
+        
+        // Add date conditions if provided
+        if (dateRangeParam.startDate) {
+          conditions.push(gte(sessions.sessionDate, dateRangeParam.startDate));
+        }
+        
+        if (dateRangeParam.endDate) {
+          conditions.push(lte(sessions.sessionDate, dateRangeParam.endDate));
+        }
+        
+        // Apply all conditions with AND
+        if (conditions.length > 0) {
+          query.where(conditions.length === 1 ? conditions[0] : and(...conditions));
+        }
+        
+        // Add ordering
+        query.orderBy(asc(goalAssessments.id));
+        
+        // Execute the query and extract just the goal assessment data
+        const results = await query;
+        assessments = results.map(result => result.goalAssessment);
+      } else {
+        // Simple query without joins if no date filtering
+        const query = db.select().from(goalAssessments);
+        
+        // Apply all conditions with AND
+        if (conditions.length > 0) {
+          query.where(conditions.length === 1 ? conditions[0] : and(...conditions));
+        }
+        
+        // Add ordering
+        query.orderBy(asc(goalAssessments.id));
+        
+        // Execute the query
+        assessments = await query;
+      }
+
+      console.log(
+        `Found ${assessments.length} assessments${
+          goalId ? ` for goal ${goalId}` : ""
+        }${patientId ? ` of patient ${patientId}` : ""}`
+      );
+      return assessments;
     } catch (error) {
-      console.error(`Error fetching goal performance data:`, error);
+      console.error(
+        `Error getting performance data${goalId ? ` for goal ${goalId}` : ""}${
+          patientId ? ` of patient ${patientId}` : ""
+        }:`,
+        error
+      );
       throw error;
     }
   }
 }
-
-export const storage = new DBStorage();
