@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, date, numeric, timestamp, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, date, numeric, timestamp } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -7,8 +7,7 @@ export const FUNDS_MANAGEMENT_OPTIONS = ["Self-Managed", "Advisor-Managed", "Cus
 // Clinician roles
 export const CLINICIAN_ROLES = ["Primary Therapist", "Secondary Therapist", "Supervisor", "Support Staff"] as const;
 
-// Renamed from clients to patients
-export const patients = pgTable("patients", {
+export const clients = pgTable("clients", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   originalName: text("original_name"), // Store original name without identifier
@@ -29,10 +28,9 @@ export const patients = pgTable("patients", {
   onboardingStatus: text("onboarding_status").default("incomplete"),
 });
 
-// Renamed from allies to caregivers
-export const caregivers = pgTable("caregivers", {
+export const allies = pgTable("allies", {
   id: serial("id").primaryKey(),
-  patientId: integer("patient_id").notNull(), // Renamed from clientId
+  clientId: integer("client_id").notNull(),
   name: text("name").notNull(),
   relationship: text("relationship").notNull(),
   preferredLanguage: text("preferred_language").notNull(),
@@ -46,11 +44,10 @@ export const caregivers = pgTable("caregivers", {
 
 export const goals = pgTable("goals", {
   id: serial("id").primaryKey(),
-  patientId: integer("patient_id").notNull(), // Renamed from clientId
+  clientId: integer("client_id").notNull(),
   title: text("title").notNull(),
   description: text("description").notNull(),
-  importanceLevel: text("importance_level").notNull(), // Renamed from priority
-  status: text("status").default("in_progress"), // Added status field
+  priority: text("priority").notNull(),
 });
 
 export const subgoals = pgTable("subgoals", {
@@ -59,13 +56,12 @@ export const subgoals = pgTable("subgoals", {
   title: text("title").notNull(),
   description: text("description").notNull(),
   status: text("status").default("pending"),
-  completionDate: timestamp("completion_date"), // Added completion date
 });
 
 // Add these budget settings
 export const budgetSettings = pgTable("budget_settings", {
   id: serial("id").primaryKey(),
-  patientId: integer("patient_id").notNull(), // Renamed from clientId
+  clientId: integer("client_id").notNull(),
   planSerialNumber: text("plan_serial_number"),
   planCode: text("plan_code"),
   isActive: boolean("is_active").default(true),
@@ -86,7 +82,7 @@ export const budgetItemCatalog = pgTable("budget_item_catalog", {
 
 export const budgetItems = pgTable("budget_items", {
   id: serial("id").primaryKey(),
-  patientId: integer("patient_id").notNull(), // Renamed from clientId
+  clientId: integer("client_id").notNull(),
   budgetSettingsId: integer("budget_settings_id").notNull(),
   itemCode: text("item_code").notNull(),
   name: text("name"),
@@ -97,52 +93,36 @@ export const budgetItems = pgTable("budget_items", {
   category: text("category"),
 });
 
-// Create a custom patient schema with explicit type transformation for availableFunds
-export const insertPatientSchema = createInsertSchema(patients)
+// Create a custom client schema with explicit type transformation for availableFunds
+export const insertClientSchema = createInsertSchema(clients)
   .extend({
     // Ensure availableFunds is always parsed as a number
     ndisFunds: z.coerce.number()
-      .min(0, { message: "Available funds must be a positive number" }),
-    // Make fundsManagement optional
-    fundsManagement: z.enum(FUNDS_MANAGEMENT_OPTIONS as unknown as [string, ...string[]])
-      .optional(),
-    // Make sure dateOfBirth is a valid date
-    dateOfBirth: z.coerce.date()
-      .refine((date) => {
-        // Ensure date is not in the future
-        return date <= new Date();
-      }, { message: "Date of birth cannot be in the future" }),
-    // Add validation for at least one access type
-    accessTherapeutics: z.boolean().optional(),
-    accessFinancials: z.boolean().optional(),
   });
 
-// Create a caregiver schema with validation
-export const insertCaregiverSchema = createInsertSchema(caregivers)
-  .omit({ id: true, patientId: true })
+export const insertAllySchema = createInsertSchema(allies)
+  .omit({ id: true, clientId: true })
   .extend({
-    // Add validation for at least one access type
+    name: z.string().min(1, { message: "Name is required" }),
+    relationship: z.string().min(1, { message: "Relationship is required" }),
+    preferredLanguage: z.string().min(1, { message: "Preferred language is required" }),
+    email: z.string().email({ message: "Please enter a valid email address" }),
     accessTherapeutics: z.boolean(),
     accessFinancials: z.boolean(),
   })
   .refine(
     (data) => data.accessTherapeutics || data.accessFinancials,
     {
-      message: "At least one access type must be selected",
-      path: ["accessTherapeutics"],
+      message: "", // Empty message since we don't want to show it
+      path: ["accessSettings"], // Map to a custom path that will be used in the form
     }
   );
-
-// Backward compatibility aliases for client-side components
-export const insertClientSchema = insertPatientSchema;
-export const insertAllySchema = insertCaregiverSchema;
-
-export const insertGoalSchema = createInsertSchema(goals).omit({ id: true, patientId: true });
+export const insertGoalSchema = createInsertSchema(goals).omit({ id: true, clientId: true });
 export const insertSubgoalSchema = createInsertSchema(subgoals).omit({ id: true, goalId: true });
 
 // Create a budget settings schema
 export const insertBudgetSettingsSchema = createInsertSchema(budgetSettings)
-  .omit({ id: true, patientId: true })
+  .omit({ id: true, clientId: true })
   .extend({
     // Ensure availableFunds is always parsed as a number
     ndisFunds: z.coerce.number(),
@@ -152,7 +132,7 @@ export const insertBudgetSettingsSchema = createInsertSchema(budgetSettings)
 
 // Create a custom budget item schema with explicit type transformation for unitPrice and quantity
 export const insertBudgetItemSchema = createInsertSchema(budgetItems)
-  .omit({ id: true, patientId: true, budgetSettingsId: true })
+  .omit({ id: true, clientId: true, budgetSettingsId: true })
   .extend({
     // Add validation messages for required fields
     itemCode: z.string().min(1, { message: "Item code is required" }),
@@ -175,23 +155,29 @@ export const insertBudgetItemCatalogSchema = createInsertSchema(budgetItemCatalo
     category: z.string().optional()
   });
 
-export type Patient = typeof patients.$inferSelect;
-export type Caregiver = typeof caregivers.$inferSelect;
+export type Client = typeof clients.$inferSelect;
+export type Ally = typeof allies.$inferSelect;
 export type Goal = typeof goals.$inferSelect;
 export type Subgoal = typeof subgoals.$inferSelect;
-export type BudgetItem = typeof budgetItems.$inferSelect;
+// Extend the base BudgetItem type with additional properties that come from API
+export type BudgetItem = typeof budgetItems.$inferSelect & {
+  // These properties are added by the API when budget items are fetched
+  isActivePlan?: boolean;
+  planSerialNumber?: string;
+  planCode?: string | null;
+};
 export type BudgetSettings = typeof budgetSettings.$inferSelect;
 
-export type InsertPatient = z.infer<typeof insertPatientSchema>;
-export type InsertCaregiver = z.infer<typeof insertCaregiverSchema>;
+export type InsertClient = z.infer<typeof insertClientSchema>;
+export type InsertAlly = z.infer<typeof insertAllySchema>;
 export type InsertGoal = z.infer<typeof insertGoalSchema>;
 export type InsertSubgoal = z.infer<typeof insertSubgoalSchema>;
 export type InsertBudgetItem = z.infer<typeof insertBudgetItemSchema>;
 // Sessions table for tracking therapy sessions
 export const sessions = pgTable("sessions", {
   id: serial("id").primaryKey(),
-  patientId: integer("patient_id").notNull(), // Renamed from clientId
-  therapistId: integer("therapist_id"), // Reference to a caregiver who is the therapist
+  clientId: integer("client_id").notNull(),
+  therapistId: integer("therapist_id"), // Reference to an ally who is the therapist
   title: text("title").notNull(),
   description: text("description"),
   sessionDate: timestamp("session_date").notNull(),
@@ -199,7 +185,6 @@ export const sessions = pgTable("sessions", {
   status: text("status", { enum: ["draft", "completed"] }).notNull().default("draft"), // Either draft or completed
   location: text("location"),
   notes: text("notes"),
-  aiSummary: text("ai_summary"), // Added AI-generated summary
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -218,9 +203,9 @@ export type BudgetItemCatalog = typeof budgetItemCatalog.$inferSelect;
 export const sessionNotes = pgTable("session_notes", {
   id: serial("id").primaryKey(),
   sessionId: integer("session_id").notNull().references(() => sessions.id, { onDelete: "cascade" }),
-  patientId: integer("patient_id").notNull().references(() => patients.id, { onDelete: "cascade" }), // Renamed from clientId
+  clientId: integer("client_id").notNull().references(() => clients.id, { onDelete: "cascade" }),
   // Note: displaySessionId was removed as it doesn't exist in the actual database
-  presentCaregivers: text("present_caregivers").array(), // Renamed from presentAllies
+  presentAllies: text("present_allies").array(),
 
   // General observations (ratings from 0-10)
   moodRating: integer("mood_rating"),
@@ -240,13 +225,13 @@ export const sessionNotes = pgTable("session_notes", {
   status: text("status", { enum: ["draft", "completed"] }).default("draft"),
 });
 
-// Renamed from performanceAssessments to goalAssessments
-export const goalAssessments = pgTable("goal_assessments", {
+// Performance assessment schema for goals
+export const performanceAssessments = pgTable("performance_assessments", {
   id: serial("id").primaryKey(),
   sessionNoteId: integer("session_note_id").notNull().references(() => sessionNotes.id, { onDelete: "cascade" }),
   goalId: integer("goal_id").notNull().references(() => goals.id, { onDelete: "cascade" }),
   subgoalId: integer("subgoal_id").references(() => subgoals.id, { onDelete: "cascade" }),
-  achievementLevel: integer("achievement_level"), // Renamed from rating
+  rating: integer("rating"),
   score: integer("score"),
   notes: text("notes"),
   strategies: text("strategies").array(),
@@ -255,12 +240,11 @@ export const goalAssessments = pgTable("goal_assessments", {
 // Milestone assessment schema
 export const milestoneAssessments = pgTable("milestone_assessments", {
   id: serial("id").primaryKey(),
-  goalAssessmentId: integer("goal_assessment_id").notNull().references(() => goalAssessments.id, { onDelete: "cascade" }), // Renamed from performanceAssessmentId
+  performanceAssessmentId: integer("performance_assessment_id").notNull().references(() => performanceAssessments.id, { onDelete: "cascade" }),
   milestoneId: integer("milestone_id").notNull(), // We don't have a milestones table yet
   rating: integer("rating"), // 1-5 rating
   strategies: text("strategies").array(), // Array of strategy identifiers
   notes: text("notes"),
-  completionDate: timestamp("completion_date"), // Added completion date
 });
 
 // Therapy strategies schema
@@ -269,10 +253,9 @@ export const strategies = pgTable("strategies", {
   name: text("name").notNull(),
   category: text("category").notNull(),
   description: text("description"),
-  effectiveness: integer("effectiveness"), // Added effectiveness rating (1-10)
 });
 
-// Clinicians table for staff that can be assigned to patients
+// Clinicians table for staff that can be assigned to clients
 export const clinicians = pgTable("clinicians", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
@@ -283,10 +266,10 @@ export const clinicians = pgTable("clinicians", {
   notes: text("notes"),
 });
 
-// Patient-Clinician relationship table for assignments (renamed from clientClinicians)
-export const patientClinicians = pgTable("patient_clinicians", {
+// Client-Clinician relationship table for assignments
+export const clientClinicians = pgTable("client_clinicians", {
   id: serial("id").primaryKey(),
-  patientId: integer("patient_id").notNull().references(() => patients.id, { onDelete: "cascade" }), // Renamed from clientId
+  clientId: integer("client_id").notNull().references(() => clients.id, { onDelete: "cascade" }),
   clinicianId: integer("clinician_id").notNull().references(() => clinicians.id, { onDelete: "cascade" }),
   role: text("role").notNull(), // Primary, Secondary, Support, etc.
   assignedDate: timestamp("assigned_date").defaultNow(),
@@ -295,7 +278,7 @@ export const patientClinicians = pgTable("patient_clinicians", {
 
 // Create insert schemas
 export const insertSessionNoteSchema = createInsertSchema(sessionNotes);
-export const insertGoalAssessmentSchema = createInsertSchema(goalAssessments); // Renamed from insertPerformanceAssessmentSchema
+export const insertPerformanceAssessmentSchema = createInsertSchema(performanceAssessments);
 export const insertMilestoneAssessmentSchema = createInsertSchema(milestoneAssessments);
 export const insertStrategySchema = createInsertSchema(strategies);
 
@@ -307,7 +290,7 @@ export const insertClinicianSchema = createInsertSchema(clinicians)
     email: z.string().email({ message: "Please enter a valid email address" }),
   });
 
-export const insertPatientClinicianSchema = createInsertSchema(patientClinicians) // Renamed from insertClientClinicianSchema
+export const insertClientClinicianSchema = createInsertSchema(clientClinicians)
   .omit({ id: true, assignedDate: true })
   .extend({
     role: z.enum(CLINICIAN_ROLES as unknown as [string, ...string[]]),
@@ -315,21 +298,69 @@ export const insertPatientClinicianSchema = createInsertSchema(patientClinicians
 
 // Define types for inserts
 export type InsertSessionNote = z.infer<typeof insertSessionNoteSchema>;
-export type InsertGoalAssessment = z.infer<typeof insertGoalAssessmentSchema>; // Renamed from InsertPerformanceAssessment
+export type InsertPerformanceAssessment = z.infer<typeof insertPerformanceAssessmentSchema>;
 export type InsertMilestoneAssessment = z.infer<typeof insertMilestoneAssessmentSchema>;
 export type InsertStrategy = z.infer<typeof insertStrategySchema>;
 export type InsertClinician = z.infer<typeof insertClinicianSchema>;
-export type InsertPatientClinician = z.infer<typeof insertPatientClinicianSchema>; // Renamed from InsertClientClinician
+export type InsertClientClinician = z.infer<typeof insertClientClinicianSchema>;
 
 // Define types for selects
 export type Session = typeof sessions.$inferSelect;
 export type InsertSession = z.infer<typeof insertSessionSchema>;
 export type SessionNote = typeof sessionNotes.$inferSelect;
-export type GoalAssessment = typeof goalAssessments.$inferSelect; // Renamed from PerformanceAssessment
+export type PerformanceAssessment = typeof performanceAssessments.$inferSelect;
 export type MilestoneAssessment = typeof milestoneAssessments.$inferSelect;
 export type Strategy = typeof strategies.$inferSelect;
 export type Clinician = typeof clinicians.$inferSelect;
-export type PatientClinician = typeof patientClinicians.$inferSelect; // Renamed from ClientClinician
+export type ClientClinician = typeof clientClinicians.$inferSelect;
+
+// Assistant related tables
+export const assistantSettings = pgTable("assistant_settings", {
+  id: serial("id").primaryKey(),
+  apiKey: text("api_key"),
+  model: text("model").default("gpt-4"),
+  temperature: numeric("temperature").$type<number>().default(0.7),
+  maxTokens: integer("max_tokens").default(8192),
+  readOnly: boolean("read_only").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const assistantConversations = pgTable("assistant_conversations", {
+  id: text("id").primaryKey(), // UUID for the conversation
+  name: text("name").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+  lastMessageAt: timestamp("last_message_at"),
+});
+
+export const assistantMessages = pgTable("assistant_messages", {
+  id: text("id").primaryKey(), // UUID for the message
+  conversationId: text("conversation_id").notNull()
+    .references(() => assistantConversations.id, { onDelete: "cascade" }),
+  role: text("role", { enum: ["user", "assistant", "system"] }).notNull(),
+  content: text("content").notNull(),
+  queryResult: text("query_result"), // JSON string for storing query visualization data
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Create insert schemas for assistant-related tables
+export const insertAssistantSettingsSchema = createInsertSchema(assistantSettings)
+  .omit({ id: true, createdAt: true, updatedAt: true });
+
+export const insertAssistantConversationSchema = createInsertSchema(assistantConversations)
+  .omit({ createdAt: true, updatedAt: true, lastMessageAt: true });
+
+export const insertAssistantMessageSchema = createInsertSchema(assistantMessages)
+  .omit({ createdAt: true });
+
+// Types for assistant-related tables
+export type AssistantSettings = typeof assistantSettings.$inferSelect;
+export type AssistantConversation = typeof assistantConversations.$inferSelect;
+export type AssistantMessage = typeof assistantMessages.$inferSelect;
+export type InsertAssistantSettings = z.infer<typeof insertAssistantSettingsSchema>;
+export type InsertAssistantConversation = z.infer<typeof insertAssistantConversationSchema>;
+export type InsertAssistantMessage = z.infer<typeof insertAssistantMessageSchema>;
 
 // Dashboard data types
 export type AppointmentStatsEntry = {
@@ -348,9 +379,9 @@ export type AppointmentStats = {
 export type BudgetExpirationStats = {
   expiringNextMonth: {
     count: number;
-    byPatient: Array<{ // Renamed from byClient
-      patientId: number, // Renamed from clientId
-      patientName: string, // Renamed from clientName
+    byClient: Array<{ 
+      clientId: number, 
+      clientName: string, 
       planId: number, 
       planName: string, 
       daysLeft?: number,            // Days remaining until expiration
