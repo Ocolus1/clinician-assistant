@@ -14,7 +14,7 @@ import { eq, and, gt, lt } from "drizzle-orm";
 
 // Create a model for summarization
 const summarizationModel = new ChatOpenAI({
-  modelName: "gpt-3.5-turbo",
+  modelName: "gpt-4o",
   temperature: 0.2,
   openAIApiKey: process.env.OPENAI_API_KEY,
 });

@@ -179,7 +179,7 @@ export class ChatbotService {
   
   constructor() {
     this.model = new ChatOpenAI({
-      modelName: process.env.OPENAI_MODEL || "gpt-3.5-turbo",
+      modelName: process.env.OPENAI_MODEL || "gpt-4o",
       temperature: 0.2,
     });
     

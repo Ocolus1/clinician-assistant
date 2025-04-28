@@ -146,3 +146,8 @@ All notable changes to this project will be documented in this file.
   - Properly updates column names (client_id → patient_id, ally_id → caregiver_id)
   - Includes validation to prevent duplicate data and ensure data integrity
   - Restores missing goals to maintain referential integrity with goal_assessments
+
+- Updated the chatbot to use the GPT-4o model from OpenAI:
+  - Changed the model in ChatbotService from "gpt-3.5-turbo" to "gpt-4o"
+  - Updated the summarizationModel in MemoryService to use "gpt-4o" instead of "gpt-3.5-turbo"
+  - The llmService and agentService were already using the GPT-4o model
