@@ -4,87 +4,87 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { FileText, Printer } from "lucide-react";
-import { Client, Ally, Goal, BudgetItem } from "@shared/schema";
+import { Patient, Caregiver, Goal, BudgetItem } from "@shared/schema";
 
 export default function Summary() {
-  const { clientId } = useParams();
+  const { patientId } = useParams();
   const [, setLocation] = useLocation();
-  console.log("Summary component - clientId param:", clientId);
-  const parsedClientId = clientId ? parseInt(clientId) : 0;
-  console.log("Summary component - parsedClientId:", parsedClientId);
+  console.log("Summary component - patientId param:", patientId);
+  const parsedPatientId = patientId ? parseInt(patientId) : 0;
+  console.log("Summary component - parsedPatientId:", parsedPatientId);
 
-  // More detailed debugging and error handling for client data 
+  // More detailed debugging and error handling for patient data 
   const { 
-    data: client,
-    isLoading: isClientLoading,
-    isError: isClientError,
-    error: clientError,
-    refetch: refetchClient
-  } = useQuery<Client>({
-    queryKey: ["/api/clients", parsedClientId],
-    enabled: parsedClientId > 0,
+    data: patient,
+    isLoading: isPatientLoading,
+    isError: isPatientError,
+    error: patientError,
+    refetch: refetchPatient
+  } = useQuery<Patient>({
+    queryKey: ["/api/patients", parsedPatientId],
+    enabled: parsedPatientId > 0,
     retry: 2, // Allow more retries
     retryDelay: 1000, // Wait 1 second between retries
     staleTime: 30000 // Cache for 30 seconds
   });
 
-  console.log("Summary - client query:", { 
-    isLoading: isClientLoading, 
-    isError: isClientError, 
-    error: clientError,
-    clientId: parsedClientId,
-    data: client 
+  console.log("Summary - patient query:", { 
+    isLoading: isPatientLoading, 
+    isError: isPatientError, 
+    error: patientError,
+    patientId: parsedPatientId,
+    data: patient 
   });
 
-  // Only fetch related data if client data was successful
-  const fetchRelatedData = Boolean(client?.id);
+  // Only fetch related data if patient data was successful
+  const fetchRelatedData = Boolean(patient?.id);
 
-  const { data: allies = [] } = useQuery<Ally[]>({
-    queryKey: ["/api/clients", parsedClientId, "allies"],
-    enabled: parsedClientId > 0 && fetchRelatedData,
+  const { data: caregivers = [] } = useQuery<Caregiver[]>({
+    queryKey: ["/api/patients", parsedPatientId, "caregivers"],
+    enabled: parsedPatientId > 0 && fetchRelatedData,
     retry: 1
   });
 
   const { data: goals = [] } = useQuery<Goal[]>({
-    queryKey: ["/api/clients", parsedClientId, "goals"],
-    enabled: parsedClientId > 0 && fetchRelatedData,
+    queryKey: ["/api/patients", parsedPatientId, "goals"],
+    enabled: parsedPatientId > 0 && fetchRelatedData,
     retry: 1
   });
 
   const { data: budgetItems = [] } = useQuery<BudgetItem[]>({
-    queryKey: ["/api/clients", parsedClientId, "budget-items"],
-    enabled: parsedClientId > 0 && fetchRelatedData,
+    queryKey: ["/api/patients", parsedPatientId, "budget-items"],
+    enabled: parsedPatientId > 0 && fetchRelatedData,
     retry: 1
   });
 
   const totalBudget = budgetItems.reduce((acc: number, item: BudgetItem) => {
-    return acc + (item.unitPrice * item.quantity);
+    return acc + ((Number(item.unitPrice) * Number(item.quantity)) || 0);
   }, 0);
   
-  // Show loading state if client is being fetched
-  if (isClientLoading) {
+  // Show loading state if patient is being fetched
+  if (isPatientLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-2xl font-bold mb-4">Loading client data...</h1>
+          <h1 className="text-2xl font-bold mb-4">Loading patient data...</h1>
           <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full mx-auto"></div>
         </div>
       </div>
     );
   }
   
-  // Show error state if there was an error loading the client
-  if (isClientError) {
+  // Show error state if there was an error loading the patient
+  if (isPatientError) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-2xl font-bold mb-4">Error loading client</h1>
-          <p className="text-muted-foreground mb-4">There was a problem loading client data.</p>
+          <h1 className="text-2xl font-bold mb-4">Error loading patient</h1>
+          <p className="text-muted-foreground mb-4">There was a problem loading patient data.</p>
           <div className="text-sm text-red-500 mb-4">
-            {clientError instanceof Error ? clientError.message : "Unknown error occurred"}
+            {patientError instanceof Error ? patientError.message : "Unknown error occurred"}
           </div>
           <div className="flex flex-col gap-2 items-center">
-            <Button onClick={() => refetchClient()} variant="outline">
+            <Button onClick={() => refetchPatient()} variant="outline">
               Try Again
             </Button>
             <Button onClick={() => setLocation("/")} variant="default" className="mt-2">
@@ -96,17 +96,17 @@ export default function Summary() {
     );
   }
   
-  // Default case when no client is found or not loaded
-  if (!client) {
+  // Default case when no patient is found or not loaded
+  if (!patient) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-2xl font-bold mb-4">Client not found</h1>
+          <h1 className="text-2xl font-bold mb-4">Patient not found</h1>
           <p className="text-muted-foreground mb-4">
-            We couldn't find the client with ID: {parsedClientId}
+            We couldn't find the patient with ID: {parsedPatientId}
           </p>
           <div className="flex flex-col gap-2 items-center">
-            <Button onClick={() => refetchClient()} variant="outline">
+            <Button onClick={() => refetchPatient()} variant="outline">
               Try Again
             </Button>
             <Button onClick={() => setLocation("/")} variant="default" className="mt-2">
@@ -126,9 +126,9 @@ export default function Summary() {
     <div className="min-h-screen bg-background">
       <div className="container mx-auto py-8">
         <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold">Client Summary</h1>
+          <h1 className="text-3xl font-bold">Patient Summary</h1>
           <div className="flex gap-4">
-            <Button onClick={() => setLocation(`/print-summary/${clientId}`)} variant="default">
+            <Button onClick={() => setLocation(`/print-summary/${patientId}`)} variant="default">
               <FileText className="w-4 h-4 mr-2" />
               View & Print Report
             </Button>
@@ -138,7 +138,7 @@ export default function Summary() {
             </Button>
             <Button onClick={() => setLocation("/")} variant="outline">
               <FileText className="w-4 h-4 mr-2" />
-              New Client
+              New Patient
             </Button>
           </div>
         </div>
@@ -146,18 +146,18 @@ export default function Summary() {
         <div className="grid gap-6">
           <Card>
             <CardHeader>
-              <CardTitle>Client Information</CardTitle>
+              <CardTitle>Patient Information</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <p className="text-sm text-muted-foreground">Name</p>
-                  <p className="font-medium">{client.name}</p>
+                  <p className="font-medium">{patient.name}</p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Date of Birth</p>
                   <p className="font-medium">
-                    {new Date(client.dateOfBirth).toLocaleDateString()}
+                    {new Date(patient.dateOfBirth).toLocaleDateString()}
                   </p>
                 </div>
               </div>
@@ -166,11 +166,11 @@ export default function Summary() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Allies ({allies.length})</CardTitle>
+              <CardTitle>Allies ({caregivers.length})</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {allies.map((ally: Ally) => (
+                {caregivers.map((ally: Caregiver) => (
                   <div key={ally.id}>
                     <div className="grid grid-cols-2 gap-4">
                       <div>
@@ -247,10 +247,10 @@ export default function Summary() {
                     </div>
                     <div className="text-right">
                       <p className="font-medium">
-                        ${(item.unitPrice * item.quantity).toFixed(2)}
+                        ${((Number(item.unitPrice) * Number(item.quantity)) || 0).toFixed(2)}
                       </p>
                       <p className="text-sm text-muted-foreground">
-                        ${item.unitPrice.toFixed(2)} × {item.quantity}
+                        ${(Number(item.unitPrice) || 0).toFixed(2)} × {item.quantity}
                       </p>
                     </div>
                   </div>
@@ -258,7 +258,7 @@ export default function Summary() {
                 <Separator />
                 <div className="flex justify-between items-center font-bold">
                   <span>Total Budget</span>
-                  <span>${totalBudget.toFixed(2)}</span>
+                  <span>${(totalBudget || 0).toFixed(2)}</span>
                 </div>
               </div>
             </CardContent>

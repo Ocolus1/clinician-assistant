@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Progress } from "@/components/ui/progress";
-import ClientForm from "@/components/onboarding/ClientForm";
-import AllyForm from "@/components/onboarding/AllyForm";
+import PatientForm from "@/components/onboarding/PatientForm";
+import CaregiverForm from "@/components/onboarding/CaregiverForm";
 import GoalsForm from "@/components/onboarding/GoalsForm";
 import BudgetForm from "@/components/onboarding/BudgetForm";
 import { useLocation } from "wouter";
@@ -10,7 +10,7 @@ import { Users } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Client } from "@shared/schema";
+import { Patient } from "@shared/schema";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -23,70 +23,70 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 
-const steps = ["Client Information", "Allies", "Goals", "Budget"];
+const steps = ["Patient Information", "Caregivers", "Goals", "Budget"];
 
 export default function OnboardingForm() {
   const { toast } = useToast();
   const [step, setStep] = useState(0);
-  const [clientData, setClientData] = useState<Partial<Client> | null>(null);
-  const [clientId, setClientId] = useState<number | null>(null);
+  const [patientData, setPatientData] = useState<Partial<Patient> | null>(null);
+  const [patientId, setPatientId] = useState<number | null>(null);
   const [, setLocation] = useLocation();
   const [showExitDialog, setShowExitDialog] = useState(false);
 
   const progress = ((step + 1) / steps.length) * 100;
 
-  // Mutation for creating a client
-  const createClient = useMutation<Client, Error, any>({
+  // Mutation for creating a patient
+  const createPatient = useMutation<Patient, Error, any>({
     mutationFn: async (data: any) => {
-      // Create a temporary client with 'pending' onboarding status
-      const clientData = {
+      // Create a temporary patient with 'pending' onboarding status
+      const patientData = {
         ...data,
         availableFunds: 0,
         onboardingStatus: 'pending'  // Set onboarding status to pending during initial creation
       };
       
-      const response = await apiRequest("POST", "/api/clients", clientData);
+      const response = await apiRequest("POST", "/api/patients", patientData);
       // Parse the JSON response
       const result = await response.json();
-      return result as Client;
+      return result as Patient;
     },
-    onSuccess: (clientData) => {
-      setClientId(clientData.id);
+    onSuccess: (patientData) => {
+      setPatientId(patientData.id);
       toast({
         title: "Success",
-        description: "Client information saved successfully",
+        description: "Patient information saved successfully",
       });
     },
     onError: (error) => {
-      console.error("Error creating client:", error);
+      console.error("Error creating patient:", error);
       toast({
         title: "Error",
-        description: "Failed to save client information",
+        description: "Failed to save patient information",
         variant: "destructive",
       });
     },
   });
 
   const completeOnboardingMutation = useMutation({
-    mutationFn: (clientId: number) => 
-      apiRequest("POST", `/api/clients/${clientId}/complete-onboarding`),
+    mutationFn: (patientId: number) => 
+      apiRequest("POST", `/api/patients/${patientId}/complete-onboarding`),
     onSuccess: () => {
       toast({
         title: "Success",
-        description: "Client onboarding completed successfully!",
+        description: "Patient onboarding completed successfully!",
         variant: "default",
       });
-      setLocation(`/clients/${clientId}/profile`);
+      setLocation(`/patients/${patientId}/profile`);
     },
     onError: (error) => {
       toast({
         title: "Error",
-        description: "Failed to complete client onboarding. Client data not saved.",
+        description: "Failed to complete patient onboarding. Patient data not saved.",
         variant: "destructive",
       });
-      // Optionally delete the temporary client if it exists
-      if (clientId) {
-        apiRequest("DELETE", `/api/clients/${clientId}`);
+      // Optionally delete the temporary patient if it exists
+      if (patientId) {
+        apiRequest("DELETE", `/api/patients/${patientId}`);
       }
     }
   });
@@ -94,8 +94,8 @@ export default function OnboardingForm() {
 
   const handleNext = () => {
     if (step === steps.length - 1) {
-      // After completing the budget step, go to client list page
-      completeOnboardingMutation.mutate(clientId!); // Assuming clientId is available
+      // After completing the budget step, go to patient list page
+      completeOnboardingMutation.mutate(patientId!); // Assuming patientId is available
     } else {
       setStep(step + 1);
     }
@@ -109,36 +109,36 @@ export default function OnboardingForm() {
 
   const handleExit = () => {
     // Show exit confirmation dialog if we're in any step of onboarding
-    if (step > 0 || clientId || clientData) {
+    if (step > 0 || patientId || patientData) {
       setShowExitDialog(true);
     } else {
-      navigateToClientList();
+      navigateToPatientList();
     }
   };
 
-  const navigateToClientList = () => {
-    setLocation('/clients');
+  const navigateToPatientList = () => {
+    setLocation('/patients');
   };
 
   // Placeholder function - needs implementation based on your database
-  const deleteIncompleteClients = async () => {
+  const deleteIncompletePatients = async () => {
     try {
-      await apiRequest("DELETE", "/api/clients/incomplete"); // Replace with actual endpoint
-      toast({ title: "Success", description: "Incomplete clients deleted." });
+      await apiRequest("DELETE", "/api/patients/incomplete"); // Replace with actual endpoint
+      toast({ title: "Success", description: "Incomplete patients deleted." });
     } catch (error) {
-      console.error("Error deleting incomplete clients:", error);
+      console.error("Error deleting incomplete patients:", error);
       toast({
         title: "Error",
-        description: "Failed to delete incomplete clients.",
+        description: "Failed to delete incomplete patients.",
         variant: "destructive",
       });
     }
   };
 
-  // Placeholder function - needs implementation to prevent saving incomplete clients
-  const preventIncompleteClientSave = () => {
+  // Placeholder function - needs implementation to prevent saving incomplete patients
+  const preventIncompletePatientSave = () => {
     // Add logic here to check for incomplete onboarding and prevent save
-    console.log("preventIncompleteClientSave needs implementation");
+    console.log("preventIncompletePatientSave needs implementation");
   }
 
 
@@ -150,15 +150,15 @@ export default function OnboardingForm() {
             <AlertDialogTitle>Exit onboarding process?</AlertDialogTitle>
             <AlertDialogDescription>
               {step === 0 
-                ? "You are about to start creating a new client. No data has been saved yet."
-                : `You are at step ${step + 1} of ${steps.length} (${steps[step]}). All progress for this client will be lost.`}
+                ? "You are about to start creating a new patient. No data has been saved yet."
+                : `You are at step ${step + 1} of ${steps.length} (${steps[step]}). All progress for this patient will be lost.`}
               Are you sure you want to exit?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Continue onboarding</AlertDialogCancel>
             <AlertDialogAction 
-              onClick={navigateToClientList}
+              onClick={navigateToPatientList}
               className="bg-destructive hover:bg-destructive/90"
             >
               Yes, exit
@@ -168,7 +168,7 @@ export default function OnboardingForm() {
       </AlertDialog>
 
       <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold">New Client Onboarding</h1>
+        <h1 className="text-3xl font-bold">New Patient Onboarding</h1>
         <Button 
           onClick={handleExit}
           variant="outline"
@@ -197,36 +197,38 @@ export default function OnboardingForm() {
 
       <div className="bg-card rounded-lg shadow-sm p-6 md:p-8">
         {step === 0 && (
-          <ClientForm 
+          <PatientForm 
             onComplete={async (data) => {
-              setClientData(data);
-              // Create client and wait for response
-              const result = await createClient.mutateAsync({
+              setPatientData(data);
+              // Create patient and wait for response
+              const result = await createPatient.mutateAsync({
                 ...data,
                 ndisFunds: 0
               });
-              setClientId(result.id);
+              setPatientId(result.id);
               handleNext();
             }} 
           />
         )}
-        {step === 1 && clientId && (
-          <AllyForm 
-            clientId={clientId} 
+        {step === 1 && patientId && (
+          <CaregiverForm 
+            patientId={patientId} 
             onComplete={handleNext} 
             onPrevious={handlePrevious} 
           />
         )}
-        {step === 2 && clientId && (
+        {step === 2 && patientId && (
           <GoalsForm 
-            clientId={clientId} 
+            clientId={patientId}
+            patientId={patientId}
             onComplete={handleNext} 
             onPrevious={handlePrevious} 
           />
         )}
-        {step === 3 && clientId && (
+        {step === 3 && patientId && (
           <BudgetForm 
-            clientId={clientId} 
+            clientId={patientId}
+            patientId={patientId}
             onComplete={handleNext} 
             onPrevious={handlePrevious} 
           />

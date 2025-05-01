@@ -1,26 +1,26 @@
 import { useState } from "react";
 import { Progress } from "@/components/ui/progress";
-import ClientForm from "@/components/onboarding/ClientForm";
-import AllyForm from "@/components/onboarding/AllyForm";
+import PatientForm from "@/components/onboarding/PatientForm";
+import CaregiverForm from "@/components/onboarding/CaregiverForm";
 import GoalsForm from "@/components/onboarding/GoalsForm";
 import BudgetForm from "@/components/onboarding/BudgetForm";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Users } from "lucide-react";
 
-const steps = ["Client Information", "Allies", "Goals", "Budget"];
+const steps = ["Patient Information", "Caregivers", "Goals", "Budget"];
 
 export default function Home() {
   const [step, setStep] = useState(0);
-  const [clientId, setClientId] = useState<number | null>(null);
+  const [patientId, setPatientId] = useState<number | null>(null);
   const [, setLocation] = useLocation();
   
   const progress = ((step + 1) / steps.length) * 100;
 
   const handleNext = () => {
     if (step === steps.length - 1) {
-      // After completing the budget step, go to client list page
-      setLocation('/clients');
+      // After completing the budget step, go to patient list page
+      setLocation('/patients');
     } else {
       setStep(step + 1);
     }
@@ -32,8 +32,8 @@ export default function Home() {
     }
   };
 
-  const navigateToClientList = () => {
-    setLocation('/clients');
+  const navigateToPatientList = () => {
+    setLocation('/patients');
   };
 
   return (
@@ -41,12 +41,12 @@ export default function Home() {
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-bold">Speech Therapy Onboarding</h1>
         <Button 
-          onClick={navigateToClientList}
+          onClick={navigateToPatientList}
           variant="outline"
           className="flex items-center gap-2"
         >
           <Users size={16} />
-          View All Clients
+          View All Patients
         </Button>
       </div>
       
@@ -68,28 +68,30 @@ export default function Home() {
 
       <div className="bg-card rounded-lg shadow-sm p-6 md:p-8">
         {step === 0 && (
-          <ClientForm onComplete={(id) => {
-            setClientId(id);
+          <PatientForm onComplete={(id) => {
+            setPatientId(id);
             handleNext();
           }} />
         )}
-        {step === 1 && clientId && (
-          <AllyForm 
-            clientId={clientId} 
+        {step === 1 && patientId && (
+          <CaregiverForm 
+            patientId={patientId} 
             onComplete={handleNext} 
             onPrevious={handlePrevious} 
           />
         )}
-        {step === 2 && clientId && (
+        {step === 2 && patientId && (
           <GoalsForm 
-            clientId={clientId} 
+            clientId={patientId}
+            patientId={patientId}
             onComplete={handleNext} 
             onPrevious={handlePrevious} 
           />
         )}
-        {step === 3 && clientId && (
+        {step === 3 && patientId && (
           <BudgetForm 
-            clientId={clientId} 
+            clientId={patientId}
+            patientId={patientId}
             onComplete={handleNext} 
             onPrevious={handlePrevious} 
           />
