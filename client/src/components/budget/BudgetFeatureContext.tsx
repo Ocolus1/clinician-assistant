@@ -4,7 +4,7 @@ import { FIXED_BUDGET_AMOUNT, NDIS_FUNDS_AMOUNT } from "./BudgetFormSchema";
 // Define BudgetPlan type directly here to avoid circular dependencies
 export interface BudgetPlan {
   id: number;
-  clientId: number;
+  patientId: number;
   planSerialNumber: string | null;
   planCode: string | null;
   isActive: boolean | null;
@@ -29,7 +29,7 @@ export interface BudgetPlan {
 // Budget item interface for use within the context
 export interface BudgetItem {
   id: number;
-  clientId: number;
+  patientId: number;
   budgetSettingsId: number;
   itemCode: string;
   description: string;
@@ -57,7 +57,7 @@ const BudgetFeatureContext = createContext<BudgetFeatureContextType | undefined>
 
 interface BudgetFeatureProviderProps {
   children: ReactNode;
-  clientId?: number;
+  patientId?: number;
   initialPlan?: BudgetPlan | null;
   initialItems?: BudgetItem[];
   onRefresh?: () => void;
@@ -68,7 +68,7 @@ interface BudgetFeatureProviderProps {
  */
 export function BudgetFeatureProvider({
   children,
-  clientId,
+  patientId,
   initialPlan = null,
   initialItems = [],
   onRefresh
@@ -77,14 +77,14 @@ export function BudgetFeatureProvider({
   const [activePlan, setActivePlan] = useState<BudgetPlan | null>(initialPlan);
   const [budgetItems, setBudgetItems] = useState<BudgetItem[]>(initialItems);
   
-  // Calculate budget totals using client-specific budget from actual budget items
+  // Calculate budget totals using patient-specific budget from actual budget items
   const calculateTotalBudget = () => {
-    // For Radwan client (ID 88), we know the budget should be 12000
-    if (clientId === 88) {
+    // For Radwan patient (ID 88), we know the budget should be 12000
+    if (patientId === 88) {
       return 12000;
     }
     
-    // For other clients, if we have budget items, calculate the total from their initial allocation
+    // For other patients, if we have budget items, calculate the total from their initial allocation
     if (budgetItems.length > 0) {
       return budgetItems.reduce((total, item) => {
         return total + (item.quantity * item.unitPrice);
@@ -109,9 +109,9 @@ export function BudgetFeatureProvider({
   };
   
   // Calculate whether the current plan is read-only (non-active plans are read-only)
-  // FIXED: Force isReadOnly to false for client 88 (Radwan) regardless of active status
-  const isReadOnly = clientId === 88 
-    ? false  // Special case for client 88 (Radwan) - always editable
+  // FIXED: Force isReadOnly to false for patient 88 (Radwan) regardless of active status
+  const isReadOnly = patientId === 88 
+    ? false  // Special case for patient 88 (Radwan) - always editable
     : activePlan ? !(activePlan.isActive || activePlan.active) : false;
   
   return (

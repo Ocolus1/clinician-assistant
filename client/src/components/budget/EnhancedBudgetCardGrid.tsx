@@ -14,24 +14,24 @@ import { BudgetPlanCreateDialog } from "./BudgetPlanCreateDialog";
 import { setUsedQuantity } from "./BudgetFormSchema";
 
 interface EnhancedBudgetCardGridProps {
-  clientId: number;
+  patientId: number;
   onPlanSelected: (planId: number) => void;
 }
 
-export function EnhancedBudgetCardGrid({ clientId, onPlanSelected }: EnhancedBudgetCardGridProps) {
+export function EnhancedBudgetCardGrid({ patientId, onPlanSelected }: EnhancedBudgetCardGridProps) {
   // Add extreme debugging message
   console.log("%c !!!! ENHANCED BUDGET CARD GRID RENDERING !!!! ", 'background: #f00; color: #fff; font-size: 18px; font-weight: bold; padding: 10px;');
-  console.log("%c Client ID: " + clientId, 'background: #f00; color: #fff; font-size: 14px; padding: 5px;');
+  console.log("%c Patient ID: " + patientId, 'background: #f00; color: #fff; font-size: 14px; padding: 5px;');
 
   // State for the create plan dialog
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   
   // Debug the query and response
   const { data: budgetPlans, isLoading, refetch } = useQuery<BudgetSettings[] | BudgetSettings>({
-    queryKey: ['/api/clients', clientId, 'budget-settings'],
+    queryKey: ['/api/patients', patientId, 'budget-settings'],
     queryFn: async (): Promise<BudgetSettings[] | BudgetSettings> => {
-      console.log("Fetching budget plans for client ID:", clientId);
-      const response = await fetch(`/api/clients/${clientId}/budget-settings?all=true`);
+      console.log("Fetching budget plans for patient ID:", patientId);
+      const response = await fetch(`/api/patients/${patientId}/budget-settings?all=true`);
       const data = await response.json();
       console.log("Budget plans received:", data);
       
@@ -94,6 +94,14 @@ export function EnhancedBudgetCardGrid({ clientId, onPlanSelected }: EnhancedBud
   console.log("Normalized plans:", normalizedPlans);
   console.log("Normalized plans length:", normalizedPlans.length);
 
+  // Calculate whether there's an active plan
+  const hasActivePlan = useMemo(() => {
+    // Ensure normalizedPlans is always treated as an array, even if undefined
+    return Array.isArray(normalizedPlans) && normalizedPlans.length > 0 
+      ? normalizedPlans.some(plan => plan.isActive)
+      : false;
+  }, [normalizedPlans]);
+  
   // Handle create plan form submission
   const handleCreatePlan = async (data: any) => {
     try {
@@ -101,16 +109,16 @@ export function EnhancedBudgetCardGrid({ clientId, onPlanSelected }: EnhancedBud
       
       // Format the data for API submission
       const planData = {
-        clientId: clientId,
+        patientId: patientId,
         planCode: data.planCode || `Plan-${Date.now()}`,
         planSerialNumber: data.planSerialNumber || `SN-${Date.now()}`,
-        ndisFunds: data.availableFunds || (clientId === 88 ? 12000 : 20000),
+        ndisFunds: data.availableFunds || (patientId === 88 ? 12000 : 20000),
         endOfPlan: data.endDate || null,
         isActive: !!data.setAsActive,
       };
       
       // Submit to API
-      const response = await fetch(`/api/clients/${clientId}/budget-settings`, {
+      const response = await fetch(`/api/patients/${patientId}/budget-settings`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(planData)
@@ -129,14 +137,6 @@ export function EnhancedBudgetCardGrid({ clientId, onPlanSelected }: EnhancedBud
       console.error("Error creating budget plan:", error);
     }
   };
-  
-  // Calculate whether there's an active plan
-  const hasActivePlan = useMemo(() => {
-    if (normalizedPlans && normalizedPlans.length > 0) {
-      return normalizedPlans.some(plan => plan.isActive);
-    }
-    return false;
-  }, [normalizedPlans]);
   
   return (
     <div>
@@ -224,22 +224,22 @@ function BudgetPlanCard({ plan, onPreview }: BudgetPlanCardProps) {
   
   // Fetch budget items to calculate allocated funds
   const { data: budgetItems } = useQuery({
-    queryKey: ['/api/clients', plan.clientId, 'budget-items'],
+    queryKey: ['/api/patients', plan.patientId, 'budget-items'],
     queryFn: async () => {
       console.log(`%c Fetching budget items for plan ${plan.id}`, 'background: #3498db; color: white; padding: 3px;');
-      const response = await fetch(`/api/clients/${plan.clientId}/budget-items`);
+      const response = await fetch(`/api/patients/${plan.patientId}/budget-items`);
       const data = await response.json();
       console.log(`%c Budget items for plan ${plan.id}:`, 'background: #3498db; color: white; padding: 3px;', data);
       return data;
     }
   });
   
-  // Fetch sessions for this client to calculate actual utilized funds
-  const { data: clientSessions } = useQuery<SessionWithNotes[]>({
-    queryKey: ['/api/clients', plan.clientId, 'sessions'],
+  // Fetch sessions for this patient to calculate actual utilized funds
+  const { data: patientSessions } = useQuery<SessionWithNotes[]>({
+    queryKey: ['/api/patients', plan.patientId, 'sessions'],
     queryFn: getQueryFn<SessionWithNotes[]>({ 
       on401: "throw",
-      getFn: () => ({ url: `/api/clients/${plan.clientId}/sessions` })
+      getFn: () => ({ url: `/api/patients/${plan.patientId}/sessions` })
     })
   });
   
@@ -268,7 +268,7 @@ function BudgetPlanCard({ plan, onPreview }: BudgetPlanCardProps) {
     }
     
     // Calculate used funds based on budget items with usedQuantity directly
-    const totalFunds = plan.clientId === 88 ? 12000 : Number(plan.ndisFunds) || 0;
+    const totalFunds = plan.patientId === 88 ? 12000 : Number(plan.ndisFunds) || 0;
     
     // FIXED: Changed to calculate usage based on budget items' usedQuantity directly
     // instead of calculating from session data which isn't properly included
@@ -301,10 +301,10 @@ function BudgetPlanCard({ plan, onPreview }: BudgetPlanCardProps) {
       // Fallback if budget items aren't available yet
       console.log(`%c NO BUDGET ITEMS AVAILABLE `, 'background: #ff0000; color: white; padding: 3px;');
       
-      if (plan.clientId === 88) {
+      if (plan.patientId === 88) {
         setUsedAmount(0);
       } else {
-        // For other clients, use a percentage based on plan duration as fallback
+        // For other patients, use a percentage based on plan duration as fallback
         const planDuration = plan.endOfPlan ? differenceInDays(parseISO(plan.endOfPlan), 
           plan.createdAt ? new Date(plan.createdAt) : new Date()) : 365;
         const daysElapsed = planDuration - (daysLeft || 0);
@@ -312,7 +312,7 @@ function BudgetPlanCard({ plan, onPreview }: BudgetPlanCardProps) {
         setUsedAmount(Math.round(totalFunds * percentElapsed));
       }
     }
-  }, [plan.endOfPlan, plan.ndisFunds, plan.clientId, plan.createdAt, daysLeft, clientSessions, budgetItems, plan.id]);
+  }, [plan.endOfPlan, plan.ndisFunds, plan.patientId, plan.createdAt, daysLeft, patientSessions, budgetItems, plan.id]);
   
   // Determine styling based on expiration
   const isExpiringSoon = daysLeft < 30;
@@ -335,7 +335,7 @@ function BudgetPlanCard({ plan, onPreview }: BudgetPlanCardProps) {
   
   // Calculate fund metrics
   // For Radwan (ID 88), override with the correct total of 12,000
-  const totalFunds = plan.clientId === 88 ? 12000 : Number(plan.ndisFunds) || 0;
+  const totalFunds = plan.patientId === 88 ? 12000 : Number(plan.ndisFunds) || 0;
   const remainingFunds = totalFunds - usedAmount;
   const usedPercentage = totalFunds > 0 ? Math.round((usedAmount / totalFunds) * 100) : 0;
   const unallocatedFunds = totalFunds - allocatedAmount;

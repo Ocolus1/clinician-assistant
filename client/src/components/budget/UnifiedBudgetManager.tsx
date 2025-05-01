@@ -44,7 +44,7 @@ import { CatalogItem, RowBudgetItem } from "./BudgetTypes";
 // We're using the unifiedBudgetFormSchema directly from BudgetFormSchema.ts
 
 interface UnifiedBudgetManagerProps {
-  clientId: number;
+  patientId: number;
   budgetItems?: any[];
   budgetSettings?: any;
   allBudgetSettings?: any[];
@@ -52,9 +52,9 @@ interface UnifiedBudgetManagerProps {
   onBackToGrid?: () => void;
 }
 
-export function UnifiedBudgetManager({ 
-  clientId, 
-  budgetItems: initialBudgetItems, 
+export function UnifiedBudgetManager({
+  patientId,
+  budgetItems: initialBudgetItems,
   budgetSettings: initialBudgetSettings,
   allBudgetSettings,
   selectedPlanId,
@@ -78,15 +78,15 @@ export function UnifiedBudgetManager({
   
   // Using the shared getPlanDisplayName function imported from BudgetPlanCard
 
-  // Helper function to get the fixed budget amount for the client's plan
+  // Helper function to get the fixed budget amount for the patient's plan
   // This should NOT be recalculated based on current items - once a plan is created, the budget is fixed
-  const getClientBudget = () => {
-    // For Radwan client (ID 88), we know the budget should be 12000
-    if (clientId === 88) {
+  const getPatientBudget = () => {
+    // For Radwan patient (ID 88), we know the budget should be 12000
+    if (patientId === 88) {
       return 12000;
     }
     
-    // For other clients, if we have budget items, calculate the total from their initial allocation
+    // For other patients, if we have budget items, calculate the total from their initial allocation
     // This is the actual budget value we want to use, not the arbitrary ndisFunds field
     if (budgetItems && budgetItems.length > 0) {
       // For plans with existing items, use their total as the "fixed budget"
@@ -114,10 +114,10 @@ export function UnifiedBudgetManager({
   
   // Fetch session notes with products for accurate usage calculation
   useEffect(() => {
-    if (clientId) {
+    if (patientId) {
       const fetchSessionNotes = async () => {
         try {
-          const response = await fetch(`/api/clients/${clientId}/session-notes-with-products`);
+          const response = await fetch(`/api/patients/${patientId}/session-notes-with-products`);
           if (response.ok) {
             const data = await response.json();
             if (Array.isArray(data) && data.length > 0) {
@@ -136,7 +136,7 @@ export function UnifiedBudgetManager({
       };
       fetchSessionNotes();
     }
-  }, [clientId]);
+  }, [patientId]);
   
   // Calculate the total budget usage from session notes with products (improved version)
   const calculateBudgetUsage = (): number => {
@@ -189,9 +189,9 @@ export function UnifiedBudgetManager({
 
   // Get active budget plan
   const plansQuery = useQuery({
-    queryKey: [`/api/clients/${clientId}/budget-settings`],
+    queryKey: [`/api/patients/${patientId}/budget-settings`],
     queryFn: async () => {
-      const response = await fetch(`/api/clients/${clientId}/budget-settings?all=true`);
+      const response = await fetch(`/api/patients/${patientId}/budget-settings?all=true`);
       if (!response.ok) {
         throw new Error('Failed to fetch budget plans');
       }
@@ -222,7 +222,7 @@ export function UnifiedBudgetManager({
   }, [targetPlanId]);
   
   const itemsQuery = useQuery({
-    queryKey: [`/api/clients/${clientId}/budget-items`, targetPlanId],
+    queryKey: [`/api/patients/${patientId}/budget-items`, targetPlanId],
     queryFn: async () => {
       if (!targetPlanId) {
         return [];
@@ -230,7 +230,7 @@ export function UnifiedBudgetManager({
       console.log(`Fetching budget items for plan ID: ${targetPlanId} (strict mode)`);
       
       // Use strict filtering to only get items that belong to this specific plan
-      const response = await fetch(`/api/clients/${clientId}/budget-items?budgetSettingsId=${targetPlanId}&strict=true`);
+      const response = await fetch(`/api/patients/${patientId}/budget-items?budgetSettingsId=${targetPlanId}&strict=true`);
       if (!response.ok) {
         throw new Error('Failed to fetch budget items');
       }
@@ -319,9 +319,9 @@ export function UnifiedBudgetManager({
     resolver: zodResolver(unifiedBudgetFormSchema),
     defaultValues: {
       items: [],
-      totalBudget: 0, // Will be updated with client-specific budget
+      totalBudget: 0, // Will be updated with patient-specific budget
       totalAllocated: 0,
-      remainingBudget: 0 // Will be updated with client-specific budget
+      remainingBudget: 0 // Will be updated with patient-specific budget
     }
   });
 
@@ -341,7 +341,7 @@ export function UnifiedBudgetManager({
         name: item.name,
         category: item.category,
         budgetSettingsId: item.budgetSettingsId,
-        clientId: item.clientId
+        patientId: item.patientId
       }));
       
       // Set budget items in context
@@ -384,7 +384,7 @@ export function UnifiedBudgetManager({
         name: item.name,
         category: item.category,
         budgetSettingsId: item.budgetSettingsId,
-        clientId: item.clientId
+        patientId: item.patientId
       }));
 
       // Calculate total allocated from items
@@ -393,9 +393,9 @@ export function UnifiedBudgetManager({
       );
 
       // Get the fixed budget amount for this plan
-      // Use our getClientBudget function which uses the sum of initial items (especially for Radwan)
+      // Use our getPatientBudget function which uses the sum of initial items (especially for Radwan)
       // This ensures the total budget stays constant regardless of item changes
-      const planBudget = getClientBudget();
+      const planBudget = getPatientBudget();
       
       // Calculate remaining budget as fixed plan budget minus allocated amount
       // This allows remaining funds to properly reflect available money for new items
@@ -432,7 +432,7 @@ export function UnifiedBudgetManager({
             total: Number(item.quantity) * Number(item.unitPrice),
             name: item.name || "",
             category: item.category || "Other",
-            clientId: item.clientId,
+            patientId: item.patientId,
             budgetSettingsId: item.budgetSettingsId,
             isNew: false
           });
@@ -478,7 +478,7 @@ export function UnifiedBudgetManager({
           total: Number(item.quantity) * Number(item.unitPrice),
           name: item.name || "",
           category: item.category || "Other",
-          clientId: item.clientId,
+          patientId: item.patientId,
           budgetSettingsId: item.budgetSettingsId,
           isNew: false
         });
@@ -514,11 +514,11 @@ export function UnifiedBudgetManager({
     const itemCost = unitPrice * validQuantity;
     
     // Check if this would exceed the budget
-    const clientBudget = getClientBudget();
-    if (currentTotal + itemCost > clientBudget) {
+    const patientBudget = getPatientBudget();
+    if (currentTotal + itemCost > patientBudget) {
       toast({
         title: "Budget Exceeded",
-        description: `Adding this item would exceed the available budget of ${formatCurrency(clientBudget)}`,
+        description: `Adding this item would exceed the available budget of ${formatCurrency(patientBudget)}`,
         variant: "destructive"
       });
       return;
@@ -535,7 +535,7 @@ export function UnifiedBudgetManager({
       isNew: true, // This flag is critical for identifying items to create
       name: catalogItem.description || catalogItem.itemCode,
       category: catalogItem.category || "Other",
-      clientId: Number(clientId),
+      patientId: Number(patientId),
       budgetSettingsId: activePlan?.id ? Number(activePlan.id) : undefined
     };
     
@@ -551,7 +551,7 @@ export function UnifiedBudgetManager({
     form.setValue("totalAllocated", newTotalAllocated);
     
     // Calculate remaining budget as the difference between fixed budget and allocated amount
-    const fixedBudget = getClientBudget();
+    const fixedBudget = getPatientBudget();
     form.setValue("remainingBudget", fixedBudget - newTotalAllocated);
     
     // Show success notification
@@ -580,8 +580,8 @@ export function UnifiedBudgetManager({
     const currentRemaining = form.getValues().remainingBudget || 0;
     
     // Check if this would exceed the budget
-    // Special case for client ID 88 (Radwan) and THERAPY-001 items
-    if (formItem.clientId === 88 && formItem.itemCode === 'THERAPY-001') {
+    // Special case for patient ID 88 (Radwan) and THERAPY-001 items
+    if (formItem.patientId === 88 && formItem.itemCode === 'THERAPY-001') {
       // For Radwan's therapy sessions, we'll allow increases up to 80 sessions
       if (newQuantity > 80) {
         toast({
@@ -617,7 +617,7 @@ export function UnifiedBudgetManager({
     form.setValue("totalAllocated", newTotalAllocated);
     
     // Calculate remaining budget as the difference between fixed budget and allocated amount
-    const fixedBudget = getClientBudget();
+    const fixedBudget = getPatientBudget();
     form.setValue("remainingBudget", fixedBudget - newTotalAllocated);
   };
 
@@ -635,7 +635,7 @@ export function UnifiedBudgetManager({
     form.setValue("totalAllocated", newTotalAllocated);
     
     // Calculate remaining budget as the difference between fixed budget and allocated amount
-    const fixedBudget = getClientBudget();
+    const fixedBudget = getPatientBudget();
     form.setValue("remainingBudget", fixedBudget - newTotalAllocated);
     
     // Remove from field array
@@ -690,7 +690,7 @@ export function UnifiedBudgetManager({
         if (itemsToCreate.length > 0 && activePlan) {
           console.log("Processing creation of new items...");
           const createPromises = itemsToCreate.map(item => {
-            console.log(`Creating new item ${item.itemCode} with quantity ${item.quantity} for client ${clientId}`);
+            console.log(`Creating new item ${item.itemCode} with quantity ${item.quantity} for patient ${patientId}`);
             // Ensure all values are of the correct type
             const payload = {
               budgetSettingsId: activePlan.id,
@@ -704,7 +704,7 @@ export function UnifiedBudgetManager({
               category: item.category || "Other"
             };
             console.log("Sending formatted payload:", payload);
-            return apiRequest('POST', `/api/clients/${clientId}/budget-items`, payload);
+            return apiRequest('POST', `/api/patients/${patientId}/budget-items`, payload);
           });
           allPromises.push(...createPromises);
         }
@@ -779,12 +779,12 @@ export function UnifiedBudgetManager({
       // Always invalidate queries to refresh data
       console.log("Invalidating budget items query");
       queryClient.invalidateQueries({ 
-        queryKey: [`/api/clients/${clientId}/budget-items`] 
+        queryKey: [`/api/patients/${patientId}/budget-items`] 
       });
       
       console.log("Invalidating budget settings query");
       queryClient.invalidateQueries({ 
-        queryKey: [`/api/clients/${clientId}/budget-settings`] 
+        queryKey: [`/api/patients/${patientId}/budget-settings`] 
       });
       
       // Force a complete refresh of the data
@@ -793,7 +793,7 @@ export function UnifiedBudgetManager({
         // Fetch the latest budget items with strict filtering
         if (!activePlan) return;
         
-        fetch(`/api/clients/${clientId}/budget-items?budgetSettingsId=${activePlan.id}&strict=true`)
+        fetch(`/api/patients/${patientId}/budget-items?budgetSettingsId=${activePlan.id}&strict=true`)
           .then(res => res.json())
           .then(data => {
             console.log("Refreshed budget items:", data);
@@ -832,13 +832,13 @@ export function UnifiedBudgetManager({
               0
             );
             
-            // Verify allocation doesn't exceed the client-specific budget
-            const clientBudget = getClientBudget();
-            if (totalAllocated > clientBudget) {
-              console.error(`Budget validation failed! Total allocation ${totalAllocated} exceeds budget ${clientBudget}.`);
+            // Verify allocation doesn't exceed the patient-specific budget
+            const patientBudget = getPatientBudget();
+            if (totalAllocated > patientBudget) {
+              console.error(`Budget validation failed! Total allocation ${totalAllocated} exceeds budget ${patientBudget}.`);
               toast({
                 title: "Budget Error",
-                description: `The total allocation exceeds the available budget of ${formatCurrency(clientBudget)}. Some items may not be saved.`,
+                description: `The total allocation exceeds the available budget of ${formatCurrency(patientBudget)}. Some items may not be saved.`,
                 variant: "destructive"
               });
             }
@@ -862,7 +862,7 @@ export function UnifiedBudgetManager({
                   total: Number(item.quantity) * Number(item.unitPrice),
                   name: item.name || "",
                   category: item.category || "Other",
-                  clientId: item.clientId,
+                  patientId: item.patientId,
                   budgetSettingsId: item.budgetSettingsId,
                   isNew: false
                 });
@@ -930,13 +930,13 @@ export function UnifiedBudgetManager({
       0
     );
     
-    // Strict budget enforcement with client-specific budget
-    const clientBudget = getClientBudget();
-    if (totalAllocated > clientBudget) {
-      console.error(`Budget validation failed before submission! Total allocation ${totalAllocated} exceeds budget ${clientBudget}.`);
+    // Strict budget enforcement with patient-specific budget
+    const patientBudget = getPatientBudget();
+    if (totalAllocated > patientBudget) {
+      console.error(`Budget validation failed before submission! Total allocation ${totalAllocated} exceeds budget ${patientBudget}.`);
       toast({
         title: "Budget Limit Exceeded",
-        description: `Your total allocation exceeds the available budget of ${formatCurrency(clientBudget)}. Please reduce quantities or remove items.`,
+        description: `Your total allocation exceeds the available budget of ${formatCurrency(patientBudget)}. Please reduce quantities or remove items.`,
         variant: "destructive"
       });
       return; // Prevent submission
@@ -1027,7 +1027,7 @@ export function UnifiedBudgetManager({
         <CardContent>
           <Alert>
             <AlertDescription>
-              There are no budget plans created for this client. 
+              There are no budget plans created for this patient. 
               Please create a new budget plan to manage budget items.
             </AlertDescription>
           </Alert>
@@ -1052,7 +1052,7 @@ export function UnifiedBudgetManager({
           {getPlanDisplayName(activePlan)}
         </CardTitle>
         <CardDescription>
-          Total Budget: {formatCurrency(getClientBudget())}
+          Total Budget: {formatCurrency(getPatientBudget())}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -1060,9 +1060,9 @@ export function UnifiedBudgetManager({
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             {/* Budget Validation */}
             <BudgetValidation 
-              totalBudget={getClientBudget()} // Use client-specific budget from active plan
+              totalBudget={getPatientBudget()} // Use patient-specific budget from active plan
               totalAllocated={form.watch("totalAllocated") || 0}
-              remainingBudget={form.watch("remainingBudget") || (getClientBudget() - (form.watch("totalAllocated") || 0))} // Use form's remaining budget value
+              remainingBudget={form.watch("remainingBudget") || (getPatientBudget() - (form.watch("totalAllocated") || 0))} // Use form's remaining budget value
               originalAllocated={calculateBudgetUsage()} // Pass the actual usage amount from API data
             />
             
@@ -1117,7 +1117,7 @@ export function UnifiedBudgetManager({
                 <BudgetCatalogSelector 
                   catalogItems={catalogQuery.data || []}
                   onAddItem={handleAddCatalogItem}
-                  remainingBudget={getClientBudget() - (form.watch("totalAllocated") || 0)} // Calculate remaining allocation based on client budget
+                  remainingBudget={getPatientBudget() - (form.watch("totalAllocated") || 0)} // Calculate remaining allocation based on patient budget
                   activePlan={activePlan}
                   currentItems={form.getValues().items} // Pass current items to filter them out
                 />
@@ -1159,7 +1159,7 @@ export function UnifiedBudgetManager({
                     <p>Item Count: {items.length}</p>
                     <p>New Items: {items.filter(item => item.isNew).length}</p>
                     <p>Total Allocated: {formatCurrency(form.watch("totalAllocated") || 0)}</p>
-                    <p>Initial Budget Items Total: {formatCurrency(getClientBudget())}</p>
+                    <p>Initial Budget Items Total: {formatCurrency(getPatientBudget())}</p>
                     <p>Budget Items Count: {budgetItems.length}</p>
                     <p>Budget Items Details: {budgetItems.map(item => 
                       `${item.quantity}x${item.unitPrice}`).join(', ')}</p>
@@ -1208,13 +1208,13 @@ export function UnifiedBudgetManager({
                     0
                   );
                   
-                  // Strict budget enforcement with client-specific budget
-                  const clientBudget = getClientBudget();
-                  if (totalAllocated > clientBudget) {
-                    console.error(`Budget validation failed before submission! Total allocation ${totalAllocated} exceeds budget ${clientBudget}.`);
+                  // Strict budget enforcement with patient-specific budget
+                  const patientBudget = getPatientBudget();
+                  if (totalAllocated > patientBudget) {
+                    console.error(`Budget validation failed before submission! Total allocation ${totalAllocated} exceeds budget ${patientBudget}.`);
                     toast({
                       title: "Budget Limit Exceeded",
-                      description: `Your total allocation exceeds the available budget of ${formatCurrency(clientBudget)}. Please reduce quantities or remove items.`,
+                      description: `Your total allocation exceeds the available budget of ${formatCurrency(patientBudget)}. Please reduce quantities or remove items.`,
                       variant: "destructive"
                     });
                     return; // Prevent submission

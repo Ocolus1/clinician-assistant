@@ -7,14 +7,14 @@ import { UnifiedBudgetManager } from "./UnifiedBudgetManager";
 import { BudgetSettings, BudgetItem } from "@shared/schema";
 
 interface BudgetPlanViewProps {
-  clientId: number;
+  patientId: number;
   budgetItems: BudgetItem[];
   budgetSettings?: BudgetSettings;
   allBudgetSettings: BudgetSettings[];
 }
 
 export function BudgetPlanView({
-  clientId,
+  patientId,
   budgetItems,
   budgetSettings,
   allBudgetSettings
@@ -34,11 +34,11 @@ export function BudgetPlanView({
 
   return (
     <BudgetFeatureProvider 
-      clientId={clientId}
+      patientId={patientId}
       initialItems={budgetItems}
       initialPlan={budgetSettings ? {
         id: budgetSettings.id,
-        clientId: budgetSettings.clientId,
+        patientId: budgetSettings.patientId,
         planSerialNumber: budgetSettings.planSerialNumber,
         planCode: budgetSettings.planCode,
         isActive: true,
@@ -55,7 +55,7 @@ export function BudgetPlanView({
             Back to Budget Plans
           </Button>
           <UnifiedBudgetManager 
-            clientId={clientId} 
+            patientId={patientId} 
             budgetItems={budgetItems}
             budgetSettings={budgetSettings}
             allBudgetSettings={allBudgetSettings}
@@ -64,7 +64,7 @@ export function BudgetPlanView({
         </div>
       ) : (
         <EnhancedBudgetCardGrid 
-          clientId={clientId}
+          patientId={patientId}
           onPlanSelected={handlePlanSelected}
         />
       )}
