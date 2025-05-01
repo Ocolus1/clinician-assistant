@@ -4,7 +4,7 @@ import { apiRequest } from '@/lib/queryClient';
 // Types for budget items and calculations
 export interface BudgetItem {
   id: number;
-  clientId: number;
+  patientId: number;
   budgetSettingsId: number;
   itemCode: string;
   name: string | null;
@@ -20,7 +20,7 @@ export interface BudgetItem {
 
 export interface BudgetSettings {
   id: number;
-  clientId: number;
+  patientId: number;
   planName?: string;
   planCode: string | null;
   planSerialNumber: string;
@@ -42,7 +42,7 @@ export interface SpendingEvent {
 
 export interface SessionWithProducts {
   id: number;
-  clientId: number;
+  patientId: number;
   sessionDate: string; // API returns sessionDate, not date
   therapistId: number;
   title?: string;
@@ -93,19 +93,30 @@ export interface BudgetSummary {
   projectedRemainingBudget: number;
 }
 
+export const fetchPatientSessions = async (patientId: number): Promise<SessionWithProducts[]> => {
+  try {
+    const response = await apiRequest('GET', `/api/patients/${patientId}/sessions-with-products`);
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error fetching patient sessions:', error);
+    return [];
+  }
+};
+
 export const budgetUtilizationService = {
   /**
-   * Fetch budget utilization data for a client
-   * @param clientId The client ID to fetch data for
+   * Fetch budget utilization data for a patient
+   * @param patientId The patient ID to fetch data for
    * @returns A summary of budget utilization
    */
-  async getBudgetSummary(clientId: number): Promise<BudgetSummary | null> {
+  async getBudgetSummary(patientId: number): Promise<BudgetSummary | null> {
     try {
       // Fetch the required data
       const [budgetItems, budgetSettings, sessions] = await Promise.all([
-        this.fetchBudgetItems(clientId),
-        this.fetchBudgetSettings(clientId),
-        this.fetchClientSessions(clientId)
+        budgetUtilizationService.fetchBudgetItems(patientId),
+        budgetUtilizationService.fetchBudgetSettings(patientId),
+        budgetUtilizationService.fetchPatientSessions(patientId)
       ]);
       
       if (!budgetSettings || !budgetItems || budgetItems.length === 0) {
@@ -114,131 +125,75 @@ export const budgetUtilizationService = {
       }
       
       // Calculate the spending events from sessions
-      const spendingEvents = this.calculateSpendingEvents(sessions, budgetItems);
+      const spendingEvents = budgetUtilizationService.calculateSpendingEvents(sessions, budgetItems);
       
       // Calculate the total budget from budget items
       // This ensures we're only counting budget items in the active plan
       let totalBudget = 0;
       
       // Always calculate from active budget items to ensure accuracy
-      totalBudget = this.calculateTotalBudget(budgetItems);
+      totalBudget = budgetUtilizationService.calculateTotalBudget(budgetItems);
       
       // Calculate the used budget
-      const usedBudget = this.calculateUsedBudget(budgetItems);
+      const usedBudget = budgetUtilizationService.calculateUsedBudget(budgetItems);
       
       // Calculate the remaining budget
       const remainingBudget = totalBudget - usedBudget;
       
-      // Calculate utilization percentage
-      const utilizationPercentage = (usedBudget / totalBudget) * 100;
+      // Calculate the utilization percentage
+      const utilizationPercentage = totalBudget > 0 ? (usedBudget / totalBudget) * 100 : 0;
       
-      // Parse dates with safe fallbacks
-      let startDate = budgetSettings.startDate || budgetSettings.createdAt;
-      let endDate = budgetSettings.endDate || budgetSettings.endOfPlan;
+      // Get the start and end dates
+      const startDate = budgetSettings.startDate || budgetSettings.createdAt;
+      const endDate = budgetSettings.endDate || budgetSettings.endOfPlan || '';
       
-      // Ensure we have valid dates
-      if (!startDate) {
-        console.warn("No start date found in budget settings, using today");
-        startDate = format(new Date(), 'yyyy-MM-dd');
-      }
+      // Calculate the total days in the plan
+      const totalDays = endDate ? differenceInDays(parseISO(endDate), parseISO(startDate)) : 0;
       
-      if (!endDate) {
-        console.warn("No end date found in budget settings, using 6 months from start");
-        // Default to 6 months from start date
-        const tempStartDate = parseISO(startDate);
-        endDate = format(addMonths(tempStartDate, 6), 'yyyy-MM-dd');
-      }
-      
-      // Add logging for debugging
-      console.log("Using dates for budget calculations:", { 
-        startDate, 
-        endDate, 
-        originalData: budgetSettings 
-      });
-      
-      // Calculate days
+      // Calculate the days elapsed
       const today = new Date();
-      const startDateObj = parseISO(startDate);
-      const endDateObj = parseISO(endDate);
+      const daysElapsed = differenceInDays(today, parseISO(startDate));
       
-      const totalDays = differenceInDays(endDateObj, startDateObj);
-      const daysElapsed = Math.min(
-        differenceInDays(today, startDateObj),
-        totalDays
-      );
-      const remainingDays = Math.max(0, totalDays - daysElapsed);
+      // Calculate the remaining days
+      const remainingDays = endDate ? Math.max(0, differenceInDays(parseISO(endDate), today)) : 0;
       
-      // Daily budget calculation (with safety check)
-      const totalDaysSafe = totalDays > 0 ? totalDays : 180; // Default to 6 months if calculation is wrong
-      const dailyBudget = totalBudget / totalDaysSafe;
+      // Calculate the daily budget
+      const dailyBudget = totalDays > 0 ? totalBudget / totalDays : 0;
       
-      // Current spending rate (based on actual usage)
+      // Calculate the daily spend rate
       const dailySpendRate = daysElapsed > 0 ? usedBudget / daysElapsed : 0;
       
-      // Add safeguards for projection calculations
-      let projectedEndDate = null;
-      let projectedOverspend = null;
+      // Calculate the projected end date
+      let projectedEndDate: string | null = null;
+      let projectedOverspend: number | null = null;
+      let projectedRemainingBudget = remainingBudget;
       
-      try {
-        // Projection calculations - with safety limits
-        if (dailySpendRate > 0 && remainingBudget > 0) {
-          // Limit daysUntilDepletion to a reasonable number
-          const daysUntilDepletion = Math.min(
-            Math.floor(remainingBudget / dailySpendRate),
-            365 // Cap at 1 year to prevent unreasonable projections
-          );
-          
-          // Calculate projected end date
-          const projectedEndDateObj = addDays(today, daysUntilDepletion);
-          
-          // Only set if date is before the plan end date
-          if (isBefore(projectedEndDateObj, endDateObj)) {
-            projectedEndDate = format(projectedEndDateObj, 'yyyy-MM-dd');
-          }
-        }
+      if (dailySpendRate > 0 && remainingBudget > 0) {
+        const daysRemaining = remainingBudget / dailySpendRate;
+        const projectedEndDateObj = addDays(today, daysRemaining);
+        projectedEndDate = projectedEndDateObj.toISOString();
         
-        // Calculate projected overspend if spending rate exceeds budget rate
-        if (dailySpendRate > dailyBudget) {
-          const projectedTotalSpend = usedBudget + (dailySpendRate * remainingDays);
-          if (projectedTotalSpend > totalBudget) {
-            projectedOverspend = projectedTotalSpend - totalBudget;
-          }
+        // Calculate projected overspend if we're spending too fast
+        if (dailySpendRate > dailyBudget && endDate) {
+          const daysToEnd = differenceInDays(parseISO(endDate), today);
+          const projectedAdditionalSpend = dailySpendRate * daysToEnd;
+          projectedOverspend = Math.max(0, projectedAdditionalSpend - remainingBudget);
+          projectedRemainingBudget = remainingBudget - projectedAdditionalSpend;
         }
-      } catch (error) {
-        console.error("Error in projection calculations:", error);
-        // Set safe defaults if calculations fail
-        projectedEndDate = null;
-        projectedOverspend = null;
       }
       
-      // Get a meaningful plan name from available data
-      const planPeriodName = budgetSettings.planName || 
-                             budgetSettings.planSerialNumber || 
-                             `Plan from ${format(startDateObj, 'MMM yyyy')}`;
-      
       // Calculate monthly spending data for visualization
-      const monthlySpending = this.calculateMonthlySpending(
+      const monthlySpending = budgetUtilizationService.calculateMonthlySpending(
         spendingEvents,
         startDate,
-        endDate,
+        endDate || addMonths(parseISO(startDate), 12).toISOString(), // Default to 12 months if no end date
         totalBudget
       );
       
-      // Calculate the projected remaining budget at the end of the plan
-      const projectedRemainingBudget = (() => {
-        // If we have no monthly data or projections, just return the current remaining budget
-        if (!monthlySpending.length) return remainingBudget;
-        
-        // Get the last month's cumulative projected spending
-        const lastMonth = monthlySpending[monthlySpending.length - 1];
-        if (lastMonth.cumulativeProjected !== null) {
-          // Return the difference between total budget and projected total spending
-          return Math.max(0, totalBudget - lastMonth.cumulativeProjected);
-        }
-        
-        // If no projection available, return current remaining budget
-        return remainingBudget;
-      })();
+      // Format the plan period name
+      const planPeriodName = `${format(parseISO(startDate), 'MMM d, yyyy')} - ${
+        endDate ? format(parseISO(endDate), 'MMM d, yyyy') : 'Ongoing'
+      }`;
       
       return {
         totalBudget,
@@ -261,19 +216,20 @@ export const budgetUtilizationService = {
         projectedRemainingBudget
       };
     } catch (error) {
-      console.error('Error getting budget summary:', error);
+      console.error('Error calculating budget summary:', error);
       return null;
     }
   },
   
   /**
-   * Fetch budget items for a client
-   * @param clientId The client ID to fetch budget items for
+   * Fetch budget items for a patient
+   * @param patientId The patient ID to fetch budget items for
    * @returns An array of budget items
    */
-  async fetchBudgetItems(clientId: number): Promise<BudgetItem[]> {
+  async fetchBudgetItems(patientId: number): Promise<BudgetItem[]> {
     try {
-      return await apiRequest<BudgetItem[]>('GET', `/api/clients/${clientId}/budget-items`);
+      const response = await apiRequest('GET', `/api/patients/${patientId}/budget-items`);
+      return response;
     } catch (error) {
       console.error('Error fetching budget items:', error);
       return [];
@@ -281,13 +237,14 @@ export const budgetUtilizationService = {
   },
   
   /**
-   * Fetch active budget settings for a client
-   * @param clientId The client ID to fetch budget settings for
+   * Fetch active budget settings for a patient
+   * @param patientId The patient ID to fetch budget settings for
    * @returns The active budget settings or null if none found
    */
-  async fetchBudgetSettings(clientId: number): Promise<BudgetSettings | null> {
+  async fetchBudgetSettings(patientId: number): Promise<BudgetSettings | null> {
     try {
-      return await apiRequest<BudgetSettings>('GET', `/api/clients/${clientId}/budget-settings`);
+      const response = await apiRequest('GET', `/api/patients/${patientId}/budget-settings`);
+      return response;
     } catch (error) {
       console.error('Error fetching budget settings:', error);
       return null;
@@ -295,15 +252,16 @@ export const budgetUtilizationService = {
   },
   
   /**
-   * Fetch sessions with product usage for a client
-   * @param clientId The client ID to fetch sessions for
+   * Fetch sessions with product usage for a patient
+   * @param patientId The patient ID to fetch sessions for
    * @returns An array of sessions with product usage data
    */
-  async fetchClientSessions(clientId: number): Promise<SessionWithProducts[]> {
+  async fetchPatientSessions(patientId: number): Promise<SessionWithProducts[]> {
     try {
-      return await apiRequest<SessionWithProducts[]>('GET', `/api/clients/${clientId}/sessions`);
+      const response = await apiRequest('GET', `/api/patients/${patientId}/sessions-with-products`);
+      return response;
     } catch (error) {
-      console.error('Error fetching client sessions:', error);
+      console.error('Error fetching patient sessions:', error);
       return [];
     }
   },
@@ -328,7 +286,7 @@ export const budgetUtilizationService = {
   calculateUsedBudget(budgetItems: BudgetItem[]): number {
     return budgetItems.reduce((total, item) => {
       const unitPrice = parseFloat(item.unitPrice);
-      return total + (unitPrice * item.usedQuantity);
+      return total + (unitPrice * (item.usedQuantity || 0));
     }, 0);
   },
   
@@ -339,64 +297,51 @@ export const budgetUtilizationService = {
    * @returns Array of spending events
    */
   calculateSpendingEvents(sessions: SessionWithProducts[], budgetItems: BudgetItem[]): SpendingEvent[] {
-    // Create a map of product codes to budget items for quick lookup
-    const budgetItemMap = new Map<string, BudgetItem>();
-    console.log('Budget items count:', budgetItems.length);
+    const events: SpendingEvent[] = [];
     
+    // Create a map of budget items for quick lookup
+    const budgetItemMap = new Map<string, BudgetItem>();
     budgetItems.forEach(item => {
-      console.log('Adding budget item to map:', item.itemCode, item.description, 'price:', item.unitPrice);
       budgetItemMap.set(item.itemCode, item);
     });
     
-    // Convert sessions to spending events
-    const events: SpendingEvent[] = [];
-    console.log('Processing sessions count:', sessions.length);
-    
     sessions.forEach(session => {
-      console.log('Session:', session.id, 'date:', session.sessionDate, 'has note:', !!session.note);
-      
       // Skip sessions without notes or products
       if (!session.note || !session.note.products || session.note.products.length === 0) {
-        console.log('Session has no products, skipping');
         return;
       }
       
-      console.log('Session products count:', session.note.products.length);
-      
-      // Process each product used in the session
+      // Process each product in the session
       session.note.products.forEach(product => {
-        console.log('Processing product:', product.productCode, 'quantity:', product.quantity);
-        
-        const budgetItem = budgetItemMap.get(product.productCode);
-        if (!budgetItem) {
-          console.log('No matching budget item found for product code:', product.productCode);
+        // Skip products without a code or quantity
+        if (!product.productCode || !product.quantity) {
           return;
         }
         
-        // Convert unitPrice to number if it's a string
-        const unitPrice = typeof product.unitPrice === 'number' 
-          ? product.unitPrice 
-          : parseFloat(budgetItem.unitPrice);
-          
+        // Find the matching budget item
+        const budgetItem = budgetItemMap.get(product.productCode);
+        
+        // Skip if no matching budget item is found
+        if (!budgetItem) {
+          console.warn(`No matching budget item found for product code: ${product.productCode}`);
+          return;
+        }
+        
+        // Calculate the amount for this product usage
+        const unitPrice = product.unitPrice || parseFloat(budgetItem.unitPrice);
         const amount = unitPrice * product.quantity;
         
-        console.log('Adding spending event for', product.productCode, 'amount:', amount, 'date:', session.sessionDate);
-        
+        // Add a spending event
         events.push({
           date: session.sessionDate,
           amount,
-          description: `Session on ${format(parseISO(session.sessionDate), 'MMM d, yyyy')}`,
-          itemName: product.productDescription || budgetItem.description || product.productCode
+          description: product.productDescription || budgetItem.description,
+          itemName: budgetItem.name || product.productCode
         });
       });
     });
     
-    console.log('Total spending events generated:', events.length);
-    
-    // Sort by date (most recent first)
-    return events.sort((a, b) => {
-      return isBefore(parseISO(a.date), parseISO(b.date)) ? 1 : -1;
-    });
+    return events;
   },
   
   /**
@@ -414,32 +359,27 @@ export const budgetUtilizationService = {
     totalBudget: number
   ): MonthlySpending[] {
     try {
-      console.log('Calculating daily spending with', spendingEvents.length, 'spending events');
-      console.log('Date range:', startDate, 'to', endDate);
-      console.log('Total budget:', totalBudget);
-      
-      if (spendingEvents.length > 0) {
-        console.log('First spending event:', spendingEvents[0]);
-        console.log('Last spending event:', spendingEvents[spendingEvents.length - 1]);
-      }
-
-      const today = new Date();
+      // Parse the start and end dates
       const startDateObj = parseISO(startDate);
       const endDateObj = parseISO(endDate);
       
-      // Generate daily data points from start to end date
+      // Create an array of daily data points
       const dailyData: MonthlySpending[] = [];
+      
+      // Get today's date for determining projected vs. actual data
+      const today = new Date();
+      today.setHours(0, 0, 0, 0); // Normalize to start of day
+      
+      // Initialize the current date to the start date
       let currentDate = startDateObj;
       
-      // Generate a data point for each day
+      // Loop through each day from start to end
       while (isBefore(currentDate, endDateObj) || isSameDay(currentDate, endDateObj)) {
-        // Format the month label for grouping (e.g., "Jan 2023")
+        // Format the date for display and reference
         const monthLabel = format(currentDate, 'MMM yyyy');
-        
-        // Format the exact date for precise data points
         const exactDate = format(currentDate, 'yyyy-MM-dd');
         
-        // Determine if this date is in the future (for projection)
+        // Determine if this date is in the future (projected)
         const isDateProjected = isAfter(currentDate, today);
         
         // Add a new data point for this day

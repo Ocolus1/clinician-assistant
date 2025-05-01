@@ -5,14 +5,14 @@
  * useful for generating intelligent responses in the agent system.
  */
 import { apiRequest } from '../../lib/queryClient';
-import { 
+import type { 
   BudgetSettings, 
   BudgetItem, 
   Goal,
   Subgoal,
   Strategy,
   Session
-} from '../../../shared/schema';
+} from '@shared/schema';
 import { formatCurrency } from '../../lib/utils';
 
 /**
@@ -262,7 +262,7 @@ export const knowledgeService = {
    */
   async calculateLocalBudgetStats(budgetItems: BudgetItem[], budgetSettings: BudgetSettings[]): Promise<BudgetKnowledge> {
     // Get categories from budget items
-    const categories = [...new Set(budgetItems.map(item => item.category))];
+    const categories = Array.from(new Set(budgetItems.map(item => item.category || 'Uncategorized')));
     
     // Calculate average allocation by category
     const allocations: Record<string, number[]> = {};
@@ -271,9 +271,10 @@ export const knowledgeService = {
     });
     
     budgetItems.forEach(item => {
-      if (item.category && item.quantity && item.unitPrice) {
+      if (item.quantity && item.unitPrice) {
         const amount = item.quantity * item.unitPrice;
-        allocations[item.category].push(amount);
+        const category = item.category || 'Uncategorized';
+        allocations[category].push(amount);
       }
     });
     
@@ -288,13 +289,13 @@ export const knowledgeService = {
     });
     
     // Calculate average budget size
-    const budgetSizes = budgetSettings.map(bs => bs.ndisfunds || 0);
+    const budgetSizes = budgetSettings.map(bs => bs.ndisFunds || 0);
     const avgBudgetSize = budgetSizes.length > 0 
       ? budgetSizes.reduce((acc, val) => acc + val, 0) / budgetSizes.length 
       : 0;
     
     // Determine top funding sources
-    const fundingSources = budgetSettings.map(bs => bs.fundsManagement).filter(Boolean) as string[];
+    const fundingSources = budgetSettings.map(bs => bs.planCode).filter(Boolean) as string[];
     const sourceCount: Record<string, number> = {};
     fundingSources.forEach(source => {
       sourceCount[source] = (sourceCount[source] || 0) + 1;
@@ -325,7 +326,7 @@ export const knowledgeService = {
    */
   async calculateLocalProgressStats(goals: Goal[], subgoals: Subgoal[], sessions: Session[]): Promise<ProgressKnowledge> {
     // Calculate average goals per patient
-    const patientIds = [...new Set(goals.map(goal => goal.patientId))];
+    const patientIds = Array.from(new Set(goals.map(goal => goal.patientId)));
     const avgGoalsPerPatient = patientIds.length > 0 
       ? goals.length / patientIds.length 
       : 0;
@@ -341,8 +342,8 @@ export const knowledgeService = {
       ? subgoalCounts.reduce((acc, val) => acc + val, 0) / subgoalCounts.length
       : 0;
     
-    // Extract goal categories
-    const goalCategories = goals.map(goal => goal.category).filter(Boolean) as string[];
+    // Extract goal categories (using importanceLevel as a substitute for category)
+    const goalCategories = goals.map(goal => goal.importanceLevel).filter(Boolean) as string[];
     const categoryCount: Record<string, number> = {};
     goalCategories.forEach(category => {
       categoryCount[category] = (categoryCount[category] || 0) + 1;
@@ -377,7 +378,7 @@ export const knowledgeService = {
    */
   async calculateLocalStrategyStats(strategies: Strategy[]): Promise<StrategyKnowledge> {
     // Extract strategy categories
-    const categories = [...new Set(strategies.map(s => s.category))];
+    const categories = Array.from(new Set(strategies.map(s => s.category)));
     
     // Count strategies by category
     const strategyCount: Record<string, number> = {};

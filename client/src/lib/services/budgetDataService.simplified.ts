@@ -8,12 +8,12 @@ import { BudgetItem, BudgetSettings, Session } from '@shared/schema';
 
 export const simplifiedBudgetService = {
   /**
-   * Fetch budget settings for a client
+   * Fetch budget settings for a patient
    */
-  async fetchBudgetSettings(clientId: number): Promise<BudgetSettings | null> {
+  async fetchBudgetSettings(patientId: number): Promise<BudgetSettings | null> {
     try {
-      console.log(`Fetching budget settings for client ${clientId}`);
-      const response = await fetch(`/api/clients/${clientId}/budget-settings`);
+      console.log(`Fetching budget settings for patient ${patientId}`);
+      const response = await fetch(`/api/patients/${patientId}/budget-settings`);
       
       if (!response.ok) {
         console.error(`Error fetching budget settings: ${response.status} ${response.statusText}`);
@@ -30,12 +30,12 @@ export const simplifiedBudgetService = {
   },
 
   /**
-   * Fetch all budget settings for a client
+   * Fetch all budget settings for a patient
    */
-  async fetchAllBudgetSettings(clientId: number): Promise<BudgetSettings[]> {
+  async fetchAllBudgetSettings(patientId: number): Promise<BudgetSettings[]> {
     try {
-      console.log(`Fetching all budget settings for client ${clientId}`);
-      const response = await fetch(`/api/clients/${clientId}/budget-settings?all=true`);
+      console.log(`Fetching all budget settings for patient ${patientId}`);
+      const response = await fetch(`/api/patients/${patientId}/budget-settings?all=true`);
       
       if (!response.ok) {
         console.error(`Error fetching all budget settings: ${response.status} ${response.statusText}`);
@@ -52,12 +52,12 @@ export const simplifiedBudgetService = {
   },
 
   /**
-   * Fetch budget items for a client
+   * Fetch budget items for a patient
    */
-  async fetchBudgetItems(clientId: number): Promise<BudgetItem[]> {
+  async fetchBudgetItems(patientId: number): Promise<BudgetItem[]> {
     try {
-      console.log(`Fetching budget items for client ${clientId}`);
-      const response = await fetch(`/api/clients/${clientId}/budget-items`);
+      console.log(`Fetching budget items for patient ${patientId}`);
+      const response = await fetch(`/api/patients/${patientId}/budget-items`);
       
       if (!response.ok) {
         console.error(`Error fetching budget items: ${response.status} ${response.statusText}`);
@@ -74,12 +74,12 @@ export const simplifiedBudgetService = {
   },
 
   /**
-   * Fetch sessions for a client
+   * Fetch sessions for a patient
    */
-  async fetchSessions(clientId: number): Promise<Session[]> {
+  async fetchSessions(patientId: number): Promise<Session[]> {
     try {
-      console.log(`Fetching sessions for client ${clientId}`);
-      const response = await fetch(`/api/clients/${clientId}/sessions`);
+      console.log(`Fetching sessions for patient ${patientId}`);
+      const response = await fetch(`/api/patients/${patientId}/sessions`);
       
       if (!response.ok) {
         console.error(`Error fetching sessions: ${response.status} ${response.statusText}`);
@@ -98,19 +98,19 @@ export const simplifiedBudgetService = {
   /**
    * Run all tests in sequence
    */
-  async runTests(clientId: number) {
+  async runTests(patientId: number) {
     console.log('===== Testing Budget API Services =====');
     
-    const settings = await this.fetchBudgetSettings(clientId);
+    const settings = await this.fetchBudgetSettings(patientId);
     console.log('Budget settings test complete');
     
-    const allSettings = await this.fetchAllBudgetSettings(clientId);
+    const allSettings = await this.fetchAllBudgetSettings(patientId);
     console.log(`All budget settings test complete, received ${allSettings.length} settings`);
     
-    const items = await this.fetchBudgetItems(clientId);
+    const items = await this.fetchBudgetItems(patientId);
     console.log(`Budget items test complete, received ${items.length} items`);
     
-    const sessions = await this.fetchSessions(clientId);
+    const sessions = await this.fetchSessions(patientId);
     console.log(`Sessions test complete, received ${sessions.length} sessions`);
     
     console.log('===== All Budget API Tests Complete =====');

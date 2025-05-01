@@ -1,5 +1,5 @@
 import { apiRequest } from '@/lib/queryClient';
-import { Client, Goal, Subgoal, Strategy } from '@shared/schema';
+import { Patient, Goal, Subgoal, Strategy } from '@shared/schema';
 
 /**
  * Service for therapy strategy recommendations with enhanced intelligence
@@ -58,30 +58,30 @@ export const strategyDataService = {
   },
 
   /**
-   * Get recommended strategies for client based on goals, progress, and client attributes
+   * Get recommended strategies for patient based on goals, progress, and patient attributes
    */
-  async getRecommendedStrategiesForClient(clientId: number): Promise<Record<string, Strategy[]>> {
+  async getRecommendedStrategiesForPatient(patientId: number): Promise<Record<string, Strategy[]>> {
     try {
-      // Get the client's goals
-      const goalsResponse = await apiRequest('GET', `/api/goals/client/${clientId}`);
+      // Get the patient's goals
+      const goalsResponse = await apiRequest('GET', `/api/goals/patient/${patientId}`);
       const goals = goalsResponse as unknown as Goal[];
       
       if (!goals || goals.length === 0) return {};
       
-      // Get client data for personalization
-      let client = null;
+      // Get patient data for personalization
+      let patient = null;
       try {
-        const clientResponse = await apiRequest('GET', `/api/clients/${clientId}`);
-        client = clientResponse as unknown as Client;
+        const patientResponse = await apiRequest('GET', `/api/patients/${patientId}`);
+        patient = patientResponse as unknown as Patient;
       } catch (error) {
-        console.warn('Client data not available for personalization, proceeding with basic recommendations');
+        console.warn('Patient data not available for personalization, proceeding with basic recommendations');
       }
       
       // Get progress data if available to identify areas needing focus
       let progressData = null;
       try {
         // Try to fetch progress data if available
-        const progressResponse = await apiRequest('GET', `/api/clients/${clientId}/progress`);
+        const progressResponse = await apiRequest('GET', `/api/patients/${patientId}/progress`);
         progressData = progressResponse;
       } catch (error) {
         // Continue without progress data
@@ -110,63 +110,68 @@ export const strategyDataService = {
           }
         }
         
-        // If we have client data, personalize strategies
-        if (client) {
-          strategies = this.personalizeStrategiesForClient(strategies, client);
+        // Personalize strategies based on patient attributes if available
+        if (patient) {
+          strategies = this.personalizeStrategiesForPatient(strategies, patient);
         }
         
-        recommendationsByGoal[goal.title] = strategies.slice(0, 5); // Top 5 strategies per goal
+        recommendationsByGoal[goal.title] = strategies.slice(0, 5); // Limit to top 5 strategies per goal
       }
       
-      // Add general recommendations if we have strategies
+      // Add general recommendations
       const generalStrategies = await this.getGeneralRecommendations();
-      if (generalStrategies.length > 0) {
-        recommendationsByGoal['General Approaches'] = generalStrategies.slice(0, 3);
-      }
+      recommendationsByGoal['General Recommendations'] = generalStrategies;
       
       return recommendationsByGoal;
     } catch (error) {
-      console.error(`Error getting recommendations for client ${clientId}:`, error);
+      console.error(`Error getting recommended strategies for patient ${patientId}:`, error);
       return {};
     }
   },
-  
+
   /**
    * Get general recommendation strategies applicable across goals
    */
   async getGeneralRecommendations(): Promise<Strategy[]> {
     try {
-      // Get all strategies
-      const allStrategies = await this.getAllStrategies();
+      // Get general strategies from a specific category
+      const generalStrategies = await this.getStrategiesByCategory('general');
       
-      // Filter to strategies marked as general or foundational
-      return allStrategies.filter(strategy => 
-        strategy.category === 'General' || 
-        strategy.category === 'Foundational' ||
-        (strategy.description && 
-         (strategy.description.toLowerCase().includes('general approach') ||
-          strategy.description.toLowerCase().includes('widely applicable'))));
+      // If no general category exists, get a subset of strategies from all categories
+      if (!generalStrategies || generalStrategies.length === 0) {
+        const allStrategies = await this.getAllStrategies();
+        
+        // Filter for strategies that mention being broadly applicable
+        return allStrategies.filter(strategy => {
+          const text = `${strategy.name} ${strategy.description}`.toLowerCase();
+          return text.includes('general') || 
+                 text.includes('broad') || 
+                 text.includes('universal') ||
+                 text.includes('fundamental');
+        });
+      }
+      
+      return generalStrategies;
     } catch (error) {
       console.error('Error getting general recommendations:', error);
       return [];
     }
   },
-  
+
   /**
    * Prioritize foundational strategies for early-stage goals
    */
   prioritizeFoundationalStrategies(strategies: Strategy[]): Strategy[] {
     // Create a scoring function that favors foundational strategies
     const isFoundational = (strategy: Strategy): boolean => {
-      if (strategy.category === 'Foundational' || strategy.category === 'Basic') return true;
-      if (!strategy.description) return false;
-      
-      const desc = strategy.description.toLowerCase();
-      return desc.includes('basic') || 
-             desc.includes('foundational') || 
-             desc.includes('beginner') ||
-             desc.includes('initial') ||
-             desc.includes('first step');
+      const text = `${strategy.name} ${strategy.description} ${strategy.category}`.toLowerCase();
+      return text.includes('basic') || 
+             text.includes('foundation') || 
+             text.includes('fundamental') ||
+             text.includes('beginner') ||
+             text.includes('initial') ||
+             text.includes('introductory') ||
+             text.includes('early stage');
     };
     
     // Sort strategies with foundational ones first
@@ -179,22 +184,21 @@ export const strategyDataService = {
       return 0;
     });
   },
-  
+
   /**
    * Prioritize advanced strategies for late-stage goals
    */
   prioritizeAdvancedStrategies(strategies: Strategy[]): Strategy[] {
     // Create a scoring function that favors advanced strategies
     const isAdvanced = (strategy: Strategy): boolean => {
-      if (strategy.category === 'Advanced' || strategy.category === 'Expert') return true;
-      if (!strategy.description) return false;
-      
-      const desc = strategy.description.toLowerCase();
-      return desc.includes('advanced') || 
-             desc.includes('expert') || 
-             desc.includes('sophisticated') ||
-             desc.includes('complex') ||
-             desc.includes('next step');
+      const text = `${strategy.name} ${strategy.description} ${strategy.category}`.toLowerCase();
+      return text.includes('advanced') || 
+             text.includes('complex') || 
+             text.includes('sophisticated') ||
+             text.includes('expert') ||
+             text.includes('mastery') ||
+             text.includes('high level') ||
+             text.includes('late stage');
     };
     
     // Sort strategies with advanced ones first
@@ -207,56 +211,55 @@ export const strategyDataService = {
       return 0;
     });
   },
-  
+
   /**
-   * Personalize strategies based on client attributes
+   * Personalize strategies based on patient attributes
    */
-  personalizeStrategiesForClient(strategies: Strategy[], client: Client): Strategy[] {
-    // If no client data, return original strategies
-    if (!client) return strategies;
+  personalizeStrategiesForPatient(strategies: Strategy[], patient: Patient): Strategy[] {
+    if (!patient) return strategies;
     
-    // Calculate client age for age-appropriate strategies
-    const age = this.calculateAge(client.dateOfBirth);
+    // Calculate patient age for age-appropriate strategies
+    const age = this.calculateAge(patient.dateOfBirth);
     
-    // Create a scoring function based on client attributes
+    // Create a scoring function based on patient attributes
     const getRelevanceScore = (strategy: Strategy): number => {
       let score = 0;
       
-      // Age-appropriate strategies
+      // Age-appropriate matching
       if (age !== null) {
         if (age < 5 && this.isEarlyChildhoodStrategy(strategy)) score += 3;
-        if (age >= 5 && age < 12 && this.isChildStrategy(strategy)) score += 3;
-        if (age >= 12 && age < 18 && this.isAdolescentStrategy(strategy)) score += 3;
-        if (age >= 18 && this.isAdultStrategy(strategy)) score += 3;
+        else if (age >= 5 && age < 13 && this.isChildStrategy(strategy)) score += 3;
+        else if (age >= 13 && age < 18 && this.isAdolescentStrategy(strategy)) score += 3;
+        else if (age >= 18 && this.isAdultStrategy(strategy)) score += 3;
       }
       
-      // Consider language preferences if available
-      if (client.preferredLanguage && strategy.description) {
-        if (strategy.description.toLowerCase().includes(client.preferredLanguage.toLowerCase())) {
-          score += 2;
-        }
+      // Add additional personalization factors based on patient attributes
+      // This is a simplified example - in a real system, this would be more sophisticated
+      const strategyText = `${strategy.name} ${strategy.description}`.toLowerCase();
+      
+      // Check for specific condition matches if diagnoses exist
+      // Safely check if diagnoses property exists and is an array
+      if (patient && 'diagnoses' in patient && Array.isArray((patient as any).diagnoses)) {
+        ((patient as any).diagnoses as string[]).forEach((diagnosis: string) => {
+          if (strategyText.includes(diagnosis.toLowerCase())) {
+            score += 5; // High relevance for diagnosis-specific strategies
+          }
+        });
       }
       
       return score;
     };
     
-    // Score each strategy
-    const scoredStrategies = strategies.map(strategy => ({
-      strategy,
-      score: getRelevanceScore(strategy)
-    }));
-    
-    // Sort first by personalization score, then preserve original order where scores are tied
-    scoredStrategies.sort((a, b) => {
-      if (a.score !== b.score) return b.score - a.score;
-      return strategies.indexOf(a.strategy) - strategies.indexOf(b.strategy);
+    // Sort strategies by relevance score
+    return [...strategies].sort((a, b) => {
+      const scoreA = getRelevanceScore(a);
+      const scoreB = getRelevanceScore(b);
+      return scoreB - scoreA; // Higher scores first
     });
-    
-    return scoredStrategies.map(item => item.strategy);
   },
-  
+
   /**
-   * Calculate client age from date of birth
+   * Calculate patient age from date of birth
    */
   calculateAge(dateOfBirth: string | undefined): number | null {
     if (!dateOfBirth) return null;
@@ -265,10 +268,17 @@ export const strategyDataService = {
       const birthDate = new Date(dateOfBirth);
       const today = new Date();
       
-      let age = today.getFullYear() - birthDate.getFullYear();
-      const monthDiff = today.getMonth() - birthDate.getMonth();
+      // Check if date is valid
+      if (isNaN(birthDate.getTime())) {
+        console.warn('Invalid date of birth:', dateOfBirth);
+        return null;
+      }
       
-      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+      let age = today.getFullYear() - birthDate.getFullYear();
+      const monthDifference = today.getMonth() - birthDate.getMonth();
+      
+      // Adjust age if birthday hasn't occurred yet this year
+      if (monthDifference < 0 || (monthDifference === 0 && today.getDate() < birthDate.getDate())) {
         age--;
       }
       
@@ -278,57 +288,45 @@ export const strategyDataService = {
       return null;
     }
   },
-  
+
   /**
    * Check if strategy is appropriate for early childhood
    */
   isEarlyChildhoodStrategy(strategy: Strategy): boolean {
-    if (!strategy.description && !strategy.category) return false;
-    
-    const terms = ['toddler', 'preschool', 'early childhood', 'young child', 'pediatric'];
-    const desc = strategy.description?.toLowerCase() || '';
-    const category = strategy.category?.toLowerCase() || '';
-    
-    return terms.some(term => desc.includes(term) || category.includes(term));
+    const text = `${strategy.name} ${strategy.description} ${strategy.category}`.toLowerCase();
+    return text.includes('early childhood') || 
+           text.includes('toddler') || 
+           text.includes('preschool');
   },
-  
+
   /**
    * Check if strategy is appropriate for school-age children
    */
   isChildStrategy(strategy: Strategy): boolean {
-    if (!strategy.description && !strategy.category) return false;
-    
-    const terms = ['child', 'elementary', 'school-age', 'pediatric'];
-    const desc = strategy.description?.toLowerCase() || '';
-    const category = strategy.category?.toLowerCase() || '';
-    
-    return terms.some(term => desc.includes(term) || category.includes(term));
+    const text = `${strategy.name} ${strategy.description} ${strategy.category}`.toLowerCase();
+    return text.includes('child') || 
+           text.includes('school-age') || 
+           text.includes('elementary');
   },
-  
+
   /**
    * Check if strategy is appropriate for adolescents
    */
   isAdolescentStrategy(strategy: Strategy): boolean {
-    if (!strategy.description && !strategy.category) return false;
-    
-    const terms = ['adolescent', 'teen', 'teenage', 'youth', 'high school'];
-    const desc = strategy.description?.toLowerCase() || '';
-    const category = strategy.category?.toLowerCase() || '';
-    
-    return terms.some(term => desc.includes(term) || category.includes(term));
+    const text = `${strategy.name} ${strategy.description} ${strategy.category}`.toLowerCase();
+    return text.includes('adolescent') || 
+           text.includes('teen') || 
+           text.includes('youth');
   },
-  
+
   /**
    * Check if strategy is appropriate for adults
    */
   isAdultStrategy(strategy: Strategy): boolean {
-    if (!strategy.description && !strategy.category) return false;
-    
-    const terms = ['adult', 'mature', 'elder', 'professional', 'workplace'];
-    const desc = strategy.description?.toLowerCase() || '';
-    const category = strategy.category?.toLowerCase() || '';
-    
-    return terms.some(term => desc.includes(term) || category.includes(term));
+    const text = `${strategy.name} ${strategy.description} ${strategy.category}`.toLowerCase();
+    return text.includes('adult') || 
+           text.includes('mature') || 
+           !text.includes('child');
   },
 
   /**
@@ -336,53 +334,63 @@ export const strategyDataService = {
    * with enhanced therapy domain-specific terms
    */
   extractKeyTerms(goal: Goal, subgoals: Subgoal[] = []): string[] {
+    if (!goal) return [];
+    
     const terms = new Set<string>();
     
-    // Domain-specific important terms for speech therapy context
-    const therapyTerms = [
-      'speech', 'language', 'communication', 'articulation', 'fluency',
-      'stutter', 'phonology', 'vocabulary', 'syntax', 'pragmatic',
-      'motor', 'sensory', 'cognitive', 'social', 'behavioral',
-      'receptive', 'expressive', 'comprehension', 'production',
-      'voice', 'swallow', 'memory', 'attention', 'executive',
-      'literacy', 'reading', 'writing', 'academic',
-      'autism', 'developmental', 'delay', 'disorder', 'impairment'
+    // Extract terms from goal title and description
+    const extractTermsFromText = (text: string | undefined) => {
+      if (!text) return;
+      
+      // Split text into words and clean them
+      const words = text.toLowerCase()
+        .replace(/[^\w\s]/g, ' ') // Replace punctuation with spaces
+        .split(/\s+/) // Split by whitespace
+        .filter(word => word.length > 2); // Filter out very short words
+      
+      // Add individual words
+      words.forEach(word => terms.add(word));
+      
+      // Add adjacent word pairs for context
+      for (let i = 0; i < words.length - 1; i++) {
+        terms.add(`${words[i]} ${words[i + 1]}`);
+      }
+    };
+    
+    // Process goal text
+    extractTermsFromText(goal.title);
+    extractTermsFromText(goal.description);
+    
+    // Process subgoal text
+    subgoals.forEach(subgoal => {
+      extractTermsFromText(subgoal.title);
+      extractTermsFromText(subgoal.description);
+    });
+    
+    // Add therapy domain-specific terms with higher weight
+    const domainTerms = [
+      'speech', 'language', 'motor', 'sensory', 'cognitive',
+      'behavioral', 'social', 'emotional', 'communication',
+      'articulation', 'fluency', 'voice', 'swallowing',
+      'phonological', 'literacy', 'auditory', 'visual',
+      'attention', 'memory', 'executive', 'processing',
+      'autism', 'developmental', 'delay', 'disorder'
     ];
     
-    // Extract terms from goal title and description with domain relevance
-    if (goal.title) {
-      goal.title.toLowerCase().split(/\s+/).forEach(term => {
-        if (term.length > 3 || therapyTerms.includes(term)) {
-          terms.add(term);
-        }
-      });
-    }
-    
-    if (goal.description) {
-      goal.description.toLowerCase().split(/\s+/).forEach(term => {
-        if (term.length > 3 || therapyTerms.includes(term)) {
-          terms.add(term);
-        }
-      });
-    }
-    
-    // Extract terms from subgoals with domain relevance
-    subgoals.forEach(subgoal => {
-      if (subgoal.title) {
-        subgoal.title.toLowerCase().split(/\s+/).forEach(term => {
-          if (term.length > 3 || therapyTerms.includes(term)) {
-            terms.add(term);
-          }
-        });
+    // Check if domain terms are present in the goal or subgoals
+    domainTerms.forEach(term => {
+      const goalText = `${goal.title} ${goal.description}`.toLowerCase();
+      if (goalText.includes(term)) {
+        terms.add(term);
       }
       
-      if (subgoal.description) {
-        subgoal.description.toLowerCase().split(/\s+/).forEach(term => {
-          if (term.length > 3 || therapyTerms.includes(term)) {
-            terms.add(term);
-          }
-        });
-      }
+      // Check in subgoals
+      subgoals.forEach(subgoal => {
+        const subgoalText = `${subgoal.title} ${subgoal.description}`.toLowerCase();
+        if (subgoalText.includes(term)) {
+          terms.add(term);
+        }
+      });
     });
     
     // Extract multi-word therapy terminology

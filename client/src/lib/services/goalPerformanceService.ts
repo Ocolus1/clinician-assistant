@@ -15,10 +15,10 @@ export interface PerformanceDataPoint {
   isCurrentMonth?: boolean;
 }
 
-// Interface for client goals from the API
-interface ClientGoal {
+// Interface for patient goals from the API
+interface PatientGoal {
   id: number;
-  clientId: number;
+  patientId: number;
   title: string;
   description: string;
   status?: string;
@@ -34,16 +34,16 @@ interface Subgoal {
 }
 
 /**
- * Fetch and prepare goal performance data for a specific client
- * Uses real client goals from the API and generates realistic performance data
+ * Fetch and prepare goal performance data for a specific patient
+ * Uses real patient goals from the API and generates realistic performance data
  */
 export async function fetchGoalPerformanceData(
-  clientId: string | number,
+  patientId: string | number,
   budgetStartDate: Date,
   budgetEndDate: Date
 ): Promise<Goal[]> {
   try {
-    console.log(`Fetching goal data for client ${clientId} from ${format(budgetStartDate, 'yyyy-MM-dd')} to ${format(budgetEndDate, 'yyyy-MM-dd')}`);
+    console.log(`Fetching goal data for patient ${patientId} from ${format(budgetStartDate, 'yyyy-MM-dd')} to ${format(budgetEndDate, 'yyyy-MM-dd')}`);
     
     // Generate date range for the performance data from budget start date to now
     const now = new Date();
@@ -52,23 +52,23 @@ export async function fetchGoalPerformanceData(
       end: budgetEndDate
     });
     
-    // Fetch real client goals from the API
-    const clientGoalsResponse = await apiRequest('GET', `/api/clients/${clientId}/goals`);
-    console.log('Client goals from API:', clientGoalsResponse);
+    // Fetch real patient goals from the API
+    const patientGoalsResponse = await apiRequest('GET', `/api/patients/${patientId}/goals`);
+    console.log('Patient goals from API:', patientGoalsResponse);
     
-    const clientGoals: ClientGoal[] = Array.isArray(clientGoalsResponse) ? clientGoalsResponse : [];
+    const patientGoals: PatientGoal[] = Array.isArray(patientGoalsResponse) ? patientGoalsResponse : [];
     
-    if (clientGoals.length === 0) {
-      console.log('No goals found for this client, using sample data');
+    if (patientGoals.length === 0) {
+      console.log('No goals found for this patient, using sample data');
       return generateSampleGoals(dateRange, now);
     }
     
-    // Transform client goals into Goal format with performance data
-    const goals: Goal[] = await Promise.all(clientGoals.map(async (clientGoal, index) => {
+    // Transform patient goals into Goal format with performance data
+    const goals: Goal[] = await Promise.all(patientGoals.map(async (patientGoal, index) => {
       try {
         // Fetch subgoals for each goal
-        const subgoalsResponse = await apiRequest('GET', `/api/goals/${clientGoal.id}/subgoals`);
-        console.log(`Subgoals for goal ${clientGoal.id}:`, subgoalsResponse);
+        const subgoalsResponse = await apiRequest('GET', `/api/goals/${patientGoal.id}/subgoals`);
+        console.log(`Subgoals for goal ${patientGoal.id}:`, subgoalsResponse);
         
         const subgoals: Subgoal[] = Array.isArray(subgoalsResponse) ? subgoalsResponse : [];
         
@@ -78,9 +78,9 @@ export async function fetchGoalPerformanceData(
         const lastMonthScore = Math.max(0, baseScore - 0.7 + Math.random() * 1.4);
         
         return {
-          id: clientGoal.id.toString(),
-          title: clientGoal.title,
-          description: clientGoal.description || `Therapeutic goal for ${clientGoal.title}`,
+          id: patientGoal.id.toString(),
+          title: patientGoal.title,
+          description: patientGoal.description || `Therapeutic goal for ${patientGoal.title}`,
           score: baseScore,
           lastMonthScore: lastMonthScore,
           performanceData: generatePerformanceData(dateRange, Math.max(1, lastMonthScore - 1), baseScore, now),
@@ -92,13 +92,13 @@ export async function fetchGoalPerformanceData(
           }))
         };
       } catch (err) {
-        console.error(`Error fetching subgoals for goal ${clientGoal.id}:`, err);
+        console.error(`Error fetching subgoals for goal ${patientGoal.id}:`, err);
         
         // Return a goal without subgoals if there was an error
         return {
-          id: clientGoal.id.toString(),
-          title: clientGoal.title,
-          description: clientGoal.description || `Therapeutic goal for ${clientGoal.title}`,
+          id: patientGoal.id.toString(),
+          title: patientGoal.title,
+          description: patientGoal.description || `Therapeutic goal for ${patientGoal.title}`,
           score: 5 + Math.random() * 3,
           lastMonthScore: 4 + Math.random() * 3,
           performanceData: generatePerformanceData(dateRange, 3, 7, now),
@@ -201,20 +201,20 @@ function generatePerformanceData(
   });
 }
 
-// Helper function to generate realistic milestone data
+// Helper function to generate milestone data
 function generateMilestoneData(
-  dateRange: Date[], 
-  startValue: number, 
+  dateRange: Date[],
+  startValue: number,
   endValue: number,
   currentDate: Date
 ): MilestoneDataPoint[] {
   return dateRange.map((date, index) => {
-    // Calculate progress that increases over time with some random variation
+    // Calculate progress with some randomness
     const progress = index / (dateRange.length - 1);
     const baseValue = startValue + (endValue - startValue) * progress;
     
-    // Add some random variation for more realistic data
-    const randomVariation = (Math.random() - 0.5) * 1.2;
+    // Add random variation
+    const randomVariation = (Math.random() - 0.5) * 1.5;
     const value = Math.max(0, Math.min(10, baseValue + randomVariation));
     
     return {

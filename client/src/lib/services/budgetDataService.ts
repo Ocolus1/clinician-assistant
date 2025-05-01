@@ -8,14 +8,14 @@ import { formatCurrency } from '@/lib/utils';
  */
 export const budgetDataService = {
   /**
-   * Get comprehensive budget analysis for a client
+   * Get comprehensive budget analysis for a patient
    */
-  async getBudgetAnalysis(clientId: number): Promise<BudgetAnalysis> {
+  async getBudgetAnalysis(patientId: number): Promise<BudgetAnalysis> {
     try {
       // Fetch budget settings, budget items, and sessions
-      const budgetSettings = await this.fetchBudgetSettings(clientId);
-      const budgetItems = await this.fetchBudgetItems(clientId);
-      const sessions = await this.fetchSessions(clientId);
+      const budgetSettings = await this.fetchBudgetSettings(patientId);
+      const budgetItems = await this.fetchBudgetItems(patientId);
+      const sessions = await this.fetchSessions(patientId);
       
       // Calculate key metrics
       const totalBudget = budgetSettings?.ndisFunds || 0;
@@ -107,12 +107,12 @@ export const budgetDataService = {
   },
 
   /**
-   * Fetch budget settings for a client
+   * Fetch budget settings for a patient
    */
-  async fetchBudgetSettings(clientId: number): Promise<BudgetSettings | null> {
+  async fetchBudgetSettings(patientId: number): Promise<BudgetSettings | null> {
     try {
       // Using the correct endpoint that matches server routes
-      const response = await apiRequest('GET', `/api/clients/${clientId}/budget-settings`);
+      const response = await apiRequest('GET', `/api/patients/${patientId}/budget-settings`);
       return response as unknown as BudgetSettings;
     } catch (error) {
       console.error('Error fetching budget settings:', error);
@@ -121,12 +121,12 @@ export const budgetDataService = {
   },
 
   /**
-   * Fetch budget items for a client
+   * Fetch budget items for a patient
    */
-  async fetchBudgetItems(clientId: number): Promise<BudgetItem[]> {
+  async fetchBudgetItems(patientId: number): Promise<BudgetItem[]> {
     try {
       // Using the correct endpoint that matches server routes
-      const response = await apiRequest('GET', `/api/clients/${clientId}/budget-items`);
+      const response = await apiRequest('GET', `/api/patients/${patientId}/budget-items`);
       return response as unknown as BudgetItem[];
     } catch (error) {
       console.error('Error fetching budget items:', error);
@@ -135,12 +135,12 @@ export const budgetDataService = {
   },
 
   /**
-   * Fetch sessions for a client
+   * Fetch sessions for a patient
    */
-  async fetchSessions(clientId: number): Promise<Session[]> {
+  async fetchSessions(patientId: number): Promise<Session[]> {
     try {
       // Using the correct endpoint that matches server routes
-      const response = await apiRequest('GET', `/api/clients/${clientId}/sessions`);
+      const response = await apiRequest('GET', `/api/patients/${patientId}/sessions`);
       return response as unknown as Session[];
     } catch (error) {
       console.error('Error fetching sessions:', error);

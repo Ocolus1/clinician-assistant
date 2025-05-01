@@ -1,8 +1,8 @@
 /**
  * Progress Data Service
  * 
- * A service layer for fetching and analyzing client goal progress data
- * from the backend. This service provides real client performance metrics
+ * A service layer for fetching and analyzing patient goal progress data
+ * from the backend. This service provides real patient performance metrics
  * based on actual session data rather than task completion status.
  */
 
@@ -34,7 +34,7 @@ export interface MilestonePerformanceData {
 
 /**
  * Progress Data Service
- * Provides methods for fetching and analyzing client performance data
+ * Provides methods for fetching and analyzing patient performance data
  */
 export const progressDataService = {
   /**
@@ -81,20 +81,20 @@ export const progressDataService = {
   },
 
   /**
-   * Fetch performance data for all goals of a client
+   * Fetch performance data for all goals of a patient
    * 
-   * @param clientId The client ID to fetch performance data for
+   * @param patientId The patient ID to fetch performance data for
    * @param startDate Optional start date for filtering
    * @returns A map of goal IDs to their performance percentage or null
    */
-  async getClientGoalPerformance(clientId: number, startDate?: string): Promise<GoalPerformanceMap> {
-    if (!clientId) {
-      console.warn('Cannot fetch goal performance: Invalid client ID');
+  async getPatientGoalPerformance(patientId: number, startDate?: string): Promise<GoalPerformanceMap> {
+    if (!patientId) {
+      console.warn('Cannot fetch goal performance: Invalid patient ID');
       return {};
     }
     
     try {
-      let url = `/api/clients/${clientId}/goals/performance`;
+      let url = `/api/patients/${patientId}/goals/performance`;
       
       if (startDate) {
         url += `?startDate=${encodeURIComponent(startDate)}`;
@@ -112,19 +112,19 @@ export const progressDataService = {
   /**
    * Fetch performance data for a specific goal
    * 
-   * @param clientId The client ID the goal belongs to
+   * @param patientId The patient ID the goal belongs to
    * @param goalId The specific goal ID to fetch performance for
    * @param startDate Optional start date for filtering
    * @returns The performance percentage for the goal or null
    */
-  async getGoalPerformance(clientId: number, goalId: number, startDate?: string): Promise<number | null> {
-    if (!clientId || !goalId) {
-      console.warn('Cannot fetch goal performance: Invalid client or goal ID');
+  async getGoalPerformance(patientId: number, goalId: number, startDate?: string): Promise<number | null> {
+    if (!patientId || !goalId) {
+      console.warn('Cannot fetch goal performance: Invalid patient or goal ID');
       return null;
     }
     
     try {
-      let url = `/api/clients/${clientId}/goals/performance?goalId=${goalId}`;
+      let url = `/api/patients/${patientId}/goals/performance?goalId=${goalId}`;
       
       if (startDate) {
         url += `&startDate=${encodeURIComponent(startDate)}`;
@@ -142,21 +142,21 @@ export const progressDataService = {
   /**
    * Get milestone performance data for visualizations
    * 
-   * @param clientId The client ID
+   * @param patientId The patient ID
    * @param goalId The goal ID to fetch milestone data for
    * @param subgoals The subgoals to include in the report
    * @param startDate Optional start date for filtering (defaults to 6 months ago)
    * @returns Array of milestone performance data objects
    */
   async getMilestonePerformanceData(
-    clientId: number, 
+    patientId: number, 
     goalId: number,
     subgoals: any[],
     startDate?: string
   ): Promise<MilestonePerformanceData[]> {
-    console.log("getMilestonePerformanceData called with:", { clientId, goalId, subgoalsLength: subgoals?.length, startDate });
+    console.log("getMilestonePerformanceData called with:", { patientId, goalId, subgoalsLength: subgoals?.length, startDate });
     
-    if (!clientId || !goalId || !Array.isArray(subgoals) || subgoals.length === 0) {
+    if (!patientId || !goalId || !Array.isArray(subgoals) || subgoals.length === 0) {
       console.warn('Cannot fetch milestone performance: Invalid parameters');
       return [];
     }
