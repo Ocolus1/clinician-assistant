@@ -3,6 +3,16 @@
 All notable changes to this project will be documented in this file.
 
 ## 2025-05-01
+### Codebase Cleanup
+- Removed unused transitional and backup files to improve codebase maintainability:
+  - Deleted all `.new.ts` files from `client/src/lib/services/` directory
+  - Deleted all `.backup.ts` files from `client/src/lib/services/` directory
+  - Cleaned up `.bak` files in components directory
+  - Removed backup files from onboarding and sessions components
+  - Deleted server backup files: `routes.ts.bak` and `storage.ts.bak`
+  - Deleted shared schema backup file: `schema.ts.bak`
+  - Removed redundant `App.updated.tsx` file (duplicate of `App.tsx`)
+
 ### Frontend Schema Update - Backward Compatibility Removal Completion
 - Completed the removal of all backward compatibility functions from service files:
   - Removed the last backward compatibility function `fetchClientSessions` from `budgetUtilizationService.new.ts`
