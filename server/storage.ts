@@ -115,7 +115,7 @@ export interface IStorage {
     patientIdOrAssignment: number | InsertPatientClinician,
     assignmentData?: InsertPatientClinician
   ): Promise<PatientClinician>;
-  getCliniciansByPatient(patientId: number): Promise<Clinician[]>;
+  getCliniciansByPatient(patientId: number): Promise<any[]>;
   getPatientsByClinician(clinicianId: number): Promise<Patient[]>;
   removeClinicianFromPatient(
     patientId: number,
@@ -525,25 +525,28 @@ export class DrizzleStorage implements IStorage {
     }
   }
 
-  async getCliniciansByPatient(patientId: number): Promise<Clinician[]> {
+  async getCliniciansByPatient(patientId: number): Promise<any[]> {
     console.log(`Getting clinicians for patient with ID ${patientId}`);
     try {
-      const assignments = await db
+      // Get assignments with clinician data using a join
+      const result = await db
         .select({
-          clinicianId: patientClinicians.clinicianId,
+          id: clinicians.id,
+          name: clinicians.name,
+          title: clinicians.title,
+          email: clinicians.email,
+          specialization: clinicians.specialization,
+          active: clinicians.active,
+          notes: clinicians.notes,
+          role: patientClinicians.role,
+          assignedDate: patientClinicians.assignedDate
         })
         .from(patientClinicians)
+        .innerJoin(
+          clinicians,
+          eq(patientClinicians.clinicianId, clinicians.id)
+        )
         .where(eq(patientClinicians.patientId, patientId));
-
-      if (assignments.length === 0) {
-        return [];
-      }
-
-      const clinicianIds = assignments.map((a) => a.clinicianId);
-      const result = await db
-        .select()
-        .from(clinicians)
-        .where(inArray(clinicians.id, clinicianIds));
 
       return result;
     } catch (error) {
