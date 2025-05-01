@@ -2,15 +2,15 @@ import { useState, useCallback, useMemo } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 import { useToast } from "@/hooks/use-toast";
-import { insertSessionSchema, Ally, Goal, Subgoal, BudgetItem, Strategy } from "@shared/schema";
+import { insertSessionSchema, Caregiver, Goal, Subgoal, BudgetItem, Strategy } from "@shared/schema";
 
 // Session form schema
 export const sessionFormSchema = insertSessionSchema.extend({
   sessionDate: z.coerce.date({
     required_error: "Session date is required",
   }),
-  clientId: z.coerce.number({
-    required_error: "Client is required",
+  patientId: z.coerce.number({
+    required_error: "Patient is required",
   }),
   therapistId: z.coerce.number({
     required_error: "Clinician is required",
@@ -47,8 +47,8 @@ export const sessionProductSchema = z.object({
 
 // Session notes schema
 export const sessionNoteSchema = z.object({
-  presentAllies: z.array(z.string()).default([]),
-  presentAllyIds: z.array(z.number()).default([]), // Store ally IDs for data integrity
+  presentCaregivers: z.array(z.string()).default([]),
+  presentCaregiverIds: z.array(z.number()).default([]), // Store caregiver IDs for data integrity
   moodRating: z.number().min(0).max(10).default(5),
   focusRating: z.number().min(0).max(10).default(5),
   cooperationRating: z.number().min(0).max(10).default(5),
@@ -84,7 +84,7 @@ type PerformanceAssessment = {
 };
 
 // Hook for session form state management
-export function useSessionForm(initialClientId?: number) {
+export function useSessionForm(initialPatientId?: number) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
@@ -105,88 +105,117 @@ export function useSessionForm(initialClientId?: number) {
   // Form state (separated from UI state)
   const [performanceAssessments, setPerformanceAssessments] = useState<PerformanceAssessment[]>([]);
   const [selectedProductIds, setSelectedProductIds] = useState<number[]>([]);
-  const [selectedPresentAllies, setSelectedPresentAllies] = useState<number[]>([]);
+  const [selectedPresentCaregivers, setSelectedPresentCaregivers] = useState<number[]>([]);
   
-  // Get selected goals and milestones for filtering dialogs
+  // Derived state
   const selectedGoalIds = useMemo(() => 
     performanceAssessments.map(assessment => assessment.goalId),
     [performanceAssessments]
   );
   
   const selectedMilestoneIds = useMemo(() => {
-    // If there's a current goal index, return milestones for that goal
-    if (currentGoalIndex !== null && performanceAssessments[currentGoalIndex]) {
-      return performanceAssessments[currentGoalIndex].milestones.map(m => m.milestoneId);
-    }
-    // Otherwise return all milestone IDs across all goals
-    return performanceAssessments
-      .flatMap(assessment => assessment.milestones)
-      .map(milestone => milestone.milestoneId);
+    if (currentGoalIndex === null) return [];
+    
+    return performanceAssessments[currentGoalIndex]?.milestones.map(m => m.milestoneId) || [];
   }, [performanceAssessments, currentGoalIndex]);
   
-  // Handlers for adding and removing items
+  // Handlers
   const handleGoalSelection = useCallback((goal: Goal) => {
-    setPerformanceAssessments(prev => [
-      ...prev,
-      {
-        goalId: goal.id,
-        goalTitle: goal.title,
-        notes: "",
-        milestones: []
+    setPerformanceAssessments(prev => {
+      // Check if goal is already selected
+      if (prev.some(assessment => assessment.goalId === goal.id)) {
+        toast({
+          title: "Goal already added",
+          description: "This goal has already been added to the session.",
+          variant: "destructive",
+        });
+        return prev;
       }
-    ]);
-    // Set current goal index to the newly added goal
-    setCurrentGoalIndex(performanceAssessments.length);
-    setMilestoneSelectionOpen(true);
-  }, [performanceAssessments.length]);
+      
+      // Add new goal assessment
+      return [
+        ...prev,
+        {
+          goalId: goal.id,
+          goalTitle: goal.title,
+          notes: "",
+          milestones: [],
+        },
+      ];
+    });
+    
+    setGoalSelectionOpen(false);
+  }, [toast]);
   
   const handleMilestoneSelection = useCallback((subgoal: Subgoal) => {
-    if (currentGoalIndex === null) return;
+    if (currentGoalIndex === null) {
+      toast({
+        title: "No goal selected",
+        description: "Please select a goal first.",
+        variant: "destructive",
+      });
+      return;
+    }
     
     setPerformanceAssessments(prev => {
       const updated = [...prev];
-      if (updated[currentGoalIndex]) {
-        updated[currentGoalIndex] = {
-          ...updated[currentGoalIndex],
-          milestones: [
-            ...updated[currentGoalIndex].milestones,
-            {
-              milestoneId: subgoal.id,
-              milestoneTitle: subgoal.title,
-              rating: 5, // Default rating
-              strategies: [],
-              notes: ""
-            }
-          ]
-        };
+      
+      // Check if milestone is already added
+      if (updated[currentGoalIndex].milestones.some(m => m.milestoneId === subgoal.id)) {
+        toast({
+          title: "Milestone already added",
+          description: "This milestone has already been added to the goal.",
+          variant: "destructive",
+        });
+        return prev;
       }
+      
+      // Add new milestone
+      updated[currentGoalIndex].milestones.push({
+        milestoneId: subgoal.id,
+        milestoneTitle: subgoal.title,
+        rating: undefined,
+        strategies: [],
+        notes: "",
+      });
+      
       return updated;
     });
     
-    // Set current milestone index to the newly added milestone
-    const newMilestoneIndex = performanceAssessments[currentGoalIndex]?.milestones.length || 0;
-    setCurrentMilestoneIndex(newMilestoneIndex);
-  }, [currentGoalIndex, performanceAssessments]);
+    setMilestoneSelectionOpen(false);
+  }, [currentGoalIndex, toast]);
   
   const handleStrategySelection = useCallback((strategy: Strategy) => {
-    if (currentGoalIndex === null || currentMilestoneIndex === null) return;
+    if (currentGoalIndex === null || currentMilestoneIndex === null) {
+      toast({
+        title: "No milestone selected",
+        description: "Please select a milestone first.",
+        variant: "destructive",
+      });
+      return;
+    }
     
     setPerformanceAssessments(prev => {
       const updated = [...prev];
-      if (updated[currentGoalIndex]?.milestones[currentMilestoneIndex]) {
-        const currentStrategies = updated[currentGoalIndex].milestones[currentMilestoneIndex].strategies;
-        
-        // Add the strategy if it's not already included
-        if (!currentStrategies.includes(strategy.name)) {
-          updated[currentGoalIndex].milestones[currentMilestoneIndex].strategies = [
-            ...currentStrategies,
-            strategy.name
-          ];
-        }
+      
+      // Check if strategy is already added
+      if (updated[currentGoalIndex].milestones[currentMilestoneIndex].strategies.includes(strategy.name)) {
+        toast({
+          title: "Strategy already added",
+          description: "This strategy has already been added to the milestone.",
+          variant: "destructive",
+        });
+        return prev;
       }
+      
+      // Add new strategy
+      updated[currentGoalIndex].milestones[currentMilestoneIndex].strategies.push(strategy.name);
+      
       return updated;
     });
-  }, [currentGoalIndex, currentMilestoneIndex]);
+    
+    setStrategySelectionOpen(false);
+  }, [currentGoalIndex, currentMilestoneIndex, toast]);
   
   const handleRemoveGoal = useCallback((goalIndex: number) => {
     setPerformanceAssessments(prev => {
@@ -221,12 +250,12 @@ export function useSessionForm(initialClientId?: number) {
     }
   }, [currentGoalIndex, currentMilestoneIndex]);
   
-  const handleRemoveStrategy = useCallback((goalIndex: number, milestoneIndex: number, strategyTitle: string) => {
+  const handleRemoveStrategy = useCallback((goalIndex: number, milestoneIndex: number, strategyName: string) => {
     setPerformanceAssessments(prev => {
       const updated = [...prev];
       if (updated[goalIndex]?.milestones[milestoneIndex]) {
         updated[goalIndex].milestones[milestoneIndex].strategies = 
-          updated[goalIndex].milestones[milestoneIndex].strategies.filter(s => s !== strategyTitle);
+          updated[goalIndex].milestones[milestoneIndex].strategies.filter(s => s !== strategyName);
       }
       return updated;
     });
@@ -258,12 +287,12 @@ export function useSessionForm(initialClientId?: number) {
     setSelectedProductIds(prev => [...prev, product.id]);
   }, []);
   
-  const handleTogglePresentAlly = useCallback((allyId: number) => {
-    setSelectedPresentAllies(prev => {
-      if (prev.includes(allyId)) {
-        return prev.filter(id => id !== allyId);
+  const handleTogglePresentCaregiver = useCallback((caregiverId: number) => {
+    setSelectedPresentCaregivers(prev => {
+      if (prev.includes(caregiverId)) {
+        return prev.filter(id => id !== caregiverId);
       } else {
-        return [...prev, allyId];
+        return [...prev, caregiverId];
       }
     });
   }, []);
@@ -300,8 +329,8 @@ export function useSessionForm(initialClientId?: number) {
     setPerformanceAssessments,
     selectedProductIds,
     setSelectedProductIds,
-    selectedPresentAllies,
-    setSelectedPresentAllies,
+    selectedPresentCaregivers,
+    setSelectedPresentCaregivers,
     
     // Handlers
     handleGoalSelection,
@@ -313,6 +342,6 @@ export function useSessionForm(initialClientId?: number) {
     handleUpdateMilestoneRating,
     handleUpdateMilestoneNotes,
     handleProductSelection,
-    handleTogglePresentAlly
+    handleTogglePresentCaregiver
   };
 }
