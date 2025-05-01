@@ -5,20 +5,20 @@
  */
 
 /**
- * Fetches session notes with products for a client
+ * Fetches session notes with products for a patient
  * This is a new, more reliable way to get session notes with product data
  * 
- * @param clientId The client ID
+ * @param patientId The patient ID
  * @returns Promise resolving to array of session notes with products
  */
-export async function fetchSessionNotesWithProducts(clientId: number): Promise<any[]> {
+export async function fetchSessionNotesWithProducts(patientId: number): Promise<any[]> {
   try {
-    const response = await fetch(`/api/clients/${clientId}/session-notes-with-products`);
+    const response = await fetch(`/api/patients/${patientId}/session-notes-with-products`);
     if (!response.ok) {
       throw new Error(`Error fetching session notes: ${response.statusText}`);
     }
     const notes = await response.json();
-    console.log(`Fetched ${notes.length} session notes with products for client ${clientId}`);
+    console.log(`Fetched ${notes.length} session notes with products for patient ${patientId}`);
     
     // Parse products field if it's a string
     return notes.map((note: any) => {
@@ -33,7 +33,7 @@ export async function fetchSessionNotesWithProducts(clientId: number): Promise<a
       return note;
     });
   } catch (error) {
-    console.error(`Error fetching session notes with products for client ${clientId}:`, error);
+    console.error(`Error fetching session notes with products for patient ${patientId}:`, error);
     return [];
   }
 }
@@ -41,7 +41,7 @@ export async function fetchSessionNotesWithProducts(clientId: number): Promise<a
 /**
  * Calculates the total amount spent from session products
  * 
- * @param sessions Array of client sessions
+ * @param sessions Array of patient sessions
  * @returns The total amount spent across all sessions
  */
 export function calculateSpentFromSessions(sessions: any[]): number {
@@ -125,7 +125,7 @@ export function calculateSpentFromSessions(sessions: any[]): number {
  * Calculates the funds remaining from budget and sessions
  * 
  * @param budgetSettings The budget settings object with total budget
- * @param sessions Array of client sessions with products
+ * @param sessions Array of patient sessions with products
  * @returns The remaining funds amount
  */
 export function calculateRemainingFunds(budgetSettings: any, sessions: any[]): number {
@@ -290,7 +290,7 @@ export function calculateUtilizationFromNotes(budgetItems: any[], sessionNotes: 
  * Calculate actual utilization rates for budget items based on session products
  * 
  * @param budgetItems Array of budget items
- * @param sessions Array of client sessions with products
+ * @param sessions Array of patient sessions with products
  * @returns Enhanced budget items with actual utilization data
  */
 export function calculateBudgetItemUtilization(budgetItems: any[], sessions: any[]): any[] {

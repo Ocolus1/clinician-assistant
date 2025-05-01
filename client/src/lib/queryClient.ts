@@ -1,4 +1,4 @@
-import { QueryClient, QueryFunction } from "@tanstack/react-query";
+import { QueryClient, QueryFunction, QueryKey } from "@tanstack/react-query";
 
 // Enhanced error handling with more comprehensive error information
 async function throwIfResNotOk(res: Response) {
@@ -97,7 +97,7 @@ export async function apiRequest<T = any>(
           budgetData.budgetSettingsId = Number(budgetData.budgetSettingsId);
           
           if (isNaN(budgetData.budgetSettingsId)) {
-            console.error('Invalid budgetSettingsId value:', originalId);
+            console.error('Invalid budget settings ID value:', originalId);
             throw new Error(`Invalid budget settings ID: "${originalId}" is not a valid number`);
           }
         }
@@ -106,26 +106,36 @@ export async function apiRequest<T = any>(
       }
     }
     
-    console.log(`API Request: ${method} ${url}`, data || '');
-    
-    const res = await fetch(url, {
+    const options: RequestInit = {
       method,
-      headers: data ? { "Content-Type": "application/json" } : {},
-      body: data ? JSON.stringify(data) : undefined,
       credentials: "include",
-    });
+      headers: {
+        "Content-Type": "application/json",
+        "Accept": "application/json"
+      }
+    };
 
-    await throwIfResNotOk(res);
-    // Return JSON data as the typed response 
-    const responseData = await res.json();
-    return responseData as T;
-  } catch (error) {
-    console.error(`API Request failed for ${method} ${url}:`, error);
-    // Add request details to the error for better debugging
-    if (error instanceof Error) {
-      (error as any).request = { method, url, data };
-      (error as any).timestamp = new Date().toISOString();
+    if (data !== undefined) {
+      options.body = JSON.stringify(data);
     }
+
+    console.log(`API ${method} request to ${url}:`, data);
+    
+    const res = await fetch(url, options);
+    await throwIfResNotOk(res);
+
+    // Handle empty responses (e.g., for DELETE requests)
+    const contentType = res.headers.get('content-type') || '';
+    if (contentType.includes('application/json')) {
+      const responseData = await res.json();
+      console.log(`API response from ${url}:`, responseData);
+      return responseData;
+    } else {
+      console.log(`API response from ${url} (non-JSON):`, res.statusText);
+      return { success: true, status: res.status } as unknown as T;
+    }
+  } catch (error) {
+    console.error(`API request to ${url} failed:`, error);
     throw error;
   }
 }
@@ -134,7 +144,7 @@ type UnauthorizedBehavior = "returnNull" | "throw";
 
 interface QueryFnOptions {
   on401: UnauthorizedBehavior;
-  getFn?: (ctx: { queryKey: unknown[] }) => { url: string; params?: Record<string, any> };
+  getFn?: (ctx: { queryKey: QueryKey }) => { url: string; params?: Record<string, any> };
 }
 
 export const getQueryFn: <T>(options: QueryFnOptions) => QueryFunction<T> =
@@ -184,9 +194,9 @@ export const getQueryFn: <T>(options: QueryFnOptions) => QueryFunction<T> =
         throw error;
       }
     }
-    // Default behavior (backward compatibility)
     else {
       const url = queryKey[0] as string;
+      
       // Construct the query string for any parameters in queryKey[1]
       let fullUrl = url;
       const params = queryKey[1] as Record<string, any> | undefined;

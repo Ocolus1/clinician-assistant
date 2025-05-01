@@ -40,11 +40,11 @@ const translations: TranslationMap = {
     spanish: "Fecha de Nacimiento",
     other: "Date of Birth",
   },
-  "client_id": {
-    english: "Client ID",
-    french: "Identifiant du Client",
-    spanish: "ID del Cliente",
-    other: "Client ID",
+  "patient_id": {
+    english: "Patient ID",
+    french: "Identifiant du Patient",
+    spanish: "ID del Paciente",
+    other: "Patient ID",
   },
   "funds_management": {
     english: "Funds Management",
@@ -53,12 +53,12 @@ const translations: TranslationMap = {
     other: "Funds Management",
   },
   
-  // Allies Section
-  "label_allies": {
-    english: "Allies",
-    french: "Alliés",
-    spanish: "Aliados",
-    other: "Allies",
+  // Caregivers Section
+  "label_caregivers": {
+    english: "Caregivers",
+    french: "Soignants",
+    spanish: "Cuidadores",
+    other: "Caregivers",
   },
   "label_relationship": {
     english: "Relationship",
@@ -193,10 +193,10 @@ const translations: TranslationMap = {
     other: "This document is confidential and contains information protected by law.",
   },
   "copyright_notice": {
-    english: "© Speech Therapy Clinic - All rights reserved",
-    french: "© Speech Therapy Clinic - Tous droits réservés",
-    spanish: "© Speech Therapy Clinic - Todos los derechos reservados",
-    other: "© Speech Therapy Clinic - All rights reserved",
+    english: " Speech Therapy Clinic - All rights reserved",
+    french: " Speech Therapy Clinic - Tous droits réservés",
+    spanish: " Speech Therapy Clinic - Todos los derechos reservados",
+    other: " Speech Therapy Clinic - All rights reserved",
   },
 };
 
@@ -207,6 +207,16 @@ const translations: TranslationMap = {
  * @returns The translated string or the key if translation is not found
  */
 export function getTranslation(key: string, language: Language): string {
+  // Handle legacy client_id key for backward compatibility
+  if (key === "client_id") {
+    key = "patient_id";
+  }
+  
+  // Handle legacy allies key for backward compatibility
+  if (key === "label_allies") {
+    key = "label_caregivers";
+  }
+  
   if (!translations[key]) {
     console.warn(`Translation key not found: ${key}`);
     return key;
