@@ -8,9 +8,9 @@ import ModularDashboard from "@/pages/ModularDashboard";
 import OnboardingForm from "@/pages/OnboardingForm";
 import Summary from "@/pages/Summary";
 import PrintSummary from "@/pages/PrintSummary";
-import ClientList from "@/pages/ClientList";
-import EnhancedClientList from "@/pages/EnhancedClientList";
-import ClientProfile from "@/pages/ClientProfile";
+import PatientList from "@/pages/PatientList";
+import EnhancedPatientList from "@/pages/EnhancedPatientList";
+import PatientProfile from "@/pages/PatientProfile";
 import Sessions from "@/pages/Sessions";
 import Reports from "@/pages/Reports";
 import Settings from "@/pages/Settings";
@@ -36,22 +36,22 @@ function Router() {
     <AppLayout>
       <Switch>
         <Route path="/dashboard/classic" component={Dashboard} />
-        <Route path="/clients/new" component={OnboardingForm} />
-        <Route path="/clients" component={EnhancedClientList} />
-        <Route path="/clients/legacy" component={ClientList} />
-        <Route path="/clients/:id" component={ClientProfile} />
-        <Route path="/summary/:clientId" component={Summary} />
-        <Route path="/client/:clientId/summary" component={Summary} />
-        <Route path="/client/:id/profile" component={ClientProfile} />
-        <Route path="/clients/:id/profile" component={ClientProfile} />
-        <Route path="/clients/:id/reports" component={Reports} />
-        <Route path="/client/:id/reports" component={Reports} />
-        <Route path="/client/:id/print" component={PrintSummary} />
+        <Route path="/patients/new" component={OnboardingForm} />
+        <Route path="/patients" component={EnhancedPatientList} />
+        <Route path="/patients/legacy" component={PatientList} />
+        <Route path="/patients/:id" component={PatientProfile} />
+        <Route path="/summary/:patientId" component={Summary} />
+        <Route path="/patient/:patientId/summary" component={Summary} />
+        <Route path="/patient/:id/profile" component={PatientProfile} />
+        <Route path="/patients/:id/profile" component={PatientProfile} />
+        <Route path="/patients/:id/reports" component={Reports} />
+        <Route path="/patient/:id/reports" component={Reports} />
+        <Route path="/patient/:id/print" component={PrintSummary} />
         <Route path="/sessions" component={Sessions} />
         <Route path="/reports" component={Reports} />
         <Route path="/settings" component={Settings} />
         <Route path="/test-budget" component={TestBudget} />
-        <Route path="/debug/budget/:clientId?" component={BudgetDebugPage} />
+        <Route path="/debug/budget/:patientId?" component={BudgetDebugPage} />
         <Route component={NotFound} />
       </Switch>
     </AppLayout>
