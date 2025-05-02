@@ -5,6 +5,7 @@ import { setupVite, serveStatic, log } from "./vite";
 import { registerReportRoutes } from "./routes/reports";
 import { registerKnowledgeRoutes } from "./routes/knowledge";
 import { chatbotRoutes } from "./routes/index";
+import debugRoutes from "./routes/debug";
 // Create debug-routes.ts file if it doesn't exist
 import * as fs from "fs";
 import * as path from "path";
@@ -68,6 +69,9 @@ app.use((req, res, next) => {
 
   console.log("STEP 4: Registering main API routes");
   const server = await registerRoutes(app);
+  
+  console.log("Registering debug API routes");
+  app.use("/api/debug", debugRoutes);
 
   console.log("STEP 5: All routes registered successfully");
 
