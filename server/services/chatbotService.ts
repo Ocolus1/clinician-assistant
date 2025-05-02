@@ -2,8 +2,6 @@ import { ChatOpenAI } from "@langchain/openai";
 import { PromptTemplate } from "@langchain/core/prompts";
 import { StringOutputParser } from "@langchain/core/output_parsers";
 import { RunnableSequence } from "@langchain/core/runnables";
-import { BufferMemory } from "@langchain/core/memory";
-import { ConversationChain } from "@langchain/core/chains";
 import { HNSWLib } from "@langchain/community/vectorstores/hnswlib";
 import { OpenAIEmbeddings } from "@langchain/openai";
 import { db } from "../db";
@@ -30,6 +28,13 @@ import { eq, like, and, or, desc, asc, sql } from "drizzle-orm";
 import * as path from 'path';
 import { fileURLToPath } from 'url';
 import * as fs from 'fs';
+import { entityExtractionService } from "./entityExtractionService";
+import { patientQueriesService } from "./patientQueriesService";
+import { responseGenerationService } from "./responseGenerationService";
+import { queryClassificationService } from "./queryClassificationService";
+import { memoryService } from "./memoryService";
+import { reactAgentService } from "./reactAgentService";
+import { conversationManagementService } from "./conversationManagementService";
 
 // Get the directory name in ESM
 const __filename = fileURLToPath(import.meta.url);
@@ -59,195 +64,60 @@ Common Relationships:
 - patients have many caregivers
 `;
 
-// Create a memory system for conversation history
-class ChatSessionMemory {
-  private sessionId: number;
-  
-  constructor(sessionId: number) {
-    this.sessionId = sessionId;
-  }
-  
-  async loadMemoryVariables() {
-    // Retrieve messages for this session from the database
-    const messages = await db.select().from(chatMessages)
-      .where(eq(chatMessages.chatSessionId, this.sessionId))
-      .orderBy(chatMessages.timestamp);
-      
-    // Format messages for LangChain
-    const formattedHistory = messages.map(msg => {
-      return `${msg.role === 'user' ? 'Human' : 'AI'}: ${msg.content}`;
-    }).join('\n');
-    
-    return { history: formattedHistory };
-  }
-  
-  async saveContext(inputValues: Record<string, any>, outputValues: Record<string, any>) {
-    // Save user message
-    await db.insert(chatMessages).values({
-      chatSessionId: this.sessionId,
-      role: 'user',
-      content: inputValues.input,
-    });
-    
-    // Save assistant message
-    await db.insert(chatMessages).values({
-      chatSessionId: this.sessionId,
-      role: 'assistant',
-      content: outputValues.response,
-    });
-  }
-  
-  async clear() {
-    // Delete all messages for this session
-    await db.delete(chatMessages)
-      .where(eq(chatMessages.chatSessionId, this.sessionId));
-  }
-  
-  async addMemory(content: string): Promise<void> {
-    if (!this.sessionId) {
-      throw new Error("No active session");
-    }
-    
-    // Skip vector store operations if it's not available
-    if (!this.vectorStoreAvailable || !this.vectorStore) {
-      console.warn("Vector store unavailable, skipping memory storage");
-      
-      // Still store in database
-      await db.insert(chatMemories).values({
-        chatSessionId: this.sessionId,
-        content,
-      });
-      return;
-    }
-    
-    try {
-      const memoryEntry = await db.insert(chatMemories).values({
-        chatSessionId: this.sessionId,
-        content,
-      }).returning();
-      
-      await this.vectorStore.addDocuments([
-        {
-          pageContent: content,
-          metadata: {
-            id: memoryEntry[0].id,
-            chatSessionId: this.sessionId,
-            createdAt: memoryEntry[0].createdAt,
-          },
-        },
-      ]);
-    } catch (error) {
-      console.error("Error adding memory:", error);
-      // Mark vector store as unavailable if there's an error
-      this.vectorStoreAvailable = false;
-    }
-  }
-  
-  async searchMemories(query: string): Promise<any[]> {
-    if (!this.sessionId) {
-      throw new Error("No active session");
-    }
-    
-    // Return empty array if vector store is not available
-    if (!this.vectorStoreAvailable || !this.vectorStore) {
-      console.warn("Vector store unavailable, returning empty memory search results");
-      return [];
-    }
-    
-    try {
-      const results = await this.vectorStore.similaritySearch(query, 5, {
-        chatSessionId: this.sessionId,
-      });
-      
-      return results;
-    } catch (error) {
-      console.error("Error searching memories:", error);
-      // Mark vector store as unavailable if there's an error
-      this.vectorStoreAvailable = false;
-      return [];
-    }
-  }
-}
-
 // Create a class for the chatbot service
 export class ChatbotService {
   private model: ChatOpenAI;
-  private memory: ChatSessionMemory | null = null;
   private sessionId: number | null = null;
   private vectorStore: HNSWLib | null = null;
   private vectorStoreAvailable: boolean = true;
   
   constructor() {
     this.model = new ChatOpenAI({
-      modelName: process.env.OPENAI_MODEL || "gpt-4o",
+      modelName: "gpt-4o",
       temperature: 0.2,
+      openAIApiKey: process.env.OPENAI_API_KEY,
     });
     
     // Initialize vector store
-    this.initVectorStore().catch(error => {
-      console.error("Failed to initialize vector store:", error);
-      this.vectorStoreAvailable = false;
-    });
+    this.initVectorStore();
   }
   
   private async initVectorStore() {
     try {
-      const embeddings = new OpenAIEmbeddings();
-      const vectorStorePath = path.join(__dirname, '..', '..', 'data', 'vector_store');
+      // Create a new vector store
+      const embeddings = new OpenAIEmbeddings({
+        openAIApiKey: process.env.OPENAI_API_KEY,
+      });
       
-      // Create directory if it doesn't exist
-      if (!fs.existsSync(vectorStorePath)) {
-        fs.mkdirSync(vectorStorePath, { recursive: true });
+      this.vectorStore = new HNSWLib(
+        embeddings,
+        { space: 'cosine' }
+      );
+      
+      // Load existing memories from the database
+      const existingMemories = await db
+        .select()
+        .from(chatMemories);
+      
+      if (existingMemories.length > 0) {
+        // Add existing memories to the vector store
+        await this.vectorStore.addDocuments(
+          existingMemories.map(memory => ({
+            pageContent: memory.content,
+            metadata: {
+              id: memory.id,
+              chatSessionId: memory.chatSessionId,
+              createdAt: memory.createdAt,
+            },
+          }))
+        );
       }
       
-      try {
-        // Check if vector store exists
-        if (fs.existsSync(path.join(vectorStorePath, 'hnswlib.index'))) {
-          // Use the new method for loading from disk
-          this.vectorStore = await HNSWLib.load(
-            vectorStorePath,
-            embeddings
-          );
-          console.log("Vector store loaded from disk");
-        } else {
-          // Create a new vector store with empty documents array
-          this.vectorStore = new HNSWLib(embeddings, {
-            space: 'cosine',
-            numDimensions: 1536 // OpenAI embeddings dimensions
-          });
-          
-          // Initialize with empty documents array to avoid "not initialized" error
-          await this.vectorStore.addDocuments([
-            { pageContent: "Initial document", metadata: { id: 0 } }
-          ]);
-          
-          // Save the initialized vector store
-          await this.vectorStore.save(vectorStorePath);
-          console.log("Created new vector store");
-        }
-      } catch (innerError) {
-        console.error("Error with existing vector store, creating new one:", innerError);
-        
-        // Fallback: Create a new vector store if loading fails
-        this.vectorStore = new HNSWLib(embeddings, {
-          space: 'cosine',
-          numDimensions: 1536
-        });
-        
-        // Initialize with empty documents array
-        await this.vectorStore.addDocuments([
-          { pageContent: "Initial document", metadata: { id: 0 } }
-        ]);
-        
-        // Save the new vector store
-        await this.vectorStore.save(vectorStorePath);
-        console.log("Created fallback vector store");
-      }
+      this.vectorStoreAvailable = true;
+      console.log("Vector store initialized successfully with", existingMemories.length, "memories");
     } catch (error) {
       console.error("Error initializing vector store:", error);
-      // Instead of throwing, set a flag that vector store is unavailable
       this.vectorStoreAvailable = false;
-      console.warn("Vector store will be unavailable for this session");
     }
   }
   
@@ -259,7 +129,6 @@ export class ChatbotService {
     }).returning({ id: chatSessions.id });
     
     this.sessionId = result[0].id;
-    this.memory = new ChatSessionMemory(this.sessionId);
     
     return this.sessionId;
   }
@@ -275,59 +144,156 @@ export class ChatbotService {
     }
     
     this.sessionId = sessionId;
-    this.memory = new ChatSessionMemory(sessionId);
     
     return true;
   }
   
   // Process a user message
   async processMessage(message: string): Promise<string> {
-    if (!this.sessionId || !this.memory) {
+    if (!this.sessionId) {
       throw new Error("No active session");
     }
     
     try {
-      // Generate a response using the chatbot model
-      const { query, tables } = await this.generateDrizzleQuery(message);
+      // First, classify the query to determine if it requires database access
+      const classification = await queryClassificationService.classifyQuery(message);
+      console.log(`Query classification: ${classification.queryType}, Requires DB: ${classification.requiresDatabase}`);
       
-      // Log the query
-      await db.insert(queryLogs).values({
+      // Save the user message to the database first
+      await db.insert(chatMessages).values({
         chatSessionId: this.sessionId,
-        query: query.toString(),
-        timestamp: new Date(),
+        role: 'user',
+        content: message,
       });
       
-      // Execute the query
-      const queryResult = await query(
-        db, eq, like, and, or, desc, asc, sql,
-        patients, goals, subgoals, sessions, sessionNotes, goalAssessments,
-        strategies, clinicians, patientClinicians, caregivers
-      );
+      // Get recent conversation history for context
+      const conversationHistory = await memoryService.getRecentConversationHistory(this.sessionId, 5);
       
-      // Generate a response
-      const response = await generateResponseFromResult(message, queryResult);
+      // For queries about previous conversation or context
+      if (message.toLowerCase().includes("previous") || 
+          message.toLowerCase().includes("last question") || 
+          message.toLowerCase().includes("you said") ||
+          message.toLowerCase().includes("i asked")) {
+        console.log("Processing context-aware follow-up query");
+        
+        // Use the ReAct agent for context-aware responses
+        const response = await reactAgentService.processQuery(message, this.sessionId);
+        
+        // Save the assistant message to the database
+        await db.insert(chatMessages).values({
+          chatSessionId: this.sessionId,
+          role: 'assistant',
+          content: response,
+        });
+        
+        // Extract and store memories
+        await this.addMemory(response);
+        
+        return response;
+      }
       
-      // Save the conversation to memory
-      await this.memory.saveContext({ input: message }, { response });
+      // For conversational queries that don't require database access, use a direct LLM response
+      if (classification.queryType === "CONVERSATIONAL" && !classification.requiresDatabase) {
+        console.log("Processing conversational query directly without database access");
+        
+        // Use a simple prompt for conversational responses with conversation history
+        const conversationalPrompt = PromptTemplate.fromTemplate(`
+          You are a helpful clinical assistant chatbot. Respond to the following conversational message:
+          
+          Recent conversation history:
+          ${conversationHistory}
+          
+          User message: {input}
+          
+          Provide a friendly, helpful response without accessing patient data.
+        `);
+        
+        const conversationalChain = RunnableSequence.from([
+          conversationalPrompt,
+          this.model,
+          new StringOutputParser(),
+        ]);
+        
+        const response = await conversationalChain.invoke({
+          input: message,
+        });
+        
+        // Save the assistant message to the database
+        await db.insert(chatMessages).values({
+          chatSessionId: this.sessionId,
+          role: 'assistant',
+          content: response,
+        });
+        
+        // Extract and store memories
+        await this.addMemory(response);
+        
+        return response;
+      }
       
-      // Extract and store important information
-      await this.extractAndStoreMemories(message, response);
+      // For informational queries that don't need specific patient data
+      if (classification.queryType === "INFORMATIONAL" && !classification.requiresDatabase) {
+        console.log("Processing informational query without patient-specific data");
+        
+        // Use a knowledge-based prompt for informational responses with conversation history
+        const informationalPrompt = PromptTemplate.fromTemplate(`
+          You are a knowledgeable clinical assistant chatbot. Respond to the following medical or clinical question:
+          
+          Recent conversation history:
+          ${conversationHistory}
+          
+          User question: {input}
+          
+          Provide an informative, accurate response based on general medical knowledge without accessing specific patient data.
+        `);
+        
+        const informationalChain = RunnableSequence.from([
+          informationalPrompt,
+          this.model,
+          new StringOutputParser(),
+        ]);
+        
+        const response = await informationalChain.invoke({
+          input: message,
+        });
+        
+        // Save the assistant message to the database
+        await db.insert(chatMessages).values({
+          chatSessionId: this.sessionId,
+          role: 'assistant',
+          content: response,
+        });
+        
+        // Extract and store memories
+        await this.addMemory(response);
+        
+        return response;
+      }
+      
+      // For patient-specific queries that require database access, use the ReAct agent
+      console.log("Processing patient-specific query with database access using ReAct agent");
+      
+      // Use the ReAct agent for complex queries
+      const response = await reactAgentService.processQuery(message, this.sessionId);
+      
+      // Save the assistant message to the database
+      await db.insert(chatMessages).values({
+        chatSessionId: this.sessionId,
+        role: 'assistant',
+        content: response,
+      });
+      
+      // Extract and store memories
+      await this.addMemory(response);
       
       return response;
     } catch (error) {
       console.error("Error processing message:", error);
-      return "I'm sorry, I encountered an error processing your message. Please try again.";
-    }
-  }
-  
-  // Extract and store important information from the conversation
-  private async extractAndStoreMemories(userMessage: string, aiResponse: string): Promise<void> {
-    try {
-      // For now, just store the AI response as a memory
-      // In the future, we could use LLM to extract key information
-      await this.addMemory(aiResponse);
-    } catch (error) {
-      console.error("Error extracting memories:", error);
+      
+      // Provide a fallback response
+      const fallbackResponse = "I apologize, but I encountered an error processing your request. Please try again or rephrase your question.";
+      
+      return fallbackResponse;
     }
   }
   
@@ -346,15 +312,18 @@ export class ChatbotService {
         chatSessionId: this.sessionId,
         content,
       });
+      
       return;
     }
     
     try {
+      // Store the memory in the database
       const memoryEntry = await db.insert(chatMemories).values({
         chatSessionId: this.sessionId,
         content,
       }).returning();
       
+      // Add the memory to the vector store
       await this.vectorStore.addDocuments([
         {
           pageContent: content,
@@ -367,8 +336,6 @@ export class ChatbotService {
       ]);
     } catch (error) {
       console.error("Error adding memory:", error);
-      // Mark vector store as unavailable if there's an error
-      this.vectorStoreAvailable = false;
     }
   }
   
@@ -378,7 +345,6 @@ export class ChatbotService {
       throw new Error("No active session");
     }
     
-    // Return empty array if vector store is not available
     if (!this.vectorStoreAvailable || !this.vectorStore) {
       console.warn("Vector store unavailable, returning empty memory search results");
       return [];
@@ -386,7 +352,7 @@ export class ChatbotService {
     
     try {
       const results = await this.vectorStore.similaritySearch(query, 5, {
-        chatSessionId: this.sessionId,
+        filter: (doc: any) => doc.metadata.chatSessionId === this.sessionId
       });
       
       return results;
@@ -396,33 +362,6 @@ export class ChatbotService {
       this.vectorStoreAvailable = false;
       return [];
     }
-  }
-  
-  // Generate a Drizzle query from natural language
-  private async generateDrizzleQuery(question: string): Promise<any> {
-    // Implementation of query generation logic
-    // This is a placeholder - the actual implementation would use LLM to generate SQL
-    return {
-      query: async (db: any, eq: any, like: any, and: any, or: any, desc: any, asc: any, sql: any, ...tables: any[]) => {
-        // For now, just return some dummy data
-        return [{ result: "This is a placeholder result" }];
-      },
-      tables: ["patients", "goals"]
-    };
-  }
-  
-  // Get the chat history for a session
-  async getChatHistory(): Promise<any[]> {
-    if (!this.sessionId) {
-      throw new Error("No active session");
-    }
-    
-    // Get the chat history from the database
-    const messages = await db.select().from(chatMessages)
-      .where(eq(chatMessages.chatSessionId, this.sessionId))
-      .orderBy(chatMessages.timestamp);
-    
-    return messages;
   }
   
   // Generate a summary of the chat session
@@ -450,18 +389,34 @@ export class ChatbotService {
       new StringOutputParser(),
     ]);
     
-    const summary = await summaryChain.invoke({
+    const result = await summaryChain.invoke({
       history: formattedHistory,
     });
+    
+    const summary = typeof result === 'string' ? result : '';
     
     // Store the summary in the database
     await db.insert(chatSummaries).values({
       chatSessionId: this.sessionId,
-      content: summary,
-      createdAt: new Date(),
+      summary: summary,
+      messageRange: `1-${messages.length}`,
     });
     
     return summary;
+  }
+  
+  // Get the chat history for a session
+  async getChatHistory(): Promise<any[]> {
+    if (!this.sessionId) {
+      throw new Error("No active session");
+    }
+    
+    // Get the chat history from the database
+    const messages = await db.select().from(chatMessages)
+      .where(eq(chatMessages.chatSessionId, this.sessionId))
+      .orderBy(chatMessages.timestamp);
+    
+    return messages;
   }
   
   // End the current chat session
@@ -470,45 +425,50 @@ export class ChatbotService {
       return false;
     }
     
-    await db.update(chatSessions)
-      .set({ endTime: new Date() })
-      .where(eq(chatSessions.id, this.sessionId));
-      
-    this.sessionId = null;
-    this.memory = null;
+    const result = await conversationManagementService.endSession(this.sessionId);
     
-    return true;
+    this.sessionId = null;
+    
+    return result;
   }
   
   // Rename a chat session
   async renameSession(sessionId: number, title: string): Promise<boolean> {
-    await db.update(chatSessions)
-      .set({ title })
-      .where(eq(chatSessions.id, sessionId));
-      
-    return true;
+    return await conversationManagementService.renameSession(sessionId, title);
   }
   
   // Delete a chat session and all associated messages
   async deleteSession(sessionId: number): Promise<boolean> {
-    await db.delete(chatSessions)
-      .where(eq(chatSessions.id, sessionId));
-      
-    return true;
+    return await conversationManagementService.deleteSession(sessionId);
   }
   
   // Get all chat sessions for a clinician
   async getClinicianSessions(clinicianId: number): Promise<any[]> {
-    return await db.select().from(chatSessions)
-      .where(eq(chatSessions.clinicianId, clinicianId))
-      .orderBy(desc(chatSessions.startTime));
+    return await conversationManagementService.getClinicianSessions(clinicianId);
   }
   
   // Get all messages for a chat session
   async getSessionMessages(sessionId: number): Promise<any[]> {
-    return await db.select().from(chatMessages)
-      .where(eq(chatMessages.chatSessionId, sessionId))
-      .orderBy(asc(chatMessages.timestamp));
+    return await conversationManagementService.getSessionMessages(sessionId);
+  }
+  
+  // Continue a previous conversation
+  async continueSession(sessionId: number): Promise<boolean> {
+    const result = await conversationManagementService.continueSession(sessionId);
+    if (result) {
+      this.sessionId = sessionId;
+    }
+    return result;
+  }
+  
+  // Export a chat session as JSON
+  async exportSession(sessionId: number): Promise<any> {
+    return await conversationManagementService.exportSession(sessionId);
+  }
+  
+  // Search for sessions by content
+  async searchSessions(clinicianId: number, searchTerm: string): Promise<any[]> {
+    return await conversationManagementService.searchSessions(clinicianId, searchTerm);
   }
 }
 
