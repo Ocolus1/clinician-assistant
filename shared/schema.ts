@@ -238,6 +238,7 @@ export const sessionNotes = pgTable("session_notes", {
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
   status: text("status", { enum: ["draft", "completed"] }).default("draft"),
+  date: timestamp("date").defaultNow(), // Added date field for better chronological tracking
 });
 
 // Renamed from performanceAssessments to goalAssessments
@@ -250,6 +251,9 @@ export const goalAssessments = pgTable("goal_assessments", {
   score: integer("score"),
   notes: text("notes"),
   strategies: text("strategies").array(),
+  date: timestamp("date").defaultNow(), // Added date field
+  createdAt: timestamp("created_at").defaultNow(), // Added createdAt field
+  updatedAt: timestamp("updated_at").defaultNow(), // Added updatedAt field
 });
 
 // Milestone assessment schema
@@ -270,6 +274,7 @@ export const strategies = pgTable("strategies", {
   category: text("category").notNull(),
   description: text("description"),
   effectiveness: integer("effectiveness"), // Added effectiveness rating (1-10)
+  goalId: integer("goal_id").references(() => goals.id, { onDelete: "cascade" }), // Added goalId reference
 });
 
 // Clinicians table for staff that can be assigned to patients
