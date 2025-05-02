@@ -16,7 +16,8 @@ import {
   BarChart, 
   ListTodo, 
   Plus, 
-  X 
+  X,
+  Brain 
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -24,7 +25,7 @@ import { Card } from "@/components/ui/card";
 import { useDashboard } from "@/components/dashboard/DashboardProvider";
 import { Dialog, DialogContent, DialogTitle, DialogHeader, DialogDescription } from "@/components/ui/dialog";
 import { apiRequest } from "@/lib/queryClient";
-import { Client } from "@shared/schema";
+import { Patient } from "@shared/schema";
 import { cn } from "@/lib/utils";
 
 /**
@@ -53,6 +54,11 @@ function ModularDashboardContent() {
   // Refresh data
   const handleRefresh = () => {
     refreshData();
+  };
+
+  // Navigate to clinician chat
+  const navigateToChat = () => {
+    setLocation("/clinician-chat");
   };
 
   // Get current date for the header badge
@@ -90,7 +96,7 @@ function ModularDashboardContent() {
       </div>
       
       {/* Modular dashboard tiles */}
-      <div className="p-8 flex flex-col items-center justify-center min-h-[calc(100vh-6rem)]">
+      <div className="p-8 flex flex-col items-center justify-center min-h-[calc(100vh-6rem)] overflow-y-auto max-h-[calc(100vh-4rem)]">
         <h2 className="text-xl font-medium text-center mb-8">
           Select a dashboard module to view detailed information
         </h2>
@@ -121,6 +127,15 @@ function ModularDashboardContent() {
             icon={<ListTodo />}
             color="#F59E0B"
             onClick={() => setTasksModalOpen(true)}
+          />
+          
+          {/* Clinician Chatbot Tile */}
+          <DashboardTile 
+            title="Clinician Chatbot" 
+            description="Query patient data with natural language"
+            icon={<Brain />}
+            color="#8B5CF6"
+            onClick={navigateToChat}
           />
           
           {/* Coming Soon Tile */}
@@ -242,7 +257,7 @@ function DashboardTile({
         className="h-16 w-16 rounded-full flex items-center justify-center mb-4"
         style={{ backgroundColor: `${color}20` }} // 20% opacity version of the color
       >
-        <div className="h-10 w-10" style={{ color }}>
+        <div className="h-10 w-10 flex items-center justify-center" style={{ color }}>
           {icon}
         </div>
       </div>
