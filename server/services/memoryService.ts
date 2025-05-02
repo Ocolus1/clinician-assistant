@@ -10,7 +10,7 @@ import {
   chatMemories, 
   chatSummaries 
 } from "../../shared/schema/chatbot";
-import { eq, and, gt, lt } from "drizzle-orm";
+import { eq, and, gt, lt, desc } from "drizzle-orm";
 
 // Create a model for summarization
 const summarizationModel = new ChatOpenAI({
@@ -40,6 +40,7 @@ const summarizationChain = RunnableSequence.from([
 export class MemoryService {
   private vectorStore: HNSWLib | null = null;
   private embeddings: OpenAIEmbeddings;
+  private vectorStoreAvailable: boolean = true;
   
   constructor() {
     this.embeddings = new OpenAIEmbeddings({
@@ -76,15 +77,19 @@ export class MemoryService {
           }))
         );
       }
+      
+      this.vectorStoreAvailable = true;
+      console.log("Vector store initialized successfully with", existingMemories.length, "memories");
     } catch (error) {
       console.error("Error initializing vector store:", error);
+      this.vectorStoreAvailable = false;
     }
   }
   
   // Add a memory to the vector store
   async addMemory(sessionId: number, content: string): Promise<void> {
     try {
-      if (!this.vectorStore) {
+      if (!this.vectorStore && this.vectorStoreAvailable) {
         await this.initVectorStore();
       }
       
@@ -94,17 +99,22 @@ export class MemoryService {
         content,
       }).returning();
       
-      // Add the memory to the vector store
-      await this.vectorStore?.addDocuments([
-        {
-          pageContent: content,
-          metadata: {
-            id: memoryEntry[0].id,
-            chatSessionId: sessionId,
-            createdAt: memoryEntry[0].createdAt,
+      // Add the memory to the vector store if available
+      if (this.vectorStoreAvailable && this.vectorStore) {
+        await this.vectorStore.addDocuments([
+          {
+            pageContent: content,
+            metadata: {
+              id: memoryEntry[0].id,
+              chatSessionId: sessionId,
+              createdAt: memoryEntry[0].createdAt,
+            },
           },
-        },
-      ]);
+        ]);
+        console.log("Added memory to vector store:", content.substring(0, 50) + "...");
+      } else {
+        console.warn("Vector store unavailable, memory only saved to database");
+      }
     } catch (error) {
       console.error("Error adding memory:", error);
     }
@@ -113,14 +123,38 @@ export class MemoryService {
   // Search for relevant memories
   async searchMemories(query: string, limit: number = 5): Promise<any[]> {
     try {
-      if (!this.vectorStore) {
+      if (!this.vectorStore && this.vectorStoreAvailable) {
         await this.initVectorStore();
       }
       
-      const results = await this.vectorStore?.similaritySearch(query, limit);
-      return results || [];
+      if (!this.vectorStoreAvailable || !this.vectorStore) {
+        console.warn("Vector store unavailable, falling back to keyword search");
+        // Fallback to simple keyword search in database if vector store is unavailable
+        const keywords = query.toLowerCase().split(/\s+/).filter(k => k.length > 3);
+        if (keywords.length === 0) return [];
+        
+        const memories = await db.select().from(chatMemories);
+        const results = memories.filter(memory => {
+          const content = memory.content.toLowerCase();
+          return keywords.some(keyword => content.includes(keyword));
+        }).slice(0, limit);
+        
+        return results.map(memory => ({
+          pageContent: memory.content,
+          metadata: {
+            id: memory.id,
+            chatSessionId: memory.chatSessionId,
+            createdAt: memory.createdAt,
+          },
+        }));
+      }
+      
+      const results = await this.vectorStore.similaritySearch(query, limit);
+      console.log("Found", results.length, "relevant memories for query:", query);
+      return results;
     } catch (error) {
       console.error("Error searching memories:", error);
+      this.vectorStoreAvailable = false;
       return [];
     }
   }
@@ -141,6 +175,10 @@ export class MemoryService {
         )
         .orderBy(chatMessages.timestamp);
       
+      if (messages.length === 0) {
+        return "No messages to summarize";
+      }
+      
       // Format the conversation for summarization
       const conversation = messages
         .map((msg) => `${msg.role === "user" ? "Clinician" : "AI"}: ${msg.content}`)
@@ -151,7 +189,11 @@ export class MemoryService {
         conversation,
       });
       
-      const summary = result.content || result.text || JSON.stringify(result);
+      const summary = typeof result.content === 'string' 
+        ? result.content 
+        : typeof result.text === 'string' 
+          ? result.text 
+          : JSON.stringify(result);
       
       // Store the summary in the database
       await db.insert(chatSummaries).values({
@@ -160,6 +202,10 @@ export class MemoryService {
         messageRange: `${startMessageId}-${endMessageId}`,
       });
       
+      // Also store the summary as a memory for retrieval
+      await this.addMemory(sessionId, `Conversation Summary: ${summary}`);
+      
+      console.log("Generated summary for session", sessionId, "messages", startMessageId, "to", endMessageId);
       return summary;
     } catch (error) {
       console.error("Error summarizing conversation:", error);
@@ -191,6 +237,11 @@ export class MemoryService {
         .where(eq(chatMessages.chatSessionId, sessionId))
         .orderBy(chatMessages.timestamp);
       
+      if (messages.length === 0) {
+        console.log("No messages to extract memories from for session", sessionId);
+        return;
+      }
+      
       // Format the conversation
       const conversation = messages
         .map((msg) => `${msg.role === "user" ? "Clinician" : "AI"}: ${msg.content}`)
@@ -200,6 +251,8 @@ export class MemoryService {
       const memoryExtractionPrompt = PromptTemplate.fromTemplate(`
         Extract key pieces of information from the following conversation between a clinician and an AI assistant.
         Focus on facts about patients, goals, progress, and clinical insights.
+        Each piece of information should be specific, factual, and useful for future reference.
+        Format each piece of information as a complete sentence that can stand on its own.
         Return each piece of information on a new line.
         
         Conversation:
@@ -219,10 +272,16 @@ export class MemoryService {
         conversation,
       });
       
-      const extractedInfo = result.content || result.text || JSON.stringify(result);
+      const extractedInfo = typeof result.content === 'string' 
+        ? result.content 
+        : typeof result.text === 'string' 
+          ? result.text 
+          : JSON.stringify(result);
       
       // Split into individual memories
       const memories = extractedInfo.split("\n").filter((line: string) => line.trim() !== "");
+      
+      console.log("Extracted", memories.length, "memories from conversation in session", sessionId);
       
       // Store each memory
       for (const memory of memories) {
@@ -230,6 +289,89 @@ export class MemoryService {
       }
     } catch (error) {
       console.error("Error extracting memories from conversation:", error);
+    }
+  }
+  
+  // Periodically summarize conversations and extract memories
+  async periodicMemoryManagement(): Promise<void> {
+    try {
+      // Get all active sessions
+      const activeSessions = await db
+        .select()
+        .from(chatSessions)
+        .where(eq(chatSessions.endTime, null));
+      
+      console.log("Running periodic memory management for", activeSessions.length, "active sessions");
+      
+      for (const session of activeSessions) {
+        // Get the latest summary for this session
+        const latestSummary = await db
+          .select()
+          .from(chatSummaries)
+          .where(eq(chatSummaries.chatSessionId, session.id))
+          .orderBy(desc(chatSummaries.createdAt))
+          .limit(1);
+        
+        // Get the latest message ID that was summarized
+        let lastSummarizedMessageId = 0;
+        if (latestSummary.length > 0) {
+          const messageRange = latestSummary[0].messageRange;
+          const endId = parseInt(messageRange.split('-')[1]);
+          lastSummarizedMessageId = endId;
+        }
+        
+        // Get the latest message ID for this session
+        const latestMessage = await db
+          .select()
+          .from(chatMessages)
+          .where(eq(chatMessages.chatSessionId, session.id))
+          .orderBy(desc(chatMessages.id))
+          .limit(1);
+        
+        if (latestMessage.length === 0) continue;
+        
+        const latestMessageId = latestMessage[0].id;
+        
+        // If there are at least 10 new messages since the last summary, create a new summary
+        if (latestMessageId - lastSummarizedMessageId >= 10) {
+          console.log("Creating new summary for session", session.id, "from message", lastSummarizedMessageId, "to", latestMessageId);
+          await this.summarizeConversation(session.id, lastSummarizedMessageId, latestMessageId);
+        }
+        
+        // Extract memories from the conversation
+        await this.extractMemoriesFromConversation(session.id);
+      }
+    } catch (error) {
+      console.error("Error in periodic memory management:", error);
+    }
+  }
+  
+  // Get recent conversation history for a session
+  async getRecentConversationHistory(sessionId: number, messageCount: number = 5): Promise<string> {
+    try {
+      const messages = await db
+        .select()
+        .from(chatMessages)
+        .where(eq(chatMessages.chatSessionId, sessionId))
+        .orderBy(desc(chatMessages.timestamp))
+        .limit(messageCount);
+      
+      if (messages.length === 0) {
+        return "No recent conversation history.";
+      }
+      
+      // Reverse to get chronological order
+      messages.reverse();
+      
+      // Format the conversation
+      const conversation = messages
+        .map((msg) => `${msg.role === "user" ? "Clinician" : "AI"}: ${msg.content}`)
+        .join("\n\n");
+      
+      return conversation;
+    } catch (error) {
+      console.error("Error getting recent conversation history:", error);
+      return "Error retrieving conversation history.";
     }
   }
 }
