@@ -1,0 +1,87 @@
+{
+  "timestamp": "2025-05-02T07:06:16.238Z",
+  "totalTests": 4,
+  "successfulTests": 2,
+  "failedTests": 2,
+  "successRate": "50.00%",
+  "results": [
+    {
+      "category": "Patient Info",
+      "question": "Can you tell me about patient with ID 5?",
+      "answer": "I'm sorry, but there is no patient with the ID 5 in the database.",
+      "success": true,
+      "expectedKeywords": [
+        "patient",
+        "ID",
+        "5"
+      ],
+      "foundKeywords": [
+        "patient",
+        "ID",
+        "5"
+      ],
+      "missingKeywords": [],
+      "timestamp": "2025-05-02T07:05:41.908Z"
+    },
+    {
+      "category": "Patient Info",
+      "question": "Who is Radwan-563004?",
+      "answer": "Radwan-563004 is a patient with the ID 84. His original name is Radwan and his unique identifier is 563004. He was born on December 13, 2019. His funds are self-managed and he has no NDIS funds. His onboarding status is pending.",
+      "success": true,
+      "expectedKeywords": [
+        "Radwan-563004",
+        "patient"
+      ],
+      "foundKeywords": [
+        "Radwan-563004",
+        "patient"
+      ],
+      "missingKeywords": [],
+      "timestamp": "2025-05-02T07:05:49.898Z"
+    },
+    {
+      "category": "Flexible Query Builder",
+      "question": "Can you use the flexible query builder to find all patients with pending onboarding status?",
+      "answer": "There are 5 patients with a pending onboarding status. Their IDs and names are as follows:\n1. ID: 84, Name: Radwan-563004\n2. ID: 85, Name: Radwan-475376\n3. ID: 86, Name: Radwan-768090\n4. ID: 87, Name: Radwan-765193\n5. ID: 90, Name: ff-664170",
+      "success": false,
+      "expectedKeywords": [
+        "flexible",
+        "query",
+        "pending",
+        "onboarding"
+      ],
+      "foundKeywords": [
+        "pending",
+        "onboarding"
+      ],
+      "missingKeywords": [
+        "flexible",
+        "query"
+      ],
+      "timestamp": "2025-05-02T07:06:05.614Z"
+    },
+    {
+      "category": "Flexible Query Builder",
+      "question": "Use the flexible query builder to show me goals for patient ID 5",
+      "answer": "There are no goals set for the patient with ID 5.",
+      "success": false,
+      "expectedKeywords": [
+        "flexible",
+        "query",
+        "goals",
+        "patient",
+        "5"
+      ],
+      "foundKeywords": [
+        "goals",
+        "patient",
+        "5"
+      ],
+      "missingKeywords": [
+        "flexible",
+        "query"
+      ],
+      "timestamp": "2025-05-02T07:06:16.229Z"
+    }
+  ]
+}

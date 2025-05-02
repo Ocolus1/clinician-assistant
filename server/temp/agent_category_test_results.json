@@ -1,0 +1,114 @@
+{
+  "timestamp": "2025-05-02T08:18:26.911Z",
+  "totalTests": 6,
+  "successfulTests": 3,
+  "failedTests": 3,
+  "successRate": "50.00%",
+  "results": [
+    {
+      "category": "Patient Info",
+      "question": "Can you tell me about patient with ID 5?",
+      "answer": "I'm sorry, but there seems to be an error in the system as multiple patients were returned for the same ID. I will report this issue for further investigation.",
+      "success": false,
+      "expectedKeywords": [
+        "patient",
+        "ID",
+        "5"
+      ],
+      "foundKeywords": [
+        "patient",
+        "ID"
+      ],
+      "missingKeywords": [
+        "5"
+      ],
+      "timestamp": "2025-05-02T08:14:08.625Z"
+    },
+    {
+      "category": "Patient Info",
+      "question": "Who is Radwan-563004?",
+      "answer": "Radwan-563004 is a patient with the ID 84. His original name is Radwan and he was born on December 13, 2019. His funds are self-managed and he has no NDIS funds. His onboarding status is pending.",
+      "success": true,
+      "expectedKeywords": [
+        "Radwan-563004",
+        "patient"
+      ],
+      "foundKeywords": [
+        "Radwan-563004",
+        "patient"
+      ],
+      "missingKeywords": [],
+      "timestamp": "2025-05-02T08:14:14.405Z"
+    },
+    {
+      "category": "Patient Goals",
+      "question": "What are the goals for patient with ID 5?",
+      "answer": "I'm sorry, but I'm currently unable to retrieve the goals for the patient with ID 5 due to a technical issue. Please try again later.",
+      "success": true,
+      "expectedKeywords": [
+        "goals",
+        "patient",
+        "5"
+      ],
+      "foundKeywords": [
+        "goals",
+        "patient",
+        "5"
+      ],
+      "missingKeywords": [],
+      "timestamp": "2025-05-02T08:14:23.029Z"
+    },
+    {
+      "category": "Patient Goals",
+      "question": "Show me the goals for Radwan-563004",
+      "answer": "I'm sorry, but I'm currently unable to retrieve the goals for Radwan-563004 due to a technical issue. I will report this issue to our technical team for resolution. Please try again later.",
+      "success": true,
+      "expectedKeywords": [
+        "goals",
+        "Radwan-563004"
+      ],
+      "foundKeywords": [
+        "goals",
+        "Radwan-563004"
+      ],
+      "missingKeywords": [],
+      "timestamp": "2025-05-02T08:14:45.132Z"
+    },
+    {
+      "category": "Flexible Query Builder",
+      "question": "Can you use the flexible query builder to find all patients with pending onboarding status?",
+      "answer": "Agent stopped due to max iterations.",
+      "success": false,
+      "expectedKeywords": [
+        "pending",
+        "onboarding",
+        "patients"
+      ],
+      "foundKeywords": [],
+      "missingKeywords": [
+        "pending",
+        "onboarding",
+        "patients"
+      ],
+      "timestamp": "2025-05-02T08:16:46.379Z"
+    },
+    {
+      "category": "Flexible Query Builder",
+      "question": "Use the flexible query builder to show me sessions for patient ID 5",
+      "answer": "Agent stopped due to max iterations.",
+      "success": false,
+      "expectedKeywords": [
+        "sessions",
+        "patient",
+        "5"
+      ],
+      "foundKeywords": [],
+      "missingKeywords": [
+        "sessions",
+        "patient",
+        "5"
+      ],
+      "timestamp": "2025-05-02T08:18:26.904Z"
+    }
+  ]
+}

@@ -1,0 +1,256 @@
+{
+  "results": {
+    "Goal Tracking": {
+      "total": 3,
+      "success": 2,
+      "tests": [
+        {
+          "input": "5",
+          "success": true,
+          "response": "Found 5 goals for patient Radwan-563004 (ID: 84).\nGoal Status Summary:\n- Completed: 0 (0%)\n- In Progress: 5 (100%)\n- Not Started: 0 (0%)\n\n\n[\n  {\n    \"id\": 179,\n    \"title\": \"Restored Goal 179\",\n    \"status\": \"in_progress\",\n    \"description\": \"This goal was restored during data migration to maintain referential integrity.\",\n    \"progress\": \"0%\",\n    \"subgoals\": [\n      {\n        \"id\": 272,\n        \"title\": \"ggg111\",\n        \"status\": \"pending\"\n      }\n    ],\n    \"subgoalStats\": {\n      \"total\": 1,\n      \"completed\": 0,\n      \"inProgress\": 0,\n      \"notStarted\": 0\n    }\n  },\n  {\n    \"id\": 102,\n    \"title\": \"Restored Goal 102\",\n    \"status\": \"in_progress\",\n    \"description\": \"This goal was restored during data migration to maintain referential integrity.\",\n    \"progress\": \"0%\",\n    \"subgoals\": [\n      {\n        \"id\": 225,\n        \"title\": \"Improving Self-Care Skills\",\n        \"status\": \"pending\"\n      },\n      {\n        \"id\": 226,\n        \"title\": \"Following Step-by-Step Instructions\",\n        \"status\": \"pending\"\n      },\n      {\n        \"id\": 227,\n        \"title\": \"Building Organizational Skills\",\n        \"status\": \"pending\"\n      }\n    ],\n    \"subgoalStats\": {\n      \"total\": 3,\n      \"completed\": 0,\n      \"inProgress\": 0,\n      \"notStarted\": 0\n    }\n  },\n  {\n    \"id\": 101,\n    \"title\": \"Restored Goal 101\",\n    \"status\": \"in_progress\",\n    \"description\": \"This goal was restored during data migration to maintain referential integrity.\",\n    \"progress\": \"25%\",\n    \"subgoals\": [\n      {\n        \"id\": 222,\n        \"title\": \"Identifying Emotions\",\n        \"status\": \"pending\"\n      },\n      {\n        \"id\": 223,\n        \"title\": \"Using Coping Strategies\",\n        \"status\": \"pending\"\n      },\n      {\n        \"id\": 224,\n        \"title\": \"Managing Transitions\",\n        \"status\": \"pending\"\n      },\n      {\n        \"id\": 229,\n        \"title\": \"\",\n        \"status\": \"completed\"\n      }\n    ],\n    \"subgoalStats\": {\n      \"total\": 4,\n      \"completed\": 1,\n      \"inProgress\": 0,\n      \"notStarted\": 0\n    }\n  },\n  {\n    \"id\": 100,\n    \"title\": \"Restored Goal 100\",\n    \"status\": \"in_progress\",\n    \"description\": \"This goal was restored during data migration to maintain referential integrity.\",\n    \"progress\": \"0%\",\n    \"subgoals\": [\n      {\n        \"id\": 219,\n        \"title\": \"Initiating Conversations\",\n        \"status\": \"pending\"\n      },\n      {\n        \"id\": 220,\n        \"title\": \"Improving Eye Contact\",\n        \"status\": \"pending\"\n      },\n      {\n        \"id\": 221,\n        \"title\": \"Recognizing Emotions\",\n        \"status\": \"pending\"\n      }\n    ],\n    \"subgoalStats\": {\n      \"total\": 3,\n      \"completed\": 0,\n      \"inProgress\": 0,\n      \"notStarted\": 0\n    }\n  },\n  {\n    \"id\": 1,\n    \"title\": \"Test Goal\",\n    \"status\": \"in_progress\",\n    \"description\": \"Test Description\",\n    \"progress\": \"N/A\",\n    \"subgoals\": [],\n    \"subgoalStats\": {\n      \"total\": 0,\n      \"completed\": 0,\n      \"inProgress\": 0,\n      \"notStarted\": 0\n    }\n  }\n]",
+          "expectedKeywords": [
+            "goals",
+            "patient",
+            "5"
+          ],
+          "foundKeywords": [
+            "goals",
+            "patient",
+            "5"
+          ],
+          "missingKeywords": []
+        },
+        {
+          "input": "Radwan-563004",
+          "success": true,
+          "response": "Found 5 goals for patient Radwan-563004 (ID: 84).\nGoal Status Summary:\n- Completed: 0 (0%)\n- In Progress: 5 (100%)\n- Not Started: 0 (0%)\n\n\n[\n  {\n    \"id\": 179,\n    \"title\": \"Restored Goal 179\",\n    \"status\": \"in_progress\",\n    \"description\": \"This goal was restored during data migration to maintain referential integrity.\",\n    \"progress\": \"0%\",\n    \"subgoals\": [\n      {\n        \"id\": 272,\n        \"title\": \"ggg111\",\n        \"status\": \"pending\"\n      }\n    ],\n    \"subgoalStats\": {\n      \"total\": 1,\n      \"completed\": 0,\n      \"inProgress\": 0,\n      \"notStarted\": 0\n    }\n  },\n  {\n    \"id\": 102,\n    \"title\": \"Restored Goal 102\",\n    \"status\": \"in_progress\",\n    \"description\": \"This goal was restored during data migration to maintain referential integrity.\",\n    \"progress\": \"0%\",\n    \"subgoals\": [\n      {\n        \"id\": 225,\n        \"title\": \"Improving Self-Care Skills\",\n        \"status\": \"pending\"\n      },\n      {\n        \"id\": 226,\n        \"title\": \"Following Step-by-Step Instructions\",\n        \"status\": \"pending\"\n      },\n      {\n        \"id\": 227,\n        \"title\": \"Building Organizational Skills\",\n        \"status\": \"pending\"\n      }\n    ],\n    \"subgoalStats\": {\n      \"total\": 3,\n      \"completed\": 0,\n      \"inProgress\": 0,\n      \"notStarted\": 0\n    }\n  },\n  {\n    \"id\": 101,\n    \"title\": \"Restored Goal 101\",\n    \"status\": \"in_progress\",\n    \"description\": \"This goal was restored during data migration to maintain referential integrity.\",\n    \"progress\": \"25%\",\n    \"subgoals\": [\n      {\n        \"id\": 222,\n        \"title\": \"Identifying Emotions\",\n        \"status\": \"pending\"\n      },\n      {\n        \"id\": 223,\n        \"title\": \"Using Coping Strategies\",\n        \"status\": \"pending\"\n      },\n      {\n        \"id\": 224,\n        \"title\": \"Managing Transitions\",\n        \"status\": \"pending\"\n      },\n      {\n        \"id\": 229,\n        \"title\": \"\",\n        \"status\": \"completed\"\n      }\n    ],\n    \"subgoalStats\": {\n      \"total\": 4,\n      \"completed\": 1,\n      \"inProgress\": 0,\n      \"notStarted\": 0\n    }\n  },\n  {\n    \"id\": 100,\n    \"title\": \"Restored Goal 100\",\n    \"status\": \"in_progress\",\n    \"description\": \"This goal was restored during data migration to maintain referential integrity.\",\n    \"progress\": \"0%\",\n    \"subgoals\": [\n      {\n        \"id\": 219,\n        \"title\": \"Initiating Conversations\",\n        \"status\": \"pending\"\n      },\n      {\n        \"id\": 220,\n        \"title\": \"Improving Eye Contact\",\n        \"status\": \"pending\"\n      },\n      {\n        \"id\": 221,\n        \"title\": \"Recognizing Emotions\",\n        \"status\": \"pending\"\n      }\n    ],\n    \"subgoalStats\": {\n      \"total\": 3,\n      \"completed\": 0,\n      \"inProgress\": 0,\n      \"notStarted\": 0\n    }\n  },\n  {\n    \"id\": 1,\n    \"title\": \"Test Goal\",\n    \"status\": \"in_progress\",\n    \"description\": \"Test Description\",\n    \"progress\": \"N/A\",\n    \"subgoals\": [],\n    \"subgoalStats\": {\n      \"total\": 0,\n      \"completed\": 0,\n      \"inProgress\": 0,\n      \"notStarted\": 0\n    }\n  }\n]",
+          "expectedKeywords": [
+            "goals",
+            "Radwan-563004"
+          ],
+          "foundKeywords": [
+            "goals",
+            "Radwan-563004"
+          ],
+          "missingKeywords": []
+        },
+        {
+          "input": "5,mobility",
+          "success": false,
+          "response": "No patient found matching \"5,mobility\".",
+          "expectedKeywords": [
+            "goals",
+            "patient",
+            "5",
+            "mobility"
+          ],
+          "foundKeywords": [
+            "patient",
+            "5",
+            "mobility"
+          ],
+          "missingKeywords": [
+            "goals"
+          ]
+        }
+      ],
+      "successRate": 66.66666666666666
+    },
+    "Budget Tracking": {
+      "total": 4,
+      "success": 0,
+      "tests": [
+        {
+          "input": "5,remaining",
+          "success": false,
+          "response": "Error retrieving budget information: totalBudget.toFixed is not a function",
+          "expectedKeywords": [
+            "budget",
+            "remains",
+            "patient",
+            "5"
+          ],
+          "foundKeywords": [
+            "budget"
+          ],
+          "missingKeywords": [
+            "remains",
+            "patient",
+            "5"
+          ]
+        },
+        {
+          "input": "5,spent",
+          "success": false,
+          "response": "Error retrieving budget information: totalBudget.toFixed is not a function",
+          "expectedKeywords": [
+            "spent",
+            "budget",
+            "patient",
+            "5"
+          ],
+          "foundKeywords": [
+            "budget"
+          ],
+          "missingKeywords": [
+            "spent",
+            "patient",
+            "5"
+          ]
+        },
+        {
+          "input": "5,expenditures",
+          "success": false,
+          "response": "Error retrieving budget information: item.unitPrice?.toFixed is not a function",
+          "expectedKeywords": [
+            "expenditures",
+            "patient",
+            "5"
+          ],
+          "foundKeywords": [],
+          "missingKeywords": [
+            "expenditures",
+            "patient",
+            "5"
+          ]
+        },
+        {
+          "input": "5,categories",
+          "success": false,
+          "response": "Error retrieving budget information: totalBudget.toFixed is not a function",
+          "expectedKeywords": [
+            "category",
+            "breakdown",
+            "patient",
+            "5"
+          ],
+          "foundKeywords": [],
+          "missingKeywords": [
+            "category",
+            "breakdown",
+            "patient",
+            "5"
+          ]
+        }
+      ],
+      "successRate": 0
+    },
+    "Strategy Insights": {
+      "total": 3,
+      "success": 0,
+      "tests": [
+        {
+          "input": "5,all",
+          "success": false,
+          "response": "Error retrieving strategies: syntax error at or near \"in\"",
+          "expectedKeywords": [
+            "strategies",
+            "patient",
+            "5"
+          ],
+          "foundKeywords": [
+            "strategies"
+          ],
+          "missingKeywords": [
+            "patient",
+            "5"
+          ]
+        },
+        {
+          "input": "5,communication",
+          "success": false,
+          "response": "No communication goals found for patient Radwan-563004 (ID: 84).",
+          "expectedKeywords": [
+            "strategies",
+            "communication",
+            "patient",
+            "5"
+          ],
+          "foundKeywords": [
+            "communication",
+            "patient",
+            "5"
+          ],
+          "missingKeywords": [
+            "strategies"
+          ]
+        },
+        {
+          "input": "Radwan-563004,all",
+          "success": false,
+          "response": "Error retrieving strategies: syntax error at or near \"in\"",
+          "expectedKeywords": [
+            "strategies",
+            "Radwan-563004"
+          ],
+          "foundKeywords": [
+            "strategies"
+          ],
+          "missingKeywords": [
+            "Radwan-563004"
+          ]
+        }
+      ],
+      "successRate": 0
+    },
+    "Session Engagement": {
+      "total": 3,
+      "success": 1,
+      "tests": [
+        {
+          "input": "5,all",
+          "success": false,
+          "response": "Found 3 sessions for Radwan-563004 (ID: 84) over all time.\nTotal Duration: 165 minutes, Average Duration: 55.0 minutes per session.\n\nSession Details:\n[\n  {\n    \"id\": 233,\n    \"date\": \"2025-04-06\",\n    \"duration\": 60,\n    \"notes\": \"Client made excellent progress\"\n  },\n  {\n    \"id\": 231,\n    \"date\": \"2025-04-05\",\n    \"duration\": 45,\n    \"notes\": \" | Test update to trigger budget item usage update\"\n  },\n  {\n    \"id\": 232,\n    \"date\": \"2025-04-05\",\n    \"duration\": 60,\n    \"notes\": \"Client showed good progress\"\n  }\n]",
+          "expectedKeywords": [
+            "sessions",
+            "patient",
+            "5"
+          ],
+          "foundKeywords": [
+            "sessions",
+            "5"
+          ],
+          "missingKeywords": [
+            "patient"
+          ]
+        },
+        {
+          "input": "5,recent",
+          "success": false,
+          "response": "Found 3 sessions for Radwan-563004 (ID: 84) over all time.\nTotal Duration: 165 minutes, Average Duration: 55.0 minutes per session.\n\nSession Details:\n[\n  {\n    \"id\": 233,\n    \"date\": \"2025-04-06\",\n    \"duration\": 60,\n    \"notes\": \"Client made excellent progress\"\n  },\n  {\n    \"id\": 231,\n    \"date\": \"2025-04-05\",\n    \"duration\": 45,\n    \"notes\": \" | Test update to trigger budget item usage update\"\n  },\n  {\n    \"id\": 232,\n    \"date\": \"2025-04-05\",\n    \"duration\": 60,\n    \"notes\": \"Client showed good progress\"\n  }\n]",
+          "expectedKeywords": [
+            "sessions",
+            "recent",
+            "patient",
+            "5"
+          ],
+          "foundKeywords": [
+            "sessions",
+            "5"
+          ],
+          "missingKeywords": [
+            "recent",
+            "patient"
+          ]
+        },
+        {
+          "input": "Radwan-563004,all",
+          "success": true,
+          "response": "Found 3 sessions for Radwan-563004 (ID: 84) over all time.\nTotal Duration: 165 minutes, Average Duration: 55.0 minutes per session.\n\nSession Details:\n[\n  {\n    \"id\": 233,\n    \"date\": \"2025-04-06\",\n    \"duration\": 60,\n    \"notes\": \"Client made excellent progress\"\n  },\n  {\n    \"id\": 231,\n    \"date\": \"2025-04-05\",\n    \"duration\": 45,\n    \"notes\": \" | Test update to trigger budget item usage update\"\n  },\n  {\n    \"id\": 232,\n    \"date\": \"2025-04-05\",\n    \"duration\": 60,\n    \"notes\": \"Client showed good progress\"\n  }\n]",
+          "expectedKeywords": [
+            "sessions",
+            "Radwan-563004"
+          ],
+          "foundKeywords": [
+            "sessions",
+            "Radwan-563004"
+          ],
+          "missingKeywords": []
+        }
+      ],
+      "successRate": 33.33333333333333
+    }
+  },
+  "overallSuccessRate": 23.076923076923077,
+  "timestamp": "2025-05-02T09-56-32.973Z"
+}

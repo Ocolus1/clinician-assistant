@@ -1,0 +1,478 @@
+[
+  {
+    "category": "Budget Tracking - Remaining Funds",
+    "question": "How much of Radwan-563004's NDIS budget remains?",
+    "expectedKeywords": [
+      "budget",
+      "funds",
+      "Radwan-563004",
+      "remain"
+    ],
+    "answer": "Error: request to http://localhost:5000/api/chatbot/react/query failed, reason: ",
+    "foundKeywords": [],
+    "missingKeywords": [
+      "budget",
+      "funds",
+      "Radwan-563004",
+      "remain"
+    ],
+    "success": false,
+    "error": "request to http://localhost:5000/api/chatbot/react/query failed, reason: "
+  },
+  {
+    "category": "Budget Tracking - Expiration",
+    "question": "When does Radwan-563004's current budget plan expire?",
+    "expectedKeywords": [
+      "budget",
+      "expire",
+      "Radwan-563004"
+    ],
+    "answer": "Error: request to http://localhost:5000/api/chatbot/react/query failed, reason: ",
+    "foundKeywords": [],
+    "missingKeywords": [
+      "budget",
+      "expire",
+      "Radwan-563004"
+    ],
+    "success": false,
+    "error": "request to http://localhost:5000/api/chatbot/react/query failed, reason: "
+  },
+  {
+    "category": "Budget Tracking - Low Budget",
+    "question": "Which patients have less than 20% of their budget remaining?",
+    "expectedKeywords": [
+      "budget",
+      "remaining",
+      "20%"
+    ],
+    "answer": "Error: request to http://localhost:5000/api/chatbot/react/query failed, reason: ",
+    "foundKeywords": [],
+    "missingKeywords": [
+      "budget",
+      "remaining",
+      "20%"
+    ],
+    "success": false,
+    "error": "request to http://localhost:5000/api/chatbot/react/query failed, reason: "
+  },
+  {
+    "category": "Budget Tracking - Session Allocation",
+    "question": "How many therapy sessions does Radwan-563004 have left in their budget?",
+    "expectedKeywords": [
+      "sessions",
+      "left",
+      "budget",
+      "Radwan-563004"
+    ],
+    "answer": "Error: request to http://localhost:5000/api/chatbot/react/query failed, reason: ",
+    "foundKeywords": [],
+    "missingKeywords": [
+      "sessions",
+      "left",
+      "budget",
+      "Radwan-563004"
+    ],
+    "success": false,
+    "error": "request to http://localhost:5000/api/chatbot/react/query failed, reason: "
+  },
+  {
+    "category": "Budget Tracking - Budget Items",
+    "question": "What budget items have been allocated for Radwan-563004?",
+    "expectedKeywords": [
+      "budget",
+      "items",
+      "allocated",
+      "Radwan-563004"
+    ],
+    "answer": "Error: request to http://localhost:5000/api/chatbot/react/query failed, reason: ",
+    "foundKeywords": [],
+    "missingKeywords": [
+      "budget",
+      "items",
+      "allocated",
+      "Radwan-563004"
+    ],
+    "success": false,
+    "error": "request to http://localhost:5000/api/chatbot/react/query failed, reason: "
+  },
+  {
+    "category": "Session Engagement - Attendance",
+    "question": "How many sessions has Radwan-563004 attended in the last month?",
+    "expectedKeywords": [
+      "sessions",
+      "attended",
+      "month",
+      "Radwan-563004"
+    ],
+    "answer": "Error: request to http://localhost:5000/api/chatbot/react/query failed, reason: ",
+    "foundKeywords": [],
+    "missingKeywords": [
+      "sessions",
+      "attended",
+      "month",
+      "Radwan-563004"
+    ],
+    "success": false,
+    "error": "request to http://localhost:5000/api/chatbot/react/query failed, reason: "
+  },
+  {
+    "category": "Session Engagement - Missed Sessions",
+    "question": "Who missed their last scheduled session?",
+    "expectedKeywords": [
+      "missed",
+      "session"
+    ],
+    "answer": "Error: request to http://localhost:5000/api/chatbot/react/query failed, reason: ",
+    "foundKeywords": [],
+    "missingKeywords": [
+      "missed",
+      "session"
+    ],
+    "success": false,
+    "error": "request to http://localhost:5000/api/chatbot/react/query failed, reason: "
+  },
+  {
+    "category": "Session Engagement - Inactive Patients",
+    "question": "Which patients haven't attended therapy in 3 weeks?",
+    "expectedKeywords": [
+      "attended",
+      "therapy",
+      "weeks"
+    ],
+    "answer": "Error: request to http://localhost:5000/api/chatbot/react/query failed, reason: ",
+    "foundKeywords": [],
+    "missingKeywords": [
+      "attended",
+      "therapy",
+      "weeks"
+    ],
+    "success": false,
+    "error": "request to http://localhost:5000/api/chatbot/react/query failed, reason: "
+  },
+  {
+    "category": "Session Engagement - Session Frequency",
+    "question": "What's the frequency of Radwan-563004's sessions compared to the plan?",
+    "expectedKeywords": [
+      "frequency",
+      "sessions",
+      "plan",
+      "Radwan-563004"
+    ],
+    "answer": "Error: request to http://localhost:5000/api/chatbot/react/query failed, reason: ",
+    "foundKeywords": [],
+    "missingKeywords": [
+      "frequency",
+      "sessions",
+      "plan",
+      "Radwan-563004"
+    ],
+    "success": false,
+    "error": "request to http://localhost:5000/api/chatbot/react/query failed, reason: "
+  },
+  {
+    "category": "Session Engagement - Last Session",
+    "question": "When was the last session for Radwan-563004?",
+    "expectedKeywords": [
+      "last",
+      "session",
+      "Radwan-563004"
+    ],
+    "answer": "Error: request to http://localhost:5000/api/chatbot/react/query failed, reason: ",
+    "foundKeywords": [],
+    "missingKeywords": [
+      "last",
+      "session",
+      "Radwan-563004"
+    ],
+    "success": false,
+    "error": "request to http://localhost:5000/api/chatbot/react/query failed, reason: "
+  },
+  {
+    "category": "Strategy Insights - Effective Strategies",
+    "question": "What strategies are working best for Radwan-563004's communication goal?",
+    "expectedKeywords": [
+      "strategies",
+      "working",
+      "Radwan-563004",
+      "communication"
+    ],
+    "answer": "Error: request to http://localhost:5000/api/chatbot/react/query failed, reason: ",
+    "foundKeywords": [],
+    "missingKeywords": [
+      "strategies",
+      "working",
+      "Radwan-563004",
+      "communication"
+    ],
+    "success": false,
+    "error": "request to http://localhost:5000/api/chatbot/react/query failed, reason: "
+  },
+  {
+    "category": "Strategy Insights - Strategy Summary",
+    "question": "Show me a strategy summary to share with Radwan-563004's caregiver.",
+    "expectedKeywords": [
+      "strategy",
+      "summary",
+      "Radwan-563004",
+      "caregiver"
+    ],
+    "answer": "Error: request to http://localhost:5000/api/chatbot/react/query failed, reason: ",
+    "foundKeywords": [],
+    "missingKeywords": [
+      "strategy",
+      "summary",
+      "Radwan-563004",
+      "caregiver"
+    ],
+    "success": false,
+    "error": "request to http://localhost:5000/api/chatbot/react/query failed, reason: "
+  },
+  {
+    "category": "Strategy Insights - New Strategies",
+    "question": "What new strategies should we try for Radwan-563004's mobility goal?",
+    "expectedKeywords": [
+      "strategies",
+      "try",
+      "Radwan-563004",
+      "mobility"
+    ],
+    "answer": "Error: request to http://localhost:5000/api/chatbot/react/query failed, reason: ",
+    "foundKeywords": [],
+    "missingKeywords": [
+      "strategies",
+      "try",
+      "Radwan-563004",
+      "mobility"
+    ],
+    "success": false,
+    "error": "request to http://localhost:5000/api/chatbot/react/query failed, reason: "
+  },
+  {
+    "category": "Strategy Insights - Strategy Comparison",
+    "question": "Compare the effectiveness of different strategies used for Radwan-563004.",
+    "expectedKeywords": [
+      "strategies",
+      "effectiveness",
+      "Radwan-563004"
+    ],
+    "answer": "Error: request to http://localhost:5000/api/chatbot/react/query failed, reason: ",
+    "foundKeywords": [],
+    "missingKeywords": [
+      "strategies",
+      "effectiveness",
+      "Radwan-563004"
+    ],
+    "success": false,
+    "error": "request to http://localhost:5000/api/chatbot/react/query failed, reason: "
+  },
+  {
+    "category": "Strategy Insights - Strategy Recommendations",
+    "question": "What strategies would you recommend for Radwan-563004 based on recent progress?",
+    "expectedKeywords": [
+      "strategies",
+      "recommend",
+      "Radwan-563004",
+      "progress"
+    ],
+    "answer": "Error: request to http://localhost:5000/api/chatbot/react/query failed, reason: ",
+    "foundKeywords": [],
+    "missingKeywords": [
+      "strategies",
+      "recommend",
+      "Radwan-563004",
+      "progress"
+    ],
+    "success": false,
+    "error": "request to http://localhost:5000/api/chatbot/react/query failed, reason: "
+  },
+  {
+    "category": "Goal Tracking - Progress",
+    "question": "What progress has Radwan-563004 made on their mobility goal?",
+    "expectedKeywords": [
+      "progress",
+      "Radwan-563004",
+      "mobility"
+    ],
+    "answer": "Error: request to http://localhost:5000/api/chatbot/react/query failed, reason: ",
+    "foundKeywords": [],
+    "missingKeywords": [
+      "progress",
+      "Radwan-563004",
+      "mobility"
+    ],
+    "success": false,
+    "error": "request to http://localhost:5000/api/chatbot/react/query failed, reason: "
+  },
+  {
+    "category": "Goal Tracking - Milestones",
+    "question": "Which milestones has Radwan-563004 completed for their communication goal?",
+    "expectedKeywords": [
+      "milestones",
+      "completed",
+      "Radwan-563004",
+      "communication"
+    ],
+    "answer": "Error: request to http://localhost:5000/api/chatbot/react/query failed, reason: ",
+    "foundKeywords": [],
+    "missingKeywords": [
+      "milestones",
+      "completed",
+      "Radwan-563004",
+      "communication"
+    ],
+    "success": false,
+    "error": "request to http://localhost:5000/api/chatbot/react/query failed, reason: "
+  },
+  {
+    "category": "Goal Tracking - Goal Status",
+    "question": "What's the current status of all Radwan-563004's goals?",
+    "expectedKeywords": [
+      "status",
+      "goals",
+      "Radwan-563004"
+    ],
+    "answer": "Error: request to http://localhost:5000/api/chatbot/react/query failed, reason: ",
+    "foundKeywords": [],
+    "missingKeywords": [
+      "status",
+      "goals",
+      "Radwan-563004"
+    ],
+    "success": false,
+    "error": "request to http://localhost:5000/api/chatbot/react/query failed, reason: "
+  },
+  {
+    "category": "Goal Tracking - Goal Comparison",
+    "question": "Which of Radwan-563004's goals has shown the most progress?",
+    "expectedKeywords": [
+      "goals",
+      "progress",
+      "Radwan-563004",
+      "most"
+    ],
+    "answer": "Error: request to http://localhost:5000/api/chatbot/react/query failed, reason: ",
+    "foundKeywords": [],
+    "missingKeywords": [
+      "goals",
+      "progress",
+      "Radwan-563004",
+      "most"
+    ],
+    "success": false,
+    "error": "request to http://localhost:5000/api/chatbot/react/query failed, reason: "
+  },
+  {
+    "category": "Goal Tracking - Goal Timeline",
+    "question": "What's the timeline for completing Radwan-563004's remaining goals?",
+    "expectedKeywords": [
+      "timeline",
+      "completing",
+      "goals",
+      "Radwan-563004"
+    ],
+    "answer": "Error: request to http://localhost:5000/api/chatbot/react/query failed, reason: ",
+    "foundKeywords": [],
+    "missingKeywords": [
+      "timeline",
+      "completing",
+      "goals",
+      "Radwan-563004"
+    ],
+    "success": false,
+    "error": "request to http://localhost:5000/api/chatbot/react/query failed, reason: "
+  },
+  {
+    "category": "Report Generation - Basic",
+    "question": "What's Radwan-563004's progress summary across all goals?",
+    "expectedKeywords": [
+      "progress",
+      "summary",
+      "goals",
+      "Radwan-563004"
+    ],
+    "answer": "Error: request to http://localhost:5000/api/chatbot/react/query failed, reason: ",
+    "foundKeywords": [],
+    "missingKeywords": [
+      "progress",
+      "summary",
+      "goals",
+      "Radwan-563004"
+    ],
+    "success": false,
+    "error": "request to http://localhost:5000/api/chatbot/react/query failed, reason: "
+  },
+  {
+    "category": "Report Generation - Detailed",
+    "question": "Can you generate a detailed progress report for Radwan-563004 showing progress on each goal?",
+    "expectedKeywords": [
+      "progress",
+      "report",
+      "goal",
+      "Radwan-563004"
+    ],
+    "answer": "Error: request to http://localhost:5000/api/chatbot/react/query failed, reason: ",
+    "foundKeywords": [],
+    "missingKeywords": [
+      "progress",
+      "report",
+      "goal",
+      "Radwan-563004"
+    ],
+    "success": false,
+    "error": "request to http://localhost:5000/api/chatbot/react/query failed, reason: "
+  },
+  {
+    "category": "Report Generation - Specific Goal",
+    "question": "What progress has Radwan-563004 made on their communication goal?",
+    "expectedKeywords": [
+      "progress",
+      "communication",
+      "Radwan-563004"
+    ],
+    "answer": "Error: request to http://localhost:5000/api/chatbot/react/query failed, reason: ",
+    "foundKeywords": [],
+    "missingKeywords": [
+      "progress",
+      "communication",
+      "Radwan-563004"
+    ],
+    "success": false,
+    "error": "request to http://localhost:5000/api/chatbot/react/query failed, reason: "
+  },
+  {
+    "category": "Report Generation - Status Check",
+    "question": "Check if all the data needed for Radwan-563004's progress report is available",
+    "expectedKeywords": [
+      "report",
+      "status",
+      "Radwan-563004"
+    ],
+    "answer": "Error: request to http://localhost:5000/api/chatbot/react/query failed, reason: ",
+    "foundKeywords": [],
+    "missingKeywords": [
+      "report",
+      "status",
+      "Radwan-563004"
+    ],
+    "success": false,
+    "error": "request to http://localhost:5000/api/chatbot/react/query failed, reason: "
+  },
+  {
+    "category": "Report Generation - Recommendations",
+    "question": "What recommendations do you have based on Radwan-563004's progress?",
+    "expectedKeywords": [
+      "recommendation",
+      "progress",
+      "Radwan-563004"
+    ],
+    "answer": "Error: request to http://localhost:5000/api/chatbot/react/query failed, reason: ",
+    "foundKeywords": [],
+    "missingKeywords": [
+      "recommendation",
+      "progress",
+      "Radwan-563004"
+    ],
+    "success": false,
+    "error": "request to http://localhost:5000/api/chatbot/react/query failed, reason: "
+  }
+]

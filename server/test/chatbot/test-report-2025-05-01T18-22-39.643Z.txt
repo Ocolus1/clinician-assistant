@@ -1,0 +1,16 @@
+
+Clinician Chatbot Test Report
+Date: 2025-05-01T18:22:40.082Z
+
+Database-Independent Tests:
+- mock-entity-test.js
+- entity-extraction-enhanced-test.js
+
+Database-Dependent Tests:
+
+
+Summary:
+- Total Passed: 2
+- Total Failed: 0
+- Total Tests: 2
+- Pass Rate: 100.00%

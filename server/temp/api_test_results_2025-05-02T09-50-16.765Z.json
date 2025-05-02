@@ -1,0 +1,278 @@
+{
+  "results": [
+    {
+      "category": "Session Engagement",
+      "question": "How many sessions has patient ID 5 had?",
+      "success": true,
+      "response": "Patient ID 5 has had 3 sessions.",
+      "expectedKeywords": [
+        "sessions",
+        "patient",
+        "5"
+      ],
+      "foundKeywords": [
+        "sessions",
+        "patient",
+        "5"
+      ],
+      "missingKeywords": []
+    },
+    {
+      "category": "Session Engagement",
+      "question": "Show me the recent session history for Radwan-563004",
+      "success": false,
+      "response": "Radwan-563004 had 3 recent sessions with a total duration of 165 minutes and an average of 55.0 minutes per session. The details are as follows:\n\n1. Session ID: 233, Date: 2025-04-06, Duration: 60 minutes, Notes: \"Client made excellent progress\"\n2. Session ID: 231, Date: 2025-04-05, Duration: 45 minutes, Notes: \"Test update to trigger budget item usage update\"\n3. Session ID: 232, Date: 2025-04-05, Duration: 60 minutes, Notes: \"Client showed good progress\"",
+      "expectedKeywords": [
+        "session",
+        "history",
+        "Radwan-563004"
+      ],
+      "foundKeywords": [
+        "session",
+        "Radwan-563004"
+      ],
+      "missingKeywords": [
+        "history"
+      ]
+    },
+    {
+      "category": "Goal Tracking",
+      "question": "Show me the goals for patient ID 5",
+      "success": true,
+      "response": "The patient with ID 5 has 5 goals in progress. These include \"Restored Goal 179\", \"Restored Goal 102\", \"Restored Goal 101\", \"Restored Goal 100\", and \"Test Goal\". None of these goals have been completed yet.",
+      "expectedKeywords": [
+        "goals",
+        "patient",
+        "5"
+      ],
+      "foundKeywords": [
+        "goals",
+        "patient",
+        "5"
+      ],
+      "missingKeywords": []
+    },
+    {
+      "category": "Goal Tracking",
+      "question": "What are the current goals for Radwan-563004?",
+      "success": true,
+      "response": "Radwan-563004 has 5 goals in progress. These include \"Restored Goal 179\", \"Restored Goal 102\", \"Restored Goal 101\", \"Restored Goal 100\", and \"Test Goal\". The progress on these goals varies, with \"Restored Goal 101\" being 25% complete and the others showing 0% progress. Each goal has several subgoals associated with it, except for \"Test Goal\" which has no subgoals.",
+      "expectedKeywords": [
+        "goals",
+        "Radwan-563004"
+      ],
+      "foundKeywords": [
+        "goals",
+        "Radwan-563004"
+      ],
+      "missingKeywords": []
+    },
+    {
+      "category": "Goal Tracking",
+      "question": "What progress has been made on patient ID 5's mobility goals?",
+      "success": true,
+      "response": "The patient has 5 goals in progress, but none of them appear to be directly related to mobility. Could you please provide more specific information about the mobility goals you are referring to?",
+      "expectedKeywords": [
+        "progress",
+        "goals",
+        "patient",
+        "5",
+        "mobility"
+      ],
+      "foundKeywords": [
+        "progress",
+        "goals",
+        "patient",
+        "5",
+        "mobility"
+      ],
+      "missingKeywords": []
+    },
+    {
+      "category": "Budget Tracking",
+      "question": "How much of patient ID 5's NDIS budget remains?",
+      "success": false,
+      "response": "Patient ID 5 has no remaining NDIS funds.",
+      "expectedKeywords": [
+        "budget",
+        "remains",
+        "patient",
+        "5",
+        "NDIS"
+      ],
+      "foundKeywords": [
+        "patient",
+        "5",
+        "NDIS"
+      ],
+      "missingKeywords": [
+        "budget",
+        "remains"
+      ]
+    },
+    {
+      "category": "Budget Tracking",
+      "question": "What are the recent budget expenditures for Radwan-563004?",
+      "success": true,
+      "response": "I'm sorry, but I am currently unable to retrieve the recent budget expenditures for Radwan-563004 due to technical issues. Please try again later.",
+      "expectedKeywords": [
+        "budget",
+        "expenditures",
+        "Radwan-563004"
+      ],
+      "foundKeywords": [
+        "budget",
+        "expenditures",
+        "Radwan-563004"
+      ],
+      "missingKeywords": []
+    },
+    {
+      "category": "Budget Tracking",
+      "question": "Show me the budget category breakdown for patient ID 5",
+      "success": false,
+      "response": "Agent stopped due to max iterations.",
+      "expectedKeywords": [
+        "budget",
+        "category",
+        "breakdown",
+        "patient",
+        "5"
+      ],
+      "foundKeywords": [],
+      "missingKeywords": [
+        "budget",
+        "category",
+        "breakdown",
+        "patient",
+        "5"
+      ]
+    },
+    {
+      "category": "Strategy Insights",
+      "question": "What strategies are working well for patient ID 5?",
+      "success": false,
+      "response": "Agent stopped due to max iterations.",
+      "expectedKeywords": [
+        "strategies",
+        "working",
+        "patient",
+        "5"
+      ],
+      "foundKeywords": [],
+      "missingKeywords": [
+        "strategies",
+        "working",
+        "patient",
+        "5"
+      ]
+    },
+    {
+      "category": "Strategy Insights",
+      "question": "Analyze the effectiveness of communication strategies for Radwan-563004",
+      "success": false,
+      "response": "There are no communication strategies to analyze for patient Radwan-563004.",
+      "expectedKeywords": [
+        "effectiveness",
+        "strategies",
+        "communication",
+        "Radwan-563004"
+      ],
+      "foundKeywords": [
+        "strategies",
+        "communication",
+        "Radwan-563004"
+      ],
+      "missingKeywords": [
+        "effectiveness"
+      ]
+    },
+    {
+      "category": "Strategy Insights",
+      "question": "Which strategies should be modified for patient ID 5?",
+      "success": false,
+      "response": "I'm sorry, but I'm currently unable to retrieve the strategy information for patient ID 5 due to a technical issue. Please try again later.",
+      "expectedKeywords": [
+        "strategies",
+        "modified",
+        "patient",
+        "5"
+      ],
+      "foundKeywords": [
+        "patient",
+        "5"
+      ],
+      "missingKeywords": [
+        "strategies",
+        "modified"
+      ]
+    },
+    {
+      "category": "Report Generation",
+      "question": "Generate a progress report for patient ID 5",
+      "success": true,
+      "response": "I'm sorry, but I can't generate a progress report for patient ID 5 at this time. There are missing fields in the patient's information: age, management type. Please update the missing information before generating a progress report.",
+      "expectedKeywords": [
+        "progress",
+        "report",
+        "patient",
+        "5"
+      ],
+      "foundKeywords": [
+        "progress",
+        "report",
+        "patient",
+        "5"
+      ],
+      "missingKeywords": []
+    },
+    {
+      "category": "Report Generation",
+      "question": "Create a summary report for Radwan-563004's recent sessions",
+      "success": true,
+      "response": "The summary report for Radwan-563004's recent sessions is as follows:\n\nPatient Information:\nName: Radwan-563004\nAge: Unknown\nOnboarding Status: pending\nManagement Type: Unknown\n\nGoals:\nFound 5 goals for patient Radwan-563004 (ID: 84).\nGoal Status Summary:\n- Completed: 0 (0%)\n- In Progress: 5 (100%)\n- Not Started: 0 (0%)\n\nRecent Sessions:\nFound 10 sessions for Radwan-563004 (ID: 84) over the last 3 months.\nTotal Duration: 585 minutes, Average Duration: 58.5 minutes per session.\n\nShowing first 5 sessions:\n[\n  {\n    \"id\": 245,\n    \"date\": \"2025-04-26\",\n    \"duration\": 60,\n    \"notes\": \"\"\n  },\n  {\n    \"id\": 244,\n    \"date\": \"2025-04-25\",\n    \"duration\": 60,\n    \"notes\": \"\"\n  },\n  {\n    \"id\": 243,\n    \"date\": \"2025-04-25\",\n    \"duration\": 60,\n    \"notes\": \"\"\n  },\n  {\n    \"id\": 242,\n    \"date\": \"2025-04-17\",\n    \"duration\": 60,\n    \"notes\": \"\"\n  },\n  {\n    \"id\": 233,\n    \"date\": \"2025-04-06\",\n    \"duration\": 60,\n    \"notes\": \"Client made excellent progress\"\n  }\n]",
+      "expectedKeywords": [
+        "summary",
+        "report",
+        "Radwan-563004",
+        "sessions"
+      ],
+      "foundKeywords": [
+        "summary",
+        "report",
+        "Radwan-563004",
+        "sessions"
+      ],
+      "missingKeywords": []
+    }
+  ],
+  "categoryResults": {
+    "Session Engagement": {
+      "total": 2,
+      "success": 1,
+      "successRate": 50
+    },
+    "Goal Tracking": {
+      "total": 3,
+      "success": 3,
+      "successRate": 100
+    },
+    "Budget Tracking": {
+      "total": 3,
+      "success": 1,
+      "successRate": 33.33333333333333
+    },
+    "Strategy Insights": {
+      "total": 3,
+      "success": 0,
+      "successRate": 0
+    },
+    "Report Generation": {
+      "total": 2,
+      "success": 2,
+      "successRate": 100
+    }
+  },
+  "overallSuccessRate": 53.84615384615385,
+  "timestamp": "2025-05-02T09-50-16.765Z"
+}

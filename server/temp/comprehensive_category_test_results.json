@@ -1,0 +1,211 @@
+{
+  "timestamp": "2025-05-02T09:27:20.382Z",
+  "totalTests": 10,
+  "successfulTests": 5,
+  "failedTests": 5,
+  "successRate": "50.00%",
+  "results": [
+    {
+      "category": "Budget Tracking",
+      "question": "How much of Radwan-563004's NDIS budget remains?",
+      "answer": "I'm sorry, but I am currently unable to retrieve the remaining budget for Radwan-563004 due to a technical issue. Please try again later.",
+      "success": false,
+      "expectedKeywords": [
+        "budget",
+        "remains",
+        "Radwan-563004"
+      ],
+      "foundKeywords": [
+        "budget",
+        "Radwan-563004"
+      ],
+      "missingKeywords": [
+        "remains"
+      ],
+      "timestamp": "2025-05-02T09:22:48.485Z"
+    },
+    {
+      "category": "Budget Tracking",
+      "question": "What are the recent budget expenditures for patient ID 5?",
+      "answer": "Agent stopped due to max iterations.",
+      "success": false,
+      "expectedKeywords": [
+        "budget",
+        "expenditures",
+        "patient",
+        "5"
+      ],
+      "foundKeywords": [],
+      "missingKeywords": [
+        "budget",
+        "expenditures",
+        "patient",
+        "5"
+      ],
+      "timestamp": "2025-05-02T09:24:52.292Z"
+    },
+    {
+      "category": "Session Engagement",
+      "question": "How many sessions did Radwan-563004 attend last month?",
+      "answer": "Radwan-563004 attended 9 sessions last month.",
+      "success": true,
+      "expectedKeywords": [
+        "sessions",
+        "attend",
+        "Radwan-563004"
+      ],
+      "foundKeywords": [
+        "sessions",
+        "attend",
+        "Radwan-563004"
+      ],
+      "missingKeywords": [],
+      "timestamp": "2025-05-02T09:24:59.943Z"
+    },
+    {
+      "category": "Session Engagement",
+      "question": "What was the average duration of sessions for patient ID 5?",
+      "answer": "The average duration of sessions for patient ID 5 is 55.0 minutes.",
+      "success": true,
+      "expectedKeywords": [
+        "average",
+        "duration",
+        "sessions",
+        "patient",
+        "5"
+      ],
+      "foundKeywords": [
+        "average",
+        "duration",
+        "sessions",
+        "patient",
+        "5"
+      ],
+      "missingKeywords": [],
+      "timestamp": "2025-05-02T09:25:05.268Z"
+    },
+    {
+      "category": "Strategy Insights",
+      "question": "What strategies have been effective for Radwan-563004's communication goals?",
+      "answer": "Radwan-563004 does not have any communication goals.",
+      "success": false,
+      "expectedKeywords": [
+        "strategies",
+        "effective",
+        "Radwan-563004",
+        "communication"
+      ],
+      "foundKeywords": [
+        "Radwan-563004",
+        "communication"
+      ],
+      "missingKeywords": [
+        "strategies",
+        "effective"
+      ],
+      "timestamp": "2025-05-02T09:25:14.050Z"
+    },
+    {
+      "category": "Strategy Insights",
+      "question": "Which strategies should we try next for patient ID 5's mobility goals?",
+      "answer": "The patient doesn't have any mobility goals currently.",
+      "success": false,
+      "expectedKeywords": [
+        "strategies",
+        "next",
+        "patient",
+        "5",
+        "mobility"
+      ],
+      "foundKeywords": [
+        "patient",
+        "mobility"
+      ],
+      "missingKeywords": [
+        "strategies",
+        "next",
+        "5"
+      ],
+      "timestamp": "2025-05-02T09:25:22.878Z"
+    },
+    {
+      "category": "Goal Tracking",
+      "question": "What progress has Radwan-563004 made on their mobility goal?",
+      "answer": "I'm sorry, but I am currently unable to retrieve the goals for Radwan. Please try again later.",
+      "success": false,
+      "expectedKeywords": [
+        "progress",
+        "Radwan-563004",
+        "mobility",
+        "goal"
+      ],
+      "foundKeywords": [
+        "goal"
+      ],
+      "missingKeywords": [
+        "progress",
+        "Radwan-563004",
+        "mobility"
+      ],
+      "timestamp": "2025-05-02T09:26:03.918Z"
+    },
+    {
+      "category": "Goal Tracking",
+      "question": "Show me the goals for patient ID 5",
+      "answer": "I'm sorry, but I'm currently unable to retrieve the goals for patient ID 5 due to a system issue. Please try again later.",
+      "success": true,
+      "expectedKeywords": [
+        "goals",
+        "patient",
+        "5"
+      ],
+      "foundKeywords": [
+        "goals",
+        "patient",
+        "5"
+      ],
+      "missingKeywords": [],
+      "timestamp": "2025-05-02T09:26:59.964Z"
+    },
+    {
+      "category": "Report Generation",
+      "question": "Generate a progress summary for Radwan-563004",
+      "answer": "The progress summary for Radwan-563004 shows that there have been 10 sessions over the last 3 months, with a total duration of 585 minutes and an average duration of 58.5 minutes per session. Unfortunately, there was an error retrieving the patient's goals. This issue should be reported to the technical team for resolution.",
+      "success": true,
+      "expectedKeywords": [
+        "progress",
+        "summary",
+        "Radwan-563004"
+      ],
+      "foundKeywords": [
+        "progress",
+        "summary",
+        "Radwan-563004"
+      ],
+      "missingKeywords": [],
+      "timestamp": "2025-05-02T09:27:12.822Z"
+    },
+    {
+      "category": "Report Generation",
+      "question": "Check if all the data needed for patient ID 5's progress report is available",
+      "answer": "No, all the necessary data for patient ID 5's progress report is not available. There are missing fields in the patient's information: age, management type. Please update the missing information before generating a progress report.",
+      "success": true,
+      "expectedKeywords": [
+        "data",
+        "progress",
+        "report",
+        "patient",
+        "5"
+      ],
+      "foundKeywords": [
+        "data",
+        "progress",
+        "report",
+        "patient",
+        "5"
+      ],
+      "missingKeywords": [],
+      "timestamp": "2025-05-02T09:27:20.372Z"
+    }
+  ]
+}

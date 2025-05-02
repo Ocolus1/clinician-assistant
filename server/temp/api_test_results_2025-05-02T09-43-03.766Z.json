@@ -1,0 +1,111 @@
+{
+  "results": [
+    {
+      "category": "Session Engagement",
+      "question": "How many sessions has patient ID 5 had?",
+      "success": false,
+      "error": "API returned status 404"
+    },
+    {
+      "category": "Session Engagement",
+      "question": "Show me the recent session history for Radwan-563004",
+      "success": false,
+      "error": "API returned status 404"
+    },
+    {
+      "category": "Goal Tracking",
+      "question": "Show me the goals for patient ID 5",
+      "success": false,
+      "error": "API returned status 404"
+    },
+    {
+      "category": "Goal Tracking",
+      "question": "What are the current goals for Radwan-563004?",
+      "success": false,
+      "error": "API returned status 404"
+    },
+    {
+      "category": "Goal Tracking",
+      "question": "What progress has been made on patient ID 5's mobility goals?",
+      "success": false,
+      "error": "API returned status 404"
+    },
+    {
+      "category": "Budget Tracking",
+      "question": "How much of patient ID 5's NDIS budget remains?",
+      "success": false,
+      "error": "API returned status 404"
+    },
+    {
+      "category": "Budget Tracking",
+      "question": "What are the recent budget expenditures for Radwan-563004?",
+      "success": false,
+      "error": "API returned status 404"
+    },
+    {
+      "category": "Budget Tracking",
+      "question": "Show me the budget category breakdown for patient ID 5",
+      "success": false,
+      "error": "API returned status 404"
+    },
+    {
+      "category": "Strategy Insights",
+      "question": "What strategies are working well for patient ID 5?",
+      "success": false,
+      "error": "API returned status 404"
+    },
+    {
+      "category": "Strategy Insights",
+      "question": "Analyze the effectiveness of communication strategies for Radwan-563004",
+      "success": false,
+      "error": "API returned status 404"
+    },
+    {
+      "category": "Strategy Insights",
+      "question": "Which strategies should be modified for patient ID 5?",
+      "success": false,
+      "error": "API returned status 404"
+    },
+    {
+      "category": "Report Generation",
+      "question": "Generate a progress report for patient ID 5",
+      "success": false,
+      "error": "API returned status 404"
+    },
+    {
+      "category": "Report Generation",
+      "question": "Create a summary report for Radwan-563004's recent sessions",
+      "success": false,
+      "error": "API returned status 404"
+    }
+  ],
+  "categoryResults": {
+    "Session Engagement": {
+      "total": 2,
+      "success": 0,
+      "successRate": 0
+    },
+    "Goal Tracking": {
+      "total": 3,
+      "success": 0,
+      "successRate": 0
+    },
+    "Budget Tracking": {
+      "total": 3,
+      "success": 0,
+      "successRate": 0
+    },
+    "Strategy Insights": {
+      "total": 3,
+      "success": 0,
+      "successRate": 0
+    },
+    "Report Generation": {
+      "total": 2,
+      "success": 0,
+      "successRate": 0
+    }
+  },
+  "overallSuccessRate": 0,
+  "timestamp": "2025-05-02T09-43-03.766Z"
+}
