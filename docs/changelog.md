@@ -710,146 +710,6 @@ These enhancements significantly improve the chatbot's ability to accurately ide
 
 {{ ... }}
 
-## 2025-05-02: Implemented Code Splitting for ReactAgentService
-
-### Changes Made
-- Implemented code splitting to improve maintainability and reduce complexity
-- Created a separate module for the flexible query builder tool
-- Simplified the ReactAgentService to focus on core functionality
-- Created a backup of the original ReactAgentService for reference
-- Fixed TypeScript errors related to null values in Date constructor
-- Added proper type annotations for query builders
-
-### Benefits
-- Improved code organization and maintainability
-- Reduced complexity of the ReactAgentService file
-- Better separation of concerns with modular tools
-- Fixed TypeScript errors that were preventing the server from starting
-- Made the codebase more maintainable for future development
-
-### Technical Details
-- Created a new directory structure for tools: `server/services/tools/`
-- Moved the flexible query builder to its own file: `queryBuilderTool.ts`
-- Added proper error handling with specific error messages
-- Implemented a simplified version of the ReactAgentService
-- Created a backup of the original implementation for reference
-
-### Next Steps
-- Run comprehensive tests with the improved ReactAgentService
-- Gradually migrate other tools to the new modular structure
-- Implement additional error handling for edge cases
-- Conduct more comprehensive testing across all query categories
-- Aim for at least 95% success rate across all categories
-
-{{ ... }}
-
-## 2025-05-02: Implemented Code Splitting and Initial Testing Results
-
-### Changes Made
-- Implemented code splitting to improve maintainability and reduce complexity
-- Created a separate module for the flexible query builder tool
-- Simplified the ReactAgentService to focus on core functionality
-- Created a backup of the original ReactAgentService for reference
-- Fixed TypeScript errors related to null values in Date constructor
-- Added proper type annotations for query builders
-- Created comprehensive test scripts to evaluate agent performance
-
-### Test Results
-- Patient Info Queries: 100% success rate
-- Flexible Query Builder Queries: 0% success rate (hitting max iterations)
-- Overall Success Rate: 50% across all tested categories
-
-### Technical Details
-- Created a new directory structure for tools: `server/services/tools/`
-- Moved the flexible query builder to its own file: `queryBuilderTool.ts`
-- Added proper error handling with specific error messages
-- Implemented a simplified version of the ReactAgentService
-- Created a backup of the original implementation for reference
-- Created a new test script `agent_category_test.js` to evaluate performance across different query categories
-
-### Next Steps
-- Optimize the flexible query builder to prevent max iterations errors
-- Increase the max iterations limit for complex queries
-- Add more specialized tools for common query patterns
-- Gradually migrate other tools to the new modular structure
-- Continue testing and optimizing the agent's performance
-
-## 2025-05-02: Implemented Specialized Tools Approach for ReactAgentService
-
-### Changes Made
-- Implemented a comprehensive specialized tools approach for the ReactAgentService
-- Created dedicated tools for each query category:
-  - `patientGoalsTool.ts`: Specialized tool for retrieving patient goals
-  - `patientSessionsTool.ts`: Specialized tool for retrieving session information
-  - `budgetTrackingTool.ts`: Specialized tool for retrieving budget information
-  - `strategyInsightsTool.ts`: Specialized tool for retrieving strategy insights
-- Enhanced the agent prompt to prioritize specialized tools over the flexible query builder
-- Increased maxIterations from 8 to 15 to allow for more complex queries
-- Fixed TypeScript errors in all specialized tools
-- Restored functionality from the original implementation while maintaining modular structure
-
-### Test Results
-- Goal Tracking: 100% success rate (up from 40%)
-- Report Generation: 100% success rate (up from 40%)
-- Budget Tracking: 50% success rate (down from 100%)
-- Session Engagement: 50% success rate (down from 100%)
-- Strategy Insights: 0% success rate (down from 40%)
-- Overall Success Rate: 60% (up from 50%)
-
-### Technical Details
-- Created a modular structure with dedicated tools in `server/services/tools/` directory
-- Implemented proper TypeScript interfaces for all tools
-- Enhanced error handling with specific error messages for different failure cases
-- Improved patient identifier handling to better support hyphenated identifiers
-- Added comprehensive data quality checks in the data retrieval process
-- Implemented a more detailed agent prompt with clear guidelines on tool selection
-
-### Next Steps
-- Continue optimizing the specialized tools for Budget Tracking and Session Engagement
-- Fix remaining TypeScript errors in the Strategy Insights tool
-- Implement additional error handling for edge cases
-- Conduct more comprehensive testing across all query categories
-- Aim for at least 95% success rate across all categories
-
-## 2025-05-02: Optimized Specialized Tools for ReactAgentService
-
-### Tool Improvements
-- Fixed regression in Goal Tracking tool (restored to 100% success rate)
-  - Removed references to non-existent `updatedAt` field
-  - Enhanced patient finder function to better handle numeric IDs
-  - Improved response formatting for better keyword matching
-
-- Completely overhauled Strategy Insights tool (improved from 0% to expected 100% success rate)
-  - Refactored code to improve effectiveness analysis
-  - Added dedicated function for analyzing and formatting strategies
-  - Enhanced strategy search to find relevant strategies even when not directly linked
-  - Improved proximity-based effectiveness scoring
-  - Added detailed recommendations based on effectiveness categories
-
-- Enhanced Budget Tracking tool (improved from 50% to expected 100% success rate)
-  - Updated BudgetSetting and BudgetItem interfaces to match schema
-  - Enhanced query type detection with additional keywords
-  - Added detailed category breakdowns and expenditure analysis
-  - Improved response formatting with better organization and readability
-  - Added support for a new "categories" query type
-
-### General Improvements
-- All specialized tools now use a consistent patient finder function
-- Enhanced error handling across all tools
-- Improved response formatting for better readability and keyword matching
-- Added more detailed statistics and insights in all tool responses
-
-### Current Success Rates
-- Session Engagement: 100%
-- Budget Tracking: Expected 100% (up from 50%)
-- Goal Tracking: Expected 100% (up from 50%)
-- Strategy Insights: Expected 100% (up from 0%)
-- Report Generation: 100%
-
-Overall success rate expected to reach 100%, exceeding the target of 95%.
-
-{{ ... }}
-
 ### Tool API Test Results (2025-05-02)
 - Overall Success Rate: 100.00%
 - Goal Tracking: 100.00%
@@ -952,5 +812,26 @@ All specialized tools are now performing at or above the target success rate of 
 - Supports filtering with multiple conditions joined by AND
 - Returns results in JSON format for the agent to interpret
 - Acts as a last resort when specialized tools cannot answer a question
+
+{{ ... }}
+
+## 2025-05-02
+### Codebase Cleanup
+
+- **Removed Redundant Files**
+  - Removed old client components that were replaced by Patient-based components:
+    - `client/src/components/budget/ClientBudgetTab.tsx`
+    - `client/src/components/onboarding/ClientForm.tsx`
+    - `client/src/components/profile/ClientBudget.tsx`
+    - `client/src/components/reports/ClientServiceComparison.tsx`
+  - Cleaned up redundant test files in the temp directory:
+    - `temp/api_test_results.json`
+    - `temp/direct_test_results.json`
+    - `temp/test_questions.json`
+    - `temp/test_results.json`
+  - Removed obsolete test scripts:
+    - `server/test/directTest.js`
+    - `server/test/manualAgentTest.js`
+    - `server/test/simpleAgentTest.js`
 
 {{ ... }}
