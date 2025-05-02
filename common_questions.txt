@@ -1,0 +1,105 @@
+🧒 Goal & Milestone Tracking (Parent Value)
+
+What goals is Olivia currently working on?
+
+Has Leo made progress on his “improve communication” goal?
+
+Which subgoals were scored for Noah in his last session?
+
+What milestone did Mia work on most recently?
+
+What was Ava’s last milestone score?
+
+Which milestone is showing the most improvement?
+
+Has Jacob completed any subgoals yet?
+
+What is Ethan’s average milestone score over time?
+
+Which goal is Harper making the most progress on?
+
+Are there any goals that haven’t been updated in over a month?
+
+🧠 Strategy Insights (Evidence-Based Feedback)
+What strategies were used most frequently with Charlotte?
+
+Which strategies work best for Lucas under the “emotional regulation” goal?
+
+What are the top 5 strategies that worked for Jack in clinic?
+
+Which strategies are least effective for Grace?
+
+Are there patterns in strategy effectiveness by milestone?
+
+Which strategies were used in the last 3 sessions for Sophie?
+
+Show me all strategies tagged for the milestone “initiate social interaction.”
+
+Which strategy was used most in April for Henry?
+
+What’s the success rate of the “visual schedule” strategy with Ava?
+
+Are certain strategies used more for specific disciplines (e.g., OT vs. Speech)?
+
+📅 Session & Therapy Engagement
+How many sessions has Olivia attended this month?
+
+Who missed their last scheduled session?
+
+Which clients haven’t attended therapy in 3 weeks?
+
+What’s the frequency of Mia’s sessions compared to the plan?
+
+When was the last session for Leo?
+
+Which clients have upcoming sessions this week?
+
+Has Ethan had at least 2 sessions per month as agreed?
+
+Who cancelled their session this week?
+
+What was discussed or scored in Noah’s most recent session?
+
+Are there any sessions that haven’t been logged yet?
+
+📊 Report & Feedback Generation
+Generate a progress report for Ava’s communication goal.
+
+What’s Olivia’s progress summary across all goals?
+
+Which milestones need to be reviewed or updated?
+
+Show me a strategy summary to share with Jack’s teacher.
+
+Which clients are due for a report this month?
+
+When was the last parent summary created for Leo?
+
+Has a school feedback report been generated for Grace?
+
+Are there missing strategy tags for any sessions?
+
+What evidence can we show to justify Ethan’s NDIS goal progress?
+
+Who should receive a strategy summary this week?
+
+💰 Budget Tracking (Clinician Value)
+How much funding is left in Mia’s budget plan?
+
+When does Olivia’s budget plan expire?
+
+How many sessions are remaining for Lucas?
+
+Which clients have less than 20% of their budget left?
+
+Who hasn’t used any sessions in the past 30 days?
+
+Are there any expired budgets with leftover funds?
+
+Which clients are at risk of leaving funding unused?
+
+What’s Henry's average spend rate per week?
+
+Which clients need prioritizing before the budget expires?
+
+How much revenue could be recovered by utilizing all available NDIS funding?
