@@ -179,6 +179,13 @@
   }
 }
 
+/* Toast styles */
+.success {
+  border-color: hsl(142.1 76.2% 36.3%);
+  background-color: hsl(142.1 76.2% 36.3%);
+  color: hsl(0 0% 100%);
+}
+
 /* Calendar styling */
 .rdp {
   position: relative;
