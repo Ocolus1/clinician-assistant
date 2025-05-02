@@ -2,6 +2,7 @@ import { Switch, Route, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
+import { ToastContextProvider } from "@/components/ui/toast-context";
 import NotFound from "@/pages/not-found";
 import Dashboard from "@/pages/Dashboard";
 import ModularDashboard from "@/pages/ModularDashboard";
@@ -16,6 +17,7 @@ import Reports from "@/pages/Reports";
 import Settings from "@/pages/Settings";
 import TestBudget from "@/pages/TestBudget";
 import BudgetDebugPage from "@/pages/BudgetDebugPage";
+import ClinicianChat from "@/pages/ClinicianChat";
 import { AppLayout } from "@/components/layout/AppLayout";
 
 function Router() {
@@ -29,6 +31,11 @@ function Router() {
   // Special case for print summary route
   if (location.startsWith("/print-summary")) {
     return <PrintSummary />;
+  }
+  
+  // Special case for clinician chat route
+  if (location === "/clinician-chat") {
+    return <ClinicianChat />;
   }
   
   // For all other routes, use the standard app layout
@@ -58,13 +65,13 @@ function Router() {
   );
 }
 
-function App() {
+export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <Router />
-      <Toaster />
+      <ToastContextProvider>
+        <Router />
+        <Toaster />
+      </ToastContextProvider>
     </QueryClientProvider>
   );
 }
-
-export default App;
