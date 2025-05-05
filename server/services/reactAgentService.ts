@@ -18,6 +18,7 @@ import { getPatientBudget } from './tools/budgetTrackingTool';
 import { getPatientStrategies } from './tools/strategyInsightsTool';
 import { getExpiringBudgets } from './tools/budgetExpirationTool';
 import { getPatientCount, getFilteredPatientCount } from './tools/patientCountTool';
+import { findPatientsByName } from './tools/patientFinderTool';
 
 /**
  * ReactAgentService - A service that uses a ReAct agent to process natural language queries
@@ -94,6 +95,20 @@ class ReactAgentService {
           } catch (error) {
             console.error("Error in get_patient_info tool:", error);
             return "Error retrieving patient information.";
+          }
+        }
+      }),
+      
+      // Tool for finding patients by name
+      new DynamicTool({
+        name: "find_patients_by_name",
+        description: "Find patients whose names match a search term (e.g., 'Radwan')",
+        func: async (input: string) => {
+          try {
+            return await findPatientsByName(input);
+          } catch (error) {
+            console.error("Error in find_patients_by_name tool:", error);
+            return "Error finding patients by name.";
           }
         }
       }),
@@ -549,26 +564,27 @@ class ReactAgentService {
       this.llm,
       tools,
       {
-        prefix: `You are a helpful assistant for clinicians working with patients. You have access to a database with patient information, goals, strategies, sessions, and budget data. Your job is to answer questions about patients and their progress.
+        prefix: `You are an AI assistant helping clinicians query patient data. You have access to these tools:
 
-When answering questions, always use the most appropriate tool for the job:
+1. get_patient_info: Get information about a specific patient by ID or name
+2. find_patients_by_name: Find patients whose names match a search term (e.g., 'Radwan')
+3. get_caregiver_info: Get information about a patient's caregivers
+4. get_patient_goals: Get a patient's goals and progress
+5. get_patient_sessions: Get a patient's session history and notes
+6. get_patient_budget: Get a patient's budget information
+7. get_patient_strategies: Get strategies used with a patient and their effectiveness
+8. get_expiring_budgets: Get a list of patients with budgets expiring soon
+9. get_patient_count: Get the total number of patients or filtered by criteria
+10. flexible_query_builder: Build and execute a custom database query (advanced)
 
-1. For patient information, use get_patient_info
-2. For caregiver information, use get_caregiver_info
-3. For patient goals, use get_patient_goals
-4. For session information, use get_patient_sessions
-5. For budget information, use get_budget_info
-6. For strategy insights, use get_patient_strategies
-7. For progress summaries, use generate_progress_summary
-8. For report status checks, use check_report_status
-9. For goal progress reports, use generate_goal_progress_report
-10. For complex database queries not covered by specialized tools, use flexible_query_builder as a last resort
-
-Always try to use the specialized tools first before falling back to the flexible_query_builder.
-
-When using tools that require a patient identifier, you can use either the patient's name, ID, or a hyphenated identifier (e.g., "Radwan-765193").
-
-For tools that accept optional parameters (like get_patient_sessions, get_patient_budget, get_patient_strategies), provide these parameters when relevant to the query.
+IMPORTANT GUIDELINES:
+- For questions about finding patients by name, ALWAYS use the find_patients_by_name tool first
+- For questions about a specific patient, use get_patient_info
+- For questions about patient goals, use get_patient_goals
+- For questions about patient sessions, use get_patient_sessions
+- For questions about patient budgets, use get_patient_budget
+- For questions about patient strategies, use get_patient_strategies
+- Only use flexible_query_builder for complex queries that can't be handled by the specialized tools
 
 You can solve tasks step-by-step by using multiple tools in sequence. For example, first get patient information, then get their goals, and finally generate a progress summary.`,
         suffix: `Begin! Remember to use the most appropriate tools to provide accurate information.

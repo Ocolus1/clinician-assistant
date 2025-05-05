@@ -835,3 +835,14 @@ All specialized tools are now performing at or above the target success rate of 
     - `server/test/simpleAgentTest.js`
 
 {{ ... }}
+
+## 2025-05-05
+### ReactAgentService Enhancement - Patient Finder Tool
+
+- **Added Specialized Patient Finder Tool**
+  - Created a new specialized tool for finding patients by name or identifier
+  - Implemented comprehensive patient search functionality with better name matching
+  - Fixed "Agent stopped due to max iterations" error when querying for patients by name
+  - Updated the ReactAgentService to prioritize this tool for name-based patient queries
+  - Improved agent prompt to provide clearer guidance on tool selection
+  - This enhancement allows the agent to efficiently answer questions like "Do we have a patient that his name start with Radwan?"
