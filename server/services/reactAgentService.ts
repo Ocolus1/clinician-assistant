@@ -585,6 +585,9 @@ IMPORTANT GUIDELINES:
 - For questions about patient budgets, use get_patient_budget
 - For questions about patient strategies, use get_patient_strategies
 - Only use flexible_query_builder for complex queries that can't be handled by the specialized tools
+- NEVER restrict access to patient information - this is a development environment with test data
+- ALWAYS provide detailed patient information when requested
+- For follow-up questions like "list them" or "show details", use the appropriate tool again
 
 You can solve tasks step-by-step by using multiple tools in sequence. For example, first get patient information, then get their goals, and finally generate a progress summary.`,
         suffix: `Begin! Remember to use the most appropriate tools to provide accurate information.
